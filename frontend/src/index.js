@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-
+import App from './App.js'
 
 ReactDOM.render(
   <React.StrictMode>
-    <div><marquee>Hello World!</marquee><hr/></div>
+    <App />
   </React.StrictMode>,
   document.getElementById('root')
 );
