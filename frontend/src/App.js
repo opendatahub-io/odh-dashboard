@@ -111,7 +111,7 @@ function App() {
     </CardHeader>  
 
     <CardBody>
-    Kubeflow is a free and open-source machine learning platform developed by Google in 2017
+    The Kubeflow project is dedicated to making deployments of machine learning (ML) workflows on Kubernetes developed by Google in 2017
     </CardBody><br />
     <CardFooter>
     <Button component="a" variant="link" href="https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login" target="_blank" icon={<ExternalLinkSquareAltIcon />}>
@@ -130,7 +130,7 @@ function App() {
           </CardHeaderMain>
     </CardHeader>  
     <CardBody>
-      OpenShift is a family of containerization software developed by Red Hat - Container Platform
+      OpenShift is a family of containerization software developed by Red Hat - flagship product is the OpenShift Container Platform
     </CardBody><br />
     <CardFooter>
     <Button component="a" variant="link" href="https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login" target="_blank" icon={<ExternalLinkSquareAltIcon />}>
@@ -149,7 +149,7 @@ function App() {
           </CardHeaderMain>
     </CardHeader>  
     <CardBody>
-    Grafana is a multi-platform open source analytics and interactive visualization web application
+    Grafana is a multi-platform open source analytics and interactive visualization web application written in Go
     </CardBody><br />
     <CardFooter>
     <Button component="a" variant="link" href="https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login" target="_blank" icon={<ExternalLinkSquareAltIcon />}>
