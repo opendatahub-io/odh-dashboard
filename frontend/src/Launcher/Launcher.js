@@ -6,8 +6,8 @@
   GridItem
   } from '@patternfly/react-core';
   import OdhAppCard from './components/OdhAppCard';
-  import imgOpenShift from '../images/openShift.svg'
-  import imgJupyter from '../images/jupyterHub.svg'
+  import imgOpenShift from '../images/openshift.svg'
+  import imgJupyter from '../images/jupyterhub.svg'
   import imgSpark from '../images/spark.png'
   import imgKubeFlow from '../images/kubeflow.png'
   import imgGrafana from '../images/grafana.png'
