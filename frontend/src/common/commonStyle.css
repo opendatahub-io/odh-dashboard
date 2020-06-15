@@ -1,0 +1,25 @@
+.gridItem{
+
+border-style: solid;
+border-color: #00264d;
+background-color: #E0E9F3;
+margin:"10px 10px 10px 10px";
+padding: 5px;
+}
+
+.cardItem{
+
+border-style: none;
+margin:"10px 10px 10px 10px";
+padding: 10px;
+}
+
+.cardItem:hover{
+border-style: solid;
+background-color: #F5F9FB;
+border-color: #35D8F9;
+}
+
+.header{
+height: 100px;
+}

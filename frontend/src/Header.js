@@ -1,0 +1,19 @@
+    import React from 'react';
+    import {
+        PageHeader,
+        Brand
+    } from '@patternfly/react-core';
+    import imgLogo from './images/opendatahub.png'
+    import './common/commonStyle.css'
+    
+    
+    /**
+     * It provides Page Header on top of the page
+     */
+    const Header = (
+        <PageHeader
+        logo={<Brand src={imgLogo} alt="ODH Logo" className = "header"/>}
+        />
+    );
+
+    export default Header;
