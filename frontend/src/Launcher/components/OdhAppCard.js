@@ -14,7 +14,7 @@ function OdhAppCard(props) {
         <Card isHoverable className="cardItem">
         <CardHeader>
             <CardHeaderMain>
-            <Brand src={props.img} alt={props.altName} className = "header"/>
+            <Brand src={props.img} alt={props.altName} className = "cardImages"/>
             </CardHeaderMain>
     </CardHeader>  
     <CardBody>

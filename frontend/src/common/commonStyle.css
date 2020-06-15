@@ -23,3 +23,10 @@ border-color: #35D8F9;
 .header{
 height: 100px;
 }
+
+.cardImages{
+    height: 120px;
+    display: flex;
+    align-items: center;
+    
+}
