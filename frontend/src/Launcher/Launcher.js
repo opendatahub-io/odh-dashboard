@@ -14,7 +14,6 @@
   import imgAirflow from '../images/airflow.png'
   import imgArgo from '../images/argo.png'
   import imgSeldon from '../images/seldon.jpg'
-  import '../common/commonStyle.css'
 
   const odhApps = [
   {
@@ -63,7 +62,7 @@
     img: imgArgo,
     altName: 'Argo logo',
     link: 'http://argo-portal-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/workflows',
-    description: 'Argo Workflows is an open source container-native workflow engine',
+    description: 'Argo Workflows is an open source container-native workflow engine for orchestrating parallel jobs on Kubernetes',
     buttonName: 'Launch Argo'
   },
   {
@@ -80,7 +79,7 @@
   return (
     <PageSection variant={PageSectionVariants.light}>
     <Grid hasGutter className="gridItem">
-      {odhApps.map(a => <GridItem span={12} sm={12} md={6} lg={4} xl={3}><OdhAppCard img={a.img} link={a.link} description={a.description} buttonName={a.buttonName} altName={a.altName}/></GridItem>)}
+      {odhApps.map(a => <GridItem span={12} sm={12} md={6} lg={4} xl={3} key={a.altName}><OdhAppCard img={a.img} link={a.link} description={a.description} buttonName={a.buttonName} altName={a.altName}/></GridItem>)}
     </Grid>          
     </PageSection>
       )}

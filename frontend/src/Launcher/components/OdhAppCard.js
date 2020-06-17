@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, Button, CardBody, CardFooter,Brand,CardHeaderMain, CardHeader } from '@patternfly/react-core';
 
 import { ExternalLinkSquareAltIcon } from '@patternfly/react-icons';
-import '../../common/commonStyle.css'
+
 
 
 /**
@@ -12,7 +12,7 @@ function OdhAppCard(props) {
 
     return (
         <Card isHoverable className="cardItem">
-        <CardHeader>
+        <CardHeader className="cardHeader">
             <CardHeaderMain>
             <Brand src={props.img} alt={props.altName} className = "cardImages"/>
             </CardHeaderMain>
@@ -20,7 +20,7 @@ function OdhAppCard(props) {
     <CardBody className="card-description">
     {props.description}
     </CardBody><br />
-    <CardFooter>
+    <CardFooter className="cardFooter">
     <Button component="a" variant="link" href={props.link} target="_blank" icon={<ExternalLinkSquareAltIcon />} iconPosition="right">
         {props.buttonName} 
     </Button>

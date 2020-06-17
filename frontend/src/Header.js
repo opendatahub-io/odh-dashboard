@@ -4,7 +4,6 @@
         Brand
     } from '@patternfly/react-core';
     import imgLogo from './images/opendatahub.png'
-    import './common/commonStyle.css'
     
     
     /**
