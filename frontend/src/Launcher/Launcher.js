@@ -79,8 +79,8 @@
   function Launcher() {
   return (
     <PageSection variant={PageSectionVariants.light}>
-    <Grid hasGutter>
-      {odhApps.map(a => <GridItem span={3}><OdhAppCard img={a.img} link={a.link} description={a.description} buttonName={a.buttonName} altName={a.altName}/></GridItem>)}
+    <Grid hasGutter className="gridItem">
+      {odhApps.map(a => <GridItem span={12} sm={12} md={6} lg={4} xl={3}><OdhAppCard img={a.img} link={a.link} description={a.description} buttonName={a.buttonName} altName={a.altName}/></GridItem>)}
     </Grid>          
     </PageSection>
       )}

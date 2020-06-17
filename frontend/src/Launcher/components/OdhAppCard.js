@@ -17,7 +17,7 @@ function OdhAppCard(props) {
             <Brand src={props.img} alt={props.altName} className = "cardImages"/>
             </CardHeaderMain>
     </CardHeader>  
-    <CardBody>
+    <CardBody className="card-description">
     {props.description}
     </CardBody><br />
     <CardFooter>
