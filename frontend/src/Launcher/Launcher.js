@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import { PageSection, PageSectionVariants, Grid, GridItem } from "@patternfly/react-core";
 import OdhAppCard from "./components/OdhAppCard";
 import imgOpenShift from "../images/openshift.svg";
@@ -78,6 +78,14 @@ const odhApps = [
 ];
 
 function Launcher() {
+
+  useEffect(() => {
+    // GET request using fetch inside useEffect React hook
+    fetch('http://localhost:3000/data')
+        .then(console.log(response => response.json()))
+// empty dependency array means this effect will only run once (like componentDidMount in classes)
+}, []);
+
   return (
     <PageSection variant={PageSectionVariants.light}>
       <Grid hasGutter className="gridItem">
@@ -92,7 +100,7 @@ function Launcher() {
             />
           </GridItem>
         ))}
-      </Grid>
+      </Grid>  
     </PageSection>
   );
 }
