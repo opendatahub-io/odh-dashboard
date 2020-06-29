@@ -1,14 +1,11 @@
-import React, {useEffect} from "react";
-import { PageSection, PageSectionVariants, Grid, GridItem } from "@patternfly/react-core";
-import OdhAppCard from "./components/OdhAppCard";
 
-const response = fetch('http://localhost:3001/data');
-    
 
+const fastify = require('fastify')()
+const path = require('path')
 
 const odhApps = [
   {
-    img: require("../images/jupyterhub.svg"),
+    img: "../images/jupyterhub.svg",
     altName: "JupyterHub logo",
     link: "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:
@@ -16,7 +13,7 @@ const odhApps = [
     buttonName: "Launch Jupyter",
   },
   {
-    img: require("../images/spark.png"),
+    img: "../images/spark.png",
     altName: "Spark logo",
     link:"https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:
@@ -24,7 +21,7 @@ const odhApps = [
     buttonName: "Launch Spark",
   },
   {
-    img: require("../images/kubeflow.png"),
+    img: "../images/kubeflow.png",
     altName: "Kubeflow logo",
     link: "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:
@@ -32,7 +29,7 @@ const odhApps = [
     buttonName: "Launch KubeFlow",
   },
   {
-    img: require("../images/openshift.svg"),
+    img: "../images/openshift.svg",
     altName: "Openshift logo",
     link: "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:
@@ -40,7 +37,7 @@ const odhApps = [
     buttonName: "Launch Openshift",
   },
   {
-    img: require("../images/grafana.png"),
+    img: "../images/grafana.png",
     altName: "Grafana logo",
     link: "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:
@@ -48,7 +45,7 @@ const odhApps = [
     buttonName: "Launch Grafana",
   },
   {
-    img: require("../images/airflow.png"),
+    img: "../images/airflow.png",
     altName: "Airflow logo",
     link: "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:
@@ -56,45 +53,36 @@ const odhApps = [
     buttonName: "Launch AirFlow",
   },
   {
-    img: require("../images/argo.png"),
+    img: "../images/argo.png",
     altName: "Argo logo",
     link: "http://argo-portal-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/workflows",
     description:
       "Argo Workflows is an open source container-native workflow engine for orchestrating parallel jobs on Kubernetes",
     buttonName: "Launch Argo",
-  },
-  {
-    img: require("../images/seldon.jpg"),
-    altName: "Seldon logo",
-    link: "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
-    description:
-      "The Seldon orchestrates all ML deployments providing functionality for monitoring and operations of ML systems",
-    buttonName: "Launch Seldon",
   }
 ];
 
-function Launcher() {
+fastify.get('/data', async (request, response) => {
+  response.status(200).send({ odhApps });
+})
 
-  console.log("Hello")
-  console.log(response)
 
-  return (
-    <PageSection variant={PageSectionVariants.light}>
-      <Grid hasGutter className="gridItem">
-        {odhApps.map((a) => (
-          <GridItem span={12} sm={12} md={6} lg={4} xl={3} key={a.altName}>
-            <OdhAppCard
-              img={a.img}
-              link={a.link}
-              description={a.description}
-              buttonName={a.buttonName}
-              altName={a.altName}
-            />
-          </GridItem>
-        ))}
-      </Grid>  
-    </PageSection>
-  );
-}
+fastify.register(require('fastify-static'), {
+  root: path.join(__dirname, 'public'),
+  prefix: '/public/', // optional: default '/'
+})
 
-export default Launcher;
+fastify.get('/getData', function (req, reply) {
+  reply.sendFile('index.html')
+})
+/*
+const start = async () => {
+  try {
+      await fastify.listen(3001)
+      fastify.log.info(`server listening on ${fastify.server.address().port}`) }
+  catch (err) {
+      fastify.log.error(err)
+      process.exit(1)
+  }}
+  start()
+*/
