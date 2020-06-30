@@ -3,6 +3,11 @@
 const fastify = require('fastify')()
 const path = require('path')
 
+fastify.register(require('fastify-cors'), { 
+  // put your options here
+  origin: true
+})
+
 const odhApps = [
   {
     img: "../images/jupyterhub.svg",
@@ -62,6 +67,7 @@ const odhApps = [
   }
 ];
 
+
 fastify.get('/data', async (request, response) => {
   response.status(200).send({ odhApps });
 })
@@ -75,6 +81,10 @@ fastify.register(require('fastify-static'), {
 fastify.get('/getData', function (req, reply) {
   reply.sendFile('index.html')
 })
+
+fastify.get('/getFile', function (req, reply) {
+  reply.sendFile('odhDataRes.json')
+})
 /*
 const start = async () => {
   try {
@@ -86,3 +96,17 @@ const start = async () => {
   }}
   start()
 */
+
+fastify.get('/demo', (request, reply) => {
+  console.log('Fetching demo data')
+  reply.send({ hello: 'world' })
+})
+
+fastify.listen(8000, err => {
+  if (err) {
+    console.log(err)
+    process.exit(1)
+  }
+  console.log('ok')
+  console.log(`server listening on ${fastify.server.address().port}`)
+})

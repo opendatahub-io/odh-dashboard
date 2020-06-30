@@ -1,9 +1,7 @@
-import React, {useEffect} from "react";
+import React, {useState} from "react";
 import { PageSection, PageSectionVariants, Grid, GridItem } from "@patternfly/react-core";
 import OdhAppCard from "./components/OdhAppCard";
 
-const response = fetch('http://localhost:3001/data');
-    
 
 
 const odhApps = [
@@ -73,10 +71,13 @@ const odhApps = [
   }
 ];
 
+//const [state, setState] = useState({counter:0});
+
 function Launcher() {
 
+  
   console.log("Hello")
-  console.log(response)
+  fetch(`http://localhost:8000/demo`).then(res => res.json().then(console.log("WIP")))
 
   return (
     <PageSection variant={PageSectionVariants.light}>
