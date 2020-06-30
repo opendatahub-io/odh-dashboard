@@ -4,7 +4,6 @@ const fastify = require('fastify')()
 const path = require('path')
 
 fastify.register(require('fastify-cors'), { 
-  // put your options here
   origin: true
 })
 
@@ -67,22 +66,21 @@ const odhApps = [
   }
 ];
 
+const Static = require('fastify-static')
 
-fastify.get('/data', async (request, response) => {
-  response.status(200).send({ odhApps });
-})
+fastify.register(Static, {
+  root: path.join(__dirname, 'frontend/build'),
+  wildcard: false
+});
+
+fastify.get('/*', function(req, reply) {
+  reply.sendFile('index.html');
+});
 
 
-fastify.register(require('fastify-static'), {
-  root: path.join(__dirname, 'public'),
-  prefix: '/public/', // optional: default '/'
-})
 
-fastify.get('/getData', function (req, reply) {
-  reply.sendFile('index.html')
-})
 
-fastify.get('/getFile', function (req, reply) {
+fastify.get('/api/getFile', function (req, reply) {
   reply.sendFile('odhDataRes.json')
 })
 /*

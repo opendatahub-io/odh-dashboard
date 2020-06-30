@@ -77,7 +77,10 @@ function Launcher() {
 
   
   console.log("Hello")
-  fetch(`http://localhost:8000/demo`).then(res => res.json().then(console.log("WIP")))
+  fetch(`http://localhost:8000/api/getFile`).then(response => response.json())
+  .then(response => {
+      console.log(response)
+  })
 
   return (
     <PageSection variant={PageSectionVariants.light}>

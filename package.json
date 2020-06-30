@@ -1,0 +1,25 @@
+{
+  "name": "odh-dashboard",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PARTHSONI95/odh-dashboard.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PARTHSONI95/odh-dashboard/issues"
+  },
+  "homepage": "https://github.com/PARTHSONI95/odh-dashboard#readme",
+  "dependencies": {
+    "fastify": "^2.15.1",
+    "fastify-cors": "^3.0.3",
+    "fastify-static": "^2.7.0"
+  }
+}
