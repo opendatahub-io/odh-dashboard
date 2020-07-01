@@ -2,6 +2,8 @@
 
 const fastify = require('fastify')()
 const path = require('path')
+const {PORT, IP} = require('./utils/constants');
+
 
 fastify.register(require('fastify-cors'), { 
   origin: true
@@ -78,8 +80,6 @@ fastify.get('/*', function(req, reply) {
 });
 
 
-
-
 fastify.get('/api/getFile', function (req, reply) {
   reply.sendFile('odhDataRes.json')
 })
@@ -100,9 +100,10 @@ fastify.get('/demo', (request, reply) => {
   reply.send({ hello: 'world' })
 })
 
-fastify.listen(8000, err => {
+
+fastify.listen(PORT, IP, (err) => {
   if (err) {
-    console.log(err)
+    app.log.error(err)
     process.exit(1)
   }
   console.log('ok')

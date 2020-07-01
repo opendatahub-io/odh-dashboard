@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import { PageSection, PageSectionVariants, Grid, GridItem } from "@patternfly/react-core";
 import OdhAppCard from "./components/OdhAppCard";
 
@@ -70,14 +70,23 @@ const odhApps = [
     buttonName: "Launch Seldon",
   }
 ];
+/*
+const [odhData, setData] = useState({ })
 
-//const [state, setState] = useState({counter:0});
+async function fetchData(){
+  const res = await fetch(`http://localhost:8000/api/getFile`)
+  const data = await res.json()
+  setData(data)
 
+}
+
+useEffect(() => {
+  fetchData()
+},[])
+*/
 function Launcher() {
-
   
-  console.log("Hello")
-  fetch(`http://localhost:8000/api/getFile`).then(response => response.json())
+  fetch(`http://localhost:41405/api/getFile`).then(response => response.json())
   .then(response => {
       console.log(response)
   })
