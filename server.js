@@ -11,7 +11,7 @@ fastify.register(require('fastify-cors'), {
 
 const odhApps = [
   {
-    img: "../images/jupyterhub.svg",
+    img: "../../images/jupyterhub.svg",
     altName: "JupyterHub logo",
     link: "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:
@@ -19,7 +19,7 @@ const odhApps = [
     buttonName: "Launch Jupyter",
   },
   {
-    img: "../images/spark.png",
+    img: "../../images/spark.png",
     altName: "Spark logo",
     link:"https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
     description:

@@ -1,6 +1,6 @@
     [
         {
-        "img": "../images/jupyterhub.svg",
+        "img": "images/jupyterhub.svg",
         "altName": "JupyterHub logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
@@ -8,7 +8,7 @@
         "buttonName": "Launch Jupyter"
         },
         {
-        "img": "../images/spark.png",
+        "img": "images/apache-spark.svg",
         "altName": "Spark logo",
         "link":"https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
@@ -16,7 +16,7 @@
         "buttonName": "Launch Spark"
         },
         {
-        "img": "../images/kubeflow.png",
+        "img": "images/kubeflow.png",
         "altName": "Kubeflow logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
@@ -24,7 +24,7 @@
         "buttonName": "Launch KubeFlow"
         },
         {
-        "img": "../images/openshift.svg",
+        "img": "images/openshift.svg",
         "altName": "Openshift logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
@@ -32,7 +32,7 @@
         "buttonName": "Launch Openshift"
         },
         {
-        "img": "../images/grafana.png",
+        "img": "images/grafana.png",
         "altName": "Grafana logo",
     
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
@@ -41,7 +41,7 @@
         "buttonName": "Launch Grafana"
         },
         {
-        "img": "../images/airflow.png",
+        "img": "images/apache-airflow.svg",
     
         "altName": "Airflow logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
@@ -50,7 +50,7 @@
         "buttonName": "Launch AirFlow"
         },
         {
-        "img": "../images/argo.png",
+        "img": "images/argo.png",
     
         "altName": "Argo logo",
         "link": "http://argo-portal-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/workflows",
@@ -59,7 +59,7 @@
         "buttonName": "Launch Argo"
         },
         {
-        "img": "../images/seldon.jpg", 
+        "img": "images/seldon.jpg", 
         "altName": "Seldon logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
