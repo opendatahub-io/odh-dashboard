@@ -1,5 +1,5 @@
 
-![Image](https://github.com/opendatahub-io/odh-dashboard/tree/master/frontend/public/redHat-icon.png "icon") Open Data Hub Dashboard
+![Image](https://github.com/PARTHSONI95/odh-dashboard/blob/master/frontend/public/images/redHat-icon.png "icon") Open Data Hub Dashboard
 =======================
 
 It's a User interface that queries available Open Data Hub services and provides links and descriptions to each service.
@@ -19,4 +19,4 @@ npm start
 
 ## Output
 
-![Image](https://github.com/opendatahub-io/odh-dashboard/tree/master/frontend/public/odh-output-screen.png)
+![Image](https://github.com/PARTHSONI95/odh-dashboard/blob/master/frontend/public/images/odh-output-screen.png)
