@@ -59,7 +59,7 @@
         "buttonName": "Launch Argo"
         },
         {
-        "img": "images/seldon.jpg", 
+        "img": "images/seldon.png", 
         "altName": "Seldon logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
