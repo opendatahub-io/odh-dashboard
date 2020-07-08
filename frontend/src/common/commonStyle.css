@@ -5,7 +5,7 @@
 .cardItem {
   border-style: none;
   flex-wrap: wrap;
-  height: 500px;
+  height: 365px;
   overflow: auto;
 }
 

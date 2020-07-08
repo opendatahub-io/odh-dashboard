@@ -1,14 +1,17 @@
-import React, {useState, useEffect} from "react";
+import React from "react";
 import { PageSection, PageSectionVariants, Grid, GridItem } from "@patternfly/react-core";
 import OdhAppCard from "./components/OdhAppCard";
 import { useFetch } from "./hooks";
 
-
 function Launcher() {
+
+  const PORT = process.env.PORT || 8080;
+  const IP = process.env.IP || '0.0.0.0';
   
+  let componentLink = "http://"+IP+":"+PORT+"/api/components";
 
   const [data, loading] = useFetch(
-    "http://localhost:8080/api/getFile"
+    componentLink
   );
 
   return (

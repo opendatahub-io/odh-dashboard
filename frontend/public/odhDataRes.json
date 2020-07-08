@@ -2,7 +2,7 @@
         {
         "img": "images/jupyterhub.svg",
         "altName": "JupyterHub logo",
-        "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
+        "link": "https://jupyterhub-opendatahub.apps.croberts14.dev.datahub.redhat.com/",
         "description":
             "Jupyter Notebooks provide a way of creating and sharing documents containing live code, visualisations",
         "buttonName": "Launch Jupyter"
@@ -10,7 +10,7 @@
         {
         "img": "images/apache-spark.svg",
         "altName": "Spark logo",
-        "link":"https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
+        "link":"http://spark-operator-metrics-opendatahub.apps.croberts14.dev.datahub.redhat.com/",
         "description":
             "Apache Spark is an open-source distributed general-purpose cluster-computing framework written in Scala",
         "buttonName": "Launch Spark"
@@ -20,7 +20,7 @@
         "altName": "Kubeflow logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
-            "The Kubeflow project is dedicated to making deployments of machine learning (ML) workflows on Kubernetes developed by Google in 2017",
+            "The Kubeflow project is dedicated to making deployments of machine learning (ML) workflows on Kubernetes developed by Google",
         "buttonName": "Launch KubeFlow"
         },
         {
@@ -28,7 +28,7 @@
         "altName": "Openshift logo",
         "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
         "description":
-            "OpenShift is a family of containerization software developed by Red Hat - flagship product is the OpenShift Container Platform",
+            "OpenShift is a family of containerization software developed by Red Hat - product is the OpenShift Container Platform",
         "buttonName": "Launch Openshift"
         },
         {
@@ -53,7 +53,7 @@
         "img": "images/argo.png",
     
         "altName": "Argo logo",
-        "link": "http://argo-portal-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/workflows",
+        "link": "http://argo-portal-opendatahub.apps.croberts14.dev.datahub.redhat.com/",
         "description":
             "Argo Workflows is an open source container-native workflow engine for orchestrating parallel jobs on Kubernetes",
         "buttonName": "Launch Argo"
