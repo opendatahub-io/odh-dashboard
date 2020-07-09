@@ -1,0 +1,69 @@
+    [
+        {
+        "img": "images/jupyterhub.svg",
+        "altName": "JupyterHub logo",
+        "link": "https://jupyterhub-opendatahub.apps.croberts14.dev.datahub.redhat.com/",
+        "description":
+            "Jupyter Notebooks provide a way of creating and sharing documents containing live code, visualisations",
+        "buttonName": "Launch Jupyter"
+        },
+        {
+        "img": "images/apache-spark.svg",
+        "altName": "Spark logo",
+        "link":"http://spark-operator-metrics-opendatahub.apps.croberts14.dev.datahub.redhat.com/",
+        "description":
+            "Apache Spark is an open-source distributed general-purpose cluster-computing framework written in Scala",
+        "buttonName": "Launch Spark"
+        },
+        {
+        "img": "images/kubeflow.png",
+        "altName": "Kubeflow logo",
+        "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
+        "description":
+            "The Kubeflow project is dedicated to making deployments of machine learning (ML) workflows on Kubernetes developed by Google",
+        "buttonName": "Launch KubeFlow"
+        },
+        {
+        "img": "images/openshift.svg",
+        "altName": "Openshift logo",
+        "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
+        "description":
+            "OpenShift is a family of containerization software developed by Red Hat - product is the OpenShift Container Platform",
+        "buttonName": "Launch Openshift"
+        },
+        {
+        "img": "images/grafana.png",
+        "altName": "Grafana logo",
+    
+        "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
+        "description":
+            "Grafana is a multi-platform open source analytics and interactive visualization web application written in Go",
+        "buttonName": "Launch Grafana"
+        },
+        {
+        "img": "images/apache-airflow.svg",
+    
+        "altName": "Airflow logo",
+        "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
+        "description":
+            "Apache Airflow is a workflow automation and scheduling system that can be used to manage data pipelines",
+        "buttonName": "Launch AirFlow"
+        },
+        {
+        "img": "images/argo.png",
+    
+        "altName": "Argo logo",
+        "link": "http://argo-portal-opendatahub.apps.croberts14.dev.datahub.redhat.com/",
+        "description":
+            "Argo Workflows is an open source container-native workflow engine for orchestrating parallel jobs on Kubernetes",
+        "buttonName": "Launch Argo"
+        },
+        {
+        "img": "images/seldon.png", 
+        "altName": "Seldon logo",
+        "link": "https://jupyterhub-odhdemo.apps.hmf.q7z3.p1.openshiftapps.com/hub/login",
+        "description":
+            "The Seldon orchestrates all ML deployments providing functionality for monitoring and operations of ML systems",
+        "buttonName": "Launch Seldon"
+        }
+    ]    
