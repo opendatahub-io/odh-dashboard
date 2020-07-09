@@ -5,10 +5,8 @@ import { useFetch } from "./hooks";
 
 function Launcher() {
 
-  const PORT = process.env.PORT || 8080;
-  const IP = process.env.IP || '0.0.0.0';
-  
-  let componentLink = "http://"+IP+":"+PORT+"/api/components";
+
+  let componentLink = "/api/components";
 
   const [data, loading] = useFetch(
     componentLink
