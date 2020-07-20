@@ -16,7 +16,7 @@ import { ExternalLinkSquareAltIcon } from "@patternfly/react-icons";
  */
 function OdhAppCard(props) {
   return (
-    <Card isHoverable className="cardItem">
+    <Card isHoverable className="cardItem" onClick={() => window.location.href = props.link}>
       <CardHeader className="cardHeader">
         <CardHeaderMain>
           <Brand src={props.img} alt={props.altName} className="cardImages" />
@@ -24,18 +24,6 @@ function OdhAppCard(props) {
       </CardHeader>
       <CardBody className="card-description">{props.description}</CardBody>
       <br />
-      <CardFooter className="cardFooter">
-        <Button
-          component="a"
-          variant="link"
-          href={props.link}
-          target="_blank"
-          icon={<ExternalLinkSquareAltIcon />}
-          iconPosition="right"
-        >
-          {props.buttonName}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

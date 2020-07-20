@@ -3,6 +3,7 @@
 const path = require('path')
 const Static = require('fastify-static')
 const Cors = require('fastify-cors')
+const { getData } = require('./connectKube');
 
 module.exports = function (fastify, opts, next) {
 
@@ -18,10 +19,14 @@ module.exports = function (fastify, opts, next) {
     fastify.get('/*', function(req, reply) {
         reply.sendFile('index.html');
       });
-      
-      
+
+    
     fastify.get('/api/components', function (req, reply) {
-        reply.sendFile('odhDataRes.json')
+      
+      getData();
+      //console.log(data)
+
+      reply.sendFile('odhDataRes.json');
       })  
 
   next()
