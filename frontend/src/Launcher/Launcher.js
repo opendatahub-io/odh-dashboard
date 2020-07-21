@@ -11,7 +11,7 @@ function Launcher() {
   const [data, loading] = useFetch(
     componentLink
   );
-
+ 
   return (
     <PageSection variant={PageSectionVariants.light}>
       <Grid hasGutter className="gridItem">
@@ -23,6 +23,7 @@ function Launcher() {
               description={a.description}
               buttonName={a.buttonName}
               altName={a.altName}
+              status={a.status}
             />
           </GridItem>
         ))}
