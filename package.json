@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/PARTHSONI95/odh-dashboard#readme",
   "dependencies": {
+    "@kubernetes/client-node": "^0.12.0",
     "fastify": "^2.15.1",
     "fastify-cors": "^3.0.3",
     "fastify-static": "^2.7.0"
