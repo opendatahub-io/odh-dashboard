@@ -5,7 +5,7 @@ metadata:
     kubernetes.io/tls-acme: 'true'
   labels:
     app: odh-dashboard
-  name: odh-dashboard-new 
+  name: odh-dashboard 
 spec:
   port:
     targetPort: 8080
