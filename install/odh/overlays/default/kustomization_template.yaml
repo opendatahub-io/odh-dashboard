@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ${OC_PROJECT}
+bases:
+- ../../base
+patches:
+- role_binding_patch.yaml

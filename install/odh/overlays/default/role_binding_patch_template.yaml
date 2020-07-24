@@ -1,0 +1,8 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: odh-dashboard
+subjects:
+  - kind: ServiceAccount
+    name: odh-dashboard
+    namespace: ${OC_PROJECT}
