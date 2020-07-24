@@ -5,6 +5,9 @@ const Static = require('fastify-static')
 const Cors = require('fastify-cors')
 const { getData } = require('./connectKube');
 
+const { getData } = require('./connectKube');
+
+
 module.exports = function (fastify, opts, next) {
 
     fastify.register(Cors, { 

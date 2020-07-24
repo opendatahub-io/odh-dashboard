@@ -11,7 +11,11 @@ function Launcher() {
   const [data, loading] = useFetch(
     componentLink
   );
+<<<<<<< HEAD
  
+=======
+  
+>>>>>>> upstream/master
   return (
     <PageSection variant={PageSectionVariants.light}>
       <Grid hasGutter className="gridItem">
