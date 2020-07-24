@@ -22,15 +22,13 @@ module.exports = function (fastify, opts, next) {
         reply.sendFile('index.html');
       });
 
+    
     fastify.get('/api/components', function (req, reply) {
       
       getData();
       //console.log(data)
 
       reply.sendFile('odhDataRes.json');
-      
-    fastify.get('/api/components', function (req, reply) {
-        reply.sendFile('odhDataRes.json')
       })  
 
   next()

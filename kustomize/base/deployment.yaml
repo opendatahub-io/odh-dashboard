@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odh-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      deployment: odh-dashboard
+  template:
+    metadata:
+      labels:
+        deployment: odh-dashboard
+    spec:
+      containers:
+      - name: odh-dashboard
+        image: parthsoni1995/odh-userinterface:latest
+        ports:
+        - containerPort: 8080
