@@ -3,7 +3,6 @@
 const path = require('path')
 const Static = require('fastify-static')
 const Cors = require('fastify-cors')
-const { getData } = require('./connectKube');
 
 const { getData } = require('./connectKube');
 
