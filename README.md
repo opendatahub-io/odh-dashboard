@@ -20,11 +20,11 @@ BACKEND_DEV_PORT=8080
 
 In terminal 1:
 ```shell script
-$ make dev-frontend
+$ make dev-backend
 ```
 In terminal 2:
 ```shell script
-$ make dev-backend
+$ make dev-frontend
 ```
 
 #### Building

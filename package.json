@@ -7,7 +7,8 @@
     "build": "cd frontend && npm install && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "dev": "fastify start -w -p 8080 -l debug -P app.js"
+    "dev": "fastify start -w -p 8080 -l debug -P app.js",
+    "format": "prettier --write \"routes/**/*.js\" \"plugins/**/*.js\" \"utils/**/*.js\" \"*.js\""
   },
   "repository": {
     "type": "git",

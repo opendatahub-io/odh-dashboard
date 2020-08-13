@@ -28,7 +28,6 @@ export const getComponents = () => {
     dispatch(getComponentsPending());
     try {
       const response = await ky.get(url, {}).json();
-      console.log(response);
       dispatch(getComponentsFulfilled(response));
     } catch (e) {
       dispatch(getComponentsRejected(e));

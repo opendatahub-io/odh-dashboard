@@ -26,7 +26,6 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => ({
   getComponents: () => {
-    console.log("getComponents");
     dispatch(getComponents());
   },
 });

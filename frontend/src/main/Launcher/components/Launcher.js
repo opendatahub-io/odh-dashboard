@@ -8,18 +8,20 @@ const _Launcher = ({ components }) => {
   return (
     <PageSection variant={PageSectionVariants.light} className="launcher">
       <Grid hasGutter className="gridItem">
-        {components.map((a) => (
-          <GridItem span={12} sm={12} md={6} lg={4} xl={3} key={a.label}>
-            <OdhAppCard
-              img={a.img}
-              link={a.link}
-              description={a.description}
-              buttonName={a.buttonName}
-              altName={a.label}
-              status={a.enabled}
-            />
-          </GridItem>
-        ))}
+        {components
+          .filter((a) => a && a.enabled)
+          .map((a) => (
+            <GridItem span={12} sm={12} md={6} lg={4} xl={3} key={a.label}>
+              <OdhAppCard
+                img={a.img}
+                link={a.link}
+                description={a.description}
+                buttonName={a.buttonName}
+                altName={a.label}
+                status={a.enabled}
+              />
+            </GridItem>
+          ))}
       </Grid>
     </PageSection>
   );
