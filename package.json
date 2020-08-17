@@ -6,11 +6,13 @@
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "fastify start -w -p 8080 -l debug -P app.js",
+    "format": "prettier --write \"routes/**/*.js\" \"plugins/**/*.js\" \"utils/**/*.js\" \"*.js\""
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PARTHSONI95/odh-dashboard.git"
+    "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
   },
   "author": "",
   "license": "ISC",
@@ -20,8 +22,16 @@
   "homepage": "https://github.com/PARTHSONI95/odh-dashboard#readme",
   "dependencies": {
     "@kubernetes/client-node": "^0.12.0",
-    "fastify": "^2.15.1",
-    "fastify-cors": "^3.0.3",
-    "fastify-static": "^2.7.0"
+    "fastify": "^3.1.1",
+    "fastify-autoload": "^3.0.6",
+    "fastify-cli": "^2.0.2",
+    "fastify-plugin": "^2.0.3",
+    "fastify-sensible": "^3.0.1",
+    "fastify-static": "^3.2.0",
+    "lodash": "^4.17.19"
+  },
+  "devDependencies": {
+    "prettier": "^2.0.5",
+    "tap": "^14.10.8"
   }
 }
