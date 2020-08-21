@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha --timeout 20000",
     "start": "node server.js",
     "dev": "fastify start -w -p 8080 -l debug -P app.js",
     "format": "prettier --write \"routes/**/*.js\" \"plugins/**/*.js\" \"utils/**/*.js\" \"*.js\""
@@ -31,6 +31,8 @@
     "lodash": "^4.17.19"
   },
   "devDependencies": {
+    "expect": "^26.4.1",
+    "mocha": "^8.1.1",
     "prettier": "^2.0.5",
     "tap": "^14.10.8"
   }
