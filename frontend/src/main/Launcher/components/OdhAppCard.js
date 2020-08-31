@@ -1,29 +1,85 @@
-import React from "react";
+import React, { useState } from "react";
+import classNames from "classnames";
 import {
+  Brand,
   Card,
-  Button,
+  CardHeader,
+  CardHeaderMain,
+  CardActions,
+  CardTitle,
   CardBody,
   CardFooter,
-  Brand,
-  CardHeaderMain,
-  CardHeader,
+  Dropdown,
+  DropdownItem,
+  KebabToggle,
+  Badge,
 } from "@patternfly/react-core";
+import { ExternalLinkAltIcon } from "@patternfly/react-icons";
 
-import { ExternalLinkSquareAltIcon } from "@patternfly/react-icons";
+function OdhAppCard({ odhApp }) {
+  const [isOpen, setIsOpen] = useState(false);
 
-/**
- * This function creates a Card using Props
- */
-function OdhAppCard(props) {
+  const onToggle = (value) => {
+    setIsOpen(value);
+  };
+
+  const onSelect = (e) => {
+    setIsOpen(!isOpen);
+  };
+
+  const dropdownItems = [
+    <DropdownItem key="docs" href={odhApp.docsLink} target="_blank">
+      Documentation
+    </DropdownItem>,
+  ];
+
+  if (odhApp.link) {
+    dropdownItems.push(
+      <DropdownItem key="launch" href={odhApp.link} target="_blank">
+        Launch
+      </DropdownItem>
+    );
+  }
+
+  let cardFooter;
+  if (odhApp.enabled && odhApp.link) {
+    cardFooter = (
+      <CardFooter className="footer">
+        <a href={odhApp.link} target="_blank">
+          <ExternalLinkAltIcon /> Launch
+        </a>
+      </CardFooter>
+    );
+  } else if (odhApp.enabled) {
+    cardFooter = <CardFooter className="footer" />;
+  } else {
+    cardFooter = (
+      <CardFooter className="footer">
+        <Badge isRead>Not Installed</Badge>
+      </CardFooter>
+    );
+  }
+
   return (
-    <Card isHoverable className="cardItem" onClick={() => (window.location.href = props.link)}>
-      <CardHeader className="cardHeader">
+    <Card isHoverable className={classNames("odh-app-card", { "not-installed": !odhApp.enabled })}>
+      <CardHeader>
         <CardHeaderMain>
-          <Brand src={props.img} alt={props.altName} className="cardImages" />
+          <Brand className="header-brand" src={odhApp.img} alt={odhApp.label} />
         </CardHeaderMain>
+        <CardActions>
+          <Dropdown
+            onSelect={onSelect}
+            toggle={<KebabToggle onToggle={onToggle} />}
+            isOpen={isOpen}
+            isPlain
+            dropdownItems={dropdownItems}
+            position={"right"}
+          />
+        </CardActions>
       </CardHeader>
-      <CardBody className="card-description">{props.description}</CardBody>
-      <br />
+      <CardTitle>{odhApp.label}</CardTitle>
+      <CardBody>{odhApp.description}</CardBody>
+      {cardFooter}
     </Card>
   );
 }

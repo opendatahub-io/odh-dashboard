@@ -1,5 +1,8 @@
 .app {
   .header {
-    height: 36px;
+    .pf-c-brand {
+      height: 36px;
+    }
   }
+  height: 100vh;
 }

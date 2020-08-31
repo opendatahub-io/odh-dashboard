@@ -1,58 +1,27 @@
-.launcher {
-  .gridItem {
-    flex-wrap: wrap;
+.launcher-heading {
+  .launcher-text {
+    margin-bottom: 1rem;
   }
+}
 
-  .cardItem {
-    border-style: none;
-    flex-wrap: wrap;
-    height: 365px;
-    overflow: auto;
+.launcher-error {
+  .launcher-error-body {
+    text-align: left;
+    white-space: pre;
   }
+}
 
-  .cardItem:hover {
-    border-style: solid;
-    background-color: #f5f9fb;
-    border-color: #35d8f9;
-    cursor: pointer;
-  }
-
-  .cardImages {
-    height: 120px;
-    display: flex;
-    align-items: center;
-  }
-
-  .card-description {
-    text-align: center;
-  }
-
-  .cardFooter {
-    text-align: center;
-  }
-
-  .cardHeader {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    width: 50%;
-  }
-
-  @media screen and (max-width: 600px) {
-    .header {
+.launcher-gallery {
+  .odh-app-card {
+    .header-brand {
       height: 50px;
     }
-
-    .card-description {
-      display: none;
+    .footer {
+      text-align: center;
     }
+  }
 
-    .cardImages {
-      height: 70px;
-    }
-
-    .cardItem {
-      height: 250px;
-    }
+  .odh-app-card.not-installed {
+    color: gray;
   }
 }
