@@ -25,7 +25,7 @@ module.exports = [
       "A modern, enterprise-ready business intelligence web application",
     kfdefApplications: ["superset"],
     route: "superset",
-    img: "images/superset.png",
+    img: "images/superset.svg",
     docsLink: "https://superset.incubator.apache.org/",
   },
   {
