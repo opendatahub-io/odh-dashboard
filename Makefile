@@ -22,6 +22,10 @@ dev-frontend:
 dev-backend:
 	./install/dev-backend.sh
 
+.PHONY: dev
+dev:
+	./install/dev.sh
+
 ##################################
 
 # BUILD - build image locally using s2i

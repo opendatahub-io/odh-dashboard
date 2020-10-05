@@ -30,7 +30,14 @@ export const getComponents = () => {
       const response = await ky.get(url, {}).json();
       dispatch(getComponentsFulfilled(response));
     } catch (e) {
-      dispatch(getComponentsRejected(e));
+      let componentError;
+      if (e instanceof ky.HTTPError) {
+        componentError = await e.response.json();
+      } else {
+        componentError = e;
+      }
+      console.error(e);
+      dispatch(getComponentsRejected(componentError));
     }
   };
 };

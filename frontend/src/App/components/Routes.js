@@ -1,7 +1,8 @@
 import React, { lazy, Suspense } from "react";
-import { Route, Switch, Redirect } from "react-router-dom";
+import { Route, Switch } from "react-router-dom";
 
 const Launcher = lazy(() => import("../../main/Launcher"));
+// const Placehoder = lazy(() => import("../../main/Placeholder"));
 const NotFound = lazy(() => import("../../main/NotFound"));
 
 export const Routes = () => (
@@ -14,6 +15,7 @@ export const Routes = () => (
   >
     <Switch>
       <Route path="/" exact component={Launcher} />
+      {/*<Route path="/docs/*" exact component={Placehoder} />*/}
       <Route component={NotFound} />
     </Switch>
   </Suspense>

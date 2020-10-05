@@ -25,20 +25,20 @@ module.exports = async function ({ fastify, opts, request, reply }) {
 
   let appList = await Promise.all(
     availableComponents.map(async (ac) => {
-      const { label, description, route, img } = ac;
-      let copy = { label, description, route, img };
+      const { key, label, description, img, docsLink } = ac;
+      let copy = { key, label, description, img, docsLink };
       copy.enabled = ac.kfdefApplications.reduce(
         (accumulator, currentValue) => {
           return accumulator && kfdefAppSet.has(currentValue);
         },
         true
       );
-      if (copy.enabled && copy.route) {
+      if (copy.enabled && ac.route) {
         copy.link = await getLink(
           fastify,
           customObjectsApi,
           namespace,
-          copy.route
+          ac.route
         );
       }
       return copy;

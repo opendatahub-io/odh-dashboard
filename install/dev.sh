@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-printf "\n\n######## dev frontend ########\n"
+printf "\n\n######## dev ########\n"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -9,9 +9,4 @@ if [ -f "${ENV_FILE}" ]; then
   for ENV_VAR in $(sed 's/=.*//' ${ENV_FILE}); do export "${ENV_VAR}"; done
 fi
 
-cd ${DIR}/..
-cd frontend
-pwd
-
-npm install
-PORT=${FRONTEND_DEV_PORT} npm start
+concurrently "${DIR}/dev-backend.sh" "${DIR}/dev-frontend.sh"
