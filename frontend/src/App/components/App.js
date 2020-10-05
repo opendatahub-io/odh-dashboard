@@ -14,6 +14,7 @@ const _App = withRouter(({ getComponents }) => {
 
   useEffect(() => {
     getComponents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onNavToggle = () => {

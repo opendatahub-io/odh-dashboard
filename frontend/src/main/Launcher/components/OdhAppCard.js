@@ -28,14 +28,14 @@ function OdhAppCard({ odhApp }) {
   };
 
   const dropdownItems = [
-    <DropdownItem key="docs" href={odhApp.docsLink} target="_blank">
+    <DropdownItem key="docs" href={odhApp.docsLink} target="_blank" rel="noopener noreferrer">
       Documentation
     </DropdownItem>,
   ];
 
   if (odhApp.link) {
     dropdownItems.push(
-      <DropdownItem key="launch" href={odhApp.link} target="_blank">
+      <DropdownItem key="launch" href={odhApp.link} target="_blank" rel="noopener noreferrer">
         Launch
       </DropdownItem>
     );
@@ -45,7 +45,7 @@ function OdhAppCard({ odhApp }) {
   if (odhApp.enabled && odhApp.link) {
     cardFooter = (
       <CardFooter className="footer">
-        <a href={odhApp.link} target="_blank">
+        <a href={odhApp.link} target="_blank" rel="noopener noreferrer">
           <ExternalLinkAltIcon /> Launch
         </a>
       </CardFooter>
