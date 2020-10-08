@@ -9,15 +9,62 @@ A dashboard for Open Data Hub components.
 - Links to component documentation
 
 
-## Usage
+#### Open Data Hub Operator Deployment
+Add the dashboard component and the repo to the ODH instance kfdef yaml.  
+```yaml
+apiVersion: kfdef.apps.kubeflow.org/v1
+kind: KfDef
+spec:
+  applications:
+    # ... other components ...
+
+    # Add Dashboard Component
+    - kustomizeConfig:
+        repoRef:
+          name: odh-dashboard
+          path: install/odh/base
+      name: odh-dashboard
+  repos:
+    # ... other repos ...
+
+    # Add Dashboard Dev Repo 
+    - name: odh-dashboard
+      uri: 'https://github.com/opendatahub-io/odh-dashboard/tarball/master'
+
+  version: vX.Y.Z
+```
+
+## Development
 Customize your `.env` file similar to `.env.example`(.env.example)
 
-#### Development
+#### Running Locally
 Optionally customize `.env` file to change ports as desired
 ```.env
 FRONTEND_DEV_PORT=3000
 BACKEND_DEV_PORT=8080
 ```
+
+To give your dev environment access to the ODH configuration, log in to the OpenShift cluster and set the project to the location of the ODH installation
+```shell script
+$ oc login https://api.my-openshift-cluster.com:6443 -u kubeadmin -p my-password
+```
+or log in using the makefile and `.env` settings
+```.env
+OC_URL=https://specify.in.env:6443
+OC_PROJECT=opendatahub
+OC_USER=kubeadmin
+OC_PASSWORD=my-password
+```
+```shell script
+$ make login
+```
+
+To run the development servers, you can run them both concurrently:
+```shell script
+$ make dev
+```
+
+Or the front end and server separately:
 
 In terminal 1:
 ```shell script
@@ -49,8 +96,15 @@ IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
 $ make push
 ```
 
-#### Deploying
+#### Deploying your image
 Customize `.env` file for deployment information.  Required.  `oc` command line tool is required.
+
+First set the image to deploy to your custom image you've built in previous steps.
+```.env
+IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
+```
+
+Then set your login information to deploy to your cluster.
 ```.env
 OC_URL=https://specify.in.env:6443
 OC_PROJECT=specify_in_.env
@@ -66,6 +120,7 @@ OC_PROJECT=specify_in_.env
 OC_TOKEN=specify_in_.env
 ```
 
+Now execute the deployment scripts.
 ```shell script
 $ make deploy
 ```

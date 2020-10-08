@@ -3,8 +3,9 @@ printf "\n\n######## undeploy ########\n"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-oc project ${PROJECT} 2> /dev/null
+oc project ${OC_PROJECT} 2> /dev/null
+oc project
 
-envsubst < "${DIR}/odh/overlays/default/kustomization_template.yaml" > "${DIR}/odh/overlays/default/kustomization.yaml"
-envsubst < "${DIR}/odh/overlays/default/role_binding_patch_template.yaml" > "${DIR}/odh/overlays/default/role_binding_patch.yaml"
-oc delete -k "${DIR}/odh/overlays/default"
+envsubst < "${DIR}/odh/overlays/dev/kustomization_template.yaml" > "${DIR}/odh/overlays/dev/kustomization.yaml"
+envsubst < "${DIR}/odh/overlays/dev/deployment_patch_template.yaml" > "${DIR}/odh/overlays/dev/deployment_patch.yaml"
+oc delete -k "${DIR}/odh/overlays/dev"
