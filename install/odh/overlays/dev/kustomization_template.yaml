@@ -4,4 +4,4 @@ namespace: ${OC_PROJECT}
 bases:
 - ../../base
 patches:
-- role_binding_patch.yaml
+- deployment_patch.yaml

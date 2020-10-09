@@ -1,5 +1,5 @@
 .env
 node_modules
 
-install/odh/overlays/default/kustomization.yaml
-install/odh/overlays/default/role_binding_patch.yaml
+install/odh/overlays/dev/kustomization.yaml
+install/odh/overlays/dev/deployment_patch.yaml
