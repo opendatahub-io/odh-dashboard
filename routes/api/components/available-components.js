@@ -50,7 +50,7 @@ module.exports = [
     key: "spark",
     label: "Spark",
     description: "Unified analytics engine for large-scale data processing",
-    kfdefApplications: ["radanalyticsio-cluster"],
+    kfdefApplications: ["radanalyticsio-spark-cluster"],
     route: null,
     img: "images/spark.svg",
     docsLink: "https://spark.apache.org/docs/latest/",
