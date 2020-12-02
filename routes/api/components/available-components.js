@@ -84,4 +84,22 @@ module.exports = [
     img: "images/airflow.svg",
     docsLink: "https://airflow.apache.org/",
   },
+  {
+    key: "hue",
+    label: "Hue",
+    description: "Data exploration platform for Hive and S3 storage",
+    kfdefApplications: ["hue"],
+    route: "hue",
+    img: "images/hue.svg",
+    docsLink: "https://docs.gethue.com/",
+  },
+  {
+    key: "thriftserver",
+    label: "Spark SQL Thrift Server",
+    description: "Expose Spark data frames modeled as Hive tables through a JDBC connection",
+    kfdefApplications: ["thriftserver"],
+    route: "thriftserver",
+    img: "images/spark.svg",
+    docsLink: "https://spark.apache.org/docs/latest/sql-distributed-sql-engine.html",
+  }
 ];
