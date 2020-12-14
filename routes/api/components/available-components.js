@@ -41,7 +41,7 @@ module.exports = [
     key: "grafana",
     label: "Grafana",
     description: "Visualization and analytics software",
-    kfdefApplications: ["grafana-cluster", "grafana-operator"],
+    kfdefApplications: ["grafana-cluster", "grafana-instance"],
     route: "grafana-route",
     img: "images/grafana.svg",
     docsLink: "https://grafana.com/docs/grafana/latest/",
