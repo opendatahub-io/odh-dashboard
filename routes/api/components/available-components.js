@@ -14,7 +14,7 @@ module.exports = [
     label: "Argo",
     description: "Kubernetes native workflows, events, CI and CD",
     kfdefApplications: ["odhargo-cluster", "odhargo"],
-    route: "argo-portal",
+    route: "argo-server",
     img: "images/argo.svg",
     docsLink: "https://argoproj.github.io/",
   },
