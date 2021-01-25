@@ -1,10 +1,10 @@
-DEFAULT_ENV_FILE := .env.default
+DEFAULT_ENV_FILE := .env
 ifneq ("$(wildcard $(DEFAULT_ENV_FILE))","")
 include ${DEFAULT_ENV_FILE}
 export $(shell sed 's/=.*//' ${DEFAULT_ENV_FILE})
 endif
 
-ENV_FILE := .env
+ENV_FILE := .env.local
 ifneq ("$(wildcard $(ENV_FILE))","")
 include ${ENV_FILE}
 export $(shell sed 's/=.*//' ${ENV_FILE})

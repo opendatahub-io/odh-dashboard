@@ -1,0 +1,50 @@
+{
+  "parser": "babel-eslint",
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "plugins": [
+    "node",
+    "prettier"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:node/recommended",
+    "plugin:prettier/recommended"
+  ],
+  "parserOptions":{
+    "ecmaVersion": 2018
+  },
+  "rules": {
+    "arrow-parens": [
+      "error",
+      "always"
+    ],
+    "comma-dangle": 0,
+    "max-len": [
+      "error",
+      {
+        "code": 240,
+        "ignoreUrls": true
+      }
+    ],
+    "no-console": 0,
+    "no-debugger": 1,
+    "no-plusplus": 0,
+    "node/no-unsupported-features/es-syntax": 1,
+    "node/shebang": 0,
+    "node/no-unpublished-bin": 0,
+    "padded-blocks": 0,
+    "prettier/prettier": [
+      "error",
+      {
+        "arrowParens": "always",
+        "singleQuote": true,
+        "trailingComma": "all",
+        "printWidth": 100
+      }
+    ],
+    "space-before-function-paren": 0
+  }
+}
