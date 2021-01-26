@@ -24,7 +24,7 @@ $ oc login https://api.my-openshift-cluster.com:6443 -u kubeadmin -p my-password
 or log in using the makefile and `.env.local` settings
 ```.env.local
 OC_URL=https://specify.in.env:6443
-OC_PROJECT=opendatahub
+OC_PROJECT=my-project
 OC_USER=kubeadmin
 OC_PASSWORD=my-password
 ```
@@ -72,40 +72,49 @@ The dotenv files have access to default settings grouped by facet; frontend, bac
 
 ...
 
-## Deploy
-Add the dashboard component and the repo to the ODH instance kfdef yaml.
-```yaml
-apiVersion: kfdef.apps.kubeflow.org/v1
-kind: KfDef
-spec:
-  applications:
-    # ... other components ...
-
-    # Add Dashboard Component
+## Deploy your version
+Edit the opendatahub KfDef in your project, remove the section:
+```
     - kustomizeConfig:
         repoRef:
-          name: odh-dashboard
-          path: install/odh/base
+          name: manifests
+          path: odh-dashboard
       name: odh-dashboard
-  repos:
-    # ... other repos ...
-
-    # Add Dashboard Dev Repo 
-    - name: odh-dashboard
-      uri: 'https://github.com/opendatahub-io/odh-dashboard/tarball/master'
-
-  version: vX.Y.Z
 ```
 
-### Building
+Remove the current deployment of the ODH Dashboard
+```shell
+$ make undeploy
+```
+or
+```
+$ npm run make:undeploy
+```
+
+### Customize your env
 Customize `.env.local` file to image and source information as desired. `npm` and the `s2i` command line tool is required.
 
 ```.env.local
+CONTAINER_BUILDER=docker
 IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
 SOURCE_REPOSITORY_URL=git@github.com:my-org/odh-dashboard.git
 SOURCE_REPOSITORY_REF=my-branch
+
+OC_URL=https://specify.in.env:6443
+OC_PROJECT=specify_in_.env
+
+# user and password login
+OC_USER=specify_in_.env
+OC_PASSWORD=specify_in_.env
+
+# or token login
+#OC_TOKEN=specify_in_.env
 ```
 
+### Build
+Push your branch to your repo for it to be visible to the s2i build.
+
+Then build:
 ```shell
 $ make build
 ```
@@ -115,13 +124,6 @@ $ npm run make:build
 ```
 
 ### Pushing the image
-Customize `.env.local` file to image information and container builder.
-
-```.env.local
-CONTAINER_BUILDER=docker
-IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
-```
-
 ```shell
 $ make push
 ```
@@ -131,32 +133,8 @@ $ npm run make:push
 ```
 
 ### Deploying your image
-Customize `.env.local` file for deployment information.  Required. The OpenShift, `oc`, command line tool is required.
+Required: The OpenShift, `oc`, command line tool is required.
 
-First set the image to deploy to your custom image you've built in previous steps.
-```.env.local
-IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
-```
-
-Then set your login information to deploy to your cluster.
-```.env.local
-OC_URL=https://specify.in.env:6443
-OC_PROJECT=specify_in_.env
-
-# user and password login
-#OC_USER=specify_in_.env
-#OC_PASSWORD=specify_in_.env
-```
-or
-```.env.local
-OC_URL=https://specify.in.env:6443
-OC_PROJECT=specify_in_.env
-
-# token login
-OC_TOKEN=specify_in_.env
-```
-
-Now execute the deployment scripts.
 ```shell
 $ make deploy
 ```

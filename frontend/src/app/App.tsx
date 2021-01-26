@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
+import '@patternfly/react-core/dist/styles/base.css';
 import { Page } from '@patternfly/react-core';
-import { getComponents } from '../redux/actions/actions';
+import { detectUser } from '../redux/actions/actions';
 import Header from './Header';
 import Routes from './Routes';
+import NavSidebar from './NavSidebar';
 
 import './App.scss';
 
 type AppProps = {
-  getComponents: () => void;
+  detectUser: () => void;
 };
 
-const _App: React.FC<AppProps> = ({ getComponents }) => {
-  const [isNavOpen, setIsNavOpen] = useState(true);
+const _App: React.FC<AppProps> = ({ detectUser }) => {
+  const [isNavOpen, setIsNavOpen] = React.useState(true);
 
-  useEffect(() => {
-    getComponents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    detectUser();
   }, []);
 
   const onNavToggle = () => {
@@ -25,10 +26,9 @@ const _App: React.FC<AppProps> = ({ getComponents }) => {
 
   return (
     <Page
+      className="odh-dashboard"
       header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
-      // sidebar={<NavSidebar isNavOpen={isNavOpen} />}
-      isManagedSidebar
-      className="app"
+      sidebar={<NavSidebar isNavOpen={isNavOpen} />}
     >
       <Routes />
     </Page>
@@ -40,8 +40,8 @@ const mapStateToProps = (state) => {
 };
 
 const mapDispatchToProps = (dispatch) => ({
-  getComponents: () => {
-    dispatch(getComponents());
+  detectUser: () => {
+    dispatch(detectUser());
   },
 });
 

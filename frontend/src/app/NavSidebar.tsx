@@ -4,7 +4,7 @@ import { Nav, NavExpandable, NavItem, NavList, PageSidebar } from '@patternfly/r
 import { navData } from '../utilities/NavData';
 
 const createNavItem = ({ id, label, href }, pathname) => {
-  const isActive = pathname.startsWith(href);
+  const isActive = pathname === href;
 
   return (
     <NavItem key={id} itemId={id} isActive={isActive}>
@@ -14,7 +14,8 @@ const createNavItem = ({ id, label, href }, pathname) => {
 };
 
 const createNavGroup = ({ group, children }, pathname) => {
-  const isActive = !!children.find((c) => pathname.startsWith(c.href));
+  const isActive = !!children.find((c) => pathname === c.href);
+  const [expanded, setExpanded] = React.useState<boolean>(isActive);
 
   return (
     <NavExpandable
@@ -22,7 +23,8 @@ const createNavGroup = ({ group, children }, pathname) => {
       title={group.title}
       groupId={group.id}
       isActive={isActive}
-      isExpanded={isActive}
+      isExpanded={expanded}
+      onExpand={(e, val) => setExpanded(val)}
     >
       {children.map((c) => createNavItem(c, pathname))}
     </NavExpandable>
