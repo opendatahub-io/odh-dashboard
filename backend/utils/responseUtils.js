@@ -16,7 +16,7 @@ const addCORSHeader = (req, reply) => {
   if (requestHeaders != null) {
     reply.header(
       'Access-Control-Allow-Headers',
-      isArray(requestHeaders) ? requestHeaders.join(', ') : requestHeaders,
+      Array.isArray(requestHeaders) ? requestHeaders.join(', ') : requestHeaders,
     );
   }
 };

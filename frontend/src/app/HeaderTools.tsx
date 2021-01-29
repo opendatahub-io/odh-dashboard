@@ -1,6 +1,8 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import {
+  Button,
+  ButtonVariant,
   Dropdown,
   DropdownToggle,
   NotificationBadge,
@@ -10,7 +12,6 @@ import {
   DropdownItem,
 } from '@patternfly/react-core';
 import { CogIcon, CaretDownIcon } from '@patternfly/react-icons';
-import { Button, ButtonVariant } from '@patternfly/react-core/src/components/Button/Button';
 
 type HeaderToolsProps = {
   user: { name: string; token: string };

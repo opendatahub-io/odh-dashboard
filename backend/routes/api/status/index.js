@@ -7,12 +7,12 @@ const status = async ({ fastify, opts, request, reply }) => {
   const kubeContext = fastify.kube.currentContext;
   const { currentContext, namespace, currentUser } = fastify.kube;
   if (!kubeContext && !kubeContext.trim()) {
-    fastify.log.error(e, 'failed to get status');
     const error = createError(500, 'failed to get kube status');
     error.explicitInternalServerError = true;
     error.error = 'failed to get kube status';
     error.message =
       'Unable to determine current login stats. Please make sure you are logged into OpenShift.';
+    fastify.log.error(error, 'failed to get status');
     throw error;
   } else {
     return Promise.resolve({

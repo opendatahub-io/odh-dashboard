@@ -8,7 +8,6 @@ type HeaderProps = {
   onNavToggle: () => void;
 };
 
-// export const Header = ({ isNavOpen, onNavToggle }) => {
 const Header: React.FC<HeaderProps> = ({ isNavOpen, onNavToggle }) => {
   return (
     <PageHeader
