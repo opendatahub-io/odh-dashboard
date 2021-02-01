@@ -1,4 +1,15 @@
-export const navData = [
+export type NavDataItem = {
+  id?: string;
+  label?: string;
+  href?: string;
+  group?: {
+    id: string;
+    title: string;
+  };
+  children?: NavDataItem[];
+};
+
+export const navData: NavDataItem[] = [
   {
     group: { id: 'apps', title: 'Applications' },
     children: [

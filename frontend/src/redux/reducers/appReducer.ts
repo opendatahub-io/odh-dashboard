@@ -13,7 +13,7 @@ const initialState = {
   userError: null,
   components: [],
   componentsLoading: false,
-  componentsError: null
+  componentsError: null,
 };
 
 const appReducer = (state = initialState, action) => {
@@ -23,42 +23,42 @@ const appReducer = (state = initialState, action) => {
         ...state,
         user: [],
         userLoading: true,
-        userError: null
+        userError: null,
       };
     case GET_USER_FULFILLED:
       return {
         ...state,
         user: action.payload.user,
         userLoading: false,
-        userError: null
+        userError: null,
       };
     case GET_USER_REJECTED:
       return {
         ...state,
         user: null,
         userLoading: false,
-        userError: action.payload.error
+        userError: action.payload.error,
       };
     case GET_COMPONENTS_PENDING:
       return {
         ...state,
         components: [],
         componentsLoading: true,
-        componentsError: null
+        componentsError: null,
       };
     case GET_COMPONENTS_FULFILLED:
       return {
         ...state,
         components: action.payload.components,
         componentsLoading: false,
-        componentsError: null
+        componentsError: null,
       };
     case GET_COMPONENTS_REJECTED:
       return {
         ...state,
         components: null,
         componentsLoading: false,
-        componentsError: action.payload.error
+        componentsError: action.payload.error,
       };
     default:
       return state;

@@ -1,6 +1,6 @@
 import { DEV_MODE, API_PORT } from '../../utilities/const';
 
-const getBackendURL = (path) => {
+const getBackendURL = (path: string): string => {
   if (!DEV_MODE) {
     return path;
   }

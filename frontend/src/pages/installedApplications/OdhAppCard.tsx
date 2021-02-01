@@ -11,7 +11,6 @@ import {
   Dropdown,
   DropdownItem,
   KebabToggle,
-  Badge,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 
@@ -32,7 +31,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     setIsOpen(value);
   };
 
-  const onSelect = (e) => {
+  const onSelect = () => {
     setIsOpen(!isOpen);
   };
 

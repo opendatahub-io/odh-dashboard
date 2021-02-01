@@ -18,7 +18,7 @@ const _App: React.FC<AppProps> = ({ detectUser }) => {
 
   React.useEffect(() => {
     detectUser();
-  }, []);
+  }, [detectUser]);
 
   const onNavToggle = () => {
     setIsNavOpen(!isNavOpen);

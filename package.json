@@ -37,11 +37,11 @@
     "start:backend": "cd ./backend && npm start",
     "start:frontend": "echo \"...available at ./frontend/public\"",
     "test": "run-s test:*",
-    "test:backend": "cd ./backend && npm test",
-    "test:frontend": "cd ./frontend && npm test",
+    "test:backend": "cd ./backend && npm run test",
+    "test:frontend": "cd ./frontend && npm run test",
     "test:fix": "run-s test:fix-backend test:fix-frontend",
-    "test:fix-backend": "cd ./backend && npm test:fix",
-    "test:fix-frontend": "cd ./frontend && npm test:fix"
+    "test:fix-backend": "cd ./backend && npm run test:fix",
+    "test:fix-frontend": "cd ./frontend && npm run test:fix"
   },
   "dependencies": {
     "dotenv": "^8.2.0",

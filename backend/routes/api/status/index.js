@@ -3,7 +3,7 @@ const createError = require('http-errors');
 const { DEV_MODE } = require('../../../utils/constants');
 const responseUtils = require('../../../utils/responseUtils');
 
-const status = async ({ fastify, opts, request, reply }) => {
+const status = async ({ fastify }) => {
   const kubeContext = fastify.kube.currentContext;
   const { currentContext, namespace, currentUser } = fastify.kube;
   if (!kubeContext && !kubeContext.trim()) {

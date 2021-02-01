@@ -4,7 +4,7 @@ const componentUtils = require('./componentUtils');
 
 const PICKED_AVAILABLE_FIELDS = ['key', 'label', 'description', 'img', 'docsLink', 'support'];
 
-module.exports = async function ({ fastify, opts, request, reply }) {
+module.exports = async function ({ fastify, request }) {
   if (!request.query.installed) {
     return await Promise.all(
       availableComponents.map(async (ac) => {

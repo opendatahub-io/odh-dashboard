@@ -2,13 +2,13 @@ import axios from 'axios';
 import { getBackendURL } from './utils';
 
 export const GET_USER_PENDING = 'GET_USER_PENDING';
-export const getUserPending = () => ({
+export const getUserPending = (): any => ({
   type: GET_USER_PENDING,
   payload: {},
 });
 
 export const GET_USER_FULFILLED = 'GET_USER_FULFILLED';
-export const getUserFullfilled = (response) => ({
+export const getUserFulfilled = (response) => ({
   type: GET_USER_FULFILLED,
   payload: {
     user: response.kube.currentUser,
@@ -45,7 +45,7 @@ export const getComponentsRejected = (error) => ({
   },
 });
 
-export const getComponents = (installed: boolean = false) => {
+export const getComponents = (installed = false) => {
   const url = getBackendURL('/api/components');
   return async function (dispatch) {
     dispatch(getComponentsPending());
@@ -72,7 +72,7 @@ export const detectUser = () => {
     try {
       const response = await axios.get(url, {});
       console.dir(response);
-      dispatch(getUserFullfilled(response.data));
+      dispatch(getUserFulfilled(response.data));
     } catch (e) {
       dispatch(getUserRejected(e.response.data));
     }
