@@ -1,5 +1,4 @@
 import React from 'react';
-import classNames from 'classnames';
 import {
   Brand,
   Card,
@@ -12,7 +11,6 @@ import {
   Dropdown,
   DropdownItem,
   KebabToggle,
-  Badge,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 
@@ -23,7 +21,6 @@ type OdhAppCardProps = {
     img: string;
     link: string;
     docsLink: string;
-    enabled: boolean;
   };
 };
 
@@ -53,34 +50,28 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   }
 
   let cardFooter;
-  if (odhApp.enabled && odhApp.link) {
+  if (odhApp.link) {
     cardFooter = (
-      <CardFooter className="footer">
+      <CardFooter className="odh-installed-apps__card__footer">
         <a href={odhApp.link} target="_blank" rel="noopener noreferrer">
-          <ExternalLinkAltIcon /> Launch
+          {`Launch `}
+          <ExternalLinkAltIcon />
         </a>
       </CardFooter>
     );
-  } else if (odhApp.enabled) {
-    cardFooter = <CardFooter className="footer" />;
   } else {
-    cardFooter = (
-      <CardFooter className="footer">
-        <Badge isRead>Not Installed</Badge>
-      </CardFooter>
-    );
+    cardFooter = <CardFooter className="odh-installed-apps__card__footer" />;
   }
 
   return (
-    <Card
-      isHoverable
-      className={classNames('odh-app-card', {
-        'not-installed': !odhApp.enabled,
-      })}
-    >
+    <Card isHoverable className="odh-installed-apps__card">
       <CardHeader>
         <CardHeaderMain>
-          <Brand className="header-brand" src={odhApp.img} alt={odhApp.label} />
+          <Brand
+            className="odh-installed-apps__card__header-brand"
+            src={odhApp.img}
+            alt={odhApp.label}
+          />
         </CardHeaderMain>
         <CardActions>
           <Dropdown

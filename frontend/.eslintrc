@@ -45,6 +45,7 @@
     "@typescript-eslint/interface-name-prefix": "off",
     "@typescript-eslint/no-var-requires": "off",
     "@typescript-eslint/no-empty-function": "warn",
+    "@typescript-eslint/no-inferrable-types": "error",
     "react-hooks/exhaustive-deps": "warn",
     "react-hooks/rules-of-hooks": "error",
     "import/extensions": "off",
@@ -52,9 +53,9 @@
     "prettier/prettier": [
       "error",
       {
-        "arrowParens": "avoid",
+        "arrowParens": "always",
         "singleQuote": true,
-        "trailingComma": "none",
+        "trailingComma": "all",
         "printWidth": 100
       }
     ],

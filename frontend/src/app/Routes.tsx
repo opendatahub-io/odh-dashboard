@@ -1,11 +1,15 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { Route, Switch } from 'react-router-dom';
-const Launcher = lazy(() => import('../main/Launcher'));
-// const Placehoder = lazy(() => import("../../main/Placeholder"));
-const NotFound = lazy(() => import('../main/NotFound'));
+const InstalledApplications = React.lazy(
+  () => import('../pages/installedApplications/InstalledApplications'),
+);
+const ExploreApplications = React.lazy(
+  () => import('../pages/exploreApplication/ExploreApplications'),
+);
+const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const Routes: React.FC = () => (
-  <Suspense
+  <React.Suspense
     fallback={
       <div className="route-loading">
         <h1>Loading...</h1>
@@ -13,11 +17,12 @@ const Routes: React.FC = () => (
     }
   >
     <Switch>
-      <Route path="/" exact component={Launcher} />
-      {/*<Route path="/docs/*" exact component={Placehoder} />*/}
+      <Route path="/" exact component={InstalledApplications} />
+      <Route path="/explore" exact component={ExploreApplications} />
+      {/*<Route path="/docs/*" exact component={Placeholder} />*/}
       <Route component={NotFound} />
     </Switch>
-  </Suspense>
+  </React.Suspense>
 );
 
 export default Routes;

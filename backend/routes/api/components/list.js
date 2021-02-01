@@ -1,65 +1,39 @@
 const _ = require('lodash');
-const createError = require('http-errors');
 const availableComponents = require('./available-components');
+const componentUtils = require('./componentUtils');
 
-module.exports = async function ({ fastify }) {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
+const PICKED_AVAILABLE_FIELDS = ['key', 'label', 'description', 'img', 'docsLink', 'support'];
 
-  let kfdef;
-  try {
-    const res = await customObjectsApi.listNamespacedCustomObject(
-      'kfdef.apps.kubeflow.org',
-      'v1',
-      namespace,
-      'kfdefs',
+module.exports = async function ({ fastify, request }) {
+  if (!request.query.installed) {
+    return await Promise.all(
+      availableComponents.map(async (ac) => {
+        return _.pick(ac, PICKED_AVAILABLE_FIELDS);
+      }),
     );
-    kfdef = _.get(res, 'body.items[0]');
-  } catch (e) {
-    fastify.log.error(e, 'failed to get kfdefs');
-    const error = createError(500, 'failed to get kfdefs');
-    error.explicitInternalServerError = true;
-    error.error = 'failed to get kfdefs';
-    error.message = 'Unable to load Kubeflow resources. Please ensure the Open Data Hub operator has been installed.';
-    return error;
   }
 
-  let kfdefApps = _.get(kfdef, 'spec.applications') || [];
-  let kfdefAppSet = new Set();
-  kfdefApps.forEach((app) => kfdefAppSet.add(app.name));
+  // Fetch the installed kfDefs
+  const kfdefApps = await componentUtils.getInstalledKfdefs(fastify);
 
-  let appList = await Promise.all(
-    availableComponents.map(async (ac) => {
-      const { key, label, description, img, docsLink } = ac;
-      let copy = { key, label, description, img, docsLink };
-      copy.enabled = ac.kfdefApplications.reduce((accumulator, currentValue) => {
-        return accumulator && kfdefAppSet.has(currentValue);
-      }, true);
-      if (copy.enabled && ac.route) {
-        copy.link = await getLink(fastify, customObjectsApi, namespace, ac.route);
+  // Get the components associated with the installed KfDefs
+  const installedComponents = kfdefApps.reduce((acc, kfdefApp) => {
+    const component = availableComponents.find(
+      (ac) => ac.kfdefApplications && ac.kfdefApplications.includes(kfdefApp.name),
+    );
+    if (component && !acc.includes(component)) {
+      acc.push(component);
+    }
+    return acc;
+  }, []);
+
+  return await Promise.all(
+    installedComponents.map(async (ac) => {
+      const installedComponent = _.pick(ac, PICKED_AVAILABLE_FIELDS);
+      if (ac.route) {
+        installedComponent.link = await componentUtils.getLink(fastify, ac.route);
       }
-      return copy;
+      return installedComponent;
     }),
   );
-
-  return appList;
 };
-
-async function getLink(fastify, api, namespace, routeName) {
-  try {
-    const res = await api.getNamespacedCustomObject(
-      'route.openshift.io',
-      'v1',
-      namespace,
-      'routes',
-      routeName,
-    );
-    const host = _.get(res, 'body.spec.host');
-    const tlsTerm = _.get(res, 'body.spec.tls.termination');
-    const protocol = tlsTerm ? 'https://' : 'http://';
-    return `${protocol}${host}`;
-  } catch (e) {
-    fastify.log.error(e, `failed to get route ${routeName}`);
-    return null;
-  }
-}

@@ -6,7 +6,7 @@ const { APP_ENV, PORT, IP, LOG_LEVEL } = require('./utils/constants');
 
 const logOptions = {
   level: LOG_LEVEL,
-  prettyPrint: APP_ENV === 'development' ? { translateTime: true } : false
+  prettyPrint: APP_ENV === 'development' ? { translateTime: true } : false,
 };
 
 const app = fastify({

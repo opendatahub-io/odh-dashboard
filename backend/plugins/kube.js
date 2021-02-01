@@ -1,4 +1,5 @@
 'use strict';
+const { DEV_MODE } = require('../utils/constants');
 
 const fs = require('fs');
 const fp = require('fastify-plugin');
@@ -9,6 +10,7 @@ kc.loadFromDefault();
 
 const currentContext = kc.getCurrentContext();
 const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
+const currentUser = kc.getCurrentUser();
 
 module.exports = fp(async function (fastify) {
   let namespace;
@@ -23,6 +25,7 @@ module.exports = fp(async function (fastify) {
     currentContext,
     namespace,
     customObjectsApi,
+    currentUser,
   });
 });
 
@@ -39,6 +42,8 @@ async function getCurrentNamespace() {
           resolve(data);
         },
       );
+    } else if (DEV_MODE) {
+      resolve(process.env.OC_PROJECT);
     } else {
       resolve(currentContext.split('/')[0]);
     }

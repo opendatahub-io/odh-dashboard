@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {
   Title,
   Button,
@@ -12,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { HomeIcon, WarningTriangleIcon } from '@patternfly/react-icons';
 
-export const Error = () => (
+export const Error: React.FC = () => (
   <>
     <PageSection variant={PageSectionVariants.light}>
       <EmptyState variant={EmptyStateVariant.full}>

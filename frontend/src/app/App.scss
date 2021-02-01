@@ -1,8 +1,32 @@
-.app {
-  .header {
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: lightblue;
+}
+
+.odh-dashboard {
+  .pf-c-page__header {
     .pf-c-brand {
       height: 36px;
     }
+    .pf-c-dropdown__toggle {
+      .pf-c-dropdown__toggle-icon {
+        margin-left: var(--pf-global--spacer--xs);
+      }
+      &:before {
+        visibility: hidden;
+      }
+    }
   }
-  height: 100vh;
 }
+
+// PF Overrides
+@media (min-width: 800px) {
+  .pf-c-page {
+    grid-template-columns: max-content 1fr;
+    grid-template-areas: "header header" "nav main";
+  }
+}
+
