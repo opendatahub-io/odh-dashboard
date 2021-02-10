@@ -1,11 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import '@patternfly/react-core/dist/styles/base.css';
 import { Page } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
+// import { QuickStarts } from './QuickStarts';
+import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 
 import './App.scss';
 
@@ -24,14 +25,25 @@ const _App: React.FC<AppProps> = ({ detectUser }) => {
     setIsNavOpen(!isNavOpen);
   };
 
+  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
+
   return (
-    <Page
-      className="odh-dashboard"
-      header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
-      sidebar={<NavSidebar isNavOpen={isNavOpen} />}
-    >
-      <Routes />
-    </Page>
+    // <QuickStarts>
+    //   <button
+    //     onClick={() =>
+    //       qsContext.setActiveQuickStart && qsContext.setActiveQuickStart('template-id')
+    //     }
+    //   >
+    //     Open a quickstart from a nested component
+    //   </button>
+      <Page
+        className="odh-dashboard"
+        header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
+        sidebar={<NavSidebar isNavOpen={isNavOpen} />}
+      >
+        <Routes />
+      </Page>
+    // </QuickStarts>
   );
 };
 

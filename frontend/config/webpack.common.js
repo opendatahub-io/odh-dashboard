@@ -99,6 +99,10 @@ module.exports = env => {
           }
         },
         {
+          test: /\.adoc$/,
+          use: ['raw-loader']
+        },
+        {
           test: /\.(jpg|jpeg|png|gif)$/i,
           include: [
             SRC_DIR,

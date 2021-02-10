@@ -1,0 +1,42 @@
+{
+  "files": {
+    "main.css": "/static/css/main.b48f2982.chunk.css",
+    "main.js": "/static/js/main.82e86de5.chunk.js",
+    "main.js.map": "/static/js/main.82e86de5.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.008941dd.js",
+    "runtime-main.js.map": "/static/js/runtime-main.008941dd.js.map",
+    "static/css/2.a027ac03.chunk.css": "/static/css/2.a027ac03.chunk.css",
+    "static/js/2.0a2693ba.chunk.js": "/static/js/2.0a2693ba.chunk.js",
+    "static/js/2.0a2693ba.chunk.js.map": "/static/js/2.0a2693ba.chunk.js.map",
+    "static/css/3.076e7801.chunk.css": "/static/css/3.076e7801.chunk.css",
+    "static/js/3.18d592e7.chunk.js": "/static/js/3.18d592e7.chunk.js",
+    "static/js/3.18d592e7.chunk.js.map": "/static/js/3.18d592e7.chunk.js.map",
+    "static/css/4.3747f75d.chunk.css": "/static/css/4.3747f75d.chunk.css",
+    "static/js/4.a16d2609.chunk.js": "/static/js/4.a16d2609.chunk.js",
+    "static/js/4.a16d2609.chunk.js.map": "/static/js/4.a16d2609.chunk.js.map",
+    "static/css/5.830b7915.chunk.css": "/static/css/5.830b7915.chunk.css",
+    "static/js/5.6f7de204.chunk.js": "/static/js/5.6f7de204.chunk.js",
+    "static/js/5.6f7de204.chunk.js.map": "/static/js/5.6f7de204.chunk.js.map",
+    "index.html": "/index.html",
+    "precache-manifest.527acd1bd60fa5a6a9ee1651f1c5d6d7.js": "/precache-manifest.527acd1bd60fa5a6a9ee1651f1c5d6d7.js",
+    "service-worker.js": "/service-worker.js",
+    "static/css/2.a027ac03.chunk.css.map": "/static/css/2.a027ac03.chunk.css.map",
+    "static/css/3.076e7801.chunk.css.map": "/static/css/3.076e7801.chunk.css.map",
+    "static/css/4.3747f75d.chunk.css.map": "/static/css/4.3747f75d.chunk.css.map",
+    "static/css/5.830b7915.chunk.css.map": "/static/css/5.830b7915.chunk.css.map",
+    "static/css/main.b48f2982.chunk.css.map": "/static/css/main.b48f2982.chunk.css.map",
+    "static/js/2.0a2693ba.chunk.js.LICENSE.txt": "/static/js/2.0a2693ba.chunk.js.LICENSE.txt",
+    "static/js/3.18d592e7.chunk.js.LICENSE.txt": "/static/js/3.18d592e7.chunk.js.LICENSE.txt",
+    "static/media/base.css": "/static/media/pficon.ed74f359.woff",
+    "static/media/odh-logo.svg": "/static/media/odh-logo.cec1db75.svg",
+    "static/media/background-image.css": "/static/media/pfbg_768@2x.0099dea3.jpg",
+    "static/media/about-modal-box.css": "/static/media/pfbg_992@2x.1423e11e.jpg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.008941dd.js",
+    "static/css/2.a027ac03.chunk.css",
+    "static/js/2.0a2693ba.chunk.js",
+    "static/css/main.b48f2982.chunk.css",
+    "static/js/main.82e86de5.chunk.js"
+  ]
+}
