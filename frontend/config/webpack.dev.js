@@ -46,19 +46,19 @@ module.exports = merge(
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/styles/base.css'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@cloudmosaic/quickstarts'),
-            // path.resolve(
-            //   RELATIVE_DIRNAME,
-            //   'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css'
-            // ),
-            // path.resolve(
-            //   RELATIVE_DIRNAME,
-            //   'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css'
-            // ),
-            // path.resolve(
-            //   RELATIVE_DIRNAME,
-            //   'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css'
-            // )
+            path.resolve(
+              RELATIVE_DIRNAME,
+              'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css'
+            ),
+            path.resolve(
+              RELATIVE_DIRNAME,
+              'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css'
+            ),
+            path.resolve(
+              RELATIVE_DIRNAME,
+              'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css'
+            ),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@cloudmosaic/quickstarts')
           ],
           use: ['style-loader', 'css-loader']
         }

@@ -11,3 +11,4 @@ declare module '*.rdf';
 declare module '*.ttl';
 declare module '*.pdf';
 declare module '*.adoc';
+declare module '*.yaml';
