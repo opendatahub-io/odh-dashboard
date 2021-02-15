@@ -3,6 +3,5 @@
 
 # production
 /public
-/build
 
 *stats.json
