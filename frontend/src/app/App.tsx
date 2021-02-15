@@ -24,15 +24,13 @@ const _App: React.FC<AppProps> = ({ detectUser }) => {
   };
 
   return (
-    <>
-      <Page
-        className="odh-dashboard"
-        header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
-        sidebar={<NavSidebar isNavOpen={isNavOpen} />}
-      >
-        <Routes />
-      </Page>
-    </>
+    <Page
+      className="odh-dashboard"
+      header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
+      sidebar={<NavSidebar isNavOpen={isNavOpen} />}
+    >
+      <Routes />
+    </Page>
   );
 };
 
