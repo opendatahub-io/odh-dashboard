@@ -11,6 +11,7 @@ import {
 import template from './TEMPLATE_PROCEDURE.adoc';
 
 export const QuickStarts = ({ children }) => {
+  debugger;
   const allQuickStarts = [
     ProcedureAsciiDocParser(template, {
       attributes: {
@@ -30,10 +31,10 @@ export const QuickStarts = ({ children }) => {
     setActiveQuickStartID,
     allQuickStartStates,
     setAllQuickStartStates,
-    // footer: {
-    //   showAllLink: currentPath !== quickStartPath,
-    //   onShowAllLinkClick: () => history.push(quickStartPath),
-    // },
+    footer: {
+      showAllLink: currentPath !== quickStartPath,
+      onShowAllLinkClick: () => {},
+    },
   });
 
   return (

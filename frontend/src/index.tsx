@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './redux/store/store';
+import { QuickStarts } from './QuickStarts';
 import App from './app/App';
 
 /**
@@ -18,7 +19,9 @@ ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
       <Router>
-        <App />
+        <QuickStarts>
+          <App />
+        </QuickStarts>
       </Router>
     </Provider>
   </React.StrictMode>,

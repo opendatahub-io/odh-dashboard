@@ -27,6 +27,7 @@ module.exports = env => {
       rules: [
         {
           test: /\.(tsx|ts|jsx|js)?$/,
+          include: [SRC_DIR],
           use: [
             {
               loader: 'ts-loader',

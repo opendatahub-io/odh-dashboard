@@ -17,5 +17,6 @@ export const navData: NavDataItem[] = [
       { id: 'apps-explore', label: 'Explore', href: '/explore' },
     ],
   },
+  { id: 'quick-starts', label: 'Quick starts', href: '/quickstarts' },
   { id: 'doc', label: 'Documentation', href: '/documentation' },
 ];

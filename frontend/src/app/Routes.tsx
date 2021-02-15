@@ -1,5 +1,6 @@
 import React from 'react';
 import { Route, Switch } from 'react-router-dom';
+import { QuickStartCatalogPage } from '@cloudmosaic/quickstarts';
 const InstalledApplications = React.lazy(
   () => import('../pages/installedApplications/InstalledApplications'),
 );
@@ -19,6 +20,7 @@ const Routes: React.FC = () => (
     <Switch>
       <Route path="/" exact component={InstalledApplications} />
       <Route path="/explore" exact component={ExploreApplications} />
+      <Route path="/quickstarts" exact component={QuickStartCatalogPage} />
       {/*<Route path="/docs/*" exact component={Placeholder} />*/}
       <Route component={NotFound} />
     </Switch>
