@@ -19,10 +19,9 @@ const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, 
         isExpanded={expanded}
         onExpand={(e, val) => setExpanded(val)}
       >
-        {children.map((childItem) => {
-          console.dir(childItem);
-          return <NavDataItem key={childItem.id} item={childItem} pathname={pathname} />;
-        })}
+        {children.map((childItem) => (
+          <NavDataItem key={childItem.id} item={childItem} pathname={pathname} />
+        ))}
       </NavExpandable>
     );
   }

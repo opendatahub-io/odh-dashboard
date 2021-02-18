@@ -71,7 +71,6 @@ export const detectUser = () => {
     dispatch(getUserPending());
     try {
       const response = await axios.get(url, {});
-      console.dir(response);
       dispatch(getUserFulfilled(response.data));
     } catch (e) {
       dispatch(getUserRejected(e.response.data));
