@@ -42,23 +42,17 @@ module.exports = merge(
             SRC_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-catalog-view-extension'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/styles/base.css'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly'),
-            path.resolve(
-              RELATIVE_DIRNAME,
-              'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css'
-            ),
-            path.resolve(
-              RELATIVE_DIRNAME,
-              'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css'
-            ),
-            path.resolve(
-              RELATIVE_DIRNAME,
-              'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css'
-            )
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@cloudmosaic/quickstarts')
           ],
           use: ['style-loader', 'css-loader']
+        },
+        {
+          test: /\.css$/,
+          include: stylesheet => stylesheet.includes('@patternfly/react-styles/css/'),
+          use: ['null-loader']
         }
       ]
     }

@@ -1,11 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import '@patternfly/react-core/dist/styles/base.css';
+import '@patternfly/patternfly/patternfly.min.css';
 import { Page } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
+import { QuickStarts } from './QuickStarts';
 
 import './App.scss';
 
@@ -25,13 +26,15 @@ const _App: React.FC<AppProps> = ({ detectUser }) => {
   };
 
   return (
-    <Page
-      className="odh-dashboard"
-      header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
-      sidebar={<NavSidebar isNavOpen={isNavOpen} />}
-    >
-      <Routes />
-    </Page>
+    <QuickStarts>
+      <Page
+        className="odh-dashboard"
+        header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
+        sidebar={<NavSidebar isNavOpen={isNavOpen} />}
+      >
+        <Routes />
+      </Page>
+    </QuickStarts>
   );
 };
 

@@ -27,6 +27,7 @@ module.exports = env => {
       rules: [
         {
           test: /\.(tsx|ts|jsx|js)?$/,
+          include: [SRC_DIR],
           use: [
             {
               loader: 'ts-loader',
@@ -140,6 +141,10 @@ module.exports = env => {
             // Compiles Sass to CSS
             'sass-loader'
           ]
+        },
+        {
+          test: /\.ya?ml$/,
+          use: 'js-yaml-loader'
         }
       ]
     },
