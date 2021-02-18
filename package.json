@@ -7,11 +7,11 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
+    "url": "git+https://github.com/red-hat-data-services/odh-dashboard.git"
   },
-  "homepage": "https://github.com/opendatahub-io/odh-dashboard#readme",
+  "homepage": "https://github.comred-hat-data-services/odh-dashboard#readme",
   "bugs": {
-    "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
+    "url": "https://github.comred-hat-data-services/odh-dashboard/issues"
   },
   "engines": {
     "node": ">=12.0.0"
