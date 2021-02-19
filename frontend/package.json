@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "rhods-dashboard-frontend",
   "version": "0.1.0",
   "description": "Frontend for RHODS dashboard.",
   "author": "Red Hat",
@@ -49,6 +49,7 @@
     "axios": "^0.21.1",
     "classnames": "^2.2.6",
     "lodash-es": "^4.17.15",
+    "node-gyp": "^7.1.2",
     "node-sass": "^4.14.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",

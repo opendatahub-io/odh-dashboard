@@ -1,7 +1,7 @@
 {
-  "name": "odh-dashboard",
+  "name": "rhods-dashboard",
   "version": "1.0.0",
-  "description": "Open Data Hub dashboard.",
+  "description": "RHODS dashboard.",
   "author": "Red Hat",
   "license": "ISC",
   "private": true,
