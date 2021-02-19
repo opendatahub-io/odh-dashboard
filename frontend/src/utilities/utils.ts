@@ -1,4 +1,4 @@
-import { DEV_MODE, API_PORT } from '../../utilities/const';
+import { DEV_MODE, API_PORT } from './const';
 
 const getBackendURL = (path: string): string => {
   if (!DEV_MODE) {

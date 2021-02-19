@@ -11,6 +11,7 @@ export type NavDataItem = {
 
 export const navData: NavDataItem[] = [
   {
+    id: 'applications',
     group: { id: 'apps', title: 'Applications' },
     children: [
       { id: 'apps-installed', label: 'Installed', href: '/' },

@@ -6,7 +6,7 @@ import { detectUser } from '../redux/actions/actions';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
-import { QuickStarts } from './QuickStarts';
+import QuickStarts from './QuickStarts';
 
 import './App.scss';
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getBackendURL } from './utils';
+import { getBackendURL } from '../../utilities/utils';
 
 export const GET_USER_PENDING = 'GET_USER_PENDING';
 export const getUserPending = (): any => ({
