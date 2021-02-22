@@ -1,0 +1,54 @@
+{
+  "name": "odh-dashboard",
+  "version": "1.0.0",
+  "description": "Backend for Open Data Hub dashboard.",
+  "author": "Red Hat",
+  "license": "ISC",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
+  },
+  "homepage": "https://github.com/opendatahub-io/odh-dashboard#readme",
+  "bugs": {
+    "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "main": "server.js",
+  "scripts": {
+    "start": "export NODE_ENV=production; node ./server.js",
+    "start:dev": "export NODE_ENV=development; node ./server.js",
+    "test": "export NODE_ENV=test; eslint --ext .json,.js ./plugins ./routes ./utils",
+    "test:fix": "eslint --ext .json,.js ./plugins ./routes ./utils --fix"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^0.12.2",
+    "concurrently": "^5.3.0",
+    "dotenv": "^8.2.0",
+    "fastify": "^3.5.1",
+    "fastify-autoload": "^3.3.0",
+    "fastify-plugin": "^2.3.4",
+    "fastify-sensible": "^3.0.1",
+    "fastify-static": "^3.2.1",
+    "http-errors": "^1.8.0",
+    "lodash": "^4.17.20",
+    "pino": "^6.11.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.18.0",
+    "eslint-config-esnext": "^4.1.0",
+    "eslint-config-node": "^4.1.0",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-plugin-babel": "^5.3.1",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "fastify-cli": "^2.3.0",
+    "pino-pretty": "^4.3.0",
+    "prettier": "^2.2.1",
+    "tap": "^14.10.8"
+  }
+}
