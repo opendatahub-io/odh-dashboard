@@ -1,0 +1,11 @@
+.odh-apps {
+  &__heading {
+    &__text {
+      margin-bottom: 1rem;
+    }
+  }
+  &__error-body {
+    text-align: left;
+    white-space: pre;
+  }
+}

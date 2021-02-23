@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Switch } from 'react-router-dom';
 const InstalledApplications = React.lazy(
-  () => import('../pages/installedApplications/InstalledApplications'),
+  () => import('../pages/enabledApplications/EnabledApplications'),
 );
 const ExploreApplications = React.lazy(
   () => import('../pages/exploreApplication/ExploreApplications'),

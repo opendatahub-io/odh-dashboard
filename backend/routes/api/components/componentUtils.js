@@ -14,7 +14,7 @@ const getLink = async (fastify, routeName) => {
     );
     const host = _.get(res, 'body.spec.host');
     const tlsTerm = _.get(res, 'body.spec.tls.termination');
-    const protocol = tlsTerm ? 'https' : ' "http"';
+    const protocol = tlsTerm ? 'https' : 'http';
     return `${protocol}://${host}`;
   } catch (e) {
     fastify.log.error(e, `failed to get route ${routeName}`);

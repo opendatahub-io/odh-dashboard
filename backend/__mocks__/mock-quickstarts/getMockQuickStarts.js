@@ -4,7 +4,7 @@ const jsYaml = require('js-yaml');
 
 const yamlRegExp = /\.ya?ml$/;
 
-const getQuickStarts = () => {
+const getMockQuickStarts = () => {
   const normalizedPath = path.join(__dirname, '');
   const allQuickStarts = [];
   fs.readdirSync(normalizedPath).forEach(function (file) {
@@ -20,4 +20,4 @@ const getQuickStarts = () => {
   return allQuickStarts;
 };
 
-module.exports = getQuickStarts;
+module.exports = getMockQuickStarts;

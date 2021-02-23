@@ -14,7 +14,7 @@ type AppProps = {
   detectUser: () => void;
 };
 
-const _App: React.FC<AppProps> = ({ detectUser }) => {
+const App: React.FC<AppProps> = ({ detectUser }) => {
   const [isNavOpen, setIsNavOpen] = React.useState(true);
 
   React.useEffect(() => {
@@ -43,11 +43,7 @@ const mapStateToProps = (state) => {
 };
 
 const mapDispatchToProps = (dispatch) => ({
-  detectUser: () => {
-    dispatch(detectUser());
-  },
+  detectUser: () => dispatch(detectUser()),
 });
 
-const App = connect(mapStateToProps, mapDispatchToProps)(_App);
-
-export default App;
+export default connect(mapStateToProps, mapDispatchToProps)(App);

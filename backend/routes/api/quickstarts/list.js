@@ -1,6 +1,8 @@
-const _ = require('lodash');
-const getQuickStarts = require('../../../quickstarts/getQuickStarts');
+const quickStartUtils = require('./quickStartUtils');
 
-module.exports = function () {
-  return Promise.resolve(getQuickStarts());
+module.exports = async function ({ fastify }) {
+  // Fetch the installed quick starts
+  const quickStarts = await quickStartUtils.getInstalledQuickStarts(fastify);
+
+  return await Promise.all(quickStarts);
 };

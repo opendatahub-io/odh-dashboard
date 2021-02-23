@@ -1,13 +1,30 @@
 const _ = require('lodash');
 const availableComponents = require('./available-components');
 const componentUtils = require('./componentUtils');
+const constants = require('../../../utils/constants');
+const mockComponents = require('../../../__mocks__/mock-components');
 
-const PICKED_AVAILABLE_FIELDS = ['key', 'label', 'description', 'img', 'docsLink', 'support'];
+const PICKED_AVAILABLE_FIELDS = [
+  'id',
+  'label',
+  'provider',
+  'description',
+  'img',
+  'support',
+  'partner',
+  'docsLink',
+  'quickStart',
+];
 
 module.exports = async function ({ fastify, request }) {
+  const allComponents = [...availableComponents];
+  if (constants.DEV_MODE) {
+    allComponents.push(...mockComponents);
+  }
+
   if (!request.query.installed) {
     return await Promise.all(
-      availableComponents.map(async (ac) => {
+      allComponents.map(async (ac) => {
         return _.pick(ac, PICKED_AVAILABLE_FIELDS);
       }),
     );
@@ -18,7 +35,7 @@ module.exports = async function ({ fastify, request }) {
 
   // Get the components associated with the installed KfDefs
   const installedComponents = kfdefApps.reduce((acc, kfdefApp) => {
-    const component = availableComponents.find(
+    const component = allComponents.find(
       (ac) => ac.kfdefApplications && ac.kfdefApplications.includes(kfdefApp.name),
     );
     if (component && !acc.includes(component)) {
