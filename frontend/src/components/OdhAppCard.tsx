@@ -1,5 +1,5 @@
 import React from 'react';
-import * as classNames from 'ClassNames';
+import * as classNames from 'classnames';
 import {
   Brand,
   Card,
