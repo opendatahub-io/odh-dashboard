@@ -1,0 +1,16 @@
+metadata:
+  name: argo
+spec:
+  displayName: Argo
+  provider: Argo
+  description: |-
+    Kubernetes native workflows, events, CI and CD.
+  kfdefApplications: ['odhargo-cluster', 'odhargo']
+  route: argo-server
+  img: images/argo.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://argoproj.github.io/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

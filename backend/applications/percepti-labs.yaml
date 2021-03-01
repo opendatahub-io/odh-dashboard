@@ -1,0 +1,18 @@
+metadata:
+  name: perceptiLabs
+spec:
+  displayName: PerceptiLabs
+  provider: PercetiLabs
+  description: |-
+    Accelerates machine learning by streamlining the workflow and advancing explainability of the
+    models.
+  kfdefApplications: []
+  route: ''
+  img: images/percepti-labs.svg
+  docsLink: https://www.perceptilabs.com/docs/
+  support: third party
+  offering: Software
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''
+  comingSoon: true

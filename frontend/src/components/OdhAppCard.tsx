@@ -36,32 +36,37 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const onQuickStart = (e) => {
     e.preventDefault();
-    qsContext.setActiveQuickStart && qsContext.setActiveQuickStart(odhApp.quickStart);
+    qsContext.setActiveQuickStart && qsContext.setActiveQuickStart(odhApp.spec.quickstart);
   };
 
   const dropdownItems = [
-    <DropdownItem key="docs" href={odhApp.docsLink} target="_blank" rel="noopener noreferrer">
+    <DropdownItem key="docs" href={odhApp.spec.docsLink} target="_blank" rel="noopener noreferrer">
       Documentation
     </DropdownItem>,
   ];
 
-  if (odhApp.link) {
+  if (odhApp.spec.link) {
     dropdownItems.push(
-      <DropdownItem key="launch" href={odhApp.link} target="_blank" rel="noopener noreferrer">
+      <DropdownItem key="launch" href={odhApp.spec.link} target="_blank" rel="noopener noreferrer">
         Launch
       </DropdownItem>,
     );
   }
 
   const launchClasses = classNames('odh-card__footer__link', {
-    'm-hidden': !odhApp.link,
+    'm-hidden': !odhApp.spec.link,
   });
   const quickStartClasses = classNames('odh-card__footer__link', {
-    'm-hidden': !odhApp.quickStart,
+    'm-hidden': !odhApp.spec.quickstart,
   });
   const cardFooter = (
     <CardFooter className="odh-card__footer">
-      <a className={launchClasses} href={odhApp.link} target="_blank" rel="noopener noreferrer">
+      <a
+        className={launchClasses}
+        href={odhApp.spec.link || '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         {`Launch `}
         <ExternalLinkAltIcon />
       </a>
@@ -72,16 +77,20 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   );
 
   const supportedImageClasses = classNames('odh-card__supported-image', {
-    'm-hidden': odhApp.support !== 'redhat',
+    'm-hidden': odhApp.spec.support !== 'redhat',
   });
   const badgeClasses = classNames('odh-card__partner-badge', {
-    'm-warning': odhApp.partner === '3rd party support',
+    'm-warning': odhApp.spec.support === 'other',
   });
 
   return (
     <Card isHoverable className="odh-card">
       <CardHeader>
-        <Brand className="odh-card__header-brand" src={odhApp.img} alt={odhApp.label} />
+        <Brand
+          className="odh-card__header-brand"
+          src={odhApp.spec.img}
+          alt={odhApp.spec.displayName}
+        />
         <Dropdown
           onSelect={onSelect}
           toggle={<KebabToggle onToggle={onToggle} />}
@@ -92,7 +101,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         />
       </CardHeader>
       <CardTitle>
-        {odhApp.label}
+        {odhApp.spec.displayName}
         <Tooltip content="Red Hat Certified and Supported">
           <img
             className={supportedImageClasses}
@@ -102,12 +111,12 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         </Tooltip>
       </CardTitle>
       <CardBody>
-        {odhApp.partner ? (
+        {odhApp.spec.offering ? (
           <div className="odh-card__partner-badge-container">
-            <span className={badgeClasses}>{odhApp.partner}</span>
+            <span className={badgeClasses}>{odhApp.spec.offering}</span>
           </div>
         ) : null}
-        {odhApp.description}
+        {odhApp.spec.description}
       </CardBody>
       {cardFooter}
     </Card>

@@ -1,0 +1,16 @@
+metadata:
+  name: grafana
+spec:
+  displayName: Grafana
+  provider: Grafana
+  description: |-
+    Visualization and analytics software.
+  kfdefApplications: ['grafana-cluster', 'grafana-instance']
+  route: grafana-route
+  img: images/grafana.svg
+  support: red hat
+  offering: SaaS
+  docsLink: https://grafana.com/docs/grafana/latest/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

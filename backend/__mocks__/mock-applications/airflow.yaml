@@ -1,0 +1,17 @@
+metadata:
+  name: airflow
+spec:
+  displayName: Airflow
+  provider: Apache
+  description: |-
+    Platform to programmatically author, schedule, and monitor workflows.
+  kfdefApplications: ['airflow-cluster', 'airflow-operator']
+  route: ''
+  endPoint: ''
+  img: images/airflow.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://airflow.apache.org/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

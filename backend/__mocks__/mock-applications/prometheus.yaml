@@ -1,0 +1,16 @@
+metadata:
+  name: prometheus
+spec:
+  displayName: Prometheus
+  provider: Prometheus
+  description: |-
+    Systems monitoring and alerting toolkit.
+  kfdefApplications: ['prometheus-cluster', 'prometheus-operator']
+  route: prometheus-portal
+  img: images/prometheus.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://prometheus.io/docs/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

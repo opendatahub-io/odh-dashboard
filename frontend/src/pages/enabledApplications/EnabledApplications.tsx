@@ -24,9 +24,9 @@ const EnabledApplications: React.FC = () => {
       {!isEmpty ? (
         <Gallery className="odh-installed-apps__gallery" hasGutter>
           {components
-            .sort((a, b) => a.label.localeCompare(b.label))
+            .sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName))
             .map((c) => (
-              <OdhAppCard key={c.id} odhApp={c} />
+              <OdhAppCard key={c.metadata.name} odhApp={c} />
             ))}
         </Gallery>
       ) : null}

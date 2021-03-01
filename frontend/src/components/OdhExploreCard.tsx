@@ -13,23 +13,27 @@ type OdhExploreCardProps = {
 
 const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onSelect }) => {
   const badgeClasses = classNames('odh-card__partner-badge', {
-    'm-warning': odhApp.partner === '3rd party support',
+    'm-warning': odhApp.spec.support === 'other',
   });
   return (
     <Card isHoverable isSelectable isSelected={isSelected} className="odh-card" onClick={onSelect}>
       <CardHeader>
-        <Brand className="odh-card__header-brand" src={odhApp.img} alt={odhApp.label} />
-        {odhApp.partner ? <span className={badgeClasses}>{odhApp.partner}</span> : null}
+        <Brand
+          className="odh-card__header-brand"
+          src={odhApp.spec.img}
+          alt={odhApp.spec.displayName}
+        />
+        {odhApp.spec.offering ? <span className={badgeClasses}>{odhApp.spec.offering}</span> : null}
       </CardHeader>
       <CardTitle>
-        {odhApp.label}
-        {odhApp.provider ? (
+        {odhApp.spec.displayName}
+        {odhApp.spec.provider ? (
           <div>
-            <span className="odh-card__provider">by {odhApp.provider}</span>
+            <span className="odh-card__provider">by {odhApp.spec.provider}</span>
           </div>
         ) : null}
       </CardTitle>
-      <CardBody>{odhApp.description}</CardBody>
+      <CardBody>{odhApp.spec.description}</CardBody>
     </Card>
   );
 };

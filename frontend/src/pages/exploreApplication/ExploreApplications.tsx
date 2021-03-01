@@ -4,8 +4,7 @@ import { useWatchComponents } from '../../utilities/useWatchComponents';
 import OdhExploreCard from '../../components/OdhExploreCard';
 import ApplicationsPage from '../ApplicationsPage';
 
-const description = `This is a catalog of all the third-party supported optional programs you can
- add to your Managed Open Data Hub instance.`;
+const description = `Add optional programs to your Red Hat OpenShift Data Science instance.`;
 
 const ExploreApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(false);
@@ -22,13 +21,13 @@ const ExploreApplications: React.FC = () => {
       {!isEmpty ? (
         <Gallery className="odh-explore-apps__gallery" hasGutter>
           {components
-            .sort((a, b) => a.label.localeCompare(b.label))
+            .sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName))
             .map((c) => (
               <OdhExploreCard
-                key={c.id}
+                key={c.metadata.name}
                 odhApp={c}
-                isSelected={selectedComponent === c.label}
-                onSelect={() => setSelectedComponent(c.label)}
+                isSelected={selectedComponent === c.metadata.name}
+                onSelect={() => setSelectedComponent(c.metadata.name)}
               />
             ))}
         </Gallery>

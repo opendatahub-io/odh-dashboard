@@ -1,0 +1,16 @@
+metadata:
+  name: watson-studio
+spec:
+  displayName: IBM Watson Studio
+  provider: IBM
+  description: |-
+    Watson Studio is one of the core services in Cloud Pak for Data as a Service.
+  kfdefApplications: []
+  route: ''
+  img: images/ibm.svg
+  docsLink: https://dataplatform.cloud.ibm.com/docs/content/wsj/landings/wsl.html
+  support: third party
+  offering: Software
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

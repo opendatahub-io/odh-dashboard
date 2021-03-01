@@ -1,0 +1,16 @@
+metadata:
+  name: thriftserver
+spec:
+  displayName: Spark SQL Thrift Server
+  provider: Apache
+  description: |-
+    Expose Spark data frames modeled as Hive tables through a JDBC connection.
+  kfdefApplications: ['thriftserver']
+  route: thriftserver
+  img: images/spark.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://spark.apache.org/docs/latest/sql-distributed-sql-engine.html
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

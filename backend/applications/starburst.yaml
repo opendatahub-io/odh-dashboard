@@ -1,0 +1,16 @@
+metadata:
+  name: starburst
+spec:
+  displayName: Starburst Enterprise
+  provider: Starburst
+  description: |-
+    Unlocks the value of all data by making it fast and easy to access anywhere.
+  kfdefApplications: []
+  route: ''
+  img: images/starburst.svg
+  docsLink: https://docs.starburst.com/
+  support: third party
+  offering: SaaS
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

@@ -4,20 +4,20 @@ const jsYaml = require('js-yaml');
 
 const yamlRegExp = /\.ya?ml$/;
 
-const getMockQuickStarts = () => {
+const getMockApplications = () => {
   const normalizedPath = path.join(__dirname, '');
-  const allQuickStarts = [];
+  const allMockApplications = [];
   fs.readdirSync(normalizedPath).forEach(function (file) {
     if (yamlRegExp.test(file)) {
       try {
         const doc = jsYaml.load(fs.readFileSync(path.join(normalizedPath, file), 'utf8'));
-        allQuickStarts.push(doc);
+        allMockApplications.push(doc);
       } catch (e) {
-        console.error(`Error loading quick start ${file}: ${e}`);
+        console.error(`Error loading mock applications ${file}: ${e}`);
       }
     }
   });
-  return allQuickStarts;
+  return allMockApplications;
 };
 
-module.exports = getMockQuickStarts;
+module.exports = getMockApplications;

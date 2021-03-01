@@ -1,0 +1,17 @@
+metadata:
+  name: seldon
+spec:
+  displayName: Seldon Deploy
+  provider: Seldon
+  description: |-
+    A specialist set of tools designed to simplify and accelerate the process of deploying and
+    managing your machine learning models.
+  kfdefApplications: [odhseldon]
+  route: ''
+  img: images/seldon.svg
+  docsLink: https://docs.seldon.io/
+  support: third party
+  offering: Software
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

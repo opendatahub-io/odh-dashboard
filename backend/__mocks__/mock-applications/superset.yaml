@@ -1,0 +1,16 @@
+metadata:
+  name: superset
+spec:
+  displayName: Superset
+  provider: Apache
+  description: |-
+    A modern, enterprise-ready business intelligence web application.
+  kfdefApplications: ['superset']
+  route: superset
+  img: images/superset.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://superset.incubator.apache.org/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

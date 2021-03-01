@@ -1,0 +1,16 @@
+metadata:
+  name: hue
+spec:
+  displayName: Hue
+  provider: Hue
+  description: |-
+    Data exploration platform for Hive and S3 storage.
+  kfdefApplications: []
+  route: ''
+  img: images/hue.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://docs.gethue.com/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

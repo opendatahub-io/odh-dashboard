@@ -1,33 +1,15 @@
-const _ = require('lodash');
-const availableComponents = require('./available-components');
 const componentUtils = require('./componentUtils');
 const constants = require('../../../utils/constants');
-const mockComponents = require('../../../__mocks__/mock-components');
-
-const PICKED_AVAILABLE_FIELDS = [
-  'id',
-  'label',
-  'provider',
-  'description',
-  'img',
-  'support',
-  'partner',
-  'docsLink',
-  'quickStart',
-];
+const getMockApplications = require('../../../__mocks__/mock-applications/getMockApplications');
 
 module.exports = async function ({ fastify, request }) {
-  const allComponents = [...availableComponents];
+  const applicationDefs = componentUtils.getApplicationDefs();
   if (constants.DEV_MODE) {
-    allComponents.push(...mockComponents);
+    applicationDefs.push(...getMockApplications());
   }
 
   if (!request.query.installed) {
-    return await Promise.all(
-      allComponents.map(async (ac) => {
-        return _.pick(ac, PICKED_AVAILABLE_FIELDS);
-      }),
-    );
+    return await Promise.all(applicationDefs);
   }
 
   // Fetch the installed kfDefs
@@ -35,8 +17,8 @@ module.exports = async function ({ fastify, request }) {
 
   // Get the components associated with the installed KfDefs
   const installedComponents = kfdefApps.reduce((acc, kfdefApp) => {
-    const component = allComponents.find(
-      (ac) => ac.kfdefApplications && ac.kfdefApplications.includes(kfdefApp.name),
+    const component = applicationDefs.find(
+      (ac) => ac.spec.kfdefApplications && ac.spec.kfdefApplications.includes(kfdefApp.name),
     );
     if (component && !acc.includes(component)) {
       acc.push(component);
@@ -45,10 +27,12 @@ module.exports = async function ({ fastify, request }) {
   }, []);
 
   return await Promise.all(
-    installedComponents.map(async (ac) => {
-      const installedComponent = _.pick(ac, PICKED_AVAILABLE_FIELDS);
-      if (ac.route) {
-        installedComponent.link = await componentUtils.getLink(fastify, ac.route);
+    installedComponents.map(async (installedComponent) => {
+      if (installedComponent.spec.route) {
+        installedComponent.spec.link = await componentUtils.getLink(
+          fastify,
+          installedComponent.spec.route,
+        );
       }
       return installedComponent;
     }),

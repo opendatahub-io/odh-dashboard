@@ -1,0 +1,17 @@
+metadata:
+  name: anaconde-ce
+spec:
+  displayName: Anaconda Commercial Edition
+  provider: Anaconda
+  description: |-
+    The world's most popular open-source package distribution and management experience. Optimized
+    and supported for commercial use.
+  kfdefApplications: []
+  route: ''
+  img: images/anaconda-ce.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://docs.anaconda.com/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

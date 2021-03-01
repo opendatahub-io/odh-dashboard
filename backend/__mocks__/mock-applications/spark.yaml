@@ -1,0 +1,16 @@
+metadata:
+  name: spark
+spec:
+  displayName: Spark
+  provider: Apache
+  description: |-
+    Unified analytics engine for large-scale data processing.
+  kfdefApplications: ['radanalyticsio-spark-cluster']
+  route: ''
+  img: images/spark.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://spark.apache.org/docs/latest/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

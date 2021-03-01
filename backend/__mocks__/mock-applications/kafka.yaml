@@ -1,0 +1,16 @@
+metadata:
+  name: kafka
+spec:
+  displayName: Kafka
+  provider: Apache
+  description: |-
+    Distributed event streaming platform.
+  kfdefApplications: ['strimzi-operator', 'kafka-cluster']
+  route: ''
+  img: images/kafka.svg
+  support: third party
+  offering: SaaS
+  docsLink: https://kafka.apache.org/documentation/
+  quickstart: ''
+  tutorial: ''
+  getstarted: ''

@@ -1,14 +1,22 @@
 type ODHAppType = {
-  id: string;
-  label: string;
-  provider: string;
-  description: string;
-  img: string;
-  link: string;
-  docsLink: string;
-  quickStart: string;
-  support: string;
-  partner: string;
+  metadata: {
+    name: string;
+  };
+  spec: {
+    displayName: string;
+    provider: string;
+    description: string;
+    route: string | null;
+    endpoint: string | null;
+    link: string | null;
+    img: string;
+    docsLink: string;
+    support: string;
+    offering: string;
+    quickstart: string;
+    tutorial: string;
+    getstarted: string;
+  };
 };
 
 export { ODHAppType };
