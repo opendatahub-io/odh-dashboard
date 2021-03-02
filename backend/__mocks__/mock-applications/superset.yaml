@@ -13,4 +13,5 @@ spec:
   docsLink: https://superset.incubator.apache.org/
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

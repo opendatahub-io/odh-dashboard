@@ -6,7 +6,6 @@ import { detectUser } from '../redux/actions/actions';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
-import QuickStarts from './QuickStarts';
 
 import './App.scss';
 
@@ -26,15 +25,13 @@ const App: React.FC<AppProps> = ({ detectUser }) => {
   };
 
   return (
-    <QuickStarts>
-      <Page
-        className="odh-dashboard"
-        header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
-        sidebar={<NavSidebar isNavOpen={isNavOpen} />}
-      >
-        <Routes />
-      </Page>
-    </QuickStarts>
+    <Page
+      className="odh-dashboard"
+      header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
+      sidebar={<NavSidebar isNavOpen={isNavOpen} />}
+    >
+      <Routes />
+    </Page>
   );
 };
 

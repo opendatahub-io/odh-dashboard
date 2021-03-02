@@ -13,4 +13,5 @@ spec:
   docsLink: https://spark.apache.org/docs/latest/
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

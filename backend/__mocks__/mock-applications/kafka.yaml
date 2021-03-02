@@ -13,4 +13,5 @@ spec:
   docsLink: https://kafka.apache.org/documentation/
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

@@ -13,4 +13,5 @@ spec:
   docsLink: https://jupyter.org/hub
   quickstart: create-jupyter-notebook
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

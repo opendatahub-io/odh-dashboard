@@ -15,7 +15,9 @@ type ODHAppType = {
     offering: string;
     quickstart: string;
     tutorial: string;
-    getstarted: string;
+    getstartedLink: string;
+    getstartedMarkdown: string;
+    comingSoon: boolean;
   };
 };
 

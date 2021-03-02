@@ -13,4 +13,5 @@ spec:
   docsLink: https://grafana.com/docs/grafana/latest/
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

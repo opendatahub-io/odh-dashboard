@@ -13,4 +13,5 @@ spec:
   docsLink: https://spark.apache.org/docs/latest/sql-distributed-sql-engine.html
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

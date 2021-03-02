@@ -13,4 +13,5 @@ spec:
   docsLink: https://prometheus.io/docs/
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

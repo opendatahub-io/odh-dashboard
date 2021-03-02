@@ -48,6 +48,7 @@
     "@testing-library/user-event": "^12.1.7",
     "axios": "^0.21.1",
     "classnames": "^2.2.6",
+    "dompurify": "^2.2.6",
     "lodash-es": "^4.17.15",
     "node-gyp": "^7.1.2",
     "node-sass": "^4.14.1",
@@ -58,13 +59,15 @@
     "react-router-dom": "^5.2.0",
     "react-scripts": "^4.0.1",
     "redux": "^4.0.5",
-    "redux-thunk": "^2.3.0"
+    "redux-thunk": "^2.3.0",
+    "showdown": "^1.9.1"
   },
   "devDependencies": {
     "@types/enzyme": "^3.10.7",
     "@types/jest": "^26.0.14",
     "@types/react-redux": "^7.1.16",
     "@types/react-router-dom": "^5.1.6",
+    "@types/showdown": "^1.9.3",
     "@typescript-eslint/eslint-plugin": "^4.4.1",
     "@typescript-eslint/parser": "^4.4.1",
     "copy-webpack-plugin": "^6.2.1",

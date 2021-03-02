@@ -12,18 +12,29 @@ type OdhExploreCardProps = {
 };
 
 const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onSelect }) => {
+  const cardClasses = classNames('odh-card', { 'm-disabled': odhApp.spec.comingSoon });
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-warning': odhApp.spec.support === 'other',
   });
+
   return (
-    <Card isHoverable isSelectable isSelected={isSelected} className="odh-card" onClick={onSelect}>
+    <Card
+      isHoverable={!odhApp.spec.comingSoon}
+      isSelectable={!odhApp.spec.comingSoon}
+      isSelected={isSelected}
+      className={cardClasses}
+      onClick={() => !odhApp.spec.comingSoon && onSelect()}
+    >
       <CardHeader>
         <Brand
           className="odh-card__header-brand"
           src={odhApp.spec.img}
           alt={odhApp.spec.displayName}
         />
-        {odhApp.spec.offering ? <span className={badgeClasses}>{odhApp.spec.offering}</span> : null}
+        {odhApp.spec.comingSoon ? <span className="odh-card__coming-soon">Coming soon</span> : null}
+        {!odhApp.spec.comingSoon && odhApp.spec.offering ? (
+          <span className={badgeClasses}>{odhApp.spec.offering}</span>
+        ) : null}
       </CardHeader>
       <CardTitle>
         {odhApp.spec.displayName}

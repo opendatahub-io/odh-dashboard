@@ -13,4 +13,5 @@ spec:
   docsLink: https://argoproj.github.io/
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

@@ -1,4 +1,18 @@
 .odh-card {
+  &.m-disabled {
+    background-color: var(--pf-global--BackgroundColor--light-200);
+    position: relative;
+    &:before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: var(--pf-c-card--m-selectable--m-selected--before--Height);
+      content: "";
+      background-color: var(--pf-global--disabled-color--200);
+    }
+  }
+
   &__header-brand {
     display: flex;
     max-height: 50px;
@@ -22,13 +36,18 @@
     background-color: var(--pf-global--BackgroundColor--light-300);
     border: 1px solid var(--pf-global--BorderColor--200);
     border-radius: var(--pf-global--spacer--md);
-    font-size: var(--pf-global--FontSize--sm);
+    font-size: var(--pf-global--FontSize--xs);
     margin-bottom: var(--pf-global--spacer--sm);
     padding: 0 var(--pf-global--spacer--sm);
     &.m-warning {
       background-color: var(--pf-global--palette--red-50);
       border-color: var(--pf-global--palette--red-100);
     }
+  }
+
+  &__coming-soon {
+    color: var(--pf-global--disabled-color--100);
+    font-size: var(--pf-global--FontSize--md);
   }
 
   .pf-c-card__header {

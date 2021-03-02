@@ -13,4 +13,5 @@ spec:
   offering: SaaS
   quickstart: ''
   tutorial: ''
-  getstarted: ''
+  getstartedLink: ''
+  getstartedMarkdown: ''

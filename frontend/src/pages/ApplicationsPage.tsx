@@ -34,40 +34,45 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   const renderContents = () => {
     if (loadError) {
       return (
-        <EmptyState variant={EmptyStateVariant.full}>
-          <EmptyStateIcon icon={WarningTriangleIcon} />
-          <Title headingLevel="h5" size="lg">
-            Error loading components
-          </Title>
-          <EmptyStateBody className="odh-apps__error-body">
-            <div>
-              <code className="odh-apps__display-error">{loadError.message}</code>
-            </div>
-          </EmptyStateBody>
-        </EmptyState>
+        <PageSection>
+          <EmptyState variant={EmptyStateVariant.full}>
+            <EmptyStateIcon icon={WarningTriangleIcon} />
+            <Title headingLevel="h5" size="lg">
+              Error loading components
+            </Title>
+            <EmptyStateBody className="odh-apps__error-body">
+              <div>
+                <code className="odh-apps__display-error">{loadError.message}</code>
+              </div>
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
       );
     }
 
     if (!loaded) {
       return (
-        <EmptyState variant={EmptyStateVariant.full}>
-          <Spinner size="xl" />
-          <Title headingLevel="h5" size="lg">
-            Loading
-          </Title>
-        </EmptyState>
+        <PageSection>
+          <EmptyState variant={EmptyStateVariant.full}>
+            <Spinner size="xl" />
+            <Title headingLevel="h5" size="lg">
+              Loading
+            </Title>
+          </EmptyState>
+        </PageSection>
       );
     }
 
     if (empty) {
       return (
-        <EmptyState variant={EmptyStateVariant.full}>
-          <EmptyStateIcon icon={QuestionCircleIcon} />
-
-          <Title headingLevel="h5" size="lg">
-            No Components Found
-          </Title>
-        </EmptyState>
+        <PageSection>
+          <EmptyState variant={EmptyStateVariant.full}>
+            <EmptyStateIcon icon={QuestionCircleIcon} />
+            <Title headingLevel="h5" size="lg">
+              No Components Found
+            </Title>
+          </EmptyState>
+        </PageSection>
       );
     }
 
@@ -76,13 +81,13 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   return (
     <>
-      <PageSection className="odh-installed-apps__heading" variant={PageSectionVariants.light}>
-        <TextContent className="odh-installed-apps__heading__text">
+      <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
+        <TextContent className="odh-apps__heading__text">
           <Text component="h1">{title}</Text>
           <Text component="p">{description}</Text>
         </TextContent>
       </PageSection>
-      <PageSection>{renderContents()}</PageSection>
+      {renderContents()}
     </>
   );
 };
