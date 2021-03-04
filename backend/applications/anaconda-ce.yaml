@@ -9,10 +9,12 @@ spec:
   kfdefApplications: []
   route: ''
   img: images/anaconda-ce.svg
-  support: third party
-  offering: SaaS
+  category: SaaS
   docsLink: https://docs.anaconda.com/
-  quickstart: ''
+  quickStart: ''
   tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  tutorialLength: 0
+  howDoI: ''
+  howDoILength: 0
+  getStartedLink: ''
+  getStartedMarkdown: ''

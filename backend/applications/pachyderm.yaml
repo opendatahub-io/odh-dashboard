@@ -10,9 +10,11 @@ spec:
   route: ''
   img: images/pachyderm.svg
   docsLink: https://docs.pachyderm.com/
-  support: third party
-  offering: SaaS
-  quickstart: ''
+  category: Managed service
+  quickStart: ''
   tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  tutorialLength: 0
+  howDoI: ''
+  howDoILength: 0
+  getStartedLink: ''
+  getStartedMarkdown: ''

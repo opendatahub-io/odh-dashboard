@@ -4,7 +4,7 @@ const getMockApplications = require('../../../__mocks__/mock-applications/getMoc
 
 module.exports = async function ({ fastify, request }) {
   const applicationDefs = componentUtils.getApplicationDefs();
-  if (constants.DEV_MODE) {
+  if (constants.USE_MOCK_DATA) {
     applicationDefs.push(...getMockApplications());
   }
 

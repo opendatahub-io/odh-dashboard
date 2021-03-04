@@ -10,10 +10,13 @@ spec:
   route: ''
   img: images/percepti-labs.svg
   docsLink: https://www.perceptilabs.com/docs/
-  support: third party
+  category: Managed service
   offering: Software
-  quickstart: ''
+  quickStart: ''
   tutorial: ''
+  tutorialLength: 0
+  howDoI: ''
+  howDoILength: 0
   getstartedLink: ''
   getstartedMarkdown: ''
   comingSoon: true

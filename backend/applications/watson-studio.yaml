@@ -9,9 +9,11 @@ spec:
   route: ''
   img: images/ibm.svg
   docsLink: https://dataplatform.cloud.ibm.com/docs/content/wsj/landings/wsl.html
-  support: third party
-  offering: Software
-  quickstart: ''
+  category: Third party support
+  quickStart: ''
   tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  tutorialLength: 0
+  howDoI: ''
+  howDoILength: 0
+  getStartedLink: ''
+  getStartedMarkdown: ''

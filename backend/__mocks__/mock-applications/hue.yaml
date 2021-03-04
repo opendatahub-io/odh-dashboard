@@ -8,10 +8,13 @@ spec:
   kfdefApplications: []
   route: ''
   img: images/hue.svg
-  support: third party
+  category: Third party support
   offering: SaaS
   docsLink: https://docs.gethue.com/
-  quickstart: ''
-  tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  quickStart: ''
+  tutorial: https://airflow.apache.org/
+  tutorialLength: 15
+  howDoI: https://airflow.apache.org/
+  howDoILength: 15
+  getStartedLink: https://airflow.apache.org/
+  getStartedMarkdown: "# Getting started"

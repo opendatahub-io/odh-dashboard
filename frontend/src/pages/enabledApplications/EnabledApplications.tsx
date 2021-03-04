@@ -3,9 +3,9 @@ import { Gallery, PageSection } from '@patternfly/react-core';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import ApplicationsPage from '../ApplicationsPage';
 import OdhAppCard from '../../components/OdhAppCard';
+import QuickStarts from '../../app/QuickStarts';
 
 import './EnabledApplications.scss';
-import QuickStarts from '../../app/QuickStarts';
 
 const description = `Launch your enabled applications or get started with quick start instructions
  and tasks.`;

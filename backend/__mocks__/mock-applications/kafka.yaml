@@ -8,10 +8,12 @@ spec:
   kfdefApplications: ['strimzi-operator', 'kafka-cluster']
   route: ''
   img: images/kafka.svg
-  support: third party
-  offering: SaaS
+  category: SaaS
   docsLink: https://kafka.apache.org/documentation/
-  quickstart: ''
-  tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  quickStart: ''
+  tutorial: https://airflow.apache.org/
+  tutorialLength: 15
+  howDoI: https://airflow.apache.org/
+  howDoILength: 15
+  getStartedLink: https://airflow.apache.org/
+  getStartedMarkdown: "# Getting started"

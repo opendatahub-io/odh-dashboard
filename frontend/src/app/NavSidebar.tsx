@@ -6,7 +6,8 @@ import { navData, NavDataItem } from '../utilities/NavData';
 const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, pathname }) => {
   const { children, group } = item;
   const isGroup = group !== undefined;
-  const isActive = group ? !!children?.find((c) => pathname === c.href) : pathname === item.href;
+  const isActive =
+    group && children ? !!children.find((c) => pathname === c.href) : pathname === item.href;
   const [expanded, setExpanded] = React.useState<boolean>(isGroup && isActive);
 
   if (group && children?.length) {

@@ -8,10 +8,12 @@ spec:
   kfdefApplications: ['radanalyticsio-spark-cluster']
   route: ''
   img: images/spark.svg
-  support: third party
-  offering: SaaS
+  category: Third party support
   docsLink: https://spark.apache.org/docs/latest/
-  quickstart: ''
-  tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  quickStart: ''
+  tutorial: https://airflow.apache.org/
+  tutorialLength: 15
+  howDoI: https://airflow.apache.org/
+  howDoILength: 15
+  getStartedLink: https://airflow.apache.org/
+  getStartedMarkdown: "# Getting started"

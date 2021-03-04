@@ -8,10 +8,14 @@ spec:
   kfdefApplications: ['odhargo-cluster', 'odhargo']
   route: argo-server
   img: images/argo.svg
-  support: third party
-  offering: SaaS
+  category: Managed service
   docsLink: https://argoproj.github.io/
-  quickstart: ''
-  tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  quickStart: ''
+  tutorial: https://airflow.apache.org/
+  tutorialLength: 15
+  howDoI: https://airflow.apache.org/
+  howDoILength: 15
+  getStartedLink: https://airflow.apache.org/
+  getStartedMarkdown: "
+# Getting started
+"

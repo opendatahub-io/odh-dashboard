@@ -42,12 +42,12 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
-      {selectedApp.spec.getstartedLink ? (
+      {selectedApp.spec.getStartedLink ? (
         <DrawerPanelBody>
           <span>
             <a
               className="pf-c-button pf-m-primary"
-              href={selectedApp.spec.getstartedLink}
+              href={selectedApp.spec.getStartedLink}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -58,8 +58,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
         </DrawerPanelBody>
       ) : null}
       <DrawerPanelBody className="odh-get-started__body">
-        {selectedApp.spec.getstartedMarkdown ? (
-          <MarkdownView markdown={selectedApp.spec.getstartedMarkdown} />
+        {selectedApp.spec.getStartedMarkdown ? (
+          <MarkdownView markdown={selectedApp.spec.getStartedMarkdown} />
         ) : null}
       </DrawerPanelBody>
     </DrawerPanelContent>

@@ -9,9 +9,11 @@ spec:
   route: ''
   img: images/starburst.svg
   docsLink: https://docs.starburst.com/
-  support: third party
-  offering: SaaS
-  quickstart: ''
+  category: SaaS
+  quickStart: ''
   tutorial: ''
-  getstartedLink: ''
-  getstartedMarkdown: ''
+  tutorialLength: 0
+  howDoI: ''
+  howDoILength: 0
+  getStartedLink: ''
+  getStartedMarkdown: ''

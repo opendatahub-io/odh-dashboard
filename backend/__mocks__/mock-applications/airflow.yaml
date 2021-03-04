@@ -9,14 +9,15 @@ spec:
   route: ''
   endPoint: ''
   img: images/airflow.svg
-  support: third party
-  offering: SaaS
+  category: Third party support
   docsLink: https://airflow.apache.org/
-  quickstart: ''
-  tutorial: ''
-  getstartedLink: https://airflow.apache.org/
-  getstartedMarkdown: "
-
+  quickStart: ''
+  tutorial: https://airflow.apache.org/
+  tutorialLength: 15
+  howDoI: https://airflow.apache.org/
+  howDoILength: 15
+  getStartedLink: https://airflow.apache.org/
+  getStartedMarkdown: "
 # Getting started
 
 Visit the official Airflow website documentation (latest **stable** release) for help with [installing Airflow](https://airflow.apache.org/installation.html), [getting started](https://airflow.apache.org/start.html), or walking through a more complete [tutorial](https://airflow.apache.org/tutorial.html).

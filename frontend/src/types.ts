@@ -11,14 +11,24 @@ type ODHAppType = {
     link: string | null;
     img: string;
     docsLink: string;
-    support: string;
-    offering: string;
-    quickstart: string;
-    tutorial: string;
-    getstartedLink: string;
-    getstartedMarkdown: string;
-    comingSoon: boolean;
+    category: string;
+    quickStart: string | null;
+    quickStartLength: number | null;
+    tutorial: string | null;
+    tutorialLength: number | null;
+    howDoI: string | null;
+    howDoILength: number | null;
+    getStartedLink: string | null;
+    getStartedMarkdown: string | null;
+    comingSoon: boolean | null;
   };
 };
 
-export { ODHAppType };
+enum ODHDocType {
+  QuickStart = 'QuickStart',
+  Documentation = 'Documentation',
+  Tutorial = 'Tutorial',
+  HowDoI = 'HowDoI',
+}
+
+export { ODHAppType, ODHDocType };
