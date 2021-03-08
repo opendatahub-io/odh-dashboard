@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import '@patternfly/patternfly/patternfly.min.css';
 import { Page } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
+import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
@@ -10,12 +11,17 @@ import NavSidebar from './NavSidebar';
 import './App.scss';
 
 const App: React.FC = () => {
-  const [isNavOpen, setIsNavOpen] = React.useState(true);
+  const isDeskTop = useDesktopWidth();
+  const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const dispatch = useDispatch();
 
   React.useEffect(() => {
     dispatch(detectUser());
   }, [dispatch]);
+
+  React.useEffect(() => {
+    setIsNavOpen(isDeskTop);
+  }, [isDeskTop]);
 
   const onNavToggle = () => {
     setIsNavOpen(!isNavOpen);

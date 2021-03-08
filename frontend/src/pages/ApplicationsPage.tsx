@@ -40,9 +40,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             <Title headingLevel="h5" size="lg">
               Error loading components
             </Title>
-            <EmptyStateBody className="odh-apps__error-body">
+            <EmptyStateBody className="odh-dashboard__error-body">
               <div>
-                <code className="odh-apps__display-error">{loadError.message}</code>
+                <code className="odh-dashboard__display-error">{loadError.message}</code>
               </div>
             </EmptyStateBody>
           </EmptyState>

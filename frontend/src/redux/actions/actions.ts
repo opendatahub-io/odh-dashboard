@@ -28,7 +28,7 @@ export const getUserRejected = (error: Error): GetUserAction => ({
 
 export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string>> => {
   const url = getBackendURL('/api/status');
-  return async function (dispatch) {
+  return async (dispatch) => {
     dispatch(getUserPending());
     try {
       const response = await axios.get(url, {});

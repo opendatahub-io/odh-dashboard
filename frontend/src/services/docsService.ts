@@ -1,12 +1,12 @@
 import axios from 'axios';
 import { getBackendURL } from '../utilities/utils';
-import { ODHApp } from '../types';
+import { ODHDoc } from '../types';
 
-export const fetchComponents = (installed: boolean): Promise<ODHApp[]> => {
-  const url = getBackendURL('/api/components');
+export const fetchDocs = (docType?: string): Promise<ODHDoc[]> => {
+  const url = getBackendURL('/api/docs');
   const searchParams = new URLSearchParams();
-  if (installed) {
-    searchParams.set('installed', 'true');
+  if (docType) {
+    searchParams.set('type', docType);
   }
   const options = { params: searchParams };
   return axios

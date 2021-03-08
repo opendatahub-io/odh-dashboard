@@ -1,12 +1,13 @@
 import React from 'react';
 import * as classNames from 'classnames';
-import { Brand, Card, CardHeader, CardTitle, CardBody, Tooltip } from '@patternfly/react-core';
-import { ODHAppType } from '../types';
+import { Card, CardHeader, CardTitle, CardBody, Tooltip } from '@patternfly/react-core';
+import { ODHApp } from '../types';
+import BrandImage from './BrandImage';
 
 import './OdhCard.scss';
 
 type OdhExploreCardProps = {
-  odhApp: ODHAppType;
+  odhApp: ODHApp;
   isSelected: boolean;
   onSelect: () => void;
 };
@@ -30,7 +31,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onS
       onClick={() => !odhApp.spec.comingSoon && onSelect()}
     >
       <CardHeader>
-        <Brand
+        <BrandImage
           className="odh-card__header-brand"
           src={odhApp.spec.img}
           alt={odhApp.spec.displayName}

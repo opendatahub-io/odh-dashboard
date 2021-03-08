@@ -18,5 +18,5 @@ export const navData: NavDataItem[] = [
       { id: 'apps-explore', label: 'Explore', href: '/explore' },
     ],
   },
-  { id: 'learningpaths', label: 'Learning Paths', href: '/learningpaths' },
+  { id: 'learningcenter', label: 'Learning Center', href: '/learning-center' },
 ];

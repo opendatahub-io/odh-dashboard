@@ -10,6 +10,6 @@ export const fetchQuickStarts = (): Promise<QuickStart[]> => {
       return response.data;
     })
     .catch((e) => {
-      throw new Error(e.response.data);
+      throw new Error(e.response.data.message);
     });
 };

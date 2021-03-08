@@ -11,12 +11,6 @@ spec:
   img: images/percepti-labs.svg
   docsLink: https://www.perceptilabs.com/docs/
   category: Managed service
-  offering: Software
+  support: third party support
   quickStart: ''
-  tutorial: ''
-  tutorialLength: 0
-  howDoI: ''
-  howDoILength: 0
-  getstartedLink: ''
-  getstartedMarkdown: ''
   comingSoon: true

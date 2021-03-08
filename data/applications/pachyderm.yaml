@@ -11,10 +11,5 @@ spec:
   img: images/pachyderm.svg
   docsLink: https://docs.pachyderm.com/
   category: Managed service
+  support: third party support
   quickStart: ''
-  tutorial: ''
-  tutorialLength: 0
-  howDoI: ''
-  howDoILength: 0
-  getStartedLink: ''
-  getStartedMarkdown: ''

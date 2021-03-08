@@ -2,11 +2,17 @@ html, body, #root {
   height: 100%;
 }
 
-body {
-  background-color: lightblue;
-}
-
 .odh-dashboard {
+  &__error-body {
+    text-align: left;
+    white-space: pre;
+  }
+
+  &__display-error {
+    white-space: pre-wrap;
+  }
+
+  // PF Overrides
   .pf-c-page__header {
     .pf-c-brand {
       height: 36px;
@@ -20,13 +26,21 @@ body {
       }
     }
   }
-}
+  // Bootstrap Overrides (Bootstrap pulled in by @cloudmosaic/quickstarts)
+  code {
+    color: initial;
+    background-color: initial;
+  }
 
-// PF Overrides
-@media (min-width: 800px) {
-  .pf-c-page {
-    grid-template-columns: max-content 1fr;
-    grid-template-areas: "header header" "nav main";
+  // PF Overrides
+  &.pf-c-page {
+    // TODO: Using the PF var doesn't work for some reason.
+    // @media (min-width: var(--pf-global--breakpoint--md)) {
+    @media (min-width: 768px) {
+      grid-template-columns: max-content 1fr;
+      grid-template-areas: "header header" "nav main";
+    }
   }
 }
+
 

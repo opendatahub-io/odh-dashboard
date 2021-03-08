@@ -19,6 +19,11 @@
     max-width: 33%;
   }
 
+  &__header-fallback-img {
+    height: 40px;
+    width: 40px;
+  }
+
   &__supported-image {
     margin-left: var(--pf-global--spacer--sm);
     color: var(--pf-global--primary-color--100);

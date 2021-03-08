@@ -11,7 +11,7 @@ export const markdownConverter = {
     }).makeHtml(markdown);
 
     // add hook to transform anchor tags
-    DOMPurify.addHook('beforeSanitizeElements', function (node) {
+    DOMPurify.addHook('beforeSanitizeElements', (node) => {
       // nodeType 1 = element type
       if (node.nodeType === 1 && node.nodeName.toLowerCase() === 'a') {
         node.setAttribute('rel', 'noopener noreferrer');

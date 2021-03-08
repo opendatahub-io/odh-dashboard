@@ -12,7 +12,7 @@ const currentContext = kc.getCurrentContext();
 const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
 const currentUser = kc.getCurrentUser();
 
-module.exports = fp(async function (fastify) {
+module.exports = fp(async (fastify) => {
   let namespace;
   try {
     namespace = await getCurrentNamespace();
@@ -29,13 +29,13 @@ module.exports = fp(async function (fastify) {
   });
 });
 
-async function getCurrentNamespace() {
+const getCurrentNamespace = async () => {
   return new Promise((resolve, reject) => {
     if (currentContext === 'inClusterContext') {
       fs.readFile(
         '/var/run/secrets/kubernetes.io/serviceaccount/namespace',
         'utf8',
-        function (err, data) {
+        (err, data) => {
           if (err) {
             reject(err);
           }
@@ -48,4 +48,4 @@ async function getCurrentNamespace() {
       resolve(currentContext.split('/')[0]);
     }
   });
-}
+};

@@ -5,7 +5,7 @@ const Static = require('fastify-static');
 const AutoLoad = require('fastify-autoload');
 const Sensible = require('fastify-sensible');
 
-module.exports = async function (fastify, opts) {
+module.exports = async (fastify, opts) => {
   fastify.register(Sensible);
 
   fastify.register(Static, {

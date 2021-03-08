@@ -9,7 +9,7 @@ import {
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import OdhExploreCard from '../../components/OdhExploreCard';
 import ApplicationsPage from '../ApplicationsPage';
-import { ODHAppType } from '../../types';
+import { ODHApp } from '../../types';
 import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
@@ -22,7 +22,7 @@ const ExploreApplications: React.FC = () => {
   const history = useHistory();
   const queryParams = useQueryParams();
   const selectedId = queryParams.get('selectId');
-  const [selectedComponent, setSelectedComponent] = React.useState<ODHAppType>();
+  const [selectedComponent, setSelectedComponent] = React.useState<ODHApp>();
   const isEmpty = !components || components.length === 0;
 
   const updateSelection = React.useCallback(

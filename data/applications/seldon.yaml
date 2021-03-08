@@ -10,11 +10,6 @@ spec:
   route: ''
   img: images/seldon.svg
   docsLink: https://docs.seldon.io/
-  category: Third party support
+  category: Integrated service
+  support: third paty support
   quickStart: ''
-  tutorial: ''
-  tutorialLength: 0
-  howDoI: ''
-  howDoILength: 0
-  getStartedLink: ''
-  getStartedMarkdown: ''

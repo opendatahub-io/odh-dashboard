@@ -10,11 +10,6 @@ spec:
   route: ''
   img: images/anaconda-ce.svg
   category: SaaS
+  support: third party support
   docsLink: https://docs.anaconda.com/
   quickStart: ''
-  tutorial: ''
-  tutorialLength: 0
-  howDoI: ''
-  howDoILength: 0
-  getStartedLink: ''
-  getStartedMarkdown: ''

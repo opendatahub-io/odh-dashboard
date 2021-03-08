@@ -10,10 +10,5 @@ spec:
   img: images/starburst.svg
   docsLink: https://docs.starburst.com/
   category: SaaS
+  support: third party support
   quickStart: ''
-  tutorial: ''
-  tutorialLength: 0
-  howDoI: ''
-  howDoILength: 0
-  getStartedLink: ''
-  getStartedMarkdown: ''

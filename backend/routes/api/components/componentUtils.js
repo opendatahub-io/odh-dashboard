@@ -3,8 +3,7 @@ const createError = require('http-errors');
 const fs = require('fs');
 const path = require('path');
 const jsYaml = require('js-yaml');
-
-const yamlRegExp = /\.ya?ml$/;
+const constants = require('../../../utils/constants');
 
 const getLink = async (fastify, routeName) => {
   const customObjectsApi = fastify.kube.customObjectsApi;
@@ -54,10 +53,10 @@ const getInstalledKfdefs = async (fastify) => {
 };
 
 const getApplicationDefs = () => {
-  const normalizedPath = path.join(__dirname, '../../../applications');
+  const normalizedPath = path.join(__dirname, '../../../../data/applications');
   const applicationDefs = [];
-  fs.readdirSync(normalizedPath).forEach(function (file) {
-    if (yamlRegExp.test(file)) {
+  fs.readdirSync(normalizedPath).forEach((file) => {
+    if (constants.yamlRegExp.test(file)) {
       try {
         const doc = jsYaml.load(fs.readFileSync(path.join(normalizedPath, file), 'utf8'));
         applicationDefs.push(doc);

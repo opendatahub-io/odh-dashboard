@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { ODHAppType } from '../../types';
 import {
   DrawerPanelBody,
   DrawerHead,
@@ -7,21 +6,80 @@ import {
   Title,
   DrawerActions,
   DrawerCloseButton,
+  EmptyState,
+  EmptyStateVariant,
+  Spinner,
+  EmptyStateIcon,
+  EmptyStateBody,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon, WarningTriangleIcon } from '@patternfly/react-icons';
+import { ODHApp, ODHGettingStarted } from '../../types';
+import MarkdownView from '../../components/MarkdownView';
+import { fetchGettingStartedDoc } from '../../services/gettingStartedService';
 
 import './GetStartedPanel.scss';
-import MarkdownView from '../../components/MarkdownView';
 
 type GetStartedPanelProps = {
-  selectedApp?: ODHAppType;
+  selectedApp?: ODHApp;
   onClose: () => void;
 };
 
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose }) => {
+  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loadError, setLoadError] = React.useState<Error>();
+  const [odhGettingStarted, setOdhGettingStarted] = React.useState<ODHGettingStarted>();
+  const appName = selectedApp?.metadata.name;
+
+  React.useEffect(() => {
+    if (appName) {
+      setLoaded(false);
+      setOdhGettingStarted(undefined);
+      fetchGettingStartedDoc(appName)
+        .then((gs: ODHGettingStarted) => {
+          setLoaded(true);
+          setLoadError(undefined);
+          setOdhGettingStarted(gs);
+        })
+        .catch((e) => {
+          setLoadError(e);
+        });
+    }
+  }, [appName]);
+
   if (!selectedApp) {
     return null;
   }
+
+  const renderMarkdownContents = () => {
+    if (loadError) {
+      return (
+        <EmptyState variant={EmptyStateVariant.full}>
+          <EmptyStateIcon icon={WarningTriangleIcon} />
+          <Title headingLevel="h5" size="md">
+            Error loading getting started information
+          </Title>
+          <EmptyStateBody className="odh-dashboard__error-body">
+            <div>
+              <code className="odh-dashboard__display-error">{loadError.message}</code>
+            </div>
+          </EmptyStateBody>
+        </EmptyState>
+      );
+    }
+
+    if (!loaded) {
+      return (
+        <EmptyState variant={EmptyStateVariant.full}>
+          <Spinner size="xl" />
+          <Title headingLevel="h5" size="lg">
+            Loading
+          </Title>
+        </EmptyState>
+      );
+    }
+
+    return <MarkdownView markdown={odhGettingStarted?.markdown} />;
+  };
 
   return (
     <DrawerPanelContent className="odh-get-started" isResizable>
@@ -58,9 +116,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
         </DrawerPanelBody>
       ) : null}
       <DrawerPanelBody className="odh-get-started__body">
-        {selectedApp.spec.getStartedMarkdown ? (
-          <MarkdownView markdown={selectedApp.spec.getStartedMarkdown} />
-        ) : null}
+        {renderMarkdownContents()}
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

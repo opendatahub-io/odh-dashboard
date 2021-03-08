@@ -25,7 +25,7 @@ const status = async ({ fastify }) => {
   }
 };
 
-module.exports = async function (fastify, opts) {
+module.exports = async (fastify, opts) => {
   fastify.get('/', async (request, reply) => {
     return status({ fastify, opts, request, reply })
       .then((res) => {

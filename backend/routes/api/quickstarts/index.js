@@ -2,7 +2,7 @@ const { DEV_MODE } = require('../../../utils/constants');
 const responseUtils = require('../../../utils/responseUtils');
 const list = require('./list');
 
-module.exports = async function (fastify, opts) {
+module.exports = async (fastify, opts) => {
   fastify.get('/', async (request, reply) => {
     return list({ fastify, opts, request, reply })
       .then((res) => {

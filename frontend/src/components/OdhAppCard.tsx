@@ -1,7 +1,6 @@
 import React from 'react';
 import * as classNames from 'classnames';
 import {
-  Brand,
   Card,
   CardHeader,
   CardTitle,
@@ -14,13 +13,15 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHAppType } from '../types';
+import { ODHApp } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
+import { isRedHatSupported } from '../utilities/utils';
+import BrandImage from './BrandImage';
 
 import './OdhCard.scss';
 
 type OdhAppCardProps = {
-  odhApp: ODHAppType;
+  odhApp: ODHApp;
 };
 
 const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
@@ -79,7 +80,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   );
 
   const supportedImageClasses = classNames('odh-card__supported-image', {
-    'm-hidden': odhApp.spec.category !== 'Red Hat',
+    'm-hidden': !isRedHatSupported(odhApp),
   });
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-warning': odhApp.spec.category === 'Third party support',
@@ -88,11 +89,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   return (
     <Card isHoverable className="odh-card">
       <CardHeader>
-        <Brand
-          className="odh-card__header-brand"
-          src={odhApp.spec.img}
-          alt={odhApp.spec.displayName}
-        />
+        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
         <Dropdown
           onSelect={onSelect}
           toggle={<KebabToggle onToggle={onToggle} />}

@@ -1,7 +1,7 @@
 'use strict';
 
-module.exports = async function (fastify) {
-  fastify.get('/*', function (req, reply) {
+module.exports = async (fastify) => {
+  fastify.get('/*', (req, reply) => {
     reply.notFound();
   });
 };

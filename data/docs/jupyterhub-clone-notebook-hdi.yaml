@@ -1,0 +1,12 @@
+metadata:
+  name: jupyter-clone-notebook
+  type: how-do-i
+spec:
+  displayName: How do I clone a notebook from Git?
+  appName: jupyterhub
+  description: |-
+    When working in JupyterHub, you may want to clone notebooks stored on a public git server into
+    your Red Hat OpenShift Data Science environment so that you can run and edit them.  This How Do
+    I will walk you through the necessary steps.
+  url: https://gitlab.cee.redhat.com/aiservices-bu/how-do-i/-/blob/main/clone-notebooks-from-git-repository.adoc
+  durationMinutes: 3

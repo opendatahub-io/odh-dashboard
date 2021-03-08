@@ -1,4 +1,4 @@
-import { ODHAppType, ODHDocType } from '../../types';
+import { ODHDoc, ODHDocType } from '../../types';
 
 export const SEARCH_FILTER_KEY = 'keyword';
 export const DOC_TYPE_FILTER_KEY = 'type';
@@ -26,25 +26,21 @@ export const getTextForDocType = (docType: ODHDocType): string => {
 };
 
 export const doesDocAppMatch = (
-  docApp: {
-    odhApp: ODHAppType;
-    docType: ODHDocType;
-  },
+  odhDoc: ODHDoc,
   filterText: string,
   typeFilters: string[],
 ): boolean => {
-  if (typeFilters.length && !typeFilters.includes(docApp.docType)) {
+  if (typeFilters.length && !typeFilters.includes(odhDoc.metadata.type)) {
     return false;
   }
   const searchText = filterText.toLowerCase();
   const {
     metadata: { name },
-    spec: { displayName, description, provider },
-  } = docApp.odhApp;
+    spec: { displayName, description },
+  } = odhDoc;
   return (
     name.toLowerCase().includes(searchText) ||
     displayName.toLowerCase().includes(searchText) ||
-    description.toLowerCase().includes(searchText) ||
-    provider.toLowerCase().includes(searchText)
+    (description?.toLowerCase().includes(searchText) ?? false)
   );
 };

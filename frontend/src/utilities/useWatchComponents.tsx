@@ -1,22 +1,23 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { fetchComponents } from '../services/componentsServices';
-import { ODHAppType } from '../types';
+import { ODHApp } from '../types';
 import { POLL_INTERVAL } from './const';
 
 export const useWatchComponents = (
   installed: boolean,
-): { components: ODHAppType[]; loaded: boolean; loadError: Error | undefined } => {
+): { components: ODHApp[]; loaded: boolean; loadError: Error | undefined } => {
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [components, setComponents] = React.useState<ODHAppType[]>([]);
+  const [components, setComponents] = React.useState<ODHApp[]>([]);
 
   React.useEffect(() => {
     let watchHandle;
     const watchComponents = () => {
       fetchComponents(installed)
-        .then((updatedComponents: ODHAppType[]) => {
+        .then((updatedComponents: ODHApp[]) => {
           setLoaded(true);
+          setLoadError(undefined);
           if (!_.isEqual(components, updatedComponents)) {
             setComponents(updatedComponents);
           }

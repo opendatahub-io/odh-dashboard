@@ -1,16 +1,17 @@
+kind: ConsoleQuickStart
 metadata:
   name: create-jupyter-notebook
 spec:
   displayName: Creating a Jupyter notebook
   durationMinutes: 5
-  icon: ''
+  icon: 'images/jupyterhub.svg'
   description: This quick start will walk you through creating a Jupyter notebook.
   introduction: |-
     ### This quick start shows you how to create a Jupyter notebook.
-    Red Hat® OpenShift® Data Scientist lets you run Jupyter notebooks on our Red Hat® OpenShift Dedicated environment.  
-    
-    We have configured the JupyterHub spawner to support your amazing Data Scientist explorations and model deployments.  
-    
+    Red Hat® OpenShift® Data Scientist lets you run Jupyter notebooks on our Red Hat® OpenShift Dedicated environment.
+
+    We have configured the JupyterHub spawner to support your amazing Data Scientist explorations and model deployments.
+
     We just know you will absolutely love this amazing environment.  This quick start will get you working in a notebook in just a few minutes.
   tasks:
     - title: Launch JupyterHub

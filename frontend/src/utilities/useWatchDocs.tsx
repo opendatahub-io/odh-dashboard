@@ -1,27 +1,29 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { fetchQuickStarts } from '../services/quickStartsService';
-import { QuickStart } from '@cloudmosaic/quickstarts';
+import { ODHDoc, ODHDocType } from '../types';
 import { POLL_INTERVAL } from './const';
+import { fetchDocs } from '../services/docsService';
 
-export const useWatchQuickStarts = (): {
-  quickStarts: QuickStart[];
+export const useWatchDocs = (
+  docType?: ODHDocType | 'getting-started',
+): {
+  docs: ODHDoc[];
   loaded: boolean;
   loadError: Error | undefined;
 } => {
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [quickStarts, setQuickStarts] = React.useState<QuickStart[]>([]);
+  const [docs, setDocs] = React.useState<ODHDoc[]>([]);
 
   React.useEffect(() => {
     let watchHandle;
     const watchQuickStarts = () => {
-      fetchQuickStarts()
-        .then((updatedQuickStarts: QuickStart[]) => {
+      fetchDocs(docType)
+        .then((updatedDocs: ODHDoc[]) => {
           setLoaded(true);
           setLoadError(undefined);
-          if (!_.isEqual(quickStarts, updatedQuickStarts)) {
-            setQuickStarts(updatedQuickStarts);
+          if (!_.isEqual(docs, updatedDocs)) {
+            setDocs(updatedDocs);
           }
         })
         .catch((e) => {
@@ -36,9 +38,9 @@ export const useWatchQuickStarts = (): {
         clearTimeout(watchHandle);
       }
     };
-    // Don't update when components are updated
+    // Don't update when docs are updated
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [docType]);
 
-  return { quickStarts, loaded, loadError };
+  return { docs, loaded, loadError };
 };

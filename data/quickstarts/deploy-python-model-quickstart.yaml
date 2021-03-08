@@ -1,17 +1,18 @@
+kind: ConsoleQuickStart
 metadata:
   name: deploy-python-model
 spec:
   displayName: Deploying a sample Python application using Flask and OpenShift
   durationMinutes: 10
-  icon: ''
+  icon: 'images/jupyterhub.svg'
   description: How to deploy a Python model using Flask and OpenShift
   prerequisites: [You completed the "Create a Jupyter notebook" quick start.]
   introduction: |-
     ### This quick start shows you how to deploy a Python Model.
-    Red Hat® OpenShift® Data Scientist helps you deploy a model on our Red Hat® OpenShift Dedicated environment.  
-    
-    We have configured a template repository that uses s2i to support deploying your amazing Data Scientist explorations using Flask on OpenShift.  
-    
+    Red Hat® OpenShift® Data Scientist helps you deploy a model on our Red Hat® OpenShift Dedicated environment.
+
+    We have configured a template repository that uses s2i to support deploying your amazing Data Scientist explorations using Flask on OpenShift.
+
     We just know you will absolutely love this amazing environment.  This quick start will get your model deployed for sandbox development usage.
   tasks:
     - title: Create a new repository from the s2i Flask github template
@@ -44,7 +45,7 @@ spec:
         7. Accept all of the defaults.
         8. Click create and watch the deployment build and start in the Topology view.
 
-        The application will deploy and indicate that the system is running.   
+        The application will deploy and indicate that the system is running.
 
       review:
         instructions: |-
@@ -57,8 +58,8 @@ spec:
     - title: Test the prediction function in the deployed model
       description: |-
         ### To test the sample Flask application:
-        1. Copy the application route from the Topology view for the deployed application. 
-        2. In a Jupyter notebook, navigate to a terminal view. 
+        1. Copy the application route from the Topology view for the deployed application.
+        2. In a Jupyter notebook, navigate to a terminal view.
         3. Use a curl command, `! ‘!curl -X POST -d ‘{“hello” '':'' “world”} http://fraud-serve-demo-git-username-dev.apps.rhodsinternal .ju9j.p1.openshiftapps.com/prediction` to exercise the deployed model.
 
         You should see `{"prediction" '':'' "not implemented"}` returned.

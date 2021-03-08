@@ -1,0 +1,11 @@
+metadata:
+  name: jupyter-connect-data-s3-bucket
+  type: how-do-i
+spec:
+  displayName: How do I connect to data in a S3 Bucket?
+  appName: jupyterhub
+  description: |-
+    When working in a Jupyter Notebook, you may want to connect to data stored in an AWS S3 bucket.
+    This How Do I will walk you through the necessary steps.
+  url: https://gitlab.cee.redhat.com/aiservices-bu/how-do-i/-/blob/main/connect-to-data-in-a-s3-bucket.adoc
+  durationMinutes: 15
