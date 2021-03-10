@@ -94,7 +94,7 @@ const LearningCenter: React.FC = () => {
           let sortVal =
             sortType === SORT_TYPE_NAME
               ? a.spec.displayName.localeCompare(b.spec.displayName)
-              : a.metadata.type.localeCompare(a.metadata.type);
+              : a.metadata.type.localeCompare(b.metadata.type);
           if (sortOrder === SORT_DESC) {
             sortVal *= -1;
           }

@@ -20,10 +20,10 @@ type ODHApp = {
 };
 
 enum ODHDocType {
-  QuickStart = 'consolequickstarts', // TODO: update when we get dashboard quick starts
   Documentation = 'documentation',
-  Tutorial = 'tutorial',
   HowDoI = 'how-do-i',
+  QuickStart = 'quickstart',
+  Tutorial = 'tutorial',
 }
 
 type ODHDoc = {
