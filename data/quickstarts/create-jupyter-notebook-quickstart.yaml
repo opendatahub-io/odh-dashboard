@@ -17,7 +17,7 @@ spec:
     - title: Launch JupyterHub
       description: |-
         ### To find the JupyterHub Launch action:
-        1. In the **Applications** menu item, go to **Installed** projects.
+        1. In the **Applications** menu item, go to **Enabled** projects.
         2. Find the JupyterHub entry.
         3. Click **Launch** on the JupyterHub card to access the JupyterHub Spawner.
 
@@ -28,16 +28,16 @@ spec:
           Is a new browser tab visible that reads Spawner Options?
         failedTaskHelp: This task isn’t verified yet. Try the task again.
       summary:
-        success: You have launched the Jupyter Spawner application!
+        success: You have launched the Jupyter Spawner!
         failed: Try the steps again.
     - title: Spawn an environment
       description: |-
         ### Spawning an environment:
         1. Select a notebook image from the dropdown menu.
-        2. Select a container size; small, medium or large based on your computation needs.
-        3. Click the Start button.
+        2. Select a container size based on your computation needs.
+        3. Click the **Start** button.
 
-        The Spawner Options page will reload and indicate that the system is starting up.   Once the page displays a stop option you may proceed to the next step.
+        The Spawner Options page will reload and indicate that the system is starting up.
       review:
         instructions: |-
           #### To verify that you have launched the Jupyter notebook:
@@ -49,9 +49,8 @@ spec:
     - title: Create your first notebook
       description: |-
         ### To create a notebook, follow these steps:
-        1. In the JupyterHub file menu, click file->New-> notebook
-        2. Choose Python 3 and press select when prompted to select a kernel.
-        3. When the new Jupyter notebook opens, verify that you see Python 3 in the upper right navigation bar.
+        1. Under the Notebook display click the Python 3 tile. 
+        2. When the new Jupyter notebook opens, verify that you see Python 3 in the upper right navigation bar.
 
         You have now launched a Jupyter notebook and can begin writing Python.
       review:
