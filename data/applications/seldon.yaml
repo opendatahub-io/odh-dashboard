@@ -1,5 +1,5 @@
 metadata:
-  name: seldon
+  name: seldon-deploy
 spec:
   displayName: Seldon Deploy
   provider: Seldon

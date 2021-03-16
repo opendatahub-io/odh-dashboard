@@ -122,7 +122,7 @@ const LearningCenter: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Learning center"
+      title="Resources"
       description={description}
       loaded={loaded && docsLoaded}
       loadError={loadError || docsLoadError}

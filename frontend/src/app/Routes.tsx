@@ -17,7 +17,7 @@ const Routes: React.FC = () => (
     <Switch>
       <Route path="/" exact component={InstalledApplications} />
       <Route path="/explore" exact component={ExploreApplications} />
-      <Route path="/learning-center" exact component={LearningCenterPage} />
+      <Route path="/resources" exact component={LearningCenterPage} />
       <Route component={NotFound} />
     </Switch>
   </React.Suspense>

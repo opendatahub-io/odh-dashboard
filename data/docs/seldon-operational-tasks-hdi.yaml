@@ -1,0 +1,10 @@
+metadata:
+  name: seldon-operation-tasks-hdi
+  type: how-do-i
+spec:
+  displayName: Operational Tasks
+  appName: seldon-deploy
+  description: |-
+    Best practices for managing a Seldon Deploy cluster.
+  url: https://deploy.seldon.io/docs/operations/
+  durationMinutes: 10

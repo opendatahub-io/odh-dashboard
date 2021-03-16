@@ -11,4 +11,5 @@ spec:
   docsLink: https://docs.starburst.com/
   category: SaaS
   support: third party support
-  quickStart: ''
+  quickStart: 'deploy-model-seldon'
+  getStartedLink: https://deploy.seldon.io/docs/getting-started/

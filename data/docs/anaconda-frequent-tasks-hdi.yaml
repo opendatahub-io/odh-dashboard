@@ -1,0 +1,10 @@
+metadata:
+  name: anaconda-frequent-tasks-hdi
+  type: how-do-i
+spec:
+  appName: anaconde-ce
+  displayName: Frequently Performed Tasks with Anaconda
+  description: |-
+    Commonly performed tasks with the conda package manager.
+  url: https://docs.anaconda.com/anaconda/user-guide/tasks/
+  durationMinutes: 30

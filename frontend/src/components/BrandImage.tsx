@@ -10,7 +10,7 @@ type BrandImageProps = {
 };
 
 const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => {
-  const [isSrcValid, setIsSrcValid] = React.useState<boolean>(!!src);
+  const [isSrcValid, setIsSrcValid] = React.useState<boolean>(true);
 
   const brandClasses = classNames('odh-card__header-brand', className, {
     'pf-c-brand': !isSrcValid,
