@@ -48,6 +48,7 @@ const LearningCenter: React.FC = () => {
             const updatedDoc = _.cloneDeep(odhDoc);
             updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
             updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
+            updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
             return updatedDoc;
           }
         }
@@ -63,6 +64,8 @@ const LearningCenter: React.FC = () => {
               type: ODHDocType.Documentation,
             },
             spec: {
+              appName: component.metadata.name,
+              provider: component.spec.provider,
               url: component.spec.docsLink,
               displayName: component.spec.displayName,
               description: component.spec.description,

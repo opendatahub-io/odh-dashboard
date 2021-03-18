@@ -11,4 +11,5 @@ spec:
   docsLink: https://dataplatform.cloud.ibm.com/docs/content/wsj/landings/wsl.html
   category: Self managed
   support: third party support
-  quickStart: ''
+  quickStart: build-deploy-watson-model
+  getStartedLink: https://developer.ibm.com/series/cloud-pak-for-data-learning-path

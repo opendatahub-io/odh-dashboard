@@ -34,6 +34,7 @@ type ODHDoc = {
   spec: {
     displayName: string;
     appName?: string;
+    provider?: string;
     description: string;
     url: string;
     img?: string;

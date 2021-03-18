@@ -8,7 +8,7 @@ spec:
   description: This quick start will walk you through importing a Notebook in Watson Studio, deploying a model, and monitoring with Open Scale.
   introduction: |-
     ### This quick start will walk you through importing a Notebook in Watson Studio, deploying a model, and monitoring with Open Scale.
-    Build, run and manage AI models, and optimize decisions at scale across any cloud. IBM Watson Studio empowers you to operationalize AI anywhere as part of IBM Cloud Pak® for Data, 
+    Build, run and manage AI models, and optimize decisions at scale across any cloud. IBM Watson Studio empowers you to operationalize AI anywhere as part of IBM Cloud Pak® for Data,
     the IBM data and AI platform. Unite teams, simplify AI lifecycle management and accelerate time to value with an open, flexible multicloud architecture.
 
   tasks:
@@ -17,7 +17,7 @@ spec:
         ### Create a Project
         1. Choose Projects > View all projects from the menu and then click New project on the My Projects page.
         2. Select Analytics project and click OK.
-        4. Click Create. 
+        4. Click Create.
       summary:
         success: You have launched created a new project
         failed: Try the steps again
@@ -25,32 +25,32 @@ spec:
       description: |-
         ### After you create a project, you add data assets to it so that you can work with data
         1. Add a data file to your project from your local system
-        2. From your project’s Assets page, click Add to project > Data. 
-        3. In the Load pane that opens, browse for files or drag them onto the pane. 
-      summary:    
-        success: The files are listed as data assets on the Assets page of your project.   
-        failed: Try the steps again   
+        2. From your project’s Assets page, click Add to project > Data.
+        3. In the Load pane that opens, browse for files or drag them onto the pane.
+      summary:
+        success: The files are listed as data assets on the Assets page of your project.
+        failed: Try the steps again
     - title: Import a notebook into your project
       description: |-
         ### After you have data assets you are ready to import a notebook
         1. From your project, click Add to Project > Notebook.
-        2. On the New Notebook page, upload a notebook file from your file system, or a URL. 
-        3. Specify the runtime environment for the language you want to use (Python, R, or Scala). 
-        4. Click Create Notebook. 
-      summary:    
-        success: The notebook opens in the Jupyter notebook editor.  
+        2. On the New Notebook page, upload a notebook file from your file system, or a URL.
+        3. Specify the runtime environment for the language you want to use (Python, R, or Scala).
+        4. Click Create Notebook.
+      summary:
+        success: The notebook opens in the Jupyter notebook editor.
         failed: Try the steps again
-     - title: Load data into your notebook
+    - title: Load data into your notebook
       description: |-
         ### After you have a notebook created you can load data into the notebook
         1. Click in an empty code cell in your notebook.
         2. Click the Find and Add Data icon.
-        3. Click Insert to code > pandas DataFrame right below the data file name.
+        3. Click Insert to code > pandas DataFrame right below the data file name.
         4. Run the cell.
-      summary:    
-        success: The data is now availble to load from the notebook.  
+      summary:
+        success: The data is now availble to load from the notebook.
         failed: Try the steps again
-      - title: Training an AutoAI model
+    - title: Training an AutoAI model
       description: |-
         ### After you have a notebook with data loaded, you can start building a model
         1. From the Assets page of your project, click Add to Project >AutoAI experiment.
@@ -58,12 +58,12 @@ spec:
         3. Upload or add from project the CSV file you will use to train the experiment.
         4. Choose the prediction column.
         5. Run the experiment.
-      summary:    
-        success: You have trained a model.  
+      summary:
+        success: You have trained a model.
         failed: Try the steps again
-      - title: Save and Deploy a model
+    - title: Save and Deploy a model
       description: |-
-        ### After a model is trained, it can then be deployed 
+        ### After a model is trained, it can then be deployed
         1. After the AutoAI experiment finishes training, choose the best performing pipeline and click Save as model.
         2. A notification indicates the model is saved. Click the View in project link in the notification to open the model details page.
         3. Create a deployment space, and then promote the model to the deployment space.
@@ -73,8 +73,8 @@ spec:
         7. When the deployment is ready, click the name to view and test the deployment.
         8. Click the Test tab and use the form interface to enter test values.
         9. Click Predict to view the prediction.
-      summary:    
-        success: You have deployed an AutoAI model.  
-        failed: Try the steps again  
+      summary:
+        success: You have deployed an AutoAI model.
+        failed: Try the steps again
   conclusion: You are now able to import a notebook in Watson Studio, build, and deploy a model.
   nextQuickStart: []

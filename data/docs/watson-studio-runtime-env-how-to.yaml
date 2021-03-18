@@ -1,0 +1,10 @@
+metadata:
+  name: watson-studio-runtime-env-how-to
+  type: how-to
+spec:
+  appName: watson-studio
+  displayName: What are my choices for notebook runtime environments?
+  description: |-
+    How to configure a notebook runtime environment
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/notebook-environments.html
+  durationMinutes: 5

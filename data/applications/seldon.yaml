@@ -9,7 +9,8 @@ spec:
   kfdefApplications: [odhseldon]
   route: ''
   img: images/seldon.svg
-  docsLink: https://docs.seldon.io/
+  docsLink: https://deploy-v1-0.seldon.io/docs/
   category: Self managed
   support: third paty support
-  quickStart: ''
+  quickStart: 'seldon-deploy-model-canary'
+  getStartedLink: 'https://deploy.seldon.io/docs/getting-started'

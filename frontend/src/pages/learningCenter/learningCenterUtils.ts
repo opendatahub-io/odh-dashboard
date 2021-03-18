@@ -36,10 +36,13 @@ export const doesDocAppMatch = (
   const searchText = filterText.toLowerCase();
   const {
     metadata: { name },
-    spec: { displayName, description },
+    spec: { displayName, description, appName, provider },
   } = odhDoc;
   return (
+    !searchText ||
     name.toLowerCase().includes(searchText) ||
+    (appName && appName.toLowerCase().includes(searchText)) ||
+    (provider && provider.toLowerCase().includes(searchText)) ||
     displayName.toLowerCase().includes(searchText) ||
     (description?.toLowerCase().includes(searchText) ?? false)
   );
