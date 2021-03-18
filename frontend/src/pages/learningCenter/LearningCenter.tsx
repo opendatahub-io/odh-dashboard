@@ -45,7 +45,7 @@ const LearningCenter: React.FC = () => {
         if (!odhDoc.spec.img || !odhDoc.spec.description) {
           const odhApp = components.find((c) => c.metadata.name === odhDoc.spec.appName);
           if (odhApp) {
-            const updatedDoc = _.clone(odhDoc);
+            const updatedDoc = _.cloneDeep(odhDoc);
             updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
             updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
             return updatedDoc;
@@ -75,7 +75,7 @@ const LearningCenter: React.FC = () => {
 
       // Add doc cards for all quick starts
       qsContext.allQuickStarts?.forEach((quickStart) => {
-        const odhDoc: ODHDoc = _.merge(quickStart, {
+        const odhDoc: ODHDoc = _.merge({}, quickStart, {
           metadata: { type: ODHDocType.QuickStart },
         });
         updatedDocApps.push(odhDoc);

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { fetchComponents } from '../services/componentsServices';
 import { ODHApp } from '../types';
 import { POLL_INTERVAL } from './const';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchComponents = (
   installed: boolean,
@@ -18,9 +18,7 @@ export const useWatchComponents = (
         .then((updatedComponents: ODHApp[]) => {
           setLoaded(true);
           setLoadError(undefined);
-          if (!_.isEqual(components, updatedComponents)) {
-            setComponents(updatedComponents);
-          }
+          setComponents(updatedComponents);
         })
         .catch((e) => {
           setLoadError(e);
@@ -38,11 +36,7 @@ export const useWatchComponents = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installed]);
 
-  const returnValues = React.useMemo(() => ({ components, loaded, loadError }), [
-    components,
-    loaded,
-    loadError,
-  ]);
+  const retComponents = useDeepCompareMemoize<ODHApp[]>(components);
 
-  return returnValues;
+  return { components: retComponents || [], loaded, loadError };
 };

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { ODHDoc, ODHDocType } from '../types';
 import { POLL_INTERVAL } from './const';
 import { fetchDocs } from '../services/docsService';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchDocs = (
   docType?: ODHDocType | 'getting-started',
@@ -22,9 +22,7 @@ export const useWatchDocs = (
         .then((updatedDocs: ODHDoc[]) => {
           setLoaded(true);
           setLoadError(undefined);
-          if (!_.isEqual(docs, updatedDocs)) {
-            setDocs(updatedDocs);
-          }
+          setDocs(updatedDocs);
         })
         .catch((e) => {
           setLoadError(e);
@@ -42,5 +40,7 @@ export const useWatchDocs = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docType]);
 
-  return { docs, loaded, loadError };
+  const retDocs = useDeepCompareMemoize<ODHDoc[]>(docs);
+
+  return { docs: retDocs || [], loaded, loadError };
 };

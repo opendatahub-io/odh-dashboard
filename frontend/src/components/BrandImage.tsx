@@ -17,6 +17,10 @@ const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => 
     'odh-card__header-fallback-img': !isSrcValid,
   });
 
+  React.useEffect(() => {
+    setIsSrcValid(!!src);
+  }, [src]);
+
   return isSrcValid ? (
     <Brand {...props} className={brandClasses} src={src} onError={() => setIsSrcValid(false)} />
   ) : (

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import * as _ from 'lodash';
-import { fetchQuickStarts } from '../services/quickStartsService';
 import { QuickStart } from '@cloudmosaic/quickstarts';
+import { fetchQuickStarts } from '../services/quickStartsService';
 import { POLL_INTERVAL } from './const';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchQuickStarts = (): {
   quickStarts: QuickStart[];
@@ -20,9 +20,7 @@ export const useWatchQuickStarts = (): {
         .then((updatedQuickStarts: QuickStart[]) => {
           setLoaded(true);
           setLoadError(undefined);
-          if (!_.isEqual(quickStarts, updatedQuickStarts)) {
-            setQuickStarts(updatedQuickStarts);
-          }
+          setQuickStarts(updatedQuickStarts);
         })
         .catch((e) => {
           setLoadError(e);
@@ -40,5 +38,7 @@ export const useWatchQuickStarts = (): {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { quickStarts, loaded, loadError };
+  const retQuickStarts = useDeepCompareMemoize<QuickStart[]>(quickStarts);
+
+  return { quickStarts: retQuickStarts || [], loaded, loadError };
 };
