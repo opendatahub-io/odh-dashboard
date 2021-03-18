@@ -4,15 +4,15 @@ metadata:
 spec:
   displayName: Creating an Anaconda-enabled Jupyter notebook
   durationMinutes: 5
-  icon: 'images/jupyterhub.svg'
+  icon: 'images/anaconda-ce.svg'
   description: This quick start will walk you through creating an Anaconda-enabled Jupyter notebook.
   introduction: |-
     ### This quick start shows you how to create an Anaconda-enabled Jupyter notebook.
     Red Hat® OpenShift® Data Scientist lets you run Jupyter notebooks on our Red Hat® OpenShift Dedicated environment.
 
-    We have configured the JupyterHub spawner to support your amazing Data Scientist explorations and model deployments using Anaconda.
+    With Anaconda Commercial edition you can access and use Anaconda packages, curated for security and compatibility.
 
-    We just know you will absolutely love this amazing environment.  This quick start will get you working in a notebook in just a few minutes.
+    This quick start will get you working in a notebook in just a few minutes.
   tasks:
     - title: Launch JupyterHub
       description: |-
@@ -34,11 +34,10 @@ spec:
       description: |-
         ### Spawning an environment:
         1. Select the Anaconda notebook image from the dropdown menu. This notebook uses Anaconda for all its packages, including Python.
-        1.5. (Optional) In the "Environment Variables" section, you can set an environment variable to your Anaconda Enterprise key so that it doesn't need to be typed manually later.
         2. Select a container size; small, medium or large based on your computation needs.
         3. Click the Start button.
 
-        The Spawner Options page will reload and indicate that the system is starting up.   Once the page displays a stop option you may proceed to the next step.
+        The Spawner Options page will reload and indicate that the system is starting up.  Once the page displays a stop option you may proceed to the next step.
       review:
         instructions: |-
           #### To verify that you have launched the Jupyter notebook:
@@ -50,9 +49,8 @@ spec:
     - title: Create your first notebook
       description: |-
         ### To create a notebook, follow these steps:
-        1. In the JupyterHub file menu, click file->New-> notebook
+        1. In the JupyterHub File menu, click File-> New -> Notebook
         2. Choose Python 3 and press select when prompted to select a kernel.
-        3. When the new Jupyter notebook opens, verify that you see Python 3 in the upper right navigation bar.
 
         You have now launched a Jupyter notebook and can begin writing Python.
       review:
@@ -62,38 +60,22 @@ spec:
         failedTaskHelp:
           This task isn’t verified yet. Try the task again.
       summary:
-        success: You have a running jupyter notebook
+        success: You have a running Jupyter notebook
         failed: Try the steps again.
     - title: Ensure you are subscribed to use Anaconda Commercial Edition packages.
       description: |-
         ### To verify that you are subscribed to Anaconda Commercial Edition in the notebook, follow these steps:
-        1. Create a notebook or open a terminal
-        2. Run `conda info` (in a notebook, to run terminal commands, start the line with !. For example: `!conda info`)
-        3. Verify that the package repositories point to repo.anaconda.cloud rather than repo.anaconda.com
-        4. If they do not, run conda token set $ANACONDA_TOKEN (replacing $ANACONDA_TOKEN with your actual token, or the environment variable name you defined earlier if applicable)
+        1. In a notebook cell, type and run `!conda token set $ANACONDA_TOKEN` (replacing $ANACONDA_TOKEN with your own Anaconda Commercial Edition token.)
+        1. Run `!conda info` in a notebook cell. 
       review:
         instructions: |-
           #### Verify that your Anaconda package manager points to the right repositories
-          Do the repositories in `conda info` point to repo.anaconda.cloud instead of repo.anaconda.com
+          Do the repositories in `conda info` point to repo.anaconda.cloud instead of repo.anaconda.com?
         failedTaskHelp:
           This task isn’t verified yet. Try the task again.
       summary:
         success: You have successfully subscribed to Anaconda Commercial Edition
         failed: Try the steps again.
-    - title: Install TensorFlow as an example of how to install Anaconda Commercial Edition packages
-      description: |-
-        ### To ensure you can install packages, install the Anaconda Commercial Edition TensorFlow package
-        1. Open a notebook or terminal
-        2. Run `conda install tensorflow` (notebooks will need to prefix this command with !, so `!conda install tensorflow`)
-      review:
-        instructions: |-
-          #### Verify that you can import TensorFlow
-          1. Inside a notebook, run: `import tensorflow as tf`
-        failedTaskHelp:
-          This task isn’t verified yet. Try the task again.
-      summary:
-        success: You have successfully installed and loaded the Anaconda Commercial Edition TensorFlow package
-        failed: Try the steps again.
-  conclusion: You are now able to install Anaconda Commercial Edition packages, launch Jupyter notebooks, and write Python code.  If you want to learn how to deploy
+  conclusion: You are now able to install Anaconda Commercial Edition packages within your Jupyter notebook using the command `conda install $PACKAGE`.  If you want to learn how to deploy
     a model, take the next quick start.
   nextQuickStart: [deploy-python-model]
