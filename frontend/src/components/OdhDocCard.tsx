@@ -66,10 +66,10 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
         </>
       );
     }
-    if (odhDoc.metadata.type === ODHDocType.HowDoI) {
+    if (odhDoc.metadata.type === ODHDocType.HowTo) {
       return (
         <>
-          <div className="odh-card__partner-badge odh-m-doc odh-m-how-do-i">{label}</div>
+          <div className="odh-card__partner-badge odh-m-doc odh-m-how-to">{label}</div>
           <div className="odh-card__partner-badge odh-m-doc">
             {odhDoc.spec.durationMinutes} minutes
           </div>
@@ -113,7 +113,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
         </a>
       );
     }
-    if (odhDoc.metadata.type === ODHDocType.HowDoI) {
+    if (odhDoc.metadata.type === ODHDocType.HowTo) {
       return (
         <a
           className="odh-card__footer__link"
@@ -121,7 +121,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          How do I?
+          How to?
           <ExternalLinkAltIcon />
         </a>
       );
@@ -133,7 +133,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
     <Card isHoverable className="odh-card">
       <CardHeader>
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
-        <div className="odc-card__doc-badges">{renderDocBadges()}</div>
+        <div className="odh-card__doc-badges">{renderDocBadges()}</div>
       </CardHeader>
       <CardTitle>{odhDoc.spec.displayName}</CardTitle>
       <CardBody>{odhDoc.spec.description}</CardBody>

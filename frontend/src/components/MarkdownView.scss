@@ -21,4 +21,10 @@
     border-bottom: 1px solid var(--pf-global--BorderColor--100);
     vertical-align: top;
   }
+  ul {
+    list-style: initial;
+  }
+  li {
+    margin-left: var(--pf-global--spacer--lg);
+  }
 }

@@ -9,6 +9,6 @@ spec:
   route: ''
   img: images/ibm.svg
   docsLink: https://dataplatform.cloud.ibm.com/docs/content/wsj/landings/wsl.html
-  category: Integrated service
+  category: Self managed
   support: third party support
   quickStart: ''

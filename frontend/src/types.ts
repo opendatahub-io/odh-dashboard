@@ -21,7 +21,7 @@ type ODHApp = {
 
 enum ODHDocType {
   Documentation = 'documentation',
-  HowDoI = 'how-do-i',
+  HowTo = 'how-to',
   QuickStart = 'quickstart',
   Tutorial = 'tutorial',
 }

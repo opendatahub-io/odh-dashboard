@@ -63,7 +63,7 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
 
   const docTypes = {
     [ODHDocType.Documentation]: getTextForDocType(ODHDocType.Documentation),
-    [ODHDocType.HowDoI]: getTextForDocType(ODHDocType.HowDoI),
+    [ODHDocType.HowTo]: getTextForDocType(ODHDocType.HowTo),
     [ODHDocType.Tutorial]: getTextForDocType(ODHDocType.Tutorial),
     [ODHDocType.QuickStart]: getTextForDocType(ODHDocType.QuickStart),
   };
@@ -178,7 +178,7 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
       'odh-m-documentation': docType === ODHDocType.Documentation,
       'odh-m-tutorial': docType === ODHDocType.Tutorial,
       'odh-m-quick-start': docType === ODHDocType.QuickStart,
-      'odh-m-how-do-i': docType === ODHDocType.HowDoI,
+      'odh-m-how-to': docType === ODHDocType.HowTo,
     });
 
     return (

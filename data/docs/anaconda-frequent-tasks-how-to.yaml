@@ -1,6 +1,6 @@
 metadata:
-  name: anaconda-frequent-tasks-hdi
-  type: how-do-i
+  name: anaconda-frequent-tasks-how-to
+  type: how-to
 spec:
   appName: anaconde-ce
   displayName: Frequently Performed Tasks with Anaconda

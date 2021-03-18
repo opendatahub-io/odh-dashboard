@@ -10,7 +10,7 @@ spec:
   route: ''
   img: images/percepti-labs.svg
   docsLink: https://www.perceptilabs.com/docs/
-  category: Managed service
+  category: Red Hat managed
   support: third party support
   quickStart: ''
   comingSoon: true

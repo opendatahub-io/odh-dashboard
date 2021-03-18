@@ -8,7 +8,7 @@ spec:
   kfdefApplications: ['jupyterhub', 'notebook-images']
   route: jupyterhub
   img: images/jupyterhub.svg
-  category: Managed service
+  category: Red Hat managed
   support: red hat
   docsLink: https://jupyter.org/hub
   quickStart: create-jupyter-notebook

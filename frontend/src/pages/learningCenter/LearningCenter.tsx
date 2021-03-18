@@ -113,7 +113,7 @@ const LearningCenter: React.FC = () => {
       },
       {
         [ODHDocType.Documentation]: 0,
-        [ODHDocType.HowDoI]: 0,
+        [ODHDocType.HowTo]: 0,
         [ODHDocType.Tutorial]: 0,
         [ODHDocType.QuickStart]: 0,
       },

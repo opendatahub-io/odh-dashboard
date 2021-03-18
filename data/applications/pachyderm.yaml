@@ -10,6 +10,6 @@ spec:
   route: ''
   img: images/pachyderm.svg
   docsLink: https://docs.pachyderm.com/
-  category: Managed service
+  category: Red Hat managed
   support: third party support
   quickStart: ''

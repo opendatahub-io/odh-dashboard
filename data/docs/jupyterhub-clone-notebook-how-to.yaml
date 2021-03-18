@@ -1,6 +1,6 @@
 metadata:
-  name: jupyter-clone-notebook
-  type: how-do-i
+  name: jupyter-clone-notebook-how-to
+  type: how-to
 spec:
   displayName: How do I clone a notebook from Git?
   appName: jupyterhub

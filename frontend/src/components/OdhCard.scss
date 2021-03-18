@@ -64,7 +64,7 @@
         color: var(--pf-global--palette--orange-500);
       }
 
-      &.odh-m-how-do-i {
+      &.odh-m-how-to {
         border-color: var(--pf-global--BackgroundColor--light-300);
         color: var(--pf-global--palette--purple-500);
       }
@@ -79,6 +79,12 @@
         color: var(--pf-global--palette--light-blue-500);
       }
     }
+  }
+
+  &__doc-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   &__coming-soon {

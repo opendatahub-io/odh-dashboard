@@ -9,7 +9,7 @@ spec:
   kfdefApplications: []
   route: ''
   img: images/anaconda-ce.svg
-  category: SaaS
+  category: Partner managed
   support: third party support
   docsLink: https://docs.anaconda.com/
   quickStart: ''

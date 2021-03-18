@@ -9,7 +9,7 @@ spec:
   route: ''
   img: images/starburst.svg
   docsLink: https://docs.starburst.com/
-  category: SaaS
+  category: Partner managed
   support: third party support
   quickStart: 'deploy-model-seldon'
   getStartedLink: https://deploy.seldon.io/docs/getting-started/

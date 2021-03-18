@@ -1,12 +1,7 @@
 const componentUtils = require('./componentUtils');
-const constants = require('../../../utils/constants');
-const getMockApplications = require('../../../__mocks__/mock-applications/getMockApplications');
 
 module.exports = async ({ fastify, request }) => {
   const applicationDefs = componentUtils.getApplicationDefs();
-  if (constants.USE_MOCK_DATA) {
-    applicationDefs.push(...getMockApplications());
-  }
 
   if (!request.query.installed) {
     return await Promise.all(applicationDefs);

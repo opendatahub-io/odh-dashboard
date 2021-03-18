@@ -1,6 +1,6 @@
 metadata:
   name: jupyter-connect-data-s3-bucket
-  type: how-do-i
+  type: how-to
 spec:
   displayName: How do I connect to data in a S3 Bucket?
   appName: jupyterhub

@@ -10,6 +10,6 @@ spec:
   route: ''
   img: images/seldon.svg
   docsLink: https://docs.seldon.io/
-  category: Integrated service
+  category: Self managed
   support: third paty support
   quickStart: ''

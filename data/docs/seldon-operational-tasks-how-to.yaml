@@ -1,6 +1,6 @@
 metadata:
-  name: seldon-operation-tasks-hdi
-  type: how-do-i
+  name: seldon-operation-tasks-how-to
+  type: how-to
 spec:
   displayName: Operational Tasks
   appName: seldon-deploy
