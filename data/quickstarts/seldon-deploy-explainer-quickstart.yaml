@@ -1,0 +1,44 @@
+kind: ConsoleQuickStart
+metadata:
+  name: seldon-deploy-model-explainer
+spec:
+  displayName: See predictions and explanations for a deployed SKLearn model
+  durationMinutes: 10
+  icon: 'images/seldon.svg'
+  description: See predictions and explanations for deployed income classifier model
+  introduction: |-
+    ### This quick start shows you how to launch an income classifier model and see explanations.
+    Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.
+
+    This quick start is a short version of https://deploy.seldon.io/docs/demos/seldon-core/explainer-anchortabular/
+  tasks:
+    - title: Deploy a pretrained income classifier model
+      description: |-
+        ### Deploy a pretrained income classifier model
+        1. Open Seldon Console and click create. Deployment creation wizard appears.
+        2. Choose type SeldonDeployment and click next.
+        3. Choose runtime scikit-learn and enter the model url gs://seldon-models/sklearn/income/model-0.23.2
+        4. Click through wizard to deploy the model
+      summary:
+        success: You have deployed a pretrained sklearn iris model
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/explainer-anchortabular/
+    - title: Add an explainer
+      description: |-
+        ### Deploy a pretrained explainer model for the income classifier
+        1. From the income classifier model's page, go to the alibi explainer wizard
+        2. Enter the model url gs://seldon-models/sklearn/income/explainer-py36-0.5.2 for an Anchor Tabular explainer and use the defaults
+        3. Click through wizard to deploy the explainer
+      summary:
+        success: The explainer shows as loaded
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/explainer-anchortabular/
+    - title: Make a prediction and see explanations
+      description: |-
+        ### Make a prediction:
+        1. Use this request payload to make a prediction {"data": {"names": ["Age","Workclass","Education","Marital Status","Occupation","Relationship","Race","Sex","Capital Gain","Capital Loss","Hours per week","Country"], "ndarray": [[53,4,0,2,8,4,2,0,0,0,60,9]]}}
+        2. You should get a successful result back from the prediction.
+        3. Click explain under the prediction to understand why this result was given by seeing anchors of most influential features
+      summary:
+        success: You see anchor-style explanations for income classifier model.
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/explainer-anchortabular/
+  conclusion: You are now able to understand the predictions of the model.
+  nextQuickStart: []

@@ -10,21 +10,24 @@ spec:
   introduction: |-
     ### This quick start shows you how to launch a SKLearn model and update model by canarying.
     Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.
+
+    This quick start is a short version of https://deploy.seldon.io/docs/demos/seldon-core/canary/
   tasks:
     - title: Deploy a pretrained sklearn iris model
       description: |-
         ### Deploy a pretrained sklearn iris model
         1. Open Seldon Console and click create. Deployment creation wizard appears.
-        2. Put the location of the model url. For example: gs://seldon-models/sklearn/iris 
+        2. Choose type SeldonDeployment and click next.
+        3. Choose runtime scikit-learn and enter the model url gs://seldon-models/sklearn/iris
+        4. Click through wizard to deploy the model
       summary:
         success: You have deployed a pretrained sklearn iris model
-        failed: Try the steps again.
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/canary/
     - title: Start Load Test
       description: |-
         ### Complete the load test wizard:
-        1. Use the request.json file in this folder:
-        2 {"data": {"names": ["Sepal length","Sepal width","Petal length", "Petal Width"], "ndarray": [[6.8,  2.8,  4.8,  1.4], [6.0,  3.4,  4.5,  1.6]]}}
-        3. When running you should see metrics on dashboard. Enter the request logs screen to view request payloads.
+        1. Use this request payload to make a prediction {"data": {"names": ["Sepal length","Sepal width","Petal length","Petal Width"], "ndarray": [[6.8,  2.8,  4.8,  1.4], [6.0,  3.4,  4.5,  1.6]]}}
+        2. When running you should see metrics on dashboard. Enter the request logs screen to view request payloads.
       summary:
         success: You successfully performed a load test against the pre-trained iris model.
         failed: Try the steps again.

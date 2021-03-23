@@ -1,0 +1,53 @@
+kind: ConsoleQuickStart
+metadata:
+  name: seldon-deploy-model-outlier
+spec:
+  displayName: See outlier scores for predictions to deployed model
+  durationMinutes: 10
+  icon: 'images/seldon.svg'
+  description: See outlier scores for predictions to a deployed image classifier model
+  introduction: |-
+    ### This quick start shows you how to launch a tensorflow image classifier model and detect requests which are outliers.
+    Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.
+
+    This quick start is a short version of https://deploy.seldon.io/docs/demos/seldon-core/outlier/
+  tasks:
+    - title: Deploy a pretrained image classifier model
+      description: |-
+        ### Deploy a pretrained image classifier model
+        1. Open Seldon Console and click create. Deployment creation wizard appears.
+        2. Choose type SeldonDeployment and protocol tensorflow and click next.
+        3. Choose runtime tensorflow and enter the model url gs://seldon-models/tfserving/cifar10/resnet32
+        4. Click through wizard to deploy the model
+      summary:
+        success: You have deployed a pretrained tensorflow image classifier
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/outlier/
+    - title: Add an outlier detector
+      description: |-
+        ### Deploy a pretrained outlier detector for the image classifier
+        1. From the image classifier model's page, go to the outlier detector wizard
+        2. Enter the model name cifar10 and url gs://seldon-models/alibi-detect/od/OutlierVAE/cifar10 for an outlier detector and use the defaults
+        3. Click through wizard to deploy the outlier detector
+      summary:
+        success: The outlier detector shows as loaded
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/outlier/
+    - title: Make predictions
+      description: |-
+        ### Make predictions:
+        1. Go to the make predictions screen
+        2. Run a single prediction using the tensorflow payload format of an image truck - file is https://deploy.seldon.io/docs/demos/seldon-core/outlier/cifar10_image.json
+        3. Run a prediction payload format of an outlier/perturbed truck - file is https://deploy.seldon.io/docs/demos/seldon-core/outlier/outlier_image.json
+      summary:
+        success: You see ok responses for each of the predictions.
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/outlier/
+    - title: Review Outliers
+      description: |-
+        ### Review Predictions/Outliers:
+        1. Go to the requests screen (request log)
+        2. Observe the outlier value on each instance.
+        3. Optionally highlight outliers based on this score and also use the filter to see only the outliers as needed.
+      summary:
+        success: You see outlier scores for each of the predictions.
+        failed: Try the steps again or see https://deploy.seldon.io/docs/demos/seldon-core/outlier/
+  conclusion: You are now able to identify outliers in requests sent to the model.
+  nextQuickStart: []
