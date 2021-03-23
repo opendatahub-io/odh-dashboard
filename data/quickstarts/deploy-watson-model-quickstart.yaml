@@ -5,28 +5,27 @@ spec:
   displayName: Deploying a Model with Watson Studio
   durationMinutes: 15
   icon: 'images/ibm.svg'
-  description: This quick start will walk you through importing a Notebook in Watson Studio, deploying a model, and monitoring with Open Scale.
+  description: This quick start walks you through importing a Notebook in Watson Studio, building a model with AutoAI, and deploying a model.
   introduction: |-
-    ### This quick start will walk you through importing a Notebook in Watson Studio, deploying a model, and monitoring with Open Scale.
+    ### This quick start walks you through importing a Notebook in Watson Studio, building a model with AutoAI, and deploying a model.
     Build, run and manage AI models, and optimize decisions at scale across any cloud. IBM Watson Studio empowers you to operationalize AI anywhere as part of IBM Cloud Pak® for Data,
     the IBM data and AI platform. Unite teams, simplify AI lifecycle management and accelerate time to value with an open, flexible multicloud architecture.
 
   tasks:
-    - title: Create a Project
+    - title: Create a Project in Cloud Pak for Data
       description: |-
         ### Create a Project
         1. Choose Projects > View all projects from the menu and then click New project on the My Projects page.
         2. Select Analytics project and click OK.
-        4. Click Create.
+        3. Add a title and description, then click Create.
       summary:
-        success: You have launched created a new project
+        success: You have created a new project
         failed: Try the steps again
-    - title: Accessing Data Locally
+    - title: Add Data to your project
       description: |-
         ### After you create a project, you add data assets to it so that you can work with data
-        1. Add a data file to your project from your local system
-        2. From your project’s Assets page, click Add to project > Data.
-        3. In the Load pane that opens, browse for files or drag them onto the pane.
+        1. From your project’s Assets page, click Add to project > Data. 
+        2. In the Load pane that opens, browse for a CSV file or drag it onto the pane.
       summary:
         success: The files are listed as data assets on the Assets page of your project.
         failed: Try the steps again
@@ -48,22 +47,22 @@ spec:
         3. Click Insert to code > pandas DataFrame right below the data file name.
         4. Run the cell.
       summary:
-        success: The data is now availble to load from the notebook.
+        success: The data is now loaded into the notebook and you can see a preview of the data. Run the rest of the notebook to train your model.
         failed: Try the steps again
     - title: Training an AutoAI model
       description: |-
-        ### After you have a notebook with data loaded, you can start building a model
+        ### As an alternative to the Notebook, you can build a model with AutoAI
         1. From the Assets page of your project, click Add to Project >AutoAI experiment.
         2. Name your experiment, then click Create.
-        3. Upload or add from project the CSV file you will use to train the experiment.
+        3. Upload or add from project the CSV file to train the experiment.
         4. Choose the prediction column.
         5. Run the experiment.
       summary:
-        success: You have trained a model.
+        success: You have trained a model with AutoAI.
         failed: Try the steps again
     - title: Save and Deploy a model
       description: |-
-        ### After a model is trained, it can then be deployed
+        ### After a model is trained with AutoAI, you can deploy it
         1. After the AutoAI experiment finishes training, choose the best performing pipeline and click Save as model.
         2. A notification indicates the model is saved. Click the View in project link in the notification to open the model details page.
         3. Create a deployment space, and then promote the model to the deployment space.
