@@ -3,20 +3,18 @@ import * as classNames from 'classnames';
 import {
   Card,
   CardHeader,
-  CardTitle,
   CardBody,
   CardFooter,
   Dropdown,
   DropdownItem,
   KebabToggle,
-  Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { ODHApp } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
-import { isRedHatSupported } from '../utilities/utils';
 import BrandImage from './BrandImage';
+import SupportedAppTitle from './SupportedAppTitle';
 
 import './OdhCard.scss';
 
@@ -79,9 +77,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </CardFooter>
   );
 
-  const supportedImageClasses = classNames('odh-card__supported-image', {
-    'm-hidden': !isRedHatSupported(odhApp),
-  });
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-warning': odhApp.spec.category === 'Third party support',
   });
@@ -99,16 +94,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           position={'right'}
         />
       </CardHeader>
-      <CardTitle>
-        {odhApp.spec.displayName}
-        <Tooltip content="Red Hat Certified and Supported">
-          <img
-            className={supportedImageClasses}
-            src="../images/CheckStar.svg"
-            alt="Red Hat Certified and Supported"
-          />
-        </Tooltip>
-      </CardTitle>
+      <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
         {odhApp.spec.category && odhApp.spec.category !== 'Red Hat' ? (
           <div className="odh-card__partner-badge-container">

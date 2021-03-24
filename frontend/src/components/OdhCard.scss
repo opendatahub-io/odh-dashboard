@@ -138,6 +138,11 @@
     justify-content: space-between;
   }
 
+  &__title-supported {
+    display: flex;
+    align-items: center;
+  }
+
   &__provider {
     color: var(--pf-global--Color--200);
     font-size: var(--pf-global--FontSize--sm);

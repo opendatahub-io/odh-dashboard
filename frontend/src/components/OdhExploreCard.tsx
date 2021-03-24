@@ -1,8 +1,9 @@
 import React from 'react';
 import * as classNames from 'classnames';
-import { Card, CardHeader, CardTitle, CardBody, Tooltip } from '@patternfly/react-core';
+import { Card, CardHeader, CardBody } from '@patternfly/react-core';
 import { ODHApp } from '../types';
 import BrandImage from './BrandImage';
+import SupportedAppTitle from './SupportedAppTitle';
 
 import './OdhCard.scss';
 
@@ -17,9 +18,6 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onS
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-warning': odhApp.spec.category === 'Third party support',
     'm-hidden': odhApp.spec.category === 'Red Hat',
-  });
-  const supportedImageClasses = classNames('odh-card__supported-image', {
-    'm-hidden': odhApp.spec.category !== 'Red Hat',
   });
 
   return (
@@ -41,21 +39,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onS
           <span className={badgeClasses}>{odhApp.spec.category}</span>
         ) : null}
       </CardHeader>
-      <CardTitle>
-        {odhApp.spec.displayName}
-        <Tooltip content="Red Hat Certified and Supported">
-          <img
-            className={supportedImageClasses}
-            src="../images/CheckStar.svg"
-            alt="Red Hat Certified and Supported"
-          />
-        </Tooltip>
-        {odhApp.spec.provider ? (
-          <div>
-            <span className="odh-card__provider">by {odhApp.spec.provider}</span>
-          </div>
-        ) : null}
-      </CardTitle>
+      <SupportedAppTitle odhApp={odhApp} showProvider />
       <CardBody>{odhApp.spec.description}</CardBody>
     </Card>
   );
