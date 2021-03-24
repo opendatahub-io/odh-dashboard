@@ -8,7 +8,7 @@ spec:
   description: This quick start will walk you through creating an Anaconda-enabled Jupyter notebook.
   introduction: |-
     ### This quick start shows you how to create an Anaconda-enabled Jupyter notebook.
-    Red Hat® OpenShift® Data Scientist lets you run Jupyter notebooks on our Red Hat® OpenShift Dedicated environment.
+    Red Hat® OpenShift® Data Science lets you run Jupyter notebooks on our Red Hat® OpenShift Dedicated environment.
 
     With Anaconda Commercial edition you can access and use Anaconda packages, curated for security and compatibility.
 
