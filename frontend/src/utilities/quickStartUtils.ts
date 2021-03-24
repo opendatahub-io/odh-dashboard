@@ -1,35 +1,41 @@
 import {
-  AllQuickStartStates,
+  getQuickStartStatus,
   QuickStartContextValues,
   QuickStartStatus,
 } from '@cloudmosaic/quickstarts';
 
-enum LaunchStatusEnum {
+export enum LaunchStatusEnum {
   Start = 'Start',
   Resume = 'Resume',
   Restart = 'Restart',
   Close = 'Close',
 }
 
-const getLaunchStatus = (
+export const getLaunchStatus = (
   quickStartId: string,
-  allQuickStartStates: AllQuickStartStates,
-  activeQuickStartID: string,
+  qsContext?: QuickStartContextValues,
 ): LaunchStatusEnum => {
-  const quickStartState = allQuickStartStates[quickStartId];
+  if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
+    return LaunchStatusEnum.Start;
+  }
+
+  const quickStartState = qsContext.allQuickStartStates[quickStartId];
 
   if (!quickStartState) {
     return LaunchStatusEnum.Start;
   }
 
   if (quickStartState.taskNumber === -1) {
-    if (activeQuickStartID === quickStartId) {
+    if (qsContext.activeQuickStartID === quickStartId) {
       return LaunchStatusEnum.Close;
     }
     return LaunchStatusEnum.Start;
   }
 
-  if (activeQuickStartID === quickStartId || quickStartState.status === QuickStartStatus.COMPLETE) {
+  if (
+    qsContext.activeQuickStartID === quickStartId ||
+    quickStartState.status === QuickStartStatus.COMPLETE
+  ) {
     return LaunchStatusEnum.Restart;
   }
 
@@ -47,13 +53,33 @@ export const getQuickStartLabel = (
   if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
     return '';
   }
-  const launchStatus = getLaunchStatus(
-    quickStartId,
-    qsContext.allQuickStartStates,
-    qsContext.activeQuickStartID || '',
-  );
+  const launchStatus = getLaunchStatus(quickStartId, qsContext);
 
-  return `${launchStatus} the tour`;
+  return `${launchStatus} tour`;
+};
+
+export const isQuickStartInProgress = (
+  quickStartId?: string | null,
+  qsContext?: QuickStartContextValues,
+): boolean => {
+  if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
+    return false;
+  }
+  const launchStatus = getLaunchStatus(quickStartId, qsContext);
+
+  return launchStatus === LaunchStatusEnum.Resume;
+};
+
+export const isQuickStartComplete = (
+  quickStartId?: string | null,
+  qsContext?: QuickStartContextValues,
+): boolean => {
+  if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
+    return false;
+  }
+  return (
+    getQuickStartStatus(qsContext.allQuickStartStates, quickStartId) === QuickStartStatus.COMPLETE
+  );
 };
 
 export const launchQuickStart = (
@@ -74,11 +100,7 @@ export const launchQuickStart = (
     return;
   }
 
-  const launchStatus = getLaunchStatus(
-    quickStartId,
-    qsContext.allQuickStartStates,
-    qsContext.activeQuickStartID || '',
-  );
+  const launchStatus = getLaunchStatus(quickStartId, qsContext);
 
   if (launchStatus === LaunchStatusEnum.Restart) {
     const quickStart = qsContext.allQuickStarts?.find((qs) => qs.metadata.name === quickStartId);

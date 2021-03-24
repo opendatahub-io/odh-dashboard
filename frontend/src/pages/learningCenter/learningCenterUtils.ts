@@ -19,7 +19,7 @@ export const getTextForDocType = (docType: ODHDocType): string => {
     case ODHDocType.QuickStart:
       return 'Quick start';
     case ODHDocType.HowTo:
-      return 'How to';
+      return 'How-to';
     default:
       return 'Documentation';
   }

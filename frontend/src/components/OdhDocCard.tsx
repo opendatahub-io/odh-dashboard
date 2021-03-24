@@ -1,11 +1,11 @@
 import React from 'react';
-import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@patternfly/react-core';
+import { Card, CardBody, CardFooter, CardHeader, CardTitle, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { ODHDoc, ODHDocType } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
-import { getTextForDocType } from '../pages/learningCenter/learningCenterUtils';
 import BrandImage from './BrandImage';
+import DocCardBadges from './DocCardBadges';
 
 import './OdhCard.scss';
 
@@ -28,55 +28,6 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhDoc.metadata.name, qsContext);
-  };
-
-  const renderDocBadges = () => {
-    const label = getTextForDocType(odhDoc.metadata.type as ODHDocType);
-    if (odhDoc.metadata.type === ODHDocType.Documentation) {
-      return (
-        <>
-          <div className="odh-card__partner-badge odh-m-doc odh-m-documentation">{label}</div>
-          <div className="odh-card__partner-badge odh-m-doc m-hidden">N/A</div>
-        </>
-      );
-    }
-    if (odhDoc.metadata.type === ODHDocType.Tutorial) {
-      return (
-        <>
-          <div className="odh-card__partner-badge odh-m-doc odh-m-tutorial">{label}</div>
-          <div className="odh-card__partner-badge odh-m-doc">
-            {odhDoc.spec.durationMinutes} minutes
-          </div>
-        </>
-      );
-    }
-    if (odhDoc.metadata.type === ODHDocType.QuickStart) {
-      const quickStart =
-        qsContext.allQuickStarts &&
-        qsContext.allQuickStarts.find((qs) => qs.metadata.name === odhDoc.metadata.name);
-      if (!quickStart) {
-        return null;
-      }
-      return (
-        <>
-          <div className="odh-card__partner-badge odh-m-doc odh-m-quick-start">{label}</div>
-          <div className="odh-card__partner-badge odh-m-doc">
-            {odhDoc.spec.durationMinutes} minutes
-          </div>
-        </>
-      );
-    }
-    if (odhDoc.metadata.type === ODHDocType.HowTo) {
-      return (
-        <>
-          <div className="odh-card__partner-badge odh-m-doc odh-m-how-to">{label}</div>
-          <div className="odh-card__partner-badge odh-m-doc">
-            {odhDoc.spec.durationMinutes} minutes
-          </div>
-        </>
-      );
-    }
-    return null;
   };
 
   const renderDocLink = () => {
@@ -133,9 +84,11 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
     <Card isHoverable className="odh-card">
       <CardHeader>
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
-        <div className="odh-card__doc-badges">{renderDocBadges()}</div>
       </CardHeader>
-      <CardTitle>{odhDoc.spec.displayName}</CardTitle>
+      <CardTitle className="odh-card__doc-title">
+        {odhDoc.spec.displayName}
+        <DocCardBadges odhDoc={odhDoc} />
+      </CardTitle>
       <CardBody>{odhDoc.spec.description}</CardBody>
       <CardFooter className="odh-card__footer">{renderDocLink()}</CardFooter>
     </Card>
