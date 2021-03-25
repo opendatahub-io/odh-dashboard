@@ -4,11 +4,11 @@ spec:
   displayName: IBM Watson Studio
   provider: IBM
   description: |-
-    Watson Studio is one of the core services in Cloud Pak for Data as a Service.
+    Embed AI and machine learning into your business. Create custom models using your own data.
   kfdefApplications: []
   route: ''
   img: images/ibm.svg
-  docsLink: https://dataplatform.cloud.ibm.com/docs/content/wsj/landings/wsl.html
+  docsLink: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/svc-welcome/wsl.html
   category: Self managed
   support: third party support
   quickStart: build-deploy-watson-model

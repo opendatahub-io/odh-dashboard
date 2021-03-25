@@ -49,7 +49,7 @@ spec:
       summary:
         success: The data is now loaded into the notebook and you can see a preview of the data. Run the rest of the notebook to train your model.
         failed: Try the steps again
-    - title: Training an AutoAI model
+    - title: Train an AutoAI model
       description: |-
         ### As an alternative to the Notebook, you can build a model with AutoAI
         1. From the Assets page of your project, click Add to Project >AutoAI experiment.
