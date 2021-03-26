@@ -1,0 +1,10 @@
+metadata:
+  name: anaconda-background
+  type: tutorial
+spec:
+  appName: anaconde-ce
+  displayName: What is Anaconda?
+  description: |-
+    Learn about the Anaconda Distrbution and why Python is so frequently used for Data Science tasks.
+  url: https://anaconda.org/training/anaconda_introduction/notebook
+  durationMinutes: 5

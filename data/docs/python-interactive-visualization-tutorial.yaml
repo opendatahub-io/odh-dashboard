@@ -1,0 +1,10 @@
+metadata:
+  name: python-interactive-visualization-tutorial
+  type: tutorial
+spec:
+  appName: anaconde-ce
+  displayName: Build interactive visualizations and dashboards in Python
+  description: |-
+    This tutorial will take you through all of the steps involved in exploring data of many different types and sizes, building simple and complex figures, working with billions of data points, adding interactive behavior, widgets and controls, and deploying full dashboards and applications.
+  url: https://holoviz.org/tutorial/index.html
+  durationMinutes: 210
