@@ -14,7 +14,7 @@ For more information visit [https://www.anaconda.com/products/commercial-edition
 
 ## Subscribe
 
-1. Go to [https://anaconda.cloud/register](https://anaconda.cloud/register)
+1. Go to [https://anaconda.cloud/register](https://anaconda.cloud/register?utm_source=redhat-rhods-summit)
 1. Create an account
 1. Create a profile
 1. Purchase a Commercial Edition subscription
