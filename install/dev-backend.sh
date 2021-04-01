@@ -8,4 +8,4 @@ pwd
 
 PORT=${BACKEND_DEV_PORT}
 npm install
-npm start:dev
+npm run start:dev

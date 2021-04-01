@@ -1,0 +1,114 @@
+kind: ConsoleQuickStart
+metadata:
+  name: connect-rhosak-notebook
+spec:
+  displayName: Connecting to Red Hat OpenShift Streams for Apache Kafka
+  durationMinutes: 10
+  icon: 'images/red-hat.svg'
+  description: This quick start will walk you through connecting to Red Hat Streams for Apache Kafka using Jupyter Notebooks
+  introduction: |-
+    ### This quick start shows you how to connect to Streams for Apache Kafka from a Jupyter notebook.
+    Welcome to the Red Hat OpenShift Streams for Apache Kafka quick start
+  tasks:
+    - title: Obtain Kafka Credentials from the Streams for Apache Kafka dashboard
+      description: |-
+        ### To obtain connection information to Streams for Apache Kafka:
+        1. In the **Streams for Apache Kafka** page of the web console, on the right side of the relevant Kafka instance, select the options icon (three vertical dots) and click **Connect to instance**.
+        2. In the **Connection** page, copy the **External server** endpoint to a secure location. This is the bootstrap server endpoint that your application requires to connect to the Kafka instance.
+        3. Click **Generate service account** and copy the **Client ID** and **Client secret** to a secure location. Your application requires these credentials to authenticate the connection to the Kafka instance.
+        4. After you save the generated credentials to a secure location, select the confirmation check box in the credentials window and close the window.
+
+           You’ll use the server and client information that you saved to configure your application to connect to your Kafka instances from your Jupyter Notebook.
+      review:
+        instructions: |-
+          Did you save the bootstrap server endpoint to a secure location?
+
+          Did you save the client credentials to a secure location?
+        failedTaskHelp: This task isn’t verified yet. Try the task again.
+      summary:
+        success: You've obtained connection information for Kafka
+        failed: Try the steps again.
+
+    - title: Launch JupyterHub from the RHODS dashboard
+      description: |-
+        ### To find the JupyterHub Launch action:
+        1. In the **Applications** menu item, go to **Enabled** projects.
+        2. Find the **JupyterHub** entry.
+        3. Click **Launch** on the JupyterHub card to access the JupyterHub Spawner.
+
+        A new browser tab window will open displaying the JupyterHub Spawner.
+      review:
+        instructions: |-
+          #### To verify you have launched the JupyterHub Spawner:
+          Is a new browser tab visible that reads Spawner Options?
+        failedTaskHelp: This task isn’t verified yet. Try the task again.
+      summary:
+        success: You have launched the Jupyter Spawner!
+        failed: Try the steps again.
+
+    - title: Spawn an environment with variables
+      description: |-
+        ### Spawning an environment
+        1. Select a notebook image from the dropdown menu.
+        2. Select a container size based on your computation needs.
+        3. Under Environment variables click **Add**
+        4. For variable name enter `KAFKA_BOOTSTRAP_SERVER`
+        5. For **variable value** enter the value for the Kafka **External server** obtained from the Streams for Apache Kafka connection information.
+        `KAFKA_BOOTSTRAP_SERVER: <External server>`
+        6. Add another variable by repeating steps 3-5.
+        `KAFKA_USERNAME: <Client ID>`
+        7. Add another variable by repeating steps 3-5.
+        `KAFKA_PASSWORD: <Client secret>`
+        8. Click the **Start** button.
+
+        The Spawner Options page will reload and indicate that the system is starting up.
+      review:
+        instructions: |-
+          #### To verify that you have launched the Jupyter notebook:
+          Do you see an visual on the Spawner options screen that says the server is running?
+        failedTaskHelp: This task isn’t verified yet. Try the task again.
+      summary:
+        success: You have started a Jupyter notebook server.
+        failed: Try the steps again.
+
+    - title: Download examples of kafka-python consumers and producers
+      description: |-
+        ### Download kafka-python example notebooks:
+        You're ready to connect to Kafka.  To get started you can download some examples of consumers and producers in notebooks using `git clone`.
+
+        To clone the notebook-examples repository using the Git plugin:
+        1. Click the Git icon on the left hand nav in JupyterLab
+        2. Click **Clone a Repository**
+        3. Enter `https://github.com/rh-aiservices-bu/notebook-examples.git`
+        4. Click Clone
+
+        You should now have a **notebook-examples** directory.
+      review:
+        instructions: |-
+          #### To verify the notebook-examples git repository cloned:
+          Open the file explorer using the folder icon on the left hand nav in JupyterLab.  Do you see an a folder named notebook-examples?
+        failedTaskHelp: This task isn’t verified yet. Try the task again.
+      summary:
+        success:  You have verified that the notebook-examples repository is cloned.
+        failed:  Try the steps again.
+
+    - title: Run examples of kafka-python consumers and producers
+      description: |-
+        ### Run the examples:
+        1. In the file explorer, open the folder `notebook-examples/kafka-sasl-plain`.
+        2. Open the notebook `1_kafka_producer.ipynb`.
+        3. **Run all cells** in the notebook to send messages from the producer.
+        4. Open the notebook `2_kafka_consumer_print.ipynb`.
+        5. **Run all cells** in the notebook start a consumer receiving messages.
+        6. Explore the other notebooks and write your own.
+      review:
+        instructions: |-
+          #### To verify that messages are being sent/received:
+          In the output from the last cell in `2_kafka_consumer_print.ipynb`, you should see incoming messages printed.
+        failedTaskHelp: Check the values of your environment variables and try the task again.
+      summary:
+        success:  You're sending and receiving messages
+        failed:  Try the steps again.
+
+  conclusion:  Congratulations.  You're now sending and receiving messages using Red Hat OpenShift Streams for Apache Kafka
+  nextQuickStart: []

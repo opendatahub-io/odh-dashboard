@@ -12,4 +12,4 @@ fi
 
 PORT=${BACKEND_DEV_PORT}
 npm install
-npm dev
+npm run dev

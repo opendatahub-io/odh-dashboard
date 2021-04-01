@@ -7,4 +7,4 @@ cd ${DIR}/../frontend
 pwd
 
 npm install
-npm start:dev
+npm run start:dev
