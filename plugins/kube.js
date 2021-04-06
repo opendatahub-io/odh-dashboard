@@ -11,17 +11,22 @@ const currentContext = kc.getCurrentContext();
 const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
 
 module.exports = fp(async function (fastify, opts) {
-  let namespace;
+  let namespaces;
   try {
-    namespace = await getCurrentNamespace();
+    namespaces = await getAllProjects();
   } catch (e) {
-    fastify.log.error(e, "Failed to retrieve current namespace");
+    fastify.log.error(e, "Failed to retrieve OpenShift projects. Retrying with a single Kubernetes namespace")
+    try {
+      namespaces = [await getCurrentNamespace()];
+    } catch (e) {
+      fastify.log.error(e, "Failed to retrieve current namespace");
+    }
   }
 
   fastify.decorate("kube", {
     config: kc,
     currentContext,
-    namespace,
+    namespaces,
     customObjectsApi,
   });
 });
@@ -43,4 +48,11 @@ async function getCurrentNamespace() {
       resolve(currentContext.split("/")[0]);
     }
   });
+}
+
+async function getAllProjects() {
+  const res = await customObjectsApi.listClusterCustomObject(
+    "project.openshift.io", "v1", "projects"
+  );
+  return res?.body?.items?.map(p => p.metadata.name) || [];
 }
