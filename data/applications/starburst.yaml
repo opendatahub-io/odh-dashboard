@@ -4,12 +4,12 @@ spec:
   displayName: Starburst Enterprise
   provider: Starburst
   description: |-
-    Unlocks the value of all data by making it fast and easy to access anywhere.
+    Starburst Galaxy is a fully-managed service to run high performance queries across your various data sources using SQL
   kfdefApplications: []
   route: ''
   img: images/starburst.svg
-  docsLink: https://docs.starburst.com/
+  docsLink: https://docs.starburst.io/starburst-galaxy/
   category: Partner managed
   support: third party support
-  quickStart: 'deploy-model-seldon'
-  getStartedLink: https://deploy.seldon.io/docs/getting-started/
+  quickStart: ''
+  getStartedLink: https://www.starburst.io/platform/starburst-galaxy/
