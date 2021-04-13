@@ -12,6 +12,10 @@ html, body, #root {
     white-space: pre-wrap;
   }
 
+  &__user-icon {
+    font-size: var(--pf-global--FontSize--xl);
+  }
+
   // PF Overrides
   .pf-c-page__header {
     .pf-c-brand {

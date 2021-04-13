@@ -1,20 +1,16 @@
 import React from 'react';
-import { connect } from 'react-redux';
 import {
   Dropdown,
+  DropdownPosition,
   DropdownToggle,
   PageHeaderTools,
   PageHeaderToolsGroup,
   PageHeaderToolsItem,
   DropdownItem,
 } from '@patternfly/react-core';
-import { CaretDownIcon } from '@patternfly/react-icons';
+import { CaretDownIcon, UserIcon } from '@patternfly/react-icons';
 
-type HeaderToolsProps = {
-  user: { name: string; token: string };
-};
-
-const HeaderTools: React.FC<HeaderToolsProps> = ({ user }) => {
+const HeaderTools: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = React.useState<boolean>(false);
 
   const handleLogout = () => {
@@ -30,22 +26,20 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ user }) => {
       Log out
     </DropdownItem>,
   ];
-  const userName = React.useMemo(() => {
-    return user?.name?.split('/')?.[0];
-  }, [user]);
 
   return (
     <PageHeaderTools>
       <PageHeaderToolsGroup className="hidden-xs">
         <PageHeaderToolsItem>
           <Dropdown
+            position={DropdownPosition.right}
             toggle={
               <DropdownToggle
                 id="toggle-id"
                 onToggle={() => setUserMenuOpen(!userMenuOpen)}
                 toggleIndicator={CaretDownIcon}
               >
-                {userName}
+                <UserIcon className="odh-dashboard__user-icon" />
               </DropdownToggle>
             }
             isOpen={userMenuOpen}
@@ -57,8 +51,4 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ user }) => {
   );
 };
 
-const mapStateToProps = (state) => ({
-  user: state.appReducer.user,
-});
-
-export default connect(mapStateToProps)(HeaderTools);
+export default HeaderTools;
