@@ -9,18 +9,20 @@ const quickStartsVersion = 'v1';
 const quickStartsPlural = 'consolequickstarts';
 
 const getInstalledQuickStarts = async (fastify) => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
   const installedQuickStarts = [];
-  try {
-    const res = await customObjectsApi.listClusterCustomObject(
-      quickStartsGroup,
-      quickStartsVersion,
-      quickStartsPlural,
-    );
-    installedQuickStarts.push(...res.body.items);
-  } catch (e) {
-    fastify.log.error(e, 'failed to get quickstarts');
-  }
+
+  // TODO: Fetch quick starts from kube once they are installed by operators
+  // const customObjectsApi = fastify.kube.customObjectsApi;
+  // try {
+  //   const res = await customObjectsApi.listClusterCustomObject(
+  //     quickStartsGroup,
+  //     quickStartsVersion,
+  //     quickStartsPlural,
+  //   );
+  //   installedQuickStarts.push(...res.body.items);
+  // } catch (e) {
+  //   fastify.log.error(e, 'failed to get quickstarts');
+  // }
 
   // TODO: Remove local quick starts when we get the correct quick starts from OpenShift
   const normalizedPath = path.join(__dirname, '../../../../data/quickstarts');

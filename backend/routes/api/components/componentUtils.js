@@ -5,14 +5,14 @@ const path = require('path');
 const jsYaml = require('js-yaml');
 const constants = require('../../../utils/constants');
 
-const getLink = async (fastify, routeName) => {
+const getLink = async (fastify, routeName, namespace) => {
   const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
+  const routeNamespace = namespace || fastify.kube.namespace;
   try {
     const res = await customObjectsApi.getNamespacedCustomObject(
       'route.openshift.io',
       'v1',
-      namespace,
+      routeNamespace,
       'routes',
       routeName,
     );
@@ -52,6 +52,35 @@ const getInstalledKfdefs = async (fastify) => {
   return _.get(kfdef, 'spec.applications') || [];
 };
 
+const getInstalledOperators = async (fastify) => {
+  const customObjectsApi = fastify.kube.customObjectsApi;
+
+  let csvs;
+  try {
+    const res = await customObjectsApi.listNamespacedCustomObject(
+      'operators.coreos.com',
+      'v1alpha1',
+      '',
+      'clusterserviceversions',
+    );
+    csvs = _.get(res, 'body.items');
+  } catch (e) {
+    fastify.log.error(e, 'failed to get ClusterServiceVersions');
+    const error = createError(500, 'failed to get ClusterServiceVersions');
+    error.explicitInternalServerError = true;
+    error.error = 'failed to get ClusterServiceVersions';
+    error.message = 'Unable to load CSV resources.';
+    throw error;
+  }
+
+  return csvs.reduce((acc, csv) => {
+    if (csv.status.phase === 'Succeeded' && csv.status.reason === 'InstallSucceeded') {
+      acc.push(csv);
+    }
+    return acc;
+  }, []);
+};
+
 const getApplicationDefs = () => {
   const normalizedPath = path.join(__dirname, '../../../../data/applications');
   const applicationDefs = [];
@@ -68,4 +97,4 @@ const getApplicationDefs = () => {
   return applicationDefs;
 };
 
-module.exports = { getInstalledKfdefs, getLink, getApplicationDefs };
+module.exports = { getInstalledKfdefs, getInstalledOperators, getLink, getApplicationDefs };

@@ -10,24 +10,48 @@ module.exports = async ({ fastify, request }) => {
   // Fetch the installed kfDefs
   const kfdefApps = await componentUtils.getInstalledKfdefs(fastify);
 
-  // Get the components associated with the installed KfDefs
-  const installedComponents = kfdefApps.reduce((acc, kfdefApp) => {
-    const component = applicationDefs.find(
-      (ac) => ac.spec.kfdefApplications && ac.spec.kfdefApplications.includes(kfdefApp.name),
+  // Fetch the installed kfDefs
+  const operatorCSVs = await componentUtils.getInstalledOperators(fastify);
+
+  const getCSVForApp = (app) =>
+    operatorCSVs.find(
+      (operator) => app.spec.csvName && operator.metadata.name.startsWith(app.spec.csvName),
     );
-    if (component && !acc.includes(component)) {
-      acc.push(component);
+
+  // Get the components associated with the installed KfDefs or operators
+  const installedComponents = applicationDefs.reduce((acc, app) => {
+    if (getCSVForApp(app)) {
+      acc.push(app);
+      return acc;
     }
+
+    if (
+      app.spec.kfdefApplications &&
+      kfdefApps.find((kfdefApp) => app.spec.kfdefApplications.includes(kfdefApp.name))
+    ) {
+      acc.push(app);
+      return acc;
+    }
+
     return acc;
   }, []);
 
   return await Promise.all(
     installedComponents.map(async (installedComponent) => {
       if (installedComponent.spec.route) {
-        installedComponent.spec.link = await componentUtils.getLink(
-          fastify,
-          installedComponent.spec.route,
-        );
+        const csv = getCSVForApp(installedComponent);
+        if (csv) {
+          installedComponent.spec.link = await componentUtils.getLink(
+            fastify,
+            installedComponent.spec.route,
+            csv.metadata.namespace,
+          );
+        } else {
+          installedComponent.spec.link = await componentUtils.getLink(
+            fastify,
+            installedComponent.spec.route,
+          );
+        }
       }
       return installedComponent;
     }),
