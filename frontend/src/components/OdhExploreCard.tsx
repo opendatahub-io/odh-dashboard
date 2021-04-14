@@ -6,6 +6,7 @@ import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 
 import './OdhCard.scss';
+import { makeCardVisible } from '../utilities/utils';
 
 type OdhExploreCardProps = {
   odhApp: ODHApp;
@@ -20,8 +21,15 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onS
     'm-hidden': odhApp.spec.category === 'Red Hat',
   });
 
+  React.useEffect(() => {
+    if (isSelected) {
+      makeCardVisible(odhApp.metadata.name);
+    }
+  }, [odhApp.metadata.name, isSelected]);
+
   return (
     <Card
+      id={odhApp.metadata.name}
       isHoverable={!odhApp.spec.comingSoon}
       isSelectable={!odhApp.spec.comingSoon}
       isSelected={isSelected}

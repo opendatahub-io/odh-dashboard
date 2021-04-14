@@ -13,4 +13,13 @@ const isRedHatSupported = (app: ODHApp): boolean => {
   return support === 'red hat' || support === 'redhat';
 };
 
-export { getBackendURL, isRedHatSupported };
+const makeCardVisible = (id: string): void => {
+  setTimeout(() => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ block: 'nearest' });
+    }
+  }, 100);
+};
+
+export { getBackendURL, isRedHatSupported, makeCardVisible };

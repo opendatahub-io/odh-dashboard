@@ -8,6 +8,7 @@ import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 
 import './OdhCard.scss';
+import { makeCardVisible } from '../utilities/utils';
 
 type OdhDocCardProps = {
   odhDoc: ODHDoc;
@@ -15,6 +16,19 @@ type OdhDocCardProps = {
 
 const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
+
+  const selected = React.useMemo(() => {
+    return (
+      odhDoc.metadata.type === ODHDocType.QuickStart &&
+      qsContext.activeQuickStartID === odhDoc.metadata.name
+    );
+  }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext.activeQuickStartID]);
+
+  React.useEffect(() => {
+    if (selected) {
+      makeCardVisible(odhDoc.metadata.name);
+    }
+  }, [odhDoc.metadata.name, selected]);
 
   if (odhDoc.metadata.type === ODHDocType.QuickStart) {
     const quickStart = qsContext.allQuickStarts?.find(
@@ -28,6 +42,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhDoc.metadata.name, qsContext);
+    makeCardVisible(odhDoc.metadata.name);
   };
 
   const renderDocLink = () => {
@@ -81,7 +96,13 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
   };
 
   return (
-    <Card isHoverable className="odh-card">
+    <Card
+      id={odhDoc.metadata.name}
+      isHoverable
+      className="odh-card odh-tourable-card"
+      isSelected={selected}
+      isSelectable
+    >
       <CardHeader>
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
       </CardHeader>

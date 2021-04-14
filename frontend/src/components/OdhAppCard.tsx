@@ -11,12 +11,13 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHApp } from '../types';
+import { ODHApp, ODHDocType } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 
 import './OdhCard.scss';
+import { makeCardVisible } from '../utilities/utils';
 
 type OdhAppCardProps = {
   odhApp: ODHApp;
@@ -26,17 +27,28 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
 
+  const selected = React.useMemo(() => {
+    return qsContext.activeQuickStartID === odhApp.spec.quickStart;
+  }, [odhApp.spec.quickStart, qsContext.activeQuickStartID]);
+
+  React.useEffect(() => {
+    if (selected) {
+      makeCardVisible(odhApp.metadata.name);
+    }
+  }, [odhApp.metadata.name, selected]);
+
   const onToggle = (value) => {
     setIsOpen(value);
   };
 
-  const onSelect = () => {
+  const onOpenKebab = () => {
     setIsOpen(!isOpen);
   };
 
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhApp.spec.quickStart, qsContext);
+    makeCardVisible(odhApp.metadata.name);
   };
 
   const dropdownItems = [
@@ -82,11 +94,17 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   });
 
   return (
-    <Card isHoverable className="odh-card">
+    <Card
+      id={odhApp.metadata.name}
+      isHoverable
+      className="odh-card odh-tourable-card"
+      isSelected={selected}
+      isSelectable
+    >
       <CardHeader>
         <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
         <Dropdown
-          onSelect={onSelect}
+          onSelect={onOpenKebab}
           toggle={<KebabToggle onToggle={onToggle} />}
           isOpen={isOpen}
           isPlain
