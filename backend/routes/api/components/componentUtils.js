@@ -55,7 +55,7 @@ const getInstalledKfdefs = async (fastify) => {
 const getInstalledOperators = async (fastify) => {
   const customObjectsApi = fastify.kube.customObjectsApi;
 
-  let csvs;
+  let csvs = [];
   try {
     const res = await customObjectsApi.listNamespacedCustomObject(
       'operators.coreos.com',
@@ -66,11 +66,6 @@ const getInstalledOperators = async (fastify) => {
     csvs = _.get(res, 'body.items');
   } catch (e) {
     fastify.log.error(e, 'failed to get ClusterServiceVersions');
-    const error = createError(500, 'failed to get ClusterServiceVersions');
-    error.explicitInternalServerError = true;
-    error.error = 'failed to get ClusterServiceVersions';
-    error.message = 'Unable to load CSV resources.';
-    throw error;
   }
 
   return csvs.reduce((acc, csv) => {
