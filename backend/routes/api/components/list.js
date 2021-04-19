@@ -44,7 +44,8 @@ module.exports = async ({ fastify, request }) => {
           installedComponent.spec.link = await componentUtils.getLink(
             fastify,
             installedComponent.spec.route,
-            csv.metadata.namespace,
+            installedComponent.spec.routeNamespace || csv.metadata.namespace,
+            installedComponent.spec.routeSuffix,
           );
         } else {
           installedComponent.spec.link = await componentUtils.getLink(

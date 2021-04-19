@@ -5,7 +5,7 @@ const path = require('path');
 const jsYaml = require('js-yaml');
 const constants = require('../../../utils/constants');
 
-const getLink = async (fastify, routeName, namespace) => {
+const getLink = async (fastify, routeName, namespace, routeSuffix) => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const routeNamespace = namespace || fastify.kube.namespace;
   try {
@@ -19,9 +19,10 @@ const getLink = async (fastify, routeName, namespace) => {
     const host = _.get(res, 'body.spec.host');
     const tlsTerm = _.get(res, 'body.spec.tls.termination');
     const protocol = tlsTerm ? 'https' : 'http';
-    return `${protocol}://${host}`;
+    const suffix = routeSuffix ? `/${routeSuffix}` : '';
+    return `${protocol}://${host}${suffix}`;
   } catch (e) {
-    fastify.log.error(e, `failed to get route ${routeName}`);
+    fastify.log.error(e, `failed to get route ${routeName} in namespace ${namespace}`);
     return null;
   }
 };
