@@ -15,7 +15,7 @@ import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { useHistory } from 'react-router';
 
-const description = `Add optional programs to your Red Hat OpenShift Data Science instance.`;
+const description = `Add optional applications to your Red Hat OpenShift Data Science instance.`;
 
 const ExploreApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(false);

@@ -12,8 +12,10 @@ html, body, #root {
     white-space: pre-wrap;
   }
 
-  &__user-icon {
-    font-size: var(--pf-global--FontSize--xl);
+  &__external-link {
+    > svg {
+      margin-left: var(--pf-global--spacer--xs);
+    }
   }
 
   // PF Overrides

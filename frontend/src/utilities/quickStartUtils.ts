@@ -6,7 +6,7 @@ import {
 
 export enum LaunchStatusEnum {
   Start = 'Start',
-  Resume = 'Resume',
+  Continue = 'Continue',
   Restart = 'Restart',
   Close = 'Close',
 }
@@ -40,7 +40,7 @@ export const getLaunchStatus = (
   }
 
   if (quickStartState.status === QuickStartStatus.IN_PROGRESS) {
-    return LaunchStatusEnum.Resume;
+    return LaunchStatusEnum.Continue;
   }
 
   return LaunchStatusEnum.Start;
@@ -55,7 +55,7 @@ export const getQuickStartLabel = (
   }
   const launchStatus = getLaunchStatus(quickStartId, qsContext);
 
-  return `${launchStatus} tour`;
+  return `${launchStatus}`;
 };
 
 export const isQuickStartInProgress = (
@@ -67,7 +67,7 @@ export const isQuickStartInProgress = (
   }
   const launchStatus = getLaunchStatus(quickStartId, qsContext);
 
-  return launchStatus === LaunchStatusEnum.Resume;
+  return launchStatus === LaunchStatusEnum.Continue;
 };
 
 export const isQuickStartComplete = (

@@ -21,8 +21,7 @@ import {
 import LearningCenterFilters from './LearningCenterFilters';
 import { useWatchDocs } from '../../utilities/useWatchDocs';
 
-const description = `Access all learning paths and getting started resources for Red Hat OpenShift
-  Data Science and supported programs.`;
+const description = `Access all learning resources for Red Hat OpenShift Data Science and supported applications.`;
 
 const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();

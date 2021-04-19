@@ -10,7 +10,7 @@ spec:
   csvName: 'ibm-cp-data-operator'
   img: images/ibm.svg
   docsLink: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/svc-welcome/wsl.html
-  category: Self managed
+  category: Self-managed
   support: third party support
   quickStart: build-deploy-watson-model
   getStartedLink: https://developer.ibm.com/series/cloud-pak-for-data-learning-path

@@ -52,15 +52,29 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   };
 
   const dropdownItems = [
-    <DropdownItem key="docs" href={odhApp.spec.docsLink} target="_blank" rel="noopener noreferrer">
+    <DropdownItem
+      key="docs"
+      className="odh-dashboard__external-link"
+      href={odhApp.spec.docsLink}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       Documentation
+      <ExternalLinkAltIcon />
     </DropdownItem>,
   ];
 
   if (odhApp.spec.link) {
     dropdownItems.push(
-      <DropdownItem key="launch" href={odhApp.spec.link} target="_blank" rel="noopener noreferrer">
+      <DropdownItem
+        key="launch"
+        className="odh-dashboard__external-link"
+        href={odhApp.spec.link}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         Launch
+        <ExternalLinkAltIcon />
       </DropdownItem>,
     );
   }

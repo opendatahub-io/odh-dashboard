@@ -10,7 +10,7 @@ spec:
   route: ''
   img: images/pachyderm.svg
   docsLink: https://docs.pachyderm.com/
-  category: Self managed
+  category: Self-managed
   support: third party support
   quickStart: ''
   comingSoon: true

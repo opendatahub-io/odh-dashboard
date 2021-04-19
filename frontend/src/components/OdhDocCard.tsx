@@ -1,9 +1,15 @@
 import React from 'react';
-import { Card, CardBody, CardFooter, CardHeader, CardTitle, Tooltip } from '@patternfly/react-core';
+import * as classNames from 'classnames';
+import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { ODHDoc, ODHDocType } from '../types';
-import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
+import {
+  getLaunchStatus,
+  getQuickStartLabel,
+  launchQuickStart,
+  LaunchStatusEnum,
+} from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 
@@ -14,6 +20,11 @@ type OdhDocCardProps = {
   odhDoc: ODHDoc;
 };
 
+const RIGHT_JUSTIFIED_STATUSES = [
+  LaunchStatusEnum.Restart,
+  LaunchStatusEnum.Continue,
+  LaunchStatusEnum.Close,
+];
 const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
 
@@ -29,6 +40,17 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
       makeCardVisible(odhDoc.metadata.name);
     }
   }, [odhDoc.metadata.name, selected]);
+
+  const footerClassName = React.useMemo(() => {
+    if (odhDoc.metadata.type !== ODHDocType.QuickStart) {
+      return 'odh-card__footer';
+    }
+
+    const qsStatus = getLaunchStatus(odhDoc.metadata.name, qsContext);
+    return classNames('odh-card__footer', {
+      'm-right-justified': RIGHT_JUSTIFIED_STATUSES.includes(qsStatus),
+    });
+  }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext]);
 
   if (odhDoc.metadata.type === ODHDocType.QuickStart) {
     const quickStart = qsContext.allQuickStarts?.find(
@@ -54,7 +76,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Go to page
+          View documentation
           <ExternalLinkAltIcon />
         </a>
       );
@@ -87,7 +109,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          How to?
+          Read how-to article
           <ExternalLinkAltIcon />
         </a>
       );
@@ -111,7 +133,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
         <DocCardBadges odhDoc={odhDoc} />
       </CardTitle>
       <CardBody>{odhDoc.spec.description}</CardBody>
-      <CardFooter className="odh-card__footer">{renderDocLink()}</CardFooter>
+      <CardFooter className={footerClassName}>{renderDocLink()}</CardFooter>
     </Card>
   );
 };

@@ -10,7 +10,7 @@ spec:
   route: 'istio-ingressgateway'
   img: images/seldon.svg
   docsLink: https://deploy-v1-0.seldon.io/docs/
-  category: Self managed
+  category: Self-managed
   support: third paty support
   quickStart: 'seldon-deploy-model-canary'
   getStartedLink: 'https://deploy.seldon.io/docs/getting-started'
