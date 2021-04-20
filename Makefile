@@ -12,6 +12,12 @@ endif
 
 ##################################
 
+# DEV Convenience
+
+reinstall: build push undeploy deploy
+
+##################################
+
 # DEV - run apps locally for development
 
 .PHONY: dev-frontend

@@ -2,7 +2,7 @@ metadata:
   name: python-scikit-learn-tutorial
   type: tutorial
 spec:
-  appName: anaconde-ce
+  appName: anaconda-ce
   displayName: Machine Learning in Python with Scikit-Learn
   description: |-
     Learn how to build machine learning models with scikit-learn for supervised learning, unsupervised learning, and classification problems.

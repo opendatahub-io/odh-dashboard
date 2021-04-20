@@ -2,7 +2,7 @@ metadata:
   name: python-accelerate-numba-tutorial
   type: tutorial
 spec:
-  appName: anaconde-ce
+  appName: anaconda-ce
   displayName: Accelerating Scientific Workloads in Python with Numba
   description: |-
     If you're interesting making your Python code run faster, this talk is for you

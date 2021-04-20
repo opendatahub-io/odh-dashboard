@@ -3,16 +3,14 @@ const componentUtils = require('./componentUtils');
 module.exports = async ({ fastify, request }) => {
   const applicationDefs = componentUtils.getApplicationDefs();
 
-  if (!request.query.installed) {
-    return await Promise.all(applicationDefs);
-  }
-
   // Fetch the installed kfDefs
   const kfdefApps = await componentUtils.getInstalledKfdefs(fastify);
 
   // Fetch the installed kfDefs
   const operatorCSVs = await componentUtils.getInstalledOperators(fastify);
 
+  // Fetch the enabled config maps
+  const enabledCMs = await componentUtils.getEnabledConfigMaps(fastify, applicationDefs);
   const getCSVForApp = (app) =>
     operatorCSVs.find(
       (operator) => app.spec.csvName && operator.metadata.name.startsWith(app.spec.csvName),
@@ -21,6 +19,7 @@ module.exports = async ({ fastify, request }) => {
   // Get the components associated with the installed KfDefs or operators
   const installedComponents = applicationDefs.reduce((acc, app) => {
     if (getCSVForApp(app)) {
+      app.spec.isEnabled = true;
       acc.push(app);
       return acc;
     }
@@ -29,14 +28,27 @@ module.exports = async ({ fastify, request }) => {
       app.spec.kfdefApplications &&
       kfdefApps.find((kfdefApp) => app.spec.kfdefApplications.includes(kfdefApp.name))
     ) {
+      app.spec.isEnabled = true;
       acc.push(app);
       return acc;
     }
 
+    if (app.spec.enable) {
+      const cm = enabledCMs.find(
+        (enabledCM) => enabledCM?.metadata.name === app.spec.enable?.validationConfigMap,
+      );
+      if (cm) {
+        if (cm.data?.validation_result === 'true') {
+          app.spec.isEnabled = true;
+          acc.push(app);
+          return acc;
+        }
+      }
+    }
     return acc;
   }, []);
 
-  return await Promise.all(
+  await Promise.all(
     installedComponents.map(async (installedComponent) => {
       if (installedComponent.spec.route) {
         const csv = getCSVForApp(installedComponent);
@@ -57,4 +69,10 @@ module.exports = async ({ fastify, request }) => {
       return installedComponent;
     }),
   );
+
+  if (!request.query.installed) {
+    return await Promise.all(applicationDefs);
+  }
+
+  return await Promise.all(installedComponents);
 };

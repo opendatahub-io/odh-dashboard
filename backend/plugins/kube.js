@@ -10,6 +10,9 @@ kc.loadFromDefault();
 
 const currentContext = kc.getCurrentContext();
 const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
+const coreV1Api = kc.makeApiClient(k8s.CoreV1Api);
+const batchV1Api = kc.makeApiClient(k8s.BatchV1Api);
+const batchV1beta1Api = kc.makeApiClient(k8s.BatchV1beta1Api);
 const currentUser = kc.getCurrentUser();
 
 module.exports = fp(async (fastify) => {
@@ -24,6 +27,9 @@ module.exports = fp(async (fastify) => {
     config: kc,
     currentContext,
     namespace,
+    coreV1Api,
+    batchV1beta1Api,
+    batchV1Api,
     customObjectsApi,
     currentUser,
   });

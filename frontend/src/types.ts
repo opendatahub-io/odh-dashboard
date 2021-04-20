@@ -16,6 +16,16 @@ type ODHApp = {
     support: string;
     quickStart: string | null;
     comingSoon: boolean | null;
+    isEnabled: boolean | null;
+    enable?: {
+      title: string;
+      actionLabel: string;
+      description?: string;
+      variables?: { [key: string]: string };
+      variableDisplayText?: { [key: string]: string };
+      variableHelpText?: { [key: string]: string };
+      validationJob: string;
+    };
   };
 };
 

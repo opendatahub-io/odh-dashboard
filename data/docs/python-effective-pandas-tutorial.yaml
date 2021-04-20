@@ -2,7 +2,7 @@ metadata:
   name: python-effective-pandas-tutorial
   type: tutorial
 spec:
-  appName: anaconde-ce
+  appName: anaconda-ce
   displayName: Data analysis in Python with Pandas
   description: |-
     This series is about how to make effective use of pandas, a data analysis library for the Python programming language. It's targeted at an intermediate level: people who have some experience with pandas, but are looking to improve.

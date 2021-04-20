@@ -2,7 +2,7 @@ metadata:
   name: python-gpu-numba-tutorial
   type: tutorial
 spec:
-  appName: anaconde-ce
+  appName: anaconda-ce
   displayName: GPU Computing in Python with Numba
   description: |-
     Learn how to use Numba to create GPU accelerated functions.

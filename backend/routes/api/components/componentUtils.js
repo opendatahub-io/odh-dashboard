@@ -67,14 +67,43 @@ const getInstalledOperators = async (fastify) => {
     csvs = _.get(res, 'body.items');
   } catch (e) {
     fastify.log.error(e, 'failed to get ClusterServiceVersions');
+    csvs = [];
   }
 
   return csvs.reduce((acc, csv) => {
-    if (csv.status.phase === 'Succeeded' && csv.status.reason === 'InstallSucceeded') {
+    if (csv.status?.phase === 'Succeeded' && csv.status?.reason === 'InstallSucceeded') {
       acc.push(csv);
     }
     return acc;
   }, []);
+};
+
+const getApplicationEnabledConfigMap = (fastify, appDef) => {
+  const namespace = fastify.kube.namespace;
+  const name = appDef.spec.enable?.validationConfigMap;
+  if (!name) {
+    Promise.resolve(null);
+  }
+  const coreV1Api = fastify.kube.coreV1Api;
+  return coreV1Api
+    .readNamespacedConfigMap(name, namespace)
+    .then((result) => result.body)
+    .catch((res) => {
+      fastify.log.error(
+        `Failed to read config map ${name} for ${appDef.metadata.name}: ${res.response?.body?.message}`,
+      );
+      Promise.resolve(null);
+    });
+};
+
+const getEnabledConfigMaps = (fastify, appDefs) => {
+  const configMapGetters = appDefs.reduce((acc, app) => {
+    if (app.spec.enable) {
+      acc.push(getApplicationEnabledConfigMap(fastify, app));
+    }
+    return acc;
+  }, []);
+  return Promise.all(configMapGetters);
 };
 
 const getApplicationDefs = () => {
@@ -93,4 +122,11 @@ const getApplicationDefs = () => {
   return applicationDefs;
 };
 
-module.exports = { getInstalledKfdefs, getInstalledOperators, getLink, getApplicationDefs };
+module.exports = {
+  getInstalledKfdefs,
+  getInstalledOperators,
+  getLink,
+  getApplicationEnabledConfigMap,
+  getEnabledConfigMaps,
+  getApplicationDefs,
+};

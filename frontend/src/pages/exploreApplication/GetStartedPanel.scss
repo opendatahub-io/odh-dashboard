@@ -11,7 +11,12 @@
       font-weight: var(--pf-global--FontWeight--normal);
     }
   }
-
+  &__button-panel {
+    display: flex;
+    .pf-c-button.pf-m-secondary {
+      margin-left: var(--pf-global--spacer--md);
+    }
+  }
   &__get-started-text {
     padding-right: var(--pf-global--spacer--xs);
   }
