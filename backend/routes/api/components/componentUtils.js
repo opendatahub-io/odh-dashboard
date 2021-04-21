@@ -1,9 +1,31 @@
-const _ = require('lodash');
 const createError = require('http-errors');
 const fs = require('fs');
 const path = require('path');
 const jsYaml = require('js-yaml');
 const constants = require('../../../utils/constants');
+
+const getServices = async (fastify) => {
+  const coreV1Api = fastify.kube.coreV1Api;
+
+  try {
+    const res = await coreV1Api.listServiceForAllNamespaces();
+    return res?.body?.items;
+  } catch (e) {
+    fastify.log.error(e, 'failed to get Services');
+    return [];
+  }
+};
+
+const getURLForRoute = (route, routeSuffix) => {
+  const host = route?.spec?.host;
+  if (!host) {
+    return null;
+  }
+  const tlsTerm = route.spec.tls?.termination;
+  const protocol = tlsTerm ? 'https' : 'http';
+  const suffix = routeSuffix ? `/${routeSuffix}` : '';
+  return `${protocol}://${host}${suffix}`;
+};
 
 const getLink = async (fastify, routeName, namespace, routeSuffix) => {
   const customObjectsApi = fastify.kube.customObjectsApi;
@@ -16,13 +38,34 @@ const getLink = async (fastify, routeName, namespace, routeSuffix) => {
       'routes',
       routeName,
     );
-    const host = _.get(res, 'body.spec.host');
-    const tlsTerm = _.get(res, 'body.spec.tls.termination');
-    const protocol = tlsTerm ? 'https' : 'http';
-    const suffix = routeSuffix ? `/${routeSuffix}` : '';
-    return `${protocol}://${host}${suffix}`;
+    return getURLForRoute(res?.body, routeSuffix);
   } catch (e) {
-    fastify.log.error(e, `failed to get route ${routeName} in namespace ${namespace}`);
+    fastify.log.error(`failed to get route ${routeName} in namespace ${namespace}`);
+    return null;
+  }
+};
+
+const getServiceLink = async (fastify, services, serviceName, routeSuffix) => {
+  if (!services?.length || !serviceName) {
+    return null;
+  }
+  const service = services.find((service) => service.metadata.name === serviceName);
+  if (!service) {
+    return null;
+  }
+
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  const { namespace } = service.metadata;
+  try {
+    const res = await customObjectsApi.listNamespacedCustomObject(
+      'route.openshift.io',
+      'v1',
+      namespace,
+      'routes',
+    );
+    return getURLForRoute(res?.body?.items?.[0], routeSuffix);
+  } catch (e) {
+    fastify.log.error(`failed to get route in namespace ${namespace}`);
     return null;
   }
 };
@@ -39,7 +82,7 @@ const getInstalledKfdefs = async (fastify) => {
       namespace,
       'kfdefs',
     );
-    kfdef = _.get(res, 'body.items[0]');
+    kfdef = res?.body?.items?.[0];
   } catch (e) {
     fastify.log.error(e, 'failed to get kfdefs');
     const error = createError(500, 'failed to get kfdefs');
@@ -50,7 +93,7 @@ const getInstalledKfdefs = async (fastify) => {
     throw error;
   }
 
-  return _.get(kfdef, 'spec.applications') || [];
+  return kfdef?.spec?.applications || [];
 };
 
 const getInstalledOperators = async (fastify) => {
@@ -64,7 +107,7 @@ const getInstalledOperators = async (fastify) => {
       '',
       'clusterserviceversions',
     );
-    csvs = _.get(res, 'body.items');
+    csvs = res?.body?.items;
   } catch (e) {
     fastify.log.error(e, 'failed to get ClusterServiceVersions');
     csvs = [];
@@ -125,7 +168,9 @@ const getApplicationDefs = () => {
 module.exports = {
   getInstalledKfdefs,
   getInstalledOperators,
+  getServices,
   getLink,
+  getServiceLink,
   getApplicationEnabledConfigMap,
   getEnabledConfigMaps,
   getApplicationDefs,

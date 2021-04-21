@@ -48,6 +48,11 @@ module.exports = async ({ fastify, request }) => {
     return acc;
   }, []);
 
+  let services = [];
+  if (installedComponents.find((comp) => comp.spec.serviceName)) {
+    services = await componentUtils.getServices(fastify);
+  }
+
   await Promise.all(
     installedComponents.map(async (installedComponent) => {
       if (installedComponent.spec.route) {
@@ -65,6 +70,14 @@ module.exports = async ({ fastify, request }) => {
             installedComponent.spec.route,
           );
         }
+      }
+      if (!installedComponent.spec.link && installedComponent.spec.serviceName) {
+        installedComponent.spec.link = await componentUtils.getServiceLink(
+          fastify,
+          services,
+          installedComponent.spec.serviceName,
+          installedComponent.spec.routeSuffix,
+        );
       }
       return installedComponent;
     }),

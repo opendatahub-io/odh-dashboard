@@ -8,6 +8,7 @@ spec:
   kfdefApplications: []
   route: ''
   csvName: 'ibm-cp-data-operator'
+  serviceName: 'ibm-nginx-svc'
   img: images/ibm.svg
   docsLink: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/svc-welcome/wsl.html
   category: Self-managed
