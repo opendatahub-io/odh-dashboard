@@ -8,6 +8,7 @@ export const markdownConverter = {
       openLinksInNewWindow: true,
       strikethrough: true,
       emoji: true,
+      literalMidWordUnderscores: true,
     }).makeHtml(markdown);
 
     // add hook to transform anchor tags
