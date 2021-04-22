@@ -1,0 +1,10 @@
+metadata:
+  name: jupyterhub-update-server-settings
+  type: how-to
+spec:
+  displayName: How to update notebook server settings
+  appName: jupyterhub
+  description: |-
+    Learn how to restart your notebook server with a different notebook image.
+  url: https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/how_to_update_notebook_server_settings/index
+  durationMinutes: 15
