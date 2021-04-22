@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const jsYaml = require('js-yaml');
 const constants = require('../../../utils/constants');
-const features = require('../../../utils/features');
 
 const getServices = async (fastify) => {
   const coreV1Api = fastify.kube.coreV1Api;
@@ -153,14 +152,11 @@ const getEnabledConfigMaps = (fastify, appDefs) => {
 const getApplicationDefs = () => {
   const normalizedPath = path.join(__dirname, '../../../../data/applications');
   const applicationDefs = [];
-  const featureFlags = features.getComponentFeatureFlags();
   fs.readdirSync(normalizedPath).forEach((file) => {
     if (constants.yamlRegExp.test(file)) {
       try {
         const doc = jsYaml.load(fs.readFileSync(path.join(normalizedPath, file), 'utf8'));
-        if (!doc.spec.featureFlag || featureFlags[doc.spec.featureFlag]) {
-          applicationDefs.push(doc);
-        }
+        applicationDefs.push(doc);
       } catch (e) {
         console.error(`Error loading application definition ${file}: ${e}`);
       }
