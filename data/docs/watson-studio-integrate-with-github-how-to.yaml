@@ -3,7 +3,7 @@ metadata:
   type: how-to
 spec:
   appName: watson-studio
-  displayName: How do I create a project that's integrated with Github?
+  displayName: How to create a project that's integrated with Github?
   description: |-
     How to add assets in the Git repository in a project
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/manage-data/git-integration.html
