@@ -1,3 +1,5 @@
+const WatchInstalledOperators = require('../../../utils/watchInstalledOperators');
+const WatchServices = require('../../../utils/watchServices');
 const componentUtils = require('./componentUtils');
 
 module.exports = async ({ fastify, request }) => {
@@ -6,8 +8,8 @@ module.exports = async ({ fastify, request }) => {
   // Fetch the installed kfDefs
   const kfdefApps = await componentUtils.getInstalledKfdefs(fastify);
 
-  // Fetch the installed kfDefs
-  const operatorCSVs = await componentUtils.getInstalledOperators(fastify);
+  const operatorCSVs = WatchInstalledOperators.getInstalledOperators();
+  const services = WatchServices.getServices();
 
   // Fetch the enabled config maps
   const enabledCMs = await componentUtils.getEnabledConfigMaps(fastify, applicationDefs);
@@ -47,11 +49,6 @@ module.exports = async ({ fastify, request }) => {
     }
     return acc;
   }, []);
-
-  let services = [];
-  if (installedComponents.find((comp) => comp.spec.serviceName)) {
-    services = await componentUtils.getServices(fastify);
-  }
 
   await Promise.all(
     installedComponents.map(async (installedComponent) => {

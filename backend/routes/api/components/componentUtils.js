@@ -4,18 +4,6 @@ const path = require('path');
 const jsYaml = require('js-yaml');
 const constants = require('../../../utils/constants');
 
-const getServices = async (fastify) => {
-  const coreV1Api = fastify.kube.coreV1Api;
-
-  try {
-    const res = await coreV1Api.listServiceForAllNamespaces();
-    return res?.body?.items;
-  } catch (e) {
-    fastify.log.error(e, 'failed to get Services');
-    return [];
-  }
-};
-
 const getURLForRoute = (route, routeSuffix) => {
   const host = route?.spec?.host;
   if (!host) {
@@ -96,31 +84,6 @@ const getInstalledKfdefs = async (fastify) => {
   return kfdef?.spec?.applications || [];
 };
 
-const getInstalledOperators = async (fastify) => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-
-  let csvs = [];
-  try {
-    const res = await customObjectsApi.listNamespacedCustomObject(
-      'operators.coreos.com',
-      'v1alpha1',
-      '',
-      'clusterserviceversions',
-    );
-    csvs = res?.body?.items;
-  } catch (e) {
-    fastify.log.error(e, 'failed to get ClusterServiceVersions');
-    csvs = [];
-  }
-
-  return csvs.reduce((acc, csv) => {
-    if (csv.status?.phase === 'Succeeded' && csv.status?.reason === 'InstallSucceeded') {
-      acc.push(csv);
-    }
-    return acc;
-  }, []);
-};
-
 const getApplicationEnabledConfigMap = (fastify, appDef) => {
   const namespace = fastify.kube.namespace;
   const name = appDef.spec.enable?.validationConfigMap;
@@ -167,8 +130,6 @@ const getApplicationDefs = () => {
 
 module.exports = {
   getInstalledKfdefs,
-  getInstalledOperators,
-  getServices,
   getLink,
   getServiceLink,
   getApplicationEnabledConfigMap,

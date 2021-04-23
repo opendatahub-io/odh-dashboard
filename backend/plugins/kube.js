@@ -4,6 +4,8 @@ const { DEV_MODE } = require('../utils/constants');
 const fs = require('fs');
 const fp = require('fastify-plugin');
 const k8s = require('@kubernetes/client-node');
+const WatchInstalledOperators = require('../utils/watchInstalledOperators');
+const WatchServices = require('../utils/watchServices');
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
@@ -33,6 +35,10 @@ module.exports = fp(async (fastify) => {
     customObjectsApi,
     currentUser,
   });
+
+  // TODO: Watch only when a UI connects
+  WatchInstalledOperators.startWatching(customObjectsApi);
+  WatchServices.startWatching(coreV1Api);
 });
 
 const getCurrentNamespace = async () => {
