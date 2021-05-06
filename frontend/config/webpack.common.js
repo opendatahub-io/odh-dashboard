@@ -9,6 +9,7 @@ const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
 const IMAGES_DIRNAME = process.env._ODH_IMAGES_DIRNAME;
 const PUBLIC_PATH = process.env._ODH_PUBLIC_PATH;
 const SRC_DIR = process.env._ODH_SRC_DIR;
+const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 
@@ -27,7 +28,7 @@ module.exports = env => {
       rules: [
         {
           test: /\.(tsx|ts|jsx|js)?$/,
-          include: [SRC_DIR],
+          include: [SRC_DIR, COMMON_DIR],
           use: [
             {
               loader: 'ts-loader',
@@ -103,6 +104,7 @@ module.exports = env => {
           test: /\.(jpg|jpeg|png|gif)$/i,
           include: [
             SRC_DIR,
+            COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),

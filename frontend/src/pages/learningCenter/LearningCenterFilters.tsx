@@ -19,7 +19,7 @@ import {
   PficonSortCommonDescIcon,
   TimesIcon,
 } from '@patternfly/react-icons';
-import { ODHDocType } from '../../types';
+import { ODHDocType } from '@common/types';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import {

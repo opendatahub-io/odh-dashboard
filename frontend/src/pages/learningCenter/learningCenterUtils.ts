@@ -1,4 +1,4 @@
-import { ODHDoc, ODHDocType } from '../../types';
+import { ODHDoc, ODHDocType } from '@common/types';
 
 export const SEARCH_FILTER_KEY = 'keyword';
 export const DOC_TYPE_FILTER_KEY = 'type';

@@ -12,6 +12,7 @@ const webpackCommon = require('./webpack.common.js');
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
 const SRC_DIR = process.env._ODH_SRC_DIR;
+const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 
@@ -46,6 +47,7 @@ module.exports = merge(
           test: /\.css$/,
           include: [
             SRC_DIR,
+            COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-catalog-view-extension'),

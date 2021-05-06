@@ -3,7 +3,7 @@ import * as classNames from 'classnames';
 import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '../types';
+import { ODHDoc, ODHDocType } from '@common/types';
 import {
   getLaunchStatus,
   getQuickStartLabel,

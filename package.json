@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "run-p -l build:*",
-    "build:backend": "echo \"...no build necessary for backend\"",
+    "build:backend": "cd ./backend && npm run build",
     "build:frontend": "cd ./frontend && npm run build",
     "dev": "run-p -l dev:*",
     "dev:backend": "cd ./backend && npm run start:dev",

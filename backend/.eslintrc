@@ -1,41 +1,47 @@
 {
-  "parser": "babel-eslint",
+  "parser": "@typescript-eslint/parser",
   "env": {
-    "es6": true,
+    "browser": true,
     "node": true
   },
+  // tell the TypeScript parser that we want to use JSX syntax
+  "parserOptions": {
+    "tsx": true,
+    "jsx": true,
+    "js": true,
+    "useJSXTextNode": true,
+    "project": "./tsconfig.json",
+    "tsconfigRootDir": "."
+  },
+  // includes the typescript specific rules found here: https://github.com/typescript-eslint/typescript-eslint/tree/master/packages/eslint-plugin#supported-rules
   "plugins": [
-    "node",
-    "prettier"
+    "@typescript-eslint"
   ],
   "extends": [
     "eslint:recommended",
-    "plugin:node/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier/@typescript-eslint",
     "plugin:prettier/recommended"
   ],
-  "parserOptions":{
-    "ecmaVersion": 2018
+  "globals": {
+    "window": "readonly",
+    "describe": "readonly",
+    "test": "readonly",
+    "expect": "readonly",
+    "it": "readonly",
+    "process": "readonly",
+    "document": "readonly"
+  },
+  "settings": {
   },
   "rules": {
-    "arrow-parens": [
-      "error",
-      "always"
-    ],
-    "comma-dangle": 0,
-    "max-len": [
-      "error",
-      {
-        "code": 240,
-        "ignoreUrls": true
-      }
-    ],
-    "no-console": 0,
-    "no-debugger": 1,
-    "no-plusplus": 0,
-    "node/no-unsupported-features/es-syntax": 1,
-    "node/shebang": 0,
-    "node/no-unpublished-bin": 0,
-    "padded-blocks": 0,
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/interface-name-prefix": "off",
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/no-empty-function": "warn",
+    "@typescript-eslint/no-inferrable-types": "error",
+    "import/extensions": "off",
+    "import/no-unresolved": "off",
     "prettier/prettier": [
       "error",
       {
@@ -44,7 +50,6 @@
         "trailingComma": "all",
         "printWidth": 100
       }
-    ],
-    "space-before-function-paren": 0
+    ]
   }
 }

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getBackendURL } from '../utilities/utils';
-import { ODHGettingStarted } from '../types';
+import { ODHGettingStarted } from '@common/types';
 
 export const fetchGettingStartedDoc = (appName: string): Promise<ODHGettingStarted> => {
   const url = getBackendURL('/api/getting-started');

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ODHDoc, ODHDocType } from '../types';
+import { ODHDoc, ODHDocType } from '@common/types';
 import { POLL_INTERVAL } from './const';
 import { fetchDocs } from '../services/docsService';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';

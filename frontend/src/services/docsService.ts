@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getBackendURL } from '../utilities/utils';
-import { ODHDoc } from '../types';
+import { ODHDoc } from '@common/types';
 
 export const fetchDocs = (docType?: string): Promise<ODHDoc[]> => {
   const url = getBackendURL('/api/docs');

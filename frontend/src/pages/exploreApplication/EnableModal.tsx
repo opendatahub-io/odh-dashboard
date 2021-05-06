@@ -10,7 +10,7 @@ import {
   TextInput,
   TextInputTypes,
 } from '@patternfly/react-core';
-import { ODHApp } from '../../types';
+import { ODHApp } from '@common/types';
 import { postValidateIsv } from '../../services/validateIsvService';
 
 type EnableModalProps = {

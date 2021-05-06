@@ -4,7 +4,7 @@ import { getBackendURL } from '../utilities/utils';
 export const postValidateIsv = (
   appName: string,
   values: { [key: string]: string },
-): Promise<any> => {
+): Promise<boolean> => {
   const url = getBackendURL('/api/validate-isv');
   const searchParams = new URLSearchParams();
   if (appName) {
@@ -14,8 +14,8 @@ export const postValidateIsv = (
   const options = { params: searchParams };
   return axios
     .get(url, options)
-    .then((response) => {
-      return response;
+    .then(() => {
+      return true;
     })
     .catch((e) => {
       throw new Error(e.response.data.message);

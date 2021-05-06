@@ -140,6 +140,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   const IMAGES_DIRNAME = process.env.ODH_IMAGES_DIRNAME || 'images';
   const PUBLIC_PATH = process.env.ODH_PUBLIC_PATH || '/';
   const SRC_DIR = path.resolve(RELATIVE_DIRNAME, process.env.ODH_SRC_DIR || TS_BASE_URL || 'src');
+  const COMMON_DIR = path.resolve(RELATIVE_DIRNAME, process.env.ODH_COMMON_DIR || '../common');
   const DIST_DIR = path.resolve(RELATIVE_DIRNAME, process.env.ODH_DIST_DIR || TS_OUT_DIR || 'public');
   const HOST = process.env.ODH_HOST || 'localhost';
   const PORT = process.env.ODH_PORT || '3000';
@@ -151,6 +152,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   process.env._ODH_IMAGES_DIRNAME = IMAGES_DIRNAME;
   process.env._ODH_PUBLIC_PATH = PUBLIC_PATH;
   process.env._ODH_SRC_DIR = SRC_DIR;
+  process.env._ODH_COMMON_DIR = COMMON_DIR;
   process.env._ODH_DIST_DIR = DIST_DIR;
   process.env._ODH_HOST = HOST;
   process.env._ODH_PORT = PORT;

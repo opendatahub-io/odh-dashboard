@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  Button,
-  ButtonVariant,
   Dropdown,
   DropdownPosition,
   DropdownToggle,

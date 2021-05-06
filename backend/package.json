@@ -16,12 +16,18 @@
   "engines": {
     "node": ">=12.0.0"
   },
-  "main": "server.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "export NODE_ENV=production; node ./server.js",
-    "start:dev": "export NODE_ENV=development; nodemon ./server.js",
-    "test": "export NODE_ENV=test; eslint --ext .json,.js ./plugins ./routes ./utils",
-    "test:fix": "eslint --ext .json,.js ./plugins ./routes ./utils --fix"
+    "start": "npm run tsc && NODE_ENV=production node ./dist/server.js --log=1 --registry=localhost:50051",
+    "start:dev": "export NODE_ENV=development && nodemon src/server.ts --log=1 --registry=localhost:50051",
+    "build-only": "tsc -p . && node ./dist/server.js --log=1 --registry=localhost:50051 --buildonly",
+    "build": "npm run tsc",
+    "test": "eslint --ext .json,.js,.ts src/plugins src/routes src/utils",
+    "test:fix": "eslint --ext .json,.js,.ts src/plugins src/routes src/utils --fix",
+    "server": "NODE_ENV=production node ./dist/server.js",
+    "tsc": "tsc -p .",
+    "lint": "eslint ./src/",
+    "watch": "tsc -p . -w"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.2",
@@ -34,9 +40,15 @@
     "fastify-static": "^3.2.1",
     "http-errors": "^1.8.0",
     "js-yaml": "^4.0.0",
-    "pino": "^6.11.0"
+    "pino": "^6.11.0",
+    "ts-node": "^9.1.1"
   },
   "devDependencies": {
+    "@types/http-errors": "^1.8.0",
+    "@types/node": "^15.0.1",
+    "@types/pino": "^6.3.8",
+    "@typescript-eslint/eslint-plugin": "^4.4.1",
+    "@typescript-eslint/parser": "^4.4.1",
     "babel-eslint": "^10.1.0",
     "eslint": "^7.18.0",
     "eslint-config-esnext": "^4.1.0",
@@ -45,11 +57,17 @@
     "eslint-plugin-babel": "^5.3.1",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^3.3.1",
+    "eslint-plugin-prettier": "^3.4.0",
     "fastify-cli": "^2.3.0",
     "nodemon": "^2.0.7",
     "pino-pretty": "^4.3.0",
     "prettier": "^2.2.1",
-    "tap": "^14.10.8"
+    "rimraf": "^3.0.2",
+    "tap": "^14.10.8",
+    "ts-jest": "^26.4.1",
+    "ts-loader": "^8.0.5",
+    "ts-protoc-gen": "^0.10.0",
+    "tslib": "^2.0.3",
+    "typescript": "^4.0.3"
   }
 }
