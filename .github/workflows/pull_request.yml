@@ -1,0 +1,44 @@
+name: Pull request
+on:
+  pull_request:
+    branches: [ master, main, test**, dev** ]
+
+jobs:
+  Integration-checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x, 14.x]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2.1.5
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Set Node.js packages npm cache directory
+        id: npm-cache-dir
+        run: echo ::set-output name=CACHE_DIR::$(npm cache dir)
+      - name: Node.js npm cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.CACHE_DIR }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-npm
+      - name: Node.js modules cache
+        uses: actions/cache@v2
+        id: modules-cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-${{ hashFiles('**/package-lock.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules
+      - name: Install Node.js packages
+        if: ${{ steps.modules-cache.outputs.cache-hit != 'true' }}
+        run: npm install
+      - name: Lint
+        if: ${{ success() }}
+        run: npm run test
+      - name: Confirm integration
+        if: ${{ success() }}
+        run: npm run build; npm run test:integration

@@ -50,6 +50,17 @@ You can apply lint auto-fixes with
   $ npm run test:fix
   ```
 
+### Integration checks
+To confirm the build output for both backend and frontend
+  ```
+  $ npm run test:integration
+  ```
+
+You can update with
+  ```
+  $ npm run test:integration-dev
+  ```
+
 ## Build
 ### dotenv files
 The current build leverages `dotenv`, or `.env*`, files to apply environment build configuration.

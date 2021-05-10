@@ -36,16 +36,19 @@
     "start": "run-p start:*",
     "start:backend": "cd ./backend && npm start",
     "start:frontend": "echo \"...available at ./frontend/public\"",
-    "test": "run-s test:*",
+    "test": "run-s test:backend test:frontend",
     "test:backend": "cd ./backend && npm run test",
     "test:frontend": "cd ./frontend && npm run test",
     "test:fix": "run-s test:fix-backend test:fix-frontend",
     "test:fix-backend": "cd ./backend && npm run test:fix",
-    "test:fix-frontend": "cd ./frontend && npm run test:fix"
+    "test:fix-frontend": "cd ./frontend && npm run test:fix",
+    "test:integration": "jest --roots=./tests",
+    "test:integration-dev": "npm run build; jest --roots=./tests --watchAll"
   },
   "dependencies": {
     "dotenv": "^8.2.0",
     "dotenv-expand": "^5.1.0",
+    "jest": "^26.6.3",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1"
   }
