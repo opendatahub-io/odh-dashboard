@@ -1,6 +1,5 @@
 import { FastifyRequest } from 'fastify';
-import { ODHApp } from '@common/types';
-import { KubeFastifyInstance } from '../../../types';
+import { KubeFastifyInstance, ODHApp } from '../../../types';
 import {
   getApplicationDefs,
   getEnabledConfigMaps,

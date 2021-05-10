@@ -1,5 +1,5 @@
 import { DEV_MODE, API_PORT } from './const';
-import { ODHApp } from '@common/types';
+import { ODHApp } from '../types';
 
 const getBackendURL = (path: string): string => {
   if (!DEV_MODE) {

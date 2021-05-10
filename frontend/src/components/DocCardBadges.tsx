@@ -3,7 +3,7 @@ import * as classNames from 'classnames';
 import { Tooltip } from '@patternfly/react-core';
 import { SyncAltIcon, CheckCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '@common/types';
+import { ODHDoc, ODHDocType } from '../types';
 import { isQuickStartComplete, isQuickStartInProgress } from '../utilities/quickStartUtils';
 import { getTextForDocType } from '../pages/learningCenter/learningCenterUtils';
 

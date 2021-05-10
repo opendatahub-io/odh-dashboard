@@ -15,7 +15,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, WarningTriangleIcon } from '@patternfly/react-icons';
-import { ODHApp, ODHGettingStarted } from '@common/types';
+import { ODHApp, ODHGettingStarted } from '../../types';
 import MarkdownView from '../../components/MarkdownView';
 import { fetchGettingStartedDoc } from '../../services/gettingStartedService';
 import EnableModal from './EnableModal';

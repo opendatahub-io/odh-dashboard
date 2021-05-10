@@ -2,7 +2,7 @@ import React from 'react';
 import * as _ from 'lodash';
 import { Gallery, PageSection } from '@patternfly/react-core';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '@common/types';
+import { ODHDoc, ODHDocType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import ApplicationsPage from '../ApplicationsPage';
 import QuickStarts from '../../app/QuickStarts';

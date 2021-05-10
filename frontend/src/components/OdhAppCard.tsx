@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHApp } from '@common/types';
+import { ODHApp } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { ODHGettingStarted } from '@common/types';
+import { ODHGettingStarted } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
 import { addCORSHeader } from '../../../utils/responseUtils';
 import { listGettingStartedDocs } from './list';

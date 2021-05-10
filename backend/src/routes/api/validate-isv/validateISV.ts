@@ -2,8 +2,7 @@ import createError from 'http-errors';
 import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
-import { ODHApp } from '@common/types';
-import { KubeFastifyInstance } from '../../../types';
+import { KubeFastifyInstance, ODHApp } from '../../../types';
 import { getApplicationDef } from '../../../utils/componentUtils';
 
 export const createAccessSecret = async (

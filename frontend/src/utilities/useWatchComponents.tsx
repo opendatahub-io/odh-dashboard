@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { fetchComponents } from '../services/componentsServices';
-import { ODHApp } from '@common/types';
+import { ODHApp } from '../types';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 

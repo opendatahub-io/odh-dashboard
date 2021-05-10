@@ -1,5 +1,5 @@
 import { FastifyRequest } from 'fastify';
-import { ODHGettingStarted } from '@common/types';
+import { ODHGettingStarted } from '../../../types';
 import { getGettingStartedDoc, getGettingStartedDocs } from './gettingStartedUtils';
 
 export const listGettingStartedDocs = (

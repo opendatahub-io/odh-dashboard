@@ -1,7 +1,7 @@
 import React from 'react';
 import * as classNames from 'classnames';
 import { Card, CardHeader, CardBody } from '@patternfly/react-core';
-import { ODHApp } from '@common/types';
+import { ODHApp } from '../types';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 

@@ -1,5 +1,5 @@
 import { FastifyRequest } from 'fastify';
-import { ODHDoc } from '@common/types';
+import { ODHDoc } from '../../../types';
 import { KubeFastifyInstance } from '../../../types';
 import { getDocs } from './docUtils';
 

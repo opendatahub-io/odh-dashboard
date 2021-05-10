@@ -9,7 +9,7 @@ import {
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import OdhExploreCard from '../../components/OdhExploreCard';
 import ApplicationsPage from '../ApplicationsPage';
-import { ODHApp } from '@common/types';
+import { ODHApp } from '../../types';
 import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as jsYaml from 'js-yaml';
-import { ODHDoc } from '@common/types';
+import { ODHDoc } from '../../../types';
 import { yamlRegExp } from '../../../utils/constants';
 import { getApplicationDefs } from '../../../utils/componentUtils';
 import { getComponentFeatureFlags } from '../../../utils/features';

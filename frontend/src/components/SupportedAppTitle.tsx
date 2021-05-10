@@ -1,7 +1,7 @@
 import React from 'react';
 import * as classNames from 'classnames';
 import { CardTitle, Tooltip } from '@patternfly/react-core';
-import { ODHApp } from '@common/types';
+import { ODHApp } from '../types';
 import { isRedHatSupported } from '../utilities/utils';
 
 type SupportedAppTitleProps = {

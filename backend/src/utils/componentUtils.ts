@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as jsYaml from 'js-yaml';
 import { V1ConfigMap } from '@kubernetes/client-node/dist/gen/model/v1ConfigMap';
-import { ODHApp } from '@common/types';
+import { ODHApp } from '../types';
 import {
   K8sResourceCommon,
   KfDefApplication,

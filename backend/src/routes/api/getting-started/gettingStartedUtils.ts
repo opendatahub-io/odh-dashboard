@@ -1,7 +1,7 @@
 import createError from 'http-errors';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ODHGettingStarted } from '@common/types';
+import { ODHGettingStarted } from '../../../types';
 import { mdRegExp } from '../../../utils/constants';
 
 export const getGettingStartedDoc = (appName: string): { appName: string; markdown: string } => {
