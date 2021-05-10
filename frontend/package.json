@@ -26,7 +26,7 @@
     "build:prod": "webpack --config ./config/webpack.prod.js",
     "format": "prettier --write \"./**/*.ts\" \"./**/*.tsx\" \"./**/*.scss\"",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
-    "test": "run-s test:lint test:ci",
+    "test": "run-s test:lint",
     "test:ci": "export CI=true; jest --collectCoverage",
     "test:clearCache": "jest --clearCache",
     "test:dev": "run-s test:lint test:local",

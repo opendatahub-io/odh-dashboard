@@ -15,26 +15,32 @@ jobs:
         uses: actions/setup-node@v2.1.5
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Set Node.js packages npm cache directory
-        id: npm-cache-dir
-        run: echo ::set-output name=CACHE_DIR::$(npm cache dir)
-      - name: Node.js npm cache
+      - name: Node.js modules cache, repository
         uses: actions/cache@v2
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.CACHE_DIR }}
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-npm
-      - name: Node.js modules cache
-        uses: actions/cache@v2
-        id: modules-cache
+        id: repo-cache
         with:
           path: ${{ github.workspace }}/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-${{ hashFiles('**/package-lock.lock') }}
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
+      - name: Node.js modules cache, backend
+        uses: actions/cache@v2
+        id: backend-cache
+        with:
+          path: ${{ github.workspace }}/backend/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
+      - name: Node.js modules cache, frontend
+        uses: actions/cache@v2
+        id: frontend-cache
+        with:
+          path: ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
       - name: Install Node.js packages
-        if: ${{ steps.modules-cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.repo-cache.outputs.cache-hit != 'true' && steps.backend-cache.outputs.cache-hit != 'true' && steps.frontend-cache.outputs.cache-hit != 'true' }}
         run: npm install
       - name: Lint
         if: ${{ success() }}
