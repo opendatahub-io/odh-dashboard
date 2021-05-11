@@ -3,8 +3,7 @@ import fp from 'fastify-plugin';
 import { FastifyInstance } from 'fastify';
 import * as k8s from '@kubernetes/client-node';
 import { DEV_MODE } from '../utils/constants';
-import { startWatchingOperators } from '../utils/watchInstalledOperators';
-import { startWatchingServices } from '../utils/watchServices';
+import { initializeWatchedResources } from '../utils/resourceUtils';
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
@@ -35,9 +34,8 @@ export default fp(async (fastify: FastifyInstance) => {
     currentUser,
   });
 
-  // TODO: Watch only when a UI connects
-  startWatchingOperators(customObjectsApi);
-  startWatchingServices(coreV1Api);
+  // Initialize the watching of resources
+  initializeWatchedResources(fastify);
 });
 
 const getCurrentNamespace = async () => {

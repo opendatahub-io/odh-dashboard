@@ -3,7 +3,7 @@ import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, ODHApp } from '../../../types';
-import { getApplicationDef } from '../../../utils/componentUtils';
+import { getApplicationDef } from '../../../utils/resourceUtils';
 
 export const createAccessSecret = async (
   appDef: ODHApp,
@@ -48,6 +48,7 @@ export const createValidationJob = async (
   const appDef = getApplicationDef(appName);
   const { enable } = appDef.spec;
 
+  const cmName = enable?.validationConfigMap;
   const cronjobName = enable?.validationJob;
   if (!cronjobName) {
     const error = createError(500, 'failed to validate');
@@ -82,6 +83,12 @@ export const createValidationJob = async (
       // If there was a manual job already, delete it
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       await batchV1Api.deleteNamespacedJob(jobName, namespace).catch(() => {});
+
+      // If there was a config map already, delete it
+      if (cmName) {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        await coreV1Api.deleteNamespacedConfigMap(cmName, namespace).catch(() => {});
+      }
 
       // Some delay to allow job to delete
       return new Promise((resolve) => setTimeout(resolve, 1000)).then(() =>

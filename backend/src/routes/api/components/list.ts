@@ -1,14 +1,12 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, ODHApp } from '../../../types';
+import { getEnabledConfigMaps, getLink, getServiceLink } from '../../../utils/componentUtils';
 import {
   getApplicationDefs,
-  getEnabledConfigMaps,
   getInstalledKfdefs,
-  getLink,
-  getServiceLink,
-} from '../../../utils/componentUtils';
-import { getInstalledOperators } from '../../../utils/watchInstalledOperators';
-import { getServices } from '../../../utils/watchServices';
+  getInstalledOperators,
+  getServices,
+} from '../../../utils/resourceUtils';
 
 export const listComponents = async (
   fastify: KubeFastifyInstance,
@@ -17,7 +15,7 @@ export const listComponents = async (
   const applicationDefs = getApplicationDefs();
 
   // Fetch the installed kfDefs
-  const kfdefApps = await getInstalledKfdefs(fastify);
+  const kfdefApps = await getInstalledKfdefs();
 
   const operatorCSVs = getInstalledOperators();
   const services = getServices();

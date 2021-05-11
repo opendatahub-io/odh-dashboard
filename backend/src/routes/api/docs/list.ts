@@ -1,7 +1,7 @@
 import { FastifyRequest } from 'fastify';
 import { ODHDoc } from '../../../types';
 import { KubeFastifyInstance } from '../../../types';
-import { getDocs } from './docUtils';
+import { getDocs } from '../../../utils/resourceUtils';
 
 export const listDocs = (
   fastify: KubeFastifyInstance,
