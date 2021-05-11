@@ -4,23 +4,31 @@ import {
   Button,
   Form,
   FormAlert,
-  FormGroup,
   Modal,
   ModalVariant,
-  TextInput,
+  Spinner,
   TextInputTypes,
 } from '@patternfly/react-core';
 import { ODHApp } from '../../types';
 import { postValidateIsv } from '../../services/validateIsvService';
+import EnableVariable from './EnableVariable';
+
+import './EnableModal.scss';
 
 type EnableModalProps = {
   selectedApp?: ODHApp;
-  onClose: () => void;
+  onClose: (success?: boolean) => void;
 };
 
 const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const [postError, setPostError] = React.useState<boolean>(false);
+  const [validationInProgress, setValidationInProgress] = React.useState<boolean>(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
+  const focusRef = (element: HTMLElement) => {
+    if (element) {
+      element.focus();
+    }
+  };
 
   if (!selectedApp) {
     return null;
@@ -34,48 +42,41 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     setEnableValues(updatedValues);
   };
 
-  const renderAppVariables = () => {
-    if (!selectedApp.spec.enable?.variables) {
-      return null;
-    }
-    return Object.keys(selectedApp.spec.enable.variables).map((key) => (
-      <FormGroup
-        fieldId={key}
-        key={key}
-        label={selectedApp.spec.enable?.variableDisplayText?.[key] ?? key}
-        helperText={selectedApp.spec.enable?.variableHelpText?.[key]}
-      >
-        <TextInput
-          id={key}
-          type={(selectedApp.spec.enable?.variables?.[key] || 'text') as TextInputTypes}
-          onChange={(value) => updateEnableValue(key, value)}
-        />
-      </FormGroup>
-    ));
-  };
-
   const onDoEnableApp = () => {
+    setPostError(false);
+    setValidationInProgress(true);
     postValidateIsv(selectedApp.metadata.name, enableValues)
-      .then(() => {
-        setPostError(false);
-        onClose();
+      .then((valid) => {
+        setValidationInProgress(false);
+        if (valid) {
+          onClose(true);
+          return;
+        }
+        setPostError(true);
       })
       .catch(() => {
+        setValidationInProgress(false);
         setPostError(true);
       });
   };
 
   return (
     <Modal
+      className="odh-enable-modal"
       variant={ModalVariant.small}
       title={selectedApp.spec.enable?.title}
       isOpen
       onClose={onClose}
       actions={[
-        <Button key="confirm" variant="primary" onClick={onDoEnableApp}>
+        <Button
+          key="confirm"
+          variant="primary"
+          onClick={onDoEnableApp}
+          isDisabled={validationInProgress}
+        >
           {selectedApp.spec.enable?.actionLabel}
         </Button>,
-        <Button key="cancel" variant="link" onClick={onClose}>
+        <Button key="cancel" variant="link" onClick={() => onClose()}>
           Cancel
         </Button>,
       ]}
@@ -86,14 +87,43 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
           {postError ? (
             <FormAlert>
               <Alert
+                variantLabel=""
                 variant="danger"
-                title="Error attempting to validate entries. Please check your entries."
+                title="Error attempting to validate. Please check your entries."
                 aria-live="polite"
                 isInline
               />
             </FormAlert>
           ) : null}
-          {renderAppVariables()}
+          {validationInProgress ? (
+            <FormAlert>
+              <Alert
+                className="m-no-alert-icon"
+                variantLabel=""
+                variant="info"
+                title={
+                  <div className="odh-enable-modal__progress-title">
+                    <Spinner isSVG size="md" /> Validating your entries
+                  </div>
+                }
+                aria-live="polite"
+                isInline
+              />
+            </FormAlert>
+          ) : null}
+          {selectedApp.spec.enable?.variables
+            ? Object.keys(selectedApp.spec.enable.variables).map((key, index) => (
+                <EnableVariable
+                  key={key}
+                  ref={index === 0 ? focusRef : null}
+                  label={selectedApp.spec.enable?.variableDisplayText?.[key] ?? ''}
+                  inputType={selectedApp.spec.enable?.variables?.[key] as TextInputTypes}
+                  helperText={selectedApp.spec.enable?.variableHelpText?.[key] ?? ''}
+                  validationInProgress={validationInProgress}
+                  updateValue={(value: string) => updateEnableValue(key, value)}
+                />
+              ))
+            : null}
         </Form>
       ) : null}
     </Modal>

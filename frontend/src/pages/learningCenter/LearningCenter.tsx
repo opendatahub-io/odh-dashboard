@@ -23,11 +23,63 @@ import { useWatchDocs } from '../../utilities/useWatchDocs';
 
 const description = `Access all learning resources for Red Hat OpenShift Data Science and supported applications.`;
 
+type LearningCenterInnerProps = {
+  loaded: boolean;
+  loadError?: Error;
+  docsLoadError?: Error;
+  docsLoaded: boolean;
+  filteredDocApps: ODHDoc[];
+  docTypeCounts: Record<ODHDocType, number>;
+  totalCount: number;
+};
+
+const LearningCenterInner: React.FC<LearningCenterInnerProps> = React.memo(
+  ({
+    loaded,
+    loadError,
+    docsLoaded,
+    docsLoadError,
+    filteredDocApps,
+    docTypeCounts,
+    totalCount,
+  }) => {
+    return (
+      <ApplicationsPage
+        title="Resources"
+        description={description}
+        loaded={loaded && docsLoaded}
+        loadError={loadError || docsLoadError}
+        empty={false}
+      >
+        <LearningCenterFilters
+          count={filteredDocApps.length}
+          totalCount={totalCount}
+          docTypeStatusCount={docTypeCounts}
+        />
+        <PageSection>
+          <Gallery className="odh-explore-apps__gallery" hasGutter>
+            {filteredDocApps.map((doc) => (
+              <OdhDocCard key={`${doc.metadata.name}`} odhDoc={doc} />
+            ))}
+          </Gallery>
+        </PageSection>
+      </ApplicationsPage>
+    );
+  },
+);
+LearningCenterInner.displayName = 'LearningCenterInner';
+
 const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
   const { components, loaded, loadError } = useWatchComponents(false);
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
   const [docApps, setDocApps] = React.useState<ODHDoc[]>([]);
+  const [docTypesCount, setDocTypesCount] = React.useState<Record<ODHDocType, number>>({
+    [ODHDocType.Documentation]: 0,
+    [ODHDocType.HowTo]: 0,
+    [ODHDocType.Tutorial]: 0,
+    [ODHDocType.QuickStart]: 0,
+  });
   const [filteredDocApps, setFilteredDocApps] = React.useState<ODHDoc[]>([]);
   const queryParams = useQueryParams();
   const searchQuery = queryParams.get(SEARCH_FILTER_KEY) || '';
@@ -103,10 +155,7 @@ const LearningCenter: React.FC = () => {
           return sortVal;
         }),
     );
-  }, [docApps, searchQuery, typeFilters, sortOrder, sortType]);
-
-  const docTypesCount = React.useMemo(() => {
-    return docApps.reduce(
+    const docCounts = docApps.reduce(
       (acc, docApp) => {
         if (acc[docApp.metadata.type] !== undefined) {
           acc[docApp.metadata.type]++;
@@ -120,29 +169,19 @@ const LearningCenter: React.FC = () => {
         [ODHDocType.QuickStart]: 0,
       },
     );
-  }, [docApps]);
+    setDocTypesCount(docCounts);
+  }, [docApps, searchQuery, typeFilters, sortOrder, sortType]);
 
   return (
-    <ApplicationsPage
-      title="Resources"
-      description={description}
-      loaded={loaded && docsLoaded}
-      loadError={loadError || docsLoadError}
-      empty={false}
-    >
-      <LearningCenterFilters
-        count={filteredDocApps.length}
-        totalCount={docApps.length}
-        docTypeStatusCount={docTypesCount}
-      />
-      <PageSection>
-        <Gallery className="odh-explore-apps__gallery" hasGutter>
-          {filteredDocApps.map((doc) => (
-            <OdhDocCard key={`${doc.metadata.name}`} odhDoc={doc} />
-          ))}
-        </Gallery>
-      </PageSection>
-    </ApplicationsPage>
+    <LearningCenterInner
+      loaded={loaded}
+      loadError={loadError}
+      docsLoaded={docsLoaded}
+      docsLoadError={docsLoadError}
+      filteredDocApps={filteredDocApps}
+      docTypeCounts={docTypesCount}
+      totalCount={docApps.length}
+    />
   );
 };
 

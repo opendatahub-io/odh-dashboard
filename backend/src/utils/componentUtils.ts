@@ -1,5 +1,13 @@
+import { IncomingMessage } from 'http';
 import { V1ConfigMap } from '@kubernetes/client-node/dist/gen/model/v1ConfigMap';
 import { ODHApp, K8sResourceCommon, KubeFastifyInstance, RouteKind } from '../types';
+
+type RoutesResponse = {
+  body: {
+    items: RouteKind[];
+  };
+  response: IncomingMessage;
+};
 
 const getURLForRoute = (route: RouteKind, routeSuffix: string): string => {
   const host = route?.spec?.host;
@@ -21,14 +29,10 @@ export const getLink = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const routeNamespace = namespace || fastify.kube.namespace;
   try {
-    const res = await customObjectsApi.getNamespacedCustomObject(
-      'route.openshift.io',
-      'v1',
-      routeNamespace,
-      'routes',
-      routeName,
-    );
-    return getURLForRoute(res?.body as RouteKind, routeSuffix);
+    const route = await customObjectsApi
+      .getNamespacedCustomObject('route.openshift.io', 'v1', routeNamespace, 'routes', routeName)
+      .then((res) => res.body as RouteKind);
+    return getURLForRoute(route, routeSuffix);
   } catch (e) {
     fastify.log.error(`failed to get route ${routeName} in namespace ${namespace}`);
     return null;
@@ -52,13 +56,10 @@ export const getServiceLink = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const { namespace } = service.metadata;
   try {
-    const res = await customObjectsApi.listNamespacedCustomObject(
-      'route.openshift.io',
-      'v1',
-      namespace,
-      'routes',
-    );
-    return getURLForRoute((res?.body as { items: RouteKind[] })?.items?.[0], routeSuffix);
+    const routes = await customObjectsApi
+      .listNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes')
+      .then((res: RoutesResponse) => res.body?.items);
+    return getURLForRoute(routes?.[0], routeSuffix);
   } catch (e) {
     fastify.log.error(`failed to get route in namespace ${namespace}`);
     return null;
@@ -77,7 +78,7 @@ export const getApplicationEnabledConfigMap = (
   const coreV1Api = fastify.kube.coreV1Api;
   return coreV1Api
     .readNamespacedConfigMap(name, namespace)
-    .then((result: { body: V1ConfigMap }) => result.body)
+    .then((result) => result.body)
     .catch(() => null);
 };
 

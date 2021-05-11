@@ -5,6 +5,42 @@ import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, ODHApp } from '../../../types';
 import { getApplicationDef } from '../../../utils/resourceUtils';
 
+const doSleep = (timeout: number) => {
+  return new Promise((resolve) => setTimeout(resolve, timeout));
+};
+
+const waitOnDeletion = async (reader: () => Promise<void>) => {
+  const MAX_TRIES = 25;
+  let tries = 0;
+  let deleted = false;
+
+  while (!deleted && ++tries < MAX_TRIES) {
+    await reader()
+      .then(() => doSleep(1000))
+      .catch(() => {
+        deleted = true;
+      });
+  }
+};
+
+const waitOnCompletion = async (reader: () => Promise<boolean>): Promise<boolean> => {
+  const MAX_TRIES = 60;
+  let tries = 0;
+  let completionStatus;
+
+  while (completionStatus === undefined && ++tries < MAX_TRIES) {
+    await reader()
+      .then((res) => {
+        completionStatus = res;
+      })
+      .catch(async () => {
+        await doSleep(1000);
+        return;
+      });
+  }
+  return completionStatus || false;
+};
+
 export const createAccessSecret = async (
   appDef: ODHApp,
   namespace: string,
@@ -34,10 +70,10 @@ export const createAccessSecret = async (
     });
 };
 
-export const createValidationJob = async (
+export const runValidation = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
-): Promise<{ response: IncomingMessage; body: V1Secret }> => {
+): Promise<boolean> => {
   const namespace = fastify.kube.namespace;
   const query = request.query as { [key: string]: string };
   const appName = query?.appName;
@@ -57,43 +93,64 @@ export const createValidationJob = async (
     error.message = 'Unable to validate the application.';
     throw error;
   }
+  const jobName = `${cronjobName}-job-custom-run`;
 
-  return createAccessSecret(appDef, namespace, stringData, coreV1Api).then(() => {
-    return batchV1beta1Api.readNamespacedCronJob(cronjobName, namespace).then(async (res) => {
-      const cronJob = res.body;
-      const jobSpec = cronJob.spec.jobTemplate.spec;
-      const jobName = `${cronjobName}-job-custom-run`;
-      const job = {
-        apiVersion: 'batch/v1',
-        metadata: {
-          name: jobName,
-          namespace,
-          annotations: {
-            'cronjob.kubernetes.io/instantiate': 'manual',
-          },
-        },
-        spec: jobSpec,
-      };
-      // Flag the cronjob as no longer suspended
-      cronJob.spec.suspend = false;
-      await batchV1beta1Api.replaceNamespacedCronJob(cronjobName, namespace, cronJob).catch((e) => {
-        fastify.log.error(`failed to unsuspend cronjob: ${e.response.body.message}`);
+  await createAccessSecret(appDef, namespace, stringData, coreV1Api);
+
+  const cronJob = await batchV1beta1Api
+    .readNamespacedCronJob(cronjobName, namespace)
+    .then((res) => res.body);
+
+  // Flag the cronjob as no longer suspended
+  cronJob.spec.suspend = false;
+  await batchV1beta1Api.replaceNamespacedCronJob(cronjobName, namespace, cronJob).catch((e) => {
+    fastify.log.error(`failed to unsuspend cronjob: ${e.response.body.message}`);
+  });
+
+  // If there was a manual job already, delete it
+  await batchV1Api.deleteNamespacedJob(jobName, namespace).catch(() => {
+    return;
+  });
+
+  // wait for job to be deleted
+  await waitOnDeletion(() => {
+    return batchV1Api.readNamespacedJob(jobName, namespace).then(() => {
+      return;
+    });
+  });
+
+  // Wait for previous config map to be deleted
+  if (cmName) {
+    await waitOnDeletion(() => {
+      return coreV1Api.readNamespacedConfigMap(cmName, namespace).then(() => {
+        return;
       });
+    });
+  }
 
-      // If there was a manual job already, delete it
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      await batchV1Api.deleteNamespacedJob(jobName, namespace).catch(() => {});
+  const job = {
+    apiVersion: 'batch/v1',
+    metadata: {
+      name: jobName,
+      namespace,
+      annotations: {
+        'cronjob.kubernetes.io/instantiate': 'manual',
+      },
+    },
+    spec: cronJob.spec.jobTemplate.spec,
+  };
 
-      // If there was a config map already, delete it
-      if (cmName) {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        await coreV1Api.deleteNamespacedConfigMap(cmName, namespace).catch(() => {});
+  await batchV1Api.createNamespacedJob(namespace, job);
+
+  return await waitOnCompletion(() => {
+    return batchV1Api.readNamespacedJobStatus(jobName, namespace).then((res) => {
+      if (res.body.status.succeeded) {
+        return true;
       }
-
-      // Some delay to allow job to delete
-      return new Promise((resolve) => setTimeout(resolve, 1000)).then(() =>
-        batchV1Api.createNamespacedJob(namespace, job),
-      );
+      if (res.body.status.failed) {
+        return false;
+      }
+      throw new Error();
     });
   });
 };

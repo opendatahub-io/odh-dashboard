@@ -1,0 +1,26 @@
+.odh-enable-modal {
+  &__progress-title {
+    display: flex;
+    align-items: center;
+    > svg {
+      margin-right: var(--pf-global--spacer--sm);
+    }
+  }
+  .pf-c-alert.m-no-alert-icon {
+    .pf-c-alert__icon {
+      display: none;
+    }
+  }
+  &__variable-input {
+    max-width: calc(400px - var(--pf-global--spacer--md));
+    margin-right: var(--pf-global--spacer--xl);
+  }
+  &__toggle-password-vis {
+    border: 1px solid var(--pf-global--BorderColor--300);
+    border-radius: 0;
+    color: var(--pf-global--Color--200) !important;
+    padding: 6px var(--pf-global--spacer--sm) 5px;
+    position: relative;
+    right: 33px;
+  }
+}

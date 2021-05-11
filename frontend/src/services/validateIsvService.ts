@@ -14,8 +14,8 @@ export const postValidateIsv = (
   const options = { params: searchParams };
   return axios
     .get(url, options)
-    .then(() => {
-      return true;
+    .then((res) => {
+      return res.data;
     })
     .catch((e) => {
       throw new Error(e.response.data.message);

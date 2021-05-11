@@ -1,6 +1,8 @@
-import React from 'react';
+import * as React from 'react';
+import * as _ from 'lodash';
 import { Gallery, PageSection } from '@patternfly/react-core';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
+import { ODHApp } from '../../types';
 import ApplicationsPage from '../ApplicationsPage';
 import OdhAppCard from '../../components/OdhAppCard';
 import QuickStarts from '../../app/QuickStarts';
@@ -10,31 +12,55 @@ import './EnabledApplications.scss';
 const description = `Launch your enabled applications or get started with quick start instructions
  and tasks.`;
 
+type EnabledApplicationsInnerProps = {
+  loaded: boolean;
+  loadError?: Error;
+  components: ODHApp[];
+};
+const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
+  ({ loaded, loadError, components }) => {
+    const isEmpty = !components || components.length === 0;
+    return (
+      <QuickStarts>
+        <ApplicationsPage
+          title="Enabled"
+          description={description}
+          loaded={loaded}
+          empty={isEmpty}
+          loadError={loadError}
+        >
+          {!isEmpty ? (
+            <PageSection>
+              <Gallery className="odh-installed-apps__gallery" hasGutter>
+                {components.map((c) => (
+                  <OdhAppCard key={c.metadata.name} odhApp={c} />
+                ))}
+              </Gallery>
+            </PageSection>
+          ) : null}
+        </ApplicationsPage>
+      </QuickStarts>
+    );
+  },
+);
+EnabledApplicationsInner.displayName = 'EnabledApplicationsInner';
+
 const EnabledApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(true);
 
-  const isEmpty = !components || components.length === 0;
+  const sortedComponents = React.useMemo(() => {
+    return _.cloneDeep(components).sort((a, b) =>
+      a.spec.displayName.localeCompare(b.spec.displayName),
+    );
+  }, [components]);
+
   return (
     <QuickStarts>
-      <ApplicationsPage
-        title="Enabled"
-        description={description}
+      <EnabledApplicationsInner
         loaded={loaded}
-        empty={isEmpty}
+        components={sortedComponents}
         loadError={loadError}
-      >
-        {!isEmpty ? (
-          <PageSection>
-            <Gallery className="odh-installed-apps__gallery" hasGutter>
-              {components
-                .sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName))
-                .map((c) => (
-                  <OdhAppCard key={c.metadata.name} odhApp={c} />
-                ))}
-            </Gallery>
-          </PageSection>
-        ) : null}
-      </ApplicationsPage>
+      />
     </QuickStarts>
   );
 };

@@ -1,4 +1,5 @@
-import React from 'react';
+import * as React from 'react';
+import * as _ from 'lodash';
 import {
   Drawer,
   DrawerContent,
@@ -16,6 +17,58 @@ import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { useHistory } from 'react-router';
 
 const description = `Add optional applications to your Red Hat OpenShift Data Science instance.`;
+
+type ExploreApplicationsInnerProps = {
+  loaded: boolean;
+  isEmpty: boolean;
+  loadError?: Error;
+  exploreComponents: ODHApp[];
+  selectedComponent?: ODHApp;
+  updateSelection: (selectedId?: string | null) => void;
+};
+
+const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
+  ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
+    return (
+      <ApplicationsPage
+        title="Explore"
+        description={description}
+        loaded={loaded}
+        empty={isEmpty}
+        loadError={loadError}
+      >
+        {!isEmpty ? (
+          <Drawer isExpanded={!!selectedComponent} isInline>
+            <DrawerContent
+              panelContent={
+                <GetStartedPanel
+                  onClose={() => updateSelection()}
+                  selectedApp={selectedComponent}
+                />
+              }
+            >
+              <DrawerContentBody>
+                <PageSection>
+                  <Gallery className="odh-explore-apps__gallery" hasGutter>
+                    {exploreComponents.map((c) => (
+                      <OdhExploreCard
+                        key={c.metadata.name}
+                        odhApp={c}
+                        isSelected={selectedComponent === c}
+                        onSelect={() => updateSelection(c.metadata.name)}
+                      />
+                    ))}
+                  </Gallery>
+                </PageSection>
+              </DrawerContentBody>
+            </DrawerContent>
+          </Drawer>
+        ) : null}
+      </ApplicationsPage>
+    );
+  },
+);
+ExploreApplicationsInner.displayName = 'ExploreApplicationsInner';
 
 const ExploreApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(false);
@@ -41,6 +94,12 @@ const ExploreApplications: React.FC = () => {
     [components],
   );
 
+  const exploreComponents = React.useMemo<ODHApp[]>(() => {
+    return _.cloneDeep(components).sort((a, b) =>
+      a.spec.displayName.localeCompare(b.spec.displayName),
+    );
+  }, [components]);
+
   React.useEffect(() => {
     if (components?.length > 0) {
       updateSelection(selectedId);
@@ -48,40 +107,14 @@ const ExploreApplications: React.FC = () => {
   }, [updateSelection, selectedId, components]);
 
   return (
-    <ApplicationsPage
-      title="Explore"
-      description={description}
+    <ExploreApplicationsInner
       loaded={loaded}
-      empty={isEmpty}
+      isEmpty={isEmpty}
       loadError={loadError}
-    >
-      {!isEmpty ? (
-        <Drawer isExpanded={!!selectedComponent} isInline>
-          <DrawerContent
-            panelContent={
-              <GetStartedPanel onClose={() => updateSelection()} selectedApp={selectedComponent} />
-            }
-          >
-            <DrawerContentBody>
-              <PageSection>
-                <Gallery className="odh-explore-apps__gallery" hasGutter>
-                  {components
-                    .sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName))
-                    .map((c) => (
-                      <OdhExploreCard
-                        key={c.metadata.name}
-                        odhApp={c}
-                        isSelected={selectedComponent === c}
-                        onSelect={() => updateSelection(c.metadata.name)}
-                      />
-                    ))}
-                </Gallery>
-              </PageSection>
-            </DrawerContentBody>
-          </DrawerContent>
-        </Drawer>
-      ) : null}
-    </ApplicationsPage>
+      exploreComponents={exploreComponents}
+      selectedComponent={selectedComponent}
+      updateSelection={updateSelection}
+    />
   );
 };
 

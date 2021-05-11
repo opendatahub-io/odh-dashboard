@@ -85,6 +85,13 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
     return <MarkdownView markdown={odhGettingStarted?.markdown} />;
   };
 
+  const onEnableClose = (success?: boolean) => {
+    if (success) {
+      selectedApp.spec.isEnabled = true;
+    }
+    setEnableOpen(false);
+  };
+
   const onEnable = () => {
     setEnableOpen(true);
   };
@@ -131,9 +138,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
           {renderMarkdownContents()}
         </DrawerPanelBody>
       </DrawerPanelContent>
-      {enableOpen ? (
-        <EnableModal onClose={() => setEnableOpen(false)} selectedApp={selectedApp} />
-      ) : null}
+      {enableOpen ? <EnableModal onClose={onEnableClose} selectedApp={selectedApp} /> : null}
     </>
   );
 };
