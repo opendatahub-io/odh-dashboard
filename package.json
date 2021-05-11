@@ -43,7 +43,8 @@
     "test:fix-backend": "cd ./backend && npm run test:fix",
     "test:fix-frontend": "cd ./frontend && npm run test:fix",
     "test:integration": "jest --roots=./tests",
-    "test:integration-dev": "npm run build; jest --roots=./tests --watchAll"
+    "test:integration-dev": "npm run build; jest --roots=./tests --watchAll",
+    "test:integration-fix": "npm run build; jest --roots=./tests --update-snapshot"
   },
   "dependencies": {
     "dotenv": "^8.2.0",

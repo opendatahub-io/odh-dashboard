@@ -60,6 +60,10 @@ You can update with
   ```
   $ npm run test:integration-dev
   ```
+or
+  ```
+    $ npm run test:integration-fix
+    ```
 
 ## Build
 ### dotenv files

@@ -40,7 +40,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
       - name: Install Node.js packages
-        if: ${{ steps.repo-cache.outputs.cache-hit != 'true' && steps.backend-cache.outputs.cache-hit != 'true' && steps.frontend-cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
         run: npm install
       - name: Lint
         if: ${{ success() }}
