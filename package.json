@@ -28,7 +28,7 @@
     "fastify-plugin": "^2.3.4",
     "fastify-sensible": "^3.0.1",
     "fastify-static": "^3.2.1",
-    "lodash": "^4.17.20"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "fastify-cli": "^2.3.0",
