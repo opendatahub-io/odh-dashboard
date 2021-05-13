@@ -6,6 +6,6 @@ spec:
   displayName: Various types of Model Servings
   description: |-
     A series of tutorials highlighting natural language, image processing classifiers, KubeFlow
-    integration, and model
+    integration, and model.
   url: https://deploy.seldon.io/docs/demos/seldon-core/
   durationMinutes: 60

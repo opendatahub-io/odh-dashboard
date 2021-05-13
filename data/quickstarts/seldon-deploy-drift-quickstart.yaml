@@ -5,7 +5,7 @@ spec:
   displayName: Monitor drift for deployed model
   durationMinutes: 10
   icon: 'images/seldon.svg'
-  description: Monitor drift for deployed image classifier model
+  description: Monitor drift for deployed image classifier model.
   introduction: |-
     ### This quick start shows you how to launch a tensorflow image classifier model and detect when requests to the model are drifting.
     Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.

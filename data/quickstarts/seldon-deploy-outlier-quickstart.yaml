@@ -5,7 +5,7 @@ spec:
   displayName: See outlier scores for predictions to deployed model
   durationMinutes: 10
   icon: 'images/seldon.svg'
-  description: See outlier scores for predictions to a deployed image classifier model
+  description: See outlier scores for predictions to a deployed image classifier model.
   introduction: |-
     ### This quick start shows you how to launch a tensorflow image classifier model and detect requests which are outliers.
     Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.

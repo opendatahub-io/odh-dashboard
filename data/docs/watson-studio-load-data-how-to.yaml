@@ -5,6 +5,6 @@ spec:
   appName: watson-studio
   displayName: How to load data into Notebook?
   description: |-
-    How to integrate data sources into a notebook
+    How to integrate data sources into a notebook.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/load-and-access-data.html
   durationMinutes: 5

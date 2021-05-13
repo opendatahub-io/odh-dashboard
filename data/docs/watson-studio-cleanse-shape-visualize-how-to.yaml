@@ -5,6 +5,6 @@ spec:
   appName: watson-studio
   displayName: How to cleanse, shape, and visualize my data?
   description: |-
-    Using data refinery to cleanse and shape tabular data
+    Using data refinery to cleanse and shape tabular data.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/refinery/refining_data.html
   durationMinutes: 10
