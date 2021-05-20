@@ -1,7 +1,7 @@
 import React from 'react';
 import * as classNames from 'classnames';
 import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon, StarIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { ODHDoc, ODHDocType } from '../types';
 import {
@@ -12,12 +12,14 @@ import {
 } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
+import { makeCardVisible } from '../utilities/utils';
 
 import './OdhCard.scss';
-import { makeCardVisible } from '../utilities/utils';
 
 type OdhDocCardProps = {
   odhDoc: ODHDoc;
+  favorite: boolean;
+  updateFavorite: (isFavorite: boolean) => void;
 };
 
 const RIGHT_JUSTIFIED_STATUSES = [
@@ -25,7 +27,7 @@ const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Continue,
   LaunchStatusEnum.Close,
 ];
-const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
+const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite }) => {
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
 
   const selected = React.useMemo(() => {
@@ -117,6 +119,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
     return null;
   };
 
+  const favoriteClasses = classNames('odh-card__favorite', { 'm-is-favorite': favorite });
   return (
     <Card
       id={odhDoc.metadata.name}
@@ -127,6 +130,10 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc }) => {
     >
       <CardHeader>
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
+        <span className={favoriteClasses} onClick={() => updateFavorite(!favorite)}>
+          <StarIcon className="odh-card__favorite__outer" />
+          <StarIcon className="odh-card__favorite__inner" />
+        </span>
       </CardHeader>
       <CardTitle className="odh-card__doc-title">
         {odhDoc.spec.displayName}

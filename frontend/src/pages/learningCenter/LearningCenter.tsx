@@ -20,6 +20,9 @@ import {
 } from './learningCenterUtils';
 import LearningCenterFilters from './LearningCenterFilters';
 import { useWatchDocs } from '../../utilities/useWatchDocs';
+import { useLocalStorage } from '../../utilities/useLocalStorage';
+
+export const FAVORITE_RESOURCES = 'rhods.dashboard.resources.favorites';
 
 const description = `Access all learning resources for Red Hat OpenShift Data Science and supported applications.`;
 
@@ -31,6 +34,8 @@ type LearningCenterInnerProps = {
   filteredDocApps: ODHDoc[];
   docTypeCounts: Record<ODHDocType, number>;
   totalCount: number;
+  favorites: string[];
+  updateFavorite: (isFavorite: boolean, name: string) => void;
 };
 
 const LearningCenterInner: React.FC<LearningCenterInnerProps> = React.memo(
@@ -42,6 +47,8 @@ const LearningCenterInner: React.FC<LearningCenterInnerProps> = React.memo(
     filteredDocApps,
     docTypeCounts,
     totalCount,
+    favorites,
+    updateFavorite,
   }) => {
     return (
       <ApplicationsPage
@@ -59,7 +66,12 @@ const LearningCenterInner: React.FC<LearningCenterInnerProps> = React.memo(
         <PageSection>
           <Gallery className="odh-explore-apps__gallery" hasGutter>
             {filteredDocApps.map((doc) => (
-              <OdhDocCard key={`${doc.metadata.name}`} odhDoc={doc} />
+              <OdhDocCard
+                key={`${doc.metadata.name}`}
+                odhDoc={doc}
+                favorite={favorites.includes(doc.metadata.name)}
+                updateFavorite={(isFavorite) => updateFavorite(isFavorite, doc.metadata.name)}
+              />
             ))}
           </Gallery>
         </PageSection>
@@ -89,6 +101,8 @@ const LearningCenter: React.FC = () => {
   }, [filters]);
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
   const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
+  const [favorites, setFavorites] = useLocalStorage(FAVORITE_RESOURCES);
+  const favoriteResources = React.useMemo(() => JSON.parse(favorites || '[]'), [favorites]);
 
   React.useEffect(() => {
     if (loaded && !loadError && docsLoaded && !docsLoadError) {
@@ -145,6 +159,14 @@ const LearningCenter: React.FC = () => {
         .filter((doc) => doc.metadata.type !== 'getting-started')
         .filter((doc) => doesDocAppMatch(doc, searchQuery, typeFilters))
         .sort((a, b) => {
+          const aFav = favoriteResources.includes(a.metadata.name);
+          const bFav = favoriteResources.includes(b.metadata.name);
+          if (aFav && !bFav) {
+            return -1;
+          }
+          if (!aFav && bFav) {
+            return 1;
+          }
           let sortVal =
             sortType === SORT_TYPE_NAME
               ? a.spec.displayName.localeCompare(b.spec.displayName)
@@ -170,7 +192,27 @@ const LearningCenter: React.FC = () => {
       },
     );
     setDocTypesCount(docCounts);
+    // Do not include favoriteResources change to prevent re-sorting when favoriting/unfavoriting
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docApps, searchQuery, typeFilters, sortOrder, sortType]);
+
+  const updateFavorite = React.useCallback(
+    (isFavorite: boolean, name: string): void => {
+      const updatedFavorites = [...favoriteResources];
+      const index = updatedFavorites.indexOf(name);
+      if (isFavorite) {
+        if (index === -1) {
+          updatedFavorites.push(name);
+        }
+      } else {
+        if (index !== -1) {
+          updatedFavorites.splice(index, 1);
+        }
+      }
+      setFavorites(JSON.stringify(updatedFavorites));
+    },
+    [favoriteResources, setFavorites],
+  );
 
   return (
     <LearningCenterInner
@@ -181,6 +223,8 @@ const LearningCenter: React.FC = () => {
       filteredDocApps={filteredDocApps}
       docTypeCounts={docTypesCount}
       totalCount={docApps.length}
+      favorites={favoriteResources}
+      updateFavorite={updateFavorite}
     />
   );
 };

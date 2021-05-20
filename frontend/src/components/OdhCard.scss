@@ -40,6 +40,28 @@
     }
   }
 
+  &__favorite {
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    &__outer {
+      fill: var(--pf-global--disabled-color--200);
+      .m-is-favorite & {
+        fill: var(--pf-global--palette--gold-200);
+      }
+    }
+    &__inner {
+      fill: var(--pf-global--BackgroundColor--100);
+      position: absolute;
+      width: calc(1em - 2px);
+      height: calc(1em - 2px);
+      .m-is-favorite & {
+        fill: var(--pf-global--palette--gold-200);
+      }
+    }
+  }
   &__partner-badge-container {
     margin-top: calc(var(--pf-global--spacer--sm) * -1);
     margin-bottom: var(--pf-global--spacer--sm);
