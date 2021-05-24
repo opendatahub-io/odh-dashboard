@@ -68,6 +68,7 @@ export type KubeStatus = {
   currentContext: string;
   currentUser: User;
   namespace: string;
+  userName: string | string[];
 };
 
 export type KubeDecorator = KubeStatus & {
