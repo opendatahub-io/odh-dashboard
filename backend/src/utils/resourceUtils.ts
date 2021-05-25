@@ -1,24 +1,24 @@
 import * as jsYaml from 'js-yaml';
 import createError from 'http-errors';
+import fs from 'fs';
+import path from 'path';
 import {
   CSVKind,
   K8sResourceCommon,
   KfDefApplication,
   KfDefResource,
   KubeFastifyInstance,
-  ODHApp,
-  ODHDoc,
+  OdhApplication,
+  OdhDocument,
 } from '../types';
 import { ResourceWatcher } from './resourceWatcher';
-import path from 'path';
 import { getComponentFeatureFlags } from './features';
-import fs from 'fs';
 import { yamlRegExp } from './constants';
 
 let operatorWatcher: ResourceWatcher<CSVKind>;
 let serviceWatcher: ResourceWatcher<K8sResourceCommon>;
-let appWatcher: ResourceWatcher<ODHApp>;
-let docWatcher: ResourceWatcher<ODHDoc>;
+let appWatcher: ResourceWatcher<OdhApplication>;
+let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 
 const fetchInstalledOperators = (fastify: KubeFastifyInstance): Promise<CSVKind[]> => {
@@ -80,9 +80,9 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
   return kfdef?.spec?.applications || [];
 };
 
-const fetchApplicationDefs = (): Promise<ODHApp[]> => {
+const fetchApplicationDefs = (): Promise<OdhApplication[]> => {
   const normalizedPath = path.join(__dirname, '../../../data/applications');
-  const applicationDefs: ODHApp[] = [];
+  const applicationDefs: OdhApplication[] = [];
   const featureFlags = getComponentFeatureFlags();
   fs.readdirSync(normalizedPath).forEach((file) => {
     if (yamlRegExp.test(file)) {
@@ -99,16 +99,18 @@ const fetchApplicationDefs = (): Promise<ODHApp[]> => {
   return Promise.resolve(applicationDefs);
 };
 
-const fetchDocs = async (): Promise<ODHDoc[]> => {
+const fetchDocs = async (): Promise<OdhDocument[]> => {
   const normalizedPath = path.join(__dirname, '../../../data/docs');
-  const docs: ODHDoc[] = [];
+  const docs: OdhDocument[] = [];
   const featureFlags = getComponentFeatureFlags();
   const appDefs = await fetchApplicationDefs();
 
   fs.readdirSync(normalizedPath).forEach((file) => {
     if (yamlRegExp.test(file)) {
       try {
-        const doc: ODHDoc = jsYaml.load(fs.readFileSync(path.join(normalizedPath, file), 'utf8'));
+        const doc: OdhDocument = jsYaml.load(
+          fs.readFileSync(path.join(normalizedPath, file), 'utf8'),
+        );
         if (doc.spec.featureFlag) {
           if (featureFlags[doc.spec.featureFlag]) {
             docs.push(doc);
@@ -130,8 +132,8 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   operatorWatcher = new ResourceWatcher<CSVKind>(fastify, fetchInstalledOperators);
   serviceWatcher = new ResourceWatcher<K8sResourceCommon>(fastify, fetchServices);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
-  appWatcher = new ResourceWatcher<ODHApp>(fastify, fetchApplicationDefs);
-  docWatcher = new ResourceWatcher<ODHDoc>(fastify, fetchDocs);
+  appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplicationDefs);
+  docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
 };
 
 export const getInstalledOperators = (): K8sResourceCommon[] => {
@@ -145,15 +147,15 @@ export const getServices = (): K8sResourceCommon[] => {
 export const getInstalledKfdefs = (): KfDefApplication[] => {
   return kfDefWatcher.getResources();
 };
-export const getApplicationDefs = (): ODHApp[] => {
+export const getApplicationDefs = (): OdhApplication[] => {
   return appWatcher.getResources();
 };
 
-export const getApplicationDef = (appName: string): ODHApp => {
+export const getApplicationDef = (appName: string): OdhApplication => {
   const appDefs = getApplicationDefs();
   return appDefs.find((appDef) => appDef.metadata.name === appName);
 };
 
-export const getDocs = (): ODHDoc[] => {
+export const getDocs = (): OdhDocument[] => {
   return docWatcher.getResources();
 };

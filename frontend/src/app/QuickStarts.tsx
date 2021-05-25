@@ -12,8 +12,8 @@ import '@cloudmosaic/quickstarts/dist/quickstarts.css';
 import { useWatchQuickStarts } from '../utilities/useWatchQuickStarts';
 
 const QuickStarts: React.FC = ({ children }) => {
-  const [activeQuickStartID, setActiveQuickStartID] = useLocalStorage('rhodsQuickstartId', '');
-  const [allQuickStartStates, setAllQuickStartStates] = useLocalStorage('rhodsQuickstarts', {});
+  const [activeQuickStartID, setActiveQuickStartID] = useLocalStorage('odsQuickstartId', '');
+  const [allQuickStartStates, setAllQuickStartStates] = useLocalStorage('odsQuickstarts', {});
   const { quickStarts } = useWatchQuickStarts();
 
   const valuesForQuickStartContext = useValuesForQuickStartContext({

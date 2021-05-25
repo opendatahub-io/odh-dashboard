@@ -1,17 +1,17 @@
 {
-  "name": "rhods-dashboard-frontend",
+  "name": "ods-dashboard-frontend",
   "version": "0.1.0",
-  "description": "Frontend for RHODS dashboard.",
-  "author": "Red Hat",
+  "description": "Frontend for ODS dashboard.",
+  "author": "",
   "license": "ISC",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/red-hat-data-services/odh-dashboard.git"
+    "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
   },
-  "homepage": "https://github.com/red-hat-data-services/odh-dashboard#readme",
+  "homepage": "https://github.com/opendatahub-io/odh-dashboard#readme",
   "bugs": {
-    "url": "https://github.com/red-hat-data-services/odh-dashboard/issues"
+    "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
   },
   "engines": {
     "node": ">=12.0.0"

@@ -2,7 +2,7 @@
  * Common types, should be kept up to date with backend types
  */
 
-export type ODHApp = {
+export type OdhApplication = {
   metadata: {
     name: string;
   };
@@ -41,14 +41,14 @@ export type ODHApp = {
   };
 };
 
-export enum ODHDocType {
+export enum OdhDocumentType {
   Documentation = 'documentation',
   HowTo = 'how-to',
   QuickStart = 'quickstart',
   Tutorial = 'tutorial',
 }
 
-export type ODHDoc = {
+export type OdhDocument = {
   metadata: {
     name: string;
     type: string;
@@ -67,7 +67,7 @@ export type ODHDoc = {
   };
 };
 
-export type ODHGettingStarted = {
+export type OdhGettingStarted = {
   appName: string;
   markdown: string;
 };

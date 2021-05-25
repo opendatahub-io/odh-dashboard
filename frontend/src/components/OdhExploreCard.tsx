@@ -1,7 +1,7 @@
 import React from 'react';
 import * as classNames from 'classnames';
 import { Card, CardHeader, CardBody } from '@patternfly/react-core';
-import { ODHApp } from '../types';
+import { OdhApplication } from '../types';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 
@@ -9,7 +9,7 @@ import './OdhCard.scss';
 import { makeCardVisible } from '../utilities/utils';
 
 type OdhExploreCardProps = {
-  odhApp: ODHApp;
+  odhApp: OdhApplication;
   isSelected: boolean;
   onSelect: () => void;
 };

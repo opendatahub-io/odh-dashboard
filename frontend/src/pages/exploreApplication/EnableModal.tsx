@@ -9,14 +9,14 @@ import {
   Spinner,
   TextInputTypes,
 } from '@patternfly/react-core';
-import { ODHApp } from '../../types';
+import { OdhApplication } from '../../types';
 import { postValidateIsv } from '../../services/validateIsvService';
 import EnableVariable from './EnableVariable';
 
 import './EnableModal.scss';
 
 type EnableModalProps = {
-  selectedApp?: ODHApp;
+  selectedApp?: OdhApplication;
   onClose: (success?: boolean) => void;
 };
 

@@ -84,6 +84,7 @@ Array [
     "./frontend/public/app*js*txt",
     "./frontend/public/app*js.map",
     "./frontend/public/app.css",
+    "./frontend/public/b5272f622670b32eeb87532163ae834b.svg",
     "./frontend/public/index.html",
   ],
 ]

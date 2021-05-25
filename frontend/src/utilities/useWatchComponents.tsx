@@ -1,21 +1,21 @@
 import * as React from 'react';
 import { fetchComponents } from '../services/componentsServices';
-import { ODHApp } from '../types';
+import { OdhApplication } from '../types';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchComponents = (
   installed: boolean,
-): { components: ODHApp[]; loaded: boolean; loadError: Error | undefined } => {
+): { components: OdhApplication[]; loaded: boolean; loadError: Error | undefined } => {
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [components, setComponents] = React.useState<ODHApp[]>([]);
+  const [components, setComponents] = React.useState<OdhApplication[]>([]);
 
   React.useEffect(() => {
     let watchHandle;
     const watchComponents = () => {
       fetchComponents(installed)
-        .then((updatedComponents: ODHApp[]) => {
+        .then((updatedComponents: OdhApplication[]) => {
           setLoaded(true);
           setLoadError(undefined);
           setComponents(updatedComponents);
@@ -36,7 +36,7 @@ export const useWatchComponents = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installed]);
 
-  const retComponents = useDeepCompareMemoize<ODHApp[]>(components);
+  const retComponents = useDeepCompareMemoize<OdhApplication[]>(components);
 
   return { components: retComponents || [], loaded, loadError };
 };

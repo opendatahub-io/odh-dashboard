@@ -3,33 +3,33 @@ import * as classNames from 'classnames';
 import { Tooltip } from '@patternfly/react-core';
 import { SyncAltIcon, CheckCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '../types';
+import { OdhDocument, OdhDocumentType } from '../types';
 import { isQuickStartComplete, isQuickStartInProgress } from '../utilities/quickStartUtils';
 import { getTextForDocType } from '../pages/learningCenter/learningCenterUtils';
 
 import './OdhCard.scss';
 
 const DOC_TYPE_TOOLTIPS = {
-  [ODHDocType.Documentation]: 'Technical information for using the service',
-  [ODHDocType.Tutorial]: 'End-to-end guides for solving business problems in data science',
-  [ODHDocType.QuickStart]: 'Step-by-step instructions and tasks',
-  [ODHDocType.HowTo]: 'Instructions and code for everyday procedures',
+  [OdhDocumentType.Documentation]: 'Technical information for using the service',
+  [OdhDocumentType.Tutorial]: 'End-to-end guides for solving business problems in data science',
+  [OdhDocumentType.QuickStart]: 'Step-by-step instructions and tasks',
+  [OdhDocumentType.HowTo]: 'Instructions and code for everyday procedures',
 };
 
 type DocCardBadgesProps = {
-  odhDoc: ODHDoc;
+  odhDoc: OdhDocument;
 };
 
 const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
   const [inProgress, setInProgress] = React.useState<boolean>(false);
   const [complete, setComplete] = React.useState<boolean>(false);
-  const docType = odhDoc?.metadata.type as ODHDocType;
+  const docType = odhDoc?.metadata.type as OdhDocumentType;
   const docName = odhDoc?.metadata.name;
   const duration = odhDoc?.spec.durationMinutes;
 
   React.useEffect(() => {
-    if (docType === ODHDocType.QuickStart && qsContext.allQuickStarts) {
+    if (docType === OdhDocumentType.QuickStart && qsContext.allQuickStarts) {
       const quickStart = qsContext.allQuickStarts.find((qs) => qs.metadata.name === docName);
       if (quickStart) {
         setInProgress(isQuickStartInProgress(quickStart.metadata.name, qsContext));
@@ -40,13 +40,13 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
 
   const label = getTextForDocType(docType);
   const typeBadgeClasses = classNames('odh-card__partner-badge odh-m-doc', {
-    'odh-m-documentation': docType === ODHDocType.Documentation,
-    'odh-m-tutorial': docType === ODHDocType.Tutorial,
-    'odh-m-quick-start': docType === ODHDocType.QuickStart,
-    'odh-m-how-to': docType === ODHDocType.HowTo,
+    'odh-m-documentation': docType === OdhDocumentType.Documentation,
+    'odh-m-tutorial': docType === OdhDocumentType.Tutorial,
+    'odh-m-quick-start': docType === OdhDocumentType.QuickStart,
+    'odh-m-how-to': docType === OdhDocumentType.HowTo,
   });
   const durationBadgeClasses = classNames('odh-card__partner-badge odh-m-doc odh-m-duration', {
-    'm-hidden': docType === ODHDocType.Documentation || duration === undefined,
+    'm-hidden': docType === OdhDocumentType.Documentation || duration === undefined,
   });
   const progressBadgeClasses = classNames('odh-card__partner-badge odh-m-doc', {
     'm-hidden': !complete && !inProgress,

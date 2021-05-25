@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHApp } from '../types';
+import { OdhApplication } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
@@ -20,7 +20,7 @@ import './OdhCard.scss';
 import { makeCardVisible } from '../utilities/utils';
 
 type OdhAppCardProps = {
-  odhApp: ODHApp;
+  odhApp: OdhApplication;
 };
 
 const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {

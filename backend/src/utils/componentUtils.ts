@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'http';
 import { V1ConfigMap } from '@kubernetes/client-node/dist/gen/model/v1ConfigMap';
-import { ODHApp, K8sResourceCommon, KubeFastifyInstance, RouteKind } from '../types';
+import { OdhApplication, K8sResourceCommon, KubeFastifyInstance, RouteKind } from '../types';
 
 type RoutesResponse = {
   body: {
@@ -58,7 +58,7 @@ export const getServiceLink = async (
   try {
     const routes = await customObjectsApi
       .listNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes')
-      .then((res: RoutesResponse) => res.body?.items);
+      .then((res: RoutesResponse) => res?.body?.items);
     return getURLForRoute(routes?.[0], routeSuffix);
   } catch (e) {
     fastify.log.error(`failed to get route in namespace ${namespace}`);
@@ -68,7 +68,7 @@ export const getServiceLink = async (
 
 export const getApplicationEnabledConfigMap = (
   fastify: KubeFastifyInstance,
-  appDef: ODHApp,
+  appDef: OdhApplication,
 ): Promise<V1ConfigMap> => {
   const namespace = fastify.kube.namespace;
   const name = appDef.spec.enable?.validationConfigMap;
@@ -84,7 +84,7 @@ export const getApplicationEnabledConfigMap = (
 
 export const getEnabledConfigMaps = (
   fastify: KubeFastifyInstance,
-  appDefs: ODHApp[],
+  appDefs: OdhApplication[],
 ): Promise<V1ConfigMap[]> => {
   const configMapGetters = appDefs.reduce((acc, app) => {
     if (app.spec.enable) {

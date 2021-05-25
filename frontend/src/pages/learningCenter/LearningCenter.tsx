@@ -2,10 +2,10 @@ import React from 'react';
 import * as _ from 'lodash';
 import { Gallery, PageSection } from '@patternfly/react-core';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '../../types';
+import { OdhDocument, OdhDocumentType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import ApplicationsPage from '../ApplicationsPage';
-import QuickStarts from '../../app/QuickStarts';
+import QuickStarts from '../../App/QuickStarts';
 import OdhDocCard from '../../components/OdhDocCard';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import {
@@ -22,17 +22,17 @@ import LearningCenterFilters from './LearningCenterFilters';
 import { useWatchDocs } from '../../utilities/useWatchDocs';
 import { useLocalStorage } from '../../utilities/useLocalStorage';
 
-export const FAVORITE_RESOURCES = 'rhods.dashboard.resources.favorites';
+export const FAVORITE_RESOURCES = 'ods.dashboard.resources.favorites';
 
-const description = `Access all learning resources for Red Hat OpenShift Data Science and supported applications.`;
+const description = `Access all learning resources for Open Data Hub and supported applications.`;
 
 type LearningCenterInnerProps = {
   loaded: boolean;
   loadError?: Error;
   docsLoadError?: Error;
   docsLoaded: boolean;
-  filteredDocApps: ODHDoc[];
-  docTypeCounts: Record<ODHDocType, number>;
+  filteredDocApps: OdhDocument[];
+  docTypeCounts: Record<OdhDocumentType, number>;
   totalCount: number;
   favorites: string[];
   updateFavorite: (isFavorite: boolean, name: string) => void;
@@ -85,14 +85,14 @@ const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
   const { components, loaded, loadError } = useWatchComponents(false);
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
-  const [docApps, setDocApps] = React.useState<ODHDoc[]>([]);
-  const [docTypesCount, setDocTypesCount] = React.useState<Record<ODHDocType, number>>({
-    [ODHDocType.Documentation]: 0,
-    [ODHDocType.HowTo]: 0,
-    [ODHDocType.Tutorial]: 0,
-    [ODHDocType.QuickStart]: 0,
+  const [docApps, setDocApps] = React.useState<OdhDocument[]>([]);
+  const [docTypesCount, setDocTypesCount] = React.useState<Record<OdhDocumentType, number>>({
+    [OdhDocumentType.Documentation]: 0,
+    [OdhDocumentType.HowTo]: 0,
+    [OdhDocumentType.Tutorial]: 0,
+    [OdhDocumentType.QuickStart]: 0,
   });
-  const [filteredDocApps, setFilteredDocApps] = React.useState<ODHDoc[]>([]);
+  const [filteredDocApps, setFilteredDocApps] = React.useState<OdhDocument[]>([]);
   const queryParams = useQueryParams();
   const searchQuery = queryParams.get(SEARCH_FILTER_KEY) || '';
   const filters = queryParams.get(DOC_TYPE_FILTER_KEY);
@@ -123,10 +123,10 @@ const LearningCenter: React.FC = () => {
       // Add doc cards for all components' documentation
       components.forEach((component) => {
         if (component.spec.docsLink) {
-          const odhDoc: ODHDoc = {
+          const odhDoc: OdhDocument = {
             metadata: {
               name: `${component.metadata.name}-doc`,
-              type: ODHDocType.Documentation,
+              type: OdhDocumentType.Documentation,
             },
             spec: {
               appName: component.metadata.name,
@@ -143,8 +143,8 @@ const LearningCenter: React.FC = () => {
 
       // Add doc cards for all quick starts
       qsContext.allQuickStarts?.forEach((quickStart) => {
-        const odhDoc: ODHDoc = _.merge({}, quickStart, {
-          metadata: { type: ODHDocType.QuickStart },
+        const odhDoc: OdhDocument = _.merge({}, quickStart, {
+          metadata: { type: OdhDocumentType.QuickStart },
         });
         updatedDocApps.push(odhDoc);
       });
@@ -185,10 +185,10 @@ const LearningCenter: React.FC = () => {
         return acc;
       },
       {
-        [ODHDocType.Documentation]: 0,
-        [ODHDocType.HowTo]: 0,
-        [ODHDocType.Tutorial]: 0,
-        [ODHDocType.QuickStart]: 0,
+        [OdhDocumentType.Documentation]: 0,
+        [OdhDocumentType.HowTo]: 0,
+        [OdhDocumentType.Tutorial]: 0,
+        [OdhDocumentType.QuickStart]: 0,
       },
     );
     setDocTypesCount(docCounts);

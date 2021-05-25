@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { ODHGettingStarted } from '../../../types';
+import { OdhGettingStarted } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
 import { addCORSHeader } from '../../../utils/responseUtils';
 import { listGettingStartedDocs } from './list';
@@ -7,7 +7,7 @@ import { listGettingStartedDocs } from './list';
 export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get('/', async (request, reply) => {
     return listGettingStartedDocs(request)
-      .then((res: ODHGettingStarted[]) => {
+      .then((res: OdhGettingStarted[]) => {
         if (DEV_MODE) {
           addCORSHeader(request, reply);
         }
