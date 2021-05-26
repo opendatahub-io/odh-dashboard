@@ -103,10 +103,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </CardFooter>
   );
 
-  const badgeClasses = classNames('odh-card__partner-badge', {
-    'm-warning': odhApp.spec.category === 'Third party support',
-  });
-
   return (
     <Card
       id={odhApp.metadata.name}
@@ -127,14 +123,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         />
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
-      <CardBody>
-        {odhApp.spec.category && odhApp.spec.category !== 'Red Hat' ? (
-          <div className="odh-card__partner-badge-container">
-            <span className={badgeClasses}>{odhApp.spec.category}</span>
-          </div>
-        ) : null}
-        {odhApp.spec.description}
-      </CardBody>
+      <CardBody>{odhApp.spec.description}</CardBody>
       {cardFooter}
     </Card>
   );

@@ -14,7 +14,7 @@ import {
   QuestionCircleIcon,
   UserIcon,
 } from '@patternfly/react-icons';
-import { DOC_LINK, SUPPORT_LINK } from '../utilities/const';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
 
 const HeaderTools: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = React.useState<boolean>(false);
@@ -38,50 +38,74 @@ const HeaderTools: React.FC = () => {
     setHelpMenuOpen(false);
   };
 
-  const helpMenuItems = [
-    <DropdownItem
-      key="documentation"
-      onClick={handleHelpClick}
-      className="odh-dashboard__external-link"
-      href={DOC_LINK}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Documentation
-      <ExternalLinkAltIcon />
-    </DropdownItem>,
-    <DropdownItem
-      key="support"
-      onClick={handleHelpClick}
-      className="odh-dashboard__external-link"
-      href={SUPPORT_LINK}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Support
-      <ExternalLinkAltIcon />
-    </DropdownItem>,
-  ];
+  const helpMenuItems: React.ReactElement[] = [];
+  if (DOC_LINK) {
+    helpMenuItems.push(
+      <DropdownItem
+        key="documentation"
+        onClick={handleHelpClick}
+        className="odh-dashboard__external-link"
+        href={DOC_LINK}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Documentation
+        <ExternalLinkAltIcon />
+      </DropdownItem>,
+    );
+  }
+  if (SUPPORT_LINK) {
+    helpMenuItems.push(
+      <DropdownItem
+        key="support"
+        onClick={handleHelpClick}
+        className="odh-dashboard__external-link"
+        href={SUPPORT_LINK}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Support
+        <ExternalLinkAltIcon />
+      </DropdownItem>,
+    );
+  }
+  if (COMMUNITY_LINK) {
+    helpMenuItems.push(
+      <DropdownItem
+        key="community"
+        onClick={handleHelpClick}
+        className="odh-dashboard__external-link"
+        href={COMMUNITY_LINK}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Community
+        <ExternalLinkAltIcon />
+      </DropdownItem>,
+    );
+  }
 
   return (
     <PageHeaderTools>
       <PageHeaderToolsGroup className="hidden-xs">
-        <PageHeaderToolsItem>
-          <Dropdown
-            position={DropdownPosition.right}
-            toggle={
-              <DropdownToggle
-                id="toggle-id"
-                onToggle={() => setHelpMenuOpen(!helpMenuOpen)}
-                toggleIndicator={CaretDownIcon}
-              >
-                <QuestionCircleIcon />
-              </DropdownToggle>
-            }
-            isOpen={helpMenuOpen}
-            dropdownItems={helpMenuItems}
-          />
-        </PageHeaderToolsItem>
+        {helpMenuItems.length > 0 ? (
+          <PageHeaderToolsItem>
+            <Dropdown
+              position={DropdownPosition.right}
+              toggle={
+                <DropdownToggle
+                  id="toggle-id"
+                  onToggle={() => setHelpMenuOpen(!helpMenuOpen)}
+                  toggleIndicator={CaretDownIcon}
+                >
+                  <QuestionCircleIcon />
+                </DropdownToggle>
+              }
+              isOpen={helpMenuOpen}
+              dropdownItems={helpMenuItems}
+            />
+          </PageHeaderToolsItem>
+        ) : null}
         <PageHeaderToolsItem>
           <Dropdown
             position={DropdownPosition.right}

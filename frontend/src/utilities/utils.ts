@@ -1,16 +1,10 @@
 import { DEV_MODE, API_PORT } from './const';
-import { OdhApplication } from '../types';
 
 const getBackendURL = (path: string): string => {
   if (!DEV_MODE) {
     return path;
   }
   return `${window.location.protocol}//${window.location.hostname}:${API_PORT}${path}`;
-};
-
-const isRedHatSupported = (app: OdhApplication): boolean => {
-  const support = (app.spec.support || '').toLowerCase();
-  return support === 'red hat' || support === 'redhat';
 };
 
 const makeCardVisible = (id: string): void => {
@@ -22,4 +16,4 @@ const makeCardVisible = (id: string): void => {
   }, 100);
 };
 
-export { getBackendURL, isRedHatSupported, makeCardVisible };
+export { getBackendURL, makeCardVisible };
