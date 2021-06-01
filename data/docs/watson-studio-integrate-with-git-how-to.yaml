@@ -1,10 +1,10 @@
 metadata:
-  name: watson-studio-integrate-with-github-how-to
+  name: watson-studio-integrate-with-git-how-to
   type: how-to
 spec:
   appName: watson-studio
-  displayName: How to create a project that's integrated with Github?
+  displayName: How to create a project that integrates with Git
   description: |-
-    How to add assets in the Git repository in a project.
+    How to add assets from a Git repository into a project.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/manage-data/git-integration.html
   durationMinutes: 10

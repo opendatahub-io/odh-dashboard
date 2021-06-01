@@ -5,11 +5,16 @@
 Before installing JupyterHub, you will need:
 
 - a Linux/Unix based system
-- [Python](https://www.python.org/downloads/) 3.5 or greater. An understanding
+- [Python](https://www.python.org/downloads/) 3.5 or greater
+
+  An understanding
   of using [`pip`](https://pip.pypa.io/en/stable/) or
   [`conda`](https://conda.io/docs/get-started.html) for
   installing Python packages is helpful.
-- [nodejs/npm](https://www.npmjs.com/). [Install nodejs/npm](https://docs.npmjs.com/getting-started/installing-node),
+
+- [nodejs/npm](https://www.npmjs.com/)
+
+  [Install nodejs/npm](https://docs.npmjs.com/getting-started/installing-node),
   using your operating system's package manager.
 
   - If you are using **`conda`**, the nodejs and npm dependencies will be installed for
@@ -27,10 +32,13 @@ Before installing JupyterHub, you will need:
     required for npm to work on Debian/Ubuntu.
 
 - A [pluggable authentication module (PAM)](https://en.wikipedia.org/wiki/Pluggable_authentication_module)
-  to use the [default Authenticator](./getting-started/authenticators-users-basics.md).
+  to use the [default Authenticator](./getting-started/authenticators-users-basics.md)
+
   PAM is often available by default on most distributions, if this is not the case it can be installed by
   using the operating system's package manager.
+
 - TLS certificate and key for HTTPS communication
+
 - Domain name
 
 Before running the single-user notebook servers (which may be on the same

@@ -3,7 +3,7 @@ metadata:
   type: how-to
 spec:
   appName: watson-studio
-  displayName: How to create a Project?
+  displayName: How to create a project in Watson Studio
   description: |-
     Provides the steps to create an analytics project.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/getting-started/projects.html

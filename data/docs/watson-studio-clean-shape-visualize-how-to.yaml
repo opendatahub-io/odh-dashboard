@@ -1,10 +1,10 @@
 metadata:
-  name: watson-studio-cleanse-shape-visualize-how-to
+  name: watson-studio-clean-shape-visualize-how-to
   type: how-to
 spec:
   appName: watson-studio
-  displayName: How to cleanse, shape, and visualize my data?
+  displayName: How to clean, shape, and visualize my data
   description: |-
-    Using data refinery to cleanse and shape tabular data.
+    Clean and shape tabular data using Watson Studio data refinery.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/refinery/refining_data.html
   durationMinutes: 10

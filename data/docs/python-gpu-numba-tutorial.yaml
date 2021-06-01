@@ -5,6 +5,6 @@ spec:
   appName: anaconda-ce
   displayName: GPU Computing in Python with Numba
   description: |-
-    Learn how to use Numba to create GPU accelerated functions.
+    Learn how to create GPU accelerated functions using Numba.
   url: https://github.com/ContinuumIO/gtc2018-numba
   durationMinutes: 90
