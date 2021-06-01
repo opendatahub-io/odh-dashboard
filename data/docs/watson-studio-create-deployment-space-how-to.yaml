@@ -3,8 +3,8 @@ metadata:
   type: how-to
 spec:
   appName: watson-studio
-  displayName: How to create a deployment space for deploying my model?
+  displayName: How to create a deployment space for deploying my model
   description: |-
-    Steps to create a deployment space.
+    Create a deployment space for machine learning.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/ml-spaces_local.html
   durationMinutes: 10

@@ -5,6 +5,6 @@ spec:
   appName: anaconda-ce
   displayName: Scalable computing in Python with Dask
   description: |-
-    Dask is a parallel computing library that scales the existing Python ecosystem. This tutorial will introduce Dask and parallel data analysis more generally. Dask can scale down to your laptop and up to a cluster. In this tutorial, we’ll analyze medium sized datasets in parallel.
+    Learn about parallel data analysis with Dask, a parallel computing library that scales the existing Python ecosystem. This tutorial shows you how to analyze medium sized datasets in parallel.
   url: https://tutorial.dask.org/
   durationMinutes: 230

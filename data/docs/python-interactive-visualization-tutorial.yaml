@@ -5,6 +5,6 @@ spec:
   appName: anaconda-ce
   displayName: Build interactive visualizations and dashboards in Python
   description: |-
-    This tutorial will take you through all of the steps involved in exploring data of many different types and sizes, building simple and complex figures, working with billions of data points, adding interactive behavior, widgets and controls, and deploying full dashboards and applications.
+    Explore data of many different types and sizes and learn to build simple and complex figures; work with billions of data points; add interactive behavior, widgets and controls; and deploy full dashboards and applications.
   url: https://holoviz.org/tutorial/index.html
   durationMinutes: 210
