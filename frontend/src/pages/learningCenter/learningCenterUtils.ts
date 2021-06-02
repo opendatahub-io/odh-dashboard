@@ -9,6 +9,8 @@ export const SORT_ASC = 'ASC';
 export const SORT_DESC = 'DESC';
 export const SORT_TYPE_NAME = 'name';
 export const SORT_TYPE_TYPE = 'type';
+export const SORT_TYPE_APPLICATION = 'application';
+export const SORT_TYPE_DURATION = 'duration';
 
 export const getTextForDocType = (docType: ODHDocType): string => {
   switch (docType) {

@@ -3,6 +3,7 @@ metadata:
   name: seldon-deploy-model-canary
 spec:
   displayName: Launch a SKLearn model and update model by canarying
+  appName: seldon-deploy
   durationMinutes: 10
   icon: 'images/seldon.svg'
   description: How to perform a canary promotion of a Scikit-Learn model.

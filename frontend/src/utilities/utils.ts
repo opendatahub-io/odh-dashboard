@@ -22,4 +22,15 @@ const makeCardVisible = (id: string): void => {
   }, 100);
 };
 
-export { getBackendURL, isRedHatSupported, makeCardVisible };
+const getDuration = (minutes = 0): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const hoursString = hours > 0 ? `${hours} ${hours > 1 ? 'hours' : 'hour'} ` : '';
+  if (hours > 0) {
+    return `${hoursString}${mins > 0 ? ' +' : ''}`;
+  }
+
+  return mins > 0 ? `${mins} ${mins > 1 ? 'minutes' : 'minute'}` : '';
+};
+
+export { getBackendURL, isRedHatSupported, makeCardVisible, getDuration };

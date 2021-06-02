@@ -13,8 +13,10 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import {
+  ThIcon,
   CheckIcon,
   FilterIcon,
+  ListIcon,
   PficonSortCommonAscIcon,
   PficonSortCommonDescIcon,
   TimesIcon,
@@ -31,21 +33,28 @@ import {
   SORT_TYPE_NAME,
   SORT_ASC,
   SORT_TYPE_TYPE,
+  SORT_TYPE_APPLICATION,
+  SORT_TYPE_DURATION,
 } from './learningCenterUtils';
 
 import './LearningCenterFilter.scss';
+import { CARD_VIEW, LIST_VIEW } from './const';
 
 type LearningCenterFilterProps = {
   count: number;
   totalCount: number;
   docTypeStatusCount: Record<ODHDocType, number>;
   onSearchInputChange?: (value: string) => void;
+  viewType: string;
+  updateViewType: (updatedType: string) => void;
 };
 
 const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
   count,
   totalCount,
   docTypeStatusCount,
+  viewType,
+  updateViewType,
 }) => {
   const history = useHistory();
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = React.useState(false);
@@ -70,6 +79,8 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
   const sortTypes = {
     name: SORT_TYPE_NAME,
     type: SORT_TYPE_TYPE,
+    application: SORT_TYPE_APPLICATION,
+    duration: SORT_TYPE_DURATION,
   };
   const sortOrders = {
     ASC: 'ascending',
@@ -172,6 +183,10 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
     }
   };
 
+  const toggleViewType = () => {
+    updateViewType(viewType === CARD_VIEW ? LIST_VIEW : CARD_VIEW);
+  };
+
   const renderDocLabel = (docType: ODHDocType) => {
     const label = getTextForDocType(docType);
     const badgeClasses = classNames('odh-card__partner-badge odh-m-doc', {
@@ -258,6 +273,13 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
           alignment={{ default: 'alignRight' }}
         >
           {`${count}${count !== totalCount ? ` of ${totalCount}` : ''} items`}
+          <Button
+            className="odh-learning-paths-filter__view-switcher"
+            variant={ButtonVariant.link}
+            onClick={toggleViewType}
+          >
+            {viewType !== LIST_VIEW ? <ListIcon /> : <ThIcon />}
+          </Button>
         </ToolbarItem>
       </ToolbarContent>
     </Toolbar>

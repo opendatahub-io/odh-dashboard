@@ -1,13 +1,18 @@
 import React from 'react';
+import * as classNames from 'classnames';
 import * as _ from 'lodash';
-import { Gallery, PageSection } from '@patternfly/react-core';
+import useDimensions from 'react-cool-dimensions';
+import { Gallery, PageSection, PageSectionVariants } from '@patternfly/react-core';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { ODHDoc, ODHDocType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
+import { useWatchDocs } from '../../utilities/useWatchDocs';
+import { useLocalStorage } from '../../utilities/useLocalStorage';
+import { useQueryParams } from '../../utilities/useQueryParams';
 import ApplicationsPage from '../ApplicationsPage';
 import QuickStarts from '../../app/QuickStarts';
 import OdhDocCard from '../../components/OdhDocCard';
-import { useQueryParams } from '../../utilities/useQueryParams';
+import OdhDocListItem from '../../components/OdhDocListItem';
 import {
   DOC_SORT_KEY,
   DOC_SORT_ORDER_KEY,
@@ -16,14 +21,18 @@ import {
   SEARCH_FILTER_KEY,
   SORT_ASC,
   SORT_DESC,
+  SORT_TYPE_APPLICATION,
+  SORT_TYPE_DURATION,
   SORT_TYPE_NAME,
+  SORT_TYPE_TYPE,
 } from './learningCenterUtils';
+import LearningCenterListHeader from './LearningCenterListHeader';
 import LearningCenterFilters from './LearningCenterFilters';
-import { useWatchDocs } from '../../utilities/useWatchDocs';
-import { useLocalStorage } from '../../utilities/useLocalStorage';
+import { CARD_VIEW, LIST_VIEW, VIEW_TYPE } from './const';
+
+import './LearningCenter.scss';
 
 export const FAVORITE_RESOURCES = 'rhods.dashboard.resources.favorites';
-
 const description = `Access all learning resources for Red Hat OpenShift Data Science and supported applications.`;
 
 type LearningCenterInnerProps = {
@@ -36,6 +45,8 @@ type LearningCenterInnerProps = {
   totalCount: number;
   favorites: string[];
   updateFavorite: (isFavorite: boolean, name: string) => void;
+  viewType: string;
+  updateViewType: (updatedType: string) => void;
 };
 
 const LearningCenterInner: React.FC<LearningCenterInnerProps> = React.memo(
@@ -49,7 +60,18 @@ const LearningCenterInner: React.FC<LearningCenterInnerProps> = React.memo(
     totalCount,
     favorites,
     updateFavorite,
+    viewType,
+    updateViewType,
   }) => {
+    const [sizeClass, setSizeClass] = React.useState<string>('m-ods-size-lg');
+    const { observe } = useDimensions({
+      breakpoints: { sm: 0, md: 600, lg: 750 },
+      onResize: ({ currentBreakpoint }) => {
+        setSizeClass(`m-odh-size-${currentBreakpoint}`);
+      },
+    });
+
+    const listViewClasses = classNames('odh-learning-paths__list-view', sizeClass);
     return (
       <ApplicationsPage
         title="Resources"
@@ -62,19 +84,39 @@ const LearningCenterInner: React.FC<LearningCenterInnerProps> = React.memo(
           count={filteredDocApps.length}
           totalCount={totalCount}
           docTypeStatusCount={docTypeCounts}
+          viewType={viewType}
+          updateViewType={updateViewType}
         />
-        <PageSection>
-          <Gallery className="odh-explore-apps__gallery" hasGutter>
-            {filteredDocApps.map((doc) => (
-              <OdhDocCard
-                key={`${doc.metadata.name}`}
-                odhDoc={doc}
-                favorite={favorites.includes(doc.metadata.name)}
-                updateFavorite={(isFavorite) => updateFavorite(isFavorite, doc.metadata.name)}
-              />
-            ))}
-          </Gallery>
+        <PageSection
+          variant={viewType === LIST_VIEW ? PageSectionVariants.light : PageSectionVariants.default}
+          hasShadowTop={viewType === LIST_VIEW}
+        >
+          {viewType !== LIST_VIEW ? (
+            <Gallery className="odh-learning-paths__gallery" hasGutter>
+              {filteredDocApps.map((doc) => (
+                <OdhDocCard
+                  key={`${doc.metadata.name}`}
+                  odhDoc={doc}
+                  favorite={favorites.includes(doc.metadata.name)}
+                  updateFavorite={(isFavorite) => updateFavorite(isFavorite, doc.metadata.name)}
+                />
+              ))}
+            </Gallery>
+          ) : (
+            <div className={listViewClasses} aria-label="Simple data list example">
+              <LearningCenterListHeader />
+              {filteredDocApps.map((doc) => (
+                <OdhDocListItem
+                  key={`${doc.metadata.name}`}
+                  odhDoc={doc}
+                  favorite={favorites.includes(doc.metadata.name)}
+                  updateFavorite={(isFavorite) => updateFavorite(isFavorite, doc.metadata.name)}
+                />
+              ))}
+            </div>
+          )}
         </PageSection>
+        <div ref={observe} />
       </ApplicationsPage>
     );
   },
@@ -103,22 +145,11 @@ const LearningCenter: React.FC = () => {
   const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
   const [favorites, setFavorites] = useLocalStorage(FAVORITE_RESOURCES);
   const favoriteResources = React.useMemo(() => JSON.parse(favorites || '[]'), [favorites]);
+  const [viewType, setViewType] = useLocalStorage(VIEW_TYPE);
 
   React.useEffect(() => {
     if (loaded && !loadError && docsLoaded && !docsLoadError) {
-      const updatedDocApps = odhDocs.map((odhDoc) => {
-        if (!odhDoc.spec.img || !odhDoc.spec.description) {
-          const odhApp = components.find((c) => c.metadata.name === odhDoc.spec.appName);
-          if (odhApp) {
-            const updatedDoc = _.cloneDeep(odhDoc);
-            updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
-            updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
-            updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
-            return updatedDoc;
-          }
-        }
-        return odhDoc;
-      });
+      const docs = [...odhDocs];
 
       // Add doc cards for all components' documentation
       components.forEach((component) => {
@@ -134,10 +165,9 @@ const LearningCenter: React.FC = () => {
               url: component.spec.docsLink,
               displayName: component.spec.displayName,
               description: component.spec.description,
-              img: component.spec.img,
             },
           };
-          updatedDocApps.push(odhDoc);
+          docs.push(odhDoc);
         }
       });
 
@@ -146,7 +176,20 @@ const LearningCenter: React.FC = () => {
         const odhDoc: ODHDoc = _.merge({}, quickStart, {
           metadata: { type: ODHDocType.QuickStart },
         });
-        updatedDocApps.push(odhDoc);
+        docs.push(odhDoc);
+      });
+
+      const updatedDocApps = docs.map((odhDoc) => {
+        const odhApp = components.find((c) => c.metadata.name === odhDoc.spec.appName);
+        if (odhApp) {
+          const updatedDoc = _.cloneDeep(odhDoc);
+          updatedDoc.spec.appDisplayName = odhDoc.spec.appDisplayName || odhApp.spec.displayName;
+          updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
+          updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
+          updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
+          return updatedDoc;
+        }
+        return odhDoc;
       });
 
       setDocApps(updatedDocApps);
@@ -167,10 +210,32 @@ const LearningCenter: React.FC = () => {
           if (!aFav && bFav) {
             return 1;
           }
-          let sortVal =
-            sortType === SORT_TYPE_NAME
-              ? a.spec.displayName.localeCompare(b.spec.displayName)
-              : a.metadata.type.localeCompare(b.metadata.type);
+          let sortVal;
+          switch (sortType) {
+            case SORT_TYPE_NAME:
+              sortVal = a.spec.displayName.localeCompare(b.spec.displayName);
+              break;
+            case SORT_TYPE_TYPE:
+              sortVal = a.metadata.type.localeCompare(b.metadata.type);
+              break;
+            case SORT_TYPE_APPLICATION:
+              if (!a.spec.appDisplayName) {
+                sortVal = -1;
+              } else if (!b.spec.appDisplayName) {
+                sortVal = 1;
+              } else {
+                sortVal = a.spec.appDisplayName.localeCompare(b.spec.appDisplayName);
+              }
+              break;
+            case SORT_TYPE_DURATION:
+              sortVal = (a.spec.durationMinutes || 0) - (b.spec.durationMinutes || 0);
+              break;
+            default:
+              sortVal = a.spec.displayName.localeCompare(b.spec.displayName);
+          }
+          if (sortVal === 0) {
+            sortVal = a.spec.displayName.localeCompare(b.spec.displayName);
+          }
           if (sortOrder === SORT_DESC) {
             sortVal *= -1;
           }
@@ -225,6 +290,8 @@ const LearningCenter: React.FC = () => {
       totalCount={docApps.length}
       favorites={favoriteResources}
       updateFavorite={updateFavorite}
+      viewType={viewType || CARD_VIEW}
+      updateViewType={setViewType}
     />
   );
 };

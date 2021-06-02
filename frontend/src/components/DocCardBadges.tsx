@@ -5,16 +5,11 @@ import { SyncAltIcon, CheckCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { ODHDoc, ODHDocType } from '../types';
 import { isQuickStartComplete, isQuickStartInProgress } from '../utilities/quickStartUtils';
+import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
+import { getDuration } from '../utilities/utils';
 import { getTextForDocType } from '../pages/learningCenter/learningCenterUtils';
 
 import './OdhCard.scss';
-
-const DOC_TYPE_TOOLTIPS = {
-  [ODHDocType.Documentation]: 'Technical information for using the service',
-  [ODHDocType.Tutorial]: 'End-to-end guides for solving business problems in data science',
-  [ODHDocType.QuickStart]: 'Step-by-step instructions and tasks',
-  [ODHDocType.HowTo]: 'Instructions and code for everyday procedures',
-};
 
 type DocCardBadgesProps = {
   odhDoc: ODHDoc;
@@ -59,7 +54,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
       <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
         <div className={typeBadgeClasses}>{label}</div>
       </Tooltip>
-      <div className={durationBadgeClasses}>{duration} minutes</div>
+      <div className={durationBadgeClasses}>{getDuration(duration)}</div>
       <div className={progressBadgeClasses}>
         {inProgress ? <SyncAltIcon /> : <CheckCircleIcon />}
         {inProgress ? 'In progress' : 'Complete'}

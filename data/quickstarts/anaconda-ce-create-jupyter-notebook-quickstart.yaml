@@ -3,6 +3,7 @@ metadata:
   name: create-jupyter-notebook-anaconda
 spec:
   displayName: Creating an Anaconda-enabled Jupyter notebook
+  appName: anaconda-ce
   durationMinutes: 5
   icon: 'images/anaconda-ce.svg'
   description: A quick step-by-step guide to creating an Anaconda-enabled Jupyter notebook.

@@ -3,6 +3,7 @@ metadata:
   name: create-jupyter-notebook
 spec:
   displayName: Creating a Jupyter notebook
+  appName: jupyterhub
   durationMinutes: 5
   icon: 'images/jupyterhub.svg'
   description: This quick start will walk you through creating a Jupyter notebook.

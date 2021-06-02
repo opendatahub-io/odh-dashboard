@@ -56,6 +56,7 @@ export type ODHDoc = {
   spec: {
     displayName: string;
     appName?: string;
+    appDisplayName?: string; // Only set on UI side in resources section
     provider?: string;
     description: string;
     url: string;
