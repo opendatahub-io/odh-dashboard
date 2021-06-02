@@ -3,7 +3,7 @@ import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getApplicationDef } from '../../../utils/resourceUtils';
+import { getApplicationDef, updateApplicationDefs } from '../../../utils/resourceUtils';
 
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -84,7 +84,6 @@ export const runValidation = async (
   const appDef = getApplicationDef(appName);
   const { enable } = appDef.spec;
 
-  const cmName = enable?.validationConfigMap;
   const cronjobName = enable?.validationJob;
   if (!cronjobName) {
     const error = createError(500, 'failed to validate');
@@ -119,15 +118,6 @@ export const runValidation = async (
     });
   });
 
-  // Wait for previous config map to be deleted
-  if (cmName) {
-    await waitOnDeletion(() => {
-      return coreV1Api.readNamespacedConfigMap(cmName, namespace).then(() => {
-        return;
-      });
-    });
-  }
-
   const job = {
     apiVersion: 'batch/v1',
     metadata: {
@@ -143,8 +133,9 @@ export const runValidation = async (
   await batchV1Api.createNamespacedJob(namespace, job);
 
   return await waitOnCompletion(() => {
-    return batchV1Api.readNamespacedJobStatus(jobName, namespace).then((res) => {
+    return batchV1Api.readNamespacedJobStatus(jobName, namespace).then(async (res) => {
       if (res.body.status.succeeded) {
+        await updateApplicationDefs();
         return true;
       }
       if (res.body.status.failed) {

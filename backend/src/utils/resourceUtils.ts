@@ -263,8 +263,13 @@ export const getServices = (): K8sResourceCommon[] => {
 export const getInstalledKfdefs = (): KfDefApplication[] => {
   return kfDefWatcher.getResources();
 };
+
 export const getApplicationDefs = (): OdhApplication[] => {
   return appWatcher.getResources();
+};
+
+export const updateApplicationDefs = (): Promise<void> => {
+  return appWatcher.updateResults();
 };
 
 export const getApplicationDef = (appName: string): OdhApplication => {
