@@ -72,3 +72,11 @@ export const removeNotification = (
     dispatch({ type: Actions.REMOVE_NOTIFICATION, payload: { notification } });
   };
 };
+
+export const forceComponentsUpdate = (): ThunkAction<void, AppState, unknown, Action<string>> => {
+  return (dispatch) => {
+    dispatch({
+      type: Actions.FORCE_COMPONENTS_UPDATE,
+    });
+  };
+};
