@@ -5,7 +5,7 @@ import { useWatchComponents } from '../../utilities/useWatchComponents';
 import { OdhApplication } from '../../types';
 import ApplicationsPage from '../ApplicationsPage';
 import OdhAppCard from '../../components/OdhAppCard';
-import QuickStarts from '../../App/QuickStarts';
+import QuickStarts from '../../app/QuickStarts';
 
 import './EnabledApplications.scss';
 
