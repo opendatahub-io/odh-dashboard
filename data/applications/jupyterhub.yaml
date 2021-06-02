@@ -1,0 +1,15 @@
+metadata:
+  name: jupyterhub
+spec:
+  displayName: JupyterHub
+  provider: Jupyter
+  description: |-
+    A multi-user version of the notebook designed for companies, classrooms and research labs.
+  kfdefApplications: ['jupyterhub', 'notebook-images']
+  route: jupyterhub
+  img: images/jupyterhub.svg
+  category: Red Hat managed
+  support: red hat
+  docsLink: https://jupyter.org/hub
+  quickStart: create-jupyter-notebook
+  getStartedLink: https://jupyterhub.readthedocs.io/en/stable/getting-started/index.html

@@ -1,0 +1,16 @@
+metadata:
+  name: perceptiLabs
+spec:
+  displayName: PerceptiLabs
+  provider: PercetiLabs
+  description: |-
+    Accelerates machine learning by streamlining the workflow and advancing explainability of the
+    models.
+  kfdefApplications: []
+  route: ''
+  img: images/percepti-labs.svg
+  docsLink: https://www.perceptilabs.com/docs/
+  category: Red Hat managed
+  support: third party support
+  quickStart: ''
+  comingSoon: true

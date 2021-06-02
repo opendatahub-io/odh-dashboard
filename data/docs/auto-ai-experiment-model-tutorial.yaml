@@ -1,0 +1,10 @@
+metadata:
+  name: auto-ai-experiment-model-tutorial
+  type: tutorial
+spec:
+  appName: watson-studio
+  displayName: Run an AutoAI Experiment to Build a Model
+  description: |-
+    Building a binary classification model for a marketing campaign.
+  url: https://video.ibm.com/channel/23952663/video/cpd35-ws-autoai
+  durationMinutes: 8

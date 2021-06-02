@@ -1,0 +1,50 @@
+name: Pull request
+on:
+  pull_request:
+    branches: [ master, main, test**, dev** ]
+
+jobs:
+  Integration-checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x, 14.x]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2.1.5
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Node.js modules cache, repository
+        uses: actions/cache@v2
+        id: repo-cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
+      - name: Node.js modules cache, backend
+        uses: actions/cache@v2
+        id: backend-cache
+        with:
+          path: ${{ github.workspace }}/backend/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
+      - name: Node.js modules cache, frontend
+        uses: actions/cache@v2
+        id: frontend-cache
+        with:
+          path: ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
+      - name: Install Node.js packages
+        if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
+        run: npm install
+      - name: Lint
+        if: ${{ success() }}
+        run: npm run test
+      - name: Confirm integration
+        if: ${{ success() }}
+        run: npm run build; npm run test:integration

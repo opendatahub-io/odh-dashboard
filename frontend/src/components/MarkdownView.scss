@@ -1,0 +1,30 @@
+.odh-markdown-view {
+  padding-bottom: var(--pf-global--spacer--md);
+  word-break: break-word;
+
+  > pre {
+    display: block;
+    font-size: var(--pf-global--FontSize--sm);
+    margin-left: var(--pf-global--spacer--sm);
+    padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--sm);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  tr > th {
+    text-align: left;
+  }
+
+  td, th {
+    padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--md);
+    word-break: break-word;
+    border-bottom: 1px solid var(--pf-global--BorderColor--100);
+    vertical-align: top;
+  }
+  ul {
+    list-style: initial;
+  }
+  li {
+    margin-left: var(--pf-global--spacer--lg);
+  }
+}

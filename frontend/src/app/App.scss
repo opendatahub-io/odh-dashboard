@@ -1,0 +1,52 @@
+html, body, #root {
+  height: 100%;
+}
+
+.odh-dashboard {
+  &__error-body {
+    text-align: left;
+    white-space: pre;
+  }
+
+  &__display-error {
+    white-space: pre-wrap;
+  }
+
+  &__external-link {
+    > svg {
+      margin-left: var(--pf-global--spacer--xs);
+    }
+  }
+
+  // PF Overrides
+  .pf-c-page__header {
+    .pf-c-brand {
+      height: 36px;
+    }
+    .pf-c-dropdown__toggle {
+      .pf-c-dropdown__toggle-icon {
+        margin-left: var(--pf-global--spacer--xs);
+      }
+      &:before {
+        visibility: hidden;
+      }
+    }
+  }
+  // Bootstrap Overrides (Bootstrap pulled in by @cloudmosaic/quickstarts)
+  code {
+    color: initial;
+    background-color: initial;
+  }
+
+  // PF Overrides
+  &.pf-c-page {
+    // TODO: Using the PF var doesn't work for some reason.
+    // @media (min-width: var(--pf-global--breakpoint--md)) {
+    @media (min-width: 768px) {
+      grid-template-columns: max-content 1fr;
+      grid-template-areas: "header header" "nav main";
+    }
+  }
+}
+
+
