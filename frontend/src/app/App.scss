@@ -18,6 +18,19 @@ html, body, #root {
     }
   }
 
+  &__notifications {
+    position: fixed;
+    right: var(--pf-global--spacer--sm);
+    z-index: 2000;
+    .pf-c-alert {
+      margin-top: var(--pf-global--spacer--sm);
+      .pf-c-alert__action .pf-c-button {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+    }
+  }
+
   // PF Overrides
   .pf-c-page__header {
     .pf-c-brand {

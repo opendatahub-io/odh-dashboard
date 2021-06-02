@@ -156,3 +156,9 @@ export type OdhGettingStarted = {
   appName: string;
   markdown: string;
 };
+
+export type BuildStatus = {
+  name: string;
+  status: string;
+  timestamp?: string;
+};

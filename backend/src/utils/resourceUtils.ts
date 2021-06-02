@@ -3,6 +3,7 @@ import createError from 'http-errors';
 import fs from 'fs';
 import path from 'path';
 import {
+  BuildStatus,
   CSVKind,
   K8sResourceCommon,
   KfDefApplication,
@@ -11,7 +12,11 @@ import {
   OdhApplication,
   OdhDocument,
 } from '../types';
-import { ResourceWatcher } from './resourceWatcher';
+import {
+  DEFAULT_ACTIVE_TIMEOUT,
+  ResourceWatcher,
+  ResourceWatcherTimeUpdate,
+} from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
 import { yamlRegExp } from './constants';
 
@@ -20,6 +25,7 @@ let serviceWatcher: ResourceWatcher<K8sResourceCommon>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
+let buildsWatcher: ResourceWatcher<BuildStatus>;
 
 const fetchInstalledOperators = (fastify: KubeFastifyInstance): Promise<CSVKind[]> => {
   return fastify.kube.customObjectsApi
@@ -128,12 +134,122 @@ const fetchDocs = async (): Promise<OdhDocument[]> => {
   return Promise.resolve(docs);
 };
 
+const getBuildConfigStatus = (
+  fastify: KubeFastifyInstance,
+  bcName: string,
+): Promise<BuildStatus> => {
+  return fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'build.openshift.io',
+      'v1',
+      fastify.kube.namespace,
+      'builds',
+      undefined,
+      undefined,
+      undefined,
+      `buildconfig=${bcName}`,
+    )
+    .then((res) => {
+      const bcBuilds = (res?.body as {
+        items: {
+          metadata: { name: string };
+          status: { phase: string; completionTimestamp: string; startTimestamp: string };
+        }[];
+      })?.items;
+      if (bcBuilds.length === 0) {
+        return {
+          name: bcName,
+          status: 'pending',
+        };
+      }
+      const mostRecent = bcBuilds
+        .sort((bc1, bc2) => {
+          const name1 = parseInt(bc1.metadata.name.split('_').pop());
+          const name2 = parseInt(bc2.metadata.name.split('_').pop());
+          return name1 - name2;
+        })
+        .pop();
+      return {
+        name: bcName,
+        status: mostRecent.status.phase,
+        timestamp: mostRecent.status.completionTimestamp || mostRecent.status.startTimestamp,
+      };
+    })
+    .catch((e) => {
+      console.dir(e);
+      return {
+        name: bcName,
+        status: 'pending',
+      };
+    });
+};
+
+export const fetchBuilds = async (fastify: KubeFastifyInstance): Promise<BuildStatus[]> => {
+  const nbBuildConfigNames: string[] = await fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'build.openshift.io',
+      'v1',
+      fastify.kube.namespace,
+      'buildconfigs',
+      undefined,
+      undefined,
+      undefined,
+      'opendatahub.io/build_type=notebook_image',
+    )
+    .then((res) => {
+      const buildConfigs = (res?.body as { items: { metadata: { name: string } }[] })?.items;
+      return buildConfigs.map((bc) => bc.metadata.name);
+    })
+    .catch(() => {
+      return [];
+    });
+  const baseBuildConfigNames: string[] = await fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'build.openshift.io',
+      'v1',
+      fastify.kube.namespace,
+      'buildconfigs',
+      undefined,
+      undefined,
+      undefined,
+      'opendatahub.io/build_type=base_image',
+    )
+    .then((res) => {
+      const buildConfigs = (res?.body as { items: { metadata: { name: string } }[] })?.items;
+      return buildConfigs.map((bc) => bc.metadata.name);
+    })
+    .catch(() => {
+      return [];
+    });
+
+  const buildConfigNames = [...nbBuildConfigNames, ...baseBuildConfigNames];
+
+  const getters = buildConfigNames.map(async (name) => {
+    return getBuildConfigStatus(fastify, name);
+  });
+
+  return Promise.all(getters);
+};
+
+const getRefreshTimeForBuilds = (buildStatuses: BuildStatus[]): ResourceWatcherTimeUpdate => {
+  const runningStatuses = ['pending', 'running', 'cancelled'];
+  const building = buildStatuses.filter((buildStatus) =>
+    runningStatuses.includes(buildStatus.status.toLowerCase()),
+  );
+  if (building.length) {
+    return { activeWatchInterval: 30 * 1000 };
+  }
+
+  return { activeWatchInterval: DEFAULT_ACTIVE_TIMEOUT };
+};
+
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   operatorWatcher = new ResourceWatcher<CSVKind>(fastify, fetchInstalledOperators);
   serviceWatcher = new ResourceWatcher<K8sResourceCommon>(fastify, fetchServices);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplicationDefs);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
+  buildsWatcher = new ResourceWatcher<BuildStatus>(fastify, fetchBuilds, getRefreshTimeForBuilds);
 };
 
 export const getInstalledOperators = (): K8sResourceCommon[] => {
@@ -158,4 +274,8 @@ export const getApplicationDef = (appName: string): OdhApplication => {
 
 export const getDocs = (): OdhDocument[] => {
   return docWatcher.getResources();
+};
+
+export const getBuildStatuses = (): { name: string; status: string }[] => {
+  return buildsWatcher.getResources();
 };
