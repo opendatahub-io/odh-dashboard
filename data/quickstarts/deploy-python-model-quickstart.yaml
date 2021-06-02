@@ -3,6 +3,7 @@ metadata:
   name: deploy-python-model
 spec:
   displayName: Deploying a sample Python application using Flask and OpenShift.
+  appName: jupyterhub
   durationMinutes: 10
   icon: 'images/jupyterhub.svg'
   description: How to deploy a Python model using Flask and OpenShift.

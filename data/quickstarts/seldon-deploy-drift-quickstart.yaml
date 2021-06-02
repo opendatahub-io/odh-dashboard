@@ -3,6 +3,7 @@ metadata:
   name: seldon-deploy-model-drift
 spec:
   displayName: Monitor a deployed model for drift
+  appName: seldon-deploy
   durationMinutes: 10
   icon: 'images/seldon.svg'
   description: Monitor drift for a deployed image classifier model

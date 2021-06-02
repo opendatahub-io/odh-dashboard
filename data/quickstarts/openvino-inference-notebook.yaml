@@ -4,6 +4,7 @@ metadata:
 spec:
   featureFlag: openvino
   displayName: Optimized Inference Notebook
+  appName: openvino
   durationMinutes: 5
   icon: 'images/openvino.svg'
   description: This quick start details how to use the OpenVINO toolkit.
