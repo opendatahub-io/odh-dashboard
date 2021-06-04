@@ -3,8 +3,8 @@ metadata:
   type: tutorial
 spec:
   appName: anaconda-ce
-  displayName: Accelerating Scientific Workloads in Python with Numba
+  displayName: Accelerating scientific workloads in Python with Numba
   description: |-
-    If you're interested in making your Python code run faster, this talk is for you.
+    Learn how to make your Python code run faster.
   url: https://www.youtube.com/watch?v=6oXedk2tGfk
   durationMinutes: 42

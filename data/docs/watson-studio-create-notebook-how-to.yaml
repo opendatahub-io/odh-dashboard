@@ -3,7 +3,7 @@ metadata:
   type: how-to
 spec:
   appName: watson-studio
-  displayName: How to create a notebook in Watson Studio?
+  displayName: How to create a notebook in Watson Studio
   description: |-
     Create a basic Jupyter notebook in Watson Studio.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/creating-notebooks.html

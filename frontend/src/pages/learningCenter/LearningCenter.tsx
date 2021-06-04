@@ -5,7 +5,7 @@ import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickst
 import { OdhDocument, OdhDocumentType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import ApplicationsPage from '../ApplicationsPage';
-import QuickStarts from '../../App/QuickStarts';
+import QuickStarts from '../../app/QuickStarts';
 import OdhDocCard from '../../components/OdhDocCard';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import {
