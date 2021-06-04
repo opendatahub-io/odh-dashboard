@@ -2,6 +2,14 @@
  * Common types, should be kept up to date with backend types
  */
 
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    analytics?: any;
+    clusterID?: string;
+  }
+}
+
 export type ODHApp = {
   metadata: {
     name: string;
@@ -71,4 +79,15 @@ export type ODHDoc = {
 export type ODHGettingStarted = {
   appName: string;
   markdown: string;
+};
+
+export type ODHSegmentKey = {
+  segmentKey: string;
+};
+
+export type TrackingEventProperties = {
+  name?: string;
+  anonymousID?: string;
+  type?: string;
+  term?: string;
 };

@@ -9,8 +9,8 @@ const status = async (
   request: FastifyRequest,
 ): Promise<{ kube: KubeStatus }> => {
   const kubeContext = fastify.kube.currentContext;
-  const { currentContext, namespace, currentUser } = fastify.kube;
-  const userName = request.headers['x-forwarded-user'] ?? currentUser.username;
+  const { currentContext, namespace, currentUser, clusterID } = fastify.kube;
+  const userName = request.headers['x-forwarded-user'] ?? currentUser.name;
   if (!kubeContext && !kubeContext.trim()) {
     const error = createError(500, 'failed to get kube status');
     error.explicitInternalServerError = true;
@@ -26,6 +26,7 @@ const status = async (
         currentUser,
         namespace,
         userName,
+        clusterID,
       },
     });
   }

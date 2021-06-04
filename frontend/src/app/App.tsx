@@ -4,6 +4,8 @@ import '@patternfly/patternfly/patternfly.min.css';
 import { Page } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
+import { useTrackHistory } from '../utilities/useTrackHistory';
+import { useSegmentTracking } from '../utilities/useSegmentTracking';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
@@ -14,6 +16,8 @@ const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const dispatch = useDispatch();
+  useSegmentTracking();
+  useTrackHistory();
 
   React.useEffect(() => {
     dispatch(detectUser());

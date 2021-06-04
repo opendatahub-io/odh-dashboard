@@ -23,6 +23,22 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.log.error(e, 'Failed to retrieve current namespace');
   }
 
+  let clusterID;
+  try {
+    const clusterVersion = await customObjectsApi.getClusterCustomObject(
+      'config.openshift.io',
+      'v1',
+      'clusterversions',
+      'version',
+    );
+    clusterID = (clusterVersion.body as { spec: { clusterID: string } }).spec.clusterID;
+  } catch (e) {
+    fastify.log.error(
+      e,
+      'Failed to retrieve cluster id. Please make sure the ClusterRole you are using has the permission to the ClusterVersion resource',
+    );
+  }
+
   fastify.decorate('kube', {
     config: kc,
     currentContext,
@@ -32,6 +48,7 @@ export default fp(async (fastify: FastifyInstance) => {
     batchV1Api,
     customObjectsApi,
     currentUser,
+    clusterID,
   });
 
   // Initialize the watching of resources

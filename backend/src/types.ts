@@ -69,6 +69,7 @@ export type KubeStatus = {
   currentUser: User;
   namespace: string;
   userName: string | string[];
+  clusterID: string;
 };
 
 export type KubeDecorator = KubeStatus & {
@@ -155,4 +156,8 @@ export type ODHDoc = {
 export type ODHGettingStarted = {
   appName: string;
   markdown: string;
+};
+
+export type ODHSegmentKey = {
+  segmentKey: string;
 };
