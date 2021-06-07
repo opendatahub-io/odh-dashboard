@@ -3,7 +3,7 @@ import * as classNames from 'classnames';
 import { Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, StarIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '../types';
+import { OdhDocument, OdhDocumentType } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
 import { getDuration, makeCardVisible } from '../utilities/utils';
@@ -11,7 +11,7 @@ import { getDuration, makeCardVisible } from '../utilities/utils';
 import './OdhListItem.scss';
 
 type OdhDocCardProps = {
-  odhDoc: ODHDoc;
+  odhDoc: OdhDocument;
   favorite: boolean;
   updateFavorite: (isFavorite: boolean) => void;
 };
@@ -21,7 +21,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
 
   const selected = React.useMemo(() => {
     return (
-      odhDoc.metadata.type === ODHDocType.QuickStart &&
+      odhDoc.metadata.type === OdhDocumentType.QuickStart &&
       qsContext.activeQuickStartID === odhDoc.metadata.name
     );
   }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext.activeQuickStartID]);
@@ -32,7 +32,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
     }
   }, [odhDoc.metadata.name, selected]);
 
-  if (odhDoc.metadata.type === ODHDocType.QuickStart) {
+  if (odhDoc.metadata.type === OdhDocumentType.QuickStart) {
     const quickStart = qsContext.allQuickStarts?.find(
       (qs) => qs.metadata.name === odhDoc.metadata.name,
     );
@@ -48,12 +48,12 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
   };
 
   const renderTypeBadge = () => {
-    const docType = odhDoc?.metadata.type as ODHDocType;
+    const docType = odhDoc?.metadata.type as OdhDocumentType;
     const typeBadgeClasses = classNames('odh-list-item__partner-badge odh-m-doc', {
-      'odh-m-documentation': docType === ODHDocType.Documentation,
-      'odh-m-tutorial': docType === ODHDocType.Tutorial,
-      'odh-m-quick-start': docType === ODHDocType.QuickStart,
-      'odh-m-how-to': docType === ODHDocType.HowTo,
+      'odh-m-documentation': docType === OdhDocumentType.Documentation,
+      'odh-m-tutorial': docType === OdhDocumentType.Tutorial,
+      'odh-m-quick-start': docType === OdhDocumentType.QuickStart,
+      'odh-m-how-to': docType === OdhDocumentType.HowTo,
     });
     return (
       <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
@@ -69,19 +69,19 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
     let onClick;
 
     switch (odhDoc.metadata.type) {
-      case ODHDocType.Documentation:
+      case OdhDocumentType.Documentation:
         title = 'View documentation';
         break;
-      case ODHDocType.Tutorial:
+      case OdhDocumentType.Tutorial:
         title = 'View documentation';
         break;
-      case ODHDocType.QuickStart:
+      case OdhDocumentType.QuickStart:
         title = getQuickStartLabel(odhDoc.metadata.name, qsContext);
         external = false;
         href = '#';
         onClick = onQuickStart;
         break;
-      case ODHDocType.HowTo:
+      case OdhDocumentType.HowTo:
         title = 'Read how-to article';
         break;
       default:
