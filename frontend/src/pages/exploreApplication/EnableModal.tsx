@@ -24,7 +24,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const [postError, setPostError] = React.useState<boolean>(false);
   const [validationInProgress, setValidationInProgress] = React.useState<boolean>(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
-  const focusRef = (element: HTMLElement) => {
+  const focusRef = (element: HTMLElement | null) => {
     if (element) {
       element.focus();
     }
@@ -87,7 +87,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
           {postError ? (
             <FormAlert>
               <Alert
-                variantLabel=""
+                variantLabel="error"
                 variant="danger"
                 title="Error attempting to validate. Please check your entries."
                 aria-live="polite"
@@ -99,7 +99,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
             <FormAlert>
               <Alert
                 className="m-no-alert-icon"
-                variantLabel=""
+                variantLabel="information"
                 variant="info"
                 title={
                   <div className="odh-enable-modal__progress-title">

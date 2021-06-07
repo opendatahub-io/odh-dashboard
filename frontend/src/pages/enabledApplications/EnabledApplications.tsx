@@ -21,25 +21,23 @@ const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.
   ({ loaded, loadError, components }) => {
     const isEmpty = !components || components.length === 0;
     return (
-      <QuickStarts>
-        <ApplicationsPage
-          title="Enabled"
-          description={description}
-          loaded={loaded}
-          empty={isEmpty}
-          loadError={loadError}
-        >
-          {!isEmpty ? (
-            <PageSection>
-              <Gallery className="odh-installed-apps__gallery" hasGutter>
-                {components.map((c) => (
-                  <OdhAppCard key={c.metadata.name} odhApp={c} />
-                ))}
-              </Gallery>
-            </PageSection>
-          ) : null}
-        </ApplicationsPage>
-      </QuickStarts>
+      <ApplicationsPage
+        title="Enabled"
+        description={description}
+        loaded={loaded}
+        empty={isEmpty}
+        loadError={loadError}
+      >
+        {!isEmpty ? (
+          <PageSection>
+            <Gallery className="odh-installed-apps__gallery" hasGutter>
+              {components.map((c) => (
+                <OdhAppCard key={c.metadata.name} odhApp={c} />
+              ))}
+            </Gallery>
+          </PageSection>
+        ) : null}
+      </ApplicationsPage>
     );
   },
 );

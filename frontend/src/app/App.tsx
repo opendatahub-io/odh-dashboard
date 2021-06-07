@@ -7,6 +7,8 @@ import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
+import ToastNotifications from '../components/ToastNotifications';
+import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
 
 import './App.scss';
 
@@ -14,6 +16,8 @@ const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const dispatch = useDispatch();
+
+  useWatchBuildStatus();
 
   React.useEffect(() => {
     dispatch(detectUser());
@@ -34,6 +38,7 @@ const App: React.FC = () => {
       sidebar={<NavSidebar isNavOpen={isNavOpen} />}
     >
       <Routes />
+      <ToastNotifications />
     </Page>
   );
 };
