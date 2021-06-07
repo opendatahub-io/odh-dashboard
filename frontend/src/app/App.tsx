@@ -8,6 +8,7 @@ import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
 import ToastNotifications from '../components/ToastNotifications';
+import AppNotificationDrawer from './AppNotificationDrawer';
 import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
 
 import './App.scss';
@@ -15,6 +16,7 @@ import './App.scss';
 const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
+  const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const dispatch = useDispatch();
 
   useWatchBuildStatus();
@@ -34,8 +36,16 @@ const App: React.FC = () => {
   return (
     <Page
       className="odh-dashboard"
-      header={<Header isNavOpen={isNavOpen} onNavToggle={onNavToggle} />}
+      header={
+        <Header
+          isNavOpen={isNavOpen}
+          onNavToggle={onNavToggle}
+          onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
+        />
+      }
       sidebar={<NavSidebar isNavOpen={isNavOpen} />}
+      notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
+      isNotificationDrawerExpanded={notificationsOpen}
     >
       <Routes />
       <ToastNotifications />

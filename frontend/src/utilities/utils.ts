@@ -28,6 +28,31 @@ export const getDuration = (minutes = 0): string => {
   return mins > 0 ? `${mins} ${mins > 1 ? 'minutes' : 'minute'}` : '';
 };
 
+export const calculateRelativeTime = (startTime: Date, endTime: Date): string => {
+  const start = startTime.getTime();
+  const end = endTime.getTime();
+
+  const secondsAgo = (end - start) / 1000;
+  const minutesAgo = secondsAgo / 60;
+  const hoursAgo = minutesAgo / 60;
+
+  if (minutesAgo > 90) {
+    const count = Math.round(hoursAgo);
+    return `about ${count} hours ago`;
+  }
+  if (minutesAgo > 45) {
+    return 'about an hour ago';
+  }
+  if (secondsAgo > 90) {
+    const count = Math.round(minutesAgo);
+    return `about ${count} minutes ago`;
+  }
+  if (secondsAgo > 45) {
+    return 'about a minute ago';
+  }
+  return 'a few seconds ago';
+};
+
 // Returns the possible colors allowed for a patternly-react Label component
 // There is no type defined for this so it must be exactly one of the possible strings
 // required :/
