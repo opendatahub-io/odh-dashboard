@@ -3,6 +3,7 @@ metadata:
   name: build-deploy-watson-model
 spec:
   displayName: Deploying a model with Watson Studio
+  appName: watson-studio
   durationMinutes: 15
   icon: 'images/ibm.svg'
   description: This quick start walks you through importing a Notebook in Watson Studio, building a model with AutoAI, and deploying a model.

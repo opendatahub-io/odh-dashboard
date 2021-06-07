@@ -3,6 +3,7 @@ metadata:
   name: seldon-deploy-model-explainer
 spec:
   displayName: See predictions and explanations for a deployed SKLearn model
+  appName: seldon-deploy
   durationMinutes: 10
   icon: 'images/seldon.svg'
   description: See predictions and explanations for deployed income classifier model.

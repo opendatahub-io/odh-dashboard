@@ -119,7 +119,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     return null;
   };
 
-  const favoriteClasses = classNames('odh-card__favorite', { 'm-is-favorite': favorite });
+  const favoriteClasses = classNames('odh-dashboard__favorite', { 'm-is-favorite': favorite });
   return (
     <Card
       id={odhDoc.metadata.name}
@@ -131,8 +131,8 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       <CardHeader>
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
         <span className={favoriteClasses} onClick={() => updateFavorite(!favorite)}>
-          <StarIcon className="odh-card__favorite__outer" />
-          <StarIcon className="odh-card__favorite__inner" />
+          <StarIcon className="odh-dashboard__favorite__outer" />
+          <StarIcon className="odh-dashboard__favorite__inner" />
         </span>
       </CardHeader>
       <CardTitle className="odh-card__doc-title">

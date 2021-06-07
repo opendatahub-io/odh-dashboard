@@ -3,6 +3,7 @@ metadata:
   name: seldon-deploy-model-outlier
 spec:
   displayName: See outlier scores for predictions to deployed model
+  appName: seldon-deploy
   durationMinutes: 10
   icon: 'images/seldon.svg'
   description: See outlier scores for predictions to a deployed image classifier model.
