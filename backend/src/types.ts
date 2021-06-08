@@ -24,12 +24,7 @@ export declare type QuickStart = {
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
-  metadata?: {
-    name?: string;
-    namespace?: string;
-    uid?: string;
-    labels?: { [key: string]: string };
-  };
+  metadata?: k8s.V1ObjectMeta;
 };
 
 export type BuildKind = {
@@ -98,10 +93,9 @@ export type KubeFastifyInstance = FastifyInstance & {
  */
 
 export type OdhApplication = {
-  metadata: {
-    name: string;
-    annotations?: { [key: string]: string };
-  };
+  apiVersion?: string;
+  kind?: string;
+  metadata: k8s.V1ObjectMeta;
   spec: {
     displayName: string;
     provider: string;
@@ -145,12 +139,11 @@ export enum OdhDocumentType {
 }
 
 export type OdhDocument = {
-  metadata: {
-    name: string;
-    type: string;
-    annotations?: { [key: string]: string };
-  };
+  apiVersion?: string;
+  kind?: string;
+  metadata: k8s.V1ObjectMeta;
   spec: {
+    type: string;
     displayName: string;
     appName?: string;
     provider?: string;

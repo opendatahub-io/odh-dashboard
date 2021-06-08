@@ -83,7 +83,7 @@ export const isQuickStartComplete = (
 };
 
 export const launchQuickStart = (
-  quickStartId: string | null,
+  quickStartId: string | null | undefined,
   qsContext: QuickStartContextValues,
 ): void => {
   if (

@@ -3,7 +3,7 @@ kind: Route
 metadata:
   annotations:
     kubernetes.io/tls-acme: 'true'
-  name: odh-dashboard
+  name: odh-dashboard # {"$openapi":"DASHBOARD_NAME"}
 spec:
   port:
     targetPort: 8080
@@ -12,5 +12,5 @@ spec:
     termination: edge
   to:
     kind: Service
-    name: odh-dashboard
+    name: odh-dashboard # {"$openapi":"DASHBOARD_NAME"}
     weight: 100

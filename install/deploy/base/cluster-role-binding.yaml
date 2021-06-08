@@ -1,0 +1,11 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: odh-dashboard # {"$openapi":"DASHBOARD_NAME"}
+subjects:
+- kind: ServiceAccount
+  name: odh-dashboard # {"$openapi":"DASHBOARD_NAME"}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: odh-dashboard # {"$openapi":"DASHBOARD_NAME"}

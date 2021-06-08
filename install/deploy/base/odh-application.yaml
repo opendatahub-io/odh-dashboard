@@ -1,3 +1,5 @@
+apiVersion: applications.console.openshift.io/v1alpha1
+kind: OdhApplication
 metadata:
   name: jupyterhub
   annotations:
@@ -9,6 +11,8 @@ spec:
     A multi-user version of the notebook designed for companies, classrooms and research labs.
   kfdefApplications: ['jupyterhub', 'notebook-images']
   route: jupyterhub
+  routeNamespace: redhat-ods-applications # {"$openapi":"ROUTE_NAMESPACE"}
+  csvName: opendatahub
   img: images/jupyterhub.svg
   category: Red Hat managed
   support: red hat

@@ -8,9 +8,9 @@ export const getBackendURL = (path: string): string => {
   return `${window.location.protocol}//${window.location.hostname}:${API_PORT}${path}`;
 };
 
-export const makeCardVisible = (id: string): void => {
+export const makeCardVisible = (id: string | null | undefined): void => {
   setTimeout(() => {
-    const element = document.getElementById(id);
+    const element = document.getElementById(id ?? '');
     if (element) {
       element.scrollIntoView({ block: 'nearest' });
     }

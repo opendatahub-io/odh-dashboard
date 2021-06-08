@@ -63,18 +63,17 @@ export const LearningCenter: React.FC = () => {
       components.forEach((component) => {
         if (component.spec.docsLink) {
           const odhDoc: OdhDocument = {
-            metadata: {
-              name: `${component.metadata.name}-doc`,
-              type: OdhDocumentType.Documentation,
-            },
+            metadata: component.metadata,
             spec: {
-              appName: component.metadata.name,
+              type: OdhDocumentType.Documentation,
+              appName: component.metadata?.name,
               provider: component.spec.provider,
               url: component.spec.docsLink,
               displayName: component.spec.displayName,
               description: component.spec.description,
             },
           };
+          odhDoc.metadata.name = `${component.metadata?.name}-doc`;
           docs.push(odhDoc);
         }
       });
@@ -82,7 +81,7 @@ export const LearningCenter: React.FC = () => {
       // Add doc cards for all quick starts
       qsContext.allQuickStarts?.forEach((quickStart) => {
         const odhDoc: OdhDocument = _.merge({}, quickStart, {
-          metadata: { type: OdhDocumentType.QuickStart },
+          spec: { type: OdhDocumentType.QuickStart },
         });
         docs.push(odhDoc);
       });

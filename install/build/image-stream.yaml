@@ -1,0 +1,24 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: nodejs-14
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+  - from:
+      kind: DockerImage
+      name: registry.access.redhat.com/ubi8/nodejs-14:1-28
+    name: 1-28
+    referencePolicy:
+      type: Source
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: s2i-odh-dashboard # {"$openapi":"IMAGE_NAME"}
+  labels:
+    build: s2i-odh-dashboard # {"$openapi":"IMAGE_NAME"}
+spec:
+  lookupPolicy:
+    local: true
