@@ -1,8 +1,7 @@
 import React from 'react';
-import * as classNames from 'classnames';
-import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@patternfly/react-core';
+import classNames from 'classnames';
+import { Card, CardBody, CardFooter, CardHeader, CardTitle, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, StarIcon } from '@patternfly/react-icons';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { OdhDocument, OdhDocumentType } from '../types';
 import {
   getLaunchStatus,
@@ -12,7 +11,7 @@ import {
 } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
-import { makeCardVisible } from '../utilities/utils';
+import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 
 import './OdhCard.scss';
 
@@ -28,21 +27,10 @@ const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Close,
 ];
 const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite }) => {
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
-
-  const selected = React.useMemo(() => {
-    return (
-      odhDoc.metadata.type === OdhDocumentType.QuickStart &&
-      qsContext.activeQuickStartID === odhDoc.metadata.name
-    );
-  }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext.activeQuickStartID]);
-
-  React.useEffect(() => {
-    if (selected) {
-      makeCardVisible(odhDoc.metadata.name);
-    }
-  }, [odhDoc.metadata.name, selected]);
-
+  const [qsContext, selected] = useQuickStartCardSelected(
+    odhDoc.metadata.name,
+    odhDoc.metadata.name,
+  );
   const footerClassName = React.useMemo(() => {
     if (odhDoc.metadata.type !== OdhDocumentType.QuickStart) {
       return 'odh-card__footer';
@@ -54,19 +42,9 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     });
   }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext]);
 
-  if (odhDoc.metadata.type === OdhDocumentType.QuickStart) {
-    const quickStart = qsContext.allQuickStarts?.find(
-      (qs) => qs.metadata.name === odhDoc.metadata.name,
-    );
-    if (!quickStart) {
-      return null;
-    }
-  }
-
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhDoc.metadata.name, qsContext);
-    makeCardVisible(odhDoc.metadata.name);
   };
 
   const renderDocLink = () => {
@@ -137,9 +115,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       </CardHeader>
       <CardTitle className="odh-card__doc-title">
         {odhDoc.spec.displayName}
+        <div className="odh-card__provider">by {odhDoc.spec.appDisplayName}</div>
         <DocCardBadges odhDoc={odhDoc} />
       </CardTitle>
-      <CardBody>{odhDoc.spec.description}</CardBody>
+      <CardBody>
+        <Tooltip content={odhDoc.spec.description}>
+          <span className="odh-card__body-text">{odhDoc.spec.description}</span>
+        </Tooltip>
+      </CardBody>
       <CardFooter className={footerClassName}>{renderDocLink()}</CardFooter>
     </Card>
   );

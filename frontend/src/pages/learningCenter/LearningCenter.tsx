@@ -1,5 +1,5 @@
 import React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import * as _ from 'lodash';
 import useDimensions from 'react-cool-dimensions';
 import { Gallery, PageSection, PageSectionVariants } from '@patternfly/react-core';
