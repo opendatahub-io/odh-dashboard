@@ -1,12 +1,12 @@
 import React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import { Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, StarIcon } from '@patternfly/react-icons';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { OdhDocument, OdhDocumentType } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
-import { getDuration, makeCardVisible } from '../utilities/utils';
+import { getDuration } from '../utilities/utils';
+import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 
 import './OdhListItem.scss';
 
@@ -17,34 +17,11 @@ type OdhDocCardProps = {
 };
 
 const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite }) => {
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
-
-  const selected = React.useMemo(() => {
-    return (
-      odhDoc.metadata.type === OdhDocumentType.QuickStart &&
-      qsContext.activeQuickStartID === odhDoc.metadata.name
-    );
-  }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext.activeQuickStartID]);
-
-  React.useEffect(() => {
-    if (selected) {
-      makeCardVisible(odhDoc.metadata.name);
-    }
-  }, [odhDoc.metadata.name, selected]);
-
-  if (odhDoc.metadata.type === OdhDocumentType.QuickStart) {
-    const quickStart = qsContext.allQuickStarts?.find(
-      (qs) => qs.metadata.name === odhDoc.metadata.name,
-    );
-    if (!quickStart) {
-      return null;
-    }
-  }
+  const [qsContext] = useQuickStartCardSelected(odhDoc.metadata.name, odhDoc.metadata.name);
 
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhDoc.metadata.name, qsContext);
-    makeCardVisible(odhDoc.metadata.name);
   };
 
   const renderTypeBadge = () => {
@@ -110,14 +87,30 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
       </div>
       <div className="odh-list-item__doc-text">
         <div id={odhDoc.metadata.name} className="odh-list-item__doc-title">
-          {odhDoc.spec.displayName}
+          <Tooltip content={odhDoc.spec.displayName}>
+            <span>{odhDoc.spec.displayName}</span>
+          </Tooltip>
         </div>
-        <div className="odh-list-item__doc-description">{odhDoc.spec.description}</div>
+        <div className="odh-list-item__doc-description">
+          <Tooltip content={odhDoc.spec.description}>
+            <span>{odhDoc.spec.description}</span>
+          </Tooltip>
+        </div>
       </div>
       <div className="odh-list-item__doc-text">
-        {odhDoc.spec.appDisplayName || ''}
+        {odhDoc.spec.appDisplayName ? (
+          <div id={odhDoc.spec.appDisplayName} className="odh-list-item__doc-title">
+            <Tooltip content={odhDoc.spec.appDisplayName}>
+              <span>{odhDoc.spec.appDisplayName}</span>
+            </Tooltip>
+          </div>
+        ) : null}
         {odhDoc.spec.provider ? (
-          <div className="odh-list-item__doc-description">by {odhDoc.spec.provider}</div>
+          <div className="odh-list-item__doc-description">
+            <Tooltip content={odhDoc.spec.provider}>
+              <span>by {odhDoc.spec.provider}</span>
+            </Tooltip>
+          </div>
         ) : null}
       </div>
       <div className="odh-list-item__doc-text">{renderTypeBadge()}</div>

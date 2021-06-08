@@ -54,6 +54,15 @@ html, body, #root {
     }
   }
 
+  .pf-c-page__main-section {
+    .pf-l-gallery {
+      --pf-l-gallery--GridTemplateColumns--max-on-xl: 330px;
+      --pf-l-gallery--GridTemplateColumns--max-on-lg: 330px;
+      --pf-l-gallery--GridTemplateColumns--max-on-md: 330px;
+      --pf-l-gallery--GridTemplateColumns--max-on-sm: 330px;
+      --pf-l-gallery--GridTemplateColumns--max: 330px;
+    }
+  }
   // PF Overrides
   .pf-c-page__header {
     .pf-c-brand {

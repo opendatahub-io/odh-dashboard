@@ -1,12 +1,11 @@
 import React from 'react';
-import * as classNames from 'classnames';
-import { Tooltip } from '@patternfly/react-core';
+import { Label, Tooltip } from '@patternfly/react-core';
 import { SyncAltIcon, CheckCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
 import { OdhDocument, OdhDocumentType } from '../types';
 import { isQuickStartComplete, isQuickStartInProgress } from '../utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
-import { getDuration } from '../utilities/utils';
+import { getLabelColorForDocType, getDuration } from '../utilities/utils';
 import { getTextForDocType } from '../pages/learningCenter/learningCenterUtils';
 
 import './OdhCard.scss';
@@ -34,31 +33,27 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   }, [qsContext, docType, docName]);
 
   const label = getTextForDocType(docType);
-  const typeBadgeClasses = classNames('odh-card__partner-badge odh-m-doc', {
-    'odh-m-documentation': docType === OdhDocumentType.Documentation,
-    'odh-m-tutorial': docType === OdhDocumentType.Tutorial,
-    'odh-m-quick-start': docType === OdhDocumentType.QuickStart,
-    'odh-m-how-to': docType === OdhDocumentType.HowTo,
-  });
-  const durationBadgeClasses = classNames('odh-card__partner-badge odh-m-doc odh-m-duration', {
-    'm-hidden': docType === OdhDocumentType.Documentation || duration === undefined,
-  });
-  const progressBadgeClasses = classNames('odh-card__partner-badge odh-m-doc', {
-    'm-hidden': !complete && !inProgress,
-    'odh-m-in-progress': inProgress,
-    'odh-m-complete': complete,
-  });
 
   return (
     <div className="odh-card__doc-badges">
       <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
-        <div className={typeBadgeClasses}>{label}</div>
+        <Label color={getLabelColorForDocType(docType)}>{label}</Label>
       </Tooltip>
-      <div className={durationBadgeClasses}>{getDuration(duration)}</div>
-      <div className={progressBadgeClasses}>
-        {inProgress ? <SyncAltIcon /> : <CheckCircleIcon />}
-        {inProgress ? 'In progress' : 'Complete'}
-      </div>
+      {duration ? (
+        <Label variant="outline" color="grey">
+          {getDuration(duration)}
+        </Label>
+      ) : null}
+      {inProgress ? (
+        <Label variant="outline" color="purple" icon={<SyncAltIcon />}>
+          In Progress
+        </Label>
+      ) : null}
+      {complete ? (
+        <Label variant="outline" color="green" icon={<CheckCircleIcon />}>
+          Complete
+        </Label>
+      ) : null}
     </div>
   );
 };
