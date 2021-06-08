@@ -12,7 +12,7 @@ export const fetchGettingStartedDoc = (appName: string): Promise<OdhGettingStart
   return axios
     .get(url, options)
     .then((response) => {
-      return response.data;
+      return response.data[0];
     })
     .catch((e) => {
       throw new Error(e.response.data.message);
