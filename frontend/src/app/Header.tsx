@@ -6,13 +6,14 @@ import HeaderTools from './HeaderTools';
 type HeaderProps = {
   isNavOpen: boolean;
   onNavToggle: () => void;
+  onNotificationsClick: () => void;
 };
 
-const Header: React.FC<HeaderProps> = ({ isNavOpen, onNavToggle }) => {
+const Header: React.FC<HeaderProps> = ({ isNavOpen, onNavToggle, onNotificationsClick }) => {
   return (
     <PageHeader
       logo={<Brand src={odhLogo} alt="ODH Logo" />}
-      headerTools={<HeaderTools />}
+      headerTools={<HeaderTools onNotificationsClick={onNotificationsClick} />}
       showNavToggle
       isNavOpen={isNavOpen}
       onNavToggle={onNavToggle}

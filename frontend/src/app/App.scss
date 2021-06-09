@@ -18,6 +18,19 @@ html, body, #root {
     }
   }
 
+  &__notification-drawer {
+    .pf-c-notification-drawer__list-item-header-title {
+      font-size: 1em;
+    }
+    &__item-remove {
+      padding-bottom: 0;
+      padding-top: 0;
+    }
+    .pf-c-notification-drawer__list-item-description.m-is-hidden {
+      display: none;
+    }
+  }
+
   &__notifications {
     position: fixed;
     right: var(--pf-global--spacer--sm);
@@ -76,6 +89,9 @@ html, body, #root {
         visibility: hidden;
       }
     }
+  }
+  .pf-c-drawer.pf-m-inline {
+    flex: 1;
   }
   // Bootstrap Overrides (Bootstrap pulled in by @cloudmosaic/quickstarts)
   code {
