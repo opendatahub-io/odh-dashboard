@@ -5,6 +5,7 @@
 export type OdhApplication = {
   metadata: {
     name: string;
+    annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
@@ -52,11 +53,13 @@ export type OdhDocument = {
   metadata: {
     name: string;
     type: string;
+    annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
     appName?: string;
     appDisplayName?: string; // Only set on UI side in resources section
+    appEnabled?: boolean; // Only set on UI side in resources section
     provider?: string;
     description: string;
     url: string;

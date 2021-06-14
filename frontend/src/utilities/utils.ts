@@ -1,5 +1,5 @@
-import { DEV_MODE, API_PORT } from './const';
-import { OdhDocumentType } from '../types';
+import { OdhApplication, OdhDocument, OdhDocumentType } from '../types';
+import { DEV_MODE, API_PORT, CATEGORY_ANNOTATION } from './const';
 
 export const getBackendURL = (path: string): string => {
   if (!DEV_MODE) {
@@ -72,4 +72,47 @@ export const getLabelColorForDocType = (
     default:
       return 'grey';
   }
+};
+export const combineCategoryAnnotations = (doc: OdhDocument, app: OdhApplication): void => {
+  const docCategories = (doc.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
+    .split(',')
+    .map((c) => c.trim());
+  const appCategories = (app.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
+    .split(',')
+    .map((c) => c.trim());
+
+  const combined = appCategories.reduce((acc, category) => {
+    if (category && !acc.includes(category)) {
+      acc.push(category);
+    }
+    return acc;
+  }, docCategories);
+
+  doc.metadata.annotations = {
+    ...(doc.metadata.annotations || {}),
+    [CATEGORY_ANNOTATION]: combined.join(','),
+  };
+};
+
+export const matchesCategories = (odhDoc: OdhDocument, category: string): boolean => {
+  if (!category) {
+    return true;
+  }
+  return odhDoc.metadata.annotations?.[CATEGORY_ANNOTATION]?.includes(category) ?? false;
+};
+
+export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean => {
+  const searchText = filterText.toLowerCase();
+  const {
+    metadata: { name },
+    spec: { displayName, description, appName, provider },
+  } = odhDoc;
+  return (
+    !searchText ||
+    name.toLowerCase().includes(searchText) ||
+    (appName && appName.toLowerCase().includes(searchText)) ||
+    (provider && provider.toLowerCase().includes(searchText)) ||
+    displayName.toLowerCase().includes(searchText) ||
+    (description?.toLowerCase().includes(searchText) ?? false)
+  );
 };
