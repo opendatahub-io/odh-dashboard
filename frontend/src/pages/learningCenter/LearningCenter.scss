@@ -1,4 +1,26 @@
 .odh-learning-paths {
+  &__content {
+    border-top: 1px solid var(--pf-global--BorderColor--100);
+    display: flex;
+    flex: 1;
+  }
+  &__filter-panel {
+    padding: var(--pf-global--spacer--md) 0 var(--pf-global--spacer--md) var(--pf-global--spacer--md);
+    width: 240px;
+  }
+  &__view-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: var(--pf-global--spacer--md);
+
+    &__list-view {
+      padding: 0 0 var(--pf-global--spacer--md) 0;
+    }
+  }
+  &__toolbar {
+    padding-top: 0;
+  }
   &__list-view {
     display: grid;
     column-gap: var(--pf-global--spacer--md);

@@ -1,16 +1,18 @@
-.odh-learning-paths-filter {
+.odh-learning-paths__toolbar {
+  .pf-c-toolbar__content {
+    padding: 0;
+  }
   &__input {
     flex-grow: 1;
     max-width: 500px;
   }
 
+  &__view-filter {
+    display: flex;
+    justify-content: space-between;
+  }
   &__count {
     font-weight: var(--pf-global--FontWeight--bold);
-  }
-
-  &__view-switcher {
-    font-weight: var(--pf-global--FontWeight--bold);
-    margin-left: var(--pf-global--spacer--xs);
   }
 
   &__filtered-types {
@@ -43,11 +45,6 @@
   &__filter-count {
     font-size: var(--pf-global--FontSize--md);
     padding-left: var(--pf-global--spacer--sm);
-  }
-
-  .pf-c-toolbar__content {
-    padding-right: var(--pf-c-page__main-section--PaddingRight);
-    padding-left: var(--pf-c-page__main-section--PaddingLeft);
   }
 
   .pf-c-select__toggle-arrow {

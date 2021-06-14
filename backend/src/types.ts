@@ -8,6 +8,7 @@ export declare type QuickStart = {
   kind?: string;
   metadata: {
     name: string;
+    annotations?: { [key: string]: string };
   };
   spec: {
     version?: number;
@@ -90,6 +91,7 @@ export type KubeFastifyInstance = FastifyInstance & {
 export type OdhApplication = {
   metadata: {
     name: string;
+    annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
@@ -137,6 +139,7 @@ export type OdhDocument = {
   metadata: {
     name: string;
     type: string;
+    annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;

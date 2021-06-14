@@ -6,7 +6,7 @@ import { OdhDocument, OdhDocumentType } from '../types';
 import { isQuickStartComplete, isQuickStartInProgress } from '../utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
 import { getLabelColorForDocType, getDuration } from '../utilities/utils';
-import { getTextForDocType } from '../pages/learningCenter/learningCenterUtils';
+import { DOC_TYPE_LABEL } from '../pages/learningCenter/const';
 
 import './OdhCard.scss';
 
@@ -32,7 +32,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
     }
   }, [qsContext, docType, docName]);
 
-  const label = getTextForDocType(docType);
+  const label = DOC_TYPE_LABEL[docType] || 'Documentation';
 
   return (
     <div className="odh-card__doc-badges">

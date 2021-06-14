@@ -15,3 +15,5 @@ export const DOC_TYPE_TOOLTIPS = {
   [OdhDocumentType.QuickStart]: 'Step-by-step instructions and tasks',
   [OdhDocumentType.HowTo]: 'Instructions and code for everyday procedures',
 };
+
+export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';

@@ -12,7 +12,7 @@ import {
   SORT_DESC,
   SORT_TYPE_APPLICATION,
   SORT_TYPE_DURATION,
-} from './learningCenterUtils';
+} from './const';
 
 const LearningCenterListHeaders: React.FC = () => {
   const history = useHistory();
