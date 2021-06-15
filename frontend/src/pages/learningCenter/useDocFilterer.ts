@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { OdhDocument } from '../../types';
+import { matchesCategories, matchesSearch } from '../../utilities/utils';
 import {
   APPLICATION_FILTER_KEY,
   CATEGORY_FILTER_KEY,
@@ -8,9 +9,10 @@ import {
   ENABLED_FILTER_KEY,
   SEARCH_FILTER_KEY,
 } from './const';
-import { matchesCategories, matchesSearch } from '../../utilities/utils';
 
-export const useDocFilterer = (): ((odhDocs: OdhDocument[]) => OdhDocument[]) => {
+export const useDocFilterer = (
+  favorites: string[],
+): ((odhDocs: OdhDocument[]) => OdhDocument[]) => {
   const queryParams = useQueryParams();
   const enabled = queryParams.get(ENABLED_FILTER_KEY);
   const docTypes = queryParams.get(DOC_TYPE_FILTER_KEY);
@@ -24,8 +26,8 @@ export const useDocFilterer = (): ((odhDocs: OdhDocument[]) => OdhDocument[]) =>
         .filter((odhDoc) => !enabled || enabled.includes(`${odhDoc.spec.appEnabled}`))
         .filter((odhDoc) => !docTypes || docTypes.includes(`${odhDoc.metadata.type}`))
         .filter((odhDoc) => !applications || applications.includes(`${odhDoc.spec.appDisplayName}`))
-        .filter((odhDoc) => matchesCategories(odhDoc, category))
+        .filter((odhDoc) => matchesCategories(odhDoc, category, favorites))
         .filter((odhDoc) => matchesSearch(odhDoc, searchQuery)),
-    [category, docTypes, enabled, applications, searchQuery],
+    [enabled, docTypes, applications, category, favorites, searchQuery],
   );
 };

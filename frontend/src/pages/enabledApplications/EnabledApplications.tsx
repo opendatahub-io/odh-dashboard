@@ -29,13 +29,15 @@ const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.
         loadError={loadError}
       >
         {!isEmpty ? (
-          <PageSection>
-            <Gallery className="odh-installed-apps__gallery" hasGutter>
-              {components.map((c) => (
-                <OdhAppCard key={c.metadata.name} odhApp={c} />
-              ))}
-            </Gallery>
-          </PageSection>
+          <div className="odh-dashboard__page-content">
+            <PageSection>
+              <Gallery className="odh-installed-apps__gallery" hasGutter>
+                {components.map((c) => (
+                  <OdhAppCard key={c.metadata.name} odhApp={c} />
+                ))}
+              </Gallery>
+            </PageSection>
+          </div>
         ) : null}
       </ApplicationsPage>
     );

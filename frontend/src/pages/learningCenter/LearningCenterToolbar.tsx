@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useHistory } from 'react-router';
 import {
+  Button,
+  ButtonVariant,
   SearchInput,
   Select,
   SelectOption,
@@ -10,10 +12,12 @@ import {
   Toolbar,
   ToolbarContent,
   ToolbarItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   ThIcon,
   CheckIcon,
+  FilterIcon,
   ListIcon,
   PficonSortCommonAscIcon,
   PficonSortCommonDescIcon,
@@ -31,6 +35,10 @@ import {
   SORT_TYPE_DURATION,
   CARD_VIEW,
   LIST_VIEW,
+  CATEGORY_FILTER_KEY,
+  ENABLED_FILTER_KEY,
+  DOC_TYPE_FILTER_KEY,
+  APPLICATION_FILTER_KEY,
 } from './const';
 
 import './LearningCenterToolbar.scss';
@@ -41,6 +49,8 @@ type LearningCenterToolbarProps = {
   onSearchInputChange?: (value: string) => void;
   viewType: string;
   updateViewType: (updatedType: string) => void;
+  filtersCollapsible: boolean;
+  onToggleFiltersCollapsed: () => void;
 };
 
 const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
@@ -48,11 +58,17 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   totalCount,
   viewType,
   updateViewType,
+  filtersCollapsible,
+  onToggleFiltersCollapsed,
 }) => {
   const history = useHistory();
   const [isSortTypeDropdownOpen, setIsSortTypeDropdownOpen] = React.useState(false);
   const [isSortOrderDropdownOpen, setIsSortOrderDropdownOpen] = React.useState(false);
   const queryParams = useQueryParams();
+  const categoryQuery = queryParams.get(CATEGORY_FILTER_KEY) || '';
+  const enabled = queryParams.get(ENABLED_FILTER_KEY);
+  const docTypes = queryParams.get(DOC_TYPE_FILTER_KEY);
+  const applications = queryParams.get(APPLICATION_FILTER_KEY);
   const searchQuery = queryParams.get(SEARCH_FILTER_KEY) || '';
   const [searchInputText, setSearchInputText] = React.useState(searchQuery);
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
@@ -127,10 +143,24 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
     setSearchInputText(val);
   };
 
+  const isFiltered = categoryQuery || enabled || docTypes || applications;
+
   return (
     <Toolbar className="odh-learning-paths__toolbar">
       <div className="odh-learning-paths__toolbar__view-filter">
-        <span>All Items</span>
+        <span>
+          {categoryQuery || 'All Items'}
+          {filtersCollapsible ? (
+            <Tooltip content={isFiltered ? 'Filters set' : 'No filters set'}>
+              <Button
+                aria-label="Toggle filters shown"
+                variant={ButtonVariant.link}
+                icon={<FilterIcon />}
+                onClick={onToggleFiltersCollapsed}
+              />
+            </Tooltip>
+          ) : null}
+        </span>
         <ToggleGroup aria-label="View type">
           <ToggleGroupItem
             icon={<ThIcon />}

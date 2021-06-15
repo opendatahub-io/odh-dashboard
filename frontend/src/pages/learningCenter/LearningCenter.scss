@@ -1,12 +1,42 @@
 .odh-learning-paths {
-  &__content {
-    border-top: 1px solid var(--pf-global--BorderColor--100);
-    display: flex;
-    flex: 1;
-  }
   &__filter-panel {
-    padding: var(--pf-global--spacer--md) 0 var(--pf-global--spacer--md) var(--pf-global--spacer--md);
+    padding-top: var(--pf-global--spacer--md);
     width: 240px;
+    &.m-is-collapsible {
+      background: var(--pf-global--BackgroundColor--light-100);
+      border-right: 1px solid var(--pf-global--BorderColor--100);
+      border-bottom: 1px solid var(--pf-global--BorderColor--100);
+      position: absolute;
+      transition: left 0.5s;
+      z-index: var(--pf-global--ZIndex--md);
+      left: 0;
+    }
+    &.m-is-collapsed {
+      padding: 0;
+      overflow: hidden;
+      left: -240px;
+    }
+    &__collapse-button {
+      position: absolute;
+      right: 0;
+      top: var(--pf-global--spacer--sm);
+      z-index: var(--pf-global--ZIndex--md);
+    }
+    .vertical-tabs-pf-tab > a {
+      font-size: var(--pf-global--FontSize--sm);
+    }
+    .filter-panel-pf-category {
+      padding-left: var(--pf-global--spacer--md);
+      .filter-panel-pf-category-title {
+        font-size: var(--pf-global--FontSize--sm);
+      }
+      .pf-c-check__label {
+        font-size: var(--pf-global--FontSize--sm);
+      }
+      .pf-c-button.pf-m-link {
+        font-size: var(--pf-global--FontSize--sm);
+      }
+    }
   }
   &__view-panel {
     display: flex;

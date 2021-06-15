@@ -10,6 +10,9 @@
   &__view-filter {
     display: flex;
     justify-content: space-between;
+    .pf-c-button.pf-m-link {
+      margin-left: var(--pf-global--spacer--xs);
+    }
   }
   &__count {
     font-weight: var(--pf-global--FontWeight--bold);

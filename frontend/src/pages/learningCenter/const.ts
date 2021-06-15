@@ -1,5 +1,7 @@
 import { OdhDocumentType } from '../../types';
 
+export const FAVORITE_RESOURCES = 'ods.dashboard.resources.favorites';
+
 export const SEARCH_FILTER_KEY = 'keyword';
 export const DOC_TYPE_FILTER_KEY = 'type';
 export const CATEGORY_FILTER_KEY = 'category';

@@ -9,18 +9,20 @@ import { CATEGORY_FILTER_KEY } from './const';
 
 type CategoryFiltersProps = {
   docApps: OdhDocument[];
+  favorites: string[];
 };
 
 const ALL_ITEMS = 'All Items';
 const SPACER = 'SPACER';
 
-const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps }) => {
+const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites }) => {
   const [categories, setCategories] = React.useState<string[]>([]);
   const history = useHistory();
   const queryParams = useQueryParams();
   const categoryQuery = queryParams.get(CATEGORY_FILTER_KEY) || '';
 
   React.useEffect(() => {
+    const initCategories = favorites.length ? ['Favorites'] : [];
     const updatedCategories = docApps
       .reduce((acc, docApp) => {
         const categoryAnnotation = docApp.metadata.annotations?.[CATEGORY_ANNOTATION];
@@ -35,10 +37,10 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps }) => {
             });
         }
         return acc;
-      }, [] as string[])
+      }, initCategories)
       .sort((a, b) => a.localeCompare(b));
     setCategories([ALL_ITEMS, SPACER, ...updatedCategories]);
-  }, [docApps]);
+  }, [docApps, favorites]);
 
   const onSelectCategory = (selectedCategory: string): void => {
     if (selectedCategory === ALL_ITEMS) {

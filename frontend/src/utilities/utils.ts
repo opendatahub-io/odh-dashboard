@@ -94,9 +94,16 @@ export const combineCategoryAnnotations = (doc: OdhDocument, app: OdhApplication
   };
 };
 
-export const matchesCategories = (odhDoc: OdhDocument, category: string): boolean => {
+export const matchesCategories = (
+  odhDoc: OdhDocument,
+  category: string,
+  favorites: string[],
+): boolean => {
   if (!category) {
     return true;
+  }
+  if (category === 'Favorites') {
+    return favorites.includes(odhDoc.metadata.name);
   }
   return odhDoc.metadata.annotations?.[CATEGORY_ANNOTATION]?.includes(category) ?? false;
 };
