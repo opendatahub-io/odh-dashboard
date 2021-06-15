@@ -103,7 +103,7 @@ export const matchesCategories = (
     return true;
   }
   if (category === 'Favorites') {
-    return favorites.includes(odhDoc.metadata.name) ?? false;
+    return favorites.includes(odhDoc.metadata.name);
   }
   return odhDoc.metadata.annotations?.[CATEGORY_ANNOTATION]?.includes(category) ?? false;
 };

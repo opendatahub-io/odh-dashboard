@@ -1,11 +1,6 @@
 .odh-learning-paths {
-  &__content {
-    border-top: 1px solid var(--pf-global--BorderColor--100);
-    display: flex;
-    flex: 1;
-  }
   &__filter-panel {
-    padding: var(--pf-global--spacer--md) 0 var(--pf-global--spacer--md) var(--pf-global--spacer--md);
+    padding-top: var(--pf-global--spacer--md);
     width: 240px;
     &.m-is-collapsible {
       background: var(--pf-global--BackgroundColor--light-100);
@@ -26,6 +21,21 @@
       right: 0;
       top: var(--pf-global--spacer--sm);
       z-index: var(--pf-global--ZIndex--md);
+    }
+    .vertical-tabs-pf-tab > a {
+      font-size: var(--pf-global--FontSize--sm);
+    }
+    .filter-panel-pf-category {
+      padding-left: var(--pf-global--spacer--md);
+      .filter-panel-pf-category-title {
+        font-size: var(--pf-global--FontSize--sm);
+      }
+      .pf-c-check__label {
+        font-size: var(--pf-global--FontSize--sm);
+      }
+      .pf-c-button.pf-m-link {
+        font-size: var(--pf-global--FontSize--sm);
+      }
     }
   }
   &__view-panel {

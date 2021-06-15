@@ -50,18 +50,20 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               }
             >
               <DrawerContentBody className="odh-explore-apps__body">
-                <PageSection>
-                  <Gallery className="odh-explore-apps__gallery" hasGutter>
-                    {exploreComponents.map((c) => (
-                      <OdhExploreCard
-                        key={c.metadata.name}
-                        odhApp={c}
-                        isSelected={selectedComponent === c}
-                        onSelect={() => updateSelection(c.metadata.name)}
-                      />
-                    ))}
-                  </Gallery>
-                </PageSection>
+                <div className="odh-dashboard__page-content">
+                  <PageSection>
+                    <Gallery className="odh-explore-apps__gallery" hasGutter>
+                      {exploreComponents.map((c) => (
+                        <OdhExploreCard
+                          key={c.metadata.name}
+                          odhApp={c}
+                          isSelected={selectedComponent === c}
+                          onSelect={() => updateSelection(c.metadata.name)}
+                        />
+                      ))}
+                    </Gallery>
+                  </PageSection>
+                </div>
               </DrawerContentBody>
             </DrawerContent>
           </Drawer>
