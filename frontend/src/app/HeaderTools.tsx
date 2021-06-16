@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import {
   Dropdown,
   DropdownPosition,
@@ -17,7 +18,6 @@ import {
 } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
 import { AppNotification, State } from '../redux/types';
-import { useSelector } from 'react-redux';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -123,22 +123,6 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
             />
           </PageHeaderToolsItem>
         ) : null}
-        <PageHeaderToolsItem>
-          <Dropdown
-            position={DropdownPosition.right}
-            toggle={
-              <DropdownToggle
-                id="toggle-id"
-                onToggle={() => setHelpMenuOpen(!helpMenuOpen)}
-                toggleIndicator={CaretDownIcon}
-              >
-                <QuestionCircleIcon />
-              </DropdownToggle>
-            }
-            isOpen={helpMenuOpen}
-            dropdownItems={helpMenuItems}
-          />
-        </PageHeaderToolsItem>
         <PageHeaderToolsItem>
           <Dropdown
             position={DropdownPosition.right}

@@ -48,9 +48,12 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
     dispatch(removeNotification(notification));
   };
 
+  // FIXME: Remove blank item from NotificationDrawerHeader when https://github.com/patternfly/patternfly-react/issues/5924 is resolved
   return (
     <NotificationDrawer className="odh-dashboard__notification-drawer">
-      <NotificationDrawerHeader count={newNotifications} onClose={onClose} />
+      <NotificationDrawerHeader count={newNotifications} onClose={onClose}>
+        {` `}
+      </NotificationDrawerHeader>
       <NotificationDrawerBody>
         {notifications.length ? (
           <NotificationDrawerList>

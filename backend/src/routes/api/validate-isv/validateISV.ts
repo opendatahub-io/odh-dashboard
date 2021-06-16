@@ -88,7 +88,7 @@ export const runValidation = async (
   if (!cronjobName) {
     const error = createError(500, 'failed to validate');
     error.explicitInternalServerError = true;
-    error.error = 'failed to find application definition file';
+    error.error = 'failed to find validation job name';
     error.message = 'Unable to validate the application.';
     throw error;
   }
@@ -98,7 +98,11 @@ export const runValidation = async (
 
   const cronJob = await batchV1beta1Api
     .readNamespacedCronJob(cronjobName, namespace)
-    .then((res) => res.body);
+    .then((res) => res.body)
+    .catch((e) => {
+      fastify.log.error(`failed to unsuspend cronjob: validation job does not exist`);
+      throw e;
+    });
 
   // Flag the cronjob as no longer suspended
   cronJob.spec.suspend = false;
