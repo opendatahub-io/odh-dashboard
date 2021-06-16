@@ -1,6 +1,8 @@
 metadata:
   name: jupyterhub-use-s3-bucket-data
   type: how-to
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Data management,Jupyter notebook,Python'
 spec:
   displayName: How to use data from Amazon S3 buckets
   appName: jupyterhub
