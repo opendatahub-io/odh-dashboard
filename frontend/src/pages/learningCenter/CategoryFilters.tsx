@@ -13,7 +13,6 @@ type CategoryFiltersProps = {
 };
 
 const ALL_ITEMS = 'All Items';
-const SPACER = 'SPACER';
 
 const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites }) => {
   const [categories, setCategories] = React.useState<string[]>([]);
@@ -39,7 +38,7 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites })
         return acc;
       }, initCategories)
       .sort((a, b) => a.localeCompare(b));
-    setCategories([ALL_ITEMS, SPACER, ...updatedCategories]);
+    setCategories([ALL_ITEMS, ...updatedCategories]);
   }, [docApps, favorites]);
 
   const onSelectCategory = (selectedCategory: string): void => {
@@ -55,10 +54,11 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites })
       {categories.map((category) => (
         <VerticalTabsTab
           key={category}
-          title={category === SPACER ? '' : category}
-          shown={category !== SPACER}
+          title={category}
+          shown
           active={category === categoryQuery || (!categoryQuery && category == ALL_ITEMS)}
           onActivate={() => onSelectCategory(category)}
+          tabIndex={-1}
         />
       ))}
     </VerticalTabs>

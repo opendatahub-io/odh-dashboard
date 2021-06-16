@@ -25,6 +25,9 @@
     .vertical-tabs-pf-tab > a {
       font-size: var(--pf-global--FontSize--sm);
     }
+    .vertical-tabs-pf-tab:first-of-type {
+      margin-bottom: var(--pf-global--spacer--lg);
+    }
     .filter-panel-pf-category {
       padding-left: var(--pf-global--spacer--md);
       .filter-panel-pf-category-title {
