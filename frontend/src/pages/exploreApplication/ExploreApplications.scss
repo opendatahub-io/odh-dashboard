@@ -4,5 +4,11 @@
     .pf-c-page__main-section {
       min-height: 100%;
     }
+    &.m-side-panel-open {
+      .odh-dashboard__page-content {
+        border-right: 0;
+        margin-right: 0;
+      }
+    }
   }
 }

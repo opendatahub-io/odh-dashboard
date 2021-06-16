@@ -57,6 +57,13 @@ export const useEnableApplication = (
           if (!closed) {
             setStatus(EnableApplicationStatus.FAILED);
           }
+          dispatch(
+            addNotification({
+              status: 'danger',
+              title: `Error attempting to validate ${appName}.`,
+              timestamp: new Date(),
+            }),
+          );
         });
     }
 

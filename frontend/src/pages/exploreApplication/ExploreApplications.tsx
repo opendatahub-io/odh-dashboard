@@ -1,4 +1,5 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import * as _ from 'lodash';
 import {
   Drawer,
@@ -31,6 +32,9 @@ type ExploreApplicationsInnerProps = {
 
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
+    const bodyClasses = classNames('odh-explore-apps__body', {
+      'm-side-panel-open': !!selectedComponent,
+    });
     return (
       <ApplicationsPage
         title="Explore"
@@ -49,7 +53,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                 />
               }
             >
-              <DrawerContentBody className="odh-explore-apps__body">
+              <DrawerContentBody className={bodyClasses}>
                 <div className="odh-dashboard__page-content">
                   <PageSection>
                     <Gallery className="odh-explore-apps__gallery" hasGutter>
