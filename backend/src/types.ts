@@ -28,8 +28,17 @@ export type K8sResourceCommon = {
     name?: string;
     namespace?: string;
     uid?: string;
+    labels?: { [key: string]: string };
   };
 };
+
+export type BuildKind = {
+  status: {
+    phase: string;
+    completionTimestamp: string;
+    startTimestamp: string;
+  };
+} & K8sResourceCommon;
 
 // Minimal type for routes
 export type RouteKind = {
