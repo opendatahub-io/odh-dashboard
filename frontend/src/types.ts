@@ -60,6 +60,7 @@ export type OdhDocument = {
     appName?: string;
     appDisplayName?: string; // Only set on UI side in resources section
     appEnabled?: boolean; // Only set on UI side in resources section
+    appCategory?: string; // Only set on UI side in resources section
     provider?: string;
     description: string;
     url: string;

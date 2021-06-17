@@ -99,6 +99,7 @@ const LearningCenter: React.FC = () => {
             updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
             updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
             updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
+            updatedDoc.spec.appCategory = odhDoc.spec.appCategory || odhApp.spec.category;
           } else {
             updatedDoc.spec.appEnabled = false;
           }
