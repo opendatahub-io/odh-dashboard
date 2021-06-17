@@ -9,14 +9,17 @@ import {
   Spinner,
   TextInputTypes,
 } from '@patternfly/react-core';
-import { ODHApp } from '../../types';
-import { postValidateIsv } from '../../services/validateIsvService';
+import { OdhApplication } from '../../types';
+import {
+  EnableApplicationStatus,
+  useEnableApplication,
+} from '../../utilities/useEnableApplication';
 import EnableVariable from './EnableVariable';
 
 import './EnableModal.scss';
 
 type EnableModalProps = {
-  selectedApp?: ODHApp;
+  selectedApp: OdhApplication;
   onClose: (success?: boolean) => void;
 };
 
@@ -24,15 +27,17 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const [postError, setPostError] = React.useState<boolean>(false);
   const [validationInProgress, setValidationInProgress] = React.useState<boolean>(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
-  const focusRef = (element: HTMLElement) => {
+  const validationStatus = useEnableApplication(
+    validationInProgress,
+    selectedApp.metadata.name,
+    selectedApp.spec.displayName,
+    enableValues,
+  );
+  const focusRef = (element: HTMLElement | null) => {
     if (element) {
       element.focus();
     }
   };
-
-  if (!selectedApp) {
-    return null;
-  }
 
   const updateEnableValue = (key: string, value: string): void => {
     const updatedValues = {
@@ -45,26 +50,25 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const onDoEnableApp = () => {
     setPostError(false);
     setValidationInProgress(true);
-    postValidateIsv(selectedApp.metadata.name, enableValues)
-      .then((valid) => {
-        setValidationInProgress(false);
-        if (valid) {
-          onClose(true);
-          return;
-        }
-        setPostError(true);
-      })
-      .catch(() => {
-        setValidationInProgress(false);
-        setPostError(true);
-      });
   };
+
+  React.useEffect(() => {
+    if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
+      setValidationInProgress(false);
+      onClose(true);
+    }
+    if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
+      setValidationInProgress(false);
+      setPostError(true);
+    }
+  }, [onClose, validationInProgress, validationStatus]);
 
   return (
     <Modal
+      aria-label={`Enable ${selectedApp?.spec.enable?.title}`}
       className="odh-enable-modal"
       variant={ModalVariant.small}
-      title={selectedApp.spec.enable?.title}
+      title={selectedApp?.spec.enable?.title}
       isOpen
       onClose={onClose}
       actions={[
@@ -74,20 +78,20 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
           onClick={onDoEnableApp}
           isDisabled={validationInProgress}
         >
-          {selectedApp.spec.enable?.actionLabel}
+          {selectedApp?.spec.enable?.actionLabel}
         </Button>,
         <Button key="cancel" variant="link" onClick={() => onClose()}>
-          Cancel
+          {validationInProgress ? 'Close' : 'Cancel'}
         </Button>,
       ]}
     >
-      {selectedApp.spec.enable?.description ? selectedApp.spec.enable?.description : null}
-      {selectedApp.spec.enable?.variables ? (
+      {selectedApp?.spec.enable?.description ? selectedApp.spec.enable.description : null}
+      {selectedApp?.spec.enable?.variables ? (
         <Form>
           {postError ? (
             <FormAlert>
               <Alert
-                variantLabel=""
+                variantLabel="error"
                 variant="danger"
                 title="Error attempting to validate. Please check your entries."
                 aria-live="polite"
@@ -99,7 +103,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
             <FormAlert>
               <Alert
                 className="m-no-alert-icon"
-                variantLabel=""
+                variantLabel="information"
                 variant="info"
                 title={
                   <div className="odh-enable-modal__progress-title">
@@ -115,7 +119,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
             ? Object.keys(selectedApp.spec.enable.variables).map((key, index) => (
                 <EnableVariable
                   key={key}
-                  ref={index === 0 ? focusRef : null}
+                  ref={index === 0 ? focusRef : undefined}
                   label={selectedApp.spec.enable?.variableDisplayText?.[key] ?? ''}
                   inputType={selectedApp.spec.enable?.variables?.[key] as TextInputTypes}
                   helperText={selectedApp.spec.enable?.variableHelpText?.[key] ?? ''}

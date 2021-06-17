@@ -1,6 +1,8 @@
 kind: ConsoleQuickStart
 metadata:
   name: create-jupyter-notebook
+  annotations:
+    opendatahub.io/categories: 'Getting started,Jupyter notebook'
 spec:
   displayName: Creating a Jupyter notebook
   appName: jupyterhub

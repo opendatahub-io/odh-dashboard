@@ -2,8 +2,8 @@ import createError from 'http-errors';
 import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
-import { KubeFastifyInstance, ODHApp } from '../../../types';
-import { getApplicationDef } from '../../../utils/resourceUtils';
+import { KubeFastifyInstance, OdhApplication } from '../../../types';
+import { getApplicationDef, updateApplicationDefs } from '../../../utils/resourceUtils';
 
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -42,7 +42,7 @@ const waitOnCompletion = async (reader: () => Promise<boolean>): Promise<boolean
 };
 
 export const createAccessSecret = async (
-  appDef: ODHApp,
+  appDef: OdhApplication,
   namespace: string,
   stringData: { [key: string]: string },
   coreV1Api: CoreV1Api,
@@ -84,12 +84,11 @@ export const runValidation = async (
   const appDef = getApplicationDef(appName);
   const { enable } = appDef.spec;
 
-  const cmName = enable?.validationConfigMap;
   const cronjobName = enable?.validationJob;
   if (!cronjobName) {
     const error = createError(500, 'failed to validate');
     error.explicitInternalServerError = true;
-    error.error = 'failed to find application definition file';
+    error.error = 'failed to find validation job name';
     error.message = 'Unable to validate the application.';
     throw error;
   }
@@ -99,7 +98,11 @@ export const runValidation = async (
 
   const cronJob = await batchV1beta1Api
     .readNamespacedCronJob(cronjobName, namespace)
-    .then((res) => res.body);
+    .then((res) => res.body)
+    .catch((e) => {
+      fastify.log.error(`failed to unsuspend cronjob: validation job does not exist`);
+      throw e;
+    });
 
   // Flag the cronjob as no longer suspended
   cronJob.spec.suspend = false;
@@ -119,15 +122,6 @@ export const runValidation = async (
     });
   });
 
-  // Wait for previous config map to be deleted
-  if (cmName) {
-    await waitOnDeletion(() => {
-      return coreV1Api.readNamespacedConfigMap(cmName, namespace).then(() => {
-        return;
-      });
-    });
-  }
-
   const job = {
     apiVersion: 'batch/v1',
     metadata: {
@@ -143,8 +137,9 @@ export const runValidation = async (
   await batchV1Api.createNamespacedJob(namespace, job);
 
   return await waitOnCompletion(() => {
-    return batchV1Api.readNamespacedJobStatus(jobName, namespace).then((res) => {
+    return batchV1Api.readNamespacedJobStatus(jobName, namespace).then(async (res) => {
       if (res.body.status.succeeded) {
+        await updateApplicationDefs();
         return true;
       }
       if (res.body.status.failed) {

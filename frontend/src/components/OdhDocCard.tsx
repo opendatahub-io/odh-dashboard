@@ -1,9 +1,8 @@
 import React from 'react';
-import * as classNames from 'classnames';
-import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@patternfly/react-core';
+import classNames from 'classnames';
+import { Card, CardBody, CardFooter, CardHeader, CardTitle, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, StarIcon } from '@patternfly/react-icons';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '../types';
+import { OdhDocument, OdhDocumentType } from '../types';
 import {
   getLaunchStatus,
   getQuickStartLabel,
@@ -12,32 +11,30 @@ import {
 } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
-import { makeCardVisible } from '../utilities/utils';
 import { fireTrackingEvent } from '../utilities/segmentIOUtils';
+import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 
 import './OdhCard.scss';
+import { QuickStartContextValues } from '@cloudmosaic/quickstarts';
 
 type OdhDocCardProps = {
-  odhDoc: ODHDoc;
+  odhDoc: OdhDocument;
   favorite: boolean;
   updateFavorite: (isFavorite: boolean) => void;
 };
 
 // fire an event when any resource on the Resource page is accessed
-const fireResourceAccessedEvent = (
-  name: string,
-  type: string,
-  qsContext?: QuickStartContextValues,
-) => () => {
-  const quickStartLabel = getQuickStartLabel(name, qsContext);
-  fireTrackingEvent(
-    type === ODHDocType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
-    {
-      name: name,
-      type: type,
-    },
-  );
-};
+const fireResourceAccessedEvent =
+  (name: string, type: string, qsContext?: QuickStartContextValues) => () => {
+    const quickStartLabel = getQuickStartLabel(name, qsContext);
+    fireTrackingEvent(
+      type === OdhDocumentType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
+      {
+        name: name,
+        type: type,
+      },
+    );
+  };
 
 const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Restart,
@@ -45,23 +42,12 @@ const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Close,
 ];
 const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite }) => {
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
-
-  const selected = React.useMemo(() => {
-    return (
-      odhDoc.metadata.type === ODHDocType.QuickStart &&
-      qsContext.activeQuickStartID === odhDoc.metadata.name
-    );
-  }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext.activeQuickStartID]);
-
-  React.useEffect(() => {
-    if (selected) {
-      makeCardVisible(odhDoc.metadata.name);
-    }
-  }, [odhDoc.metadata.name, selected]);
-
+  const [qsContext, selected] = useQuickStartCardSelected(
+    odhDoc.metadata.name,
+    odhDoc.metadata.name,
+  );
   const footerClassName = React.useMemo(() => {
-    if (odhDoc.metadata.type !== ODHDocType.QuickStart) {
+    if (odhDoc.metadata.type !== OdhDocumentType.QuickStart) {
       return 'odh-card__footer';
     }
 
@@ -71,24 +57,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     });
   }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext]);
 
-  if (odhDoc.metadata.type === ODHDocType.QuickStart) {
-    const quickStart = qsContext.allQuickStarts?.find(
-      (qs) => qs.metadata.name === odhDoc.metadata.name,
-    );
-    if (!quickStart) {
-      return null;
-    }
-  }
-
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhDoc.metadata.name, qsContext);
-    makeCardVisible(odhDoc.metadata.name);
     fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.metadata.type, qsContext)();
   };
 
   const renderDocLink = () => {
-    if (odhDoc.metadata.type === ODHDocType.Documentation) {
+    if (odhDoc.metadata.type === OdhDocumentType.Documentation) {
       return (
         <a
           className="odh-card__footer__link"
@@ -102,7 +78,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         </a>
       );
     }
-    if (odhDoc.metadata.type === ODHDocType.Tutorial) {
+    if (odhDoc.metadata.type === OdhDocumentType.Tutorial) {
       return (
         <a
           className="odh-card__footer__link"
@@ -116,14 +92,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         </a>
       );
     }
-    if (odhDoc.metadata.type === ODHDocType.QuickStart) {
+    if (odhDoc.metadata.type === OdhDocumentType.QuickStart) {
       return (
         <a className="odh-card__footer__link" href="#" onClick={onQuickStart}>
           {getQuickStartLabel(odhDoc.metadata.name, qsContext)}
         </a>
       );
     }
-    if (odhDoc.metadata.type === ODHDocType.HowTo) {
+    if (odhDoc.metadata.type === OdhDocumentType.HowTo) {
       return (
         <a
           className="odh-card__footer__link"
@@ -158,9 +134,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       </CardHeader>
       <CardTitle className="odh-card__doc-title">
         {odhDoc.spec.displayName}
+        <div className="odh-card__provider">by {odhDoc.spec.appDisplayName}</div>
         <DocCardBadges odhDoc={odhDoc} />
       </CardTitle>
-      <CardBody>{odhDoc.spec.description}</CardBody>
+      <CardBody>
+        <Tooltip content={odhDoc.spec.description}>
+          <span className="odh-card__body-text">{odhDoc.spec.description}</span>
+        </Tooltip>
+      </CardBody>
       <CardFooter className={footerClassName}>{renderDocLink()}</CardFooter>
     </Card>
   );

@@ -1,30 +1,29 @@
 import React from 'react';
-import * as classNames from 'classnames';
-import { Tooltip } from '@patternfly/react-core';
+import { Label, Tooltip } from '@patternfly/react-core';
 import { SyncAltIcon, CheckCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHDoc, ODHDocType } from '../types';
+import { OdhDocument, OdhDocumentType } from '../types';
 import { isQuickStartComplete, isQuickStartInProgress } from '../utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
-import { getDuration } from '../utilities/utils';
-import { getTextForDocType } from '../pages/learningCenter/learningCenterUtils';
+import { getLabelColorForDocType, getDuration } from '../utilities/utils';
+import { DOC_TYPE_LABEL } from '../pages/learningCenter/const';
 
 import './OdhCard.scss';
 
 type DocCardBadgesProps = {
-  odhDoc: ODHDoc;
+  odhDoc: OdhDocument;
 };
 
 const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
   const [inProgress, setInProgress] = React.useState<boolean>(false);
   const [complete, setComplete] = React.useState<boolean>(false);
-  const docType = odhDoc?.metadata.type as ODHDocType;
+  const docType = odhDoc?.metadata.type as OdhDocumentType;
   const docName = odhDoc?.metadata.name;
   const duration = odhDoc?.spec.durationMinutes;
 
   React.useEffect(() => {
-    if (docType === ODHDocType.QuickStart && qsContext.allQuickStarts) {
+    if (docType === OdhDocumentType.QuickStart && qsContext.allQuickStarts) {
       const quickStart = qsContext.allQuickStarts.find((qs) => qs.metadata.name === docName);
       if (quickStart) {
         setInProgress(isQuickStartInProgress(quickStart.metadata.name, qsContext));
@@ -33,32 +32,28 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
     }
   }, [qsContext, docType, docName]);
 
-  const label = getTextForDocType(docType);
-  const typeBadgeClasses = classNames('odh-card__partner-badge odh-m-doc', {
-    'odh-m-documentation': docType === ODHDocType.Documentation,
-    'odh-m-tutorial': docType === ODHDocType.Tutorial,
-    'odh-m-quick-start': docType === ODHDocType.QuickStart,
-    'odh-m-how-to': docType === ODHDocType.HowTo,
-  });
-  const durationBadgeClasses = classNames('odh-card__partner-badge odh-m-doc odh-m-duration', {
-    'm-hidden': docType === ODHDocType.Documentation || duration === undefined,
-  });
-  const progressBadgeClasses = classNames('odh-card__partner-badge odh-m-doc', {
-    'm-hidden': !complete && !inProgress,
-    'odh-m-in-progress': inProgress,
-    'odh-m-complete': complete,
-  });
+  const label = DOC_TYPE_LABEL[docType] || 'Documentation';
 
   return (
     <div className="odh-card__doc-badges">
       <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
-        <div className={typeBadgeClasses}>{label}</div>
+        <Label color={getLabelColorForDocType(docType)}>{label}</Label>
       </Tooltip>
-      <div className={durationBadgeClasses}>{getDuration(duration)}</div>
-      <div className={progressBadgeClasses}>
-        {inProgress ? <SyncAltIcon /> : <CheckCircleIcon />}
-        {inProgress ? 'In progress' : 'Complete'}
-      </div>
+      {duration ? (
+        <Label variant="outline" color="grey">
+          {getDuration(duration)}
+        </Label>
+      ) : null}
+      {inProgress ? (
+        <Label variant="outline" color="purple" icon={<SyncAltIcon />}>
+          In Progress
+        </Label>
+      ) : null}
+      {complete ? (
+        <Label variant="outline" color="green" icon={<CheckCircleIcon />}>
+          Complete
+        </Label>
+      ) : null}
     </div>
   );
 };

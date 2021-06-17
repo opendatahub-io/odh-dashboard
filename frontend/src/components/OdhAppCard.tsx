@@ -1,5 +1,5 @@
 import React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import {
   Card,
   CardHeader,
@@ -10,32 +10,24 @@ import {
   KebabToggle,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
-import { ODHApp } from '../types';
+import { OdhApplication } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
+import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 
 import './OdhCard.scss';
-import { makeCardVisible } from '../utilities/utils';
 
 type OdhAppCardProps = {
-  odhApp: ODHApp;
+  odhApp: OdhApplication;
 };
 
 const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
-
-  const selected = React.useMemo(() => {
-    return qsContext.activeQuickStartID === odhApp.spec.quickStart;
-  }, [odhApp.spec.quickStart, qsContext.activeQuickStartID]);
-
-  React.useEffect(() => {
-    if (selected) {
-      makeCardVisible(odhApp.metadata.name);
-    }
-  }, [odhApp.metadata.name, selected]);
+  const [qsContext, selected] = useQuickStartCardSelected(
+    odhApp.spec.quickStart,
+    odhApp.metadata.name,
+  );
 
   const onToggle = (value) => {
     setIsOpen(value);
@@ -48,7 +40,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhApp.spec.quickStart, qsContext);
-    makeCardVisible(odhApp.metadata.name);
   };
 
   const dropdownItems = [

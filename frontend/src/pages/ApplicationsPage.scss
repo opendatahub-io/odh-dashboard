@@ -19,3 +19,10 @@
     }
   }
 }
+
+.odh-dashboard__page-content {
+  border: 1px solid var(--pf-global--BorderColor--100);
+  display: flex;
+  flex: 1;
+  margin: var(--pf-global--spacer--md);
+}

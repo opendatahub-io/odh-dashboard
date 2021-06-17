@@ -2,16 +2,16 @@
   "name": "rhods-dashboard",
   "version": "1.0.0",
   "description": "RHODS dashboard.",
-  "author": "Red Hat",
+  "author": "",
   "license": "ISC",
   "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/red-hat-data-services/odh-dashboard.git"
   },
-  "homepage": "https://github.comred-hat-data-services/odh-dashboard#readme",
+  "homepage": "https://github.com/red-hat-data-services/odh-dashboard#readme",
   "bugs": {
-    "url": "https://github.comred-hat-data-services/odh-dashboard/issues"
+    "url": "https://github.com/red-hat-data-services/odh-dashboard/issues"
   },
   "engines": {
     "node": ">=12.0.0"

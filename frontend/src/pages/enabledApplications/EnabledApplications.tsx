@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as _ from 'lodash';
 import { Gallery, PageSection } from '@patternfly/react-core';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
-import { ODHApp } from '../../types';
+import { OdhApplication } from '../../types';
 import ApplicationsPage from '../ApplicationsPage';
 import OdhAppCard from '../../components/OdhAppCard';
 import QuickStarts from '../../app/QuickStarts';
@@ -16,7 +16,7 @@ const description = `Launch your enabled applications or get started with quick 
 type EnabledApplicationsInnerProps = {
   loaded: boolean;
   loadError?: Error;
-  components: ODHApp[];
+  components: OdhApplication[];
 };
 
 // use to record the current enabled components
@@ -27,15 +27,15 @@ const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.
     const isEmpty = !components || components.length === 0;
 
     return (
-      <QuickStarts>
-        <ApplicationsPage
-          title="Enabled"
-          description={description}
-          loaded={loaded}
-          empty={isEmpty}
-          loadError={loadError}
-        >
-          {!isEmpty ? (
+      <ApplicationsPage
+        title="Enabled"
+        description={description}
+        loaded={loaded}
+        empty={isEmpty}
+        loadError={loadError}
+      >
+        {!isEmpty ? (
+          <div className="odh-dashboard__page-content">
             <PageSection>
               <Gallery className="odh-installed-apps__gallery" hasGutter>
                 {components.map((c) => (
@@ -43,9 +43,9 @@ const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.
                 ))}
               </Gallery>
             </PageSection>
-          ) : null}
-        </ApplicationsPage>
-      </QuickStarts>
+          </div>
+        ) : null}
+      </ApplicationsPage>
     );
   },
 );

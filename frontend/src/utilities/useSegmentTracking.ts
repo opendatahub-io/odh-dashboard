@@ -6,8 +6,8 @@ import { useWatchSegmentKey } from './useWatchSegmentKey';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();
-  const username = useSelector((state: RootState) => state.appReducer.user);
-  const clusterID = useSelector((state: RootState) => state.appReducer.clusterID);
+  const username = useSelector((state: RootState) => state.appState.user);
+  const clusterID = useSelector((state: RootState) => state.appState.clusterID);
 
   React.useEffect(() => {
     if (segmentKey && loaded && !loadError && username && clusterID) {
