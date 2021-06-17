@@ -1,6 +1,8 @@
 kind: ConsoleQuickStart
 metadata:
   name: deploy-python-model
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Deployment,Jupyter notebook,Model serving,Python'
 spec:
   displayName: Deploying a sample Python application using Flask and OpenShift.
   appName: jupyterhub
