@@ -3,6 +3,7 @@ import createError from 'http-errors';
 import fs from 'fs';
 import path from 'path';
 import {
+  BuildKind,
   BuildStatus,
   CSVKind,
   K8sResourceCommon,
@@ -136,8 +137,10 @@ const fetchDocs = async (): Promise<OdhDocument[]> => {
 
 const getBuildConfigStatus = (
   fastify: KubeFastifyInstance,
-  bcName: string,
+  buildConfig: K8sResourceCommon,
 ): Promise<BuildStatus> => {
+  const bcName = buildConfig.metadata.name;
+  const notebookName = buildConfig.metadata.labels?.['opendatahub.io/notebook-name'] || bcName;
   return fastify.kube.customObjectsApi
     .listNamespacedCustomObject(
       'build.openshift.io',
@@ -151,14 +154,11 @@ const getBuildConfigStatus = (
     )
     .then((res) => {
       const bcBuilds = (res?.body as {
-        items: {
-          metadata: { name: string };
-          status: { phase: string; completionTimestamp: string; startTimestamp: string };
-        }[];
+        items: BuildKind[];
       })?.items;
       if (bcBuilds.length === 0) {
         return {
-          name: bcName,
+          name: notebookName,
           status: 'pending',
         };
       }
@@ -170,7 +170,7 @@ const getBuildConfigStatus = (
         })
         .pop();
       return {
-        name: bcName,
+        name: notebookName,
         status: mostRecent.status.phase,
         timestamp: mostRecent.status.completionTimestamp || mostRecent.status.startTimestamp,
       };
@@ -178,14 +178,14 @@ const getBuildConfigStatus = (
     .catch((e) => {
       console.dir(e);
       return {
-        name: bcName,
+        name: notebookName,
         status: 'pending',
       };
     });
 };
 
 export const fetchBuilds = async (fastify: KubeFastifyInstance): Promise<BuildStatus[]> => {
-  const nbBuildConfigNames: string[] = await fastify.kube.customObjectsApi
+  const nbBuildConfigs: K8sResourceCommon[] = await fastify.kube.customObjectsApi
     .listNamespacedCustomObject(
       'build.openshift.io',
       'v1',
@@ -197,13 +197,12 @@ export const fetchBuilds = async (fastify: KubeFastifyInstance): Promise<BuildSt
       'opendatahub.io/build_type=notebook_image',
     )
     .then((res) => {
-      const buildConfigs = (res?.body as { items: { metadata: { name: string } }[] })?.items;
-      return buildConfigs.map((bc) => bc.metadata.name);
+      return (res?.body as { items: K8sResourceCommon[] })?.items;
     })
     .catch(() => {
       return [];
     });
-  const baseBuildConfigNames: string[] = await fastify.kube.customObjectsApi
+  const baseBuildConfigs: K8sResourceCommon[] = await fastify.kube.customObjectsApi
     .listNamespacedCustomObject(
       'build.openshift.io',
       'v1',
@@ -215,17 +214,16 @@ export const fetchBuilds = async (fastify: KubeFastifyInstance): Promise<BuildSt
       'opendatahub.io/build_type=base_image',
     )
     .then((res) => {
-      const buildConfigs = (res?.body as { items: { metadata: { name: string } }[] })?.items;
-      return buildConfigs.map((bc) => bc.metadata.name);
+      return (res?.body as { items: K8sResourceCommon[] })?.items;
     })
     .catch(() => {
       return [];
     });
 
-  const buildConfigNames = [...nbBuildConfigNames, ...baseBuildConfigNames];
+  const buildConfigs = [...nbBuildConfigs, ...baseBuildConfigs];
 
-  const getters = buildConfigNames.map(async (name) => {
-    return getBuildConfigStatus(fastify, name);
+  const getters = buildConfigs.map(async (buildConfig) => {
+    return getBuildConfigStatus(fastify, buildConfig);
   });
 
   return Promise.all(getters);
