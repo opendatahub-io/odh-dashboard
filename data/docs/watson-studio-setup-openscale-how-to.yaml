@@ -1,0 +1,12 @@
+metadata:
+  name: watson-studio-setup-openscale-how-to
+  type: how-to
+  annotations:
+    opendatahub.io/categories: 'Data management,Deployment,Model serving,Monitoring'
+spec:
+  appName: watson-studio
+  displayName: How to set up Watson OpenScale
+  description: |-
+    Track and measure outcomes from models with OpenScale.
+  url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/model/getting-started.html
+  durationMinutes: 10

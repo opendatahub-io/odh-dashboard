@@ -1,0 +1,13 @@
+metadata:
+  name: seldon-model-servings-tutorial
+  type: tutorial
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Deployment,Model serving,Python'
+spec:
+  appName: seldon-deploy
+  displayName: Various types of Model Servings
+  description: |-
+    A series of tutorials highlighting natural language, image processing classifiers, KubeFlow
+    integration, and model.
+  url: https://deploy.seldon.io/docs/demos/seldon-core/
+  durationMinutes: 60

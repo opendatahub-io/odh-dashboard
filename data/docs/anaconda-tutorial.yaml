@@ -1,0 +1,12 @@
+metadata:
+  name: anaconda-background
+  type: tutorial
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Getting started,Python,SciKit-Learn'
+spec:
+  appName: anaconda-ce
+  displayName: What is Anaconda?
+  description: |-
+    Learn about the Anaconda Distrbution and why Python is so frequently used for data science tasks.
+  url: https://anaconda.org/training/anaconda_introduction/notebook
+  durationMinutes: 5
