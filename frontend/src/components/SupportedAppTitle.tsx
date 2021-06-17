@@ -1,11 +1,11 @@
 import React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import { CardTitle, Tooltip } from '@patternfly/react-core';
-import { ODHApp } from '../types';
+import { OdhApplication } from '../types';
 import { isRedHatSupported } from '../utilities/utils';
 
 type SupportedAppTitleProps = {
-  odhApp: ODHApp;
+  odhApp: OdhApplication;
   showProvider?: boolean;
 };
 

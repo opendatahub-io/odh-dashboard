@@ -1,25 +1,25 @@
 import * as React from 'react';
-import { ODHDoc, ODHDocType } from '../types';
+import { OdhDocument, OdhDocumentType } from '../types';
 import { POLL_INTERVAL } from './const';
 import { fetchDocs } from '../services/docsService';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchDocs = (
-  docType?: ODHDocType | 'getting-started',
+  docType?: OdhDocumentType | 'getting-started',
 ): {
-  docs: ODHDoc[];
+  docs: OdhDocument[];
   loaded: boolean;
   loadError: Error | undefined;
 } => {
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [docs, setDocs] = React.useState<ODHDoc[]>([]);
+  const [docs, setDocs] = React.useState<OdhDocument[]>([]);
 
   React.useEffect(() => {
     let watchHandle;
     const watchQuickStarts = () => {
       fetchDocs(docType)
-        .then((updatedDocs: ODHDoc[]) => {
+        .then((updatedDocs: OdhDocument[]) => {
           setLoaded(true);
           setLoadError(undefined);
           setDocs(updatedDocs);
@@ -40,7 +40,7 @@ export const useWatchDocs = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docType]);
 
-  const retDocs = useDeepCompareMemoize<ODHDoc[]>(docs);
+  const retDocs = useDeepCompareMemoize<OdhDocument[]>(docs);
 
   return { docs: retDocs || [], loaded, loadError };
 };

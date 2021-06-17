@@ -2,17 +2,10 @@
  * Common types, should be kept up to date with backend types
  */
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    analytics?: any;
-    clusterID?: string;
-  }
-}
-
-export type ODHApp = {
+export type OdhApplication = {
   metadata: {
     name: string;
+    annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
@@ -49,22 +42,24 @@ export type ODHApp = {
   };
 };
 
-export enum ODHDocType {
+export enum OdhDocumentType {
   Documentation = 'documentation',
   HowTo = 'how-to',
   QuickStart = 'quickstart',
   Tutorial = 'tutorial',
 }
 
-export type ODHDoc = {
+export type OdhDocument = {
   metadata: {
     name: string;
     type: string;
+    annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
     appName?: string;
     appDisplayName?: string; // Only set on UI side in resources section
+    appEnabled?: boolean; // Only set on UI side in resources section
     provider?: string;
     description: string;
     url: string;
@@ -76,10 +71,27 @@ export type ODHDoc = {
   };
 };
 
-export type ODHGettingStarted = {
+export type OdhGettingStarted = {
   appName: string;
   markdown: string;
 };
+
+export type BuildStatus = {
+  name: string;
+  status: string;
+  timestamp: string;
+};
+
+//
+// Used for Telemetry
+//
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    analytics?: any;
+    clusterID?: string;
+  }
+}
 
 export type ODHSegmentKey = {
   segmentKey: string;

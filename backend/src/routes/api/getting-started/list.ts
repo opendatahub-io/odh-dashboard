@@ -1,10 +1,8 @@
 import { FastifyRequest } from 'fastify';
-import { ODHGettingStarted } from '../../../types';
+import { OdhGettingStarted } from '../../../types';
 import { getGettingStartedDoc, getGettingStartedDocs } from './gettingStartedUtils';
 
-export const listGettingStartedDocs = (
-  request: FastifyRequest,
-): Promise<ODHGettingStarted | ODHGettingStarted[]> => {
+export const listGettingStartedDocs = (request: FastifyRequest): Promise<OdhGettingStarted[]> => {
   const query = request.query as { [key: string]: string };
   if (query.appName) {
     return Promise.resolve(getGettingStartedDoc(query.appName));

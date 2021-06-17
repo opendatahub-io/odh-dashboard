@@ -31,6 +31,15 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   loadError,
   children,
 }) => {
+  const renderHeader = () => (
+    <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
+      <TextContent className="odh-apps__heading__text">
+        <Text component="h1">{title}</Text>
+        <Text component="p">{description}</Text>
+      </TextContent>
+    </PageSection>
+  );
+
   const renderContents = () => {
     if (loadError) {
       return (
@@ -52,7 +61,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (!loaded) {
       return (
-        <PageSection>
+        <PageSection isFilled>
           <EmptyState variant={EmptyStateVariant.full}>
             <Spinner size="xl" />
             <Title headingLevel="h5" size="lg">
@@ -65,7 +74,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (empty) {
       return (
-        <PageSection>
+        <PageSection isFilled>
           <EmptyState variant={EmptyStateVariant.full}>
             <EmptyStateIcon icon={QuestionCircleIcon} />
             <Title headingLevel="h5" size="lg">
@@ -81,12 +90,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   return (
     <>
-      <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
-        <TextContent className="odh-apps__heading__text">
-          <Text component="h1">{title}</Text>
-          <Text component="p">{description}</Text>
-        </TextContent>
-      </PageSection>
+      {renderHeader()}
       {renderContents()}
     </>
   );

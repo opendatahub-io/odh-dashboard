@@ -18,6 +18,32 @@ html, body, #root {
     }
   }
 
+  &__notification-drawer {
+    .pf-c-notification-drawer__list-item-header-title {
+      font-size: 1em;
+    }
+    &__item-remove {
+      padding-bottom: 0;
+      padding-top: 0;
+    }
+    .pf-c-notification-drawer__list-item-description.m-is-hidden {
+      display: none;
+    }
+  }
+
+  &__notifications {
+    position: fixed;
+    right: var(--pf-global--spacer--sm);
+    z-index: 2000;
+    .pf-c-alert {
+      margin-top: var(--pf-global--spacer--sm);
+      .pf-c-alert__action .pf-c-button {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+    }
+  }
+
   &__favorite {
     cursor: pointer;
     position: relative;
@@ -41,6 +67,15 @@ html, body, #root {
     }
   }
 
+  .pf-c-page__main-section {
+    .pf-l-gallery {
+      --pf-l-gallery--GridTemplateColumns--max-on-xl: 330px;
+      --pf-l-gallery--GridTemplateColumns--max-on-lg: 330px;
+      --pf-l-gallery--GridTemplateColumns--max-on-md: 330px;
+      --pf-l-gallery--GridTemplateColumns--max-on-sm: 330px;
+      --pf-l-gallery--GridTemplateColumns--max: 330px;
+    }
+  }
   // PF Overrides
   .pf-c-page__header {
     .pf-c-brand {
@@ -54,6 +89,9 @@ html, body, #root {
         visibility: hidden;
       }
     }
+  }
+  .pf-c-drawer.pf-m-inline {
+    flex: 1;
   }
   // Bootstrap Overrides (Bootstrap pulled in by @cloudmosaic/quickstarts)
   code {

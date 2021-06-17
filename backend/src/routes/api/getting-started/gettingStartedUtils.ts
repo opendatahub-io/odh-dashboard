@@ -1,17 +1,14 @@
 import createError from 'http-errors';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ODHGettingStarted } from '../../../types';
+import { OdhGettingStarted } from '../../../types';
 import { mdRegExp } from '../../../utils/constants';
 
-export const getGettingStartedDoc = (appName: string): { appName: string; markdown: string } => {
+export const getGettingStartedDoc = (appName: string): OdhGettingStarted[] => {
   const normalizedPath = path.join(__dirname, '../../../../../data/getting-started');
   try {
     const markdown = fs.readFileSync(path.join(normalizedPath, `${appName}.md`), 'utf8');
-    return {
-      appName,
-      markdown,
-    };
+    return [{ appName, markdown }];
   } catch (e) {
     const error = createError(500, 'failed to getting started file');
     error.explicitInternalServerError = true;
@@ -22,9 +19,9 @@ export const getGettingStartedDoc = (appName: string): { appName: string; markdo
   }
 };
 
-export const getGettingStartedDocs = (): ODHGettingStarted[] => {
+export const getGettingStartedDocs = (): OdhGettingStarted[] => {
   const normalizedPath = path.join(__dirname, '../../../../../data/getting-started');
-  const gettingStartedDocs: ODHGettingStarted[] = [];
+  const gettingStartedDocs: OdhGettingStarted[] = [];
   fs.readdirSync(normalizedPath).forEach((file) => {
     if (mdRegExp.test(file)) {
       try {

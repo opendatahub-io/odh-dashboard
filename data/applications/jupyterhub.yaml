@@ -1,5 +1,7 @@
 metadata:
   name: jupyterhub
+  annotations:
+    opendatahub.io/categories: 'Jupyter notebook'
 spec:
   displayName: JupyterHub
   provider: Jupyter

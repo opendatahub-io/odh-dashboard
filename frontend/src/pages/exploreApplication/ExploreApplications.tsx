@@ -1,4 +1,5 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import * as _ from 'lodash';
 import {
   Drawer,
@@ -10,11 +11,13 @@ import {
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import OdhExploreCard from '../../components/OdhExploreCard';
 import ApplicationsPage from '../ApplicationsPage';
-import { ODHApp } from '../../types';
+import { OdhApplication } from '../../types';
 import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { useHistory } from 'react-router';
+
+import './ExploreApplications.scss';
 
 const description = `Add optional applications to your Red Hat OpenShift Data Science instance.`;
 
@@ -22,13 +25,16 @@ type ExploreApplicationsInnerProps = {
   loaded: boolean;
   isEmpty: boolean;
   loadError?: Error;
-  exploreComponents: ODHApp[];
-  selectedComponent?: ODHApp;
+  exploreComponents: OdhApplication[];
+  selectedComponent?: OdhApplication;
   updateSelection: (selectedId?: string | null) => void;
 };
 
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
+    const bodyClasses = classNames('odh-explore-apps__body', {
+      'm-side-panel-open': !!selectedComponent,
+    });
     return (
       <ApplicationsPage
         title="Explore"
@@ -47,19 +53,21 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                 />
               }
             >
-              <DrawerContentBody>
-                <PageSection>
-                  <Gallery className="odh-explore-apps__gallery" hasGutter>
-                    {exploreComponents.map((c) => (
-                      <OdhExploreCard
-                        key={c.metadata.name}
-                        odhApp={c}
-                        isSelected={selectedComponent === c}
-                        onSelect={() => updateSelection(c.metadata.name)}
-                      />
-                    ))}
-                  </Gallery>
-                </PageSection>
+              <DrawerContentBody className={bodyClasses}>
+                <div className="odh-dashboard__page-content">
+                  <PageSection>
+                    <Gallery className="odh-explore-apps__gallery" hasGutter>
+                      {exploreComponents.map((c) => (
+                        <OdhExploreCard
+                          key={c.metadata.name}
+                          odhApp={c}
+                          isSelected={selectedComponent === c}
+                          onSelect={() => updateSelection(c.metadata.name)}
+                        />
+                      ))}
+                    </Gallery>
+                  </PageSection>
+                </div>
               </DrawerContentBody>
             </DrawerContent>
           </Drawer>
@@ -75,7 +83,7 @@ const ExploreApplications: React.FC = () => {
   const history = useHistory();
   const queryParams = useQueryParams();
   const selectedId = queryParams.get('selectId');
-  const [selectedComponent, setSelectedComponent] = React.useState<ODHApp>();
+  const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
   const isEmpty = !components || components.length === 0;
 
   const updateSelection = React.useCallback(
@@ -94,7 +102,7 @@ const ExploreApplications: React.FC = () => {
     [components],
   );
 
-  const exploreComponents = React.useMemo<ODHApp[]>(() => {
+  const exploreComponents = React.useMemo<OdhApplication[]>(() => {
     return _.cloneDeep(components).sort((a, b) =>
       a.spec.displayName.localeCompare(b.spec.displayName),
     );
