@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { useHistory } from 'react-router';
 import { OdhDocument } from '../../types';
-import {
-  FilterSidePanelCategory,
-  FilterSidePanelCategoryItem,
-} from '@patternfly/react-catalog-view-extension';
+import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
+import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { APPLICATION_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
@@ -70,6 +68,7 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
         .map((application) => {
           return (
             <FilterSidePanelCategoryItem
+              id={application}
               key={application}
               checked={providerFilters.includes(application)}
               onClick={(e) => onFilterChange(application, e)}

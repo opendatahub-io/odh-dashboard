@@ -42,7 +42,7 @@ jobs:
       - name: Install Node.js packages
         if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
         run: npm install
-      - name: Lint
+      - name: Test
         if: ${{ success() }}
         run: npm run test
       - name: Confirm integration

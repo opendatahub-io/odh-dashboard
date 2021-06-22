@@ -17,7 +17,7 @@ type EnabledApplicationsInnerProps = {
   loadError?: Error;
   components: OdhApplication[];
 };
-const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
+export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
   ({ loaded, loadError, components }) => {
     const isEmpty = !components || components.length === 0;
     return (

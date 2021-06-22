@@ -14,11 +14,13 @@ const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, 
     return (
       <NavExpandable
         key={group.id}
+        id={group.id}
         title={group.title}
         groupId={group.id}
         isActive={isActive}
         isExpanded={expanded}
         onExpand={(e, val) => setExpanded(val)}
+        aria-label={group.title}
       >
         {children.map((childItem) => (
           <NavDataItem key={childItem.id} item={childItem} pathname={pathname} />
@@ -28,7 +30,9 @@ const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, 
   }
   return (
     <NavItem key={item.id} itemId={item.id} isActive={isActive}>
-      <Link to={item.href || '/'}>{item.label}</Link>
+      <Link to={item.href || '/'} aria-label={item.label}>
+        {item.label}
+      </Link>
     </NavItem>
   );
 };
