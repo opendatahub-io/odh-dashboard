@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { useHistory } from 'react-router';
-import {
-  FilterSidePanelCategory,
-  FilterSidePanelCategoryItem,
-} from '@patternfly/react-catalog-view-extension';
+import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
+import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
 import { OdhDocument, OdhDocumentType } from '../../types';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { DOC_TYPE_FILTER_KEY } from './const';
@@ -59,6 +57,7 @@ const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
         const value = OdhDocumentType[docType];
         return (
           <FilterSidePanelCategoryItem
+            id={value}
             key={value}
             checked={docTypeFilters.includes(value)}
             onClick={(e) =>

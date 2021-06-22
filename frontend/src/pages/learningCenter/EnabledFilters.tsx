@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { useHistory } from 'react-router';
-import {
-  FilterSidePanelCategory,
-  FilterSidePanelCategoryItem,
-} from '@patternfly/react-catalog-view-extension';
+import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
+import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
 import { OdhDocument } from '../../types';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { ENABLED_FILTER_KEY } from './const';
@@ -46,6 +44,7 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
   return (
     <FilterSidePanelCategory key="enabled-filter" title="Enabled state">
       <FilterSidePanelCategoryItem
+        id="enabled-filter-checkbox"
         checked={enabledFilters.includes('true')}
         onClick={(e) =>
           onFilterChange(
@@ -58,6 +57,7 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
         {`Enabled (${enabledCount})`}
       </FilterSidePanelCategoryItem>
       <FilterSidePanelCategoryItem
+        id="not-enabled-filter-checkbox"
         checked={enabledFilters.includes('false')}
         onClick={(e) =>
           onFilterChange(
