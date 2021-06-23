@@ -64,11 +64,11 @@ spec:
         3. In a Jupyter notebook, navigate to a terminal view.
         4. Run this curl command, using the URL you copied in step 1.
         ```
-        curl -X POST -d '{"hello" ":" "world"}' <URL>/prediction
+        curl -X POST -d '{"hello" ":" "world"}' <URL>/predictions
         ```
         For example:
         ```
-        curl -X POST -d '{"hello" ":" "world"}' http://example.apps.organization.abc3.p4.openshiftapps.com/prediction
+        curl -X POST -d '{"hello" ":" "world"}' http://example.apps.organization.abc3.p4.openshiftapps.com/predictions
         ```
 
         This should return `{"prediction":"not implemented"}` as output.
@@ -77,7 +77,7 @@ spec:
           #### Verify that your deployed application is working:
           Did you receive the response `{"prediction" '':'' "not implemented"}`?
         failedTaskHelp:
-          This task is not verified yet. Make sure your application built correctly. Make sure you remembered to add `/prediction` to the end of the application URL to get to the endpoint.
+          This task is not verified yet. Make sure your application built correctly. Make sure you remembered to add `/predictions` to the end of the application URL to get to the endpoint.
       summary:
         success: You have verified that the sample model deployment is executing!
         failed: Try the steps again.
