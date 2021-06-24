@@ -1,6 +1,6 @@
 import { KubeFastifyInstance } from '../types';
 
-export const DEFAULT_ACTIVE_TIMEOUT: number = 2 * 20 * 1000;
+export const DEFAULT_ACTIVE_TIMEOUT: number = 2 * 60 * 1000;
 export const DEFAULT_INACTIVE_TIMEOUT: number = 30 * 60 * 1000;
 
 export const ACTIVITY_TIMEOUT: number = 2 * 60 * 1000;

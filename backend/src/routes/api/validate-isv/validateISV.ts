@@ -3,7 +3,8 @@ import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getApplicationDef, updateApplicationDefs } from '../../../utils/resourceUtils';
+import { getApplicationDef } from '../../../utils/resourceUtils';
+import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
 
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -139,8 +140,8 @@ export const runValidation = async (
   return await waitOnCompletion(() => {
     return batchV1Api.readNamespacedJobStatus(jobName, namespace).then(async (res) => {
       if (res.body.status.succeeded) {
-        await updateApplicationDefs();
-        return true;
+        const cm = await getApplicationEnabledConfigMap(fastify, appDef);
+        return cm?.data?.validation_result === 'true';
       }
       if (res.body.status.failed) {
         return false;
