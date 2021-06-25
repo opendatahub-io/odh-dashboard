@@ -24,17 +24,20 @@ type OdhDocCardProps = {
 };
 
 // fire an event when any resource on the Resource page is accessed
-const fireResourceAccessedEvent =
-  (name: string, type: string, qsContext?: QuickStartContextValues) => () => {
-    const quickStartLabel = getQuickStartLabel(name, qsContext);
-    fireTrackingEvent(
-      type === OdhDocumentType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
-      {
-        name: name,
-        type: type,
-      },
-    );
-  };
+const fireResourceAccessedEvent = (
+  name: string,
+  type: string,
+  qsContext?: QuickStartContextValues,
+) => () => {
+  const quickStartLabel = getQuickStartLabel(name, qsContext);
+  fireTrackingEvent(
+    type === OdhDocumentType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
+    {
+      name: name,
+      type: type,
+    },
+  );
+};
 
 const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Restart,

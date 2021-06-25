@@ -1,0 +1,18 @@
+metadata:
+  name: aikit
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Deployment,Model serving'
+spec:
+  displayName: Intel® oneAPI AI Analytics Toolkit Container
+  provider: Intel®
+  description: |-
+    A comprehensive set of interoperable AI software tools, built using oneAPI, to provide drop-in acceleration for end to end data science and machine learning pipelines on Intel architectures with familiar Python libraries and frameworks.
+  kfdefApplications: ['jupyterhub', 'notebook-images']
+  route: jupyterhub
+  img: images/oneapi.png
+  category: Intel® managed
+  support: Intel®
+  docsLink: https://software.intel.com/content/www/us/en/develop/tools/oneapi/ai-analytics-toolkit.html
+  quickStart: create-aikit-notebook
+  getStartedLink: https://software.intel.com/content/www/us/en/develop/documentation/get-started-with-ai-linux/top.html
+  featureFlag: aikit
