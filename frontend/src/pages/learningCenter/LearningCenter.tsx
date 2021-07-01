@@ -32,7 +32,7 @@ import './LearningCenter.scss';
 
 const description = `Access all learning resources for Open Data Hub and supported applications.`;
 
-const LearningCenter: React.FC = () => {
+export const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
   const { components, loaded, loadError } = useWatchComponents(false);
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);

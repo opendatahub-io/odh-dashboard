@@ -15,12 +15,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, WarningTriangleIcon } from '@patternfly/react-icons';
-import { OdhApplication, OdhGettingStarted } from '../../types';
+import { OdhApplication } from '../../types';
 import MarkdownView from '../../components/MarkdownView';
-import { fetchGettingStartedDoc } from '../../services/gettingStartedService';
 import EnableModal from './EnableModal';
 
 import './GetStartedPanel.scss';
+import { useGettingStarted } from '../../utilities/useGettingStarted';
 
 type GetStartedPanelProps = {
   selectedApp?: OdhApplication;
@@ -28,28 +28,9 @@ type GetStartedPanelProps = {
 };
 
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose }) => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
-  const [loadError, setLoadError] = React.useState<Error>();
-  const [odhGettingStarted, setOdhGettingStarted] = React.useState<OdhGettingStarted>();
   const [enableOpen, setEnableOpen] = React.useState<boolean>(false);
   const appName = selectedApp?.metadata.name;
-
-  React.useEffect(() => {
-    if (appName) {
-      setLoaded(false);
-      setOdhGettingStarted(undefined);
-      fetchGettingStartedDoc(appName)
-        .then((gs: OdhGettingStarted) => {
-          setLoaded(true);
-          setLoadError(undefined);
-          setOdhGettingStarted(gs);
-        })
-        .catch((e) => {
-          setLoadError(e);
-        });
-    }
-  }, [appName]);
-
+  const { odhGettingStarted, loaded, loadError } = useGettingStarted(appName);
   if (!selectedApp) {
     return null;
   }
