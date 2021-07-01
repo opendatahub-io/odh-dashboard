@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { useHistory } from 'react-router';
 import { OdhDocument } from '../../types';
-import {
-  FilterSidePanelCategory,
-  FilterSidePanelCategoryItem,
-} from '@patternfly/react-catalog-view-extension';
+import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
+import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { PROVIDER_TYPE_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
@@ -79,6 +77,7 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
         .map((providerType) => {
           return (
             <FilterSidePanelCategoryItem
+              id={providerType}
               key={providerType}
               checked={providerTypeFilters.includes(providerType)}
               onClick={(e) => onFilterChange(providerType, e)}

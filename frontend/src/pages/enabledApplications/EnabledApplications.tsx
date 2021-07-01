@@ -20,9 +20,9 @@ type EnabledApplicationsInnerProps = {
 };
 
 // use to record the current enabled components
-let enabledComponents: ODHApp[] = [];
+let enabledComponents: OdhApplication[] = [];
 
-const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
+export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
   ({ loaded, loadError, components }) => {
     const isEmpty = !components || components.length === 0;
 
