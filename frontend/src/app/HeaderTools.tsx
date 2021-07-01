@@ -10,12 +10,7 @@ import {
   PageHeaderToolsItem,
   DropdownItem,
 } from '@patternfly/react-core';
-import {
-  CaretDownIcon,
-  ExternalLinkAltIcon,
-  QuestionCircleIcon,
-  UserIcon,
-} from '@patternfly/react-icons';
+import { CaretDownIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
 import { AppNotification, State } from '../redux/types';
 
@@ -29,6 +24,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const notifications: AppNotification[] = useSelector<State, AppNotification[]>(
     (state) => state.appState.notifications,
   );
+  const userName: string = useSelector<State, string>((state) => state.appState.user || '');
 
   const newNotifications = React.useMemo(() => {
     return notifications.filter((notification) => !notification.read).length;
@@ -132,7 +128,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
                 onToggle={() => setUserMenuOpen(!userMenuOpen)}
                 toggleIndicator={CaretDownIcon}
               >
-                <UserIcon className="odh-dashboard__user-icon" />
+                {userName}
               </DropdownToggle>
             }
             isOpen={userMenuOpen}
