@@ -50,7 +50,7 @@ const EnabledApplications: React.FC = () => {
 
   const sortedComponents = React.useMemo(() => {
     return _.cloneDeep(components).sort((a, b) =>
-      a.spec.displayName.localeCompare(b.spec.displayName),
+      a.spec?.displayName.localeCompare(b.spec?.displayName),
     );
   }, [components]);
 

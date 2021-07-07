@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getBackendURL } from '../utilities/utils';
 
 export const postValidateIsv = (
-  appName: string,
+  appName: string | null | undefined,
   values: { [key: string]: string },
 ): Promise<boolean> => {
   const url = getBackendURL('/api/validate-isv');

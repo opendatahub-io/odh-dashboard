@@ -1,0 +1,30 @@
+apiVersion: config.k8s.io/v1alpha1
+kind: Krmfile
+openAPI:
+  definitions:
+    io.k8s.cli.setters.IMAGE_NAME:
+      description: image name
+      x-k8s-cli:
+        setter:
+          name: IMAGE_NAME
+          value: s2i-odh-dashboard
+          isSet: true
+          required: true
+    io.k8s.cli.setters.TAG_NAME:
+      description: tag name
+      x-k8s-cli:
+        setter:
+          name: TAG_NAME
+          value: v0.0.1
+          isSet: true
+          required: true
+    io.k8s.cli.substitutions.IMAGE_TAG:
+      x-k8s-cli:
+        substitution:
+          name: IMAGE_TAG
+          pattern: ${IMAGE_NAME}:${TAG_NAME}
+          values:
+          - marker: ${IMAGE_NAME}
+            ref: '#/definitions/io.k8s.cli.setters.IMAGE_NAME'
+          - marker: ${TAG_NAME}
+            ref: '#/definitions/io.k8s.cli.setters.TAG_NAME'

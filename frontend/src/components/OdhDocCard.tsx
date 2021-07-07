@@ -29,26 +29,26 @@ const RIGHT_JUSTIFIED_STATUSES = [
 const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite }) => {
   const [qsContext, selected] = useQuickStartCardSelected(
     odhDoc.metadata.name,
-    odhDoc.metadata.name,
+    odhDoc.metadata?.name,
   );
   const footerClassName = React.useMemo(() => {
-    if (odhDoc.metadata.type !== OdhDocumentType.QuickStart) {
+    if (odhDoc.spec.type !== OdhDocumentType.QuickStart) {
       return 'odh-card__footer';
     }
 
-    const qsStatus = getLaunchStatus(odhDoc.metadata.name, qsContext);
+    const qsStatus = getLaunchStatus(odhDoc.metadata?.name ?? '', qsContext);
     return classNames('odh-card__footer', {
       'm-right-justified': RIGHT_JUSTIFIED_STATUSES.includes(qsStatus),
     });
-  }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext]);
+  }, [odhDoc.metadata.name, odhDoc.spec.type, qsContext]);
 
   const onQuickStart = (e) => {
     e.preventDefault();
-    launchQuickStart(odhDoc.metadata.name, qsContext);
+    launchQuickStart(odhDoc.metadata?.name ?? null, qsContext);
   };
 
   const renderDocLink = () => {
-    if (odhDoc.metadata.type === OdhDocumentType.Documentation) {
+    if (odhDoc.spec.type === OdhDocumentType.Documentation) {
       return (
         <a
           className="odh-card__footer__link"
@@ -61,7 +61,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         </a>
       );
     }
-    if (odhDoc.metadata.type === OdhDocumentType.Tutorial) {
+    if (odhDoc.spec.type === OdhDocumentType.Tutorial) {
       return (
         <a
           className="odh-card__footer__link"
@@ -74,14 +74,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         </a>
       );
     }
-    if (odhDoc.metadata.type === OdhDocumentType.QuickStart) {
+    if (odhDoc.spec.type === OdhDocumentType.QuickStart) {
       return (
         <a className="odh-card__footer__link" href="#" onClick={onQuickStart}>
           {getQuickStartLabel(odhDoc.metadata.name, qsContext)}
         </a>
       );
     }
-    if (odhDoc.metadata.type === OdhDocumentType.HowTo) {
+    if (odhDoc.spec.type === OdhDocumentType.HowTo) {
       return (
         <a
           className="odh-card__footer__link"

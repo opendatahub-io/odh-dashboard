@@ -12,7 +12,7 @@ export enum EnableApplicationStatus {
 
 export const useEnableApplication = (
   doEnable: boolean,
-  appId: string,
+  appId: string | null | undefined,
   appName: string,
   enableValues: { [key: string]: string },
 ): EnableApplicationStatus => {

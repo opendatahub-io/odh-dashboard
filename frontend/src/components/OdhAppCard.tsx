@@ -26,7 +26,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [qsContext, selected] = useQuickStartCardSelected(
     odhApp.spec.quickStart,
-    odhApp.metadata.name,
+    odhApp.metadata?.name ?? '',
   );
 
   const onToggle = (value) => {

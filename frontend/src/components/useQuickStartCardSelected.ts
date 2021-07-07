@@ -4,7 +4,7 @@ import { makeCardVisible } from '../utilities/utils';
 
 export const useQuickStartCardSelected = (
   quickStartName: string | null | undefined,
-  cardId: string,
+  cardId: string | null | undefined,
 ): [QuickStartContextValues, boolean] => {
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
 

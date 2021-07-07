@@ -1,0 +1,35 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: s2i-odh-dashboard # {"$openapi":"IMAGE_NAME"}
+  labels:
+    build: s2i-odh-dashboard # {"$openapi":"IMAGE_NAME"}
+spec:
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+  source:
+    type: Git
+    git:
+      uri: https://github.com/kkasravi/odh-dashboard
+      ref: kkasravi/odh-crds
+    contextDir: /
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: nodejs-14:1-28
+      env:
+      - name: THOTH_ADVISE
+        value: "0"
+      - name: THOTH_DRY_RUN
+        value: "0"
+      - name: THOTH_FROM_MASTER
+        value: "0"
+      - name: THOTH_ERROR_FALLBACK
+        value: "1"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: s2i-odh-dashboard:v0.0.1 # {"$openapi":"IMAGE_TAG"}

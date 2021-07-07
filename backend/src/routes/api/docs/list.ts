@@ -10,7 +10,7 @@ export const listDocs = (
   let docs = getDocs();
   const query = request.query as { [key: string]: string };
   if (query.type) {
-    docs = docs.filter((doc) => doc.metadata.type === query.type);
+    docs = docs.filter((doc) => doc.spec.type === query.type);
   }
 
   return Promise.resolve(docs);
