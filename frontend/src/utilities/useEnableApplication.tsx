@@ -15,12 +15,14 @@ export const useEnableApplication = (
   appId: string,
   appName: string,
   enableValues: { [key: string]: string },
-): EnableApplicationStatus => {
+): [EnableApplicationStatus, string] => {
+  const [error, setError] = React.useState<string>('');
   const [status, setStatus] = React.useState<EnableApplicationStatus>(EnableApplicationStatus.IDLE);
   const dispatch = useDispatch();
 
   React.useEffect(() => {
     if (!doEnable) {
+      setError('');
       setStatus(EnableApplicationStatus.IDLE);
     }
   }, [doEnable]);
@@ -30,11 +32,16 @@ export const useEnableApplication = (
     if (doEnable) {
       setStatus(EnableApplicationStatus.INPROGRESS);
       postValidateIsv(appId, enableValues)
-        .then((valid) => {
+        .then((response) => {
           if (!closed) {
-            setStatus(valid ? EnableApplicationStatus.SUCCESS : EnableApplicationStatus.FAILED);
+            if (!response.valid) {
+              setError(response.error);
+            }
+            setStatus(
+              response.valid ? EnableApplicationStatus.SUCCESS : EnableApplicationStatus.FAILED,
+            );
           }
-          if (valid) {
+          if (response.valid) {
             dispatch(
               addNotification({
                 status: 'success',
@@ -49,18 +56,21 @@ export const useEnableApplication = (
             addNotification({
               status: 'danger',
               title: `Error attempting to validate ${appName}.`,
+              message: response.error,
               timestamp: new Date(),
             }),
           );
         })
-        .catch(() => {
+        .catch((e) => {
           if (!closed) {
+            setError(e.message);
             setStatus(EnableApplicationStatus.FAILED);
           }
           dispatch(
             addNotification({
               status: 'danger',
               title: `Error attempting to validate ${appName}.`,
+              message: e.message,
               timestamp: new Date(),
             }),
           );
@@ -71,5 +81,5 @@ export const useEnableApplication = (
       closed = true;
     };
   }, [appId, appName, dispatch, doEnable, enableValues]);
-  return status;
+  return [status, error];
 };
