@@ -24,10 +24,10 @@ type EnableModalProps = {
 };
 
 const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
-  const [postError, setPostError] = React.useState<boolean>(false);
+  const [postError, setPostError] = React.useState<string>('');
   const [validationInProgress, setValidationInProgress] = React.useState<boolean>(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
-  const validationStatus = useEnableApplication(
+  const [validationStatus, validationErrorMessage] = useEnableApplication(
     validationInProgress,
     selectedApp.metadata.name,
     selectedApp.spec.displayName,
@@ -48,7 +48,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   };
 
   const onDoEnableApp = () => {
-    setPostError(false);
+    setPostError('');
     setValidationInProgress(true);
   };
 
@@ -59,9 +59,9 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
       setValidationInProgress(false);
-      setPostError(true);
+      setPostError(validationErrorMessage);
     }
-  }, [onClose, validationInProgress, validationStatus]);
+  }, [onClose, validationErrorMessage, validationInProgress, validationStatus]);
 
   return (
     <Modal
@@ -93,7 +93,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
               <Alert
                 variantLabel="error"
                 variant="danger"
-                title="Error attempting to validate. Please check your entries."
+                title={postError}
                 aria-live="polite"
                 isInline
               />
