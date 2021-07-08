@@ -1,4 +1,3 @@
-import createError from 'http-errors';
 import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
@@ -24,8 +23,11 @@ const waitOnDeletion = async (reader: () => Promise<void>) => {
   }
 };
 
-const waitOnCompletion = async (reader: () => Promise<boolean>): Promise<boolean> => {
-  const MAX_TRIES = 60;
+const waitOnCompletion = async (
+  fastify: KubeFastifyInstance,
+  reader: () => Promise<{ valid: boolean; error: string }>,
+): Promise<{ valid: boolean; error: string }> => {
+  const MAX_TRIES = 120;
   let tries = 0;
   let completionStatus;
 
@@ -39,7 +41,16 @@ const waitOnCompletion = async (reader: () => Promise<boolean>): Promise<boolean
         return;
       });
   }
-  return completionStatus || false;
+
+  if (completionStatus !== undefined) {
+    return completionStatus;
+  }
+
+  fastify.log.error('validation job timed out.');
+  return {
+    valid: false,
+    error: 'Validation process timed out. The application may still become enabled.',
+  };
 };
 
 export const createAccessSecret = async (
@@ -74,7 +85,7 @@ export const createAccessSecret = async (
 export const runValidation = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
-): Promise<boolean> => {
+): Promise<{ valid: boolean; error: string }> => {
   const namespace = fastify.kube.namespace;
   const query = request.query as { [key: string]: string };
   const appName = query?.appName;
@@ -87,11 +98,10 @@ export const runValidation = async (
 
   const cronjobName = enable?.validationJob;
   if (!cronjobName) {
-    const error = createError(500, 'failed to validate');
-    error.explicitInternalServerError = true;
-    error.error = 'failed to find validation job name';
-    error.message = 'Unable to validate the application.';
-    throw error;
+    return Promise.resolve({
+      valid: false,
+      error: 'Validation job is undefined.',
+    });
   }
   const jobName = `${cronjobName}-job-custom-run`;
 
@@ -100,16 +110,29 @@ export const runValidation = async (
   const cronJob = await batchV1beta1Api
     .readNamespacedCronJob(cronjobName, namespace)
     .then((res) => res.body)
-    .catch((e) => {
-      fastify.log.error(`failed to unsuspend cronjob: validation job does not exist`);
-      throw e;
+    .catch(() => {
+      fastify.log.error(`validation cronjob does not exist`);
     });
 
-  // Flag the cronjob as no longer suspended
-  cronJob.spec.suspend = false;
-  await batchV1beta1Api.replaceNamespacedCronJob(cronjobName, namespace, cronJob).catch((e) => {
-    fastify.log.error(`failed to unsuspend cronjob: ${e.response.body.message}`);
-  });
+  if (!cronJob) {
+    return Promise.resolve({
+      valid: false,
+      error: 'The validation job for the application does not exist.',
+    });
+  }
+
+  const updateCronJobSuspension = (suspend: boolean) => {
+    // Flag the cronjob as no longer suspended
+    cronJob.spec.suspend = suspend;
+    batchV1beta1Api.replaceNamespacedCronJob(cronjobName, namespace, cronJob).catch((e) => {
+      fastify.log.error(
+        `failed to ${suspend ? 'suspend' : 'unsuspend'} cronjob: ${e.response.body.message}`,
+      );
+    });
+  };
+
+  // Suspend the cron job
+  await updateCronJobSuspension(true);
 
   // If there was a manual job already, delete it
   await batchV1Api.deleteNamespacedJob(jobName, namespace).catch(() => {
@@ -135,18 +158,42 @@ export const runValidation = async (
     spec: cronJob.spec.jobTemplate.spec,
   };
 
-  await batchV1Api.createNamespacedJob(namespace, job);
+  const { body } = await batchV1Api.createNamespacedJob(namespace, job).catch(() => {
+    fastify.log.error(`failed to create validation job`);
 
-  return await waitOnCompletion(() => {
+    // Flag the cronjob as no longer suspended
+    updateCronJobSuspension(false);
+
+    return { response: null, body: null };
+  });
+
+  if (!body) {
+    // Flag the cronjob as no longer suspended
+    updateCronJobSuspension(false);
+
+    return Promise.resolve({ valid: false, error: 'Failed to create validation job.' });
+  }
+
+  return await waitOnCompletion(fastify, () => {
     return batchV1Api.readNamespacedJobStatus(jobName, namespace).then(async (res) => {
       if (res.body.status.succeeded) {
         const cm = await getApplicationEnabledConfigMap(fastify, appDef);
-        return cm?.data?.validation_result === 'true';
+        const success = cm?.data?.validation_result === 'true';
+        if (!success) {
+          fastify.log.warn(`failed attempted validation for ${appName}`);
+        }
+        return {
+          valid: success,
+          error: success ? '' : 'Error attempting to validate. Please check your entries.',
+        };
       }
       if (res.body.status.failed) {
-        return false;
+        return { valid: false, error: 'Validation job failed.' };
       }
       throw new Error();
     });
+  }).finally(() => {
+    // Flag the cronjob as no longer suspended
+    updateCronJobSuspension(false);
   });
 };

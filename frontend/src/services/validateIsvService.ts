@@ -4,7 +4,7 @@ import { getBackendURL } from '../utilities/utils';
 export const postValidateIsv = (
   appName: string,
   values: { [key: string]: string },
-): Promise<boolean> => {
+): Promise<{ valid: boolean; error: string }> => {
   const url = getBackendURL('/api/validate-isv');
   const searchParams = new URLSearchParams();
   if (appName) {
