@@ -1,8 +1,9 @@
 metadata:
   name: openvino-ovms-serving
   type: how-to
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Deployment,Getting started,Model serving,TensorFlow,Python,PyTorch'
 spec:
-  featureFlag: openvino
   displayName: How to serve a model using OpenVINO Model Server
   appName: openvino
   description: |-

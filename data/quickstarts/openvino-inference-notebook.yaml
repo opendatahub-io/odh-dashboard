@@ -1,8 +1,10 @@
 kind: ConsoleQuickStart
 metadata:
   name: openvino-inference-notebook
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Getting started,Jupyter notebook,TensorFlow,Python,PyTorch'
+
 spec:
-  featureFlag: openvino
   displayName: Optimized Inference Notebook
   appName: openvino
   durationMinutes: 5
