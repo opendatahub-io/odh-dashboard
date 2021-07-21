@@ -4,6 +4,7 @@ import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getApplicationDef } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
+import { V1ConfigMap } from '@kubernetes/client-node/dist/gen/model/v1ConfigMap';
 
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -196,4 +197,58 @@ export const runValidation = async (
     // Flag the cronjob as no longer suspended
     updateCronJobSuspension(false);
   });
+};
+
+export const validateISV = async (
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest,
+): Promise<{ valid: boolean; error: string }> => {
+  const query = request.query as { [key: string]: string };
+  const appName = query?.appName;
+  const appDef = getApplicationDef(appName);
+  const { enable } = appDef.spec;
+  const namespace = fastify.kube.namespace;
+  const cmName = enable?.validationConfigMap;
+
+  // If there are variables associated with enablement, run the validation
+  if (enable?.variables?.length) {
+    return runValidation(fastify, request);
+  }
+
+  if (!cmName) {
+    fastify.log.error('attempted validation of application with no config map.');
+    return Promise.resolve({
+      valid: false,
+      error: 'The validation config map for the application does not exist.',
+    });
+  }
+
+  const cmBody: V1ConfigMap = {
+    metadata: {
+      name: cmName,
+      namespace: namespace,
+    },
+    data: {
+      validation_result: 'true',
+    },
+  };
+
+  const coreV1Api = fastify.kube.coreV1Api;
+  return coreV1Api
+    .createNamespacedConfigMap(namespace, cmBody)
+    .then(async () => {
+      const cm = await getApplicationEnabledConfigMap(fastify, appDef);
+      const success = cm?.data?.validation_result === 'true';
+      if (!success) {
+        fastify.log.warn(`failed attempted validation for ${appName}`);
+      }
+      return {
+        valid: success,
+        error: success ? '' : 'Error adding validation flag.',
+      };
+    })
+    .catch((e) => {
+      fastify.log.warn(`failed creation of validation configmap: ${e.message}`);
+      return { valid: false, error: 'Error adding validation flag.' };
+    });
 };
