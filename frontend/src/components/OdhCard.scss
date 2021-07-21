@@ -136,6 +136,10 @@
       &.m-hidden {
         visibility: hidden;
       }
+      &.m-disabled {
+        pointer-events: none;
+        color: var(--pf-global--disabled-color--100);
+      }
     }
   }
 }
