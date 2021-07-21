@@ -36,24 +36,21 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
       'm-side-panel-open': !!selectedComponent,
     });
     return (
-      <ApplicationsPage
-        title="Explore"
-        description={description}
-        loaded={loaded}
-        empty={isEmpty}
-        loadError={loadError}
-      >
-        {!isEmpty ? (
-          <Drawer isExpanded={!!selectedComponent} isInline>
-            <DrawerContent
-              panelContent={
-                <GetStartedPanel
-                  onClose={() => updateSelection()}
-                  selectedApp={selectedComponent}
-                />
-              }
+      <Drawer isExpanded={!!selectedComponent} isInline>
+        <DrawerContent
+          panelContent={
+            <GetStartedPanel onClose={() => updateSelection()} selectedApp={selectedComponent} />
+          }
+        >
+          <DrawerContentBody className={bodyClasses}>
+            <ApplicationsPage
+              title="Explore"
+              description={description}
+              loaded={loaded}
+              empty={isEmpty}
+              loadError={loadError}
             >
-              <DrawerContentBody className={bodyClasses}>
+              {!isEmpty ? (
                 <div className="odh-dashboard__page-content">
                   <PageSection>
                     <Gallery className="odh-explore-apps__gallery" hasGutter>
@@ -68,11 +65,11 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                     </Gallery>
                   </PageSection>
                 </div>
-              </DrawerContentBody>
-            </DrawerContent>
-          </Drawer>
-        ) : null}
-      </ApplicationsPage>
+              ) : null}
+            </ApplicationsPage>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
     );
   },
 );

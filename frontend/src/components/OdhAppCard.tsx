@@ -2,16 +2,16 @@ import React from 'react';
 import classNames from 'classnames';
 import {
   Card,
-  CardHeader,
   CardBody,
   CardFooter,
+  CardHeader,
   Dropdown,
   DropdownItem,
   KebabToggle,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../types';
-import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
+import { getLaunchStatus, launchQuickStart, LaunchStatusEnum } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
@@ -75,6 +75,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   });
   const quickStartClasses = classNames('odh-card__footer__link', {
     'm-hidden': !odhApp.spec.quickStart,
+    'm-disabled':
+      getLaunchStatus(odhApp.spec.quickStart || '', qsContext) === LaunchStatusEnum.Close,
   });
 
   const cardFooter = (
@@ -89,7 +91,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         <ExternalLinkAltIcon />
       </a>
       <a className={quickStartClasses} href="#" onClick={onQuickStart}>
-        {getQuickStartLabel(odhApp.spec.quickStart, qsContext)}
+        Quick start
       </a>
     </CardFooter>
   );
