@@ -1,11 +1,11 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { DEV_MODE } from '../../../utils/constants';
 import { addCORSHeader } from '../../../utils/responseUtils';
-import { runValidation } from './validateISV';
+import { validateISV } from './validateISV';
 
 export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
-    return runValidation(fastify, request)
+    return validateISV(fastify, request)
       .then((res) => {
         if (DEV_MODE) {
           addCORSHeader(request, reply);

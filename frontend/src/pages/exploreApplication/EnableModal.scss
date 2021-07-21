@@ -6,6 +6,9 @@
       margin-right: var(--pf-global--spacer--sm);
     }
   }
+  &__enable-link {
+    margin-top: var(--pf-global--spacer--md);
+  }
   .pf-c-alert.m-no-alert-icon {
     .pf-c-alert__icon {
       display: none;
@@ -22,5 +25,9 @@
     padding: 6px var(--pf-global--spacer--sm) 5px;
     position: relative;
     right: 33px;
+  }
+  .pf-c-modal-box__title-text {
+    text-overflow: initial;
+    white-space: break-spaces;
   }
 }
