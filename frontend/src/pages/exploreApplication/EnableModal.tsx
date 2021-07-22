@@ -9,6 +9,7 @@ import {
   Spinner,
   TextInputTypes,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../../types';
 import {
   EnableApplicationStatus,
@@ -63,12 +64,17 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     }
   }, [onClose, validationErrorMessage, validationInProgress, validationStatus]);
 
+  if (!selectedApp?.spec?.enable) {
+    return null;
+  }
+  const { enable } = selectedApp.spec;
+
   return (
     <Modal
-      aria-label={`Enable ${selectedApp?.spec.enable?.title}`}
+      aria-label={`Enable ${enable.title}`}
       className="odh-enable-modal"
       variant={ModalVariant.small}
-      title={selectedApp?.spec.enable?.title}
+      title={enable.title}
       isOpen
       onClose={onClose}
       actions={[
@@ -78,15 +84,29 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
           onClick={onDoEnableApp}
           isDisabled={validationInProgress}
         >
-          {selectedApp?.spec.enable?.actionLabel}
+          {enable.actionLabel}
         </Button>,
         <Button key="cancel" variant="link" onClick={() => onClose()}>
           {validationInProgress ? 'Close' : 'Cancel'}
         </Button>,
       ]}
     >
-      {selectedApp?.spec.enable?.description ? selectedApp.spec.enable.description : null}
-      {selectedApp?.spec.enable?.variables ? (
+      {enable.description ? enable.description : null}
+      {enable.link ? (
+        <div className="odh-enable-modal__enable-link">
+          {enable.linkPreface ? <div>{enable.linkPreface}</div> : null}
+          <a
+            className="odh-dashboard__external-link"
+            href={enable.link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {enable.link}
+            <ExternalLinkAltIcon />
+          </a>
+        </div>
+      ) : null}
+      {enable.variables ? (
         <Form>
           {postError ? (
             <FormAlert>
@@ -115,19 +135,17 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
               />
             </FormAlert>
           ) : null}
-          {selectedApp.spec.enable?.variables
-            ? Object.keys(selectedApp.spec.enable.variables).map((key, index) => (
-                <EnableVariable
-                  key={key}
-                  ref={index === 0 ? focusRef : undefined}
-                  label={selectedApp.spec.enable?.variableDisplayText?.[key] ?? ''}
-                  inputType={selectedApp.spec.enable?.variables?.[key] as TextInputTypes}
-                  helperText={selectedApp.spec.enable?.variableHelpText?.[key] ?? ''}
-                  validationInProgress={validationInProgress}
-                  updateValue={(value: string) => updateEnableValue(key, value)}
-                />
-              ))
-            : null}
+          {Object.keys(enable.variables).map((key, index) => (
+            <EnableVariable
+              key={key}
+              ref={index === 0 ? focusRef : undefined}
+              label={enable.variableDisplayText?.[key] ?? ''}
+              inputType={enable.variables?.[key] as TextInputTypes}
+              helperText={enable.variableHelpText?.[key] ?? ''}
+              validationInProgress={validationInProgress}
+              updateValue={(value: string) => updateEnableValue(key, value)}
+            />
+          ))}
         </Form>
       ) : null}
     </Modal>

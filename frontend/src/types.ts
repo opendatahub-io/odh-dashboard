@@ -31,6 +31,8 @@ export type OdhApplication = {
       title: string;
       actionLabel: string;
       description?: string;
+      linkPreface?: string;
+      link?: string;
       variables?: { [key: string]: string };
       variableDisplayText?: { [key: string]: string };
       variableHelpText?: { [key: string]: string };
@@ -67,7 +69,6 @@ export type OdhDocument = {
     img?: string;
     icon?: string;
     durationMinutes?: number;
-    markdown?: string;
     featureFlag?: string;
   };
 };
