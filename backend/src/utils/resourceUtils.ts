@@ -5,6 +5,7 @@ import path from 'path';
 import {
   BuildKind,
   BuildStatus,
+  ConsoleLinkKind,
   CSVKind,
   K8sResourceCommon,
   KfDefApplication,
@@ -21,12 +22,17 @@ import {
 import { getComponentFeatureFlags } from './features';
 import { yamlRegExp } from './constants';
 
+const consoleLinksGroup = 'console.openshift.io';
+const consoleLinksVersion = 'v1';
+const consoleLinksPlural = 'consolelinks';
+
 let operatorWatcher: ResourceWatcher<CSVKind>;
 let serviceWatcher: ResourceWatcher<K8sResourceCommon>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
+let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 
 const fetchInstalledOperators = (fastify: KubeFastifyInstance): Promise<CSVKind[]> => {
   return fastify.kube.customObjectsApi
@@ -241,6 +247,18 @@ const getRefreshTimeForBuilds = (buildStatuses: BuildStatus[]): ResourceWatcherT
   return { activeWatchInterval: DEFAULT_ACTIVE_TIMEOUT };
 };
 
+const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
+  return fastify.kube.customObjectsApi
+    .listClusterCustomObject(consoleLinksGroup, consoleLinksVersion, consoleLinksPlural)
+    .then((res) => {
+      return (res.body as { items: ConsoleLinkKind[] }).items;
+    })
+    .catch((e) => {
+      fastify.log.error(e, 'failed to get ConsoleLinks');
+      return [];
+    });
+};
+
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   operatorWatcher = new ResourceWatcher<CSVKind>(fastify, fetchInstalledOperators);
   serviceWatcher = new ResourceWatcher<K8sResourceCommon>(fastify, fetchServices);
@@ -248,6 +266,7 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplicationDefs);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
   buildsWatcher = new ResourceWatcher<BuildStatus>(fastify, fetchBuilds, getRefreshTimeForBuilds);
+  consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
 };
 
 export const getInstalledOperators = (): K8sResourceCommon[] => {
@@ -281,4 +300,8 @@ export const getDocs = (): OdhDocument[] => {
 
 export const getBuildStatuses = (): { name: string; status: string }[] => {
   return buildsWatcher.getResources();
+};
+
+export const getConsoleLinks = (): ConsoleLinkKind[] => {
+  return consoleLinksWatcher.getResources();
 };
