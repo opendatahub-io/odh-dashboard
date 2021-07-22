@@ -1,0 +1,22 @@
+metadata:
+  name: rhoam
+  annotations:
+    opendatahub.io/categories: 'Deployment,Model serving'
+spec:
+  displayName: OpenShift API Management
+  provider: Red Hat
+  description: |-
+    A hosted and managed API management service that accelerates time to value and reduces the operational cost of delivering API-first, microservices-based applications.
+# TODO check with RHOAM team if this is the right thing to search for.
+# If the name is locked to version, it's going to break us.
+  csvName: managed-api-service.v1.9.0
+# TODO create consoleLink to query the ConsoleLink CRDs for an instance named 'rhmi-3scale-console-link' and use its spec.href
+  consoleLink: 'rhmi-3scale-console-link'
+  img: images/red-hat.svg
+  category: Red Hat managed
+  support: red hat
+  docsLink: https://access.redhat.com/documentation/en-us/red_hat_openshift_api_management
+  quickStart: deploy-model-rhoam
+  getStartedLink: https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-api-management
+# TODO getStartedLink should point to cluster specific link to install the add on
+#  getStartedLink: https://cloud.redhat.com/openshift/details/s/<CLUSTER_ID/>#addOns

@@ -1,0 +1,73 @@
+kind: ConsoleQuickStart
+metadata:
+  name: deploy-model-rhoam
+  annotations:
+    opendatahub.io/categories: 'Deployment,Model serving'
+spec:
+  displayName: Using to Red Hat OpenShift API Management for Deployed Services
+  appName: rhoam
+  durationMinutes: 10
+  icon: 'images/red-hat.svg'
+  description: A quick step-by-step guide to connecting to Red Hat OpenShift API Management for Deployed Services.
+#TODO: please verify syntax and appropriateness.
+#  prerequisites: [Ensure that Red Hat OpenShift API Management is installed on your Red Hat OpenShift Dedicated cluster.]
+  introduction: |-
+    ### This quick start shows you how to managed a deployed model service from OpenShift API Management
+    Welcome to the Red Hat OpenShift API Management quick start.
+  tasks:
+    - title: Annotate your Service
+      description: |-
+        ### To make your deployed service available to OpenShift API Management:
+        1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        2. Nulla gravida elit vitae odio consequat dictum.
+        3. Mauris suscipit quam in elit posuere, et posuere est commodo.
+        4. Suspendisse finibus dui ullamcorper, vulputate dolor euismod, laoreet leo.
+
+      review:
+        instructions: |-
+          Did you save the bootstrap server endpoint to a secure location?
+
+          Did you save the client credentials to a secure location?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have made your service available on the API Management dashboard
+        failed: Try the steps again.
+
+    - title: Duis Sit Amet Lorem
+      description: |-
+        ### Sed varius sem consectetur fermentum fermentum.:
+        1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        2. Nulla gravida elit vitae odio consequat dictum.
+        3. Mauris suscipit quam in elit posuere, et posuere est commodo.
+        4. Suspendisse finibus dui ullamcorper, vulputate dolor euismod, laoreet leo.
+
+      review:
+        instructions: |-
+          Curabitur consectetur dolor aliquet arcu mollis faucibus.?
+
+          Suspendisse finibus dui ullamcorper, vulputate dolor euismod, laoreet leo.?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have succeeded
+        failed: Try the steps again.
+
+    - title: Aenean tincidunt orci eget lobortis luctus.
+      description: |-
+        ### Sed varius sem consectetur fermentum fermentum.:
+        1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        2. Nulla gravida elit vitae odio consequat dictum.
+        3. Mauris suscipit quam in elit posuere, et posuere est commodo.
+        4. Suspendisse finibus dui ullamcorper, vulputate dolor euismod, laoreet leo.
+
+      review:
+        instructions: |-
+          Curabitur consectetur dolor aliquet arcu mollis faucibus.?
+
+          Suspendisse finibus dui ullamcorper, vulputate dolor euismod, laoreet leo.?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have succeeded
+        failed: Try the steps again.
+
+  conclusion:  Congratulations! You have managed your deployed model service with OpenShift API Management
+  nextQuickStart: []
