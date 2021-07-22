@@ -59,7 +59,7 @@
     display: grid;
     column-gap: var(--pf-global--spacer--md);
     row-gap: var(--pf-global--spacer--md);
-    grid-template-columns: auto fit-content(50%) fit-content(20%) auto auto auto;
+    grid-template-columns: 20px fit-content(50%) fit-content(20%) 110px auto auto;
     &.m-odh-size-md {
       grid-template-columns: auto fit-content(50%) fit-content(20%) auto 0 auto;
       .odh-list-item__link {

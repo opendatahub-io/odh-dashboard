@@ -50,7 +50,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
         title = 'View documentation';
         break;
       case OdhDocumentType.Tutorial:
-        title = 'View documentation';
+        title = 'Access tutorial';
         break;
       case OdhDocumentType.QuickStart:
         title = getQuickStartLabel(odhDoc.metadata.name, qsContext);
