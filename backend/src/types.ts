@@ -58,6 +58,13 @@ export type CSVKind = {
   };
 } & K8sResourceCommon;
 
+// Minimal type for ConsoleLinks
+export type ConsoleLinkKind = {
+  spec: {
+    href?: string;
+  };
+} & K8sResourceCommon;
+
 export type KfDefApplication = {
   kustomizeConfig: {
     repoRef: {
@@ -111,6 +118,7 @@ export type OdhApplication = {
     routeNamespace: string | null;
     routeSuffix: string | null;
     serviceName: string | null;
+    consoleLink: string | null;
     endpoint: string | null;
     link: string | null;
     img: string;

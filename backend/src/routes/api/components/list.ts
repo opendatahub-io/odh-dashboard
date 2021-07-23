@@ -1,24 +1,37 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getEnabledConfigMaps, getLink, getServiceLink } from '../../../utils/componentUtils';
+import {
+  getEnabledConfigMaps,
+  getRouteForApplication,
+  getRouteForClusterId,
+} from '../../../utils/componentUtils';
 import {
   getApplicationDefs,
   getInstalledKfdefs,
   getInstalledOperators,
-  getServices,
 } from '../../../utils/resourceUtils';
 
 export const listComponents = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OdhApplication[]> => {
-  const applicationDefs = getApplicationDefs();
+  const applicationDefs = getApplicationDefs().map((appDef) => ({
+    ...appDef,
+    spec: {
+      ...appDef.spec,
+      getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
+    },
+  }));
+
+  const query = request.query as { [key: string]: string };
+  if (!query.installed) {
+    return await Promise.all(applicationDefs);
+  }
 
   // Fetch the installed kfDefs
   const kfdefApps = await getInstalledKfdefs();
 
   const operatorCSVs = getInstalledOperators();
-  const services = getServices();
 
   // Fetch the enabled config maps
   const enabledCMs = await getEnabledConfigMaps(fastify, applicationDefs);
@@ -61,35 +74,14 @@ export const listComponents = async (
 
   await Promise.all(
     installedComponents.map(async (installedComponent: OdhApplication) => {
-      if (installedComponent.spec.route) {
-        const csv = getCSVForApp(installedComponent);
-        if (csv) {
-          installedComponent.spec.link = await getLink(
-            fastify,
-            installedComponent.spec.route,
-            installedComponent.spec.routeNamespace || csv.metadata.namespace,
-            installedComponent.spec.routeSuffix,
-          );
-        } else {
-          installedComponent.spec.link = await getLink(fastify, installedComponent.spec.route);
-        }
-      }
-      if (!installedComponent.spec.link && installedComponent.spec.serviceName) {
-        installedComponent.spec.link = await getServiceLink(
-          fastify,
-          services,
-          installedComponent.spec.serviceName,
-          installedComponent.spec.routeSuffix,
-        );
-      }
+      installedComponent.spec.link = await getRouteForApplication(
+        fastify,
+        installedComponent,
+        getCSVForApp(installedComponent),
+      );
       return installedComponent;
     }),
   );
-
-  const query = request.query as { [key: string]: string };
-  if (!query.installed) {
-    return await Promise.all(applicationDefs);
-  }
 
   return await Promise.all(installedComponents);
 };
