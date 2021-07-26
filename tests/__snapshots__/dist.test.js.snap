@@ -16,6 +16,8 @@ Array [
     "./backend/dist/routes/api/components/index.js",
     "./backend/dist/routes/api/components/list*map",
     "./backend/dist/routes/api/components/list.js",
+    "./backend/dist/routes/api/config/index*map",
+    "./backend/dist/routes/api/config/index.js",
     "./backend/dist/routes/api/docs/index*map",
     "./backend/dist/routes/api/docs/index.js",
     "./backend/dist/routes/api/docs/list*map",

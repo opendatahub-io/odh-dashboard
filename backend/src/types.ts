@@ -2,6 +2,11 @@ import k8s from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance } from 'fastify';
 
+export type DashboardConfig = {
+  enablement: boolean;
+  disableInfo: boolean;
+};
+
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
   apiVersion?: string;

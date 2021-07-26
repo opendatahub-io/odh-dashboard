@@ -76,7 +76,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
       variant={ModalVariant.small}
       title={enable.title}
       isOpen
-      onClose={onClose}
+      onClose={() => onClose(false)}
       actions={[
         <Button
           key="confirm"

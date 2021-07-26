@@ -2,11 +2,13 @@ import * as jsYaml from 'js-yaml';
 import createError from 'http-errors';
 import fs from 'fs';
 import path from 'path';
+import { V1ConfigMap } from '@kubernetes/client-node';
 import {
   BuildKind,
   BuildStatus,
   ConsoleLinkKind,
   CSVKind,
+  DashboardConfig,
   K8sResourceCommon,
   KfDefApplication,
   KfDefResource,
@@ -22,10 +24,12 @@ import {
 import { getComponentFeatureFlags } from './features';
 import { yamlRegExp } from './constants';
 
+const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
 const consoleLinksVersion = 'v1';
 const consoleLinksPlural = 'consolelinks';
 
+let dashboardConfigWatcher: ResourceWatcher<V1ConfigMap>;
 let operatorWatcher: ResourceWatcher<CSVKind>;
 let serviceWatcher: ResourceWatcher<K8sResourceCommon>;
 let appWatcher: ResourceWatcher<OdhApplication>;
@@ -33,6 +37,24 @@ let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
+
+const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
+  metadata: {
+    name: dashboardConfigMapName,
+    namespace: 'default',
+  },
+  data: {
+    enablement: 'true',
+    disableInfo: 'false',
+  },
+};
+
+const fetchDashboardConfigMap = (fastify: KubeFastifyInstance): Promise<V1ConfigMap[]> => {
+  return fastify.kube.coreV1Api
+    .readNamespacedConfigMap(dashboardConfigMapName, fastify.kube.namespace)
+    .then((result) => [result.body])
+    .catch(() => [DEFAULT_DASHBOARD_CONFIG]);
+};
 
 const fetchInstalledOperators = (fastify: KubeFastifyInstance): Promise<CSVKind[]> => {
   return fastify.kube.customObjectsApi
@@ -260,6 +282,7 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 };
 
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
+  dashboardConfigWatcher = new ResourceWatcher<V1ConfigMap>(fastify, fetchDashboardConfigMap);
   operatorWatcher = new ResourceWatcher<CSVKind>(fastify, fetchInstalledOperators);
   serviceWatcher = new ResourceWatcher<K8sResourceCommon>(fastify, fetchServices);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
@@ -267,6 +290,14 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
   buildsWatcher = new ResourceWatcher<BuildStatus>(fastify, fetchBuilds, getRefreshTimeForBuilds);
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
+};
+
+export const getDashboardConfig = (): DashboardConfig => {
+  const config = dashboardConfigWatcher.getResources()?.[0] ?? DEFAULT_DASHBOARD_CONFIG;
+  return {
+    enablement: (config.data?.enablement ?? '').toLowerCase() !== 'false',
+    disableInfo: (config.data?.disableInfo ?? '').toLowerCase() === 'true',
+  };
 };
 
 export const getInstalledOperators = (): K8sResourceCommon[] => {
