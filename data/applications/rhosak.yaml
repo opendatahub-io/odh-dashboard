@@ -15,3 +15,11 @@ spec:
   docsLink: https://access.redhat.com/documentation/en-us/red_hat_openshift_streams_for_apache_kafka
   quickStart: connect-rhosak-notebook
   getStartedLink: https://cloud.redhat.com/beta/application-services/streams/kafkas
+  enable:
+    title: Enable OpenShift Streams for Apache Kafka
+    actionLabel: Enable
+    description: Clicking enable will add a card to the Enabled page to access the Kafka interface.
+    linkPreface: |-
+      Before enabling, be sure you can access:
+    link: https://cloud.redhat.com/beta/application-services/streams/kafkas
+    validationConfigMap: rhosak-validation-result
