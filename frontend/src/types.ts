@@ -2,6 +2,11 @@
  * Common types, should be kept up to date with backend types
  */
 
+export type DashboardConfig = {
+  enablement: boolean;
+  disableInfo: boolean;
+};
+
 export type OdhApplication = {
   metadata: {
     name: string;

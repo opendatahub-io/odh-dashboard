@@ -13,14 +13,16 @@ import {
   EmptyStateBody,
   Spinner,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, WarningTriangleIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../../types';
+import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
+import { useGettingStarted } from '../../utilities/useGettingStarted';
 import MarkdownView from '../../components/MarkdownView';
 import EnableModal from './EnableModal';
 
 import './GetStartedPanel.scss';
-import { useGettingStarted } from '../../utilities/useGettingStarted';
 
 type GetStartedPanelProps = {
   selectedApp?: OdhApplication;
@@ -31,6 +33,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
   const [enableOpen, setEnableOpen] = React.useState<boolean>(false);
   const appName = selectedApp?.metadata.name;
   const { odhGettingStarted, loaded, loadError } = useGettingStarted(appName);
+  const { dashboardConfig } = useWatchDashboardConfig();
   if (!selectedApp) {
     return null;
   }
@@ -77,6 +80,29 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
     setEnableOpen(true);
   };
 
+  const renderEnableButton = () => {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled) {
+      return null;
+    }
+    const button = (
+      <Button
+        variant={ButtonVariant.secondary}
+        onClick={onEnable}
+        isDisabled={!dashboardConfig.enablement}
+      >
+        Enable
+      </Button>
+    );
+    if (dashboardConfig.enablement) {
+      return button;
+    }
+    return (
+      <Tooltip content="This feature has been disabled by an administrator.">
+        <span>{button}</span>
+      </Tooltip>
+    );
+  };
+
   return (
     <>
       <DrawerPanelContent className="odh-get-started" isResizable minSize="350px">
@@ -108,11 +134,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
               <span className="odh-get-started__get-started-text">Get started</span>
               <ExternalLinkAltIcon />
             </a>
-            {selectedApp.spec.enable && !selectedApp.spec.isEnabled ? (
-              <Button variant={ButtonVariant.secondary} onClick={onEnable}>
-                Enable
-              </Button>
-            ) : null}
+            {renderEnableButton()}
           </DrawerPanelBody>
         ) : null}
         <DrawerPanelBody className="odh-get-started__body">
