@@ -1,7 +1,17 @@
 import { IncomingMessage } from 'http';
-import { V1ConfigMap } from '@kubernetes/client-node/dist/gen/model/v1ConfigMap';
-import { OdhApplication, K8sResourceCommon, KubeFastifyInstance, RouteKind } from '../types';
-import { getConsoleLinks, getServices } from './resourceUtils';
+import {
+  OdhApplication,
+  K8sResourceCommon,
+  KubeFastifyInstance,
+  RouteKind,
+  KfDefApplication,
+} from '../types';
+import {
+  getConsoleLinks,
+  getInstalledKfdefs,
+  getInstalledOperators,
+  getServices,
+} from './resourceUtils';
 
 type RoutesResponse = {
   body: {
@@ -92,7 +102,6 @@ export const getServiceLink = async (
 export const getRouteForApplication = async (
   fastify: KubeFastifyInstance,
   app: OdhApplication,
-  operatorCSV?: K8sResourceCommon,
 ): Promise<string> => {
   // Check for an Endpoint
   let route = getEndPointForApp(fastify, app);
@@ -100,6 +109,7 @@ export const getRouteForApplication = async (
     return route;
   }
 
+  const operatorCSV = getCSVForApp(app);
   // Check for CSV route
   route = await getLink(
     fastify,
@@ -129,31 +139,98 @@ export const getRouteForApplication = async (
   return route;
 };
 
-export const getApplicationEnabledConfigMap = (
+export const getApplicationEnabledConfigMap = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
-): Promise<V1ConfigMap> => {
+): Promise<boolean> => {
   const namespace = fastify.kube.namespace;
   const name = appDef.spec.enable?.validationConfigMap;
   if (!name) {
     return Promise.resolve(null);
   }
   const coreV1Api = fastify.kube.coreV1Api;
-  return coreV1Api
+  const enabledCM = await coreV1Api
     .readNamespacedConfigMap(name, namespace)
     .then((result) => result.body)
     .catch(() => null);
+  if (!enabledCM) {
+    return false;
+  }
+  return enabledCM.data?.validation_result === 'true';
 };
 
-export const getEnabledConfigMaps = (
+const getCSVForApp = (app: OdhApplication): K8sResourceCommon | undefined => {
+  const operatorCSVs = getInstalledOperators();
+  return operatorCSVs.find(
+    (operator) => app.spec.csvName && operator.metadata?.name?.startsWith(app.spec.csvName),
+  );
+};
+
+const getKfDefForApp = (appDef: OdhApplication): KfDefApplication | undefined => {
+  if (!appDef.spec.kfdefApplications?.length) {
+    return undefined;
+  }
+  const kfdefApps = getInstalledKfdefs();
+  return kfdefApps.find((kfdefApp) => appDef.spec.kfdefApplications.includes(kfdefApp.name));
+};
+
+// eslint-disable-next-line
+const getField = (obj: any, path: string, defaultValue: string = undefined): string => {
+  const travel = (regexp: RegExp) =>
+    String.prototype.split
+      .call(path, regexp)
+      .filter(Boolean)
+      // eslint-disable-next-line
+      .reduce((res: any, key: string) => (res !== null && res !== undefined ? res[key] : res), obj);
+  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
+  return result === undefined || result === obj ? defaultValue : result;
+};
+
+const getCREnabledForApp = (
   fastify: KubeFastifyInstance,
-  appDefs: OdhApplication[],
-): Promise<V1ConfigMap[]> => {
-  const configMapGetters = appDefs.reduce((acc, app) => {
-    if (app.spec.enable) {
-      acc.push(getApplicationEnabledConfigMap(fastify, app));
-    }
-    return acc;
-  }, []);
-  return Promise.all(configMapGetters);
+  appDef: OdhApplication,
+): Promise<boolean> => {
+  const { enableCR } = appDef.spec;
+  if (!enableCR) {
+    return undefined;
+  }
+
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  const namespace = enableCR.namespace || fastify.kube.namespace;
+  const { group, version, plural, name } = enableCR;
+  return customObjectsApi
+    .getNamespacedCustomObject(group, version, namespace, plural, name)
+    .then((res) => {
+      const existingCR = res.body;
+      if (!enableCR) {
+        return false;
+      }
+      return getField(existingCR, appDef.spec.enableCR.field) === appDef.spec.enableCR.value;
+    })
+    .catch(() => false);
+};
+
+export const getIsAppEnabled = async (
+  fastify: KubeFastifyInstance,
+  appDef: OdhApplication,
+): Promise<boolean> => {
+  if (getCSVForApp(appDef)) {
+    return true;
+  }
+
+  if (getKfDefForApp(appDef)) {
+    return true;
+  }
+
+  const enabledCM = await getApplicationEnabledConfigMap(fastify, appDef);
+  if (enabledCM) {
+    return true;
+  }
+  const crEnabled = await getCREnabledForApp(fastify, appDef);
+  if (crEnabled) {
+    return true;
+  }
+
+  // Failed all checks
+  return false;
 };
