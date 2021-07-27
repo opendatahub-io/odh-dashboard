@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useHistory } from 'react-router';
 import classNames from 'classnames';
 import * as _ from 'lodash';
 import {
@@ -9,17 +10,18 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
+import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
 import OdhExploreCard from '../../components/OdhExploreCard';
 import ApplicationsPage from '../ApplicationsPage';
 import { OdhApplication } from '../../types';
 import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
-import { useHistory } from 'react-router';
 
 import './ExploreApplications.scss';
 
 const description = `Add optional applications to your Red Hat OpenShift Data Science instance.`;
+const disabledDescription = `View optional applications for your Red Hat OpenShift Data Science instance. Contact an administrator to install these applications.`;
 
 type ExploreApplicationsInnerProps = {
   loaded: boolean;
@@ -32,11 +34,12 @@ type ExploreApplicationsInnerProps = {
 
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
+    const { dashboardConfig } = useWatchDashboardConfig();
     const bodyClasses = classNames('odh-explore-apps__body', {
       'm-side-panel-open': !!selectedComponent,
     });
     return (
-      <Drawer isExpanded={!!selectedComponent} isInline>
+      <Drawer isExpanded={!dashboardConfig.disableInfo && !!selectedComponent} isInline>
         <DrawerContent
           panelContent={
             <GetStartedPanel onClose={() => updateSelection()} selectedApp={selectedComponent} />
@@ -45,7 +48,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
           <DrawerContentBody className={bodyClasses}>
             <ApplicationsPage
               title="Explore"
-              description={description}
+              description={dashboardConfig.disableInfo ? disabledDescription : description}
               loaded={loaded}
               empty={isEmpty}
               loadError={loadError}
@@ -60,6 +63,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                           odhApp={c}
                           isSelected={selectedComponent === c}
                           onSelect={() => updateSelection(c.metadata.name)}
+                          disableInfo={dashboardConfig.disableInfo}
                         />
                       ))}
                     </Gallery>

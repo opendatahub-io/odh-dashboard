@@ -1,10 +1,9 @@
 import { IncomingMessage } from 'http';
-import { CoreV1Api, V1Secret } from '@kubernetes/client-node';
+import { CoreV1Api, V1Secret, V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getApplicationDef } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
-import { V1ConfigMap } from '@kubernetes/client-node/dist/gen/model/v1ConfigMap';
 
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));

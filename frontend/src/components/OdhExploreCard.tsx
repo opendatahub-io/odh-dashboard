@@ -12,10 +12,17 @@ type OdhExploreCardProps = {
   odhApp: OdhApplication;
   isSelected: boolean;
   onSelect: () => void;
+  disableInfo?: boolean;
 };
 
-const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onSelect }) => {
-  const cardClasses = classNames('odh-card', { 'm-disabled': odhApp.spec.comingSoon });
+const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
+  odhApp,
+  isSelected,
+  onSelect,
+  disableInfo = false,
+}) => {
+  const disabled = odhApp.spec.comingSoon || disableInfo;
+  const cardClasses = classNames('odh-card', { 'm-disabled': disabled });
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-warning': odhApp.spec.category === 'Third party support',
     'm-hidden': odhApp.spec.category === 'Red Hat',
@@ -30,11 +37,11 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({ odhApp, isSelected, onS
   return (
     <Card
       id={odhApp.metadata.name}
-      isHoverable={!odhApp.spec.comingSoon}
-      isSelectable={!odhApp.spec.comingSoon}
+      isHoverable={!disabled}
+      isSelectable={!disabled}
       isSelected={isSelected}
       className={cardClasses}
-      onClick={() => !odhApp.spec.comingSoon && onSelect()}
+      onClick={() => !disabled && onSelect()}
     >
       <CardHeader>
         <BrandImage
