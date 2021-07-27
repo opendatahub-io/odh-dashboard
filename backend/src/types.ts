@@ -144,6 +144,15 @@ export type OdhApplication = {
       validationJob: string;
       validationConfigMap?: string;
     };
+    enableCR: {
+      group: string;
+      version: string;
+      plural: string;
+      name: string;
+      namespace?: string;
+      field?: string;
+      value?: string;
+    };
     featureFlag?: string;
   };
 };
