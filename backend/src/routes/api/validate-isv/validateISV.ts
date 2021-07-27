@@ -178,8 +178,7 @@ export const runValidation = async (
   return await waitOnCompletion(fastify, () => {
     return batchV1Api.readNamespacedJobStatus(jobName, namespace).then(async (res) => {
       if (res.body.status.succeeded) {
-        const cm = await getApplicationEnabledConfigMap(fastify, appDef);
-        const success = cm?.data?.validation_result === 'true';
+        const success = await getApplicationEnabledConfigMap(fastify, appDef);
         if (!success) {
           fastify.log.warn(`failed attempted validation for ${appName}`);
         }
@@ -237,8 +236,7 @@ export const validateISV = async (
   return coreV1Api
     .createNamespacedConfigMap(namespace, cmBody)
     .then(async () => {
-      const cm = await getApplicationEnabledConfigMap(fastify, appDef);
-      const success = cm?.data?.validation_result === 'true';
+      const success = await getApplicationEnabledConfigMap(fastify, appDef);
       if (!success) {
         fastify.log.warn(`failed attempted validation for ${appName}`);
       }
