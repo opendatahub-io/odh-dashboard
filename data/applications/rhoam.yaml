@@ -7,9 +7,14 @@ spec:
   provider: Red Hat
   description: |-
     A hosted and managed API management service that accelerates time to value and reduces the operational cost of delivering API-first, microservices-based applications.
-# TODO check with RHOAM team if this is the right thing to search for.
-# If the name is locked to version, it's going to break us.
-  csvName: managed-api-service.v1.9.0
+  enableCR:
+    group: integreatly.org
+    version: v1alpha1
+    plural: rhmis
+    name: rhoam
+    namespace: redhat-rhoam-operator
+    field: status.stage
+    value: complete
   consoleLink: 'rhmi-3scale-console-link'
   img: images/red-hat.svg
   category: Red Hat managed
