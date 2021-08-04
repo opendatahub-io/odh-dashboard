@@ -13,7 +13,7 @@ spec:
     ### This quick start shows you how to launch a TensorFlow image classifier model and detect requests which are outliers.
     Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.
 
-    This quick start is a short version of the Seldon (Outlier Detection)[https://deploy.seldon.io/docs/demos/seldon-core/outlier/] tutorial.
+    This quick start is a short version of the Seldon (Outlier Detection)[https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/outlier-detection/index.html] tutorial.
   tasks:
     - title: Deploy a pretrained image classifier model
       description: |-
@@ -24,7 +24,7 @@ spec:
         4. Click through the wizard to deploy the model.
       summary:
         success: You have deployed a pretrained tensorflow image classifier
-        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/docs/demos/seldon-core/outlier/] tutorial.
+        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/outlier-detection/index.html] tutorial.
     - title: Add an outlier detector
       description: |-
         ### Deploy a pretrained outlier detector for the image classifier
@@ -33,16 +33,16 @@ spec:
         3. Click through wizard to deploy the outlier detector.
       summary:
         success: The outlier detector shows as loaded
-        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/docs/demos/seldon-core/outlier/] tutorial.
+        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/outlier-detection/index.html] tutorial.
     - title: Make predictions
       description: |-
         ### Make predictions:
         1. Go to the **Make predictions** screen.
-        2. Run a single prediction for "truck" using CIFAR-10 data in TensorFlow payload format, available here: (https://deploy.seldon.io/docs/demos/seldon-core/outlier/cifar10_image.json)[https://deploy.seldon.io/docs/demos/seldon-core/outlier/cifar10_image.json]
-        3. Run a single prediction for truck outliers using CIFAR-10 data in TensorFlow payload format, available here: [https://deploy.seldon.io/docs/demos/seldon-core/outlier/outlier_image.json](https://deploy.seldon.io/docs/demos/seldon-core/outlier/outlier_image.json)
+        2. Run a single prediction for "truck" using CIFAR-10 data in TensorFlow payload format, available here: [https://deploy.seldon.io/en/v1.2/_downloads/b6d1cd4842d4d9f15696247ffdcf7262/cifar10_image.json](https://deploy.seldon.io/en/v1.2/_downloads/b6d1cd4842d4d9f15696247ffdcf7262/cifar10_image.json).
+        3. Run a single prediction for truck outliers using CIFAR-10 data in TensorFlow payload format, available here: [https://deploy.seldon.io/en/v1.2/_downloads/9b60948e36d1fd9a95975e5392f2770c/outlier_image.json](https://deploy.seldon.io/en/v1.2/_downloads/9b60948e36d1fd9a95975e5392f2770c/outlier_image.json)
       summary:
         success: You see OK responses for each of the predictions.
-        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/docs/demos/seldon-core/outlier/] tutorial.
+        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/outlier-detection/index.html] tutorial.
     - title: Review Outliers
       description: |-
         ### Review Predictions/Outliers:
@@ -51,6 +51,6 @@ spec:
         3. Optionally, highlight outliers based on this score and use the filter to see only the outliers as needed.
       summary:
         success: You see outlier scores for each of the predictions.
-        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/docs/demos/seldon-core/outlier/] tutorial.
+        failed: Try the steps again or see the Seldon (Outlier Detection)[https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/outlier-detection/index.html] tutorial.
   conclusion: You are now able to identify outliers in requests sent to the model.
   nextQuickStart: []

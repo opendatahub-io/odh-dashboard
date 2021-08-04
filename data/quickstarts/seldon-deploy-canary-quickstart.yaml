@@ -14,7 +14,7 @@ spec:
     ### This quick start shows you how to launch a SKLearn model and use canary deployment practices to update the model.
     Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.
 
-    This quick start is a short version of the Seldon [Canary Promotion](https://deploy.seldon.io/docs/demos/seldon-core/canary/) tutorial.
+    This quick start is a short version of the Seldon [Canary Promotion](https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/canary-promotion/index.html) tutorial.
   tasks:
     - title: Deploy a pretrained SKLearn iris model
       description: |-
@@ -25,7 +25,7 @@ spec:
         4. Click through wizard to deploy the model.
       summary:
         success: You have deployed a pretrained SKLearn iris model
-        failed: Try the steps again or see the Seldon [Canary Promotion](https://deploy.seldon.io/docs/demos/seldon-core/canary/) tutorial
+        failed: Try the steps again or see the Seldon [Canary Promotion](https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/canary-promotion/index.html) tutorial
     - title: Start load test
       description: |-
         ### Complete the load test wizard:
