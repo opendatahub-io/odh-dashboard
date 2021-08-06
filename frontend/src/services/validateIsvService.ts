@@ -18,6 +18,6 @@ export const postValidateIsv = (
       return res.data;
     })
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e.response.data?.message || e.message);
     });
 };
