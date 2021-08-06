@@ -5,6 +5,7 @@ import { FastifyInstance } from 'fastify';
 export type DashboardConfig = {
   enablement: boolean;
   disableInfo: boolean;
+  disableSupport: boolean;
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules

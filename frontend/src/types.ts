@@ -5,6 +5,7 @@
 export type DashboardConfig = {
   enablement: boolean;
   disableInfo: boolean;
+  disableSupport: boolean;
 };
 
 export type OdhApplication = {
