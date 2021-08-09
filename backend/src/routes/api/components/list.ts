@@ -11,28 +11,31 @@ export const listComponents = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OdhApplication[]> => {
-  const applicationDefs = getApplicationDefs().map((appDef) => ({
-    ...appDef,
-    spec: {
-      ...appDef.spec,
-      getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
-    },
-  }));
-
+  const applicationDefs = [];
+  const installedComponents = [];
   const query = request.query as { [key: string]: string };
+
+  for (const appDef of getApplicationDefs()) {
+    applicationDefs.push({
+      ...appDef,
+      spec: {
+        ...appDef.spec,
+        getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
+        isEnabled: await getIsAppEnabled(fastify, appDef),
+      },
+    });
+  }
+
   if (!query.installed) {
     return await Promise.all(applicationDefs);
   }
 
-  const installedComponents = [];
   for (const appDef of applicationDefs) {
-    const isEnabled = await getIsAppEnabled(fastify, appDef);
-    if (isEnabled) {
+    if (appDef.spec.isEnabled) {
       const app = {
         ...appDef,
         spec: {
           ...appDef.spec,
-          isEnabled: true,
           link: await getRouteForApplication(fastify, appDef),
         },
       };

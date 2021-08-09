@@ -5,6 +5,8 @@ import { KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getApplicationDef } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
 
+const JOB_STATUS_PENDING = 'job-status-pending';
+
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 };
@@ -36,9 +38,16 @@ const waitOnCompletion = async (
       .then((res) => {
         completionStatus = res;
       })
-      .catch(async () => {
-        await doSleep(1000);
-        return;
+      .catch(async (e) => {
+        if (e.message === JOB_STATUS_PENDING) {
+          await doSleep(1000);
+          return;
+        }
+        fastify.log.error(`validation job failed: ${e.response?.body?.message ?? e.message}.`);
+        completionStatus = {
+          valid: false,
+          error: e.response?.body?.message ?? e.message,
+        };
       });
   }
 
@@ -105,7 +114,9 @@ export const runValidation = async (
   }
   const jobName = `${cronjobName}-job-custom-run`;
 
-  await createAccessSecret(appDef, namespace, stringData, coreV1Api);
+  await createAccessSecret(appDef, namespace, stringData, coreV1Api).catch((e) => {
+    fastify.log.error(`Unable to create secret: ${e.response?.body?.message ?? e.message}`);
+  });
 
   const cronJob = await batchV1beta1Api
     .readNamespacedCronJob(cronjobName, namespace)
@@ -115,6 +126,7 @@ export const runValidation = async (
     });
 
   if (!cronJob) {
+    fastify.log.error('The validation job for the application does not exist.');
     return Promise.resolve({
       valid: false,
       error: 'The validation job for the application does not exist.',
@@ -164,13 +176,14 @@ export const runValidation = async (
     // Flag the cronjob as no longer suspended
     updateCronJobSuspension(false);
 
-    return { response: null, body: null };
+    return { body: null };
   });
 
   if (!body) {
     // Flag the cronjob as no longer suspended
     updateCronJobSuspension(false);
 
+    fastify.log.error('failed to create validation job');
     return Promise.resolve({ valid: false, error: 'Failed to create validation job.' });
   }
 
@@ -187,9 +200,11 @@ export const runValidation = async (
         };
       }
       if (res.body.status.failed) {
-        return { valid: false, error: 'Validation job failed.' };
+        fastify.log.error('Validation job failed failed to run');
+
+        return { valid: false, error: 'Validation job failed to run.' };
       }
-      throw new Error();
+      throw new Error(JOB_STATUS_PENDING);
     });
   }).finally(() => {
     // Flag the cronjob as no longer suspended
@@ -209,7 +224,7 @@ export const validateISV = async (
   const cmName = enable?.validationConfigMap;
 
   // If there are variables associated with enablement, run the validation
-  if (enable?.variables?.length) {
+  if (enable?.variables && Object.keys(enable.variables).length > 0) {
     return runValidation(fastify, request);
   }
 
