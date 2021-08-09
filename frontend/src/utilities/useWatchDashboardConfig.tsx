@@ -4,6 +4,12 @@ import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchDashboardConfig } from '../services/dashboardConfigService';
 
+const DEFAULT_CONFIG: DashboardConfig = {
+  enablement: true,
+  disableInfo: false,
+  disableSupport: false,
+};
+
 export const useWatchDashboardConfig = (): {
   dashboardConfig: DashboardConfig;
   loaded: boolean;
@@ -11,9 +17,7 @@ export const useWatchDashboardConfig = (): {
 } => {
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfig>({
-    enablement: true,
-  });
+  const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfig>(DEFAULT_CONFIG);
 
   React.useEffect(() => {
     let watchHandle;
@@ -21,6 +25,7 @@ export const useWatchDashboardConfig = (): {
     const watchDashboardConfig = () => {
       fetchDashboardConfig()
         .then((config) => {
+          console.dir(config);
           if (cancelled) {
             return;
           }
@@ -45,5 +50,5 @@ export const useWatchDashboardConfig = (): {
 
   const retConfig = useDeepCompareMemoize<DashboardConfig>(dashboardConfig);
 
-  return { dashboardConfig: retConfig || { enablement: true }, loaded, loadError };
+  return { dashboardConfig: retConfig || DEFAULT_CONFIG, loaded, loadError };
 };

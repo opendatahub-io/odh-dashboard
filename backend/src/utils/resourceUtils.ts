@@ -46,6 +46,7 @@ const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
   data: {
     enablement: 'true',
     disableInfo: 'false',
+    disableSupport: 'false',
   },
 };
 
@@ -297,6 +298,7 @@ export const getDashboardConfig = (): DashboardConfig => {
   return {
     enablement: (config.data?.enablement ?? '').toLowerCase() !== 'false',
     disableInfo: (config.data?.disableInfo ?? '').toLowerCase() === 'true',
+    disableSupport: (config.data?.disableSupport ?? '').toLowerCase() === 'true',
   };
 };
 
