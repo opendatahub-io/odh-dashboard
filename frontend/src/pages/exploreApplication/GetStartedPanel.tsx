@@ -20,17 +20,16 @@ import { OdhApplication } from '../../types';
 import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
 import { useGettingStarted } from '../../utilities/useGettingStarted';
 import MarkdownView from '../../components/MarkdownView';
-import EnableModal from './EnableModal';
 
 import './GetStartedPanel.scss';
 
 type GetStartedPanelProps = {
   selectedApp?: OdhApplication;
   onClose: () => void;
+  onEnable: () => void;
 };
 
-const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose }) => {
-  const [enableOpen, setEnableOpen] = React.useState<boolean>(false);
+const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const appName = selectedApp?.metadata.name;
   const { odhGettingStarted, loaded, loadError } = useGettingStarted(appName);
   const { dashboardConfig } = useWatchDashboardConfig();
@@ -67,17 +66,6 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
     }
 
     return <MarkdownView markdown={odhGettingStarted?.markdown} />;
-  };
-
-  const onEnableClose = (success?: boolean) => {
-    if (success) {
-      selectedApp.spec.isEnabled = true;
-    }
-    setEnableOpen(false);
-  };
-
-  const onEnable = () => {
-    setEnableOpen(true);
   };
 
   const renderEnableButton = () => {
@@ -141,7 +129,6 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose 
           {renderMarkdownContents()}
         </DrawerPanelBody>
       </DrawerPanelContent>
-      {enableOpen ? <EnableModal onClose={onEnableClose} selectedApp={selectedApp} /> : null}
     </>
   );
 };
