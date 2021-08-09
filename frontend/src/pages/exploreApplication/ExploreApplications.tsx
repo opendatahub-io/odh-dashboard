@@ -38,11 +38,17 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
     const bodyClasses = classNames('odh-explore-apps__body', {
       'm-side-panel-open': !!selectedComponent,
     });
+    const [enableApp, setEnableApp] = React.useState<OdhApplication>();
+
     return (
       <Drawer isExpanded={!dashboardConfig.disableInfo && !!selectedComponent} isInline>
         <DrawerContent
           panelContent={
-            <GetStartedPanel onClose={() => updateSelection()} selectedApp={selectedComponent} />
+            <GetStartedPanel
+              onClose={() => updateSelection()}
+              selectedApp={selectedComponent}
+              onEnable={() => setEnableApp(selectedComponent)}
+            />
           }
         >
           <DrawerContentBody className={bodyClasses}>
@@ -64,6 +70,8 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                           isSelected={selectedComponent === c}
                           onSelect={() => updateSelection(c.metadata.name)}
                           disableInfo={dashboardConfig.disableInfo}
+                          enableOpen={c.metadata.name === enableApp?.metadata.name}
+                          onEnableClose={() => setEnableApp(undefined)}
                         />
                       ))}
                     </Gallery>

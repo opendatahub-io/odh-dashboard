@@ -65,8 +65,13 @@ describe('ExploreApplications', () => {
   });
 
   it('should display available applications', () => {
-    const wrapper = mount(<ExploreApplications />);
-
+    const wrapper = mount(
+      <Provider store={store}>
+        <Router>
+          <ExploreApplications />
+        </Router>
+      </Provider>,
+    );
     expect(wrapper.find('.odh-explore-apps__body').exists()).toBe(true);
     const cards = wrapper.find('.pf-m-selectable.odh-card');
     expect(cards.length).toBe(2);
@@ -76,7 +81,13 @@ describe('ExploreApplications', () => {
   });
 
   it('should show the getting started panel on card click', () => {
-    const wrapper = mount(<ExploreApplications />);
+    const wrapper = mount(
+      <Provider store={store}>
+        <Router>
+          <ExploreApplications />
+        </Router>
+      </Provider>,
+    );
     expect(wrapper.find('.m-side-panel-open').exists()).toBe(false);
 
     act(() => {

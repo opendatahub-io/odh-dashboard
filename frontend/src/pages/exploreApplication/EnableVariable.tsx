@@ -13,11 +13,12 @@ type EnableVariableProps = {
   inputType: TextInputTypes;
   helperText?: string;
   validationInProgress: boolean;
+  value: string;
   updateValue: (value: string) => void;
 };
 
 const EnableVariable = React.forwardRef<HTMLInputElement, EnableVariableProps>(
-  ({ label, inputType, helperText, validationInProgress, updateValue }, ref) => {
+  ({ label, inputType, helperText, validationInProgress, value, updateValue }, ref) => {
     const [showPassword, setShowPassword] = React.useState<boolean>(false);
 
     return (
@@ -30,7 +31,8 @@ const EnableVariable = React.forwardRef<HTMLInputElement, EnableVariableProps>(
           type={
             inputType === TextInputTypes.password && showPassword ? TextInputTypes.text : inputType
           }
-          onChange={(value) => updateValue(value)}
+          value={value || ''}
+          onChange={(newValue) => updateValue(newValue)}
         />
         {inputType === TextInputTypes.password ? (
           <Button
