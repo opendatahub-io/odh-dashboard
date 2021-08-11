@@ -66,7 +66,12 @@ html, body, #root {
       }
     }
   }
-
+  .pf-c-page__main {
+    height: 100%;
+  }
+  .pf-c-drawer__content {
+    overflow-y: auto;
+  }
   .pf-c-page__main-section {
     .pf-l-gallery {
       --pf-l-gallery--GridTemplateColumns--max-on-xl: 330px;
