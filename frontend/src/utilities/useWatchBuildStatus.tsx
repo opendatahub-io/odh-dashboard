@@ -1,18 +1,24 @@
 import * as React from 'react';
 import { useDispatch } from 'react-redux';
-import { BuildStatus } from '../types';
+import { BUILD_PHASE, BuildStatus } from '../types';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchBuildStatuses } from '../services/buildsService';
 import { addNotification } from '../redux/actions/actions';
 
-const runningStatuses = ['pending', 'running', 'cancelled'];
-const failedStatuses = ['error', 'failed'];
+const runningStatuses = [
+  BUILD_PHASE.new,
+  BUILD_PHASE.pending,
+  BUILD_PHASE.running,
+  BUILD_PHASE.cancelled,
+];
+const failedStatuses = [BUILD_PHASE.failed];
 
-const filterBuilds = (buildStatuses: BuildStatus[], filterStatuses: string[]): BuildStatus[] => {
-  return buildStatuses.filter((buildStatus) =>
-    filterStatuses.includes(buildStatus.status.toLowerCase()),
-  );
+const filterBuilds = (
+  buildStatuses: BuildStatus[],
+  filterStatuses: BUILD_PHASE[],
+): BuildStatus[] => {
+  return buildStatuses.filter((buildStatus) => filterStatuses.includes(buildStatus.status));
 };
 
 export const useWatchBuildStatus = (): void => {
