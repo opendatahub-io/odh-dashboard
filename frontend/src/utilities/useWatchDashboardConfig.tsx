@@ -25,7 +25,6 @@ export const useWatchDashboardConfig = (): {
     const watchDashboardConfig = () => {
       fetchDashboardConfig()
         .then((config) => {
-          console.dir(config);
           if (cancelled) {
             return;
           }
