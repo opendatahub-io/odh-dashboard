@@ -207,7 +207,10 @@ const getCREnabledForApp = (
       }
       return getField(existingCR, appDef.spec.enableCR.field) === appDef.spec.enableCR.value;
     })
-    .catch(() => false);
+    .catch((e) => {
+      fastify.log.error(e.response?.body?.message ?? e.message);
+      return false;
+    });
 };
 
 export const getIsAppEnabled = async (

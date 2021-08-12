@@ -21,4 +21,4 @@ spec:
   support: red hat
   docsLink: https://access.redhat.com/documentation/en-us/red_hat_openshift_api_management
   quickStart: deploy-model-rhoam
-  getStartedLink: https://cloud.redhat.com/openshift/details/<CLUSTER_ID/>#addOns
+  getStartedLink: https://console.redhat.com/openshift/details/<CLUSTER_ID/>#addOns
