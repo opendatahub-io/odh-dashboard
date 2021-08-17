@@ -84,9 +84,18 @@ export type OdhGettingStarted = {
   markdown: string;
 };
 
+export enum BUILD_PHASE {
+  new = 'New',
+  running = 'Running',
+  pending = 'Pending',
+  complete = 'Complete',
+  failed = 'Failed',
+  cancelled = 'Cancelled',
+}
+
 export type BuildStatus = {
   name: string;
-  status: string;
+  status: BUILD_PHASE;
   timestamp: string;
 };
 

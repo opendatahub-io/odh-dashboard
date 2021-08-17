@@ -35,12 +35,22 @@ export type K8sResourceCommon = {
     namespace?: string;
     uid?: string;
     labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
   };
 };
 
+export enum BUILD_PHASE {
+  new = 'New',
+  running = 'Running',
+  pending = 'Pending',
+  complete = 'Complete',
+  failed = 'Failed',
+  cancelled = 'Cancelled',
+}
+
 export type BuildKind = {
   status: {
-    phase: string;
+    phase: BUILD_PHASE;
     completionTimestamp: string;
     startTimestamp: string;
   };
@@ -196,7 +206,7 @@ export type OdhGettingStarted = {
 
 export type BuildStatus = {
   name: string;
-  status: string;
+  status: BUILD_PHASE;
   timestamp?: string;
 };
 

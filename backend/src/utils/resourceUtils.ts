@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { V1ConfigMap } from '@kubernetes/client-node';
 import {
+  BUILD_PHASE,
   BuildKind,
   BuildStatus,
   ConsoleLinkKind,
@@ -164,6 +165,26 @@ const fetchDocs = async (): Promise<OdhDocument[]> => {
   return Promise.resolve(docs);
 };
 
+const getBuildNumber = (build: BuildKind): number => {
+  const buildNumber = build.metadata.annotations?.['openshift.io/build.number'];
+  return !!buildNumber && parseInt(buildNumber, 10);
+};
+
+const PENDING_PHASES = [BUILD_PHASE.new, BUILD_PHASE.pending, BUILD_PHASE.cancelled];
+
+const compareBuilds = (b1: BuildKind, b2: BuildKind) => {
+  const b1Pending = PENDING_PHASES.includes(b1.status.phase);
+  const b2Pending = PENDING_PHASES.includes(b2.status.phase);
+
+  if (b1Pending && !b2Pending) {
+    return -1;
+  }
+  if (b2Pending && !b1Pending) {
+    return 1;
+  }
+  return getBuildNumber(b1) - getBuildNumber(b2);
+};
+
 const getBuildConfigStatus = (
   fastify: KubeFastifyInstance,
   buildConfig: K8sResourceCommon,
@@ -188,16 +209,10 @@ const getBuildConfigStatus = (
       if (bcBuilds.length === 0) {
         return {
           name: notebookName,
-          status: 'pending',
+          status: BUILD_PHASE.pending,
         };
       }
-      const mostRecent = bcBuilds
-        .sort((bc1, bc2) => {
-          const name1 = parseInt(bc1.metadata.name.split('_').pop());
-          const name2 = parseInt(bc2.metadata.name.split('_').pop());
-          return name1 - name2;
-        })
-        .pop();
+      const mostRecent = bcBuilds.sort(compareBuilds).pop();
       return {
         name: notebookName,
         status: mostRecent.status.phase,
@@ -205,10 +220,10 @@ const getBuildConfigStatus = (
       };
     })
     .catch((e) => {
-      console.dir(e);
+      fastify.log.error(e.response?.body?.message || e.message);
       return {
         name: notebookName,
-        status: 'pending',
+        status: BUILD_PHASE.pending,
       };
     });
 };
@@ -331,7 +346,7 @@ export const getDocs = (): OdhDocument[] => {
   return docWatcher.getResources();
 };
 
-export const getBuildStatuses = (): { name: string; status: string }[] => {
+export const getBuildStatuses = (): BuildStatus[] => {
   return buildsWatcher.getResources();
 };
 
