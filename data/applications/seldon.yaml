@@ -15,4 +15,4 @@ spec:
   category: Self-managed
   support: third party support
   quickStart: 'seldon-deploy-model-canary'
-  getStartedLink: 'https://deploy.seldon.io/docs/getting-started'
+  getStartedLink: 'https://deploy.seldon.io/en/latest/contents/getting-started/'
