@@ -17,7 +17,7 @@ import './ApplicationsPage.scss';
 
 type ApplicationsPageProps = {
   title: string;
-  description: string;
+  description: React.ReactNode;
   loaded: boolean;
   empty: boolean;
   loadError?: Error;
