@@ -5,14 +5,15 @@ metadata:
   annotations:
     opendatahub.io/categories: 'AI/Machine learning,API,Management,Model serving,Python'
 spec:
-  displayName: Getting started with Red Hat OpenShift API Management
+  displayName: Securing a deployed model using Red Hat OpenShift API Management
   appName: rhoam
   durationMinutes: 10
   icon: 'images/red-hat.svg'
   description:  Learn how to protect a model service API using Red Hat OpenShift API Management.
   prerequisites: [You have completed the "How to deploy a Python model using Flask and OpenShift" quick start.]
   introduction: >-
-    Welcome to the Red Hat OpenShift API Management Getting Started quick start. Red Hat OpenShift API Management installs and manages instances of Red Hat 3scale API Management and Red Hat Single Sign-On on an OpenShift cluster.
+    Red Hat OpenShift API Management installs and manages instances of Red Hat 3scale API Management and Red Hat Single Sign-On on an OpenShift cluster.
+
 
     In this quick start, you will import a deployed Python model service into Red Hat 3scale API Management using Service Discovery and protect it using API Key security.
   tasks:
