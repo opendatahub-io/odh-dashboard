@@ -2,6 +2,7 @@ import React from 'react';
 import * as _ from 'lodash';
 import useDimensions from 'react-cool-dimensions';
 import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import { useWatchDocs } from '../../utilities/useWatchDocs';
@@ -25,12 +26,14 @@ import {
 import LearningCenterToolbar from './LearningCenterToolbar';
 import LearningCenterFilters from './LearningCenterFilters';
 import { useDocFilterer } from './useDocFilterer';
+import { DOC_LINK } from '../../utilities/const';
 import { combineCategoryAnnotations } from '../../utilities/utils';
 import LearningCenterDataView from './LearningCenterDataView';
 
 import './LearningCenter.scss';
 
-const description = `Access all learning resources for Open Data Hub and supported applications.`;
+const description = `Access all learning resources for Red Hat OpenShift Data Science and supported applications.`;
+const docText = ` To learn more about Red Hat OpenShift Data Science, `;
 
 export const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
@@ -175,10 +178,30 @@ export const LearningCenter: React.FC = () => {
     [favoriteResources, setFavorites],
   );
 
+  const docLink = DOC_LINK ? (
+    <>
+      {docText}
+      <a
+        className="odh-dashboard__external-link"
+        href={DOC_LINK}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        view the documentation.
+        <ExternalLinkAltIcon />
+      </a>
+    </>
+  ) : null;
+
   return (
     <ApplicationsPage
       title="Resources"
-      description={description}
+      description={
+        <>
+          {description}
+          {docLink}
+        </>
+      }
       loaded={loaded && docsLoaded}
       loadError={loadError || docsLoadError}
       empty={false}
