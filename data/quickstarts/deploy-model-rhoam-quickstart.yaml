@@ -33,9 +33,9 @@ spec:
 
         1. In the deployment overview panel, click the **Resources** tab.
 
-        1. Click the link under the **Services** heading to load the **Service details** screen.
+        1. Click the link under the **Services** heading to load the **Service Details** screen.
 
-        1. Use the **Edit** link beside the **Labels** heading to add a label with the key `discovery.3scale.net` and the value `true`.
+        1. Use the **Edit** link next to the **Labels** heading to add a label with the key `discovery.3scale.net` and the value `true`.
 
         1. Scroll down and click the **Annotations** to open the **Edit annotations** dialog for the Service.
 
@@ -43,7 +43,7 @@ spec:
             * Key: `discovery.3scale.net/port` with value: `8080`
             * Key: `discovery.3scale.net/scheme` with value: `http`
 
-        1. Click the **Save** button after you've added the three annotations.
+        1. Click **Save** after you've added the three annotations.
 
       review:
         instructions: |-
@@ -65,7 +65,7 @@ spec:
 
         1. Log in using the identity provider that applies to you.
 
-        1. A welcome message is displayed if this is your first time logging into 3scale API Management. Dismiss, or read through welcome message page(s).
+        1. A welcome message is displayed if this is your first time logging in to 3scale API Management. Dismiss, or read through the welcome message page(s).
 
 
         You are now at the Red Hat 3scale API Management dashboard.
@@ -81,14 +81,14 @@ spec:
         A Backend is a web service that 3scale API Management proxies requests to, based on mapping rules defined in the Product.
 
 
-        1. Click the **Create Product** button under the **APIs** heading on the dashboard. The **New Product** screen appears.
+        1. Click **Create Product** under the **APIs** heading on the dashboard. The **New Product** screen is displayed.
 
         1. Select the **Import from OpenShift** option. If this option is greyed out, click the **(Authenticate to enable this option)** link to enable it.
 
-        1. After selecting the **Import from OpenShift** option, use the dropdown fields to select:
+        1. After selecting the **Import from OpenShift** option, use the drop-down fields to select:
             * The **Namespace** that contains your Python application.
             * The **Python** application.
-        1. Click the **Create Product** button.
+        1. Click **Create Product**.
 
         You are redirected to the 3scale API Management dashboard, which lists your new API. If your Python API is not listed in the APIs section after a few moments, try refreshing the page.
 
@@ -98,7 +98,7 @@ spec:
 
         1. Select your **s2i-python-app** from the **Products** list to visit the **Overview** screen.
 
-        1. Expand the dropdown menu in the top navigation and select **Backends**.
+        1. Expand the drop-down menu in the top navigation and select **Backends**.
 
         1. Verify that your python application Backend is listed, and that a private Service URL is listed, for example, `http://s2i-python-service.my-project.svc.cluster.local:8080`. 3scale API Management proxies incoming requests to this private Service URL.
 
@@ -128,9 +128,9 @@ spec:
 
         1. Select your **s2i-python-app** from the **Products** list.
 
-        1. Navigate to **Integration** -> **Configuration**. Your API is already available via the Staging APIcast, but the `user_key` parameter is set to a placeholder value, for example, **Example curl for testing** shows something similar to `https://my-project-s2i-python-service-openapi-3scale-api.cluster.com/?user_key=USER_KEY`
+        1. Navigate to **Integration** -> **Configuration**. Your API is already available through the Staging APIcast, but the `user_key` parameter is set to a placeholder value, for example, **Example curl for testing** shows something similar to `https://my-project-s2i-python-service-openapi-3scale-api.cluster.com/?user_key=USER_KEY`
 
-        If you copy the URL and visit it in a browser, an **Authentication failed** message is shown because the API Key placeholder value (`USER_KEY`) is not valid.
+        If you copy the URL and visit it in a browser, a message indicating authentication has failed is displayed. A failed authentication results when the API Key placeholder value (`USER_KEY`) is not valid.
 
 
         To obtain an API Key you need to create an **Application Plan** and subscribe an **Application** to that plan.
@@ -142,7 +142,7 @@ spec:
 
         1. Navigate to **Applications** -> **Application plans**.
 
-        1. Click the **Create Application Plan** button.
+        1. Click **Create Application Plan**.
 
         1. Enter following values:
             * In the **Name** field, enter `RHOAM Open API Plan`.
@@ -150,14 +150,14 @@ spec:
             * Uncheck the **Applications require approval** box.
         1. Click **Create Application Plan**. You are redirected to the **Application Plans** listing.
 
-        1. Use the **Publish** link to publish the plan.
+        1. Click the **Publish** link to publish the plan.
 
 
         ## Create an Application
 
         Next, create an **Application** that is registered to a developer account:
 
-        1. Expand the dropdown menu in the top navigation of 3scale API Management and select **Audience**.
+        1. Expand the drop-down menu in the top navigation of 3scale API Management and select **Audience**.
 
         1. Under **Account**, click the **Developer** account.
 
@@ -169,7 +169,7 @@ spec:
           1. Set **Application Plan** to `RHOAM Open API Plan`.
           1. Use the default value for the **Service Plan**.
           1. In the **Name** and **Desciption** fields, enter `Developer RHOAM Application`.
-        1. Click the **Create Application** button.
+        1. Click **Create Application**.
 
         1. You are redirected to the **Developer RHOAM Application** page, and your **User Key** is now listed under **API Credentials**.
 
@@ -191,7 +191,7 @@ spec:
 
         1. Copy the Staging URL, for example, `https://user-dev-rhoam-quarkus-openapi-3scale-api.cluster.com/?user_key=<API_KEY_GOES_HERE>` and replace `<API_KEY_GOES_HERE>` with your API Key value.
 
-        1. Visit the API status endpoint by adding `/status` to the path, before the `/?user_key` portion of the URL, for example, https://user-dev-rhoam-quarkus-openapi-3scale-api.cluster.com/status/?user_key=<API_KEY_GOES_HERE>. The response from your API endpoint is `{"status":"ok"}`.
+        1. Visit the API status endpoint by adding `/status` to the path, before the `/?user_key` portion of the URL. Use the following as an example formatting: https://user-dev-rhoam-quarkus-openapi-3scale-api.cluster.com/status/?user_key=<API_KEY_GOES_HERE>. The response from your API endpoint is `{"status":"ok"}`.
 
 
         ## Delete the Unprotected Route
@@ -206,7 +206,7 @@ spec:
 
         1. Click the **s2i-python-app** item under the **Routes** heading.
 
-        1. Expand the **Actions** dropdown and click **Delete Route**.
+        1. Expand the **Actions** drop-down menu and click **Delete Route**.
 
 
         Congratulations! The only endpoint available to access your API now enforces API Key security.
@@ -223,5 +223,5 @@ spec:
     Congratulations!
 
 
-    You successfully completed the Red Hat OpenShift API Management Getting Started quick start,
+    You have successfully completed the **Securing a deployed model using Red Hat OpenShift API Management** quick start,
     and are now ready to use the service.
