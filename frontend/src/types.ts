@@ -99,6 +99,31 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+export type K8sResourceCommon = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    uid: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+};
+
+// Minimal type for ConsoleLinks
+export type ConsoleLinkKind = {
+  spec: {
+    text: string;
+    location: string;
+    href: string;
+    applicationMenu: {
+      section: string;
+      imageURL: string;
+    };
+  };
+} & K8sResourceCommon;
+
 //
 // Used for Telemetry
 //

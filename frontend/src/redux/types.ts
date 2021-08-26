@@ -29,6 +29,7 @@ export interface GetUserAction {
   payload: {
     user?: string;
     clusterID?: string;
+    clusterBranding?: string;
     error?: Error | null;
     notification?: AppNotification;
   };
@@ -39,6 +40,7 @@ export interface AppState {
   userLoading: boolean;
   userError?: Error | null;
   clusterID?: string;
+  clusterBranding?: string;
   notifications: AppNotification[];
   forceComponentsUpdate: number;
 }

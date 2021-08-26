@@ -103,6 +103,7 @@ export type KubeStatus = {
   namespace: string;
   userName: string | string[];
   clusterID: string;
+  clusterBranding: string;
 };
 
 export type KubeDecorator = KubeStatus & {

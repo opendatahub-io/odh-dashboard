@@ -5,6 +5,15 @@ metadata:
 rules:
   - verbs:
       - get
+      - watch
+      - list
+    apiGroups:
+      - ''
+      - config.openshift.io
+    resources:
+      - clusterversions
+  - verbs:
+      - get
       - list
       - watch
     apiGroups:
@@ -19,6 +28,7 @@ rules:
       - ''
     resources:
       - services
+      - configmaps
   - verbs:
       - get
       - list
@@ -32,6 +42,24 @@ rules:
       - list
       - watch
     apiGroups:
-      - config.openshift.io
+      - console.openshift.io
     resources:
-      - clusterversions
+      - consolelinks
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
+      - operator.openshift.io
+    resources:
+      - consoles
+  - verbs:
+      - get
+      - watch
+      - list
+    apiGroups:
+      - ''
+      - integreatly.org
+    resources:
+      - rhmis
+

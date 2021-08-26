@@ -25,6 +25,7 @@ rules:
       - create
       - delete
       - get
+      - list
       - patch
       - update
       - watch
@@ -37,17 +38,29 @@ rules:
       - create
       - delete
       - get
+      - list
       - patch
       - update
       - watch
     resources:
       - cronjobs
       - jobs
+      - jobs/status
   - apiGroups:
       - image.openshift.io
     verbs:
       - create
       - get
+      - list
       - patch
     resources:
       - imagestreams
+  - apiGroups:
+      - build.openshift.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - builds
+      - buildconfigs
