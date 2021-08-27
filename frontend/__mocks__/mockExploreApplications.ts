@@ -1,6 +1,6 @@
 import { OdhApplication } from '../src/types';
 
-export const mockExploreApplications = [
+export const mockExploreApplications: OdhApplication[] = [
   {
     metadata: {
       name: 'jupyterhub',
@@ -37,6 +37,7 @@ export const mockExploreApplications = [
       docsLink: 'https://fakelink.org/fake',
       getStartedLink: 'https://jupyterhub.readthedocs.io/en/stable/getting-started/index.html',
       isEnabled: false,
+      quickStart: null,
       enable: {
         title: 'Test Enable',
         actionLabel: 'Enable',
@@ -56,4 +57,4 @@ export const mockExploreApplications = [
       },
     },
   },
-] as never as OdhApplication;
+];

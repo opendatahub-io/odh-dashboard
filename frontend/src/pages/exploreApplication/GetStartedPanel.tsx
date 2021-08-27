@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   ButtonVariant,
   DrawerPanelBody,
@@ -22,6 +23,11 @@ import { useGettingStarted } from '../../utilities/useGettingStarted';
 import MarkdownView from '../../components/MarkdownView';
 
 import './GetStartedPanel.scss';
+
+const DEFAULT_BETA_TEXT =
+  'Beta means the service is available for early access prior to official' +
+  " release and will not appear in the 'Enabled' view. You can still access the service by" +
+  ' following the instructions';
 
 type GetStartedPanelProps = {
   selectedApp?: OdhApplication;
@@ -126,6 +132,20 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
           </DrawerPanelBody>
         ) : null}
         <DrawerPanelBody className="odh-get-started__body">
+          {selectedApp.spec.beta ? (
+            <Alert
+              variantLabel="error"
+              variant="info"
+              title={
+                selectedApp.spec.betaTitle ||
+                `${selectedApp.spec.displayName} is currently in beta.`
+              }
+              aria-live="polite"
+              isInline
+            >
+              {selectedApp.spec.betaText || DEFAULT_BETA_TEXT}
+            </Alert>
+          ) : null}
           {renderMarkdownContents()}
         </DrawerPanelBody>
       </DrawerPanelContent>
