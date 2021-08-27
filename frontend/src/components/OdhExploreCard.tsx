@@ -54,10 +54,17 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           src={odhApp.spec.img}
           alt={odhApp.spec.displayName}
         />
-        {odhApp.spec.comingSoon ? <span className="odh-card__coming-soon">Coming soon</span> : null}
-        {!odhApp.spec.comingSoon && odhApp.spec.category ? (
-          <span className={badgeClasses}>{odhApp.spec.category}</span>
-        ) : null}
+        <div className="odh-card__explore-badges">
+          {odhApp.spec.comingSoon ? (
+            <span className="odh-card__coming-soon">Coming soon</span>
+          ) : null}
+          {!odhApp.spec.comingSoon && odhApp.spec.category ? (
+            <span className={badgeClasses}>{odhApp.spec.category}</span>
+          ) : null}
+          {odhApp.spec.beta ? (
+            <span className="odh-card__partner-badge odh-m-beta">Beta</span>
+          ) : null}
+        </div>
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} showProvider />
       <CardBody>{odhApp.spec.description}</CardBody>

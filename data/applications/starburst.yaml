@@ -15,3 +15,5 @@ spec:
   support: third party support
   quickStart: ''
   getStartedLink: https://www.starburst.io/platform/starburst-galaxy/
+  beta: true
+  

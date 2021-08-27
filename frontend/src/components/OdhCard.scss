@@ -76,6 +76,18 @@
         margin-right: var(--pf-global--spacer--xs);
       }
     }
+    &.odh-m-beta {
+      color: var(--pf-global--palette--gold-700);
+      background-color: var(--pf-global--palette--gold-50);
+      border-color: var(--pf-global--palette--gold-100);
+      padding: 0 var(--pf-global--spacer--md);
+    }
+  }
+
+  &__explore-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   &__doc-badges {

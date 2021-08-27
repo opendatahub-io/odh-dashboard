@@ -145,6 +145,9 @@ export type OdhApplication = {
     support: string;
     quickStart: string | null;
     comingSoon: boolean | null;
+    beta?: boolean | null;
+    betaTitle?: string | null;
+    betaText?: string | null;
     isEnabled: boolean | null;
     kfdefApplications: string[];
     csvName: string;
