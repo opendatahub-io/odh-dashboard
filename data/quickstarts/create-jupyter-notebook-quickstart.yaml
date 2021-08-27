@@ -38,9 +38,12 @@ spec:
         ### Configuring and starting an environment:
         1. Select a notebook image from the options provided.
         2. Select a container size based on your computation needs.
-        3. Click the **Start** button.
+        3. Click the **Start server** button.
+        
+        If you have not previously authorized the jupyterhub-hub service account to access your account, the **Authorize Access** page appears prompting you to provide authorization. Inspect the permissions selected by default, and click the **Allow selected permissions** button.
 
         The **Start a notebook server** page will reload and indicate that the system is starting up.
+        
       review:
         instructions: |-
           #### To verify that you have launched the Jupyter notebook:
