@@ -67,7 +67,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                         <OdhExploreCard
                           key={c.metadata.name}
                           odhApp={c}
-                          isSelected={selectedComponent === c}
+                          isSelected={selectedComponent?.metadata.name === c.metadata.name}
                           onSelect={() => updateSelection(c.metadata.name)}
                           disableInfo={dashboardConfig.disableInfo}
                           enableOpen={c.metadata.name === enableApp?.metadata.name}
