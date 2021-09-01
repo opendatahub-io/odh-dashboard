@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2.1.5
+        uses: actions/setup-node@v2.4.0
         with:
           node-version: ${{ matrix.node-version }}
       - name: Node.js modules cache, repository
