@@ -1,0 +1,12 @@
+metadata:
+  name: pachyderm-house-pricing-tutorial
+  type: tutorial
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning, Pipeline, Python'
+spec:
+  appName: pachyderm
+  displayName: Train a regression model in Pachyderm
+  description: |-
+    In this example, you will create a simple machine learning pipeline in Pachyderm to train a regression model on the Boston Housing Dataset and predict the value of homes in Boston.
+  url: https://github.com/pachyderm/examples/tree/master/housing-prices
+  durationMinutes: 30
