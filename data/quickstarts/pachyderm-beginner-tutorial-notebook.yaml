@@ -1,0 +1,51 @@
+kind: ConsoleQuickStart
+metadata:
+  name: pachyderm-beginner-tutorial-notebook
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Getting started,Jupyter notebook,Pipeline,Python'
+
+spec:
+  displayName: Pachyderm Beginner Tutorial Notebook
+  appName: pachyderm
+  durationMinutes: 30
+  icon: 'images/pachyderm.svg'
+  description: This quick start will help you load Pachyderm beginner tutorial notebook,
+   a notebook introduction to Pachyderm, using the pachctl command line utility to illustrate the basics of Pachyderm data repositories and pipelines
+   
+  introduction: |-
+    ### This quick start shows you how to import Pachyderm Tutorial notebook
+ 
+    Pachyderm provides industry leading data versioning, pipelines, and lineage that allow data science teams
+    to automate the machine learning lifecycle and optimize their machine learning operations (MLOps). 
+  tasks:
+    - title: Launch JupyterHub notebook server
+      description: |-
+        ### Important considerations
+        Use the **Minimal Python** notebook with a **Large** container size.
+
+      review:
+        instructions: |-
+          #### Launched JupyterHub notebook server
+          Do you have a notebook browser tab?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have a notebook server
+        failed: Review the "Creating a Jupyter notebook" quick start for additional help.
+    - title: Load Pachyderm beginner tutorial notebook
+      description: |-
+        ### Loading your beginner tutorial notebook
+        1. Download the "Intro to Pachyderm Tutorial.ipynb" notebook from our [examples repository](https://github.com/pachyderm/examples/).
+        2. Upload the **Intro to Pachyderm Tutorial.ipynb** notebook file using the JupyterLab file manager.
+        3. Click on the uploaded notebook to launch it in a new JupyterLab tab.
+
+      review:
+        instructions: |-
+          #### Verify that the notebook launched successfully
+          Do you have a notebook tab your Pachyderm notebook in your browser?
+        failedTaskHelp:
+          This task is not verified yet. Try the task again.
+      summary:
+        success: You have loaded Pachyderm beginner tutorial notebook
+        failed: Try the steps again.
+  conclusion: You can complete the rest of the quick start inside the notebook itself. Proceed cell by cell, taking care not to skip any. Once you have completed the entire notebook, you will have learned about Pachyderm's main concepts.
+  nextQuickStart: []
