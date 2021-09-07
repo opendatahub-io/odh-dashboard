@@ -31,7 +31,7 @@ jest.mock('../utilities/useWatchComponents', () => ({
   useWatchComponents: () => ({
     loaded: true,
     loadError: null,
-    components: mockExploreApplications,
+    results: mockExploreApplications,
   }),
 }));
 jest.mock('../utilities/router', () => ({
@@ -44,7 +44,7 @@ jest.mock('../utilities/router', () => ({
 }));
 jest.mock('../utilities/useWatchDashboardConfig', () => ({
   useWatchDashboardConfig: () => ({
-    dashboardConfig,
+    results: dashboardConfig,
     loaded: true,
     loadError: null,
   }),

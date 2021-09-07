@@ -36,8 +36,8 @@ const description = `Access all learning resources for Open Data Hub and support
 const docText = ` To learn more about Open Data Hub, `;
 
 export const LearningCenter: React.FC = () => {
-  const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
-  const { components, loaded, loadError } = useWatchComponents(false);
+  const { results: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
+  const { results: components, loaded, loadError } = useWatchComponents(false);
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
   const [docApps, setDocApps] = React.useState<OdhDocument[]>([]);
   const [filteredDocApps, setFilteredDocApps] = React.useState<OdhDocument[]>([]);

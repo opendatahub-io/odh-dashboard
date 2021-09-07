@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useHistory } from 'react-router';
 import classNames from 'classnames';
-import * as _ from 'lodash';
 import {
   Drawer,
   DrawerContent,
@@ -14,6 +13,7 @@ import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig
 import OdhExploreCard from '../../components/OdhExploreCard';
 import ApplicationsPage from '../ApplicationsPage';
 import { OdhApplication } from '../../types';
+import { DEFAULT_DASHBOARD_CONFIG } from '../../utilities/const';
 import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
@@ -34,11 +34,12 @@ type ExploreApplicationsInnerProps = {
 
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
-    const { dashboardConfig } = useWatchDashboardConfig();
+    const { results } = useWatchDashboardConfig();
     const bodyClasses = classNames('odh-explore-apps__body', {
       'm-side-panel-open': !!selectedComponent,
     });
     const [enableApp, setEnableApp] = React.useState<OdhApplication>();
+    const dashboardConfig = results || DEFAULT_DASHBOARD_CONFIG;
 
     return (
       <Drawer isExpanded={!dashboardConfig.disableInfo && !!selectedComponent} isInline>
@@ -88,7 +89,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
 ExploreApplicationsInner.displayName = 'ExploreApplicationsInner';
 
 const ExploreApplications: React.FC = () => {
-  const { components, loaded, loadError } = useWatchComponents(false);
+  const { results: components, loaded, loadError } = useWatchComponents(false);
   const history = useHistory();
   const queryParams = useQueryParams();
   const selectedId = queryParams.get('selectId');
@@ -97,7 +98,8 @@ const ExploreApplications: React.FC = () => {
 
   const updateSelection = React.useCallback(
     (selectedId?: string | null): void => {
-      const selection = components.find((c) => c.metadata.name && c.metadata.name === selectedId);
+      const selection =
+        components && components.find((c) => c.metadata.name && c.metadata.name === selectedId);
       if (selectedId && selection) {
         setQueryArgument(history, 'selectId', selectedId);
         setSelectedComponent(selection);
@@ -112,13 +114,13 @@ const ExploreApplications: React.FC = () => {
   );
 
   const exploreComponents = React.useMemo<OdhApplication[]>(() => {
-    return _.cloneDeep(components).sort((a, b) =>
-      a.spec.displayName.localeCompare(b.spec.displayName),
-    );
+    return components
+      ? components.slice().sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName))
+      : [];
   }, [components]);
 
   React.useEffect(() => {
-    if (components?.length > 0) {
+    if (components && components?.length > 0) {
       updateSelection(selectedId);
     }
   }, [updateSelection, selectedId, components]);

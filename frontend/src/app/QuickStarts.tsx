@@ -14,7 +14,7 @@ import { useWatchQuickStarts } from '../utilities/useWatchQuickStarts';
 const QuickStarts: React.FC = ({ children }) => {
   const [activeQuickStartID, setActiveQuickStartID] = useLocalStorage('odsQuickstartId', '');
   const [allQuickStartStates, setAllQuickStartStates] = useLocalStorage('odsQuickstarts', {});
-  const { quickStarts } = useWatchQuickStarts();
+  const { results: quickStarts } = useWatchQuickStarts();
 
   const valuesForQuickStartContext = useValuesForQuickStartContext({
     allQuickStarts: quickStarts || [],

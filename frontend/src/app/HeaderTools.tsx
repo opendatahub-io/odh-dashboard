@@ -11,7 +11,12 @@ import {
   DropdownItem,
 } from '@patternfly/react-core';
 import { CaretDownIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
+import {
+  COMMUNITY_LINK,
+  DOC_LINK,
+  SUPPORT_LINK,
+  DEFAULT_DASHBOARD_CONFIG,
+} from '../utilities/const';
 import { AppNotification, State } from '../redux/types';
 import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
 
@@ -26,8 +31,8 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     (state) => state.appState.notifications,
   );
   const userName: string = useSelector<State, string>((state) => state.appState.user || '');
-  const { dashboardConfig } = useWatchDashboardConfig();
-
+  const { results } = useWatchDashboardConfig();
+  const dashboardConfig = results || DEFAULT_DASHBOARD_CONFIG;
   const newNotifications = React.useMemo(() => {
     return notifications.filter((notification) => !notification.read).length;
   }, [notifications]);

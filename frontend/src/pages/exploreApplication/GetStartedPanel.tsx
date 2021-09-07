@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../../types';
+import { DEFAULT_DASHBOARD_CONFIG } from '../../utilities/const';
 import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
 import MarkdownView from '../../components/MarkdownView';
 
@@ -30,7 +31,8 @@ type GetStartedPanelProps = {
 };
 
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { results } = useWatchDashboardConfig();
+  const dashboardConfig = results || DEFAULT_DASHBOARD_CONFIG;
 
   if (!selectedApp) {
     return null;

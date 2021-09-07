@@ -1,4 +1,4 @@
-import { OdhDocumentType } from '../types';
+import { DashboardConfig, OdhDocumentType } from '../types';
 
 const DEV_MODE = process.env.APP_ENV === 'development';
 const API_PORT = process.env.BACKEND_PORT || 8080;
@@ -17,3 +17,9 @@ export const DOC_TYPE_TOOLTIPS = {
 };
 
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
+
+export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
+  enablement: true,
+  disableInfo: false,
+  disableSupport: false,
+};
