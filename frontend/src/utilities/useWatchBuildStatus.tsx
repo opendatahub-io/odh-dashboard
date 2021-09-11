@@ -5,6 +5,7 @@ import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchBuildStatuses } from '../services/buildsService';
 import { addNotification } from '../redux/actions/actions';
+import { AppNotificationStatus } from '../redux/types';
 
 const runningStatuses = [
   BUILD_PHASE.new,
@@ -53,10 +54,13 @@ export const useWatchBuildStatus = (): void => {
     if (!buildStatuses) {
       return;
     }
+    const wasNotStarted = filterBuilds(prevBuildStatuses.current, [BUILD_PHASE.none]);
     const wasBuilding = filterBuilds(prevBuildStatuses.current, runningStatuses);
     const wasFailed = filterBuilds(prevBuildStatuses.current, failedStatuses);
+    const notStarted = filterBuilds(buildStatuses, [BUILD_PHASE.none]);
     const building = filterBuilds(buildStatuses, runningStatuses);
     const failed = filterBuilds(buildStatuses, failedStatuses);
+    const complete = filterBuilds(buildStatuses, [BUILD_PHASE.complete]);
 
     // Add notifications for new failures
     if (failed.length > 0) {
@@ -73,6 +77,27 @@ export const useWatchBuildStatus = (): void => {
       });
     }
 
+    // Add notifications for new not started
+    if (notStarted.length && !wasNotStarted.length) {
+      dispatch(
+        addNotification({
+          status: 'danger',
+          title: 'These notebook image builds have not started:',
+          message: (
+            <div className="odh-dashboard__notifications__message">
+              <ul className="odh-dashboard__notifications__list">
+                {notStarted.map((build) => (
+                  <li key={build.name}>{build.name}</li>
+                ))}
+              </ul>
+              Contact your administrator to start the builds.
+            </div>
+          ),
+          timestamp: new Date(),
+        }),
+      );
+    }
+
     // Add notification if builds are now running
     if (building.length && !wasBuilding.length) {
       dispatch(
@@ -85,11 +110,33 @@ export const useWatchBuildStatus = (): void => {
     }
 
     // Add notification if all builds are now complete
-    if (wasBuilding.length && !building.length && !failed.length) {
+    if (
+      complete.length &&
+      (wasBuilding.length || wasNotStarted.length) &&
+      !building.length &&
+      !notStarted.length
+    ) {
+      let status: AppNotificationStatus = 'success';
+      let message;
+      if (failed.length) {
+        status = complete.length ? 'warning' : 'danger';
+        message = (
+          <div className="odh-dashboard__notifications__message">
+            {complete.length} of {failed.length + complete.length} builds completed successfully.
+            <ul className="odh-dashboard__notifications__list">
+              {failed.map((build) => (
+                <li key={build.name}>{build.name} build image failed.</li>
+              ))}
+            </ul>
+            Contact your administrator to retry failed images.
+          </div>
+        );
+      }
       dispatch(
         addNotification({
-          status: 'success',
-          title: 'All notebook images installed.',
+          status,
+          title: 'All notebook image builds are complete.',
+          message,
           timestamp: new Date(),
         }),
       );

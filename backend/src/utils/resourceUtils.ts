@@ -209,7 +209,7 @@ const getBuildConfigStatus = (
       if (bcBuilds.length === 0) {
         return {
           name: notebookName,
-          status: BUILD_PHASE.pending,
+          status: BUILD_PHASE.none,
         };
       }
       const mostRecent = bcBuilds.sort(compareBuilds).pop();
@@ -229,7 +229,7 @@ const getBuildConfigStatus = (
 };
 
 export const fetchBuilds = async (fastify: KubeFastifyInstance): Promise<BuildStatus[]> => {
-  const nbBuildConfigs: K8sResourceCommon[] = await fastify.kube.customObjectsApi
+  const buildConfigs: K8sResourceCommon[] = await fastify.kube.customObjectsApi
     .listNamespacedCustomObject(
       'build.openshift.io',
       'v1',
@@ -246,25 +246,6 @@ export const fetchBuilds = async (fastify: KubeFastifyInstance): Promise<BuildSt
     .catch(() => {
       return [];
     });
-  const baseBuildConfigs: K8sResourceCommon[] = await fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
-      'build.openshift.io',
-      'v1',
-      fastify.kube.namespace,
-      'buildconfigs',
-      undefined,
-      undefined,
-      undefined,
-      'opendatahub.io/build_type=base_image',
-    )
-    .then((res) => {
-      return (res?.body as { items: K8sResourceCommon[] })?.items;
-    })
-    .catch(() => {
-      return [];
-    });
-
-  const buildConfigs = [...nbBuildConfigs, ...baseBuildConfigs];
 
   const getters = buildConfigs.map(async (buildConfig) => {
     return getBuildConfigStatus(fastify, buildConfig);
