@@ -88,6 +88,7 @@ export type OdhGettingStarted = {
 };
 
 export enum BUILD_PHASE {
+  none = 'Not started',
   new = 'New',
   running = 'Running',
   pending = 'Pending',

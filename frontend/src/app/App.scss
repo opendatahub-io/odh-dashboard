@@ -42,8 +42,17 @@ html, body, #root {
         padding-bottom: 0;
       }
     }
+    &__message {
+      .pf-c-notification-drawer__list & {
+        margin-left: var(--pf-global--spacer--lg);
+      }
+    }
+    &__list {
+      list-style: disc;
+      margin-left: 20px;
+      margin-bottom: var(--pf-global--spacer--sm);
+    }
   }
-
   &__favorite {
     cursor: pointer;
     position: relative;
