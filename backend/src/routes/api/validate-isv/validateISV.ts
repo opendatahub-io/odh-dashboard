@@ -133,14 +133,20 @@ export const runValidation = async (
     });
   }
 
-  const updateCronJobSuspension = (suspend: boolean) => {
-    // Flag the cronjob as no longer suspended
-    cronJob.spec.suspend = suspend;
-    batchV1beta1Api.replaceNamespacedCronJob(cronjobName, namespace, cronJob).catch((e) => {
+  const updateCronJobSuspension = async (suspend: boolean) => {
+    try {
+      const updateCronJob = await batchV1beta1Api
+        .readNamespacedCronJob(cronjobName, namespace)
+        .then((res) => res.body);
+
+      // Flag the cronjob as no longer suspended
+      updateCronJob.spec.suspend = suspend;
+      await batchV1beta1Api.replaceNamespacedCronJob(cronjobName, namespace, updateCronJob);
+    } catch (e) {
       fastify.log.error(
         `failed to ${suspend ? 'suspend' : 'unsuspend'} cronjob: ${e.response.body.message}`,
       );
-    });
+    }
   };
 
   // Suspend the cron job
