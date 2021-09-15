@@ -208,7 +208,13 @@ const getCREnabledForApp = (
       return getField(existingCR, appDef.spec.enableCR.field) === appDef.spec.enableCR.value;
     })
     .catch((e) => {
-      fastify.log.error(e.response?.body?.message ?? e.message);
+      if (e.response?.statusCode !== 404) {
+        fastify.log.error(
+          `Unable to read ${group}/${version}:${plural} ${name} : ${
+            e.response?.body?.message ?? e.message
+          }`,
+        );
+      }
       return false;
     });
 };
