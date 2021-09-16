@@ -9,19 +9,19 @@ spec:
   durationMinutes: 10
   icon: 'images/red-hat.svg'
   description: A quick step-by-step guide to connecting to Red Hat Streams for Apache Kafka from a Jupyter notebook.
-#TODO: please verify syntax and appropriateness.
-#  prerequisites: [Ensure that Red Hat OpenShift Streams for Apache Kafka is installed on your Red Hat OpenShift Dedicated cluster.]
+  prerequisites: [You have completed the "Getting started with Red Hat OpenShift Streams for Apache Kafka" quick start]
   introduction: |-
     ### This quick start shows you how to connect to Streams for Apache Kafka from a Jupyter notebook.
-    Welcome to the Red Hat OpenShift Streams for Apache Kafka quick start.
+    Welcome to the Red Hat OpenShift Streams for Apache Kafka quick start.  This quick start uses a Kafka instance, topic, and service account created from the [Streams for Apache Kafka dashboard](https://console.redhat.com/beta/application-services/streams/kafkas).  The creation of these resources is covered in the quick start [Getting started with Red Hat OpenShift Streams for Apache Kafka](https://console.redhat.com/beta/application-services/streams/resources?quickstart=getting-started).
   tasks:
     - title: Obtain Kafka credentials from the Streams for Apache Kafka dashboard
       description: |-
         ### To obtain connection information to Streams for Apache Kafka:
         1. In the **Streams for Apache Kafka** page of the web console, on the right side of the relevant Kafka instance, click *Options* (&#8942;) &#x2192; **Connect to instance**.
-        2. In the **Connection** page, copy the **External server** endpoint to a secure location. This is the bootstrap server endpoint that your application requires to connect to the Kafka instance.
-        3. Click **Generate service account** and copy the **Client ID** and **Client secret** to a secure location. Your application requires these credentials to authenticate the connection to the Kafka instance.
-        4. After you save the generated credentials to a secure location, select the confirmation check box in the credentials window and close the window.
+        2. In the **Streams for Apache Kafka** page of the web console, Select the **Topics** tab, create a topic if you have not already done so, and copy your **Topic name** for future use.
+        3. In the **Connection** page, copy the **Bootstrap server** endpoint to a secure location. This is the bootstrap server endpoint that your application requires to connect to the Kafka instance.
+        4. Click **Generate service account** and copy the **Client ID** and **Client secret** to a secure location. Your application requires these credentials to authenticate the connection to the Kafka instance.
+        5. After you save the generated credentials to a secure location, select the confirmation check box in the credentials window and close the window.
 
            You’ll use the server and client information that you saved to configure your application to connect to your Kafka instances from your Jupyter Notebook.
       review:
@@ -60,6 +60,8 @@ spec:
         4. For **variable name** enter `KAFKA_BOOTSTRAP_SERVER`
         5. For **variable value** enter the value for the Kafka **External server** that you obtained from the Streams for Apache Kafka connection information.
         `KAFKA_BOOTSTRAP_SERVER: <External server>`
+        6. Add another variable by repeating steps 3-5.
+        `KAFKA_TOPIC: <Topic name>`
         6. Add another variable by repeating steps 3-5.
         `KAFKA_USERNAME: <Client ID>`
         7. Add another variable by repeating steps 3-5.
