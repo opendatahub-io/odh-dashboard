@@ -122,9 +122,6 @@ html, body, #root {
     }
   }
 
-  .pf-c-app-launcher {
-    font-size: var(--pf-global--FontSize--sm);
-  }
   .pf-c-app-launcher__group-title {
     font-size: 13px;
   }
@@ -132,6 +129,18 @@ html, body, #root {
   .pf-c-app-launcher__menu-item-external-icon {
     opacity: 1;
     color: var(--pf-global--icon--Color--light);
+  }
+}
+// specificity targeting form elements to override --pf-global--FontSize--md
+.pf-c-page, .pf-c-modal-box {
+  .pf-c-app-launcher,
+  .pf-c-button,
+  .pf-c-dropdown,
+  .pf-c-dropdown__menu-item,
+  .pf-c-dropdown__toggle,
+  .pf-c-form-control {
+    font-size: 14px;
+    height: auto;
   }
 }
 
