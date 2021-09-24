@@ -127,7 +127,7 @@ const AppLauncher: React.FC<AppLauncherProps> = ({ dashboardConfig }) => {
     sections.sort((a, b) => sectionSortValue(a) - sectionSortValue(b));
 
     return sections;
-  }, [clusterBranding, clusterID, consoleLinks]);
+  }, [clusterBranding, clusterID, consoleLinks, dashboardConfig.disableClusterManager]);
 
   const onToggle = () => {
     setIsOpen((prev) => !prev);
