@@ -17,8 +17,8 @@ spec:
     - title: Obtain Kafka credentials from the Streams for Apache Kafka dashboard
       description: |-
         ### To obtain connection information to Streams for Apache Kafka:
-        1. In the **Streams for Apache Kafka** page of the web console, on the right side of the relevant Kafka instance, click *Options* (&#8942;) &#x2192; **Connect to instance**.
-        2. In the **Streams for Apache Kafka** page of the web console, Select the **Topics** tab, create a topic if you have not already done so, and copy your **Topic name** for future use.
+        1. In the OpenShift Streams for Apache Kafka web console, go to **Streams for Apache Kafka > Kafka Instances**.  On the right side of your Kafka instance, click *Options* (&#8942;) &#x2192; **Connect to instance**.
+        2. In the **Kafka Instances** page of the web console, click the name of your Kafka instance. Select the **Topics** tab, create a topic if you have not already done so, and copy your **Topic name** for future use.
         3. In the **Connection** page, copy the **Bootstrap server** endpoint to a secure location. This is the bootstrap server endpoint that your application requires to connect to the Kafka instance.
         4. Click **Generate service account** and copy the **Client ID** and **Client secret** to a secure location. Your application requires these credentials to authenticate the connection to the Kafka instance.
         5. After you save the generated credentials to a secure location, select the confirmation check box in the credentials window and close the window.
