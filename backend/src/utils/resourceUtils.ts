@@ -48,6 +48,7 @@ const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
     enablement: 'true',
     disableInfo: 'false',
     disableSupport: 'false',
+    disableClusterManager: 'false',
   },
 };
 
@@ -295,6 +296,7 @@ export const getDashboardConfig = (): DashboardConfig => {
     enablement: (config.data?.enablement ?? '').toLowerCase() !== 'false',
     disableInfo: (config.data?.disableInfo ?? '').toLowerCase() === 'true',
     disableSupport: (config.data?.disableSupport ?? '').toLowerCase() === 'true',
+    disableClusterManager: (config.data?.disableClusterManager ?? '').toLowerCase() === 'true',
   };
 };
 

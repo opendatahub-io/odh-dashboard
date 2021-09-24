@@ -6,6 +6,7 @@ export type DashboardConfig = {
   enablement: boolean;
   disableInfo: boolean;
   disableSupport: boolean;
+  disableClusterManager: boolean;
 };
 
 export type OdhApplication = {

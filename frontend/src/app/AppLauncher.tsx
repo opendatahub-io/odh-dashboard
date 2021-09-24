@@ -9,6 +9,7 @@ import {
 import openshiftLogo from '../images/openshift.svg';
 import { RootState } from '../redux/types';
 import { useWatchConsoleLinks } from '../utilities/useWatchConsoleLinks';
+import { DashboardConfig } from '../types';
 
 type ApplicationAction = {
   label: string;
@@ -66,7 +67,11 @@ const sectionSortValue = (section: Section): number => {
   }
 };
 
-const AppLauncher: React.FC = () => {
+type AppLauncherProps = {
+  dashboardConfig: DashboardConfig;
+};
+
+const AppLauncher: React.FC<AppLauncherProps> = ({ dashboardConfig }) => {
   const [isOpen, setIsOpen] = React.useState<boolean>(false);
   const [clusterID, clusterBranding] = useSelector((state: RootState) => [
     state.appState.clusterID,
@@ -84,7 +89,9 @@ const AppLauncher: React.FC = () => {
 
     const getRHApplications = (): Section[] => {
       const osConsoleAction = getOpenShiftConsoleAction();
-      const ocmAction = getOCMAction(clusterID, clusterBranding);
+      const ocmAction = dashboardConfig.disableClusterManager
+        ? null
+        : getOCMAction(clusterID, clusterBranding);
 
       if (!osConsoleAction && !ocmAction) {
         return [];

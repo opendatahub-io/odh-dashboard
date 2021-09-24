@@ -8,6 +8,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
   enablement: true,
   disableInfo: false,
   disableSupport: false,
+  disableClusterManager: false,
 };
 
 export const useWatchDashboardConfig = (): {
