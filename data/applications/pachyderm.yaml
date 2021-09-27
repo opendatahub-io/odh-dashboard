@@ -13,5 +13,5 @@ spec:
   docsLink: https://docs.pachyderm.com/
   category: Self-managed
   support: third party support
-  quickStart: ''
+  quickStart: pachyderm-beginner-tutorial-notebook
   comingSoon: true
