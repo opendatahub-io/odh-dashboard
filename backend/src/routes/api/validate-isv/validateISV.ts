@@ -5,14 +5,12 @@ import { KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getApplicationDef } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
 
-const JOB_STATUS_PENDING = 'job-status-pending';
-
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 };
 
 const waitOnDeletion = async (reader: () => Promise<void>) => {
-  const MAX_TRIES = 25;
+  const MAX_TRIES = 200;
   let tries = 0;
   let deleted = false;
 
@@ -27,39 +25,22 @@ const waitOnDeletion = async (reader: () => Promise<void>) => {
 
 const waitOnCompletion = async (
   fastify: KubeFastifyInstance,
-  reader: () => Promise<{ valid: boolean; error: string }>,
-): Promise<{ valid: boolean; error: string }> => {
+  reader: () => Promise<boolean>,
+): Promise<void> => {
   const MAX_TRIES = 120;
   let tries = 0;
   let completionStatus;
 
-  while (completionStatus === undefined && ++tries < MAX_TRIES) {
-    await reader()
-      .then((res) => {
-        completionStatus = res;
-      })
-      .catch(async (e) => {
-        if (e.message === JOB_STATUS_PENDING) {
-          await doSleep(1000);
-          return;
-        }
-        fastify.log.error(`validation job failed: ${e.response?.body?.message ?? e.message}.`);
-        completionStatus = {
-          valid: false,
-          error: e.response?.body?.message ?? e.message,
-        };
-      });
+  while (!completionStatus && ++tries < MAX_TRIES) {
+    completionStatus = await reader();
+    if (!completionStatus) {
+      await doSleep(1000);
+    }
   }
 
-  if (completionStatus !== undefined) {
-    return completionStatus;
+  if (!completionStatus) {
+    fastify.log.warn('validation job timed out.');
   }
-
-  fastify.log.error('validation job timed out.');
-  return {
-    valid: false,
-    error: 'Validation process timed out. The application may still become enabled.',
-  };
 };
 
 export const createAccessSecret = async (
@@ -94,7 +75,7 @@ export const createAccessSecret = async (
 export const runValidation = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
-): Promise<{ valid: boolean; error: string }> => {
+): Promise<{ complete: boolean; valid: boolean; error: string }> => {
   const namespace = fastify.kube.namespace;
   const query = request.query as { [key: string]: string };
   const appName = query?.appName;
@@ -107,10 +88,7 @@ export const runValidation = async (
 
   const cronjobName = enable?.validationJob;
   if (!cronjobName) {
-    return Promise.resolve({
-      valid: false,
-      error: 'Validation job is undefined.',
-    });
+    return { complete: true, valid: false, error: 'Validation job is undefined.' };
   }
   const jobName = `${cronjobName}-job-custom-run`;
 
@@ -127,10 +105,11 @@ export const runValidation = async (
 
   if (!cronJob) {
     fastify.log.error('The validation job for the application does not exist.');
-    return Promise.resolve({
+    return {
+      complete: true,
       valid: false,
       error: 'The validation job for the application does not exist.',
-    });
+    };
   }
 
   const updateCronJobSuspension = async (suspend: boolean) => {
@@ -176,52 +155,45 @@ export const runValidation = async (
     spec: cronJob.spec.jobTemplate.spec,
   };
 
-  const { body } = await batchV1Api.createNamespacedJob(namespace, job).catch(() => {
+  const { body } = await batchV1Api.createNamespacedJob(namespace, job).catch(async () => {
     fastify.log.error(`failed to create validation job`);
 
     // Flag the cronjob as no longer suspended
-    updateCronJobSuspension(false);
+    await updateCronJobSuspension(false);
 
     return { body: null };
   });
 
   if (!body) {
     // Flag the cronjob as no longer suspended
-    updateCronJobSuspension(false);
+    await updateCronJobSuspension(false);
 
     fastify.log.error('failed to create validation job');
-    return Promise.resolve({ valid: false, error: 'Failed to create validation job.' });
+    return { complete: true, valid: false, error: 'Failed to create validation job.' };
   }
 
-  return await waitOnCompletion(fastify, () => {
-    return batchV1Api.readNamespacedJobStatus(jobName, namespace).then(async (res) => {
-      if (res.body.status.succeeded) {
-        const success = await getApplicationEnabledConfigMap(fastify, appDef);
-        if (!success) {
-          fastify.log.warn(`failed attempted validation for ${appName}`);
-        }
-        return {
-          valid: success,
-          error: success ? '' : 'Error attempting to validate. Please check your entries.',
-        };
-      }
-      if (res.body.status.failed) {
-        fastify.log.error('Validation job failed failed to run');
-
-        return { valid: false, error: 'Validation job failed to run.' };
-      }
-      throw new Error(JOB_STATUS_PENDING);
-    });
+  waitOnCompletion(fastify, async () => {
+    const res = await batchV1Api.readNamespacedJobStatus(jobName, namespace);
+    if (res.body.status.succeeded) {
+      return true;
+    }
+    if (res.body.status.failed) {
+      fastify.log.error('Validation job failed failed to run');
+      return true;
+    }
+    return false;
   }).finally(() => {
     // Flag the cronjob as no longer suspended
     updateCronJobSuspension(false);
   });
+
+  return { complete: false, valid: false, error: null };
 };
 
 export const validateISV = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
-): Promise<{ valid: boolean; error: string }> => {
+): Promise<{ complete: boolean; valid: boolean; error: string }> => {
   const query = request.query as { [key: string]: string };
   const appName = query?.appName;
   const appDef = getApplicationDef(appName);
@@ -236,10 +208,11 @@ export const validateISV = async (
 
   if (!cmName) {
     fastify.log.error('attempted validation of application with no config map.');
-    return Promise.resolve({
+    return {
+      complete: true,
       valid: false,
       error: 'The validation config map for the application does not exist.',
-    });
+    };
   }
 
   const cmBody: V1ConfigMap = {
@@ -257,16 +230,69 @@ export const validateISV = async (
     .createNamespacedConfigMap(namespace, cmBody)
     .then(async () => {
       const success = await getApplicationEnabledConfigMap(fastify, appDef);
-      if (!success) {
-        fastify.log.warn(`failed attempted validation for ${appName}`);
-      }
       return {
+        complete: true,
         valid: success,
         error: success ? '' : 'Error adding validation flag.',
       };
     })
     .catch((e) => {
       fastify.log.warn(`failed creation of validation configmap: ${e.message}`);
-      return { valid: false, error: 'Error adding validation flag.' };
+      return { complete: true, valid: false, error: 'Error adding validation flag.' };
     });
+};
+
+export const getValidateISVResults = async (
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest,
+): Promise<{ complete: boolean; valid: boolean; error: string }> => {
+  const batchV1Api = fastify.kube.batchV1Api;
+  const query = request.query as { [key: string]: string };
+  const appName = query?.appName;
+  const appDef = getApplicationDef(appName);
+  const { enable } = appDef.spec;
+  const namespace = fastify.kube.namespace;
+  const cmName = enable?.validationConfigMap;
+
+  if (!cmName) {
+    fastify.log.error('attempted validation of application with no config map.');
+    return {
+      complete: true,
+      valid: false,
+      error: 'The validation config map for the application does not exist.',
+    };
+  }
+
+  // If there are variables associated with enablement, check the job status
+  if (enable?.variables && Object.keys(enable.variables).length > 0) {
+    const cronjobName = enable?.validationJob;
+    if (!cronjobName) {
+      return { complete: true, valid: false, error: 'Validation job is undefined.' };
+    }
+    const jobName = `${cronjobName}-job-custom-run`;
+
+    try {
+      const complete = await batchV1Api
+        .readNamespacedJobStatus(jobName, namespace)
+        .then(async (res) => {
+          return res.body.status.succeeded || res.body.status.failed;
+        });
+      if (!complete) {
+        return { complete: false, valid: false, error: null };
+      }
+    } catch {
+      return { complete: true, valid: false, error: 'Failed to create validation job.' };
+    }
+  }
+
+  // Check the results config map
+  const success = await getApplicationEnabledConfigMap(fastify, appDef);
+  if (!success) {
+    fastify.log.warn(`failed attempted validation for ${appName}`);
+  }
+  return {
+    complete: true,
+    valid: success,
+    error: success ? '' : 'Error attempting to validate. Please check your entries.',
+  };
 };
