@@ -2,7 +2,7 @@ import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret, V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getApplicationDef } from '../../../utils/resourceUtils';
+import { getApplication, updateApplications } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
 
 const doSleep = (timeout: number) => {
@@ -83,7 +83,7 @@ export const runValidation = async (
   const batchV1beta1Api = fastify.kube.batchV1beta1Api;
   const batchV1Api = fastify.kube.batchV1Api;
   const coreV1Api = fastify.kube.coreV1Api;
-  const appDef = getApplicationDef(appName);
+  const appDef = getApplication(appName);
   const { enable } = appDef.spec;
 
   const cronjobName = enable?.validationJob;
@@ -196,7 +196,7 @@ export const validateISV = async (
 ): Promise<{ complete: boolean; valid: boolean; error: string }> => {
   const query = request.query as { [key: string]: string };
   const appName = query?.appName;
-  const appDef = getApplicationDef(appName);
+  const appDef = getApplication(appName);
   const { enable } = appDef.spec;
   const namespace = fastify.kube.namespace;
   const cmName = enable?.validationConfigMap;
@@ -230,6 +230,11 @@ export const validateISV = async (
     .createNamespacedConfigMap(namespace, cmBody)
     .then(async () => {
       const success = await getApplicationEnabledConfigMap(fastify, appDef);
+      if (success) {
+        await updateApplications();
+      } else {
+        fastify.log.warn(`failed attempted validation for ${appName}`);
+      }
       return {
         complete: true,
         valid: success,
@@ -249,7 +254,7 @@ export const getValidateISVResults = async (
   const batchV1Api = fastify.kube.batchV1Api;
   const query = request.query as { [key: string]: string };
   const appName = query?.appName;
-  const appDef = getApplicationDef(appName);
+  const appDef = getApplication(appName);
   const { enable } = appDef.spec;
   const namespace = fastify.kube.namespace;
   const cmName = enable?.validationConfigMap;
@@ -287,7 +292,9 @@ export const getValidateISVResults = async (
 
   // Check the results config map
   const success = await getApplicationEnabledConfigMap(fastify, appDef);
-  if (!success) {
+  if (success) {
+    await updateApplications();
+  } else {
     fastify.log.warn(`failed attempted validation for ${appName}`);
   }
   return {

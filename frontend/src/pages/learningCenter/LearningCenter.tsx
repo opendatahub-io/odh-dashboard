@@ -60,40 +60,42 @@ export const LearningCenter: React.FC = () => {
 
   React.useEffect(() => {
     if (loaded && !loadError && docsLoaded && !docsLoadError) {
-      const docs = [...odhDocs];
+      const docs = odhDocs ? [...odhDocs] : [];
 
       // Add doc cards for all components' documentation
-      components.forEach((component) => {
-        if (component.spec.docsLink) {
-          const odhDoc: OdhDocument = {
-            metadata: {
-              name: `${component.metadata.name}-doc`,
-              type: OdhDocumentType.Documentation,
-            },
-            spec: {
-              appName: component.metadata.name,
-              provider: component.spec.provider,
-              url: component.spec.docsLink,
-              displayName: component.spec.displayName,
-              description: component.spec.description,
-            },
-          };
-          docs.push(odhDoc);
-        }
-      });
-
+      if (components) {
+        components.forEach((component) => {
+          if (component.spec.docsLink) {
+            const odhDoc: OdhDocument = {
+              metadata: {
+                name: `${component.metadata.name}-doc`,
+              },
+              spec: {
+                appName: component.metadata.name,
+                type: OdhDocumentType.Documentation,
+                provider: component.spec.provider,
+                url: component.spec.docsLink,
+                displayName: component.spec.displayName,
+                description: component.spec.description,
+              },
+            };
+            docs.push(odhDoc);
+          }
+        });
+      }
       // Add doc cards for all quick starts
       qsContext.allQuickStarts?.forEach((quickStart) => {
         const odhDoc: OdhDocument = _.merge({}, quickStart, {
-          metadata: { type: OdhDocumentType.QuickStart },
+          spec: { ...quickStart.spec, type: OdhDocumentType.QuickStart },
         });
         docs.push(odhDoc);
       });
 
       const updatedDocApps = docs
-        .filter((doc) => doc.metadata.type !== 'getting-started')
+        .filter((doc) => doc.spec.type !== 'getting-started')
         .map((odhDoc) => {
-          const odhApp = components.find((c) => c.metadata.name === odhDoc.spec.appName);
+          const odhApp =
+            components && components.find((c) => c.metadata.name === odhDoc.spec.appName);
           const updatedDoc = _.cloneDeep(odhDoc);
           if (odhApp) {
             combineCategoryAnnotations(odhDoc, odhApp);
@@ -129,7 +131,7 @@ export const LearningCenter: React.FC = () => {
             sortVal = a.spec.displayName.localeCompare(b.spec.displayName);
             break;
           case SORT_TYPE_TYPE:
-            sortVal = a.metadata.type.localeCompare(b.metadata.type);
+            sortVal = a.spec.type.localeCompare(b.spec.type);
             break;
           case SORT_TYPE_APPLICATION:
             if (!a.spec.appDisplayName) {

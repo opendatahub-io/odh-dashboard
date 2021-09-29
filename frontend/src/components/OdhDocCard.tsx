@@ -32,7 +32,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     odhDoc.metadata.name,
   );
   const footerClassName = React.useMemo(() => {
-    if (odhDoc.metadata.type !== OdhDocumentType.QuickStart) {
+    if (odhDoc.spec.type !== OdhDocumentType.QuickStart) {
       return 'odh-card__footer';
     }
 
@@ -40,7 +40,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     return classNames('odh-card__footer', {
       'm-right-justified': RIGHT_JUSTIFIED_STATUSES.includes(qsStatus),
     });
-  }, [odhDoc.metadata.name, odhDoc.metadata.type, qsContext]);
+  }, [odhDoc.metadata.name, odhDoc.spec.type, qsContext]);
 
   const onQuickStart = (e) => {
     e.preventDefault();
@@ -48,7 +48,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
   };
 
   const renderDocLink = () => {
-    if (odhDoc.metadata.type === OdhDocumentType.Documentation) {
+    if (odhDoc.spec.type === OdhDocumentType.Documentation) {
       return (
         <a
           className="odh-card__footer__link"
@@ -61,7 +61,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         </a>
       );
     }
-    if (odhDoc.metadata.type === OdhDocumentType.Tutorial) {
+    if (odhDoc.spec.type === OdhDocumentType.Tutorial) {
       return (
         <a
           className="odh-card__footer__link"
@@ -74,14 +74,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         </a>
       );
     }
-    if (odhDoc.metadata.type === OdhDocumentType.QuickStart) {
+    if (odhDoc.spec.type === OdhDocumentType.QuickStart) {
       return (
         <a className="odh-card__footer__link" href="#" onClick={onQuickStart}>
           {getQuickStartLabel(odhDoc.metadata.name, qsContext)}
         </a>
       );
     }
-    if (odhDoc.metadata.type === OdhDocumentType.HowTo) {
+    if (odhDoc.spec.type === OdhDocumentType.HowTo) {
       return (
         <a
           className="odh-card__footer__link"

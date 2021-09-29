@@ -6,7 +6,6 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { mount } from 'enzyme';
 import ExploreApplications from '../pages/exploreApplication/ExploreApplications';
 import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
-import { mockGettingStartedDoc } from '../../__mocks__/mockGettingStartedDoc';
 
 const dashboardConfig = {
   disableInfo: false,
@@ -33,13 +32,6 @@ jest.mock('../utilities/useWatchComponents', () => ({
     loaded: true,
     loadError: null,
     components: mockExploreApplications,
-  }),
-}));
-jest.mock('../utilities/useGettingStarted', () => ({
-  useGettingStarted: () => ({
-    odhGettingStarted: mockGettingStartedDoc,
-    loaded: true,
-    loadError: null,
   }),
 }));
 jest.mock('../utilities/router', () => ({

@@ -26,6 +26,7 @@ export type OdhApplication = {
     img: string;
     docsLink: string;
     getStartedLink: string;
+    getStartedMarkDown: string;
     category?: string;
     support?: string;
     quickStart: string | null;
@@ -63,12 +64,12 @@ export enum OdhDocumentType {
 export type OdhDocument = {
   metadata: {
     name: string;
-    type: string;
     annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
     appName?: string;
+    type: string;
     appDisplayName?: string; // Only set on UI side in resources section
     appEnabled?: boolean; // Only set on UI side in resources section
     provider?: string;
@@ -79,11 +80,6 @@ export type OdhDocument = {
     durationMinutes?: number;
     featureFlag?: string;
   };
-};
-
-export type OdhGettingStarted = {
-  appName: string;
-  markdown: string;
 };
 
 export enum BUILD_PHASE {
