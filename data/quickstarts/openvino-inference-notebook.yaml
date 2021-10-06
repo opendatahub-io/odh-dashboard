@@ -20,10 +20,27 @@ spec:
     This quick start will walk through how to optimize a ONNX computer vision model using the OpenVINO model optimizer, and use the resulting intermediate representation to perform hardware accelerated inference in-notebook.
 
   tasks:
+    - title: Ensure OpenVINO Notebook is built
+      description: |-
+        ### Administrator steps
+        #### This is only required the first time
+        1. Install the OpenVINO operator if it's not installed
+        2. Change namespace to redhat-ods-applications
+        3. Enter the OpenVINO operator
+        3a. This can be found in the UI under Operators > Installed Operators > OpenVINO Toolkit
+        4. Go to the "Notebook" tab
+        5. Click create
+        6. The notebook will now build, this may take several minutes
+      review:
+        instructions: |-
+          #### The OpenVINO Notebook is now created
+          Has the build completed?
+          Inspect under Builds > builds (the submenu item) > openvino-notebook-1
     - title: Launch JupyterHub notebook server
       description: |-
         ### Important considerations
-        Use the **Minimal Python** notebook with a **Large** container size.
+        Use the **OpenVINO Python** notebook with a **Large** container size.
+        The **OpenVINO Notebook** custom resource must be enabled from the operator and have built successfully (see previous step)
 
       review:
         instructions: |-
