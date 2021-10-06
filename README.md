@@ -27,8 +27,14 @@ Before developing for ODH, the basic requirements:
       $ cd odh-dashboard && npm install
       ```
 
+
+### Build project
+  ```
+  $ npm run build
+  ```
+  
 ### Serve development content
-This is the default context for running a local UI
+This is the default context for running a local UI.  Make sure you build the project using the instructions above prior to running the command below.
 
   ```
   $ npm run start
