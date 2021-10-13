@@ -1,4 +1,4 @@
-import { OdhApplication, OdhDocument, OdhDocumentType } from '../types';
+import { OdhDocument, OdhDocumentType } from '../types';
 import { DEV_MODE, API_PORT, CATEGORY_ANNOTATION } from './const';
 
 export const getBackendURL = (path: string): string => {
@@ -72,26 +72,6 @@ export const getLabelColorForDocType = (
     default:
       return 'grey';
   }
-};
-export const combineCategoryAnnotations = (doc: OdhDocument, app: OdhApplication): void => {
-  const docCategories = (doc.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
-    .split(',')
-    .map((c) => c.trim());
-  const appCategories = (app.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
-    .split(',')
-    .map((c) => c.trim());
-
-  const combined = appCategories.reduce((acc, category) => {
-    if (category && !acc.includes(category)) {
-      acc.push(category);
-    }
-    return acc;
-  }, docCategories);
-
-  doc.metadata.annotations = {
-    ...(doc.metadata.annotations || {}),
-    [CATEGORY_ANNOTATION]: combined.join(','),
-  };
 };
 
 export const matchesCategories = (
