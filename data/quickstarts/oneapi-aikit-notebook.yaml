@@ -18,14 +18,16 @@ spec:
 
     The components are built using oneAPI libraries for low-level compute optimizations.
 
-    This toolkit maximizes performance from preprocessing through machine and deep learning phases and provides interoperability for efficient model development and deployment across single and multinodes.
+    This toolkit maximizes performance from preprocessing through machine and deep learning phases and provides interoperability for efficient model development and deployment across single and multinode environments.
 
-    This quick start will walk through how to run a data science notebook sample with Intel® AI Analytics Toolkit optimizations. It will also walk through how to load your own notebook with Intel® AI Analytics Toolkit drop-in accelerations for your own workloads or tasks.
+    This quick start covers how to run a data science notebook sample with Intel® AI Analytics Toolkit optimizations. It also walks through how to load your own notebook with Intel® AI Analytics Toolkit drop-in accelerations for your own workloads or tasks.
   tasks:
     - title: Launch JupyterHub Notebook Server
       description: |-
         ### Important considerations
         Use the **Intel oneAPI AI Analytics Toolkit** notebook with the **Large** container size.
+
+        This triggers pulling the Intel® oneAPI AI Analytics Toolkit container. Once the pulling is complete, you are presented with a Jupyterhub notebook environment.
       review:
         instructions: |-
           #### Launched JupyterHub notebook server
@@ -50,7 +52,7 @@ spec:
     - title: Load a Intel® oneAPI AI Analytics Toolkit sample notebook
       description: |-
         ### Loading a Intel® oneAPI AI Analytics Toolkit sample notebook
-        1. Click on the `oneAPI-samples.git` directory. As part of the Intel® oneAPI AI Analytics Toolkit on RedHat OpenShift Data Science, we have provided you three examples to help you get started with different AI Kit optimizations.
+        1. Click on the `oneAPI-samples.git` directory. As part of the Intel® oneAPI AI Analytics Toolkit on Red Hat OpenShift Data Science, we have provided you three examples to help you get started with different AI Kit optimizations.
         2. Click on the `E2E_use_case_with_Intel_optimized_XGBoost_daal4py` directory, then click on the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook.
         3. Choose the `Intel SKLearn, XGBoost, & Modin`  JupyterHub Kernel Environment to launch the notebook in.
       review:
@@ -62,9 +64,9 @@ spec:
       summary:
         success: You loaded the example notebook in the correct AI Kit JupyterHub Kernel environment.
         failed: Try the steps again.
-    - title: Run a Intel® oneAPI AI Analytics Toolkit sample notebook
+    - title: Run an Intel® oneAPI AI Analytics Toolkit sample notebook
       description: |-
-        ### Running a Intel® oneAPI AI Analytics Toolkit sample
+        ### Running na Intel® oneAPI AI Analytics Toolkit sample
         1. Run the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook cell by cell, taking care not to skip any steps. Once you have completed the entire notebook, you will have learned about some AI Kit optimizations and fundamentals.
         2. (Optional) You can proceed with this step and the previous step with any of the either samples in the correct AI Kit JupyterHub Kernel environment to learn more about other AI Kit optimizations. Use the `Intel SKLearn, XGBoost, & Modin` JupyterHub Kernel Environment for the `IntelPython_XGBoost_daal4pyPrediction.ipynb` notebook example, and the `Intel TensorFlow & Quantization` JupyterHub Kernel Environment for the `lpot_sample_tensorflow.ipynb` notebook example.
       review:
@@ -74,7 +76,7 @@ spec:
         failedTaskHelp:
           This task is not verified yet. Try the task again.
       summary:
-        success: You have ran the example notebook in the correct AI Kit JupyterHub Kernel environment.
+        success: You have run the example notebook in the correct AI Kit JupyterHub Kernel environment.
         failed: Try the steps again.
     - title: Load Intel® oneAPI AI Analytics Toolkit optimizations with a new notebook
       description: |-
