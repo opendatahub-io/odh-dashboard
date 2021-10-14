@@ -27,7 +27,7 @@ spec:
         ### Important considerations
         Use the **Intel oneAPI AI Analytics Toolkit** notebook with the **Large** container size.
 
-        This triggers pulling the Intel® oneAPI AI Analytics Toolkit container. Once the pulling is complete, you are presented with a Jupyterhub notebook environment.
+        This triggers pulling the Intel® oneAPI AI Analytics Toolkit container. Once the pulling is complete, you are presented with a JupyterHub notebook environment.
       review:
         instructions: |-
           #### Launched JupyterHub notebook server
@@ -82,7 +82,7 @@ spec:
       description: |-
         ### Load Intel® oneAPI AI Analytics Toolkit optimizations with a new notebook
         1. Enter the JupyterHub launcher page.
-        2. Select the appropriate Jupyterhub Kernel Environment notebook for the workload or task you would like to complete and launch it in a new tab. Refer to the `AI_Kit_Welcome.ipynb` notebook for more information on what optimizations are included in each of the AI Kit JupyterHub Environment Kernels.
+        2. Select the appropriate JupyterHub Kernel Environment notebook for the workload or task you would like to complete and launch it in a new tab. Refer to the `AI_Kit_Welcome.ipynb` notebook for more information on what optimizations are included in each of the AI Kit JupyterHub Environment Kernels.
         3. Proceed with your workload or task in your new notebook.
       review:
         instructions: |-
