@@ -22,6 +22,21 @@ spec:
 
     This quick start covers how to run a data science notebook sample with Intel® AI Analytics Toolkit optimizations. It also walks you through how to load your own notebook with Intel® AI Analytics Toolkit drop-in accelerations for your own workloads or tasks.
   tasks:
+    - title: Ensure an AIKit Notebook ImageStream is created
+      description: |-
+        ### Administrator steps
+        #### This is only required the first time
+        1. Install the Intel® oneAPI AI Analytics Toolkit Operator if it's not installed
+        2. Change namespace to redhat-ods-applications
+        3. Select the Intel® oneAPI AI Analytics Toolkit Operator. This can be found in the UI under Operators > Installed Operators > Intel® oneAPI AI Analytics Toolkit Operator
+        4. Go to the "AIKitContainer" tab
+        5. Click create
+        6. The AIKit Notebook ImageStream will be created.
+      review:
+        instructions: |-
+          #### The AIKit Notebook ImageStream is now available
+          Has the ImageStream created?
+          Inspect under Builds > ImageStreams (the submenu item) > oneapi-aikit
     - title: Launch JupyterHub Notebook Server
       description: |-
         ### Important considerations
