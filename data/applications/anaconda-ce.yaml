@@ -12,7 +12,7 @@ spec:
   category: Partner managed
   support: third party support
   docsLink: https://docs.anaconda.com/
-  quickStart: ''
+  quickStart: 'create-jupyter-notebook-anaconda'
   getStartedLink: https://anaconda.cloud/register?utm_source=redhat-rhods-summit
   enable:
     title: Connect Anaconda to JupyterHub

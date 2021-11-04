@@ -8,5 +8,5 @@ spec:
   appName: seldon-deploy
   description: |-
     Best practices for managing a Seldon Deploy cluster.
-  url: https://deploy.seldon.io/docs/operations/
+  url: https://deploy.seldon.io/en/v1.2/contents/operations/index.html
   durationMinutes: 10

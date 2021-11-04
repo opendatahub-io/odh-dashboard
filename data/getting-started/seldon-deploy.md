@@ -2,9 +2,9 @@
 
 [Seldon Deploy](https://deploy.seldon.io) provides oversight and governance for machine learning deployments.
 
-Seldon Deploy builds on top of [Seldon Core](https://deploy.seldon.io/docs/about/), an open source platform for deploying machine learning models on a Kubernetes cluster.
+Seldon Deploy builds on top of [Seldon Core](https://github.com/SeldonIO/seldon-core), an open source platform for deploying machine learning models on a Kubernetes cluster.
 
-Deployments in Seldon Deploy can be SeldonDeployments, which are [Seldon Core resources](https://docs.seldon.io/en/latest/).
+Deployments in Seldon Deploy can be SeldonDeployments, which are [Seldon Core resources](https://docs.seldon.io/projects/seldon-core/en/latest/workflow/overview.html).
 
 Seldon Core is an open source operator and custom resource (the SeldonDeployment) for deploying models. Models can be built in different toolkits, packaged by either serializing or dockerising and then deployed to kubernetes in SeldonDeployments.
 
@@ -22,7 +22,7 @@ Seldon Deploy adds a user interface for easily deploying, monitoring and managin
 
 Seldon Deploy has a Red Hat marketplace listing. That install includes Red Hat versions of required sub-components such as Seldon Core.
 
-Documentation on the Seldon Deploy Red Hat marketplace install is at [https://deploy-master.seldon.io/docs/getting-started/redhat-installation/](https://deploy-master.seldon.io/docs/getting-started/redhat-installation/)
+Documentation on the Seldon Deploy Red Hat marketplace install is at [https://deploy.seldon.io/en/v1.2/contents/getting-started/openshift-installation/index.html](https://deploy.seldon.io/en/v1.2/contents/getting-started/openshift-installation/index.html)
 
 ### Subscribe to the operator on Marketplace
 - [https://marketplace.redhat.com/en-us/products/seldon-deploy](https://marketplace.redhat.com/en-us/products/seldon-deploy)

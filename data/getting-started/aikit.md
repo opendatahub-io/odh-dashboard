@@ -25,7 +25,7 @@ Try out selecting the “intel-aikit-notebook:v/0.0.1” JupyterHub Notebook ima
 Intel® oneAPI AI Analytics Toolkit Operator has a Red Hat marketplace listing.
 
 ### Subscribe to the operator on Marketplace
-- [https://marketplace.redhat.com/en-us/products/oneapi-aikit](https://marketplace.redhat.com/en-us/products/oneapi-aikit)
+- [https://marketplace.redhat.com/en-us/products/ai-analytics-toolkit](https://marketplace.redhat.com/en-us/products/ai-analytics-toolkit)
 
 ### Install the operator and validate
 - [https://marketplace.redhat.com/en-us/documentation/operators](https://marketplace.redhat.com/en-us/documentation/operators)

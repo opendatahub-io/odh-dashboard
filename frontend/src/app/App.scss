@@ -42,8 +42,17 @@ html, body, #root {
         padding-bottom: 0;
       }
     }
+    &__message {
+      .pf-c-notification-drawer__list & {
+        margin-left: var(--pf-global--spacer--lg);
+      }
+    }
+    &__list {
+      list-style: disc;
+      margin-left: 20px;
+      margin-bottom: var(--pf-global--spacer--sm);
+    }
   }
-
   &__favorite {
     cursor: pointer;
     position: relative;
@@ -113,9 +122,6 @@ html, body, #root {
     }
   }
 
-  .pf-c-app-launcher {
-    font-size: var(--pf-global--FontSize--sm);
-  }
   .pf-c-app-launcher__group-title {
     font-size: 13px;
   }
@@ -123,6 +129,18 @@ html, body, #root {
   .pf-c-app-launcher__menu-item-external-icon {
     opacity: 1;
     color: var(--pf-global--icon--Color--light);
+  }
+}
+// specificity targeting form elements to override --pf-global--FontSize--md
+.pf-c-page, .pf-c-modal-box {
+  .pf-c-app-launcher,
+  .pf-c-button,
+  .pf-c-dropdown,
+  .pf-c-dropdown__menu-item,
+  .pf-c-dropdown__toggle,
+  .pf-c-form-control {
+    font-size: 14px;
+    height: auto;
   }
 }
 

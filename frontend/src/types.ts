@@ -6,6 +6,7 @@ export type DashboardConfig = {
   enablement: boolean;
   disableInfo: boolean;
   disableSupport: boolean;
+  disableClusterManager: boolean;
 };
 
 export type OdhApplication = {
@@ -88,6 +89,7 @@ export type OdhGettingStarted = {
 };
 
 export enum BUILD_PHASE {
+  none = 'Not started',
   new = 'New',
   running = 'Running',
   pending = 'Pending',

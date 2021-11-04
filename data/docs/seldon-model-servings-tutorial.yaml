@@ -9,5 +9,5 @@ spec:
   description: |-
     A series of tutorials highlighting natural language, image processing classifiers, KubeFlow
     integration, and model.
-  url: https://deploy.seldon.io/docs/demos/seldon-core/
+  url: https://deploy.seldon.io/en/v1.2/contents/demos/seldon-core/index.html
   durationMinutes: 60
