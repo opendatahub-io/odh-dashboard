@@ -5,9 +5,9 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning, Pipeline'
 spec:
   appName: pachyderm
-  displayName: Learn Pachyderm main concepts
+  displayName: Getting started with Pachyderm concepts
   description: |-
-    Learn Pachyderms main concepts by creating pipelines that perform edge detection on a few images. 
+    Learn Pachyderm's main concepts by creating pipelines that perform edge detection on a few images. 
   url: https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/
   durationMinutes: 15
 
