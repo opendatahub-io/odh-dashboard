@@ -16,12 +16,22 @@ spec:
   tasks:
     - title: Obtain Kafka credentials from the Streams for Apache Kafka dashboard
       description: |-
+        Notebooks and applications need the connection information for your Kafka instance. Follow these steps to save the required information for later use.
         ### To obtain connection information to Streams for Apache Kafka:
         1. In the OpenShift Streams for Apache Kafka web console, go to **Streams for Apache Kafka > Kafka Instances**.  On the right side of your Kafka instance, click *Options* (&#8942;) &#x2192; **Connection**.
-        2. In the **Connection** page, copy the **Bootstrap server** endpoint to a secure location. This is the bootstrap server endpoint that your application requires to connect to the Kafka instance.
-        3. Click **Create service account** and copy the **Client ID** and **Client secret** to a secure location. Your application requires these credentials to authenticate the connection to the Kafka instance.
-        4. After you save the generated credentials to a secure location, select the confirmation check box in the credentials window and close the window.
-        5. In the **Kafka Instances** page of the web console, click the name of your Kafka instance. Select the **Topics** tab, create a topic if you have not already done so, and copy your **Topic name** for future use.
+        1. On the **Connection** page, copy the **Bootstrap server** endpoint to a secure location. Your application requires this endpoint to connect to the Kafka instance.
+        1. Click **Create service account** and copy the **Client ID** and **Client secret** to a secure location. Your application requires these credentials to authenticate the connection to the Kafka instance.
+        1. After you save the generated credentials to a secure location, select the confirmation check box in the credentials window and close the window.
+        1. Set access for your new service account.  To do this, on the **Kafka Instances** page of the web console, click the name of your Kafka instance. Select the **Access** tab, and click the **Manage access** button to **Assign permissions** for the appropriate level of access.
+
+           *Example ACL permissions for a new service account*
+            | Resource            | Permission |
+            | -----------         | ----------- |
+            | Topic Is *          | Allow All   |
+            | Consumer group Is * | Allow All   |
+            | Transactional ID *  | Allow All   |
+
+        1. On the **Kafka Instances** page of the web console, click the name of your Kafka instance. Select the **Topics** tab, create a topic if you have not already done so, and copy your **Topic name** for future use.
 
         You’ll use the server, client, and topic information that you saved to configure your application to connect to your Kafka instances from your Jupyter Notebook.
       review:
@@ -72,7 +82,7 @@ spec:
       review:
         instructions: |-
           #### To verify that you have launched the Jupyter notebook:
-          Do you see a message in the page that says **The server is starting up**?
+          Do you see a message on the page that says **The server is starting up**?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
         success: Your server has started and the JupyterLab interface will load shortly. When the page displays a **Stop** option, proceed to the next step.
