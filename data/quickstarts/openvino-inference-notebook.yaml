@@ -26,8 +26,7 @@ spec:
         #### This is only required the first time
         1. Install the OpenVINO operator if it's not installed
         2. Change namespace to redhat-ods-applications
-        3. Enter the OpenVINO operator
-        3a. This can be found in the UI under Operators > Installed Operators > OpenVINO Toolkit
+        3. Enter the OpenVINO operator. This can be found in the UI under Operators > Installed Operators > OpenVINO Toolkit
         4. Go to the "Notebook" tab
         5. Click create
         6. The notebook will now build, this may take several minutes
