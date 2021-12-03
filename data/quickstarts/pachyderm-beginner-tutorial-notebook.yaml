@@ -10,7 +10,7 @@ spec:
   durationMinutes: 30
   icon: 'images/pachyderm.svg'
   description: This quick start will help you load Pachyderm's beginner tutorial notebook. 
-    This notebook will introduce you to Pachyderm's main concepts and principles such as data repositories and pipelines, using the pachctl command-line utility from your cells.  
+    This notebook will introduce you to Pachyderm's main concepts and principles such as data repositories and pipelines, and using the pachctl command-line utility from your cells.  
    
   introduction: |-
     ### This quick start shows you how to import Pachyderm Tutorial notebook
@@ -29,7 +29,7 @@ spec:
           Do you have a notebook browser tab?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
-        success: You have a notebook server
+        success: You have a notebook server up and running.
         failed: Review the "Creating a Jupyter notebook" quick start for additional help.
     - title: Load Pachyderm beginner tutorial notebook
       description: |-
@@ -45,7 +45,27 @@ spec:
         failedTaskHelp:
           This task is not verified yet. Try the task again.
       summary:
-        success: You have loaded Pachyderm beginner tutorial notebook
+        success: You have loaded Pachyderm beginner tutorial notebook.
         failed: Try the steps again.
+
+    - title: Configure your notebook to connect to your cluster
+      description: |-
+        ### Before experimenting with the notebook, run the following command lines to connect your notebook to Pachyderm
+        1. Install Pachyderm’s CLI (`pachchtl`) by running the following command from a top new cell in your notebook: `! curl -o /tmp/pachctl.tar.gz -L https://github.com/pachyderm/pachyderm/releases/download/v2.0.2/pachctl_2.0.2_linux_amd64.tar.gz && tar -xvf /tmp/pachctl.tar.gz  -C /tmp && cp /tmp/pachctl_2.0.2_linux_amd64/pachctl  /opt/app-root/bin/`.
+        2. In another cell, run the following to create a new context for your CLI to connect to your cluster. Before running the command, update “pachyderm-operator-install” in the pachd_address with your project name: `!echo '{"pachd_address":"pachd.pachyderm-operator-install.svc.cluster.local:30650"}' | pachctl config set context pachyderm --overwrite`.
+        3. Finally, switch the pachctl context to your newly created context by running: `!pachctl config set active-context pachyderm`.
+        4. Verify that your active context is the new context: `!pachctl config get active-context` should return "pachyderm". 
+
+      review:
+        instructions: |-
+          #### Verify that you are connected to your cluster
+          From a notebook cell, run: `!pachctl version`. You should see both pachctl and pachd versions printed.
+        failedTaskHelp:
+          This task is not verified yet. Try the task again.
+      summary:
+        success: You have connected your notebook to Pachyderm's cluster. You are ready to start your beginner tutorial.
+        failed: Try the steps again.
+
+
   conclusion: You can complete the rest of the quick start inside the notebook itself. Proceed cell by cell, taking care not to skip any. Once you have completed the entire notebook, you will have learned about Pachyderm's main concepts.
   nextQuickStart: []
