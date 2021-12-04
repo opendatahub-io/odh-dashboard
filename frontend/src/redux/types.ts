@@ -14,9 +14,10 @@ export enum Actions {
   FORCE_COMPONENTS_UPDATE = 'FORCE_COMPONENTS_UPDATE',
 }
 
+export type AppNotificationStatus = 'success' | 'danger' | 'warning' | 'info' | 'default';
 export interface AppNotification {
   id?: number;
-  status: 'success' | 'danger' | 'warning' | 'info' | 'default';
+  status: AppNotificationStatus;
   title: string;
   message?: React.ReactNode;
   hidden?: boolean;
