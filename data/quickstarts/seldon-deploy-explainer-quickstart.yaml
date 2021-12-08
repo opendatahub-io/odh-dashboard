@@ -4,11 +4,11 @@ metadata:
   annotations:
     opendatahub.io/categories: 'AI/Machine learning,Deployment,Model serving,Monitoring,SciKit-Learn'
 spec:
-  displayName: See predictions and explanations for a deployed SKLearn model
+  displayName: Identifying explanations for a deployed SKLearn model
   appName: seldon-deploy
   durationMinutes: 10
   icon: 'images/seldon.svg'
-  description: See predictions and explanations for deployed income classifier model.
+  description: Launch an income classifier model and identify explanations.
   introduction: |-
     ### This quick start shows you how to launch an income classifier model and see explanations.
     Seldon Deploy is a specialist set of tools designed to simplify and accelerate the process of deploying and managing your machine learning models.

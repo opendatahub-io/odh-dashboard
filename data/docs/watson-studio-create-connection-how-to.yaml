@@ -7,6 +7,6 @@ spec:
   appName: watson-studio
   displayName: How to create a connection to access data
   description: |-
-    Create connections to various data sources across the platform.
+    Learn how to create connections to various data sources across the platform.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/cpd/access/connect-data-sources.html
   durationMinutes: 10

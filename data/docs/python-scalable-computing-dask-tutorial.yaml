@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Jupyter notebook,Python'
 spec:
   appName: anaconda-ce
-  displayName: Scalable computing in Python with Dask
+  displayName: Using Dask for parallel data analysis 
   description: |-
-    Learn about parallel data analysis with Dask, a parallel computing library that scales the existing Python ecosystem. This tutorial shows you how to analyze medium sized datasets in parallel.
+    Analyze medium-sized datasets in parallel locally using Dask, a parallel computing library that scales the existing Python ecosystem.
   url: https://tutorial.dask.org/
   durationMinutes: 230

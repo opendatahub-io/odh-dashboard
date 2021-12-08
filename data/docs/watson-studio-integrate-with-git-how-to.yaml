@@ -7,6 +7,6 @@ spec:
   appName: watson-studio
   displayName: How to create a project that integrates with Git
   description: |-
-    How to add assets from a Git repository into a project.
+    Learn how to add assets from a Git repository into a project. 
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/manage-data/git-integration.html
   durationMinutes: 10

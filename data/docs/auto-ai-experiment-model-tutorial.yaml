@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Deployment,Model serving,Python'
 spec:
   appName: watson-studio
-  displayName: Run an AutoAI experiment to build a model
+  displayName: Running an AutoAI experiment to build a model 
   description: |-
-    Build a binary classification model for a marketing campaign.
+    Watch a video about building a binary classification model for a marketing campaign.
   url: https://video.ibm.com/channel/23952663/video/cpd35-ws-autoai
   durationMinutes: 8

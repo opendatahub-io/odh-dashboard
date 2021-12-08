@@ -6,7 +6,7 @@ spec:
   displayName: IBM Watson Studio
   provider: IBM
   description: |-
-    Embed AI and machine learning into your business. Create custom models using your own data.
+    IBM Watson Studio is a platform for embedding AI and machine learning into your business and creating custom models with your own data. 
   kfdefApplications: []
   route: ''
   csvName: 'ibm-cp-data-operator'

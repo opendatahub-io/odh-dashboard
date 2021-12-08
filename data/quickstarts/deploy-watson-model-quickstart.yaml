@@ -8,7 +8,7 @@ spec:
   appName: watson-studio
   durationMinutes: 15
   icon: 'images/ibm.svg'
-  description: This quick start walks you through importing a Notebook in Watson Studio, building a model with AutoAI, and deploying a model.
+  description: Import a notebook in Watson Studio and use AutoAI to build and deploy a model. 
   introduction: |-
     ### This quick start walks you through importing a Notebook in Watson Studio, building a model with AutoAI, and deploying a model.
     Build, run and manage AI models, and optimize decisions at scale across any cloud. IBM Watson Studio empowers you to operationalize AI anywhere as part of IBM Cloud Pak® for Data,

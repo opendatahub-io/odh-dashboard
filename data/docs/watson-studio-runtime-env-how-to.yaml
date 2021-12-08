@@ -7,6 +7,6 @@ spec:
   appName: watson-studio
   displayName: How to choose between notebook runtime environment options
   description: |-
-    Understand the options available when you configure a notebook runtime environment.
+    Explore available options for configuring your notebook runtime environment.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/notebook-environments.html
   durationMinutes: 5

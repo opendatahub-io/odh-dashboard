@@ -4,11 +4,11 @@ metadata:
   annotations:
     opendatahub.io/categories: 'AI/Machine learning,Deployment,Model serving,SciKit-Learn'
 spec:
-  displayName: Launch a SKLearn model and update model by canarying
+  displayName: Launching and updating a SKLearn model with canary deployment
   appName: seldon-deploy
   durationMinutes: 10
   icon: 'images/seldon.svg'
-  description: How to perform a canary promotion of a Scikit-Learn model.
+  description: Launch a SKLearn model and update it using canary deployment practices. 
   prerequisites: [You completed the "Create a Jupyter notebook" quick start.]
   introduction: |-
     ### This quick start shows you how to launch a SKLearn model and use canary deployment practices to update the model.

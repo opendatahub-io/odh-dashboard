@@ -5,11 +5,11 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Getting started,Jupyter notebook,TensorFlow,Python,PyTorch'
 
 spec:
-  displayName: Optimized Inference Notebook
+  displayName: Using the OpenVINO toolkit 
   appName: openvino
   durationMinutes: 5
   icon: 'images/openvino.svg'
-  description: This quick start details how to use the OpenVINO toolkit.
+  description: Quantize an ONNX computer vision model using the OpenVINO model optimizer and use the result for inference from a notebook. 
   introduction: |-
     ### This quick start details how to quantize a model and use the result for inference from a notebook using the OpenVINO toolkit.
 

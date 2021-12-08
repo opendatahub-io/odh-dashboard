@@ -6,7 +6,7 @@ spec:
   displayName: Intel® oneAPI AI Analytics Toolkit Container
   provider: Intel®
   description: |-
-    A comprehensive set of interoperable AI software tools, built using oneAPI, to provide drop-in acceleration for end to end data science and machine learning pipelines on Intel architectures with familiar Python libraries and frameworks.
+    The AI Kit is a set of AI software tools to accelerate end-to-end data science and analytics pipelines on Intel® architectures.
   route: ''
   img: images/oneapi.png
   category: Self managed

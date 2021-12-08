@@ -6,7 +6,7 @@ spec:
   displayName: OpenShift Streams for Apache Kafka
   provider: Red Hat
   description: |-
-    A managed cloud service for  streaming data that reduces the operational cost and complexity of delivering real-time applications across hybrid-cloud environments.
+    OpenShift Streams for Apache Kafka is a service for streaming data that reduces the cost and complexity of delivering real-time applications.
   kfdefApplications: []
   endpoint: https://cloud.redhat.com/application-services/streams/kafkas
   img: images/red-hat.svg

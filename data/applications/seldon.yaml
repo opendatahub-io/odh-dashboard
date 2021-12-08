@@ -4,8 +4,7 @@ spec:
   displayName: Seldon Deploy
   provider: Seldon
   description: |-
-    A specialist set of tools designed to simplify and accelerate the process of deploying and
-    managing your machine learning models.
+    Seldon Deploy is a set of tools to  simplify and accelerate the process of deploying and managing your machine learning models.
   csvName: seldon-deploy-operator
   routeNamespace: 'istio-system'
   route: 'istio-ingressgateway'

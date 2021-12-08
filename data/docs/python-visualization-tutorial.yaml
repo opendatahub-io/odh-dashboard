@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Data visualization,Jupyter notebook,Python'
 spec:
   appName: anaconda-ce
-  displayName: Python tools for data visualization
+  displayName: Choosing Python tools for data visualization
   description: |-
-    The PyViz.org website is an open platform for helping users decide on the best open-source (OSS) Python data visualization tools for their purposes, with links, overviews, comparisons, and examples.
+    Use the PyViz.org website to help you decide on the best open source Python data visualization tools for you.
   url: https://pyviz.org
   durationMinutes: 30

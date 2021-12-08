@@ -6,11 +6,11 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Getting started,Jupyter notebook,Python,oneAPI,Scikit-Learn,Pandas,TensorFlow,PyTorch,Modin,LPOT'
 
 spec:
-  displayName: Intel® oneAPI AI Analytics Toolkit (AI Kit) Notebook
+  displayName: Using the Intel® oneAPI AI Analytics Toolkit (AI Kit) notebook 
   appName: aikit
   durationMinutes: 15
   icon: 'images/oneapi-aikit.png'
-  description: This quick start details how to use the Intel® oneAPI AI Analytics Toolkit.
+  description: Run a data science notebook sample with the Intel® oneAPI AI Analytics Toolkit.
   introduction: |-
     ### This quick start details how to develop using the Intel® oneAPI AI Analytics Toolkit.
 

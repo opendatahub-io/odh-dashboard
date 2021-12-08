@@ -6,8 +6,7 @@ spec:
   displayName: Pachyderm
   provider: Pachyderm
   description: |-
-    An enterprise-grade, open source data science platform that makes explainable, repeatable, and
-    scalable ML/AI a reality.
+    Pachyderm is a group of products that help data science teams automate and optimize their machine learning operations.
   kfdefApplications: []
   route: ''
   img: images/pachyderm.svg

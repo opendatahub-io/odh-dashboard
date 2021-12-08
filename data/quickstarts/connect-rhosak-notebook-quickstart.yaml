@@ -8,7 +8,7 @@ spec:
   appName: rhosak
   durationMinutes: 10
   icon: 'images/red-hat.svg'
-  description: A quick step-by-step guide to connecting to Red Hat Streams for Apache Kafka from a Jupyter notebook.
+  description: Connect to Red Hat OpenShift Streams for Apache Kafka from a Jupyter notebook. 
   prerequisites: [You have completed the "Getting started with Red Hat OpenShift Streams for Apache Kafka" quick start]
   introduction: |-
     ### This quick start shows you how to connect to Streams for Apache Kafka from a Jupyter notebook.

@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Deployment,Model serving'
 spec:
   appName: watson-studio
-  displayName: Build a binary classification model
+  displayName: Buildng a binary classification model
   description: |-
-    Train a model to predict whether or not a customer is likely to subscribe to a bank promotion.
+    Train a model to predict if a customer is likely to subscribe to a bank promotion.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/autoai_example_binary_classifier.html
   durationMinutes: 10

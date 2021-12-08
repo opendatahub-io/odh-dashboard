@@ -8,7 +8,7 @@ spec:
   appName: jupyterhub
   durationMinutes: 5
   icon: 'images/jupyterhub.svg'
-  description: This quick start will walk you through creating a Jupyter notebook.
+  description: Create a Jupyter notebook in JupyterLab. 
   introduction: |-
     ### This quick start shows you how to create a Jupyter notebook.
     Red Hat® OpenShift® Data Science lets you run Jupyter notebooks on our Red Hat® OpenShift® Dedicated environment.

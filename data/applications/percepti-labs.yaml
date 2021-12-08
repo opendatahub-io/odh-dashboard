@@ -6,8 +6,7 @@ spec:
   displayName: PerceptiLabs
   provider: PercetiLabs
   description: |-
-    Accelerates machine learning by streamlining the workflow and advancing explainability of the
-    models.
+    PerceptiLabs is a visual modeling tool for editing, managing, and monitoring your machine learning models.
   kfdefApplications: []
   route: ''
   img: images/percepti-labs.svg

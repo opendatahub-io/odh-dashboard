@@ -6,7 +6,7 @@ spec:
   displayName: JupyterHub
   provider: Jupyter
   description: |-
-    A multi-user version of the notebook designed for companies, classrooms and research labs.
+    JupyterHub is a multi-user version of the notebook designed for companies, classrooms, and research labs.
   kfdefApplications: ['jupyterhub', 'notebook-images']
   route: jupyterhub
   img: images/jupyterhub.svg

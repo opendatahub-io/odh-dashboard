@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Data management,Jupyter notebook,Python'
 spec:
   appName: anaconda-ce
-  displayName: Data analysis in Python with Pandas
+  displayName: Using Pandas for data analysis in Python 
   description: |-
-    Learn how to make effective use of pandas, a data analysis library for the Python programming language. This series is targeted at an intermediate level: people who have some experience with pandas, but are looking to improve.
+    Learn how to use pandas, a data analysis library for the Python programming language. 
   url: https://github.com/TomAugspurger/effective-pandas
   durationMinutes: 90

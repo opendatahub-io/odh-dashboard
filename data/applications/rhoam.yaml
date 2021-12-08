@@ -6,7 +6,7 @@ spec:
   displayName: OpenShift API Management
   provider: Red Hat
   description: |-
-    A hosted and managed API management service that accelerates time-to-value and reduces the operational cost of delivering API-first, microservices-based applications.
+    OpenShift API Management is a service that accelerates time-to-value and reduces the cost of delivering API-first, microservices-based applications.
   enableCR:
     group: integreatly.org
     version: v1alpha1
