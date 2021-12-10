@@ -8,7 +8,7 @@ spec:
   displayName: Getting started with Pachyderm concepts
   description: |-
     Learn Pachyderm's main concepts by creating pipelines that perform edge detection on a few images. 
-    Do not forget to install Pachyderm's CLI and connect your context to your cluster from your notebook.
+    Check the Getting Started section to install Pachyderm's CLI and connect to your cluster from your notebook.
   url: https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/
   durationMinutes: 15
 

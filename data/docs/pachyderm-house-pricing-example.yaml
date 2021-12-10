@@ -7,8 +7,8 @@ spec:
   appName: pachyderm
   displayName: Training a regression model in Pachyderm
   description: |- 
-    Create a simple machine learning pipeline in Pachyderm to train a regression model on the Boston Housing Dataset and predict the value of homes in Boston.
-    Depending on what libraries are available in your notebook, you might need to pip install python-pachyderm client. See https://python-pachyderm.readthedocs.io/en/stable/.
-    Do not forget to install Pachyderm's CLI and connect your context to your cluster from your notebook.
+    Create a simple pipeline in Pachyderm to train a regression model on the Boston Housing Dataset and predict the value of homes in Boston.
+    Start with a `pip install python-pachyderm` of Pachyderm's python client (see https://python-pachyderm.readthedocs.io/en/stable/).
+    Check the Getting Started section to install Pachyderm's CLI and connect to your cluster.
   url: https://github.com/pachyderm/examples/blob/master/housing-prices-intermediate/housing-prices.ipynb
   durationMinutes: 30
