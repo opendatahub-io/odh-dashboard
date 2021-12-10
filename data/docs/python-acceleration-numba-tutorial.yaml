@@ -7,6 +7,6 @@ spec:
   appName: anaconda-ce
   displayName: Accelerating scientific workloads in Python with Numba
   description: |-
-    Learn how to make your Python code run faster.
+    Watch a video about how to make your Python code run faster.
   url: https://www.youtube.com/watch?v=6oXedk2tGfk
   durationMinutes: 42

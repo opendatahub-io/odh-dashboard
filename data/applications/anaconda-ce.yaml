@@ -4,8 +4,7 @@ spec:
   displayName: Anaconda Commercial Edition
   provider: Anaconda
   description: |-
-    The world's most popular open-source package distribution and management experience. Optimized
-    and supported for commercial use.
+    Anaconda Commercial Edition is the most popular open source package distribution and management experience, optimized for commercial use.
   kfdefApplications: []
   route: ''
   img: images/anaconda-ce.svg

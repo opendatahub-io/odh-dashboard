@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Data visualization,Deployment,Jupyter notebook,Model serving,Python'
 spec:
   appName: anaconda-ce
-  displayName: Build interactive visualizations and dashboards in Python
+  displayName: Building interactive visualizations and dashboards in Python
   description: |-
-    Explore data of many different types and sizes and learn to build simple and complex figures; work with billions of data points; add interactive behavior, widgets and controls; and deploy full dashboards and applications.
+    Explore a variety of data across multiple notebooks and learn how to deploy full dashboards and applications.
   url: https://holoviz.org/tutorial/index.html
   durationMinutes: 210

@@ -7,6 +7,6 @@ spec:
   displayName: How to update notebook server settings
   appName: jupyterhub
   description: |-
-    Update the settings or the notebook image on your notebook server.
+    Learn how to update the settings or the notebook image on your notebook server.
   url: https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/how_to_update_notebook_server_settings/index
   durationMinutes: 15

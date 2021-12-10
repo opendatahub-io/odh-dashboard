@@ -9,7 +9,7 @@ spec:
   appName: rhoam
   durationMinutes: 10
   icon: 'images/red-hat.svg'
-  description:  Learn how to protect a model service API using Red Hat OpenShift API Management.
+  description: Protect a model service API using Red Hat OpenShift API Management. 
   prerequisites: [You have completed the "How to deploy a Python model using Flask and OpenShift" quick start.]
   introduction: >-
     Red Hat OpenShift API Management installs and manages instances of Red Hat 3scale API Management and Red Hat Single Sign-On on an OpenShift cluster.

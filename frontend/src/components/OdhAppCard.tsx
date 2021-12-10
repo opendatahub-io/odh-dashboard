@@ -50,33 +50,28 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       target="_blank"
       rel="noopener noreferrer"
     >
-      Documentation
+      View documentation
       <ExternalLinkAltIcon />
     </DropdownItem>,
   ];
 
+  const quickStartClasses = classNames('odh-dashboard__external-link', {
+    'm-hidden': !odhApp.spec.quickStart,
+    'm-disabled':
+      getLaunchStatus(odhApp.spec.quickStart || '', qsContext) === LaunchStatusEnum.Close,
+  });
+
+  ('odh-dashboard__external-link');
   if (odhApp.spec.link) {
     dropdownItems.push(
-      <DropdownItem
-        key="launch"
-        className="odh-dashboard__external-link"
-        href={odhApp.spec.link}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Launch
-        <ExternalLinkAltIcon />
+      <DropdownItem key="quick-start" className={quickStartClasses} href="#" onClick={onQuickStart}>
+        {`${getLaunchStatus(odhApp.spec.quickStart || '', qsContext)} quick start`}
       </DropdownItem>,
     );
   }
 
   const launchClasses = classNames('odh-card__footer__link', {
     'm-hidden': !odhApp.spec.link,
-  });
-  const quickStartClasses = classNames('odh-card__footer__link', {
-    'm-hidden': !odhApp.spec.quickStart,
-    'm-disabled':
-      getLaunchStatus(odhApp.spec.quickStart || '', qsContext) === LaunchStatusEnum.Close,
   });
 
   const cardFooter = (
@@ -87,11 +82,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         target="_blank"
         rel="noopener noreferrer"
       >
-        Launch
+        Launch application
         <ExternalLinkAltIcon />
-      </a>
-      <a className={quickStartClasses} href="#" onClick={onQuickStart}>
-        Quick start
       </a>
     </CardFooter>
   );

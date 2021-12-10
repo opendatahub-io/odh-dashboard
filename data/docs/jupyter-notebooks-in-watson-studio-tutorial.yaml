@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Jupyter notebook,Python'
 spec:
   appName: watson-studio
-  displayName: Using Jupyter notebooks in Watson Studio
+  displayName: Using Jupyter notebooks in Watson Studio 
   description: |-
-    This video covers the basics for working with Jupyter notebooks in Watson Studio.
+    Watch a video about working with Jupyter notebooks in Watson Studio.
   url: https://video.ibm.com/channel/23952663/video/cpd35-ws-notebook-basics
   durationMinutes: 3

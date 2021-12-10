@@ -7,6 +7,6 @@ spec:
   displayName: How to view installed packages on your notebook server
   appName: jupyterhub
   description: |-
-    See which packages are installed into your running notebook server.
+    Learn how to see which packages are installed on your running notebook server.
   url: https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/how_to_view_installed_packages_on_your_notebook_server/index
   durationMinutes: 15

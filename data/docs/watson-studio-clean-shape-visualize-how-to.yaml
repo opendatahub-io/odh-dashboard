@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Data management,Data visualization'
 spec:
   appName: watson-studio
-  displayName: How to clean, shape, and visualize my data
+  displayName: How to clean, shape, and visualize data
   description: |-
-    Clean and shape tabular data using Watson Studio data refinery.
+    Learn how to clean and shape tabular data using Watson Studio data refinery. 
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/refinery/refining_data.html
   durationMinutes: 10

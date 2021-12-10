@@ -7,7 +7,6 @@ spec:
   displayName: How to serve a model using OpenVINO Model Server
   appName: openvino
   description: |-
-    Deploy optimized models with OpenVINO Model Server using OpenVINO custom resources.
-
+    Learn how to deploy optimized models with the OpenVINO Model Server using OpenVINO custom resources.
   url: https://github.com/openvinotoolkit/model_server/tree/main/extras/ovms-operator
   durationMinutes: 10

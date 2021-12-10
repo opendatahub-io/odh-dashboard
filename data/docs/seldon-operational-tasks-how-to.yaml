@@ -7,6 +7,6 @@ spec:
   displayName: How to perform operational tasks
   appName: seldon-deploy
   description: |-
-    Best practices for managing a Seldon Deploy cluster.
+    Explore best practices for managing a Seldon Deploy cluster.
   url: https://deploy.seldon.io/en/v1.2/contents/operations/index.html
   durationMinutes: 10

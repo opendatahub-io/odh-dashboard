@@ -6,7 +6,7 @@ spec:
   displayName: Starburst Galaxy
   provider: Starburst
   description: |-
-    Starburst Galaxy is a fully-managed service to run high performance queries across your various data sources using SQL.
+    Starburst Galaxy is a fully managed service to run high-performance queries across your various data sources using SQL.
   kfdefApplications: []
   route: ''
   img: images/starburst.svg

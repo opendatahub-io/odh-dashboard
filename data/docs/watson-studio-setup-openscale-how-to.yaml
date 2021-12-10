@@ -7,6 +7,6 @@ spec:
   appName: watson-studio
   displayName: How to set up Watson OpenScale
   description: |-
-    Track and measure outcomes from models with OpenScale.
+    Learn how to track and measure outcomes from models with OpenScale.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/model/getting-started.html
   durationMinutes: 10

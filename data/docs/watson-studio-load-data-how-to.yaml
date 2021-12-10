@@ -5,8 +5,8 @@ metadata:
     opendatahub.io/categories: 'AI/Machine learning,Data management,Getting started,Jupyter notebook,Python'
 spec:
   appName: watson-studio
-  displayName: How to load data into Notebook
+  displayName: How to load data into a Jupyter notebook 
   description: |-
-    Learn how to integrate data sources into a Jupyter notebook.
+    Learn how to integrate data sources into a Jupyter notebook by loading data.
   url: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/wsj/analyze-data/load-and-access-data.html
   durationMinutes: 5

@@ -7,6 +7,6 @@ spec:
   displayName: How to install Python packages on your notebook server
   appName: jupyterhub
   description: |-
-    Install additional python packages into your notebook server.
+    Learn how to install additional Python packages on your notebook server. 
   url: https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/how_to_install_python_packages_on_your_notebook_server/index
   durationMinutes: 15
