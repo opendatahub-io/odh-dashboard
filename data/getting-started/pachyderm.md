@@ -49,10 +49,10 @@ Pachyderm Operator has a **Red Hat marketplace listing**.
         The command installs Pachyderm’s CLI (`pachchtl`) in your notebook environment.
 
         **Note**: The version of `pachctl` must match the version of Pachyderm deployed by the Operator. Pachyderm’s version is available on the Operator’s description. 
-        At a minimum, you should always use the identical major & minor versions of `pachctl` and Pachyderm (`pachd`). Note that `/v2.0.2/pachctl_2.0.2_linux_amd64.tar.gz` refers to version 2.0.2 of Pachyderm. Depending on the version currently deployed by the Operator, you might need to update `2.0.2` to the version deployed.
+        At a minimum, you should always use the identical major & minor versions of `pachctl` and Pachyderm (`pachd`). Note that the following package `/v2.0.3/pachctl_2.0.3_linux_amd64.tar.gz` (see command line below) refers to version 2.0.3 of Pachyderm. Depending on the version currently deployed by the Operator, you might need to update the version of `pachctl` (i.e.change `2.0.3` to `2.1.0` for example) in the command line.
 
         ```shell
-        ! curl -o /tmp/pachctl.tar.gz -L https://github.com/pachyderm/pachyderm/releases/download/v2.0.2/pachctl_2.0.2_linux_amd64.tar.gz && tar -xvf /tmp/pachctl.tar.gz  -C /tmp && cp /tmp/pachctl_2.0.2_linux_amd64/pachctl  /opt/app-root/bin/
+        ! curl -o /tmp/pachctl.tar.gz -L https://github.com/pachyderm/pachyderm/releases/download/v2.0.3/pachctl_2.0.3_linux_amd64.tar.gz && tar -xvf /tmp/pachctl.tar.gz  -C /tmp && cp /tmp/pachctl_2.0.3_linux_amd64/pachctl  /opt/app-root/bin/
         ```
 
     - Create a new context for your CLI to connect to your cluster:
@@ -81,8 +81,8 @@ Pachyderm Operator has a **Red Hat marketplace listing**.
         For example:
         ```
         COMPONENT           VERSION             
-        pachctl             2.0.2              
-        pachd               2.0.2
+        pachctl             2.0.3              
+        pachd               2.0.3
         ```
 
-You are ready to run your first pipelines in a notebook. Try the steps in this written [tutorial](https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/) or check our **Quick Start** in the `Enabled` Menu of your OpenShift Data Science Console for ready-made notebooks .
+You are ready to run your first pipelines in a notebook. Check our **Quick Start** in the `Enabled` Menu of your OpenShift Data Science Console. You can later extend this first notebook by following the steps in this written [tutorial](https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/) on our documentation website.
