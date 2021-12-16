@@ -16,4 +16,3 @@ spec:
   support: third party support
   quickStart: pachyderm-beginner-tutorial-notebook
   csvName: pachyderm-operator
-  comingSoon: true
