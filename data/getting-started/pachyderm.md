@@ -86,3 +86,6 @@ Pachyderm Operator has a **Red Hat marketplace listing**.
         ```
 
 You are ready to run your first pipelines in a notebook. Check our **Quick Start** in the `Enabled` Menu of your OpenShift Data Science Console. You can later extend this first notebook by following the steps in this written [tutorial](https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/) on our documentation website.
+
+Note that you might need to install additional libraries depending on the notebook you chose. For example, our [Housing prices notebook](https://github.com/pachyderm/examples/blob/master/housing-prices-intermediate/housing-prices.ipynb) requires the additional installation of [Pachyderm's python client](https://python-pachyderm.readthedocs.io/en/stable/): `pip install python-pachyderm`.
+
