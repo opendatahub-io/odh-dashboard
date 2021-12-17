@@ -7,7 +7,7 @@ spec:
   provider: Pachyderm
   description: |-
       Pachyderm is the data foundation for machine learning.  
-      Pachyderm provides industry leading data versioning, pipelines and lineage that allow data science teams to automate the machine learning lifecycle and optimize their machine learning operations (MLOps).
+     Pachyderm is the data foundation for machine learning. It provides industry-leading data versioning, pipelines, and lineage for data science teams to automate the machine learning lifecycle and optimize machine learning operations (MLOps).
   kfdefApplications: []
   route: ''
   img: images/pachyderm.svg
