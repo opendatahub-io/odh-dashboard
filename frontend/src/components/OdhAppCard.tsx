@@ -42,6 +42,12 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     launchQuickStart(odhApp.spec.quickStart, qsContext);
   };
 
+  const quickStartClasses = classNames('odh-dashboard__external-link', {
+    'm-hidden': !odhApp.spec.quickStart,
+    'm-disabled':
+      getLaunchStatus(odhApp.spec.quickStart || '', qsContext) === LaunchStatusEnum.Close,
+  });
+
   const dropdownItems = [
     <DropdownItem
       key="docs"
@@ -53,22 +59,10 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       View documentation
       <ExternalLinkAltIcon />
     </DropdownItem>,
+    <DropdownItem key="quick-start" className={quickStartClasses} href="#" onClick={onQuickStart}>
+      {`${getLaunchStatus(odhApp.spec.quickStart || '', qsContext)} quick start`}
+    </DropdownItem>,
   ];
-
-  const quickStartClasses = classNames('odh-dashboard__external-link', {
-    'm-hidden': !odhApp.spec.quickStart,
-    'm-disabled':
-      getLaunchStatus(odhApp.spec.quickStart || '', qsContext) === LaunchStatusEnum.Close,
-  });
-
-  ('odh-dashboard__external-link');
-  if (odhApp.spec.link) {
-    dropdownItems.push(
-      <DropdownItem key="quick-start" className={quickStartClasses} href="#" onClick={onQuickStart}>
-        {`${getLaunchStatus(odhApp.spec.quickStart || '', qsContext)} quick start`}
-      </DropdownItem>,
-    );
-  }
 
   const launchClasses = classNames('odh-card__footer__link', {
     'm-hidden': !odhApp.spec.link,
