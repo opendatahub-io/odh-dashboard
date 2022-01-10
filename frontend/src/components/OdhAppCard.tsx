@@ -61,8 +61,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       getLaunchStatus(odhApp.spec.quickStart || '', qsContext) === LaunchStatusEnum.Close,
   });
 
-  ('odh-dashboard__external-link');
-  if (odhApp.spec.link) {
+  if (odhApp.spec.quickStart) {
     dropdownItems.push(
       <DropdownItem key="quick-start" className={quickStartClasses} href="#" onClick={onQuickStart}>
         {`${getLaunchStatus(odhApp.spec.quickStart || '', qsContext)} quick start`}
