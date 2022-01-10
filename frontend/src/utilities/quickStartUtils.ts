@@ -5,7 +5,7 @@ import {
 } from '@cloudmosaic/quickstarts';
 
 export enum LaunchStatusEnum {
-  Start = 'Start',
+  Open = 'Open',
   Continue = 'Continue',
   Restart = 'Restart',
   Close = 'Close',
@@ -16,20 +16,20 @@ export const getLaunchStatus = (
   qsContext?: QuickStartContextValues,
 ): LaunchStatusEnum => {
   if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
-    return LaunchStatusEnum.Start;
+    return LaunchStatusEnum.Open;
   }
 
   const quickStartState = qsContext.allQuickStartStates[quickStartId];
 
   if (!quickStartState) {
-    return LaunchStatusEnum.Start;
+    return LaunchStatusEnum.Open;
   }
 
   if (quickStartState.taskNumber === -1) {
     if (qsContext.activeQuickStartID === quickStartId) {
       return LaunchStatusEnum.Close;
     }
-    return LaunchStatusEnum.Start;
+    return LaunchStatusEnum.Open;
   }
 
   if (
@@ -43,7 +43,7 @@ export const getLaunchStatus = (
     return LaunchStatusEnum.Continue;
   }
 
-  return LaunchStatusEnum.Start;
+  return LaunchStatusEnum.Open;
 };
 
 export const getQuickStartLabel = (
