@@ -21,6 +21,7 @@ import { OdhApplication } from '../../types';
 import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
 import { useGettingStarted } from '../../utilities/useGettingStarted';
 import MarkdownView from '../../components/MarkdownView';
+import { markdownConverter } from '../../utilities/markdown';
 
 import './GetStartedPanel.scss';
 
@@ -143,7 +144,13 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
               aria-live="polite"
               isInline
             >
-              {selectedApp.spec.betaText || DEFAULT_BETA_TEXT}
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: markdownConverter.makeHtml(
+                    selectedApp.spec.betaText || DEFAULT_BETA_TEXT,
+                  ),
+                }}
+              />
             </Alert>
           ) : null}
           {renderMarkdownContents()}
