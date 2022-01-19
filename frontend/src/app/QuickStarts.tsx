@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  useLocalStorage,
-  QuickStartContainer,
-} from '@patternfly/quickstarts';
+import { useLocalStorage, QuickStartContainer } from '@patternfly/quickstarts';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
 import '@patternfly/quickstarts/dist/quickstarts.min.css';
 import { useWatchQuickStarts } from '../utilities/useWatchQuickStarts';
@@ -20,11 +17,7 @@ const QuickStarts: React.FC = ({ children }) => {
     setAllQuickStartStates,
   };
 
-  return (
-    <QuickStartContainer {...valuesForQuickStartContext}>
-      {children}
-    </QuickStartContainer>
-  );
+  return <QuickStartContainer {...valuesForQuickStartContext}>{children}</QuickStartContainer>;
 };
 
 export default QuickStarts;
