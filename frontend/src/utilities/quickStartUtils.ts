@@ -2,7 +2,7 @@ import {
   getQuickStartStatus,
   QuickStartContextValues,
   QuickStartStatus,
-} from '@cloudmosaic/quickstarts';
+} from '@patternfly/quickstarts';
 
 export enum LaunchStatusEnum {
   Open = 'Open',

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { QuickStart } from '@cloudmosaic/quickstarts';
+import { QuickStart } from '@patternfly/quickstarts';
 import { fetchQuickStarts } from '../services/quickStartsService';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';

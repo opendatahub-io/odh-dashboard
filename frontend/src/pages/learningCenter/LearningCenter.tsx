@@ -1,7 +1,7 @@
 import React from 'react';
 import * as _ from 'lodash';
 import useDimensions from 'react-cool-dimensions';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
+import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
@@ -39,6 +39,7 @@ export const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
   const { components, loaded, loadError } = useWatchComponents(false);
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
+  console.log(qsContext);
   const [docApps, setDocApps] = React.useState<OdhDocument[]>([]);
   const [filteredDocApps, setFilteredDocApps] = React.useState<OdhDocument[]>([]);
   const queryParams = useQueryParams();

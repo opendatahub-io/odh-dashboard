@@ -1,5 +1,5 @@
 import React from 'react';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
+import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { makeCardVisible } from '../utilities/utils';
 
 export const useQuickStartCardSelected = (

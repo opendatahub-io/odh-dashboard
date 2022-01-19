@@ -1,7 +1,7 @@
 import React from 'react';
 import { Label, Tooltip } from '@patternfly/react-core';
 import { SyncAltIcon, CheckCircleIcon } from '@patternfly/react-icons';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
+import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { OdhDocument, OdhDocumentType } from '../types';
 import { isQuickStartComplete, isQuickStartInProgress } from '../utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
