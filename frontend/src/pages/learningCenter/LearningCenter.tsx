@@ -39,7 +39,6 @@ export const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
   const { components, loaded, loadError } = useWatchComponents(false);
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
-  console.log(qsContext);
   const [docApps, setDocApps] = React.useState<OdhDocument[]>([]);
   const [filteredDocApps, setFilteredDocApps] = React.useState<OdhDocument[]>([]);
   const queryParams = useQueryParams();
