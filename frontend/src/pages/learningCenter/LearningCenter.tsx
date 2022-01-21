@@ -1,7 +1,7 @@
 import React from 'react';
 import * as _ from 'lodash';
 import useDimensions from 'react-cool-dimensions';
-import { QuickStartContext, QuickStartContextValues } from '@cloudmosaic/quickstarts';
+import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';

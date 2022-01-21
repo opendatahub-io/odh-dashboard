@@ -37,7 +37,7 @@
     "test:type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@cloudmosaic/quickstarts": "0.0.11",
+    "@patternfly/quickstarts": "2.0.1",
     "@patternfly/patternfly": "4.108.2",
     "@patternfly/react-catalog-view-extension": "^4.11.42",
     "@patternfly/react-core": "4.128.2",

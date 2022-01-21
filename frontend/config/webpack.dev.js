@@ -47,7 +47,7 @@ module.exports = merge(
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-catalog-view-extension'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/styles/base.css'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@cloudmosaic/quickstarts')
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/quickstarts')
           ],
           use: ['style-loader', 'css-loader']
         },
