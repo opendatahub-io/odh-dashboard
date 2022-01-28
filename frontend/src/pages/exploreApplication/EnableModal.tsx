@@ -58,6 +58,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
       setValidationInProgress(false);
       selectedApp.spec.isEnabled = true;
+      selectedApp.spec.shownOnEnabledPage = true;
       onClose();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {

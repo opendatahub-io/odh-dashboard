@@ -19,6 +19,7 @@ export const mockExploreApplications: OdhApplication[] = [
       docsLink: 'https://jupyter.org/hub',
       quickStart: 'create-jupyter-notebook',
       getStartedLink: 'https://jupyterhub.readthedocs.io/en/stable/getting-started/index.html',
+      shownOnEnabledPage: true,
       isEnabled: true,
       link: 'https://jupyterhub-redhat-ods-applications.apps.jephilli-4-9-06-21-0953.devcluster.openshift.com',
     },
@@ -36,6 +37,7 @@ export const mockExploreApplications: OdhApplication[] = [
       img: 'images/jupyterhub.svg',
       docsLink: 'https://fakelink.org/fake',
       getStartedLink: 'https://jupyterhub.readthedocs.io/en/stable/getting-started/index.html',
+      shownOnEnabledPage: true,
       isEnabled: false,
       quickStart: null,
       enable: {

@@ -2,7 +2,7 @@ import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret, V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getApplicationDef } from '../../../utils/resourceUtils';
+import { getApplicationDef, updateApplicationDefs } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
 
 const doSleep = (timeout: number) => {
@@ -225,20 +225,37 @@ export const validateISV = async (
     },
   };
 
+  const checkResult = async () => {
+    const success = await getApplicationEnabledConfigMap(fastify, appDef);
+    if (success) {
+      await updateApplicationDefs();
+    }
+    return {
+      complete: true,
+      valid: success,
+      error: success ? '' : 'Error adding validation flag.',
+    };
+  };
+
+  const catchError = (e: Error) => {
+    fastify.log.warn(`failed creation of validation configmap: ${e.message}`);
+    return { complete: true, valid: false, error: 'Error adding validation flag.' };
+  };
+
   const coreV1Api = fastify.kube.coreV1Api;
   return coreV1Api
-    .createNamespacedConfigMap(namespace, cmBody)
+    .readNamespacedConfigMap(cmName, namespace)
     .then(async () => {
-      const success = await getApplicationEnabledConfigMap(fastify, appDef);
-      return {
-        complete: true,
-        valid: success,
-        error: success ? '' : 'Error adding validation flag.',
-      };
+      return coreV1Api
+        .replaceNamespacedConfigMap(cmName, namespace, cmBody)
+        .then(checkResult)
+        .catch(catchError);
     })
-    .catch((e) => {
-      fastify.log.warn(`failed creation of validation configmap: ${e.message}`);
-      return { complete: true, valid: false, error: 'Error adding validation flag.' };
+    .catch(async () => {
+      return coreV1Api
+        .createNamespacedConfigMap(namespace, cmBody)
+        .then(checkResult)
+        .catch(catchError);
     });
 };
 
@@ -287,7 +304,9 @@ export const getValidateISVResults = async (
 
   // Check the results config map
   const success = await getApplicationEnabledConfigMap(fastify, appDef);
-  if (!success) {
+  if (success) {
+    await updateApplicationDefs();
+  } else {
     fastify.log.warn(`failed attempted validation for ${appName}`);
   }
   return {

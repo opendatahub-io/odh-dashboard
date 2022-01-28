@@ -84,6 +84,22 @@
     }
   }
 
+  &__enabled-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  &__disabled-text {
+    color: var(--pf-global--disabled-color--100);
+    font-size: var(--pf-global--FontSize--sm);
+  }
+
+  &__disabled-popover-title {
+    font-size: var(--pf-global--FontSize--lg);
+    font-weight: var(--pf-global--FontWeight--bold);
+  }
+
   &__explore-badges {
     display: flex;
     flex-direction: column;
