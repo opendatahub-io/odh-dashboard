@@ -148,6 +148,7 @@ export type OdhApplication = {
     beta?: boolean | null;
     betaTitle?: string | null;
     betaText?: string | null;
+    shownOnEnabledPage: boolean | null;
     isEnabled: boolean | null;
     kfdefApplications: string[];
     csvName: string;

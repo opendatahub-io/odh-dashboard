@@ -24,6 +24,7 @@ export const mockEnabledApplications: OdhApplication[] = [
       support: 'red hat',
       quickStart: 'create-jupyter-notebook',
       comingSoon: false,
+      shownOnEnabledPage: true,
       isEnabled: true,
       kfdefApplications: ['jupyterhub', 'notebook-images'],
       csvName: '',
