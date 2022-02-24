@@ -45,6 +45,3 @@ jobs:
       - name: Test
         if: ${{ success() }}
         run: npm run test
-      - name: Confirm integration
-        if: ${{ success() }}
-        run: npm run build; npm run test:integration
