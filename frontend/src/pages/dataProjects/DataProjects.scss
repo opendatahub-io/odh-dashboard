@@ -1,0 +1,28 @@
+.odh-data-projects {
+  &-table {
+    &__tag {
+      display: block;
+    }
+  }
+  &-drawer-panel {
+    &__environment {
+      padding-top: var(--pf-global--spacer--md);
+      &-title {
+        color: var(--pf-global--Color--300);
+      }
+      &-body {
+        padding: var(--pf-global--spacer--sm) 0 var(--pf-global--spacer--sm) var(--pf-global--spacer--md);
+        font-size: var(--pf-global--FontSize--sm);
+      }
+      &-help-icon {
+        padding: 0 var(--pf-global--spacer--xs);
+      }
+      &-help-text {
+        color: var(--pf-global--Color--400);
+      }
+    }
+    &__tab-body {
+      padding-top: var(--pf-global--spacer--md);
+    }
+  }
+}
