@@ -23,6 +23,7 @@ type ApplicationsPageProps = {
   loadError?: Error;
   errorMessage?: string;
   emptyMessage?: string;
+  emptyComponent?: React.ReactNode;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -34,6 +35,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   children,
   errorMessage,
   emptyMessage,
+  emptyComponent,
 }) => {
   const renderHeader = () => (
     <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
@@ -77,7 +79,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     }
 
     if (empty) {
-      return (
+      return emptyComponent ? (
+        emptyComponent
+      ) : (
         <PageSection isFilled>
           <EmptyState variant={EmptyStateVariant.full} data-test-id="empty-empty-state">
             <EmptyStateIcon icon={QuestionCircleIcon} />
