@@ -11,7 +11,13 @@ import {
 
 import './DataProjectsToolbar.scss';
 
-const DataProjectsTableToolbar: React.FC = () => {
+type DataProjectsTableToolbarProps = {
+  setCreateProjectModalOpen: (isOpen: boolean) => void;
+};
+
+const DataProjectsTableToolbar: React.FC<DataProjectsTableToolbarProps> = ({
+  setCreateProjectModalOpen,
+}) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 
   const dropdownItems = [
@@ -32,7 +38,7 @@ const DataProjectsTableToolbar: React.FC = () => {
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <Button variant="primary" onClick={() => console.log('do something')}>
+            <Button variant="primary" onClick={() => setCreateProjectModalOpen(true)}>
               Create Project
             </Button>
           </ToolbarItem>

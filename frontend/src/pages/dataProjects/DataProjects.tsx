@@ -29,13 +29,13 @@ const description = `Create new projects, or view everything you've been working
 
 export const DataProjects: React.FC = () => {
   const loaded = true; // temp
-  const isEmpty = true; // temp
+  const isEmpty = false; // temp
   const [viewType, setViewType] = useLocalStorage(VIEW_TYPE);
   const [isTableDrawerExpanded, setTableDrawerExpanded] = React.useState(false);
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [isCreateProjectModalOpen, setCreateProjectModalOpen] = React.useState(false);
 
-  const handleProjectModalClose = () => {
+  const handleCreateProjectModalClose = () => {
     setCreateProjectModalOpen(false);
   };
 
@@ -92,7 +92,7 @@ export const DataProjects: React.FC = () => {
               }
             >
               <DrawerContentBody>
-                <DataProjectsTableToolbar />
+                <DataProjectsTableToolbar setCreateProjectModalOpen={setCreateProjectModalOpen} />
                 <DataProjectsTable projects={projects} onSelect={onProjectSelect} />
               </DrawerContentBody>
             </DrawerContent>
@@ -101,7 +101,7 @@ export const DataProjects: React.FC = () => {
       </ApplicationsPage>
       <CreateProjectModal
         isModalOpen={isCreateProjectModalOpen}
-        onClose={handleProjectModalClose}
+        onClose={handleCreateProjectModalClose}
       />
     </>
   );

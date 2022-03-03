@@ -1,0 +1,14 @@
+.odh-data-projects__modal {
+  &-form {
+    .pf-c-form__section {
+      margin-top: var(--pf-global--spacer--xs);
+    }
+  }
+  
+  .pf-c-select__toggle::before {
+    border-left: var(--pf-c-select__toggle--before--BorderLeftWidth) solid var(--pf-c-select__toggle--before--BorderLeftColor);
+    border-right: var(--pf-c-select__toggle--before--BorderRightWidth) solid var(--pf-c-select__toggle--before--BorderRightColor);
+    border-top: var(--pf-c-select__toggle--before--BorderTopWidth) solid var(--pf-c-select__toggle--before--BorderTopColor);
+    border-bottom: var(--pf-c-select__toggle--before--BorderBottomWidth) solid var(--pf-c-select__toggle--before--BorderBottomColor);
+  }
+}

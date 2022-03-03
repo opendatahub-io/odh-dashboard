@@ -14,6 +14,7 @@ import {
 import { Button } from '@patternfly/react-core';
 
 import './DataProjects.scss';
+import { useHistory } from 'react-router-dom';
 
 type DataProjectsTableProps = {
   projects: any;
@@ -21,14 +22,15 @@ type DataProjectsTableProps = {
 };
 
 const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onSelect }) => {
+  const history = useHistory();
   const columns = ['Name', 'Environment', 'Git Repo', 'Created', 'Modified'];
   const [activeSortIndex, setActiveSortIndex] = React.useState<number>();
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>();
 
   const defaultActions = (project): IAction[] => [
     {
-      title: 'Some action',
-      onClick: () => console.log(`clicked on Some action, on row ${project.metadata.name}`),
+      title: 'Details',
+      onClick: () => history.push(`data-projects/${project.metadata.name}`),
     },
     {
       title: <a href="#">Link action</a>,
@@ -108,7 +110,7 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onSelec
               <Td dataLabel={columns[1]}>
                 {project.spec.environments ? (
                   project.spec.environments.map((environment, index) => (
-                    <a href="#" key={index} className="odh-data-projects-table__tag">
+                    <a href="#" key={index} className="odh-data-projects__table-tag">
                       {environment.name}
                     </a>
                   ))
@@ -118,7 +120,7 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onSelec
               </Td>
               <Td dataLabel={columns[2]}>
                 {project.spec.gitRepo ? (
-                  <a href="#" className="odh-data-projects-table__tag">
+                  <a href="#" className="odh-data-projects__table-tag">
                     {project.spec.gitRepo.name}
                   </a>
                 ) : (
