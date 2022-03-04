@@ -102,3 +102,33 @@ export type BuildStatus = {
   status: BUILD_PHASE;
   timestamp: string;
 };
+
+export type ImageSoftwareType = {
+  name: string;
+  version?: string;
+};
+
+export type ImageTagType = {
+  content?: {
+    software: ImageSoftwareType[];
+    dependencies: ImageSoftwareType[];
+  };
+  name: string;
+  recommended: boolean;
+  default: boolean | undefined;
+  build_status: string | null;
+};
+
+export type ImageType = {
+  description: string | null;
+  url: string | null;
+  display_name: string;
+  name: string;
+  order: number;
+  tags?: ImageTagType[];
+};
+
+export type ImageTag = {
+  image: string;
+  tag: string;
+};

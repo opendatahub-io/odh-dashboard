@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Button, Form, FormGroup, Modal, ModalVariant, TextInput } from '@patternfly/react-core';
+import { useHistory } from 'react-router-dom';
 
 type CreateProjectModalProps = {
   isModalOpen: boolean;
@@ -7,6 +8,7 @@ type CreateProjectModalProps = {
 };
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isModalOpen, onClose }) => {
+  const history = useHistory();
   const [projectName, setProjectName] = React.useState('');
   const [projectDescription, setProjectDescription] = React.useState('');
   const nameInputRef = React.useRef<HTMLInputElement>(null);
@@ -26,6 +28,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isModalOpen, on
 
   const onCreateProject = () => {
     console.log('do something');
+    history.push(`/data-projects/${projectName}`); // do this in callback function if successfully created
   };
 
   return (
