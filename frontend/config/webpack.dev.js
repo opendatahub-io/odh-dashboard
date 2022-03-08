@@ -33,7 +33,10 @@ module.exports = merge(
       hot: true,
       overlay: true,
       open: true,
-      stats: 'errors-only'
+      stats: 'errors-only',
+      proxy: {
+        '/api': 'http://localhost:8080',
+      },
     },
     module: {
       rules: [

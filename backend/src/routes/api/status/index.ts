@@ -1,8 +1,6 @@
 import createError from 'http-errors';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
-import { DEV_MODE } from '../../../utils/constants';
-import { addCORSHeader } from '../../../utils/responseUtils';
 
 const status = async (
   fastify: KubeFastifyInstance,
@@ -42,16 +40,9 @@ export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get('/', async (request, reply) => {
     return status(fastify, request)
       .then((res) => {
-        if (DEV_MODE) {
-          addCORSHeader(request, reply);
-        }
         return res;
       })
       .catch((res) => {
-        console.log(`ERROR: devMode: ${DEV_MODE}`);
-        if (DEV_MODE) {
-          addCORSHeader(request, reply);
-        }
         reply.send(res);
       });
   });

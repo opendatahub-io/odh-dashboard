@@ -1,9 +1,8 @@
 import axios from 'axios';
-import { getBackendURL } from '../utilities/utils';
 import { OdhGettingStarted } from '../types';
 
 export const fetchGettingStartedDoc = (appName: string): Promise<OdhGettingStarted> => {
-  const url = getBackendURL('/api/getting-started');
+  const url = '/api/getting-started';
   const searchParams = new URLSearchParams();
   if (appName) {
     searchParams.set('appName', appName);
@@ -20,7 +19,7 @@ export const fetchGettingStartedDoc = (appName: string): Promise<OdhGettingStart
 };
 
 export const fetchGettingStartedDocs = (): Promise<OdhGettingStarted[]> => {
-  const url = getBackendURL('/api/getting-started');
+  const url = '/api/getting-started';
   return axios
     .get(url)
     .then((response) => {
