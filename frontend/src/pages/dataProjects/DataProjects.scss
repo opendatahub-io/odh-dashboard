@@ -26,7 +26,11 @@
     }
   }
   &__details {
+    margin-top: var(--pf-global--spacer--lg);
     padding: 0 var(--pf-global--spacer--lg);
+    &-tabs {
+      padding-left: var(--pf-global--spacer--lg);
+    }
     &-card {
       margin: var(--pf-global--spacer--md) 0;
       width: 50%;

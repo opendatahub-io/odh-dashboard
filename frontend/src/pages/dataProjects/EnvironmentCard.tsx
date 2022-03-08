@@ -21,13 +21,13 @@ import {
 } from '@patternfly/react-core';
 import './DataProjects.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { mockImages } from './mockData';
+import { mockImages, mockSizeDescriptions } from './mockData';
 import {
   getDescriptionForTag,
   getTagForImage,
   getNameVersionString,
 } from '../../utilities/imageUtils';
-import ImageTagPopover from './ImageTagPopover';
+import ImageTagPopover from './spawnerComponents/ImageTagPopover';
 
 type EnvironmentCardProps = {
   environment: any;
@@ -46,6 +46,7 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
     const tag = getTagForImage(image, environment.image.name, environment.image.tag);
     const tagDescription = getDescriptionForTag(tag);
     const tagDependencies = tag?.content?.dependencies ?? [];
+    const sizeDescription = mockSizeDescriptions[`size/${environment.size}`];
 
     return (
       <Card isFlat className="odh-data-projects__details-card">
@@ -118,15 +119,15 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
               <DescriptionListDescription>
                 <List isPlain>
                   <ListItem>
-                    <p>{environment.containerSize.size}</p>
+                    <p>{environment.size}</p>
                     <p className="odh-data-projects__drawer-panel-environment-help-text">
-                      {environment.containerSize.cpu}
+                      {`${sizeDescription.resources.limits.cpu} CPU, ${sizeDescription.resources.limits.memory} Memory`}
                     </p>
                   </ListItem>
                   <ListItem>
                     <p>Memory Requests</p>
                     <p className="odh-data-projects__drawer-panel-environment-help-text">
-                      {environment.containerSize.memory}
+                      {`${sizeDescription.resources.requests.cpu} CPU, ${sizeDescription.resources.requests.memory} Memory`}
                     </p>
                   </ListItem>
                 </List>

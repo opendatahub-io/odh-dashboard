@@ -15,16 +15,25 @@ export const projects = [
             name: 's2i-generic-data-science-notebook',
             tag: 'v0.0.4',
           },
-          containerSize: {
-            size: 'Large',
-            cpu: '14 CPU, 56Gi',
-            memory: '7 CPU, 24Gi Memory',
-          },
+          size: 'Large',
           storage: {
             name: 'Enviro1_default_storage',
             total: '2GB',
             used: '1.75GB',
           },
+          variable: [
+            {
+              variableType: 'AWS',
+              variables: [
+                {
+                  name: 'AWS_MOCK',
+                  type: 'password',
+                  value: '123',
+                },
+              ],
+              errors: {},
+            },
+          ],
         },
         {
           name: 'Enviro2',
@@ -33,11 +42,7 @@ export const projects = [
             name: 's2i-generic-data-science-notebook',
             tag: 'v0.0.4',
           },
-          containerSize: {
-            size: 'Large',
-            cpu: '14 CPU, 56Gi',
-            memory: '7 CPU, 24Gi Memory',
-          },
+          size: 'Large',
           storage: {
             name: 'Enviro2_default_storage',
             total: '2GB',
@@ -51,11 +56,7 @@ export const projects = [
             name: 's2i-generic-data-science-notebook',
             tag: 'v0.0.4',
           },
-          containerSize: {
-            size: 'Large',
-            cpu: '14 CPU, 56Gi',
-            memory: '7 CPU, 24Gi Memory',
-          },
+          size: 'Large',
           storage: {
             name: 'Enviro3_default_storage',
             total: '2GB',
@@ -63,6 +64,7 @@ export const projects = [
           },
         },
       ],
+      data: [],
       isProject: true,
       gitRepo: {
         name: 'git_repo2_forDataScience',
@@ -85,11 +87,7 @@ export const projects = [
             name: 's2i-generic-data-science-notebook',
             tag: 'v0.0.4',
           },
-          containerSize: {
-            size: 'Large',
-            cpu: '14 CPU, 56Gi',
-            memory: '7 CPU, 24Gi Memory',
-          },
+          size: 'Large',
           storage: {
             name: 'Enviro4_default_storage',
             total: '2GB',
@@ -103,11 +101,7 @@ export const projects = [
             name: 's2i-generic-data-science-notebook',
             tag: 'v0.0.4',
           },
-          containerSize: {
-            size: 'Large',
-            cpu: '14 CPU, 56Gi',
-            memory: '7 CPU, 24Gi Memory',
-          },
+          size: 'Large',
           storage: {
             name: 'Enviro5_default_storage',
             total: '2GB',
@@ -148,11 +142,7 @@ export const projects = [
             name: 's2i-generic-data-science-notebook',
             tag: 'v0.0.4',
           },
-          containerSize: {
-            size: 'Large',
-            cpu: '14 CPU, 56Gi',
-            memory: '7 CPU, 24Gi Memory',
-          },
+          size: 'Large',
           storage: {
             name: 'Enviro6_default_storage',
             total: '2GB',
@@ -530,3 +520,81 @@ export const mockImages = [
     url: 'https://github.com/thoth-station/s2i-tensorflow-notebook',
   },
 ];
+
+export const mockSizes = ['Small', 'Medium', 'Large', 'Huge'];
+
+export const mockSizeDescriptions = {
+  ['size/Small']: {
+    name: 'Small',
+    resources: {
+      limits: {
+        cpu: 2,
+        memory: '2Gi',
+      },
+      requests: {
+        cpu: 1,
+        memory: '1Gi',
+      },
+    },
+    schedulable: true,
+  },
+  ['size/Medium']: {
+    name: 'Medium',
+    resources: {
+      limits: {
+        cpu: 4,
+        memory: '4Gi',
+      },
+      requests: {
+        cpu: 2,
+        memory: '2Gi',
+      },
+    },
+    schedulable: true,
+  },
+  ['size/Large']: {
+    name: 'Large',
+    resources: {
+      limits: {
+        cpu: 8,
+        memory: '8Gi',
+      },
+      requests: {
+        cpu: 4,
+        memory: '4Gi',
+      },
+    },
+    schedulable: true,
+  },
+  ['size/Huge']: {
+    name: 'Huge',
+    resources: {
+      limits: {
+        cpu: 16,
+        memory: '18Gi',
+      },
+      requests: {
+        cpu: 8,
+        memory: '8Gi',
+      },
+    },
+    schedulable: false,
+  },
+};
+
+export const mockUIConfig = {
+  envVarConfig: {
+    categories: [
+      {
+        name: 'AWS',
+        variables: [
+          {
+            name: 'AWS_BLAH',
+            type: 'password',
+          },
+        ],
+      },
+    ],
+    enabled: true,
+  },
+};

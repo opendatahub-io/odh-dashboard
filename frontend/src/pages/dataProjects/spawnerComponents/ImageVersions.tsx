@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { ExpandableSection, Label, Radio } from '@patternfly/react-core';
 import { StarIcon } from '@patternfly/react-icons';
-import { ImageType } from '../../types';
+import { ImageType } from '../../../types';
 import ImageTagPopover from './ImageTagPopover';
 import {
   compareTagVersions,
   getDescriptionForTag,
   getVersion,
   isImageTagBuildValid,
-} from '../../utilities/imageUtils';
+} from '../../../utilities/imageUtils';
 
 type ImageVersionsProps = {
   image: ImageType;

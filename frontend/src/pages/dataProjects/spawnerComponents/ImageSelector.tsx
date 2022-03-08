@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Radio } from '@patternfly/react-core';
-import { ImageType } from '../../types';
+import { ImageType } from '../../../types';
 import {
   getDescriptionForTag,
   getImageTagVersion,
   getTagForImage,
   isImageTagBuildValid,
-} from '../../utilities/imageUtils';
+} from '../../../utilities/imageUtils';
 import ImageTagPopover from './ImageTagPopover';
 import ImageVersions from './ImageVersions';
 
