@@ -38,8 +38,8 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   emptyComponent,
 }) => {
   const renderHeader = () => (
-    <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
-      <TextContent className="odh-apps__heading__text">
+    <PageSection variant={PageSectionVariants.light}>
+      <TextContent>
         <Text component="h1">{title}</Text>
         <Text component="p">{description}</Text>
       </TextContent>

@@ -132,3 +132,40 @@ export type ImageTag = {
   image: string;
   tag: string;
 };
+
+export type SizeDescription = {
+  name: string;
+  resources: {
+    limits: {
+      cpu: number;
+      memory: string;
+    };
+    requests: {
+      cpu: number;
+      memory: string;
+    };
+  };
+  schedulable?: boolean;
+};
+
+export type EnvVarType = {
+  name: string;
+  type: string;
+  value: string | number;
+};
+
+export type EnvVarCategoryType = {
+  name: string;
+  variables: [
+    {
+      name: string;
+      type: string;
+    },
+  ];
+};
+
+export type VariableRow = {
+  variableType: string;
+  variables: EnvVarType[];
+  errors: { [key: string]: string };
+};

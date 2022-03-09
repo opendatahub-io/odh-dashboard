@@ -23,7 +23,7 @@ import { projects } from './mockData';
 
 import './DataProjects.scss';
 import { CubesIcon } from '@patternfly/react-icons';
-import CreateProjectModal from './CreateProjectModal';
+import CreateProjectModal from './modals/CreateProjectModal';
 
 const description = `Create new projects, or view everything you've been working on here.`;
 

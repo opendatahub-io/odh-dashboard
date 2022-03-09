@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import './DataProjects.scss';
 import { OutlinedQuestionCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { mockImages } from './mockData';
+import { mockImages, mockSizeDescriptions } from './mockData';
 
 type EnvironmentContentProps = {
   selectedProject: any;
@@ -34,6 +34,7 @@ const EnvironmentContent: React.FC<EnvironmentContentProps> = React.memo(({ sele
       );
     }
     const tag = (image.tags as any).find((tag) => tag.name === environment.image.tag);
+    const sizeDescription = mockSizeDescriptions[`size/${environment.size}`];
     return (
       <div className="odh-data-projects__drawer-panel-environment" key={index}>
         <Flex>
@@ -83,15 +84,15 @@ const EnvironmentContent: React.FC<EnvironmentContentProps> = React.memo(({ sele
             <DescriptionListDescription>
               <List isPlain>
                 <ListItem>
-                  <p>{environment.containerSize.size}</p>
+                  <p>{environment.size}</p>
                   <p className="odh-data-projects__drawer-panel-environment-help-text">
-                    {environment.containerSize.cpu}
+                    {`${sizeDescription.resources.limits.cpu} CPU, ${sizeDescription.resources.limits.memory} Memory`}
                   </p>
                 </ListItem>
                 <ListItem>
                   <p>Memory Requests</p>
                   <p className="odh-data-projects__drawer-panel-environment-help-text">
-                    {environment.containerSize.memory}
+                    {`${sizeDescription.resources.requests.cpu} CPU, ${sizeDescription.resources.requests.memory} Memory`}
                   </p>
                 </ListItem>
               </List>
