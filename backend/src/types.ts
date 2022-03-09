@@ -8,6 +8,10 @@ export type DashboardConfig = {
   disableSupport: boolean;
 };
 
+export type ClusterSettings = {
+  pvcSize: number;
+}
+
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
   apiVersion?: string;
@@ -104,6 +108,7 @@ export type KubeStatus = {
   namespace: string;
   userName: string | string[];
   clusterID: string;
+  isAdmin: boolean;
 };
 
 export type KubeDecorator = KubeStatus & {
