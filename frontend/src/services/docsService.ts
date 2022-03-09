@@ -1,9 +1,8 @@
 import axios from 'axios';
-import { getBackendURL } from '../utilities/utils';
 import { OdhDocument } from '../types';
 
 export const fetchDocs = (docType?: string): Promise<OdhDocument[]> => {
-  const url = getBackendURL('/api/docs');
+  const url = '/api/docs';
   const searchParams = new URLSearchParams();
   if (docType) {
     searchParams.set('type', docType);

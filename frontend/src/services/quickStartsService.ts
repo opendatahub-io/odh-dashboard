@@ -1,9 +1,8 @@
 import axios from 'axios';
-import { getBackendURL } from '../utilities/utils';
 import { QuickStart } from '@patternfly/quickstarts';
 
 export const fetchQuickStarts = (): Promise<QuickStart[]> => {
-  const url = getBackendURL('/api/quickstarts');
+  const url = '/api/quickstarts';
   return axios
     .get(url)
     .then((response) => {

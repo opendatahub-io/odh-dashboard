@@ -1,11 +1,10 @@
 import axios from 'axios';
-import { getBackendURL } from '../utilities/utils';
 
 export const postValidateIsv = (
   appName: string,
   values: { [key: string]: string },
 ): Promise<{ complete: boolean; valid: boolean; error: string }> => {
-  const url = getBackendURL('/api/validate-isv');
+  const url = '/api/validate-isv';
   const searchParams = new URLSearchParams();
   if (appName) {
     searchParams.set('appName', appName);
@@ -25,7 +24,7 @@ export const postValidateIsv = (
 export const getValidationStatus = (
   appName: string,
 ): Promise<{ complete: boolean; valid: boolean; error: string }> => {
-  const url = getBackendURL('/api/validate-isv/results');
+  const url = '/api/validate-isv/results';
   const searchParams = new URLSearchParams();
   if (appName) {
     searchParams.set('appName', appName);
