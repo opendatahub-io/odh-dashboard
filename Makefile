@@ -18,22 +18,6 @@ reinstall: build push undeploy deploy
 
 ##################################
 
-# DEV - run apps locally for development
-
-.PHONY: dev-frontend
-dev-frontend:
-	./install/dev-frontend.sh
-
-.PHONY: dev-backend
-dev-backend:
-	./install/dev-backend.sh
-
-.PHONY: dev
-dev:
-	./install/dev.sh
-
-##################################
-
 # BUILD - build image locally using s2i
 
 .PHONY: build

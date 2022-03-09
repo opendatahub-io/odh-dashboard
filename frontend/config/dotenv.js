@@ -144,6 +144,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   const DIST_DIR = path.resolve(RELATIVE_DIRNAME, process.env.ODH_DIST_DIR || TS_OUT_DIR || 'public');
   const HOST = process.env.ODH_HOST || 'localhost';
   const PORT = process.env.ODH_PORT || '3000';
+  const BACKEND_PORT = process.env.PORT || process.env.BACKEND_PORT || 8080;
   const DEV_MODE = process.env.ODH_DEV_MODE || undefined;
   const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY === 'true';
 
@@ -158,6 +159,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   process.env._ODH_PORT = PORT;
   process.env._ODH_OUTPUT_ONLY = OUTPUT_ONLY;
   process.env._ODH_DEV_MODE = DEV_MODE;
+  process.env._BACKEND_PORT = BACKEND_PORT;
 };
 
 module.exports = { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv };
