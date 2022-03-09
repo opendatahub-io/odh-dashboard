@@ -24,6 +24,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         userLoading: false,
         userError: null,
         clusterID: action.payload.clusterID,
+        isAdmin: action.payload.isAdmin,
       };
     case Actions.GET_USER_REJECTED:
       return {

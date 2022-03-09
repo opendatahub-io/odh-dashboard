@@ -27,6 +27,7 @@ export interface GetUserAction {
   payload: {
     user?: string;
     clusterID?: string;
+    isAdmin?: boolean;
     error?: Error | null;
     notification?: AppNotification;
   };
@@ -37,6 +38,7 @@ export interface AppState {
   userLoading: boolean;
   userError?: Error | null;
   clusterID?: string;
+  isAdmin?: boolean;
   notifications: AppNotification[];
   forceComponentsUpdate: number;
 }
