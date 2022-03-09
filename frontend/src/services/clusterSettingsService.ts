@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { ClusterSettings } from '../types';
-import { getBackendURL } from '../utilities/utils';
 
 export const fetchClusterSettings = (): Promise<ClusterSettings> => {
-  const url = getBackendURL('/api/cluster-settings');
+  const url = '/api/cluster-settings';
   return axios
     .get(url)
     .then((response) => {
@@ -17,7 +16,7 @@ export const fetchClusterSettings = (): Promise<ClusterSettings> => {
 export const updateClusterSettings = (
   settings: ClusterSettings,
 ): Promise<{ success: boolean; error: string }> => {
-  const url = getBackendURL('/api/cluster-settings/update');
+  const url = '/api/cluster-settings/update';
   const updateParams = new URLSearchParams();
 
   updateParams.set('pvcSize', `${settings.pvcSize}`);
