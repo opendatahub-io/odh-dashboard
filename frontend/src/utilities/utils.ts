@@ -116,3 +116,13 @@ export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean 
     (description?.toLowerCase().includes(searchText) ?? false)
   );
 };
+
+export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minute: number } => {
+  const total_minutes = timeout / 60;
+  const hour = total_minutes / 60;
+  const minute = total_minutes % 60;
+  return { hour, minute };
+};
+
+export const getTimeoutByHourAndMinute = (hour: number, minute: number): number =>
+  (hour * 60 + minute) * 60;

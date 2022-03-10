@@ -9,7 +9,8 @@ export type DashboardConfig = {
 };
 
 export type ClusterSettings = {
-  pvcSize: number;
+  pvcSize: number | string;
+  cullerTimeout: number;
 };
 
 export type OdhApplication = {
