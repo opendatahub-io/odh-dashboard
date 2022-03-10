@@ -1,9 +1,8 @@
 import axios from 'axios';
-import { getBackendURL } from '../utilities/utils';
 import { BuildStatus } from '../types';
 
 export const fetchBuildStatuses = (): Promise<BuildStatus[]> => {
-  const url = getBackendURL('/api/builds');
+  const url = '/api/builds';
   return axios
     .get(url)
     .then((response) => {

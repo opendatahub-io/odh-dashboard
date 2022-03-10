@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { getBackendURL } from '../../utilities/utils';
 import { ThunkAction } from 'redux-thunk';
 import { Actions, AppNotification, AppState, GetUserAction } from '../types';
 import { Action } from 'redux';
@@ -28,7 +27,7 @@ export const getUserRejected = (error: Error): GetUserAction => ({
 });
 
 export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string>> => {
-  const url = getBackendURL('/api/status');
+  const url = '/api/status';
   return async (dispatch) => {
     dispatch(getUserPending());
     try {
