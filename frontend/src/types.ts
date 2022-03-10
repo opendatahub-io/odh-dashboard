@@ -8,6 +8,10 @@ export type DashboardConfig = {
   disableSupport: boolean;
 };
 
+export type ClusterSettings = {
+  pvcSize: number;
+};
+
 export type OdhApplication = {
   metadata: {
     name: string;
