@@ -6,6 +6,10 @@ type groupObjResponse = {
   users: string[];
 };
 
+type groupObjResponse = {
+  users: string[];
+};
+
 const status = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,

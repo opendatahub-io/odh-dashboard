@@ -1,5 +1,8 @@
 import { FastifyRequest } from 'fastify';
+import { scaleDeploymentConfig } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
+
+const name = 'jupyterhub-cfg';
 
 export const updateClusterSettings = async (
   fastify: KubeFastifyInstance,
@@ -9,9 +12,10 @@ export const updateClusterSettings = async (
   const namespace = fastify.kube.namespace;
   const query = request.query as { [key: string]: string };
   try {
+    const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(name, namespace);
     if (query.pvcSize) {
       await coreV1Api.patchNamespacedConfigMap(
-        'jupyterhub-cfg',
+        name,
         namespace,
         {
           data: { singleuser_pvc_size: `${query.pvcSize}Gi` },
@@ -26,6 +30,9 @@ export const updateClusterSettings = async (
           },
         },
       );
+      if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
+        await scaleDeploymentConfig(fastify, 'jupyterhub', 0);
+      }
     }
     return { success: true, error: null };
   } catch (e) {
@@ -42,7 +49,7 @@ export const getClusterSettings = async (
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   try {
-    const clusterSettingsRes = await coreV1Api.readNamespacedConfigMap('jupyterhub-cfg', namespace);
+    const clusterSettingsRes = await coreV1Api.readNamespacedConfigMap(name, namespace);
     return {
       pvcSize: Number(clusterSettingsRes.body.data.singleuser_pvc_size.replace('Gi', '')),
     };
