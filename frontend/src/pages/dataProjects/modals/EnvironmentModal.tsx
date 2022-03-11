@@ -14,7 +14,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { mockImages, mockSizeDescriptions, mockSizes, mockUIConfig } from '../mockData';
-import ImageSelector from '../spawnerComponents/ImageSelector';
+import ImageSelector from '../spawner/ImageSelector';
 import {
   EnvVarCategoryType,
   ImageTag,
@@ -25,7 +25,7 @@ import {
 
 import './DataProjectsModal.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import EnvironmentVariablesRow from '../spawnerComponents/EnvironmentVariablesRow';
+import EnvironmentVariablesRow from '../spawner/EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '../const';
 
 type EnvironmentModalProps = {

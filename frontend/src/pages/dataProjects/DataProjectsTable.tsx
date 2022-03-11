@@ -18,10 +18,9 @@ import { useHistory } from 'react-router-dom';
 
 type DataProjectsTableProps = {
   projects: any;
-  onSelect: any;
 };
 
-const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onSelect }) => {
+const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects }) => {
   const history = useHistory();
   const columns = ['Name', 'Environment', 'Git Repo', 'Created', 'Modified'];
   const [activeSortIndex, setActiveSortIndex] = React.useState<number>();
@@ -102,7 +101,11 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onSelec
           return (
             <Tr key={rowIndex}>
               <Td dataLabel={columns[0]}>
-                <Button isInline variant="link" onClick={() => onSelect(project)}>
+                <Button
+                  isInline
+                  variant="link"
+                  onClick={() => history.push(`data-projects/${project.metadata.name}`)}
+                >
                   {project.metadata.name}
                 </Button>
                 <div className="pf-u-color-200">{project.metadata.user}</div>

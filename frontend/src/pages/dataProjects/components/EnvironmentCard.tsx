@@ -19,15 +19,15 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
-import './DataProjects.scss';
+import '../DataProjects.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { mockImages, mockSizeDescriptions } from './mockData';
+import { mockImages, mockSizeDescriptions } from '../mockData';
 import {
   getDescriptionForTag,
   getTagForImage,
   getNameVersionString,
-} from '../../utilities/imageUtils';
-import ImageTagPopover from './spawnerComponents/ImageTagPopover';
+} from '../../../utilities/imageUtils';
+import ImageTagPopover from '../spawner/ImageTagPopover';
 
 type EnvironmentCardProps = {
   environment: any;

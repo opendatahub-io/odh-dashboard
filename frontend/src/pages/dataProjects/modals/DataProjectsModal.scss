@@ -25,4 +25,20 @@
   &-title {
     margin-bottom: var(--pf-global--spacer--lg);
   }
+
+  &-new-pv {
+    margin-left: var(--pf-global--spacer--lg);
+    margin-top: calc(var(--pf-global--spacer--md) * -1);
+
+    .pf-c-form__group {
+      margin-bottom: var(--pf-global--spacer--md);
+    }
+    .pf-c-radio {
+      margin-bottom: var(--pf-global--spacer--sm);
+      margin-left: var(--pf-global--spacer--sm);
+    }
+    .pf-c-input-group {
+      width: 100px;
+    }
+  }
 }
