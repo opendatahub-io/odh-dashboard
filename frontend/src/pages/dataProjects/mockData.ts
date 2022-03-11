@@ -598,3 +598,60 @@ export const mockUIConfig = {
     enabled: true,
   },
 };
+
+export const mockDatabaseProvider = [
+  {
+    id: 'crunchydb',
+    spec: {
+      name: 'CrunchyDB',
+      img: '../images/crunchydb.svg',
+      accounts: [
+        'test-crunchy-db-provider-account-1',
+        'test-crunchy-db-provider-account-2',
+        'test-crunchy-db-provider-account-3',
+      ],
+      database: [
+        'crunchy-test-db-project',
+        'crunchy-so-much-data-db-project',
+        'crunchy-longer-name-test-db-project',
+        'crunchy-awesome-db-project',
+      ],
+    },
+  },
+  {
+    id: 'cockroachdb',
+    spec: {
+      name: 'CockroachDB',
+      img: '../images/cockroachdb.svg',
+      accounts: [
+        'test-cockroach-db-provider-account-1',
+        'test-cockroach-db-provider-account-2',
+        'test-cockroach-db-provider-account-3',
+      ],
+      database: [
+        'cockroach-test-db-project',
+        'cockroach-so-much-data-db-project',
+        'cockroach-longer-name-test-db-project',
+        'cockroach-awesome-db-project',
+      ],
+    },
+  },
+  {
+    id: 'mongodb',
+    spec: {
+      name: 'MongoDB',
+      img: '../images/mongodb.svg',
+      accounts: [
+        'test-mongo-db-provider-account-1',
+        'test-mongo-db-provider-account-2',
+        'test-mongo-db-provider-account-3',
+      ],
+      database: [
+        'mongo-test-db-project',
+        'mongo-so-much-data-db-project',
+        'mongo-longer-name-test-db-project',
+        'mongo-awesome-db-project',
+      ],
+    },
+  },
+];

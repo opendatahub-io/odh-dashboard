@@ -20,7 +20,7 @@ import { projects } from './mockData';
 
 import { useParams, Redirect } from 'react-router-dom';
 import EnvironmentModal from './modals/EnvironmentModal';
-import EnvironmentCard from './EnvironmentCard';
+import EnvironmentCard from './components/EnvironmentCard';
 import './DataProjects.scss';
 import { CogIcon, CubeIcon, CubesIcon, UsersIcon } from '@patternfly/react-icons';
 import DataModal from './modals/DataModal';

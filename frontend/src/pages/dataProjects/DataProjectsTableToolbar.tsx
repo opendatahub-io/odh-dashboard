@@ -34,28 +34,26 @@ const DataProjectsTableToolbar: React.FC<DataProjectsTableToolbarProps> = ({
   };
 
   return (
-    <div className="odh-data-projects__toolbar">
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Button variant="primary" onClick={() => setCreateProjectModalOpen(true)}>
-              Create Project
-            </Button>
-          </ToolbarItem>
-          <ToolbarItem>
-            <Dropdown
-              onSelect={onDropdownSelect}
-              isOpen={isDropdownOpen}
-              toggle={
-                <KebabToggle onToggle={onDropdownToggle} id="projects-table-toolbar-dropdown" />
-              }
-              isPlain
-              dropdownItems={dropdownItems}
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-    </div>
+    <Toolbar>
+      <ToolbarContent>
+        <ToolbarItem>
+          <Button variant="primary" onClick={() => setCreateProjectModalOpen(true)}>
+            Create data projects
+          </Button>
+        </ToolbarItem>
+        <ToolbarItem>
+          <Dropdown
+            onSelect={onDropdownSelect}
+            isOpen={isDropdownOpen}
+            toggle={
+              <KebabToggle onToggle={onDropdownToggle} id="projects-table-toolbar-dropdown" />
+            }
+            isPlain
+            dropdownItems={dropdownItems}
+          />
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
   );
 };
 

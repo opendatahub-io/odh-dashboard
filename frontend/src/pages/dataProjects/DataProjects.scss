@@ -1,4 +1,7 @@
 .odh-data-projects {
+  &__toolbar {
+    margin-bottom: var(--pf-global--spacer--md);
+  }
   &__table {
     &-tag {
       display: block;
@@ -87,5 +90,12 @@
       }
     }
   }
-  
+  &__database-provider-card {
+    width: 160px;
+    height: 100px;
+    svg, img {
+      width: 30px;
+      height: 30px;
+    }
+  }
 }
