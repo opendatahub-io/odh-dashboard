@@ -173,3 +173,8 @@ export type VariableRow = {
   variables: EnvVarType[];
   errors: { [key: string]: string };
 };
+
+export enum DATA_SOURCE {
+  persistentVolume = 'pv',
+  databaseAccess = 'database',
+}

@@ -18,7 +18,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import DatabaseProviderCard from '../components/DatabaseProviderCard';
-import { mockDatabaseProvider } from '../mockData';
+import { mockDataSources } from '../mockData';
+import { DATA_SOURCE } from 'types';
 
 type DataModalProps = {
   isModalOpen: boolean;
@@ -32,11 +33,12 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
   const [dataSourceDropdownOpen, setDataSourceDropdownOpen] = React.useState(false);
   // PV states
   const [isCreatePVChecked, setCreatePVChecked] = React.useState(true);
-  const [newPVName, setNewPVName] = React.useState('');
-  const [newPVDescription, setNewPVDescription] = React.useState('');
+  const [pvName, setPvName] = React.useState('');
+  const [pvDescription, setPvDescription] = React.useState('');
   const [isConnectToAllEnvChecked, setConnectToAllEnvChecked] = React.useState(true);
-  const [newPVSize, setNewPVSize] = React.useState('');
+  const [pvSize, setPvSize] = React.useState('');
   // Database states
+  const [dbProviders, setDbProviders] = React.useState<any>([]);
   const [selectedDatabaseProvider, setSelectedDatabaseProvider] = React.useState('');
   const [dbProviderAccountDropdownOpen, setDbProviderAccountDropdownOpen] = React.useState(false);
   const [dbProviderAccount, setDbProviderAccount] = React.useState('');
@@ -51,14 +53,43 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
   }, [isModalOpen]);
 
   React.useEffect(() => {
+    initData();
     if (data) {
-      setDataSource('');
-    } else {
-      setDataSource('');
+      setDataSource(data.source);
+      if (data.source === DATA_SOURCE.persistentVolume) {
+        setPvName(data.name);
+        setPvDescription(data.description);
+        setPvSize(data.size);
+        setConnectToAllEnvChecked(data.allEnvironmentsConnections);
+      }
+      if (data.source === DATA_SOURCE.databaseAccess) {
+        setSelectedDatabaseProvider(data.providerId);
+        setDbProviderAccount(data.account);
+        setSelectedDatabase(data.database);
+      }
     }
   }, [data]);
 
-  const handleDataSourceSelection = (e, selection) => {
+  React.useEffect(() => {
+    const db = mockDataSources.find((ds) => ds.id === DATA_SOURCE.databaseAccess);
+    if (db && db.providers) {
+      setDbProviders(db.providers);
+    }
+  }, [mockDataSources]);
+
+  const initData = () => {
+    setDataSource('');
+    setCreatePVChecked(true);
+    setPvName('');
+    setPvDescription('');
+    setConnectToAllEnvChecked(true);
+    setPvSize('');
+    setSelectedDatabaseProvider('');
+    setDbProviderAccount('');
+    setSelectedDatabase('');
+  };
+
+  const handleDataSourceSelection = (event, selection) => {
     setDataSource(selection);
     setDataSourceDropdownOpen(false);
   };
@@ -73,15 +104,11 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
     setSelectedDatabase(value);
   };
 
-  const dataSources = [
-    'PV (persistent volume)',
-    'Database Access',
-    'Starburst',
-    'S3 Bucket',
-    'Other data source',
-  ];
-
-  const dataSourceOptions = dataSources.map((ds, index) => <SelectOption key={index} value={ds} />);
+  const dataSourceOptions = Object.values(mockDataSources).map((ds, index) => (
+    <SelectOption id={ds.id} key={index} value={ds.id}>
+      {ds.name}
+    </SelectOption>
+  ));
 
   const handleDatabaseProviderSelect = (event: React.MouseEvent) => {
     const { id } = event.currentTarget;
@@ -91,8 +118,8 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
     setSelectedDatabase('');
   };
 
-  const renderDatabaseProviderSelect = (providerId: string) => {
-    const provider = mockDatabaseProvider.find((provider) => provider.id === providerId);
+  const renderDatabaseProviderSelect = () => {
+    const provider = dbProviders.find((provider) => provider.id === selectedDatabaseProvider);
     if (!provider) {
       return null;
     }
@@ -140,12 +167,9 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
     );
   };
 
-  const renderForm = () => {
-    if (!dataSource) {
-      return null;
-    }
-    if (dataSource === dataSources[0]) {
-      return (
+  const renderForm = () => (
+    <>
+      {dataSource === DATA_SOURCE.persistentVolume && (
         <>
           <Radio
             isChecked={isCreatePVChecked}
@@ -160,16 +184,16 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
                 <TextInput
                   id="new-pv-name-input"
                   name="new-pv-name-input"
-                  value={newPVName}
-                  onChange={(value) => setNewPVName(value)}
+                  value={pvName}
+                  onChange={(value) => setPvName(value)}
                 />
               </FormGroup>
               <FormGroup fieldId="new-pv-description" label="Description">
                 <TextInput
                   id="new-pv-description-input"
                   name="new-pv-description-input"
-                  value={newPVDescription}
-                  onChange={(value) => setNewPVDescription(value)}
+                  value={pvDescription}
+                  onChange={(value) => setPvDescription(value)}
                 />
               </FormGroup>
               <Radio
@@ -192,8 +216,8 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
                     id="new-pv-size-input"
                     type="number"
                     name="new-pv-size-input"
-                    value={newPVSize}
-                    onChange={(value) => setNewPVSize(value)}
+                    value={pvSize}
+                    onChange={(value) => setPvSize(value)}
                   />
                   <InputGroupText variant="plain">GiB</InputGroupText>
                 </InputGroup>
@@ -208,17 +232,15 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
             onChange={() => setCreatePVChecked(false)}
           />
         </>
-      );
-    }
-    if (dataSource === dataSources[1]) {
-      return (
+      )}
+      {dataSource === DATA_SOURCE.databaseAccess && (
         <>
           <Title headingLevel="h4" size="md">
             Choose a provider:
           </Title>
           <FormGroup fieldId="database-access-provider">
             <Flex>
-              {mockDatabaseProvider.map((provider) => (
+              {dbProviders.map((provider) => (
                 <FlexItem key={provider.id}>
                   <DatabaseProviderCard
                     provider={provider}
@@ -229,12 +251,11 @@ const DataModal: React.FC<DataModalProps> = React.memo(({ data, isModalOpen, onC
               ))}
             </Flex>
           </FormGroup>
-          {renderDatabaseProviderSelect(selectedDatabaseProvider)}
+          {renderDatabaseProviderSelect()}
         </>
-      );
-    }
-    return null;
-  };
+      )}
+    </>
+  );
 
   return (
     <Modal

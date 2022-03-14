@@ -83,7 +83,7 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
           </CardActions>
         </CardHeader>
         <CardBody>
-          <DescriptionList isHorizontal className="odh-data-projects__details-card-body">
+          <DescriptionList isHorizontal isCompact>
             <DescriptionListGroup>
               <DescriptionListTerm>Description</DescriptionListTerm>
               <DescriptionListDescription>{environment.description}</DescriptionListDescription>
@@ -149,7 +149,9 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
                   </ListItem>
                   <ListItem>
                     <Split hasGutter>
-                      <SplitItem>{environment.storage.used}</SplitItem>
+                      <SplitItem>
+                        <span>{environment.storage.used}</span>
+                      </SplitItem>
                       <SplitItem isFilled>
                         <Progress
                           measureLocation="outside"
