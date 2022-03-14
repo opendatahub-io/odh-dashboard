@@ -64,7 +64,23 @@ export const projects = [
           },
         },
       ],
-      data: [],
+      data: [
+        {
+          source: 'pv',
+          name: 'models',
+          description: "A PV to help deploy Burr's presentation",
+          allEnvironmentsConnections: true,
+          size: 20,
+          used: 17.5,
+        },
+        {
+          source: 'database',
+          providerId: 'mongodb',
+          providerName: 'MongoDB',
+          account: 'test-mongo-db-provider-account-2',
+          database: 'mongo-so-much-data-db-project',
+        },
+      ],
       isProject: true,
       gitRepo: {
         name: 'git_repo2_forDataScience',
@@ -599,59 +615,77 @@ export const mockUIConfig = {
   },
 };
 
-export const mockDatabaseProvider = [
+export const mockDataSources = [
   {
-    id: 'crunchydb',
-    spec: {
-      name: 'CrunchyDB',
-      img: '../images/crunchydb.svg',
-      accounts: [
-        'test-crunchy-db-provider-account-1',
-        'test-crunchy-db-provider-account-2',
-        'test-crunchy-db-provider-account-3',
-      ],
-      database: [
-        'crunchy-test-db-project',
-        'crunchy-so-much-data-db-project',
-        'crunchy-longer-name-test-db-project',
-        'crunchy-awesome-db-project',
-      ],
-    },
+    id: 'pv',
+    name: 'PV (persistent volume)',
   },
   {
-    id: 'cockroachdb',
-    spec: {
-      name: 'CockroachDB',
-      img: '../images/cockroachdb.svg',
-      accounts: [
-        'test-cockroach-db-provider-account-1',
-        'test-cockroach-db-provider-account-2',
-        'test-cockroach-db-provider-account-3',
-      ],
-      database: [
-        'cockroach-test-db-project',
-        'cockroach-so-much-data-db-project',
-        'cockroach-longer-name-test-db-project',
-        'cockroach-awesome-db-project',
-      ],
-    },
+    id: 'database',
+    name: 'Database Access',
+    providers: [
+      {
+        id: 'crunchydb',
+        spec: {
+          name: 'CrunchyDB',
+          img: '../images/crunchydb.svg',
+          accounts: [
+            'test-crunchy-db-provider-account-1',
+            'test-crunchy-db-provider-account-2',
+            'test-crunchy-db-provider-account-3',
+          ],
+          database: [
+            'crunchy-test-db-project',
+            'crunchy-so-much-data-db-project',
+            'crunchy-longer-name-test-db-project',
+            'crunchy-awesome-db-project',
+          ],
+        },
+      },
+      {
+        id: 'cockroachdb',
+        spec: {
+          name: 'CockroachDB',
+          img: '../images/cockroachdb.svg',
+          accounts: [
+            'test-cockroach-db-provider-account-1',
+            'test-cockroach-db-provider-account-2',
+            'test-cockroach-db-provider-account-3',
+          ],
+          database: [
+            'cockroach-test-db-project',
+            'cockroach-so-much-data-db-project',
+            'cockroach-longer-name-test-db-project',
+            'cockroach-awesome-db-project',
+          ],
+        },
+      },
+      {
+        id: 'mongodb',
+        spec: {
+          name: 'MongoDB',
+          img: '../images/mongodb.svg',
+          accounts: [
+            'test-mongo-db-provider-account-1',
+            'test-mongo-db-provider-account-2',
+            'test-mongo-db-provider-account-3',
+          ],
+          database: [
+            'mongo-test-db-project',
+            'mongo-so-much-data-db-project',
+            'mongo-longer-name-test-db-project',
+            'mongo-awesome-db-project',
+          ],
+        },
+      },
+    ],
   },
   {
-    id: 'mongodb',
-    spec: {
-      name: 'MongoDB',
-      img: '../images/mongodb.svg',
-      accounts: [
-        'test-mongo-db-provider-account-1',
-        'test-mongo-db-provider-account-2',
-        'test-mongo-db-provider-account-3',
-      ],
-      database: [
-        'mongo-test-db-project',
-        'mongo-so-much-data-db-project',
-        'mongo-longer-name-test-db-project',
-        'mongo-awesome-db-project',
-      ],
-    },
+    id: 'starburst',
+    name: 'Starburst',
+  },
+  {
+    id: 'objectstorage',
+    name: 'Object Storage',
   },
 ];

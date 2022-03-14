@@ -14,16 +14,18 @@ import {
   EmptyState,
   EmptyStateIcon,
   EmptyStateBody,
+  Grid,
+  GridItem,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
 import { projects } from './mockData';
-
+import { CogIcon, CubeIcon, CubesIcon, UsersIcon } from '@patternfly/react-icons';
 import { useParams, Redirect } from 'react-router-dom';
 import EnvironmentModal from './modals/EnvironmentModal';
 import EnvironmentCard from './components/EnvironmentCard';
-import './DataProjects.scss';
-import { CogIcon, CubeIcon, CubesIcon, UsersIcon } from '@patternfly/react-icons';
 import DataModal from './modals/DataModal';
+import DataCard from './components/DataCard';
+import './DataProjects.scss';
 
 const description = `View and edit data project and environment details.`;
 
@@ -116,14 +118,17 @@ export const DataProjectDetails: React.FC = () => {
                   </FlexItem>
                 </Flex>
                 {project.spec.environments && project.spec.environments.length !== 0 ? (
-                  project.spec.environments.map((environment) => (
-                    <EnvironmentCard
-                      key={environment.name}
-                      environment={environment}
-                      setModalOpen={setCreateEnvironmentModalOpen}
-                      setActiveEnvironment={setActiveEnvironment}
-                    />
-                  ))
+                  <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
+                    {project.spec.environments.map((environment, index) => (
+                      <GridItem key={`environment-card-${index}`}>
+                        <EnvironmentCard
+                          environment={environment}
+                          setModalOpen={setCreateEnvironmentModalOpen}
+                          setActiveEnvironment={setActiveEnvironment}
+                        />
+                      </GridItem>
+                    ))}
+                  </Grid>
                 ) : (
                   <Empty type="workspace environment" />
                 )}
@@ -147,7 +152,21 @@ export const DataProjectDetails: React.FC = () => {
                     </Button>
                   </FlexItem>
                 </Flex>
-                {project.spec.data && project.spec.data.length !== 0 ? null : <Empty type="data" />}
+                {project.spec.data && project.spec.data.length !== 0 ? (
+                  <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
+                    {project.spec.data.map((d, index) => (
+                      <GridItem key={`data-card-${index}`}>
+                        <DataCard
+                          data={d}
+                          setModalOpen={setAddDataModalOpen}
+                          setActiveData={setActiveData}
+                        />
+                      </GridItem>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Empty type="data" />
+                )}
               </div>
             </Tab>
             <Tab
