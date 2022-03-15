@@ -18,11 +18,12 @@ import { useHistory } from 'react-router-dom';
 
 type DataProjectsTableProps = {
   projects: any;
+  onDelete: any;
 };
 
-const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects }) => {
+const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onDelete }) => {
   const history = useHistory();
-  const columns = ['Name', 'Environment', 'Git Repo', 'Created', 'Modified'];
+  const columns = ['Name', 'Environment', 'Services', 'Created'];
   const [activeSortIndex, setActiveSortIndex] = React.useState<number>();
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>();
 
@@ -32,15 +33,16 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects }) => {
       onClick: () => history.push(`data-projects/${project.metadata.name}`),
     },
     {
-      title: <a href="#">Link action</a>,
+      title: 'Delete',
+      onClick: () => onDelete(project),
     },
-    {
-      isSeparator: true,
-    },
-    {
-      title: 'Third action',
-      onClick: () => console.log(`clicked on Third action, on row ${project.metadata.name}`),
-    },
+    // {
+    //   isSeparator: true,
+    // },
+    // {
+    //   title: 'Third action',
+    //   onClick: () => console.log(`clicked on Third action, on row ${project.metadata.name}`),
+    // },
   ];
 
   const getSortableRowValues = (project): (string | number)[] => {
@@ -87,10 +89,10 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects }) => {
       <Thead noWrap>
         <Tr>
           <Th sort={getSortParams(0)}>{columns[0]}</Th>
-          <Th>{columns[1]}</Th>
-          <Th>{columns[2]}</Th>
-          <Th>{columns[3]}</Th>
-          <Th sort={getSortParams(4)}>{columns[4]}</Th>
+          {/*<Th>{columns[1]}</Th>*/}
+          {/*<Th>{columns[2]}</Th>*/}
+          <Th sort={getSortParams(3)}>{columns[3]}</Th>
+          {/*<Th sort={getSortParams(4)}>{columns[4]}</Th>*/}
           <Td></Td>
           <Td></Td>
         </Tr>
@@ -110,28 +112,28 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects }) => {
                 </Button>
                 <div className="pf-u-color-200">{project.metadata.user}</div>
               </Td>
-              <Td dataLabel={columns[1]}>
-                {project.spec.environments ? (
-                  project.spec.environments.map((environment, index) => (
-                    <a href="#" key={index} className="odh-data-projects__table-tag">
-                      {environment.name}
-                    </a>
-                  ))
-                ) : (
-                  <div>Relevant job info</div>
-                )}
-              </Td>
-              <Td dataLabel={columns[2]}>
-                {project.spec.gitRepo ? (
-                  <a href="#" className="odh-data-projects__table-tag">
-                    {project.spec.gitRepo.name}
-                  </a>
-                ) : (
-                  <div>More relevant info</div>
-                )}
-              </Td>
+              {/*<Td dataLabel={columns[1]}>*/}
+              {/*  {project.spec.environments ? (*/}
+              {/*    project.spec.environments.map((environment, index) => (*/}
+              {/*      <a href="#" key={index} className="odh-data-projects__table-tag">*/}
+              {/*        {environment.name}*/}
+              {/*      </a>*/}
+              {/*    ))*/}
+              {/*  ) : (*/}
+              {/*    <div>Relevant job info</div>*/}
+              {/*  )}*/}
+              {/*</Td>*/}
+              {/*<Td dataLabel={columns[2]}>*/}
+              {/*  {project.spec.gitRepo ? (*/}
+              {/*    <a href="#" className="odh-data-projects__table-tag">*/}
+              {/*      {project.spec.gitRepo.name}*/}
+              {/*    </a>*/}
+              {/*  ) : (*/}
+              {/*    <div>More relevant info</div>*/}
+              {/*  )}*/}
+              {/*</Td>*/}
               <Td dataLabel={columns[3]}>{project.metadata.creationTimestamp}</Td>
-              <Td dataLabel={columns[4]}>{project.metadata.modifyTimestamp}</Td>
+              {/*<Td dataLabel={columns[4]}>{project.metadata.modifyTimestamp}</Td>*/}
               <Td>
                 <Button isInline variant="link" onClick={() => console.log('do something')}>
                   {project.spec.isProject ? 'Deploy' : 'Action'}

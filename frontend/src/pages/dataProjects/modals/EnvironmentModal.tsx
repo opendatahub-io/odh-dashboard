@@ -27,15 +27,17 @@ import './DataProjectsModal.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EnvironmentVariablesRow from '../spawner/EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '../const';
+import { createDataProjectNotebook } from '../../../services/dataProjectsService';
 
 type EnvironmentModalProps = {
   isModalOpen: boolean;
   onClose: () => void;
+  project: any;
   environment: any;
 };
 
 const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
-  ({ environment, isModalOpen, onClose }) => {
+  ({ project, environment, isModalOpen, onClose }) => {
     const action = environment ? 'Edit' : 'Create';
     const [environmentName, setEnvironmentName] = React.useState('');
     const [environmentDescription, setEnvironmentDescription] = React.useState('');
@@ -46,6 +48,8 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
     const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
     const [sizeDescriptions, setSizeDescriptions] = React.useState<SizeDescription[]>([]);
     const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
+    const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
+    const [createError, setCreateError] = React.useState(undefined);
     const nameInputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
@@ -92,7 +96,19 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
     };
 
     const handleEnvironmentAction = () => {
-      console.log('do something');
+      setCreateInProgress(true);
+      createDataProjectNotebook(project?.metadata?.name, environmentName)
+        .then(() => {
+          onClose();
+          setCreateInProgress(false);
+        })
+        .catch((e) => {
+          setCreateError(e);
+        });
+    };
+
+    const onCancel = () => {
+      onClose();
     };
 
     const handleImageTagSelection = (image: ImageType, tag: string, checked: boolean) => {
@@ -222,7 +238,7 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
           <Button key={action.toLowerCase()} variant="primary" onClick={handleEnvironmentAction}>
             {`${action} workspace environment`}
           </Button>,
-          <Button key="cancel" variant="secondary" onClick={onClose}>
+          <Button key="cancel" variant="secondary" onClick={onCancel}>
             Cancel
           </Button>,
         ]}

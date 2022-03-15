@@ -33,20 +33,30 @@ type EnvironmentCardProps = {
   environment: any;
   setModalOpen: (isOpen: boolean) => void;
   setActiveEnvironment: (environment: any) => void;
+  onDelete: (environment: any) => void;
 };
 
 const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
-  ({ environment, setModalOpen, setActiveEnvironment }) => {
-    const image = mockImages.find((image) => image.name === environment.image.name);
-    if (!image || !image.tags) {
-      return (
-        <div className="odh-data-projects__drawer-panel-environment">Environment not available</div>
-      );
-    }
-    const tag = getTagForImage(image, environment.image.name, environment.image.tag);
-    const tagDescription = getDescriptionForTag(tag);
-    const tagDependencies = tag?.content?.dependencies ?? [];
-    const sizeDescription = mockSizeDescriptions[`size/${environment.size}`];
+  ({ environment, setModalOpen, setActiveEnvironment, onDelete }) => {
+    // const image = mockImages.find((image) => image.name === environment.image.name);
+    // if (!image || !image.tags) {
+    //   return (
+    //     <div className="odh-data-projects__drawer-panel-environment">Environment not available</div>
+    //   );
+    // }
+    const tag = ''; //getTagForImage(image, environment.image.name, environment.image.tag);
+    const tagDescription = ''; //getDescriptionForTag(tag);
+    const tagDependencies = []; //tag?.content?.dependencies ?? [];
+    const sizeDescription = ''; //mockSizeDescriptions[`size/${environment.size}`];
+
+    const containers = environment?.spec?.template?.spec?.containers;
+    const image = !containers
+      ? null
+      : containers.find((container) => container.name === environment.name);
+
+    const getAnnotation = (annotationKey: string): string => {
+      return environment?.metadata?.annotations?.[annotationKey];
+    };
 
     return (
       <Card isFlat className="odh-data-projects__details-card">
@@ -54,24 +64,29 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
           <CardHeaderMain>
             <Flex>
               <FlexItem>
-                <CardTitle>{environment.name}</CardTitle>
+                <CardTitle>{environment.metadata.name}</CardTitle>
               </FlexItem>
               <Flex>
+                {/*<FlexItem>*/}
+                {/*  <Button*/}
+                {/*    variant="link"*/}
+                {/*    isInline*/}
+                {/*    onClick={() => {*/}
+                {/*      setActiveEnvironment(environment);*/}
+                {/*      setModalOpen(true);*/}
+                {/*    }}*/}
+                {/*  >*/}
+                {/*    Edit*/}
+                {/*  </Button>*/}
+                {/*</FlexItem>*/}
+                {/*<FlexItem>*/}
+                {/*  <Button variant="link" isInline>*/}
+                {/*    Duplicate*/}
+                {/*  </Button>*/}
+                {/*</FlexItem>*/}
                 <FlexItem>
-                  <Button
-                    variant="link"
-                    isInline
-                    onClick={() => {
-                      setActiveEnvironment(environment);
-                      setModalOpen(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                </FlexItem>
-                <FlexItem>
-                  <Button variant="link" isInline>
-                    Duplicate
+                  <Button variant="link" isInline onClick={() => onDelete(environment)}>
+                    Delete
                   </Button>
                 </FlexItem>
               </Flex>
@@ -79,22 +94,31 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
           </CardHeaderMain>
           <CardActions>
             <Button variant="secondary">Run</Button>
-            <Button variant="primary">Open</Button>
+            <Button
+              component="a"
+              href={getAnnotation('opendatahub.io/link')}
+              target="_blank"
+              variant="primary"
+            >
+              Open
+            </Button>
           </CardActions>
         </CardHeader>
         <CardBody>
           <DescriptionList isHorizontal isCompact>
             <DescriptionListGroup>
               <DescriptionListTerm>Description</DescriptionListTerm>
-              <DescriptionListDescription>{environment.description}</DescriptionListDescription>
+              <DescriptionListDescription>
+                {getAnnotation('opendatahub.io/description')}
+              </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Notebook image</DescriptionListTerm>
               <DescriptionListDescription>
                 <span className="odh-data-projects__notebook-image-title">
-                  {image.display_name}
-                  {image.description ? (
-                    <ImageTagPopover tag={tag} description={image.description} />
+                  {image?.display_name}
+                  {image?.description ? (
+                    <ImageTagPopover tag={tag} description={image?.description} />
                   ) : null}
                 </span>
                 {tagDescription ? (
@@ -108,8 +132,8 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
               <DescriptionListGroup>
                 <DescriptionListTerm>Packages</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {tagDependencies.map((dependency) => (
-                    <p key={dependency.name}>{getNameVersionString(dependency)}</p>
+                  {tagDependencies?.map((dependency) => (
+                    <p key={dependency?.name}>{getNameVersionString(dependency)}</p>
                   ))}
                 </DescriptionListDescription>
               </DescriptionListGroup>
@@ -121,13 +145,13 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
                   <ListItem>
                     <p>{environment.size}</p>
                     <p className="odh-data-projects__drawer-panel-environment-help-text">
-                      {`${sizeDescription.resources.limits.cpu} CPU, ${sizeDescription.resources.limits.memory} Memory`}
+                      {`${sizeDescription?.resources?.limits?.cpu} CPU, ${sizeDescription?.resources?.limits?.memory} Memory`}
                     </p>
                   </ListItem>
                   <ListItem>
                     <p>Memory Requests</p>
                     <p className="odh-data-projects__drawer-panel-environment-help-text">
-                      {`${sizeDescription.resources.requests.cpu} CPU, ${sizeDescription.resources.requests.memory} Memory`}
+                      {`${sizeDescription?.resources?.requests?.cpu} CPU, ${sizeDescription?.resources?.requests?.memory} Memory`}
                     </p>
                   </ListItem>
                 </List>
@@ -139,7 +163,7 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
                 <List isPlain>
                   <ListItem>
                     <Flex>
-                      <FlexItem>{environment.storage.name}</FlexItem>
+                      <FlexItem>{environment?.storage?.name}</FlexItem>
                       <FlexItem align={{ default: 'alignRight' }}>
                         <Button variant="link" isSmall isInline>
                           Access
@@ -150,13 +174,13 @@ const EnvironmentCard: React.FC<EnvironmentCardProps> = React.memo(
                   <ListItem>
                     <Split hasGutter>
                       <SplitItem>
-                        <span>{environment.storage.used}</span>
+                        <span>{environment?.storage?.used}</span>
                       </SplitItem>
                       <SplitItem isFilled>
                         <Progress
                           measureLocation="outside"
                           value={87.5}
-                          label={environment.storage.total}
+                          label={environment?.storage?.total}
                         />
                       </SplitItem>
                     </Split>
