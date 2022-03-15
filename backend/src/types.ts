@@ -10,7 +10,7 @@ export type DashboardConfig = {
 
 export type ClusterSettings = {
   pvcSize: number;
-}
+};
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
@@ -117,6 +117,7 @@ export type KubeDecorator = KubeStatus & {
   batchV1beta1Api: k8s.BatchV1beta1Api;
   batchV1Api: k8s.BatchV1Api;
   customObjectsApi: k8s.CustomObjectsApi;
+  rbacAuthorizationV1Api: k8s.RbacAuthorizationV1Api;
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
@@ -218,4 +219,69 @@ export type BuildStatus = {
   name: string;
   status: BUILD_PHASE;
   timestamp?: string;
+};
+
+export type Project = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  displayName?: string;
+  description?: string;
+} & K8sResourceCommon;
+
+export type ProjectList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Project[];
+} & K8sResourceCommon;
+
+export type Notebook = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec?: Record<string, unknown>;
+  status?: Record<string, unknown>;
+} & K8sResourceCommon;
+
+export type NotebookList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Notebook[];
+} & K8sResourceCommon;
+
+export type Route = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    host: string;
+    port: {
+      targetPort: string;
+    };
+    tls: {
+      insecureEdgeTerminationPolicy: string;
+      termination: string;
+    };
+    to: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
+    wildcardPolicy: string;
+  };
 };

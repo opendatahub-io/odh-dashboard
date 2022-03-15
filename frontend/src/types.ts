@@ -178,3 +178,38 @@ export enum DATA_SOURCE {
   persistentVolume = 'pv',
   databaseAccess = 'database',
 }
+
+export type Project = {
+  kind: string;
+  apiVersion: string;
+  metadata: {
+    name: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+};
+
+export type ProjectList = {
+  metadata: Record<string, unknown>;
+  items: Project[];
+};
+
+export type Notebook = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec?: Record<string, unknown>;
+  status?: Record<string, unknown>;
+};
+
+export type NotebookList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Notebook[];
+};

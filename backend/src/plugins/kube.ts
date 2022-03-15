@@ -13,6 +13,7 @@ const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
 const coreV1Api = kc.makeApiClient(k8s.CoreV1Api);
 const batchV1Api = kc.makeApiClient(k8s.BatchV1Api);
 const batchV1beta1Api = kc.makeApiClient(k8s.BatchV1beta1Api);
+const rbacAuthorizationV1Api = kc.makeApiClient(k8s.RbacAuthorizationV1Api);
 const currentUser = kc.getCurrentUser();
 
 export default fp(async (fastify: FastifyInstance) => {
@@ -31,6 +32,7 @@ export default fp(async (fastify: FastifyInstance) => {
     batchV1beta1Api,
     batchV1Api,
     customObjectsApi,
+    rbacAuthorizationV1Api,
     currentUser,
   });
 

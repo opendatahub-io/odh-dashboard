@@ -18,7 +18,7 @@ import {
   GridItem,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
-import { projects } from './mockData';
+
 import { CogIcon, CubeIcon, CubesIcon, UsersIcon } from '@patternfly/react-icons';
 import { useParams, Redirect } from 'react-router-dom';
 import EnvironmentModal from './modals/EnvironmentModal';
@@ -26,6 +26,12 @@ import EnvironmentCard from './components/EnvironmentCard';
 import DataModal from './modals/DataModal';
 import DataCard from './components/DataCard';
 import './DataProjects.scss';
+import { Project, NotebookList } from '../../types';
+import {
+  deleteDataProjectNotebook,
+  getDataProject,
+  getDataProjectNotebooks,
+} from '../../services/dataProjectsService';
 
 const description = `View and edit data project and environment details.`;
 
@@ -44,21 +50,58 @@ const Empty = ({ type }) => (
 
 export const DataProjectDetails: React.FC = () => {
   const { projectName } = useParams<{ projectName: string }>();
-  const isLoaded = true;
+
   const [activeTabKey, setActiveTabKey] = React.useState(0);
   const [isCreateEnvironmentModalOpen, setCreateEnvironmentModalOpen] = React.useState(false);
   const [isAddDataModalOpen, setAddDataModalOpen] = React.useState(false);
   const [activeEnvironment, setActiveEnvironment] = React.useState(null);
   const [activeData, setActiveData] = React.useState(null);
 
-  const project = projects.find((project) => project.metadata.name === projectName);
+  const [project, setProject] = React.useState<Project | undefined>(undefined);
+  const [projectLoading, setProjectLoading] = React.useState(false);
+  const [projectError, setProjectError] = React.useState(undefined);
 
-  if (!project) {
-    return <Redirect to="/data-projects" />;
-  }
+  const [notebookList, setNotebookList] = React.useState<NotebookList | undefined>(undefined);
+  const [notebooksLoading, setNotebooksLoading] = React.useState(false);
+  const [notebooksError, setNotebooksError] = React.useState(undefined);
+
+  const projectDisplayName =
+    project?.metadata?.annotations?.['openshift.io/display-name'] ||
+    project?.metadata?.name ||
+    projectName;
+
+  const loadProjects = () => {
+    setProjectLoading(true);
+    getDataProject(projectName)
+      .then((prj: Project) => {
+        setProject(prj);
+        setProjectLoading(false);
+      })
+      .catch((e) => {
+        setProjectError(e);
+      });
+  };
+
+  const loadNotebooks = () => {
+    setNotebooksLoading(true);
+    getDataProjectNotebooks(projectName)
+      .then((nbks: NotebookList) => {
+        setNotebookList(nbks);
+        setNotebooksLoading(false);
+      })
+      .catch((e) => {
+        setNotebooksError(e);
+      });
+  };
+
+  React.useEffect(() => {
+    loadProjects();
+    loadNotebooks();
+  }, []);
 
   const handleCreateEnvironmentModalClose = () => {
     setCreateEnvironmentModalOpen(false);
+    loadNotebooks();
   };
 
   const handleAddDataModalClose = () => {
@@ -73,13 +116,15 @@ export const DataProjectDetails: React.FC = () => {
     <>
       <Breadcrumb className="odh-data-projects__breadcrumb">
         <BreadcrumbItem to="/data-projects">Data Projects</BreadcrumbItem>
-        <BreadcrumbItem isActive>{project.metadata.name}</BreadcrumbItem>
+        <BreadcrumbItem isActive>{projectDisplayName}</BreadcrumbItem>
       </Breadcrumb>
       <ApplicationsPage
-        title={project.metadata.name + ' Details'}
+        title={projectDisplayName + ' Details'}
         description={description}
-        loaded={isLoaded}
-        empty={false}
+        loaded={!projectLoading}
+        loadError={projectError}
+        empty={!project}
+        emptyMessage={'404: Project Not Found'}
       >
         <PageSection variant="light" padding={{ default: 'noPadding' }} isFilled>
           <Tabs
@@ -117,14 +162,19 @@ export const DataProjectDetails: React.FC = () => {
                     </Button>
                   </FlexItem>
                 </Flex>
-                {project.spec.environments && project.spec.environments.length !== 0 ? (
+                {notebookList?.items && notebookList?.items.length !== 0 ? (
                   <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-                    {project.spec.environments.map((environment, index) => (
+                    {notebookList?.items.map((notebook, index) => (
                       <GridItem key={`environment-card-${index}`}>
                         <EnvironmentCard
-                          environment={environment}
+                          environment={notebook}
                           setModalOpen={setCreateEnvironmentModalOpen}
                           setActiveEnvironment={setActiveEnvironment}
+                          onDelete={(environment) =>
+                            deleteDataProjectNotebook(projectName, environment.metadata.name)
+                              .then(() => loadNotebooks())
+                              .catch()
+                          }
                         />
                       </GridItem>
                     ))}
@@ -152,21 +202,22 @@ export const DataProjectDetails: React.FC = () => {
                     </Button>
                   </FlexItem>
                 </Flex>
-                {project.spec.data && project.spec.data.length !== 0 ? (
-                  <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-                    {project.spec.data.map((d, index) => (
-                      <GridItem key={`data-card-${index}`}>
-                        <DataCard
-                          data={d}
-                          setModalOpen={setAddDataModalOpen}
-                          setActiveData={setActiveData}
-                        />
-                      </GridItem>
-                    ))}
-                  </Grid>
-                ) : (
-                  <Empty type="data" />
-                )}
+                <Empty type="data" />
+                {/*{project.spec.data && project.spec.data.length !== 0 ? (*/}
+                {/*  <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>*/}
+                {/*    {project.spec.data.map((d, index) => (*/}
+                {/*      <GridItem key={`data-card-${index}`}>*/}
+                {/*        <DataCard*/}
+                {/*          data={d}*/}
+                {/*          setModalOpen={setAddDataModalOpen}*/}
+                {/*          setActiveData={setActiveData}*/}
+                {/*        />*/}
+                {/*      </GridItem>*/}
+                {/*    ))}*/}
+                {/*  </Grid>*/}
+                {/*) : (*/}
+                {/*  <Empty type="data" />*/}
+                {/*)}*/}
               </div>
             </Tab>
             <Tab
@@ -199,6 +250,7 @@ export const DataProjectDetails: React.FC = () => {
         </PageSection>
       </ApplicationsPage>
       <EnvironmentModal
+        project={project}
         environment={activeEnvironment}
         isModalOpen={isCreateEnvironmentModalOpen}
         onClose={handleCreateEnvironmentModalClose}
