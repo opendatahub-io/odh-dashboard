@@ -38,7 +38,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       'project.openshift.io',
       'v1',
       'projects',
-      request.body as object,
+      request.body as any,
     );
     return kubeResponse.body as Project;
   });

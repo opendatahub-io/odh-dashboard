@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useHistory } from 'react-router-dom';
 import {
   Divider,
   PageSection,
@@ -22,64 +21,92 @@ import { CubesIcon } from '@patternfly/react-icons';
 import CreateProjectModal from './modals/CreateProjectModal';
 import { useDispatch, useSelector } from 'react-redux';
 import { State } from '../../redux/types';
-import { ProjectList } from '../../types';
-import { getDataProjects } from '../../redux/actions/actions';
-import { deleteDataProject } from '../../services/dataProjectsService';
+import { Project, ProjectList } from '../../types';
+import { addNotification } from '../../redux/actions/actions';
+import {
+  deleteDataProject,
+  getDataProject,
+  getDataProjects,
+} from '../../services/dataProjectsService';
+import { useGetDataProjects } from '../../utilities/useGetDataProjects';
 
 const description = `Create new projects, or view everything you've been working on here.`;
 
-export const DataProjects: React.FC = () => {
-  const history = useHistory();
-
-  const [viewType, setViewType] = useLocalStorage(VIEW_TYPE);
-  const [isTableDrawerExpanded, setTableDrawerExpanded] = React.useState(false);
-  const [selectedProject, setSelectedProject] = React.useState(null);
-  const [isCreateProjectModalOpen, setCreateProjectModalOpen] = React.useState(false);
-
-  const dataProjects: ProjectList | null | undefined = useSelector<
-    State,
-    ProjectList | null | undefined
-  >((state) => state.dataProjectsState.dataProjects);
-  const username: string | null | undefined = useSelector<State, string | null | undefined>(
-    (state) => state.appState.user,
-  );
-  const dataProjectsLoading: boolean = useSelector<State, boolean>(
-    (state) => state.dataProjectsState.dataProjectsLoading,
-  );
-  const dataProjectsError: Error | undefined = useSelector<State, Error | undefined>(
-    (state) => state.dataProjectsState.dataProjectsError || undefined,
-  );
-
-  const displayedProjects = dataProjects ? dataProjects.items || [] : [];
-  const isEmpty = !dataProjects || dataProjects.items?.length <= 0;
-  const loaded = !!username && !dataProjectsLoading;
+export const DataProjects: React.FC = React.memo(() => {
   const dispatch = useDispatch();
-
-  const loadDataProjects = () => {
-    if (username) {
-      dispatch(getDataProjects());
-    }
-  };
+  const [viewType, setViewType] = useLocalStorage(VIEW_TYPE);
+  const { dataProjects, loaded, loadError, updateDataProjects } = useGetDataProjects();
+  const [isCreateProjectModalOpen, setCreateProjectModalOpen] = React.useState(false);
+  const [displayedProjects, setDisplayedProjects] = React.useState<Project[]>([]);
+  const [isEmpty, setEmpty] = React.useState<boolean>(true);
 
   React.useEffect(() => {
-    loadDataProjects();
-  }, [username, dispatch]);
+    setEmpty(!dataProjects || dataProjects.items?.length <= 0);
+    setDisplayedProjects(dataProjects ? dataProjects.items || [] : []);
+  }, [dataProjects]);
+
+  const watchDataProjectStatus = (project: Project) => {
+    let watchHandle;
+    const projectName = project.metadata?.name;
+    const displayedProject = displayedProjects.find((proj) => proj.metadata.name === projectName);
+    if (!displayedProject) {
+      return;
+    }
+    const watchDataProject = () => {
+      getDataProject(projectName)
+        .then(async (newProject: Project) => {
+          if (newProject.status.phase !== displayedProject.status.phase) {
+            displayedProject.status.phase = newProject.status.phase;
+            updateDataProjects();
+          }
+          watchHandle = setTimeout(watchDataProject, 2000); // every 2 seconds
+        })
+        .catch((e) => {
+          if (e.statusCode === 404) {
+            dispatch(
+              addNotification({
+                status: 'success',
+                title: `Data project ${projectName} deleted successfully.`,
+                timestamp: new Date(),
+              }),
+            );
+            updateDataProjects();
+          } else {
+            dispatch(
+              addNotification({
+                status: 'danger',
+                title: `Error refreshing data projects list.`,
+                message: e.message,
+                timestamp: new Date(),
+              }),
+            );
+          }
+        });
+      clearTimeout(watchHandle);
+    };
+    watchDataProject();
+  };
 
   const handleCreateProjectModalClose = () => {
     setCreateProjectModalOpen(false);
   };
 
-  // const onProjectSelect = (project) => {
-  //   history.push(`/data-projects/${project.metadata?.name}`);
-  // };
-
-  const onDeleteProject = (project) => {
-    deleteDataProject(project.metadata?.name).then(loadDataProjects);
-  };
-
-  const onDrawerPanelClose = () => {
-    setSelectedProject(null);
-    setTableDrawerExpanded(false);
+  const onDeleteProject = async (project) => {
+    const projectName = project.metadata?.name;
+    try {
+      await deleteDataProject(projectName);
+    } catch (e: any) {
+      dispatch(
+        addNotification({
+          status: 'danger',
+          title: `Error deleting data project ${projectName}.`,
+          message: e.message,
+          timestamp: new Date(),
+        }),
+      );
+      return;
+    }
+    watchDataProjectStatus(project);
   };
 
   const emptyComponent = (
@@ -109,7 +136,7 @@ export const DataProjects: React.FC = () => {
         title="Projects"
         description={description}
         loaded={loaded}
-        loadError={dataProjectsError}
+        loadError={loadError}
         empty={isEmpty}
         emptyComponent={emptyComponent}
       >
@@ -117,7 +144,7 @@ export const DataProjects: React.FC = () => {
         <Divider />
         <PageSection variant="light" padding={{ default: 'noPadding' }} isFilled>
           <DataProjectsTableToolbar setCreateProjectModalOpen={setCreateProjectModalOpen} />
-          <DataProjectsTable projects={displayedProjects} onDelete={onDeleteProject}/>
+          <DataProjectsTable projects={displayedProjects} onDelete={onDeleteProject} />
         </PageSection>
       </ApplicationsPage>
       <CreateProjectModal
@@ -126,7 +153,8 @@ export const DataProjects: React.FC = () => {
       />
     </>
   );
-};
+});
+
 DataProjects.displayName = 'DataProjects';
 
 export default DataProjects;

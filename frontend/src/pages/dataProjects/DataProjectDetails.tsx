@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   PageSection,
   Title,
@@ -50,6 +51,7 @@ const Empty = ({ type }) => (
 
 export const DataProjectDetails: React.FC = () => {
   const { projectName } = useParams<{ projectName: string }>();
+  const history = useHistory();
 
   const [activeTabKey, setActiveTabKey] = React.useState(0);
   const [isCreateEnvironmentModalOpen, setCreateEnvironmentModalOpen] = React.useState(false);
@@ -115,7 +117,9 @@ export const DataProjectDetails: React.FC = () => {
   return (
     <>
       <Breadcrumb className="odh-data-projects__breadcrumb">
-        <BreadcrumbItem to="/data-projects">Data Projects</BreadcrumbItem>
+        <BreadcrumbItem component="button" onClick={() => history.push('/data-projects')}>
+          Data Projects
+        </BreadcrumbItem>
         <BreadcrumbItem isActive>{projectDisplayName}</BreadcrumbItem>
       </Breadcrumb>
       <ApplicationsPage
