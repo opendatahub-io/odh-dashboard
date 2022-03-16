@@ -12,22 +12,23 @@ import {
   ActionsColumn,
 } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
+import { useHistory } from 'react-router-dom';
+import { Project } from '../../types';
 
 import './DataProjects.scss';
-import { useHistory } from 'react-router-dom';
 
 type DataProjectsTableProps = {
-  projects: any;
+  projects: Project[];
   onDelete: any;
 };
 
-const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onDelete }) => {
+const DataProjectsTable: React.FC<DataProjectsTableProps> = React.memo(({ projects, onDelete }) => {
   const history = useHistory();
-  const columns = ['Name', 'Environment', 'Services', 'Created'];
+  const columns = ['Name', 'Environment', 'Status', 'Created', 'Services'];
   const [activeSortIndex, setActiveSortIndex] = React.useState<number>();
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>();
 
-  const defaultActions = (project): IAction[] => [
+  const defaultActions = (project: Project): IAction[] => [
     {
       title: 'Details',
       onClick: () => history.push(`data-projects/${project.metadata.name}`),
@@ -90,7 +91,7 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onDelet
         <Tr>
           <Th sort={getSortParams(0)}>{columns[0]}</Th>
           {/*<Th>{columns[1]}</Th>*/}
-          {/*<Th>{columns[2]}</Th>*/}
+          <Th>{columns[2]}</Th>
           <Th sort={getSortParams(3)}>{columns[3]}</Th>
           {/*<Th sort={getSortParams(4)}>{columns[4]}</Th>*/}
           <Td></Td>
@@ -98,7 +99,7 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onDelet
         </Tr>
       </Thead>
       <Tbody>
-        {sortedProjects.map((project, rowIndex) => {
+        {sortedProjects.map((project: Project, rowIndex: number) => {
           const rowActions: IAction[] | null = defaultActions(project);
           return (
             <Tr key={rowIndex}>
@@ -110,7 +111,9 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onDelet
                 >
                   {project.metadata.name}
                 </Button>
-                <div className="pf-u-color-200">{project.metadata.user}</div>
+                <div className="pf-u-color-200">
+                  {project.metadata.labels?.['opendatahub.io/user']}
+                </div>
               </Td>
               {/*<Td dataLabel={columns[1]}>*/}
               {/*  {project.spec.environments ? (*/}
@@ -132,11 +135,12 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onDelet
               {/*    <div>More relevant info</div>*/}
               {/*  )}*/}
               {/*</Td>*/}
+              <Td dataLabel={columns[2]}>{project.status.phase}</Td>
               <Td dataLabel={columns[3]}>{project.metadata.creationTimestamp}</Td>
               {/*<Td dataLabel={columns[4]}>{project.metadata.modifyTimestamp}</Td>*/}
               <Td>
                 <Button isInline variant="link" onClick={() => console.log('do something')}>
-                  {project.spec.isProject ? 'Deploy' : 'Action'}
+                  Deploy
                 </Button>
               </Td>
               <Td isActionCell>{rowActions ? <ActionsColumn items={rowActions} /> : null}</Td>
@@ -146,6 +150,8 @@ const DataProjectsTable: React.FC<DataProjectsTableProps> = ({ projects, onDelet
       </Tbody>
     </TableComposable>
   );
-};
+});
+
+DataProjectsTable.displayName = 'DataProjectsTable';
 
 export default DataProjectsTable;

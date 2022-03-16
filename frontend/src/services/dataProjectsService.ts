@@ -1,6 +1,25 @@
 import axios from 'axios';
-import { Notebook, NotebookList, Project } from '../types';
+import { Notebook, NotebookList, Project, ProjectList } from '../types';
 import { store } from '../redux/store/store';
+
+export const getDataProjects = (): Promise<ProjectList> => {
+  const url = '/api/data-projects';
+  const searchParams = new URLSearchParams();
+  const labels = [
+    'opendatahub.io/odh-managed=true',
+    `opendatahub.io/user=${store.getState().appState.user}`,
+  ];
+  searchParams.set('labels', labels.join(','));
+  const options = { params: searchParams };
+  return axios
+    .get(url, options)
+    .then((response) => {
+      return response.data;
+    })
+    .catch((e) => {
+      throw new Error(e.response.data.message);
+    });
+};
 
 export const getDataProject = (name: string): Promise<Project> => {
   const url = `/api/data-projects/${name}`;
@@ -10,7 +29,9 @@ export const getDataProject = (name: string): Promise<Project> => {
       return response.data;
     })
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      const error: any = new Error(e.response.data.message);
+      error.statusCode = e.response.data.statusCode;
+      throw error;
     });
 };
 

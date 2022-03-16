@@ -1,22 +1,30 @@
 import * as React from 'react';
+import { useDispatch } from 'react-redux';
 import { Button, Form, FormGroup, Modal, ModalVariant, TextInput } from '@patternfly/react-core';
 import { useHistory } from 'react-router-dom';
 import { createDataProject } from '../../../services/dataProjectsService';
 import { Project } from '../../../types';
+import { addNotification } from 'redux/actions/actions';
 
 type CreateProjectModalProps = {
   isModalOpen: boolean;
   onClose: () => void;
 };
 
+enum CreateProjectStatus {
+  PENDING,
+  IDLE,
+}
+
 const CreateProjectModal: React.FC<CreateProjectModalProps> = React.memo(
   ({ isModalOpen, onClose }) => {
     const history = useHistory();
+    const dispatch = useDispatch();
     const [projectName, setProjectName] = React.useState('');
     const [projectDescription, setProjectDescription] = React.useState('');
-    const [createProjectPending, setCreateProjectPending] = React.useState(false);
-    const [createProjectFullfilled, setCreateProjectFulfilled] = React.useState(false);
-    const [createProjectError, setCreateProjectError] = React.useState(undefined);
+    const [createProjectStatus, setCreateProjectStatus] = React.useState<CreateProjectStatus>(
+      CreateProjectStatus.IDLE,
+    );
     const nameInputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
@@ -33,15 +41,29 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = React.memo(
     };
 
     const onCreateProject = () => {
-      setCreateProjectPending(true);
+      setCreateProjectStatus(CreateProjectStatus.PENDING);
       createDataProject(projectName, projectDescription)
         .then((project: Project) => {
-          setCreateProjectFulfilled(true);
-          setCreateProjectError(undefined);
+          dispatch(
+            addNotification({
+              status: 'success',
+              title: `Data project ${projectName} created successfully.`,
+              timestamp: new Date(),
+            }),
+          );
+          setCreateProjectStatus(CreateProjectStatus.IDLE);
           history.push(`/data-projects/${project.metadata?.name}`);
         })
         .catch((e) => {
-          setCreateProjectError(e);
+          dispatch(
+            addNotification({
+              status: 'danger',
+              title: `Error attempting to create data project ${projectName}.`,
+              message: e.message,
+              timestamp: new Date(),
+            }),
+          );
+          setCreateProjectStatus(CreateProjectStatus.IDLE);
         });
     };
 
@@ -53,7 +75,12 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = React.memo(
         isOpen={isModalOpen}
         onClose={handleClose}
         actions={[
-          <Button key="create" variant="primary" onClick={onCreateProject}>
+          <Button
+            key="create"
+            variant="primary"
+            onClick={onCreateProject}
+            isDisabled={createProjectStatus === CreateProjectStatus.PENDING}
+          >
             Create
           </Button>,
           <Button key="cancel" variant="secondary" onClick={handleClose}>

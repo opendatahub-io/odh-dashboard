@@ -184,8 +184,12 @@ export type Project = {
   apiVersion: string;
   metadata: {
     name: string;
+    creationTimestamp: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
+  };
+  status: {
+    phase: string;
   };
 };
 
