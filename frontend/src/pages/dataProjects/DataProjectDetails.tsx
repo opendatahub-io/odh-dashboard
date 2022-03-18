@@ -27,12 +27,13 @@ import EnvironmentCard from './components/EnvironmentCard';
 import DataModal from './modals/DataModal';
 import DataCard from './components/DataCard';
 import './DataProjects.scss';
-import { Project, NotebookList } from '../../types';
+import { Project, NotebookList, ImageStreamList } from '../../types';
 import {
   deleteDataProjectNotebook,
   getDataProject,
   getDataProjectNotebooks,
 } from '../../services/dataProjectsService';
+import { getImageStreams } from '../../services/imageStreamService';
 
 const description = `View and edit data project and environment details.`;
 
@@ -67,12 +68,16 @@ export const DataProjectDetails: React.FC = () => {
   const [notebooksLoading, setNotebooksLoading] = React.useState(false);
   const [notebooksError, setNotebooksError] = React.useState(undefined);
 
+  const [imageList, setImageList] = React.useState<ImageStreamList | undefined>(undefined);
+  const [imagesLoading, setImagesLoading] = React.useState(false);
+  const [imagesError, setImagesError] = React.useState(undefined);
+
   const projectDisplayName =
     project?.metadata?.annotations?.['openshift.io/display-name'] ||
     project?.metadata?.name ||
     projectName;
 
-  const loadProjects = () => {
+  const loadProject = () => {
     setProjectLoading(true);
     getDataProject(projectName)
       .then((prj: Project) => {
@@ -96,8 +101,21 @@ export const DataProjectDetails: React.FC = () => {
       });
   };
 
+  const loadImages = () => {
+    setImagesLoading(true);
+    getImageStreams()
+      .then((il: ImageStreamList) => {
+        setImageList(il);
+        setImagesLoading(false);
+      })
+      .catch((e) => {
+        setImagesError(e);
+      });
+  };
+
   React.useEffect(() => {
-    loadProjects();
+    loadImages();
+    loadProject();
     loadNotebooks();
   }, []);
 
@@ -255,6 +273,7 @@ export const DataProjectDetails: React.FC = () => {
       </ApplicationsPage>
       <EnvironmentModal
         project={project}
+        imageList={imageList}
         environment={activeEnvironment}
         isModalOpen={isCreateEnvironmentModalOpen}
         onClose={handleCreateEnvironmentModalClose}

@@ -220,6 +220,43 @@ export type BuildStatus = {
   status: BUILD_PHASE;
   timestamp?: string;
 };
+export type ImageStream = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    lookupPolicy?: {
+      local: boolean;
+    };
+    tags: [
+      {
+        name: string;
+        labels?: { [key: string]: string };
+        annotations?: { [key: string]: string };
+        from: {
+          kind: string;
+          name: string;
+        };
+        referencePolicy?: {
+          type?: string;
+        };
+      },
+    ];
+  };
+  status: Record<string, unknown>;
+};
+
+export type ImageStreamList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: ImageStream[];
+} & K8sResourceCommon;
 
 export type Project = {
   apiVersion?: string;

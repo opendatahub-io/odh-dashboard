@@ -34,6 +34,7 @@ type EnvironmentModalProps = {
   onClose: () => void;
   project: any;
   environment: any;
+  imageList: any;
 };
 
 const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(

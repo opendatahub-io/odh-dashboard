@@ -73,8 +73,8 @@ export const deleteDataProject = (name: string): Promise<Project> => {
     });
 };
 
-export const getDataProjectNotebooks = (name: string): Promise<NotebookList> => {
-  const url = `/api/data-projects/${name}/notebooks`;
+export const getDataProjectNotebooks = (projectName: string): Promise<NotebookList> => {
+  const url = `/api/data-projects/${projectName}/notebooks`;
   return axios
     .get(url)
     .then((response) => {
@@ -102,9 +102,6 @@ export const createDataProjectNotebook = (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': store.getState().appState.user,
       },
-      // annotations: {
-      //   'opendatahub.io/user': store.getState().appState.user,
-      // },
       name: notebookName,
       namespace: projectName,
     },
