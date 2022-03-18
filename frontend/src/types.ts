@@ -217,3 +217,43 @@ export type NotebookList = {
   metadata: Record<string, unknown>;
   items: Notebook[];
 };
+
+// ImageStreamTag type when included in an ImageStream
+// Fetching an ImageStreamTag directly has a different structure
+export type ImageStreamTag = {
+  name: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+  from: {
+    kind: string;
+    name: string;
+  };
+};
+
+export type ImageStream = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec?: {
+    lookupPolicy?: {
+      local: boolean;
+    };
+    tags?: ImageStreamTag[];
+  };
+  status?: {
+    dockerImageRepository?: string;
+    publicDockerImageRepository?: string;
+  };
+};
+
+export type ImageStreamList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: ImageStream[];
+};
