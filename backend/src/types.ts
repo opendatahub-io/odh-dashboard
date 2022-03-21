@@ -220,3 +220,25 @@ export type BuildStatus = {
   status: BUILD_PHASE;
   timestamp?: string;
 };
+
+export enum NotebookStatus {
+  VALIDITING,
+  SUCCESS,
+  FAILED
+}
+
+export type Notebook = {
+  name: string;
+  repo: string;
+  description?: string;
+  status?: NotebookStatus;
+  user?: string;
+  uploaded?: Date;
+  visible?: boolean;
+  packages?: NotebookPackage[];
+}
+
+export type NotebookPackage = {
+  name: string;
+  version :string;
+}
