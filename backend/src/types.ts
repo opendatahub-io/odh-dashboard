@@ -225,7 +225,7 @@ export type NotebookError = {
   message: string;
 }
 
-export type NotebookStatus = "Importing" | "Validating" | "Success" | "Failed";
+export type NotebookStatus = "Importing" | "Validating" | "Succeeded" | "Failed";
 
 export type Notebook = {
   name: string;
