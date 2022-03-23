@@ -31,17 +31,22 @@ export declare type QuickStart = {
 };
 
 // Properties common to (almost) all Kubernetes resources.
-export type K8sResourceCommon = {
+export type K8sResourceBase = {
   apiVersion?: string;
   kind?: string;
+}
+
+export type K8sResourceCommon = {
   metadata?: {
     name?: string;
     namespace?: string;
     uid?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
+    creationTimestamp?: Date;
   };
-};
+} & K8sResourceBase;
+
 
 export enum BUILD_PHASE {
   none = 'Not started',
@@ -243,3 +248,35 @@ export type NotebookPackage = {
   name: string;
   version: string;
 }
+
+
+export type ImageStreamTagSpec = {
+  name: string;
+  annotations?: { [key: string]: string };
+  from: {
+    kind: string;
+    name: string;
+  }
+}
+export type ImageStreamKind = {
+  spec: {
+    tags: ImageStreamTagSpec[];
+  }
+} & K8sResourceCommon;
+
+export type ImageStreamListKind = {
+  items: ImageStreamKind[];
+} & K8sResourceBase;
+
+export type PipelineRunKind = {
+  spec: {
+    params: {
+      name: string;
+      value: string;
+    }[]
+  }
+} & K8sResourceCommon;
+
+export type PipelineRunListKind = {
+  items: PipelineRunKind[];
+} & K8sResourceBase;
