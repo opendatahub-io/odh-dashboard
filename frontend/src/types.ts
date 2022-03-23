@@ -107,21 +107,23 @@ export type BuildStatus = {
   timestamp: string;
 };
 
-export enum NotebookStatus {
-  VALIDITING,
-  SUCCESS,
-  FAILED,
+export type NotebookError = {
+  severity: string;
+  message: string;
 }
+
+export type NotebookStatus = "Importing" | "Validating" | "Success" | "Failed";
 
 export type Notebook = {
   name: string;
-  repo: string;
+  url: string;
   description?: string;
   status?: NotebookStatus;
-  user?: string;
+  phase?: string;
   uploaded?: Date;
   visible?: boolean;
   packages?: NotebookPackage[];
+  error?: NotebookError;
 };
 
 export type NotebookPackage = {
