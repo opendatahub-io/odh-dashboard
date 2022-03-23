@@ -1,4 +1,5 @@
 import { FastifyRequest } from 'fastify';
+import createError from 'http-errors';
 import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind } from '../../../types';
 
 const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
@@ -64,14 +65,36 @@ export const getNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ notebooks: Notebook; error: string }> => {
-  const notebook: Notebook = {
-    name: '',
-    url: '',
-  };
-  // const coreV1Api = fastify.kube.coreV1Api;
-  // const namespace = fastify.kube.namespace;
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  const namespace = fastify.kube.namespace;
+  const params = request.params as { notebook: string };
+
   try {
-    return { notebooks: notebook, error: null };
+    const imageStream = await customObjectsApi.getNamespacedCustomObject(
+      "image.openshift.io",
+      "v1",
+      namespace,
+      "imagestreams",
+      params.notebook
+    ).then(r => r.body as ImageStreamKind).catch(r => null)
+
+    if (imageStream) {
+      return { notebooks: mapImageStreamToNotebook(imageStream), error: null };
+    }
+
+    const pipelineRun = await customObjectsApi.getNamespacedCustomObject(
+      "tekton.dev",
+      "v1beta1",
+      namespace,
+      "pipelineruns",
+      params.notebook
+    ).then(r => r.body as PipelineRunKind).catch(r => null)
+
+    if (pipelineRun) {
+      return { notebooks: mapPipelineRunToNotebook(pipelineRun), error: null };
+    }
+
+    throw new createError.NotFound(`Notebook ${params.notebook} does not exist.`)
   } catch (e) {
     if (e.response?.statusCode !== 404) {
       fastify.log.error('Unable to retrieve notebook image(s): ' + e.toString());
