@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
-import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind, NotebookRequest } from '../../../types';
+import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind, NotebookCreateRequest, NotebookUpdateRequest } from '../../../types';
 
 const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
   id: is.metadata.name,
@@ -112,7 +112,7 @@ export const addNotebook = async (
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const body = request.body as NotebookRequest;
+  const body = request.body as NotebookCreateRequest;
 
   const payload: PipelineRunKind = {
     apiVersion: "tekton.dev/v1beta1",
@@ -201,9 +201,43 @@ export const updateNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
-  // const coreV1Api = fastify.kube.coreV1Api;
-  // const namespace = fastify.kube.namespace;
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  const namespace = fastify.kube.namespace;
+  const params = request.params as { notebook: string };
+  const body = request.body as NotebookUpdateRequest;
+
   try {
+    const imageStream = await customObjectsApi.getNamespacedCustomObject(
+      "image.openshift.io",
+      "v1",
+      namespace,
+      "imagestreams",
+      params.notebook
+    ).then(r => r.body as ImageStreamKind).catch(e => {throw createError(e.statusCode, e?.body?.message)})
+
+    if (body.packages && imageStream.spec.tags) {
+      imageStream.spec.tags[0].annotations["opendatahub.io/notebook-python-dependencies"] = JSON.stringify(body.packages)
+    }
+    if (body.software && imageStream.spec.tags) {
+      imageStream.spec.tags[0].annotations["opendatahub.io/notebook-software"] = JSON.stringify(body.software)
+    }
+    if (typeof body.visible !== "undefined") {
+      imageStream.metadata.annotations["opendatahub.io/notebook-image-visible"] = body.visible.toString()
+    }
+
+    await customObjectsApi.patchNamespacedCustomObject(
+      "image.openshift.io",
+      "v1",
+      namespace,
+      "imagestreams",
+      params.notebook,
+      imageStream,
+      undefined, undefined, undefined,
+      {
+        headers: { "Content-Type": "application/merge-patch+json" }
+      }
+    ).catch(e => console.log(e))
+
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {

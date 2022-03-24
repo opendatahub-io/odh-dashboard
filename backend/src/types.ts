@@ -238,16 +238,20 @@ export type Notebook = {
   phase?: NotebookStatus;
   user?: string;
   uploaded?: Date;
-  visible?: boolean;
-  packages?: NotebookPackage[];
-  software?: NotebookPackage[];
   error?: NotebookError;
-} & NotebookRequest;
+} & NotebookCreateRequest & NotebookUpdateRequest;
 
-export type NotebookRequest = {
+export type NotebookCreateRequest = {
   name: string;
   url: string;
   description?: string;
+}
+
+export type NotebookUpdateRequest = {
+  id: string;
+  visible?: boolean;
+  packages?: NotebookPackage[];
+  software?: NotebookPackage[];
 }
 
 export type NotebookPackage = {
@@ -259,15 +263,16 @@ export type NotebookPackage = {
 export type ImageStreamTagSpec = {
   name: string;
   annotations?: { [key: string]: string };
-  from: {
+  from?: {
     kind: string;
     name: string;
   }
 }
 export type ImageStreamKind = {
-  spec: {
+  spec?: {
     tags: ImageStreamTagSpec[];
   }
+  status?: any
 } & K8sResourceCommon;
 
 export type ImageStreamListKind = {
