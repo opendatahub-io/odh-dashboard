@@ -3,6 +3,7 @@ import createError from 'http-errors';
 import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind } from '../../../types';
 
 const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
+  id: is.metadata.name,
   name: is.metadata.annotations["opendatahub.io/notebook-image-name"],
   description: is.metadata.annotations["opendatahub.io/notebook-image-name"],
   phase: is.metadata.annotations["opendatahub.io/notebook-image-phase"] as NotebookStatus,
@@ -11,11 +12,13 @@ const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
     ? JSON.parse(is.metadata.annotations["opendatahub.io/notebook-image-messages"])
     : [],
   packages: is.spec.tags && JSON.parse(is.spec.tags[0].annotations["opendatahub.io/notebook-python-dependencies"]),
+  software: is.spec.tags && JSON.parse(is.spec.tags[0].annotations["opendatahub.io/notebook-software"]),
   uploaded: is.metadata.creationTimestamp,
   url: is.metadata.annotations["opendatahub.io/notebook-image-url"],
 })
 
 const mapPipelineRunToNotebook = (plr: PipelineRunKind): Notebook => ({
+  id: plr.metadata.name,
   name: plr.spec.params.find(p => p.name === "name")?.value,
   description: plr.spec.params.find(p => p.name === "desc")?.value,
   url: plr.spec.params.find(p => p.name === "url")?.value,

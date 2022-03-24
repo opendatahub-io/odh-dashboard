@@ -233,6 +233,7 @@ export type NotebookError = {
 export type NotebookStatus = "Importing" | "Validating" | "Succeeded" | "Failed";
 
 export type Notebook = {
+  id: string;
   name: string;
   url: string;
   description?: string;
@@ -241,6 +242,7 @@ export type Notebook = {
   uploaded?: Date;
   visible?: boolean;
   packages?: NotebookPackage[];
+  software?: NotebookPackage[];
   error?: NotebookError;
 }
 
