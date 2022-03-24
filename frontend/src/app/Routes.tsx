@@ -12,8 +12,8 @@ const ExploreApplications = React.lazy(
 );
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
-const DataProjects = React.lazy(() => import('../pages/dataProjects/DataProjects'));
-const DataProjectDetails = React.lazy(() => import('../pages/dataProjects/DataProjectDetails'));
+const DataProjects = React.lazy(() => import('../pages/jupyterNotebooks/DataProjects'));
+const DataProjectDetails = React.lazy(() => import('../pages/jupyterNotebooks/DataProjectDetails'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 

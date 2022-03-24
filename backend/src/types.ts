@@ -158,6 +158,7 @@ export type OdhApplication = {
     isEnabled: boolean | null;
     kfdefApplications: string[];
     csvName: string;
+    crdName: string;
     enable?: {
       title: string;
       actionLabel: string;

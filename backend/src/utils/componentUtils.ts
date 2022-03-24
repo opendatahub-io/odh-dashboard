@@ -9,6 +9,7 @@ import {
 import {
   getConsoleLinks,
   getInstalledKfdefs,
+  getCRDs,
   getInstalledOperators,
   getServices,
 } from './resourceUtils';
@@ -174,6 +175,20 @@ const getKfDefForApp = (appDef: OdhApplication): KfDefApplication | undefined =>
   return kfdefApps.find((kfdefApp) => appDef.spec.kfdefApplications.includes(kfdefApp.name));
 };
 
+const getCRDForApp = (app: OdhApplication): K8sResourceCommon | undefined => {
+  if (!app.spec.crdName?.length) {
+    return undefined;
+  }
+  const crds = getCRDs()
+  console.log(crds)
+  console.log(crds.find(
+    (crd) => app.spec.crdName && crd.metadata?.name?.startsWith(app.spec.crdName),
+  ));
+  return crds.find(
+    (crd) => app.spec.crdName && crd.metadata?.name?.startsWith(app.spec.crdName),
+  );
+}
+
 // eslint-disable-next-line
 const getField = (obj: any, path: string, defaultValue: string = undefined): string => {
   const travel = (regexp: RegExp) =>
@@ -215,6 +230,10 @@ export const getIsAppEnabled = async (
   appDef: OdhApplication,
 ): Promise<boolean> => {
   if (getCSVForApp(appDef)) {
+    return true;
+  }
+
+  if (getCRDForApp(appDef)) {
     return true;
   }
 

@@ -40,6 +40,7 @@ let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
+let crdWatcher: ResourceWatcher<K8sResourceCommon>;
 
 const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
   metadata: {
@@ -118,6 +119,28 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
 
   return kfdef?.spec?.applications || [];
 };
+
+const fetchCRDs = async (fastify: KubeFastifyInstance): Promise<K8sResourceCommon[]> => {
+  const crds: K8sResourceCommon[] = await fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'apiextensions.k8s.io',
+      'v1',
+      fastify.kube.namespace,
+      'customresourcedefinitions',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    )
+    .then((res) => {
+      return (res?.body as { items: K8sResourceCommon[] })?.items;
+    })
+    .catch(() => {
+      return [];
+    });
+
+  return Promise.all(crds);
+}
 
 const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhApplication[]> => {
   const normalizedPath = path.join(__dirname, '../../../data/applications');
@@ -333,6 +356,7 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
   buildsWatcher = new ResourceWatcher<BuildStatus>(fastify, fetchBuilds, getRefreshTimeForBuilds);
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
+  crdWatcher = new ResourceWatcher<K8sResourceCommon>(fastify, fetchCRDs);
 };
 
 export const getDashboardConfig = (): DashboardConfig => {
@@ -380,3 +404,7 @@ export const getBuildStatuses = (): BuildStatus[] => {
 export const getConsoleLinks = (): ConsoleLinkKind[] => {
   return consoleLinksWatcher.getResources();
 };
+
+export const getCRDs = (): K8sResourceCommon[] => {
+  return crdWatcher.getResources();
+}
