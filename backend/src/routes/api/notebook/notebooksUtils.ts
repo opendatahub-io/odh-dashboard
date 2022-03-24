@@ -168,14 +168,31 @@ export const deleteNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
-  // const coreV1Api = fastify.kube.coreV1Api;
-  // const namespace = fastify.kube.namespace;
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  const namespace = fastify.kube.namespace;
+  const params = request.params as { notebook: string };
+
   try {
+    await customObjectsApi.deleteNamespacedCustomObject(
+      "image.openshift.io",
+      "v1",
+      namespace,
+      "imagestreams",
+      params.notebook
+    ).catch(e => {throw createError(e.statusCode, e?.body?.message)})
+    // Cleanup in case the pipelinerun is still present and was not garbage collected yet
+    await customObjectsApi.deleteNamespacedCustomObject(
+      "tekton.dev",
+      "v1beta1",
+      namespace,
+      "pipelineruns",
+      params.notebook
+    ).catch(() => {})
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to update notebook image: ' + e.toString());
-      return { success: false, error: 'Unable to update notebook image: ' + e.message };
+      fastify.log.error('Unable to delete notebook image: ' + e.toString());
+      return { success: false, error: 'Unable to delete notebook image: ' + e.message };
     }
   }
 };
