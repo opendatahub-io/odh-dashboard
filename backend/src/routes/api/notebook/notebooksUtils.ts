@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
-import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind } from '../../../types';
+import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind, NotebookRequest } from '../../../types';
 
 const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
   id: is.metadata.name,
@@ -110,9 +110,51 @@ export const addNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
-  // const coreV1Api = fastify.kube.coreV1Api;
-  // const namespace = fastify.kube.namespace;
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  const namespace = fastify.kube.namespace;
+  const body = request.body as NotebookRequest;
+
+  const payload: PipelineRunKind = {
+    apiVersion: "tekton.dev/v1beta1",
+    kind: "PipelineRun",
+    metadata: {
+      generateName: "byon-import-jupyterhub-image-run-"
+    },
+    spec: {
+      params: [
+        { name: "desc", value: body.description},
+        { name: "name", value: body.name},
+        { name: "url", value: body.url},
+      ],
+      pipelineRef: {
+        name: "byon-import-jupyterhub-image"
+      },
+      workspaces: [
+        {
+          name: "data",
+          volumeClaimTemplate: {
+            spec: {
+              accessModes: ["ReadWriteOnce"],
+              resources: {
+                requests: {
+                  storage: "10Mi"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+
   try {
+    await customObjectsApi.createNamespacedCustomObject(
+      "tekton.dev",
+      "v1beta1",
+      namespace,
+      "pipelineruns",
+      payload
+    )
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {

@@ -40,6 +40,7 @@ export type K8sResourceCommon = {
   metadata?: {
     name?: string;
     namespace?: string;
+    generateName?: string;
     uid?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
@@ -234,9 +235,6 @@ export type NotebookStatus = "Importing" | "Validating" | "Succeeded" | "Failed"
 
 export type Notebook = {
   id: string;
-  name: string;
-  url: string;
-  description?: string;
   phase?: NotebookStatus;
   user?: string;
   uploaded?: Date;
@@ -244,6 +242,12 @@ export type Notebook = {
   packages?: NotebookPackage[];
   software?: NotebookPackage[];
   error?: NotebookError;
+} & NotebookRequest;
+
+export type NotebookRequest = {
+  name: string;
+  url: string;
+  description?: string;
 }
 
 export type NotebookPackage = {
@@ -276,6 +280,24 @@ export type PipelineRunKind = {
       name: string;
       value: string;
     }[]
+    pipelineRef: {
+      name: string;
+    }
+    workspaces?: [
+      {
+        name: string
+        volumeClaimTemplate: {
+          spec: {
+            accessModes: string[]
+            resources: {
+              requests: {
+                storage: string
+              }
+            }
+          }
+        }
+      }
+    ]
   }
 } & K8sResourceCommon;
 
