@@ -13,12 +13,15 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import { mockImages, mockSizeDescriptions, mockSizes, mockUIConfig } from '../mockData';
-import ImageSelector from '../spawner/ImageSelector';
+import { mockSizeDescriptions, mockSizes, mockUIConfig } from '../mockData';
+import ImageStreamSelector from '../spawner/ImageStreamSelector';
 import {
+  Container,
   EnvVarCategoryType,
-  ImageTag,
-  ImageType,
+  ImageStream,
+  ImageStreamAndTag,
+  ImageStreamTag,
+  Notebook,
   SizeDescription,
   VariableRow,
 } from '../../../types';
@@ -28,21 +31,42 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import EnvironmentVariablesRow from '../spawner/EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '../const';
 import { createDataProjectNotebook } from '../../../services/dataProjectsService';
+import {
+  getImageStreamByContainer,
+  getDefaultTagByImageStream,
+  checkImageStreamOrder,
+} from '../../../utilities/imageUtils';
+import { NOTEBOOK_DESCRIPTION } from '../../../utilities/const';
 
-type EnvironmentModalProps = {
+type WorkspaceModalProps = {
   isModalOpen: boolean;
   onClose: () => void;
   project: any;
-  environment: any;
-  imageList: any;
+  notebook: Notebook | null;
+  imageStreams: ImageStream[];
+  dispatchSuccess: (title: string) => void;
+  dispatchError: (e: Error, title: string) => void;
+  loadNotebooks: () => void;
 };
 
-const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
-  ({ project, environment, isModalOpen, onClose }) => {
-    const action = environment ? 'Edit' : 'Create';
-    const [environmentName, setEnvironmentName] = React.useState('');
-    const [environmentDescription, setEnvironmentDescription] = React.useState('');
-    const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag | null>(null);
+const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
+  ({
+    project,
+    notebook,
+    isModalOpen,
+    onClose,
+    imageStreams,
+    dispatchSuccess,
+    dispatchError,
+    loadNotebooks,
+  }) => {
+    const action = notebook ? 'Edit' : 'Create';
+    const [notebookName, setNotebookName] = React.useState('');
+    const [notebookDescription, setNotebookDescription] = React.useState('');
+    const [selectedImageTag, setSelectedImageTag] = React.useState<ImageStreamAndTag>({
+      imageStream: undefined,
+      tag: undefined,
+    });
     const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
     const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
     const [selectedSize, setSelectedSize] = React.useState<string>('Default');
@@ -62,29 +86,49 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
     }, []);
 
     React.useEffect(() => {
+      const setFirstValidImage = () => {
+        let found = false;
+        let i = 0;
+        while (!found && i < imageStreams.length) {
+          const imageStream: ImageStream = imageStreams?.[i++];
+          if (imageStream) {
+            const tag: ImageStreamTag | undefined = getDefaultTagByImageStream(imageStream);
+            if (tag) {
+              const values = { imageStream, tag };
+              setSelectedImageTag(values);
+              found = true;
+            }
+          }
+        }
+      };
       if (isModalOpen && nameInputRef && nameInputRef.current) {
         nameInputRef.current.focus();
       }
-    }, [isModalOpen]);
-
-    React.useEffect(() => {
-      if (environment) {
-        setEnvironmentName(environment.name);
-        setEnvironmentDescription(environment.description);
-        setSelectedImageTag({ image: environment.image.name, tag: environment.image.tag });
-        setSelectedSize(environment.size);
-        setVariableRows(environment.variable ?? []);
+      if (notebook) {
+        setNotebookName(notebook.metadata.name);
+        setNotebookDescription(notebook.metadata.annotations?.[NOTEBOOK_DESCRIPTION] ?? '');
+        const containers = notebook.spec?.template?.spec?.containers;
+        const container: Container = containers?.find(
+          (container) => container.name === notebook.metadata.name,
+        );
+        const imageStream = getImageStreamByContainer(imageStreams, container);
+        const tag = imageStream?.spec?.tags?.find((tag) => tag.from.name === container.image);
+        if (container && imageStream && tag) {
+          setSelectedImageTag({ imageStream, tag });
+          setSelectedSize('Default');
+          //setVariableRows(container.env ?? []);
+        }
       } else {
-        setEnvironmentName('');
-        setEnvironmentDescription('');
-        setSelectedImageTag(null);
+        setNotebookName('');
+        setNotebookDescription('');
+        setFirstValidImage();
         setSelectedSize('Default');
         setVariableRows([]);
       }
-    }, [environment]);
+    }, [notebook, imageStreams, isModalOpen]);
 
-    const handleEnvironmentNameChange = (value: string) => setEnvironmentName(value);
-    const handleEnvironmentDescriptionChange = (value: string) => setEnvironmentDescription(value);
+    const handleNotebookNameChange = (value: string) => setNotebookName(value);
+    const handleNotebookDescriptionChange = (value: string) => setNotebookDescription(value);
 
     const handleSizeSelection = (e, selection) => {
       setSelectedSize(selection);
@@ -96,15 +140,27 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
       setGpuDropdownOpen(false);
     };
 
-    const handleEnvironmentAction = () => {
+    const handleNotebookAction = () => {
       setCreateInProgress(true);
-      createDataProjectNotebook(project?.metadata?.name, environmentName)
+      const newNotebook = {
+        name: notebookName,
+        tag: selectedImageTag.tag,
+      };
+      const annotations = notebookDescription
+        ? {
+            [NOTEBOOK_DESCRIPTION]: notebookDescription,
+          }
+        : undefined;
+      createDataProjectNotebook(project?.metadata?.name, newNotebook, annotations)
         .then(() => {
           onClose();
           setCreateInProgress(false);
+          dispatchSuccess('Create Workspace Successfully');
+          loadNotebooks();
         })
         .catch((e) => {
-          setCreateError(e);
+          setCreateInProgress(false);
+          dispatchError(e, 'Create Workspace Error');
         });
     };
 
@@ -112,9 +168,13 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
       onClose();
     };
 
-    const handleImageTagSelection = (image: ImageType, tag: string, checked: boolean) => {
+    const handleImageTagSelection = (
+      imageStream: ImageStream,
+      tag: ImageStreamTag | undefined,
+      checked: boolean,
+    ) => {
       if (checked) {
-        setSelectedImageTag({ image: image.name, tag });
+        setSelectedImageTag({ imageStream, tag });
       }
     };
 
@@ -228,16 +288,21 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
 
     return (
       <Modal
-        aria-label={`${action} workspace environment`}
+        aria-label={`${action} data science workspace`}
         className="odh-data-projects__modal"
         variant={ModalVariant.large}
-        title={`${action} workspace environment`}
-        description="Select options for your workspace environment."
+        title={`${action} data science workspace`}
+        description="Select options for your data science workspace."
         isOpen={isModalOpen}
         onClose={onClose}
         actions={[
-          <Button key={action.toLowerCase()} variant="primary" onClick={handleEnvironmentAction}>
-            {`${action} workspace environment`}
+          <Button
+            isDisabled={createInProgress}
+            key={action.toLowerCase()}
+            variant="primary"
+            onClick={handleNotebookAction}
+          >
+            {`${action} data science workspace`}
           </Button>,
           <Button key="cancel" variant="secondary" onClick={onCancel}>
             Cancel
@@ -245,37 +310,36 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
         ]}
       >
         <Form className="odh-data-projects__modal-form">
-          <FormGroup label="Name" fieldId="modal-environment-name">
+          <FormGroup label="Name" fieldId="modal-notebook-name">
             <TextInput
-              id="modal-environment-name"
-              name="modal-environment-name"
-              value={environmentName}
-              onChange={handleEnvironmentNameChange}
+              id="modal-notebook-name"
+              name="modal-notebook-name"
+              value={notebookName}
+              onChange={handleNotebookNameChange}
               ref={nameInputRef}
             />
           </FormGroup>
-          <FormGroup label="Description" fieldId="modal-environment-description">
+          <FormGroup label="Description" fieldId="modal-notebook-description">
             <TextArea
-              id="modal-environment-description"
-              name="modal-environment-description"
-              value={environmentDescription}
-              onChange={handleEnvironmentDescriptionChange}
+              id="modal-notebook-description"
+              name="modal-notebook-description"
+              value={notebookDescription}
+              onChange={handleNotebookDescriptionChange}
               resizeOrientation="vertical"
             />
           </FormGroup>
           <FormGroup
             label="Notebook image"
-            fieldId="modal-environment-notebook-image"
+            fieldId="modal-notebook-image"
             className="odh-data-projects__modal-form-image-list"
           >
             <Grid sm={12} md={6} lg={6} xl={6} xl2={6} hasGutter>
-              {mockImages.map((image) => (
-                <GridItem key={image.name}>
-                  <ImageSelector
-                    key={image.name}
-                    image={image}
-                    selectedImage={selectedImageTag?.image}
-                    selectedTag={selectedImageTag?.tag}
+              {imageStreams.sort(checkImageStreamOrder).map((imageStream) => (
+                <GridItem key={imageStream.metadata.name}>
+                  <ImageStreamSelector
+                    imageStream={imageStream}
+                    selectedImage={selectedImageTag.imageStream}
+                    selectedTag={selectedImageTag.tag}
                     handleSelection={handleImageTagSelection}
                   />
                 </GridItem>
@@ -284,7 +348,7 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
           </FormGroup>
           <FormSection title="Deployment size">
             {sizeOptions && (
-              <FormGroup label="Container size" fieldId="modal-environment-container-size">
+              <FormGroup label="Container size" fieldId="modal-notebook-container-size">
                 <Select
                   isOpen={sizeDropdownOpen}
                   onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
@@ -297,7 +361,7 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
               </FormGroup>
             )}
             {gpuOptions && (
-              <FormGroup label="Number of GPUs" fieldId="modal-environment-gpu-number">
+              <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
                 <Select
                   isOpen={gpuDropdownOpen}
                   onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
@@ -323,6 +387,6 @@ const EnvironmentModal: React.FC<EnvironmentModalProps> = React.memo(
   },
 );
 
-EnvironmentModal.displayName = 'EnvironmentModal';
+WorkspaceModal.displayName = 'WorkspaceModal';
 
-export default EnvironmentModal;
+export default WorkspaceModal;

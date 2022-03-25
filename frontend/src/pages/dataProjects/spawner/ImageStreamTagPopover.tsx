@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ImageTagType } from '../../../types';
-import { getNameVersionString } from '../../../utilities/imageUtils';
+import { ImageStreamTag } from '../../../types';
+import { getNameVersionString, getTagDependencies } from '../../../utilities/imageUtils';
 
-type ImageTagPopoverProps = {
-  tag?: ImageTagType;
+type ImageStreamTagPopoverProps = {
+  tag: ImageStreamTag;
   description?: string;
 };
 
-const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) => {
-  const dependencies = tag?.content?.dependencies ?? [];
+const ImageStreamTagPopover: React.FC<ImageStreamTagPopoverProps> = ({ tag, description }) => {
+  const dependencies = getTagDependencies(tag) ?? [];
   if (!description && !dependencies.length) {
     return null;
   }
@@ -39,4 +39,4 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
   );
 };
 
-export default ImageTagPopover;
+export default ImageStreamTagPopover;

@@ -132,11 +132,6 @@ export type ImageType = {
   tags?: ImageTagType[];
 };
 
-export type ImageTag = {
-  image: string;
-  tag: string;
-};
-
 export type SizeDescription = {
   name: string;
   resources: {
@@ -194,7 +189,7 @@ export type Project = {
 };
 
 export type ProjectList = {
-  metadata: Record<string, unknown>;
+  metadata: Record<string, any>;
   items: Project[];
 };
 
@@ -207,15 +202,20 @@ export type Notebook = {
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
-  spec?: Record<string, unknown>;
-  status?: Record<string, unknown>;
+  spec?: Record<string, any>;
+  status?: Record<string, any>;
 };
 
 export type NotebookList = {
   apiVersion?: string;
   kind?: string;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, any>;
   items: Notebook[];
+};
+
+export type ImageStreamAndTag = {
+  imageStream?: ImageStream;
+  tag?: ImageStreamTag;
 };
 
 // ImageStreamTag type when included in an ImageStream
@@ -228,6 +228,24 @@ export type ImageStreamTag = {
     kind: string;
     name: string;
   };
+};
+
+export type ImageStreamStatusTagItem = {
+  created: string;
+  dockerImageReference: string;
+  image: string;
+  generetion: number;
+};
+
+export type ImageStreamStatusTag = {
+  tag: string;
+  items: ImageStreamStatusTagItem[];
+};
+
+export type ImageStreamStatus = {
+  dockerImageRepository?: string;
+  publicDockerImageRepository?: string;
+  tags?: ImageStreamStatusTag[];
 };
 
 export type ImageStream = {
@@ -245,10 +263,7 @@ export type ImageStream = {
     };
     tags?: ImageStreamTag[];
   };
-  status?: {
-    dockerImageRepository?: string;
-    publicDockerImageRepository?: string;
-  };
+  status?: ImageStreamStatus;
 };
 
 export type ImageStreamList = {
@@ -256,4 +271,23 @@ export type ImageStreamList = {
   kind?: string;
   metadata: Record<string, unknown>;
   items: ImageStream[];
+};
+
+export type Container = {
+  name: string;
+  resources: {
+    limits: {
+      cpu: string;
+      memory: string;
+    };
+    requests: {
+      cpu: string;
+      memory: string;
+    };
+  };
+  terminationMessagePath?: string;
+  env?: { name: string; value: string }[];
+  imagePullPolicy?: string;
+  image: string;
+  args?: string[];
 };
