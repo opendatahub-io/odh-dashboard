@@ -37,6 +37,7 @@ const App: React.FC = () => {
   return (
     <Page
       className="odh-dashboard"
+      mainContainerId="scrollable-element"
       header={
         <Header
           isNavOpen={isNavOpen}
