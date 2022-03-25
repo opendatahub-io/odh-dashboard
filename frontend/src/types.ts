@@ -22,6 +22,7 @@ export type OdhApplication = {
     provider: string;
     description: string;
     route?: string | null;
+    internalRoute?: string | null;
     routeNamespace?: string | null;
     routeSuffix?: string | null;
     serviceName?: string | null;

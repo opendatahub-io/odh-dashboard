@@ -122,10 +122,9 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
 
 const fetchCRDs = async (fastify: KubeFastifyInstance): Promise<K8sResourceCommon[]> => {
   const crds: K8sResourceCommon[] = await fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
+    .listClusterCustomObject(
       'apiextensions.k8s.io',
       'v1',
-      fastify.kube.namespace,
       'customresourcedefinitions',
       undefined,
       undefined,

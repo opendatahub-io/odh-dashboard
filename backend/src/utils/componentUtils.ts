@@ -180,10 +180,6 @@ const getCRDForApp = (app: OdhApplication): K8sResourceCommon | undefined => {
     return undefined;
   }
   const crds = getCRDs()
-  console.log(crds)
-  console.log(crds.find(
-    (crd) => app.spec.crdName && crd.metadata?.name?.startsWith(app.spec.crdName),
-  ));
   return crds.find(
     (crd) => app.spec.crdName && crd.metadata?.name?.startsWith(app.spec.crdName),
   );
@@ -234,6 +230,7 @@ export const getIsAppEnabled = async (
   }
 
   if (getCRDForApp(appDef)) {
+    console.log("Enabled app based on CRD")
     return true;
   }
 
