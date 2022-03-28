@@ -20,6 +20,7 @@ export const updateClusterSettings = (
   const updateParams = new URLSearchParams();
 
   updateParams.set('pvcSize', `${settings.pvcSize}`);
+  updateParams.set('cullerTimeout', `${settings.cullerTimeout}`);
 
   const options = { params: updateParams };
   return axios

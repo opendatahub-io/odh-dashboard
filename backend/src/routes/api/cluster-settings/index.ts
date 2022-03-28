@@ -1,5 +1,4 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { DEV_MODE } from '../../../utils/constants';
 import { getClusterSettings, updateClusterSettings } from './clusterSettingsUtils';
 
 export default async (fastify: FastifyInstance): Promise<void> => {

@@ -1,5 +1,8 @@
 import { FastifyRequest } from 'fastify';
+import { scaleDeploymentConfig } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
+
+const name = 'jupyterhub-cfg';
 
 export const updateClusterSettings = async (
   fastify: KubeFastifyInstance,
@@ -9,12 +12,13 @@ export const updateClusterSettings = async (
   const namespace = fastify.kube.namespace;
   const query = request.query as { [key: string]: string };
   try {
-    if (query.pvcSize) {
+    const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(name, namespace);
+    if (query.pvcSize && query.cullerTimeout) {
       await coreV1Api.patchNamespacedConfigMap(
-        'jupyterhub-cfg',
+        name,
         namespace,
         {
-          data: { singleuser_pvc_size: `${query.pvcSize}Gi` },
+          data: { singleuser_pvc_size: `${query.pvcSize}Gi`, culler_timeout: query.cullerTimeout },
         },
         undefined,
         undefined,
@@ -26,6 +30,14 @@ export const updateClusterSettings = async (
           },
         },
       );
+      if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
+        await scaleDeploymentConfig(fastify, 'jupyterhub', 0);
+      }
+      if (jupyterhubCM.body.data['culler_timeout'] !== query.cullerTimeout) {
+        // scale down to 0 and scale it up to 1
+        await scaleDeploymentConfig(fastify, 'jupyterhub-idle-culler', 0);
+        await scaleDeploymentConfig(fastify, 'jupyterhub-idle-culler', 1);
+      }
     }
     return { success: true, error: null };
   } catch (e) {
@@ -42,9 +54,10 @@ export const getClusterSettings = async (
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   try {
-    const clusterSettingsRes = await coreV1Api.readNamespacedConfigMap('jupyterhub-cfg', namespace);
+    const clusterSettingsRes = await coreV1Api.readNamespacedConfigMap(name, namespace);
     return {
       pvcSize: Number(clusterSettingsRes.body.data.singleuser_pvc_size.replace('Gi', '')),
+      cullerTimeout: Number(clusterSettingsRes.body.data.culler_timeout),
     };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
