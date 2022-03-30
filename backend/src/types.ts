@@ -10,6 +10,7 @@ export type DashboardConfig = {
 
 export type ClusterSettings = {
   pvcSize: number;
+  cullerTimeout: number;
 }
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
