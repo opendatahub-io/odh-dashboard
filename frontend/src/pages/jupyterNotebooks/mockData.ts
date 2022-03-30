@@ -689,3 +689,169 @@ export const mockDataSources = [
     name: 'Object Storage',
   },
 ];
+
+export const mockNotebookList = {
+  metadata: {
+    name: 'mock-notebook-list',
+    namespace: 'test',
+  },
+  items: [
+    {
+      apiVersion: 'kubeflow.org/v1alpha1',
+      kind: 'Notebook',
+      metadata: {
+        labels: {
+          app: 'my-notebook',
+        },
+        annotations: {
+          ['opendatahub.io/link']:
+            'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-1.8.3-segment-final',
+          ['opendatahub.io/description']:
+            'My environment that I use to make amazing next level predictions',
+        },
+        name: 'Wind turbines',
+        namespace: 'test',
+      },
+      spec: {
+        template: {
+          spec: {
+            containers: [
+              {
+                env: [],
+                image:
+                  'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-1.8.3-segment-final',
+                name: 'my-notebook',
+                resources: {
+                  limits: {
+                    cpu: 2,
+                    memory: '2Gi',
+                  },
+                  requests: {
+                    cpu: 1,
+                    memory: '1Gi',
+                  },
+                },
+                volumeMounts: [
+                  {
+                    mountPath: '/data',
+                    name: 'datafiles',
+                  },
+                ],
+              },
+            ],
+            serviceAccountName: 'default-editor',
+            volumes: [
+              {
+                name: 'my-pvc',
+                persistentVolumeClaim: {
+                  claimName: 'my-pvc',
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+    {
+      apiVersion: 'kubeflow.org/v1alpha1',
+      kind: 'Notebook',
+      metadata: {
+        labels: {
+          app: 'my-notebook2',
+        },
+        annotations: {
+          ['opendatahub.io/link']:
+            'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-1.8.3-segment-final',
+          ['opendatahub.io/description']:
+            'My environment that I use to make amazing next level predictions',
+        },
+        name: 'Solar predictions',
+        namespace: 'test',
+      },
+      spec: {
+        template: {
+          spec: {
+            containers: [
+              {
+                env: [],
+                image:
+                  'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-1.8.3-segment-final',
+                name: 'my-notebook2',
+                resources: {
+                  limits: {
+                    cpu: 2,
+                    memory: '2Gi',
+                  },
+                  requests: {
+                    cpu: 1,
+                    memory: '1Gi',
+                  },
+                },
+                volumeMounts: [
+                  {
+                    mountPath: '/data',
+                    name: 'datafiles',
+                  },
+                ],
+              },
+            ],
+            serviceAccountName: 'default-editor',
+            volumes: [
+              {
+                name: 'my-pvc',
+                persistentVolumeClaim: {
+                  claimName: 'my-pvc',
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  ],
+};
+
+export const mockImageStream = [
+  {
+    kind: 'ImageStream',
+    apiVersion: 'image.openshift.io/v1',
+    metadata: {
+      annotations: {
+        ['opendatahub.io/notebook-image-desc']:
+          'Jupyter notebook image with minimal dependency set to start experimenting with Jupyter environment.',
+        ['opendatahub.io/notebook-image-name']: 'Minimal Python',
+        ['opendatahub.io/notebook-image-url']:
+          'https://github.com/red-hat-data-services/s2i-minimal-notebook',
+      },
+      name: 's2i-minimal-notebook',
+      namespace: 'test',
+      labels: {
+        ['opendatahub.io/notebook-image']: 'true',
+      },
+    },
+    spec: {
+      lookupPolicy: {
+        local: true,
+      },
+      tags: [
+        {
+          name: 'py3.8-1.8.3-segment-final',
+          annotations: {
+            ['opendatahub.io/default-image']: 'true',
+            ['opendatahub.io/notebook-python-dependencies']:
+              '[{"name":"JupyterLab","version": "3.2"}, {"name":"Notebook","version": "6.4"}]',
+            ['opendatahub.io/notebook-software']: '[{"name":"Python","version":"v3.8"}]',
+          },
+          from: {
+            kind: 'DockerImage',
+            name: 'quay.io/lferrnan/odh-minimal-notebook-container-live:1.8.3-segment-final',
+          },
+        },
+      ],
+    },
+    status: {
+      dockerImageRepository:
+        'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook',
+    },
+  },
+];

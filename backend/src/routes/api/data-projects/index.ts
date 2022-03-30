@@ -183,8 +183,10 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       'notebooks',
       notebookData,
     );
+    
+    fastify.log.error(reply)
 
-    return createNotebookResponse.body as Notebook;
+    return createNotebookResponse.body as Notebook;  
   });
 
   fastify.delete(

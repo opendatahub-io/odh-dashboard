@@ -230,7 +230,6 @@ export const getIsAppEnabled = async (
   }
 
   if (getCRDForApp(appDef)) {
-    console.log("Enabled app based on CRD")
     return true;
   }
 

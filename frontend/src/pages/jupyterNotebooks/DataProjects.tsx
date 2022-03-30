@@ -19,15 +19,10 @@ import DataProjectsTable from './DataProjectsTable';
 import './DataProjects.scss';
 import { CubesIcon } from '@patternfly/react-icons';
 import CreateProjectModal from './modals/CreateProjectModal';
-import { useDispatch, useSelector } from 'react-redux';
-import { State } from '../../redux/types';
-import { Project, ProjectList } from '../../types';
+import { useDispatch } from 'react-redux';
+import { Project } from '../../types';
 import { addNotification } from '../../redux/actions/actions';
-import {
-  deleteDataProject,
-  getDataProject,
-  getDataProjects,
-} from '../../services/dataProjectsService';
+import { deleteDataProject, getDataProject } from '../../services/dataProjectsService';
 import { useGetDataProjects } from '../../utilities/useGetDataProjects';
 
 const description = `Create new projects, or view everything you've been working on here.`;

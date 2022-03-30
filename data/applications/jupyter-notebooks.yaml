@@ -8,7 +8,7 @@ spec:
   description: |-
     The better notebook spawner.
   crdName: notebooks.kubeflow.org
-  internalRoute: data-projects
+  internalRoute: jupyter-notebooks
   img: images/odh-logo.svg
   category: Red Hat managed
   support: red hat

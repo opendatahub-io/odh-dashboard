@@ -16,4 +16,16 @@ export const DOC_TYPE_TOOLTIPS = {
   [OdhDocumentType.HowTo]: 'Instructions and code for everyday procedures',
 };
 
+export const ODH_MANAGED_ANNOTATION = 'opendatahub.io/odh-managed';
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
+export const LABEL_NOTEBOOK_IMAGE = 'opendatahub.io/notebook-image';
+export const NOTEBOOK_DESCRIPTION = 'opendatahub.io/description';
+export const ANNOTATION_NOTEBOOK_IMAGE_NAME = 'opendatahub.io/notebook-image-name';
+export const ANNOTATION_NOTEBOOK_IMAGE_DESC = 'opendatahub.io/notebook-image-desc';
+export const ANNOTATION_NOTEBOOK_IMAGE_ORDER = 'opendatahub.io/notebook-image-order';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_SOFTWARE = 'opendatahub.io/notebook-software';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_DEPENDENCIES =
+  'opendatahub.io/notebook-python-dependencies';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_DEFAULT = 'opendatahub.io/default-image';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_RECOMMENDED =
+  'opendatahub.io/notebook-image-recommended';

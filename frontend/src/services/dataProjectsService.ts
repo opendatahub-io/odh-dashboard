@@ -73,8 +73,8 @@ export const deleteDataProject = (name: string): Promise<Project> => {
     });
 };
 
-export const getDataProjectNotebooks = (name: string): Promise<NotebookList> => {
-  const url = `/api/data-projects/${name}/notebooks`;
+export const getDataProjectNotebooks = (projectName: string): Promise<NotebookList> => {
+  const url = `/api/data-projects/${projectName}/notebooks`;
   return axios
     .get(url)
     .then((response) => {
@@ -87,7 +87,7 @@ export const getDataProjectNotebooks = (name: string): Promise<NotebookList> => 
 
 export const createDataProjectNotebook = (
   projectName: string,
-  notebookName: string,
+  notebook: any,
   annotations?: { [key: string]: string },
 ): Promise<Notebook> => {
   const url = `/api/data-projects/${projectName}/notebooks`;
@@ -102,10 +102,8 @@ export const createDataProjectNotebook = (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': store.getState().appState.user,
       },
-      // annotations: {
-      //   'opendatahub.io/user': store.getState().appState.user,
-      // },
-      name: notebookName,
+      annotations: annotations,
+      name: notebook.name,
       namespace: projectName,
     },
     spec: {
@@ -113,9 +111,9 @@ export const createDataProjectNotebook = (
         spec: {
           containers: [
             {
-              image: 'quay.io/thoth-station/s2i-minimal-notebook:v0.2.2',
+              image: notebook.tag.from.name,
               imagePullPolicy: 'Always',
-              name: notebookName,
+              name: notebook.name,
               env: [
                 {
                   name: 'NOTEBOOK_ARGS',

@@ -13,34 +13,34 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import { mockSizeDescriptions, mockSizes, mockUIConfig } from '../mockData';
-import ImageStreamSelector from '../spawner/ImageStreamSelector';
+import { mockSizeDescriptions, mockSizes, mockUIConfig } from './mockData';
+import ImageStreamSelector from './spawner/ImageStreamSelector';
 import {
   Container,
   EnvVarCategoryType,
   ImageStream,
+  ImageStreamList,
   ImageStreamAndTag,
   ImageStreamTag,
   Notebook,
   SizeDescription,
   VariableRow,
-} from '../../../types';
+} from '../../types';
 
-import './DataProjectsModal.scss';
+import './modals/DataProjectsModal.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import EnvironmentVariablesRow from '../spawner/EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from '../const';
-import { createDataProjectNotebook } from '../../../services/dataProjectsService';
+import EnvironmentVariablesRow from './spawner/EnvironmentVariablesRow';
+import { CUSTOM_VARIABLE, EMPTY_KEY } from './const';
+import { createDataProjectNotebook } from '../../services/dataProjectsService';
 import {
   getImageStreamByContainer,
   getDefaultTagByImageStream,
   checkImageStreamOrder,
-} from '../../../utilities/imageUtils';
-import { NOTEBOOK_DESCRIPTION } from '../../../utilities/const';
+} from '../../utilities/imageUtils';
+import { NOTEBOOK_DESCRIPTION } from '../../utilities/const';
+import { getImageStreams } from 'services/imageStreamService';
 
-type WorkspaceModalProps = {
-  isModalOpen: boolean;
-  onClose: () => void;
+type SpawnerProps = {
   project: any;
   notebook: Notebook | null;
   imageStreams: ImageStream[];
@@ -49,12 +49,10 @@ type WorkspaceModalProps = {
   loadNotebooks: () => void;
 };
 
-const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
+const Spawner: React.FC<SpawnerProps> = React.memo(
   ({
     project,
     notebook,
-    isModalOpen,
-    onClose,
     imageStreams,
     dispatchSuccess,
     dispatchError,
@@ -75,7 +73,30 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
     const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
     const [createError, setCreateError] = React.useState(undefined);
+    const [imageList, setImageList] = React.useState<ImageStreamList | undefined>(undefined);
+    const [imagesLoading, setImagesLoading] = React.useState(false);
     const nameInputRef = React.useRef<HTMLInputElement>(null);
+
+    const listEmpty = (list: ImageStreamList | undefined) =>
+    !list || !list.items || list.items.length === 0;
+
+    const loadImages = () => {
+        setImagesLoading(true);
+        getImageStreams()
+          .then((il: ImageStreamList) => {
+            setImageList(il);
+            setImagesLoading(false);
+          })
+          .catch((e) => {
+            dispatchError(e, 'Load Images Error');
+          });
+      };
+    
+    React.useEffect(() => {
+        loadImages();
+    }, []);
+    
+    imageStreams = listEmpty(imageList) ? [] : imageList!.items
 
     React.useEffect(() => {
       setSizeDescriptions(
@@ -101,9 +122,6 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
           }
         }
       };
-      if (isModalOpen && nameInputRef && nameInputRef.current) {
-        nameInputRef.current.focus();
-      }
       if (notebook) {
         setNotebookName(notebook.metadata.name);
         setNotebookDescription(notebook.metadata.annotations?.[NOTEBOOK_DESCRIPTION] ?? '');
@@ -125,7 +143,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
         setSelectedSize('Default');
         setVariableRows([]);
       }
-    }, [notebook, imageStreams, isModalOpen]);
+    }, [notebook, imageStreams]);
 
     const handleNotebookNameChange = (value: string) => setNotebookName(value);
     const handleNotebookDescriptionChange = (value: string) => setNotebookDescription(value);
@@ -151,9 +169,8 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
             [NOTEBOOK_DESCRIPTION]: notebookDescription,
           }
         : undefined;
-      createDataProjectNotebook(project?.metadata?.name, newNotebook, annotations)
+      createDataProjectNotebook("odh-notebooks", newNotebook, annotations) // PLACEHOLDER PROJECT NAME
         .then(() => {
-          onClose();
           setCreateInProgress(false);
           dispatchSuccess('Create Workspace Successfully');
           loadNotebooks();
@@ -162,10 +179,6 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
           setCreateInProgress(false);
           dispatchError(e, 'Create Workspace Error');
         });
-    };
-
-    const onCancel = () => {
-      onClose();
     };
 
     const handleImageTagSelection = (
@@ -287,106 +300,95 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     }, []);
 
     return (
-      <Modal
-        aria-label={`${action} data science workspace`}
-        className="odh-data-projects__modal"
-        variant={ModalVariant.large}
-        title={`${action} data science workspace`}
-        description="Select options for your data science workspace."
-        isOpen={isModalOpen}
-        onClose={onClose}
-        actions={[
-          <Button
+      <>
+        <>
+            <Form className="odh-data-projects__modal-form">
+                <FormGroup label="Name" fieldId="modal-notebook-name">
+                    <TextInput
+                    id="modal-notebook-name"
+                    name="modal-notebook-name"
+                    value={notebookName}
+                    onChange={handleNotebookNameChange}
+                    ref={nameInputRef}
+                    />
+                </FormGroup>
+                <FormGroup label="Description" fieldId="modal-notebook-description">
+                    <TextArea
+                    id="modal-notebook-description"
+                    name="modal-notebook-description"
+                    value={notebookDescription}
+                    onChange={handleNotebookDescriptionChange}
+                    resizeOrientation="vertical"
+                    />
+                </FormGroup>
+                <FormGroup
+                    label="Notebook image"
+                    fieldId="modal-notebook-image"
+                    className="odh-data-projects__modal-form-image-list"
+                >
+                    <Grid sm={12} md={6} lg={6} xl={6} xl2={6} hasGutter>
+                    {imageStreams.sort(checkImageStreamOrder).map((imageStream) => (
+                        <GridItem key={imageStream.metadata.name}>
+                        <ImageStreamSelector
+                            imageStream={imageStream}
+                            selectedImage={selectedImageTag.imageStream}
+                            selectedTag={selectedImageTag.tag}
+                            handleSelection={handleImageTagSelection}
+                        />
+                        </GridItem>
+                    ))}
+                    </Grid>
+                </FormGroup>
+                <FormSection title="Deployment size">
+                    {sizeOptions && (
+                    <FormGroup label="Container size" fieldId="modal-notebook-container-size">
+                        <Select
+                        isOpen={sizeDropdownOpen}
+                        onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
+                        aria-labelledby="container-size"
+                        selections={selectedSize}
+                        onSelect={handleSizeSelection}
+                        >
+                        {sizeOptions}
+                        </Select>
+                    </FormGroup>
+                    )}
+                    {gpuOptions && (
+                    <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
+                        <Select
+                        isOpen={gpuDropdownOpen}
+                        onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
+                        aria-labelledby="gpu-numbers"
+                        selections={selectedGpu}
+                        onSelect={handleGpuSelection}
+                        >
+                        {gpuOptions}
+                        </Select>
+                    </FormGroup>
+                    )}
+                </FormSection>
+                <FormSection title="Environment variables">
+                    {renderEnvironmentVariableRows()}
+                    <Button isInline variant="link" onClick={addEnvironmentVariableRow}>
+                    <PlusCircleIcon />
+                    {` Add more variables`}
+                    </Button>
+                </FormSection>
+                <Button
             isDisabled={createInProgress}
             key={action.toLowerCase()}
             variant="primary"
             onClick={handleNotebookAction}
           >
-            {`${action} data science workspace`}
+            Spawn Notebook
           </Button>,
-          <Button key="cancel" variant="secondary" onClick={onCancel}>
-            Cancel
-          </Button>,
-        ]}
-      >
-        <Form className="odh-data-projects__modal-form">
-          <FormGroup label="Name" fieldId="modal-notebook-name">
-            <TextInput
-              id="modal-notebook-name"
-              name="modal-notebook-name"
-              value={notebookName}
-              onChange={handleNotebookNameChange}
-              ref={nameInputRef}
-            />
-          </FormGroup>
-          <FormGroup label="Description" fieldId="modal-notebook-description">
-            <TextArea
-              id="modal-notebook-description"
-              name="modal-notebook-description"
-              value={notebookDescription}
-              onChange={handleNotebookDescriptionChange}
-              resizeOrientation="vertical"
-            />
-          </FormGroup>
-          <FormGroup
-            label="Notebook image"
-            fieldId="modal-notebook-image"
-            className="odh-data-projects__modal-form-image-list"
-          >
-            <Grid sm={12} md={6} lg={6} xl={6} xl2={6} hasGutter>
-              {imageStreams.sort(checkImageStreamOrder).map((imageStream) => (
-                <GridItem key={imageStream.metadata.name}>
-                  <ImageStreamSelector
-                    imageStream={imageStream}
-                    selectedImage={selectedImageTag.imageStream}
-                    selectedTag={selectedImageTag.tag}
-                    handleSelection={handleImageTagSelection}
-                  />
-                </GridItem>
-              ))}
-            </Grid>
-          </FormGroup>
-          <FormSection title="Deployment size">
-            {sizeOptions && (
-              <FormGroup label="Container size" fieldId="modal-notebook-container-size">
-                <Select
-                  isOpen={sizeDropdownOpen}
-                  onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
-                  aria-labelledby="container-size"
-                  selections={selectedSize}
-                  onSelect={handleSizeSelection}
-                >
-                  {sizeOptions}
-                </Select>
-              </FormGroup>
-            )}
-            {gpuOptions && (
-              <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
-                <Select
-                  isOpen={gpuDropdownOpen}
-                  onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
-                  aria-labelledby="gpu-numbers"
-                  selections={selectedGpu}
-                  onSelect={handleGpuSelection}
-                >
-                  {gpuOptions}
-                </Select>
-              </FormGroup>
-            )}
-          </FormSection>
-          <FormSection title="Environment variables">
-            {renderEnvironmentVariableRows()}
-            <Button isInline variant="link" onClick={addEnvironmentVariableRow}>
-              <PlusCircleIcon />
-              {` Add more variables`}
-            </Button>
-          </FormSection>
-        </Form>
-      </Modal>
+            </Form>
+        </>
+      </>
     );
   },
 );
 
-WorkspaceModal.displayName = 'WorkspaceModal';
+Spawner.displayName = 'Spawner';
 
-export default WorkspaceModal;
+export default Spawner;
