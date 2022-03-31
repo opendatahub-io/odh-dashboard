@@ -24,15 +24,17 @@ import {
   getResizeObserver,
   DataList,
 } from '@patternfly/react-core';
+import * as _ from 'lodash';
 import ApplicationsPage from '../ApplicationsPage';
 
 import { CogIcon, CubeIcon, CubesIcon, UsersIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router-dom';
 import WorkspaceModal from './modals/WorkspaceModal';
 import DataModal from './modals/DataModal';
-import DataCard from './components/DataCard';
 import './DataProjects.scss';
-import { Project, NotebookList, ImageStreamList, Notebook } from '../../types';
+
+import { useInterval } from '../../utilities/useInterval';
+import { Project, NotebookList, ImageStreamList, Notebook, OdhConfig } from '../../types';
 import {
   deleteDataProjectNotebook,
   getDataProject,
@@ -41,6 +43,7 @@ import {
 import { getImageStreams } from '../../services/imageStreamService';
 import WorkspaceListItem from './components/WorkspaceListItem';
 import { addNotification } from '../../redux/actions/actions';
+import { getOdhConfig } from '../../services/odhConfigService';
 
 const description = `View and edit data project and environment details.`;
 
@@ -79,6 +82,9 @@ export const DataProjectDetails: React.FC = () => {
 
   const [imageList, setImageList] = React.useState<ImageStreamList | undefined>(undefined);
   const [imagesLoading, setImagesLoading] = React.useState(false);
+
+  const [odhConfig, setOdhConfig] = React.useState<OdhConfig | undefined>(undefined);
+  const [odhConfigLoading, setOdhConfigLoading] = React.useState(false);
 
   const dispatchError = (e: Error, title: string) => {
     dispatch(
@@ -143,16 +149,47 @@ export const DataProjectDetails: React.FC = () => {
       });
   };
 
+  // TODO: used for notebook sizes
+  // but should be retrieved from Global Context
+  const loadOdhConfig = () => {
+    setOdhConfigLoading(true);
+    getOdhConfig()
+      .then((cfg: OdhConfig) => {
+        setOdhConfig(cfg);
+        setOdhConfigLoading(false);
+      })
+      .catch((e) => {
+        dispatchError(e, 'Load Images Error');
+      });
+  };
+
+  const updateNotebook = (notebook: Notebook): void => {
+    if (!notebookList?.items) {
+      return;
+    }
+    const newNbList = _.cloneDeep(notebookList);
+    const idx = newNbList.items.findIndex((nbk) => nbk.metadata.name === notebook.metadata.name);
+    if (idx >= 0) {
+      newNbList.items.splice(idx, 1, notebook);
+      setNotebookList(newNbList);
+    }
+  };
+
   React.useEffect(() => {
     const header = document.getElementsByClassName('pf-c-page__header')[0] as HTMLElement;
     const offsetForPadding = 10;
     getResizeObserver(header, () => {
       setOffsetHeight(header.offsetHeight + offsetForPadding);
     });
+    loadOdhConfig();
     loadImages();
     loadProject();
     loadNotebooks();
   }, []);
+
+  useInterval(() => {
+    loadNotebooks();
+  }, 5000);
 
   const listEmpty = (list: NotebookList | ImageStreamList | undefined) =>
     !list || !list.items || list.items.length === 0;
@@ -251,6 +288,7 @@ export const DataProjectDetails: React.FC = () => {
                             key={`workspace-${notebook.metadata.name}`}
                             dataKey={`workspace-${notebook.metadata.name}`}
                             notebook={notebook}
+                            updateNotebook={updateNotebook}
                             imageStreams={imageList!.items}
                             setModalOpen={setCreateWorkspaceModalOpen}
                             setActiveEnvironment={setActiveWorkspace}
@@ -341,6 +379,7 @@ export const DataProjectDetails: React.FC = () => {
       </ApplicationsPage>
       <WorkspaceModal
         project={project}
+        odhConfig={odhConfig}
         imageStreams={listEmpty(imageList) ? [] : imageList!.items}
         notebook={activeWorkspace}
         isModalOpen={isCreateWorkspaceModalOpen}
