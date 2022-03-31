@@ -12,6 +12,34 @@ export type ClusterSettings = {
   pvcSize: number;
 };
 
+export type NotebookSize = {
+  name: string;
+  description?: string;
+  resources: {
+    limits: {
+      cpu: string;
+      memory: string;
+      'nvidia.com/gpu'?: number;
+    };
+    requests: {
+      cpu: string;
+      memory: string;
+    };
+  };
+};
+
+export type OdhConfig = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    notebookSizes: NotebookSize[];
+  };
+};
+
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
   apiVersion?: string;

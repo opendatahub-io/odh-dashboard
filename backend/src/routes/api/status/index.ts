@@ -21,6 +21,15 @@ const status = async (
   }
   const customObjectsApi = fastify.kube.customObjectsApi;
   let isAdmin = false;
+  let odhSettings;
+
+  const odhSettingsPromise = fastify.kube.customObjectsApi.getNamespacedCustomObject(
+    'core.opendatahub.io',
+    'v1alpha',
+    namespace,
+    'odhconfigs',
+    'odhconfig',
+  );
 
   try {
     //const adminGroup2 = (await coreV1Api.readNamespacedConfigMap('rhods-groups-config', namespace)).body.data['admin_groups'];
@@ -33,8 +42,15 @@ const status = async (
     const adminUsers = (adminGroupResponse.body as groupObjResponse).users;
     isAdmin = adminUsers.includes(userName);
   } catch (e) {
-    console.log('Failed to get role bindings: ' + e.toString());
+    fastify.log.error('Failed to get groups: ' + e.toString());
   }
+
+  try {
+    odhSettings = await odhSettingsPromise;
+  } catch (e) {
+    fastify.log.error('Failed to get odhSettings: ' + e.toString());
+  }
+
   fastify.kube.coreV1Api.getAPIResources();
   if (!kubeContext && !kubeContext.trim()) {
     const error = createError(500, 'failed to get kube status');
@@ -54,6 +70,7 @@ const status = async (
         clusterID,
         isAdmin,
       },
+      odhSettings,
     });
   }
 };

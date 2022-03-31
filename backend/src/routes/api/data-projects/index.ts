@@ -222,4 +222,40 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       );
     },
   );
+
+  fastify.patch(
+    '/:projectName/notebooks/:notebookName',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const params = request.params as {
+        projectName: string;
+        notebookName: string;
+      };
+      const requestBody = request.body as { stopped: boolean } | any;
+
+      let patch;
+      const options = { headers: { 'Content-type': 'application/merge-patch+json' } };
+      if (requestBody.stopped) {
+        const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
+        patch = { metadata: { annotations: { 'kubeflow-resource-stopped': dateStr } } };
+      } else if (requestBody.stopped === false) {
+        patch = { metadata: { annotations: { 'kubeflow-resource-stopped': null } } };
+      } else {
+        patch = requestBody;
+      }
+
+      const kubeResponse = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+        'kubeflow.org',
+        'v1',
+        params.projectName,
+        'notebooks',
+        params.notebookName,
+        patch,
+        undefined,
+        undefined,
+        undefined,
+        options,
+      );
+      return kubeResponse.body as Notebook;
+    },
+  );
 };

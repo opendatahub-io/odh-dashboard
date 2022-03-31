@@ -29,3 +29,6 @@ export const ANNOTATION_NOTEBOOK_IMAGE_TAG_DEPENDENCIES =
 export const ANNOTATION_NOTEBOOK_IMAGE_TAG_DEFAULT = 'opendatahub.io/default-image';
 export const ANNOTATION_NOTEBOOK_IMAGE_TAG_RECOMMENDED =
   'opendatahub.io/notebook-image-recommended';
+export const ANNOTATION_NOTEBOOK_STOPPED = 'kubeflow-resource-stopped';
+export const ANNOTATION_NOTEBOOK_STARTED = 'notebooks.kubeflow.org/last-activity';
+export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';

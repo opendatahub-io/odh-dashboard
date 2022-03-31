@@ -28,12 +28,16 @@ import {
   getTagDescription,
   getTagDependencies,
   getImageStreamByContainer,
+  getNumGpus,
+  getContainerStatus,
 } from '../../../utilities/imageUtils';
 import { Container, ImageStream, ImageStreamTag, Notebook } from '../../../types';
+import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
 
 type WorkspaceListItemProps = {
   dataKey: string;
   notebook: Notebook;
+  updateNotebook: (notebook: Notebook) => void;
   imageStreams: ImageStream[];
   setModalOpen: (isOpen: boolean) => void;
   setActiveEnvironment: (notebook: Notebook) => void;
@@ -46,6 +50,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
   ({
     dataKey,
     notebook,
+    updateNotebook,
     imageStreams,
     setModalOpen,
     setActiveEnvironment,
@@ -55,7 +60,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
   }) => {
     const [isDropdownOpen, setDropdownOpen] = React.useState(false);
     const [isExpanded, setExpanded] = React.useState(expandedItems.has(dataKey));
-    const [isNotebookRunning, setNotebookRunning] = React.useState(true);
+    const [updateInProgress, setUpdateInProgress] = React.useState(false);
 
     React.useEffect(() => {
       if (dataKey) {
@@ -105,8 +110,12 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
       return empty();
     }
 
+    const numGpus = getNumGpus(container);
     const tagSoftware = getTagDescription(tag);
     const tagDependencies = getTagDependencies(tag);
+    const notebookStatus = getContainerStatus(notebook);
+    const isNotebookStarted = notebookStatus === 'Running' || notebookStatus === 'Starting';
+    const isNotebookRunning = notebookStatus === 'Running';
 
     const getResourceAnnotation = (
       resource: Notebook | ImageStream,
@@ -114,7 +123,16 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
     ): string => resource?.metadata.annotations?.[annotationKey] ?? '';
 
     const handleNotebookRunningChange = (isChecked: boolean) => {
-      setNotebookRunning(isChecked);
+      setUpdateInProgress(true);
+      const updateData = isChecked ? { stopped: false } : { stopped: true };
+      patchDataProjectNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
+        .then((notebook) => {
+          setUpdateInProgress(false);
+          updateNotebook(notebook);
+        })
+        .catch(() => {
+          setUpdateInProgress(false);
+        });
     };
 
     const handleEdit = () => {
@@ -152,34 +170,34 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
                 {tagSoftware && <p className="odh-data-projects__help-text">{tagSoftware}</p>}
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-gpu-size`}>
-                Small (hardcoded)
+                {numGpus ? `${numGpus} GPU` : ''}
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-status`}>
                 <Switch
                   id={`${dataKey}-status-switch`}
-                  label="Running"
-                  labelOff="Stopped"
-                  isChecked={isNotebookRunning}
+                  label={getContainerStatus(notebook)}
+                  isChecked={isNotebookStarted}
                   onChange={handleNotebookRunningChange}
-                  isDisabled={!isNotebookRunning}
+                  isDisabled={updateInProgress}
                 />
               </DataListCell>,
               <DataListCell width={1} key={`${dataKey}-open-external-link`}>
-                <Button
-                  isInline
-                  variant="link"
-                  icon={<ExternalLinkAltIcon />}
-                  iconPosition="right"
-                  isDisabled={!isNotebookRunning}
-                >
-                  <a
-                    href={notebook.metadata.annotations?.['opendatahub.io/link'] ?? '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {isNotebookRunning ? (
+                  <Button
+                    isInline
+                    variant="link"
+                    icon={<ExternalLinkAltIcon />}
+                    iconPosition="right"
                   >
-                    Open
-                  </a>
-                </Button>
+                    <a
+                      href={notebook.metadata.annotations?.['opendatahub.io/link'] ?? '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open
+                    </a>
+                  </Button>
+                ) : null}
               </DataListCell>,
             ]}
           />

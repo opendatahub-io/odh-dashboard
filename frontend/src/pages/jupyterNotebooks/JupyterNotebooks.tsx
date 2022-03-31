@@ -12,8 +12,12 @@ import {
   SelectOption,
   TextArea,
   TextInput,
+  PageSection,
+  PageSectionVariants,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
-import { mockSizeDescriptions, mockSizes, mockUIConfig } from './mockData';
+import { mockUIConfig } from './mockData';
 import ImageStreamSelector from './spawner/ImageStreamSelector';
 import {
   Container,
@@ -23,7 +27,7 @@ import {
   ImageStreamAndTag,
   ImageStreamTag,
   Notebook,
-  SizeDescription,
+  OdhConfig,
   VariableRow,
 } from '../../types';
 
@@ -39,10 +43,13 @@ import {
 } from '../../utilities/imageUtils';
 import { NOTEBOOK_DESCRIPTION } from '../../utilities/const';
 import { getImageStreams } from 'services/imageStreamService';
+import { getOdhConfig } from 'services/odhConfigService';
+import ApplicationsPage from '../ApplicationsPage';
 
 type SpawnerProps = {
   project: any;
   notebook: Notebook | null;
+  odhConfig: OdhConfig | undefined;
   imageStreams: ImageStream[];
   dispatchSuccess: (title: string) => void;
   dispatchError: (e: Error, title: string) => void;
@@ -69,12 +76,13 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
     const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
     const [selectedSize, setSelectedSize] = React.useState<string>('Default');
     const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
-    const [sizeDescriptions, setSizeDescriptions] = React.useState<SizeDescription[]>([]);
     const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
     const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
     const [createError, setCreateError] = React.useState(undefined);
     const [imageList, setImageList] = React.useState<ImageStreamList | undefined>(undefined);
     const [imagesLoading, setImagesLoading] = React.useState(false);
+    const [odhConfig, setOdhConfig] = React.useState<OdhConfig | undefined>(undefined);
+    const [odhConfigLoading, setOdhConfigLoading] = React.useState(false);
     const nameInputRef = React.useRef<HTMLInputElement>(null);
 
     const listEmpty = (list: ImageStreamList | undefined) =>
@@ -98,13 +106,21 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
     
     imageStreams = listEmpty(imageList) ? [] : imageList!.items
 
+    const loadOdhConfig = () => {
+      setOdhConfigLoading(true);
+      getOdhConfig()
+        .then((cfg: OdhConfig) => {
+          setOdhConfig(cfg);
+          setOdhConfigLoading(false);
+        })
+        .catch((e) => {
+          dispatchError(e, 'Load OdhConfig Error');
+        });
+    };
     React.useEffect(() => {
-      setSizeDescriptions(
-        mockSizes
-          .map((size) => mockSizeDescriptions[`size/${size}`])
-          .filter((desc) => desc.schedulable),
-      );
-    }, []);
+      loadOdhConfig();
+  }, []);
+
 
     React.useEffect(() => {
       const setFirstValidImage = () => {
@@ -143,7 +159,7 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
         setSelectedSize('Default');
         setVariableRows([]);
       }
-    }, [notebook, imageStreams]);
+    }, []);
 
     const handleNotebookNameChange = (value: string) => setNotebookName(value);
     const handleNotebookDescriptionChange = (value: string) => setNotebookDescription(value);
@@ -159,17 +175,27 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
     };
 
     const handleNotebookAction = () => {
+      const { imageStream, tag } = selectedImageTag;
+      if (!imageStream || !tag) {
+        console.error('no image selected');
+        return;
+      }
       setCreateInProgress(true);
-      const newNotebook = {
-        name: notebookName,
-        tag: selectedImageTag.tag,
-      };
       const annotations = notebookDescription
         ? {
             [NOTEBOOK_DESCRIPTION]: notebookDescription,
           }
         : undefined;
-      createDataProjectNotebook("odh-notebooks", newNotebook, annotations) // PLACEHOLDER PROJECT NAME
+      const notebookSize = odhConfig?.spec?.notebookSizes?.find((ns) => ns.name === selectedSize);
+      createDataProjectNotebook(
+        "opendatahub",
+        notebookName,
+        imageStream,
+        tag,
+        notebookSize,
+        parseInt(selectedGpu),
+        annotations,
+      )
         .then(() => {
           setCreateInProgress(false);
           dispatchSuccess('Create Workspace Successfully');
@@ -245,48 +271,23 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
     };
 
     const sizeOptions = React.useMemo(() => {
-      if (!mockSizes?.length || !sizeDescriptions?.length) {
-        return null;
+      const sizes = odhConfig?.spec?.notebookSizes;
+
+      if (!sizes?.length) {
+        return [<SelectOption key="Default" value="Default" description="No Size Limits" />];
       }
 
-      const sizes = mockSizes.reduce(
-        (acc, size) => {
-          if (!acc.includes(size)) {
-            acc.push(size);
-          }
-          return acc;
-        },
-        ['Default'],
-      );
-
-      const defaultSelection = (
-        <SelectOption
-          key="Default"
-          value="Default"
-          description="Resources set based on administrator configurations"
-        />
-      );
-
-      return sizes.reduce(
-        (acc, size) => {
-          const sizeDescription = sizeDescriptions.find((desc) => desc?.name === size);
-          if (sizeDescription) {
-            acc.push(
-              <SelectOption
-                key={size}
-                value={size}
-                description={
-                  `Limits: ${sizeDescription.resources.limits.cpu} CPU, ${sizeDescription.resources.limits.memory} Memory ` +
-                  `Requests: ${sizeDescription.resources.requests.cpu} CPU, ${sizeDescription.resources.requests.memory} Memory`
-                }
-              />,
-            );
-          }
-          return acc;
-        },
-        [defaultSelection],
-      );
-    }, [sizeDescriptions]);
+      return sizes.map((size) => {
+        const name = size.name;
+        const desc =
+          size.description ||
+          `Limits: ${size?.resources?.limits?.cpu || '??'} CPU, ` +
+            `${size?.resources?.limits?.memory || '??'} Memory ` +
+            `Requests: ${size?.resources?.requests?.cpu || '??'} CPU, ` +
+            `${size?.resources?.requests?.memory || '??'} Memory`;
+        return <SelectOption key={name} value={name} description={desc} />;
+      });
+    }, [odhConfig]);
 
     const gpuOptions = React.useMemo(() => {
       const values: number[] = [];
@@ -299,9 +300,23 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
       return values?.map((gpuSize) => <SelectOption key={gpuSize} value={`${gpuSize}`} />);
     }, []);
 
+    const description = "The better spawner";
+    const loaded = true;
+    const isEmpty = false;
+    const loadError = undefined;
+    
+
     return (
-      <>
-        <>
+        <ApplicationsPage
+        title="Openshift Notebook Controller"
+        description={description}
+        loaded={loaded}
+        empty={isEmpty}
+        loadError={loadError}
+        >
+          <PageSection variant={PageSectionVariants.light} padding={{ default: 'noPadding' }}>
+            <Flex direction={{ default: 'column' }}>
+            <FlexItem>
             <Form className="odh-data-projects__modal-form">
                 <FormGroup label="Name" fieldId="modal-notebook-name">
                     <TextInput
@@ -381,10 +396,12 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
             onClick={handleNotebookAction}
           >
             Spawn Notebook
-          </Button>,
+                </Button>,
             </Form>
-        </>
-      </>
+            </FlexItem>
+            </Flex>
+          </PageSection>
+      </ApplicationsPage>
     );
   },
 );
