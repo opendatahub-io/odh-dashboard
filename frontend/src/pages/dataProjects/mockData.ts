@@ -537,67 +537,6 @@ export const mockImages = [
   },
 ];
 
-export const mockSizes = ['Small', 'Medium', 'Large', 'Huge'];
-
-export const mockSizeDescriptions = {
-  ['size/Small']: {
-    name: 'Small',
-    resources: {
-      limits: {
-        cpu: 2,
-        memory: '2Gi',
-      },
-      requests: {
-        cpu: 1,
-        memory: '1Gi',
-      },
-    },
-    schedulable: true,
-  },
-  ['size/Medium']: {
-    name: 'Medium',
-    resources: {
-      limits: {
-        cpu: 4,
-        memory: '4Gi',
-      },
-      requests: {
-        cpu: 2,
-        memory: '2Gi',
-      },
-    },
-    schedulable: true,
-  },
-  ['size/Large']: {
-    name: 'Large',
-    resources: {
-      limits: {
-        cpu: 8,
-        memory: '8Gi',
-      },
-      requests: {
-        cpu: 4,
-        memory: '4Gi',
-      },
-    },
-    schedulable: true,
-  },
-  ['size/Huge']: {
-    name: 'Huge',
-    resources: {
-      limits: {
-        cpu: 16,
-        memory: '18Gi',
-      },
-      requests: {
-        cpu: 8,
-        memory: '8Gi',
-      },
-    },
-    schedulable: false,
-  },
-};
-
 export const mockUIConfig = {
   envVarConfig: {
     categories: [

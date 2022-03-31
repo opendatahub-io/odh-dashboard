@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { ThunkAction } from 'redux-thunk';
 import { Actions, AppNotification, AppState, GetUserAction } from '../types';
+import { OdhConfig } from '../../types';
 import { Action } from 'redux';
 
 export const getUserPending = (): GetUserAction => ({
@@ -10,12 +11,14 @@ export const getUserPending = (): GetUserAction => ({
 
 export const getUserFulfilled = (response: {
   kube: { userName: string; clusterID: string; isAdmin: boolean };
+  odhConfig: OdhConfig;
 }): GetUserAction => ({
   type: Actions.GET_USER_FULFILLED,
   payload: {
     user: response.kube.userName,
     clusterID: response.kube.clusterID,
     isAdmin: response.kube.isAdmin,
+    odhConfig: response.odhConfig,
   },
 });
 

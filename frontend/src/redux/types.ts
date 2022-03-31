@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { OdhConfig } from '../types';
 
 export enum Actions {
   GET_USER_PENDING = 'GET_USER_PENDING',
@@ -30,6 +31,7 @@ export interface GetUserAction {
     isAdmin?: boolean;
     error?: Error | null;
     notification?: AppNotification;
+    odhConfig?: OdhConfig;
   };
 }
 

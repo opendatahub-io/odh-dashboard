@@ -13,7 +13,7 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import { mockSizeDescriptions, mockSizes, mockUIConfig } from '../mockData';
+import { mockUIConfig } from '../mockData';
 import ImageStreamSelector from '../spawner/ImageStreamSelector';
 import {
   Container,
@@ -22,7 +22,7 @@ import {
   ImageStreamAndTag,
   ImageStreamTag,
   Notebook,
-  SizeDescription,
+  OdhConfig,
   VariableRow,
 } from '../../../types';
 
@@ -43,6 +43,7 @@ type WorkspaceModalProps = {
   onClose: () => void;
   project: any;
   notebook: Notebook | null;
+  odhConfig: OdhConfig | undefined;
   imageStreams: ImageStream[];
   dispatchSuccess: (title: string) => void;
   dispatchError: (e: Error, title: string) => void;
@@ -55,6 +56,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     notebook,
     isModalOpen,
     onClose,
+    odhConfig,
     imageStreams,
     dispatchSuccess,
     dispatchError,
@@ -71,19 +73,10 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
     const [selectedSize, setSelectedSize] = React.useState<string>('Default');
     const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
-    const [sizeDescriptions, setSizeDescriptions] = React.useState<SizeDescription[]>([]);
     const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
     const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
     const [createError, setCreateError] = React.useState(undefined);
     const nameInputRef = React.useRef<HTMLInputElement>(null);
-
-    React.useEffect(() => {
-      setSizeDescriptions(
-        mockSizes
-          .map((size) => mockSizeDescriptions[`size/${size}`])
-          .filter((desc) => desc.schedulable),
-      );
-    }, []);
 
     React.useEffect(() => {
       const setFirstValidImage = () => {
@@ -141,17 +134,27 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     };
 
     const handleNotebookAction = () => {
+      const { imageStream, tag } = selectedImageTag;
+      if (!imageStream || !tag) {
+        console.error('no image selected');
+        return;
+      }
       setCreateInProgress(true);
-      const newNotebook = {
-        name: notebookName,
-        tag: selectedImageTag.tag,
-      };
       const annotations = notebookDescription
         ? {
             [NOTEBOOK_DESCRIPTION]: notebookDescription,
           }
         : undefined;
-      createDataProjectNotebook(project?.metadata?.name, newNotebook, annotations)
+      const notebookSize = odhConfig?.spec?.notebookSizes?.find((ns) => ns.name === selectedSize);
+      createDataProjectNotebook(
+        project?.metadata?.name,
+        notebookName,
+        imageStream,
+        tag,
+        notebookSize,
+        parseInt(selectedGpu),
+        annotations,
+      )
         .then(() => {
           onClose();
           setCreateInProgress(false);
@@ -232,48 +235,23 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     };
 
     const sizeOptions = React.useMemo(() => {
-      if (!mockSizes?.length || !sizeDescriptions?.length) {
-        return null;
+      const sizes = odhConfig?.spec?.notebookSizes;
+
+      if (!sizes?.length) {
+        return [<SelectOption key="Default" value="Default" description="No Size Limits" />];
       }
 
-      const sizes = mockSizes.reduce(
-        (acc, size) => {
-          if (!acc.includes(size)) {
-            acc.push(size);
-          }
-          return acc;
-        },
-        ['Default'],
-      );
-
-      const defaultSelection = (
-        <SelectOption
-          key="Default"
-          value="Default"
-          description="Resources set based on administrator configurations"
-        />
-      );
-
-      return sizes.reduce(
-        (acc, size) => {
-          const sizeDescription = sizeDescriptions.find((desc) => desc?.name === size);
-          if (sizeDescription) {
-            acc.push(
-              <SelectOption
-                key={size}
-                value={size}
-                description={
-                  `Limits: ${sizeDescription.resources.limits.cpu} CPU, ${sizeDescription.resources.limits.memory} Memory ` +
-                  `Requests: ${sizeDescription.resources.requests.cpu} CPU, ${sizeDescription.resources.requests.memory} Memory`
-                }
-              />,
-            );
-          }
-          return acc;
-        },
-        [defaultSelection],
-      );
-    }, [sizeDescriptions]);
+      return sizes.map((size) => {
+        const name = size.name;
+        const desc =
+          size.description ||
+          `Limits: ${size?.resources?.limits?.cpu || '??'} CPU, ` +
+            `${size?.resources?.limits?.memory || '??'} Memory ` +
+            `Requests: ${size?.resources?.requests?.cpu || '??'} CPU, ` +
+            `${size?.resources?.requests?.memory || '??'} Memory`;
+        return <SelectOption key={name} value={name} description={desc} />;
+      });
+    }, [odhConfig]);
 
     const gpuOptions = React.useMemo(() => {
       const values: number[] = [];

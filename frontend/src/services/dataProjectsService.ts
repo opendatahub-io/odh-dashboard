@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { Notebook, NotebookList, Project, ProjectList } from '../types';
+import { ImageStream, ImageStreamTag, Notebook, NotebookList, NotebookSize, Project, ProjectList } from '../types';
 import { store } from '../redux/store/store';
+import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 
 export const getDataProjects = (): Promise<ProjectList> => {
   const url = '/api/data-projects';
@@ -87,10 +88,21 @@ export const getDataProjectNotebooks = (projectName: string): Promise<NotebookLi
 
 export const createDataProjectNotebook = (
   projectName: string,
-  notebook: any,
+  notebookName: string,
+  imageStream: ImageStream,
+  tag: ImageStreamTag,
+  notebookSize: NotebookSize | undefined,
+  gpus: number,
   annotations?: { [key: string]: string },
 ): Promise<Notebook> => {
   const url = `/api/data-projects/${projectName}/notebooks`;
+  const resources = { ...notebookSize?.resources };
+  if (gpus > 0) {
+    if (!resources.limits) {
+      resources.limits = {};
+    }
+    resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
+  }
 
   //TODO: instead of store.getState().appState.user, we need to use session and proper auth permissions
   const data = {
@@ -98,12 +110,12 @@ export const createDataProjectNotebook = (
     kind: 'Notebook',
     metadata: {
       labels: {
-        app: 'ephemeral-nb-server',
+        app: notebookName,
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': store.getState().appState.user,
       },
       annotations: annotations,
-      name: notebook.name,
+      name: notebookName,
       namespace: projectName,
     },
     spec: {
@@ -111,25 +123,18 @@ export const createDataProjectNotebook = (
         spec: {
           containers: [
             {
-              image: notebook.tag.from.name,
+              // TODO: authorize and pull from internal registry
+              // image: `${imageStream?.status?.dockerImageRepository}:${tag.name}`,
+              image: tag.from.name,
               imagePullPolicy: 'Always',
-              name: notebook.name,
+              name: notebookName,
               env: [
                 {
                   name: 'NOTEBOOK_ARGS',
                   value: "--NotebookApp.token='' --NotebookApp.password=''",
                 },
               ],
-              resources: {
-                limits: {
-                  cpu: '1',
-                  memory: '2Gi',
-                },
-                requests: {
-                  cpu: '500m',
-                  memory: '1Gi',
-                },
-              },
+              resources,
             },
           ],
         },
@@ -150,11 +155,28 @@ export const createDataProjectNotebook = (
 export const deleteDataProjectNotebook = (
   projectName: string,
   notebookName: string,
-): Promise<Project> => {
+): Promise<Notebook> => {
   const url = `/api/data-projects/${projectName}/notebooks/${notebookName}`;
 
   return axios
     .delete(url)
+    .then((response) => {
+      return response.data;
+    })
+    .catch((e) => {
+      throw new Error(e.response.data.message);
+    });
+};
+
+export const patchDataProjectNotebook = (
+  projectName: string,
+  notebookName: string,
+  updateData: { stopped: boolean },
+): Promise<Notebook> => {
+  const url = `/api/data-projects/${projectName}/notebooks/${notebookName}`;
+
+  return axios
+    .patch(url, updateData)
     .then((response) => {
       return response.data;
     })
