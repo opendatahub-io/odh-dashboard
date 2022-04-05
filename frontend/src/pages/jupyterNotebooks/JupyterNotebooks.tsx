@@ -27,7 +27,7 @@ import {
   VariableRow,
 } from '../../types';
 
-import './modals/DataProjectsModal.scss';
+//import './modals/DataProjectsModal.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EnvironmentVariablesRow from './spawner/EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from './const';

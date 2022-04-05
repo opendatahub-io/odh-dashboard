@@ -12,8 +12,6 @@ const ExploreApplications = React.lazy(
 );
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
-const DataProjects = React.lazy(() => import('../pages/jupyterNotebooks/DataProjects'));
-const DataProjectDetails = React.lazy(() => import('../pages/jupyterNotebooks/DataProjectDetails'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const Spawner = React.lazy(() => import('../pages/jupyterNotebooks/JupyterNotebooks'))
 const NotFound = React.lazy(() => import('../pages/NotFound'));
@@ -28,8 +26,6 @@ const Routes: React.FC = () => {
       <Switch>
         <Route path="/" exact component={InstalledApplications} />
         <Route path="/explore" exact component={ExploreApplications} />
-        <Route path="/data-projects" exact component={DataProjects} />
-        <Route path="/data-projects/:projectName" exact component={DataProjectDetails} />
         <Route path="/jupyter-notebooks" exact component={Spawner}/>
         <Route path="/resources" exact component={LearningCenterPage} />
         {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}
