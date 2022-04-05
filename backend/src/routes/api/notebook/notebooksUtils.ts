@@ -7,7 +7,7 @@ const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
   name: is.metadata.annotations["opendatahub.io/notebook-image-name"],
   description: is.metadata.annotations["opendatahub.io/notebook-image-name"],
   phase: is.metadata.annotations["opendatahub.io/notebook-image-phase"] as NotebookStatus,
-  visible: is.metadata.annotations["opendatahub.io/notebook-image-visible"] === "true",
+  visible: is.metadata.labels["opendatahub.io/notebook-image"] === "true",
   error: Boolean(is.metadata.annotations["opendatahub.io/notebook-image-messages"])
     ? JSON.parse(is.metadata.annotations["opendatahub.io/notebook-image-messages"])
     : [],
@@ -222,7 +222,11 @@ export const updateNotebook = async (
       imageStream.spec.tags[0].annotations["opendatahub.io/notebook-software"] = JSON.stringify(body.software)
     }
     if (typeof body.visible !== "undefined") {
-      imageStream.metadata.annotations["opendatahub.io/notebook-image-visible"] = body.visible.toString()
+      if (body.visible) {
+        imageStream.metadata.labels["opendatahub.io/notebook-image"] = "true"
+      } else {
+        imageStream.metadata.labels["opendatahub.io/notebook-image"] = null
+      }
     }
 
     await customObjectsApi.patchNamespacedCustomObject(
