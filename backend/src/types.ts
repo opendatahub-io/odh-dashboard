@@ -246,6 +246,8 @@ export type NotebookCreateRequest = {
   name: string;
   url: string;
   description?: string;
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  user: string;
 }
 
 export type NotebookUpdateRequest = {

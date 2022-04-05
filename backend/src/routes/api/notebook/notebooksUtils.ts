@@ -15,6 +15,7 @@ const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
   software: is.spec.tags && JSON.parse(is.spec.tags[0].annotations["opendatahub.io/notebook-software"]),
   uploaded: is.metadata.creationTimestamp,
   url: is.metadata.annotations["opendatahub.io/notebook-image-url"],
+  user: is.metadata.annotations["opendatahub.io/notebook-image-creator"],
 })
 
 const mapPipelineRunToNotebook = (plr: PipelineRunKind): Notebook => ({
@@ -22,6 +23,7 @@ const mapPipelineRunToNotebook = (plr: PipelineRunKind): Notebook => ({
   name: plr.spec.params.find(p => p.name === "name")?.value,
   description: plr.spec.params.find(p => p.name === "desc")?.value,
   url: plr.spec.params.find(p => p.name === "url")?.value,
+  user: plr.spec.params.find(p => p.name === "creator")?.value,
   phase: "Importing",
 })
 
@@ -125,6 +127,8 @@ export const addNotebook = async (
         { name: "desc", value: body.description},
         { name: "name", value: body.name},
         { name: "url", value: body.url},
+        // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+        { name: "creator", value: body.user},
       ],
       pipelineRef: {
         name: "byon-import-jupyterhub-image"
