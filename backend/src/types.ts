@@ -252,6 +252,8 @@ export type NotebookCreateRequest = {
 
 export type NotebookUpdateRequest = {
   id: string;
+  name?: string;
+  description?: string;
   visible?: boolean;
   packages?: NotebookPackage[];
   software?: NotebookPackage[];

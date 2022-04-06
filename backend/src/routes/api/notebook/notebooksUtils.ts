@@ -5,7 +5,7 @@ import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, No
 const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
   id: is.metadata.name,
   name: is.metadata.annotations["opendatahub.io/notebook-image-name"],
-  description: is.metadata.annotations["opendatahub.io/notebook-image-name"],
+  description: is.metadata.annotations["opendatahub.io/notebook-image-desc"],
   phase: is.metadata.annotations["opendatahub.io/notebook-image-phase"] as NotebookStatus,
   visible: is.metadata.labels["opendatahub.io/notebook-image"] === "true",
   error: Boolean(is.metadata.annotations["opendatahub.io/notebook-image-messages"])
@@ -231,6 +231,12 @@ export const updateNotebook = async (
       } else {
         imageStream.metadata.labels["opendatahub.io/notebook-image"] = null
       }
+    }
+    if (body.name) {
+      imageStream.metadata.annotations["opendatahub.io/notebook-image-name"] = body.name
+    }
+    if (body.description) {
+      imageStream.metadata.annotations["opendatahub.io/notebook-image-desc"] = body.description
     }
 
     await customObjectsApi.patchNamespacedCustomObject(
