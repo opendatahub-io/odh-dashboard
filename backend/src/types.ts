@@ -240,6 +240,7 @@ export type Notebook = {
   user?: string;
   uploaded?: Date;
   error?: NotebookError;
+  software?: NotebookPackage[];
 } & NotebookCreateRequest & NotebookUpdateRequest;
 
 export type NotebookCreateRequest = {
@@ -256,12 +257,12 @@ export type NotebookUpdateRequest = {
   description?: string;
   visible?: boolean;
   packages?: NotebookPackage[];
-  software?: NotebookPackage[];
 }
 
 export type NotebookPackage = {
   name: string;
   version: string;
+  visible: boolean;
 }
 
 

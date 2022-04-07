@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
-import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind, NotebookCreateRequest, NotebookUpdateRequest } from '../../../types';
+import { KubeFastifyInstance, Notebook, ImageStreamListKind, ImageStreamKind, NotebookStatus, PipelineRunListKind, PipelineRunKind, NotebookCreateRequest, NotebookUpdateRequest, NotebookPackage } from '../../../types';
 
 const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
   id: is.metadata.name,
@@ -11,8 +11,8 @@ const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
   error: Boolean(is.metadata.annotations["opendatahub.io/notebook-image-messages"])
     ? JSON.parse(is.metadata.annotations["opendatahub.io/notebook-image-messages"])
     : [],
-  packages: is.spec.tags && JSON.parse(is.spec.tags[0].annotations["opendatahub.io/notebook-python-dependencies"]),
-  software: is.spec.tags && JSON.parse(is.spec.tags[0].annotations["opendatahub.io/notebook-software"]),
+  packages: is.spec.tags && JSON.parse(is.spec.tags[0].annotations["opendatahub.io/notebook-python-dependencies"]) as NotebookPackage[],
+  software: is.spec.tags && JSON.parse(is.spec.tags[0].annotations["opendatahub.io/notebook-software"]) as NotebookPackage[],
   uploaded: is.metadata.creationTimestamp,
   url: is.metadata.annotations["opendatahub.io/notebook-image-url"],
   user: is.metadata.annotations["opendatahub.io/notebook-image-creator"],
@@ -220,10 +220,16 @@ export const updateNotebook = async (
     ).then(r => r.body as ImageStreamKind).catch(e => {throw createError(e.statusCode, e?.body?.message)})
 
     if (body.packages && imageStream.spec.tags) {
-      imageStream.spec.tags[0].annotations["opendatahub.io/notebook-python-dependencies"] = JSON.stringify(body.packages)
-    }
-    if (body.software && imageStream.spec.tags) {
-      imageStream.spec.tags[0].annotations["opendatahub.io/notebook-software"] = JSON.stringify(body.software)
+      const packages = JSON.parse(imageStream.spec.tags[0].annotations["opendatahub.io/notebook-python-dependencies"]) as NotebookPackage[]
+
+      body.packages.map(update => {
+        const original = packages.find(p => p.name === update.name)
+        if (original) {
+          original.visible = update.visible
+        }
+      })
+
+      imageStream.spec.tags[0].annotations["opendatahub.io/notebook-python-dependencies"] = JSON.stringify(packages)
     }
     if (typeof body.visible !== "undefined") {
       if (body.visible) {
