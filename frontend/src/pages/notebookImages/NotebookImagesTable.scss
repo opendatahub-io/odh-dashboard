@@ -1,0 +1,12 @@
+.phase-success {
+    color: var(--pf-global--success-color--100);
+}
+.phase-failed {
+    color: var(--pf-global--warning-color--100);
+}
+.phase-failed-cursor{
+    cursor: pointer;
+}
+.enable-switch {
+    size: 75%
+}

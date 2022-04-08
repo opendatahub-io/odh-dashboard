@@ -19,6 +19,13 @@ export const navData: NavDataItem[] = [
     ],
   },
   { id: 'resources', label: 'Resources', href: '/resources' },
+  {
+    id: 'settings',
+    group: { id: 'settings', title: 'Settings' },
+    children: [
+      { id: 'settings-notebook-images', label: 'Notebook Images', href: '/notebookImages' },
+    ],
+  },
 ];
 
 export const adminNavData: NavDataItem[] = [
@@ -35,6 +42,7 @@ export const adminNavData: NavDataItem[] = [
     id: 'settings',
     group: { id: 'settings', title: 'Settings' },
     children: [
+      { id: 'settings-notebook-images', label: 'Notebook Images', href: '/notebookImages' },
       { id: 'settings-cluster-settings', label: 'Cluster settings', href: '/clusterSettings' },
     ],
   },
