@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
 import {
+  ActionGroup,
   Button,
   ButtonVariant,
   Form,
@@ -34,6 +35,7 @@ import {
   MIN_HOUR,
   MAX_HOUR,
   DEFAULT_HOUR,
+  MIN_CULLER_TIMEOUT,
 } from './const';
 import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '../../utilities/utils';
 
@@ -52,6 +54,7 @@ const ClusterSettings: React.FC = () => {
   const [cullerTimeout, setCullerTimeout] = React.useState<number>(DEFAULT_CULLER_TIMEOUT);
   const [hour, setHour] = React.useState<number>(DEFAULT_HOUR);
   const [minute, setMinute] = React.useState<number>(0);
+  const [isSettingsChanged, setSettingsChanged] = React.useState<boolean>(false);
   const pvcDefaultBtnRef = React.useRef<HTMLButtonElement>();
   const dispatch = useDispatch();
 
@@ -78,31 +81,26 @@ const ClusterSettings: React.FC = () => {
     setCullerTimeout(getTimeoutByHourAndMinute(hour, minute));
   }, [hour, minute]);
 
+  React.useEffect(() => {
+    setSettingsChanged(!_.isEqual(clusterSettings, { pvcSize, cullerTimeout }));
+  }, [pvcSize, cullerTimeout, clusterSettings]);
+
   const radioCheckedChange = (_, event) => {
     const { value } = event.currentTarget;
     setCullerTimeoutChecked(value);
     if (value === CULLER_TIMEOUT_UNLIMITED) {
       setCullerTimeout(DEFAULT_CULLER_TIMEOUT);
-      submitClusterSettings({ pvcSize, cullerTimeout: DEFAULT_CULLER_TIMEOUT });
     } else if (value === CULLER_TIMEOUT_LIMITED) {
       setCullerTimeout(getTimeoutByHourAndMinute(hour, minute));
-      submitClusterSettings({ pvcSize, cullerTimeout: getTimeoutByHourAndMinute(hour, minute) });
     }
   };
 
-  const onEnterPress = (event) => {
-    if (event.key === 'Enter') {
-      if (pvcDefaultBtnRef.current) {
-        pvcDefaultBtnRef.current.focus();
-      }
-    }
-  };
-
-  const submitClusterSettings = (newClusterSettings: ClusterSettings) => {
+  const handleSaveButtonClicked = () => {
+    const newClusterSettings = { pvcSize, cullerTimeout };
     if (!_.isEqual(clusterSettings, newClusterSettings)) {
       if (
         Number(newClusterSettings?.pvcSize) !== 0 &&
-        Number(newClusterSettings?.cullerTimeout) !== 0
+        Number(newClusterSettings?.cullerTimeout) >= MIN_CULLER_TIMEOUT
       ) {
         updateClusterSettings(newClusterSettings)
           .then((response) => {
@@ -111,7 +109,7 @@ const ClusterSettings: React.FC = () => {
               dispatch(
                 addNotification({
                   status: 'success',
-                  title: 'Cluster settings updated successfully.',
+                  title: 'Settings changes saved.',
                   timestamp: new Date(),
                 }),
               );
@@ -169,14 +167,6 @@ const ClusterSettings: React.FC = () => {
                   aria-label="PVC Size Input"
                   value={pvcSize}
                   pattern="/^(\s*|\d+)$/"
-                  onBlur={() => {
-                    submitClusterSettings({ pvcSize: Number(pvcSize), cullerTimeout });
-                  }}
-                  onKeyPress={(event) => {
-                    if (event.key === 'Enter') {
-                      if (pvcDefaultBtnRef.current) pvcDefaultBtnRef.current.focus();
-                    }
-                  }}
                   onChange={async (value: string) => {
                     const modifiedValue = value.replace(/ /g, '');
                     if (modifiedValue !== '') {
@@ -202,7 +192,6 @@ const ClusterSettings: React.FC = () => {
                 variant={ButtonVariant.secondary}
                 onClick={() => {
                   setPvcSize(DEFAULT_PVC_SIZE);
-                  submitClusterSettings({ pvcSize: DEFAULT_PVC_SIZE, cullerTimeout });
                 }}
               >
                 Restore Default
@@ -248,8 +237,6 @@ const ClusterSettings: React.FC = () => {
                   aria-label="Culler Timeout Hour Input"
                   value={hour}
                   isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                  onBlur={() => submitClusterSettings({ pvcSize, cullerTimeout })}
-                  onKeyPress={onEnterPress}
                   onChange={(value: string) => {
                     let newValue =
                       isNaN(Number(value)) || !Number.isInteger(Number(value))
@@ -273,8 +260,6 @@ const ClusterSettings: React.FC = () => {
                   aria-label="Culler Timeout Minute Input"
                   value={minute}
                   isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                  onBlur={() => submitClusterSettings({ pvcSize, cullerTimeout })}
-                  onKeyPress={onEnterPress}
                   onChange={(value: string) => {
                     let newValue =
                       isNaN(Number(value)) || !Number.isInteger(Number(value))
@@ -297,13 +282,22 @@ const ClusterSettings: React.FC = () => {
               </InputGroup>
               <HelperText>
                 <HelperTextItem
-                  variant={cullerTimeout === 0 ? 'error' : 'indeterminate'}
-                  hasIcon={cullerTimeout === 0}
+                  variant={cullerTimeout < MIN_CULLER_TIMEOUT ? 'error' : 'indeterminate'}
+                  hasIcon={cullerTimeout < MIN_CULLER_TIMEOUT}
                 >
-                  Note: Notebook culler timeout must be between 1 minute and 1000 hours.
+                  Note: Notebook culler timeout must be between 10 minutes and 1000 hours.
                 </HelperTextItem>
               </HelperText>
             </FormGroup>
+            <ActionGroup>
+              <Button
+                isDisabled={!isSettingsChanged}
+                variant="primary"
+                onClick={handleSaveButtonClicked}
+              >
+                Save changes
+              </Button>
+            </ActionGroup>
           </Form>
         </PageSection>
       ) : null}
