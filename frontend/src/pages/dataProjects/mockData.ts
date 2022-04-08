@@ -557,7 +557,7 @@ export const mockUIConfig = {
 export const mockDataSources = [
   {
     id: 'pv',
-    name: 'PV (persistent volume)',
+    name: 'Persistent Volume',
   },
   {
     id: 'database',

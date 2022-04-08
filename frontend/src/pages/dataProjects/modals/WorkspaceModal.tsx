@@ -6,8 +6,11 @@ import {
   FormSection,
   Grid,
   GridItem,
+  InputGroup,
   Modal,
   ModalVariant,
+  NumberInput,
+  Radio,
   Select,
   SelectOption,
   TextArea,
@@ -23,6 +26,7 @@ import {
   ImageStreamTag,
   Notebook,
   OdhConfig,
+  PersistentVolumeClaimList,
   VariableRow,
 } from '../../../types';
 
@@ -35,8 +39,11 @@ import {
   getImageStreamByContainer,
   getDefaultTagByImageStream,
   checkImageStreamOrder,
+  getImageStreamTagVersion,
+  getTagDescription,
 } from '../../../utilities/imageUtils';
-import { NOTEBOOK_DESCRIPTION } from '../../../utilities/const';
+import { ANNOTATION_DESCRIPTION } from '../../../utilities/const';
+import { createPvc } from '../../../services/storageService';
 
 type WorkspaceModalProps = {
   isModalOpen: boolean;
@@ -45,9 +52,9 @@ type WorkspaceModalProps = {
   notebook: Notebook | null;
   odhConfig: OdhConfig | undefined;
   imageStreams: ImageStream[];
+  pvcList: PersistentVolumeClaimList;
   dispatchSuccess: (title: string) => void;
   dispatchError: (e: Error, title: string) => void;
-  loadNotebooks: () => void;
 };
 
 const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
@@ -60,7 +67,6 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     imageStreams,
     dispatchSuccess,
     dispatchError,
-    loadNotebooks,
   }) => {
     const action = notebook ? 'Edit' : 'Create';
     const [notebookName, setNotebookName] = React.useState('');
@@ -73,6 +79,8 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
     const [selectedSize, setSelectedSize] = React.useState<string>('Default');
     const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
+    const [selectedStorageType, setSelectedStorageType] = React.useState<string>('pvc');
+    const [pvSize, setPvSize] = React.useState(1);
     const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
     const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
     const [createError, setCreateError] = React.useState(undefined);
@@ -99,7 +107,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
       }
       if (notebook) {
         setNotebookName(notebook.metadata.name);
-        setNotebookDescription(notebook.metadata.annotations?.[NOTEBOOK_DESCRIPTION] ?? '');
+        setNotebookDescription(notebook.metadata.annotations?.[ANNOTATION_DESCRIPTION] ?? '');
         const containers = notebook.spec?.template?.spec?.containers;
         const container: Container = containers?.find(
           (container) => container.name === notebook.metadata.name,
@@ -133,33 +141,58 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
       setGpuDropdownOpen(false);
     };
 
-    const handleNotebookAction = () => {
+    const handleStorageTypeSelection = (checked, e, selection) => {
+      console.log('handleStorageTypeSelection', checked, e, selection);
+      setSelectedStorageType(selection);
+    };
+
+    function makeid(length) {
+      let result = '';
+      const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      const charactersLength = characters.length;
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      }
+      return result;
+    }
+
+    const handleNotebookAction = (start: boolean) => {
       const { imageStream, tag } = selectedImageTag;
+      const namespace = project?.metadata?.name;
       if (!imageStream || !tag) {
         console.error('no image selected');
         return;
       }
       setCreateInProgress(true);
-      const annotations = notebookDescription
-        ? {
-            [NOTEBOOK_DESCRIPTION]: notebookDescription,
-          }
-        : undefined;
+      let volumes, volumeMounts;
+
+      if (selectedStorageType === 'pvc') {
+        const pvcName = `${notebookName}-${makeid(4)}`;
+        const pvcDesc = `Workspace storage for ${notebookName}`;
+        createPvc(namespace, pvcName, pvcDesc, 'gp2', pvSize + 'Gi');
+        volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
+        volumeMounts = [{ mountPath: '/home/jovyan', name: pvcName }];
+      } else {
+        volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
+        volumeMounts = [{ mountPath: '/home/jovyan', name: pvcName }];
+      }
+
       const notebookSize = odhConfig?.spec?.notebookSizes?.find((ns) => ns.name === selectedSize);
       createDataProjectNotebook(
-        project?.metadata?.name,
+        namespace,
         notebookName,
         imageStream,
         tag,
         notebookSize,
         parseInt(selectedGpu),
-        annotations,
+        notebookDescription,
+        volumes,
+        volumeMounts,
       )
         .then(() => {
           onClose();
           setCreateInProgress(false);
           dispatchSuccess('Create Workspace Successfully');
-          loadNotebooks();
         })
         .catch((e) => {
           setCreateInProgress(false);
@@ -278,9 +311,17 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
             isDisabled={createInProgress}
             key={action.toLowerCase()}
             variant="primary"
-            onClick={handleNotebookAction}
+            onClick={() => handleNotebookAction(false)}
           >
-            {`${action} data science workspace`}
+            {`${action}`}
+          </Button>,
+          <Button
+            isDisabled={createInProgress}
+            key={action.toLowerCase()}
+            variant="secondary"
+            onClick={() => handleNotebookAction(true)}
+          >
+            {`${action} and start`}
           </Button>,
           <Button key="cancel" variant="secondary" onClick={onCancel}>
             Cancel
@@ -358,6 +399,60 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
               <PlusCircleIcon />
               {` Add more variables`}
             </Button>
+          </FormSection>
+          <FormSection title="Storage">
+            <FormGroup
+              fieldId="modal-storage-type"
+              className="odh-data-projects__modal-form-storage-type"
+            >
+              <Radio
+                id="storage-type-ephemeral"
+                name="storage-type-ephemeral"
+                className="odh-data-projects__modal-form-storage-type-option"
+                label={
+                  <span className="odh-data-projects__notebook-image-title">Ephemeral storage</span>
+                }
+                description={'This is temporary storage that is cleared when logged out.'}
+                isChecked={selectedStorageType === 'ephemeral'}
+                onChange={(checked, e) => {
+                  if (checked) {
+                    handleStorageTypeSelection(checked, e, 'ephemeral');
+                  }
+                }}
+              />
+              <Radio
+                id="storage-type-ephemeral"
+                name="storage-type-ephemeral"
+                className="odh-data-projects__modal-form-storage-type-option"
+                label={
+                  <span className="odh-data-projects__notebook-image-title">
+                    Persistent Storage
+                  </span>
+                }
+                description={'This is storage that is retained when logged out.'}
+                isChecked={selectedStorageType === 'pvc'}
+                onChange={(checked, e) => {
+                  if (checked) {
+                    handleStorageTypeSelection(checked, e, 'pvc');
+                  }
+                }}
+              />
+            </FormGroup>
+            <FormGroup fieldId="new-pv-size" label="Size">
+              <InputGroup>
+                <NumberInput
+                  id="new-pv-size-input"
+                  type="number"
+                  name="new-pv-size-input"
+                  value={pvSize}
+                  onMinus={() => setPvSize((pvSize || 1) - 1)}
+                  onChange={(e) => setPvSize(e.target.value)}
+                  onPlus={() => setPvSize((pvSize || 0) + 1)}
+                  widthChars={4}
+                  unit="GiB"
+                />
+              </InputGroup>
+            </FormGroup>
           </FormSection>
         </Form>
       </Modal>

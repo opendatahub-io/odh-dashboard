@@ -1,7 +1,15 @@
 import axios from 'axios';
-import { ImageStream, ImageStreamTag, Notebook, NotebookList, NotebookSize, Project, ProjectList } from '../types';
+import {
+  ImageStream,
+  ImageStreamTag,
+  Notebook,
+  NotebookList,
+  NotebookSize,
+  Project,
+  ProjectList, Volume, VolumeMount,
+} from '../types';
 import { store } from '../redux/store/store';
-import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
+import { ANNOTATION_DESCRIPTION, LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 
 export const getDataProjects = (): Promise<ProjectList> => {
   const url = '/api/data-projects';
@@ -87,22 +95,29 @@ export const getDataProjectNotebooks = (projectName: string): Promise<NotebookLi
 };
 
 export const createDataProjectNotebook = (
-  projectName: string,
-  notebookName: string,
+  namespace: string,
+  name: string,
   imageStream: ImageStream,
   tag: ImageStreamTag,
   notebookSize: NotebookSize | undefined,
   gpus: number,
-  annotations?: { [key: string]: string },
+  notebookDescription?: string | undefined,
+  volumes?: Volume[] | undefined,
+  volumeMounts?: VolumeMount[] | undefined,
 ): Promise<Notebook> => {
-  const url = `/api/data-projects/${projectName}/notebooks`;
+  const url = `/api/data-projects/${namespace}/notebooks`;
   const resources = { ...notebookSize?.resources };
-  if (gpus > 0) {
-    if (!resources.limits) {
-      resources.limits = {};
-    }
-    resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
-  }
+  //TODO: Add GPUs back in post summit
+  // if (gpus > 0) {
+  //   if (!resources.limits) {
+  //     resources.limits = {};
+  //   }
+  //   resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
+  // }
+
+  const annotations = notebookDescription
+    ? { [ANNOTATION_DESCRIPTION]: notebookDescription }
+    : undefined;
 
   //TODO: instead of store.getState().appState.user, we need to use session and proper auth permissions
   const data = {
@@ -110,13 +125,13 @@ export const createDataProjectNotebook = (
     kind: 'Notebook',
     metadata: {
       labels: {
-        app: notebookName,
+        app: name,
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': store.getState().appState.user,
       },
-      annotations: annotations,
-      name: notebookName,
-      namespace: projectName,
+      annotations,
+      name,
+      namespace,
     },
     spec: {
       template: {
@@ -127,7 +142,7 @@ export const createDataProjectNotebook = (
               // image: `${imageStream?.status?.dockerImageRepository}:${tag.name}`,
               image: tag.from.name,
               imagePullPolicy: 'Always',
-              name: notebookName,
+              name: name,
               env: [
                 {
                   name: 'NOTEBOOK_ARGS',
@@ -135,8 +150,10 @@ export const createDataProjectNotebook = (
                 },
               ],
               resources,
+              volumeMounts,
             },
           ],
+          volumes,
         },
       },
     },
@@ -155,7 +172,7 @@ export const createDataProjectNotebook = (
 export const deleteDataProjectNotebook = (
   projectName: string,
   notebookName: string,
-): Promise<Notebook> => {
+): Promise<any> => {
   const url = `/api/data-projects/${projectName}/notebooks/${notebookName}`;
 
   return axios

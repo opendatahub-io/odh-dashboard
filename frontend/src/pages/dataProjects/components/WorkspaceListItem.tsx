@@ -12,10 +12,12 @@ import {
   DropdownItem,
   Flex,
   FlexItem,
+  GridItem,
   KebabToggle,
   List,
   ListItem,
   Progress,
+  Radio,
   Split,
   SplitItem,
   Switch,
@@ -31,7 +33,14 @@ import {
   getNumGpus,
   getContainerStatus,
 } from '../../../utilities/imageUtils';
-import { Container, ImageStream, ImageStreamTag, Notebook } from '../../../types';
+import {
+  Container,
+  ImageStream,
+  ImageStreamTag,
+  Notebook,
+  PersistentVolumeClaimList,
+  Volume,
+} from '../../../types';
 import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
 
 type WorkspaceListItemProps = {
@@ -39,6 +48,7 @@ type WorkspaceListItemProps = {
   notebook: Notebook;
   updateNotebook: (notebook: Notebook) => void;
   imageStreams: ImageStream[];
+  pvcList: PersistentVolumeClaimList | undefined;
   setModalOpen: (isOpen: boolean) => void;
   setActiveEnvironment: (notebook: Notebook) => void;
   onDelete: (notebook: Notebook) => void;
@@ -52,6 +62,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
     notebook,
     updateNotebook,
     imageStreams,
+    pvcList,
     setModalOpen,
     setActiveEnvironment,
     onDelete,
@@ -95,22 +106,46 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
       [dataKey, notebook, onDelete],
     );
 
-    const containers: Container[] = notebook.spec?.template?.spec?.containers;
-    const container: Container | undefined = containers.find(
+    const containers: Container[] = notebook.spec?.template?.spec?.containers || [];
+    const notebookContainer: Container | undefined = containers.find(
       (container) => container.name === notebook.metadata.name,
     );
-    if (!container) {
+    if (!notebookContainer) {
       return empty();
     }
-    const imageStream: ImageStream | undefined = getImageStreamByContainer(imageStreams, container);
+    const imageStream: ImageStream | undefined = getImageStreamByContainer(
+      imageStreams,
+      notebookContainer,
+    );
     const tag: ImageStreamTag | undefined = imageStream?.spec?.tags?.find(
-      (tag) => tag.from.name === container.image,
+      (tag) => tag.from.name === notebookContainer.image,
     );
     if (!imageStream || !tag) {
       return empty();
     }
 
-    const numGpus = getNumGpus(container);
+    const volumeList =
+      notebookContainer?.volumeMounts?.map((volumeMount) => {
+        const volume = notebook.spec.template.spec.volumes?.find(
+          (v) => v.name === volumeMount.name,
+        );
+        const pvc = volume?.persistentVolumeClaim
+          ? pvcList?.items?.find(
+              (pvc) => pvc.metadata.name === volume?.persistentVolumeClaim?.claimName,
+            )
+          : undefined;
+
+        const display = `${volumeMount.name} (${volumeMount.mountPath})`;
+        // if (volume?.persistentVolumeClaim) {
+        //   display = `${volumeMount.name} ${volumeMount.mountPath}`;
+        // } else if (volume?.emptyDir) {
+        //   display = 'Ephemeral';
+        // }
+
+        return { display, volumeMount, volume, pvc };
+      }) || [];
+
+    const numGpus = getNumGpus(notebookContainer);
     const tagSoftware = getTagDescription(tag);
     const tagDependencies = getTagDependencies(tag);
     const notebookStatus = getContainerStatus(notebook);
@@ -229,33 +264,48 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
               <DataListCell width={5} key={`${dataKey}-notebook-storage`}>
                 <p className="m-bold">Storage</p>
                 <List className="odh-data-projects__storage-progress" isPlain>
-                  <ListItem>
-                    <Flex>
-                      <FlexItem>
-                        <span>Enviro1_default_storage</span>
-                      </FlexItem>
-                      <FlexItem align={{ default: 'alignRight' }}>
-                        <Button variant="link" isSmall isInline>
-                          Access
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                  </ListItem>
-                  <ListItem>
-                    <Split hasGutter>
-                      <SplitItem>
-                        <span>1.75GB</span>
-                      </SplitItem>
-                      <SplitItem isFilled>
-                        <Progress
-                          aria-label={`${notebook.metadata.name} Storage Progress`}
-                          measureLocation="outside"
-                          value={87.5}
-                          label="2GB"
-                        />
-                      </SplitItem>
-                    </Split>
-                  </ListItem>
+                  {volumeList?.map((v) => (
+                    <>
+                      <ListItem key={`${notebook.metadata.name}-${v.volumeMount.name}`}>
+                        <Flex>
+                          <FlexItem>
+                            <span>{v.display}</span>
+                          </FlexItem>
+                          {v?.pvc ? (
+                            <FlexItem align={{ default: 'alignRight' }}>
+                              <Button variant="link" isSmall isInline>
+                                Access
+                              </Button>
+                            </FlexItem>
+                          ) : null}
+                        </Flex>
+                      </ListItem>
+                      {v?.pvc ? (
+                        <ListItem>
+                          <Split hasGutter>
+                            <SplitItem>
+                              {/*TODO: Retrieve values from prometheus
+                              /api/prometheus-tenancy/api/v1/query?namespace=my-namespace&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='my-pv'}
+                              */}
+                              <span>{'0.1GB'}</span>
+                            </SplitItem>
+                            <SplitItem isFilled>
+                              <Progress
+                                aria-label={`${v.volumeMount.name} Storage Progress`}
+                                measureLocation="outside"
+                                value={2}
+                                label={v.pvc.spec.resources.requests.storage}
+                              />
+                            </SplitItem>
+                          </Split>
+                        </ListItem>
+                      ) : (
+                        <ListItem>
+                          <span className="odh-data-projects__help-text">Ephemeral</span>
+                        </ListItem>
+                      )}
+                    </>
+                  ))}
                   <ListItem>
                     <Button variant="link" icon={<PlusCircleIcon />} isSmall isInline>
                       Add storage
@@ -275,10 +325,10 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-requests-limits`}>
                 <p className="m-bold">Limits</p>
-                <p>{`${container.resources.limits.cpu} CPU, ${container.resources.limits.memory}`}</p>
+                <p>{`${notebookContainer.resources.limits.cpu} CPU, ${notebookContainer.resources.limits.memory}`}</p>
                 <br />
                 <p className="m-bold">Requests</p>
-                <p>{`${container.resources.requests.cpu} CPU, ${container.resources.requests.memory}`}</p>
+                <p>{`${notebookContainer.resources.requests.cpu} CPU, ${notebookContainer.resources.requests.memory}`}</p>
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-content-empty-1`} />,
               <DataListCell width={1} key={`${dataKey}-content-empty-2`} />,

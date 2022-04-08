@@ -201,6 +201,7 @@ export type VariableRow = {
 export enum DATA_SOURCE {
   persistentVolume = 'pv',
   databaseAccess = 'database',
+  objectStorage = 'object',
 }
 
 export type Project = {
@@ -231,7 +232,14 @@ export type Notebook = {
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
-  spec?: Record<string, any>;
+  spec: {
+    template: {
+      spec: {
+        containers?: Container[];
+        volumes?: Volume[];
+      };
+    };
+  };
   status?: Record<string, any>;
 };
 
@@ -319,4 +327,67 @@ export type Container = {
   imagePullPolicy?: string;
   image: string;
   args?: string[];
+  volumeMounts: VolumeMount[];
+};
+
+export type StorageClass = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    annotations?: { [key: string]: string };
+  };
+  provisioner: string;
+  parameters: {
+    encrypted: string;
+    type: string;
+  };
+  reclaimPolicy: string;
+  allowVolumeExpansion: boolean;
+  volumeBindingMode: string;
+};
+
+export type StorageClassList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: StorageClass[];
+};
+
+export type VolumeMount = { mountPath: string; name: string };
+
+export type Volume = {
+  name: string;
+  emptyDir?: Record<string, any>;
+  persistentVolumeClaim?: {
+    claimName: string;
+  };
+};
+
+export type PersistentVolumeClaim = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    accessModes: string[];
+    resources: {
+      requests: {
+        storage: string;
+      };
+    };
+    storageClassName: string;
+    volumeMode: 'Filesystem' | 'Block';
+  };
+  status?: Record<string, any>;
+};
+
+export type PersistentVolumeClaimList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: PersistentVolumeClaim[];
 };
