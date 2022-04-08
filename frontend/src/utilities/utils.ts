@@ -119,7 +119,7 @@ export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean 
 
 export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minute: number } => {
   const total_minutes = timeout / 60;
-  const hour = total_minutes / 60;
+  const hour = Math.floor(total_minutes / 60);
   const minute = total_minutes % 60;
   return { hour, minute };
 };
