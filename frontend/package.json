@@ -43,6 +43,7 @@
     "@patternfly/react-core": "4.198.5",
     "@patternfly/react-icons": "4.49.5",
     "@patternfly/react-styles": "4.48.5",
+    "@patternfly/react-table": "4.67.19",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.0.4",
     "@testing-library/user-event": "^12.1.7",

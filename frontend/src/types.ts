@@ -116,18 +116,33 @@ export type NotebookError = {
 export type NotebookStatus = 'Importing' | 'Validating' | 'Succeeded' | 'Failed';
 
 export type Notebook = {
+  id: string;
+  phase?: NotebookStatus;
+  user?: string;
+  uploaded?: Date;
+  error?: NotebookError;
+  software?: NotebookPackage[];
+} & NotebookCreateRequest &
+  NotebookUpdateRequest;
+
+export type NotebookCreateRequest = {
   name: string;
   url: string;
   description?: string;
-  status?: NotebookStatus;
-  phase?: string;
-  uploaded?: Date;
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  user: string;
+};
+
+export type NotebookUpdateRequest = {
+  id: string;
+  name?: string;
+  description?: string;
   visible?: boolean;
   packages?: NotebookPackage[];
-  error?: NotebookError;
 };
 
 export type NotebookPackage = {
   name: string;
   version: string;
+  visible: boolean;
 };
