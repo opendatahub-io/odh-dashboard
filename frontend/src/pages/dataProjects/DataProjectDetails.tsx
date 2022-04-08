@@ -31,17 +31,27 @@ import { CogIcon, CubeIcon, CubesIcon, UsersIcon } from '@patternfly/react-icons
 import { useParams } from 'react-router-dom';
 import WorkspaceModal from './modals/WorkspaceModal';
 import DataModal from './modals/DataModal';
+import WorkspaceListItem from './components/WorkspaceListItem';
+import PvcListItem from './components/PvcListItem';
 import './DataProjects.scss';
 
 import { useInterval } from '../../utilities/useInterval';
-import { Project, NotebookList, ImageStreamList, Notebook, OdhConfig } from '../../types';
+import {
+  Project,
+  NotebookList,
+  ImageStreamList,
+  Notebook,
+  OdhConfig,
+  PersistentVolumeClaimList,
+  PersistentVolumeClaim,
+} from '../../types';
 import {
   deleteDataProjectNotebook,
   getDataProject,
   getDataProjectNotebooks,
 } from '../../services/dataProjectsService';
 import { getImageStreams } from '../../services/imageStreamService';
-import WorkspaceListItem from './components/WorkspaceListItem';
+import { deletePvc, getPvcs } from '../../services/storageService';
 import { addNotification } from '../../redux/actions/actions';
 import { getOdhConfig } from '../../services/odhConfigService';
 
@@ -82,6 +92,9 @@ export const DataProjectDetails: React.FC = () => {
 
   const [imageList, setImageList] = React.useState<ImageStreamList | undefined>(undefined);
   const [imagesLoading, setImagesLoading] = React.useState(false);
+
+  const [pvcList, setPvcList] = React.useState<PersistentVolumeClaimList | undefined>(undefined);
+  const [pvcsLoading, setPvcsLoading] = React.useState(false);
 
   const [odhConfig, setOdhConfig] = React.useState<OdhConfig | undefined>(undefined);
   const [odhConfigLoading, setOdhConfigLoading] = React.useState(false);
@@ -149,6 +162,30 @@ export const DataProjectDetails: React.FC = () => {
       });
   };
 
+  // const loadStorageClasses = () => {
+  //   setPvcsLoading(true);
+  //   getPvcs(projectName)
+  //     .then((pl: PersistentVolumeClaimList) => {
+  //       setPvcList(pl);
+  //       setPvcsLoading(false);
+  //     })
+  //     .catch((e) => {
+  //       dispatchError(e, 'Load Images Error');
+  //     });
+  // };
+  //
+  const loadPvcs = () => {
+    setPvcsLoading(true);
+    getPvcs(projectName)
+      .then((pl: PersistentVolumeClaimList) => {
+        setPvcList(pl);
+        setPvcsLoading(false);
+      })
+      .catch((e) => {
+        dispatchError(e, 'Load Images Error');
+      });
+  };
+
   // TODO: used for notebook sizes
   // but should be retrieved from Global Context
   const loadOdhConfig = () => {
@@ -182,24 +219,29 @@ export const DataProjectDetails: React.FC = () => {
       setOffsetHeight(header.offsetHeight + offsetForPadding);
     });
     loadOdhConfig();
-    loadImages();
     loadProject();
+    loadImages();
     loadNotebooks();
+    loadPvcs();
   }, []);
 
   useInterval(() => {
     loadNotebooks();
   }, 5000);
 
-  const listEmpty = (list: NotebookList | ImageStreamList | undefined) =>
-    !list || !list.items || list.items.length === 0;
+  const listEmpty = (
+    list: NotebookList | ImageStreamList | PersistentVolumeClaimList | undefined,
+  ) => !list || !list.items || list.items.length === 0;
 
   const handleCreateWorkspaceModalClose = () => {
     setCreateWorkspaceModalOpen(false);
+    loadNotebooks();
+    loadPvcs();
   };
 
   const handleAddDataModalClose = () => {
     setAddDataModalOpen(false);
+    loadPvcs();
   };
 
   const handleTabClick = (event, tabIndex) => {
@@ -290,6 +332,7 @@ export const DataProjectDetails: React.FC = () => {
                             notebook={notebook}
                             updateNotebook={updateNotebook}
                             imageStreams={imageList!.items}
+                            pvcList={pvcList}
                             setModalOpen={setCreateWorkspaceModalOpen}
                             setActiveEnvironment={setActiveWorkspace}
                             onDelete={(workspace) =>
@@ -328,22 +371,27 @@ export const DataProjectDetails: React.FC = () => {
                         </Button>
                       </FlexItem>
                     </Flex>
-                    <Empty type="data" />
-                    {/*{project.spec.data && project.spec.data.length !== 0 ? (*/}
-                    {/*  <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>*/}
-                    {/*    {project.spec.data.map((d, index) => (*/}
-                    {/*      <GridItem key={`data-card-${index}`}>*/}
-                    {/*        <DataCard*/}
-                    {/*          data={d}*/}
-                    {/*          setModalOpen={setAddDataModalOpen}*/}
-                    {/*          setActiveData={setActiveData}*/}
-                    {/*        />*/}
-                    {/*      </GridItem>*/}
-                    {/*    ))}*/}
-                    {/*  </Grid>*/}
-                    {/*) : (*/}
-                    {/*  <Empty type="data" />*/}
-                    {/*)}*/}
+                    {/*{!listEmpty(pvcList) && !listEmpty(storageClasses) ? (*/}
+                    {!listEmpty(pvcList) ? (
+                      <DataList isCompact aria-label="Data project pvc list">
+                        {pvcList!.items.map((pvc) => (
+                          <PvcListItem
+                            key={`workspace-${pvc.metadata.name}`}
+                            dataKey={`workspace-${pvc.metadata.name}`}
+                            pvc={pvc}
+                            updatePvc={(pvc: PersistentVolumeClaim) => {}}
+                            setModalOpen={setCreateWorkspaceModalOpen}
+                            onDelete={(pvc) => {
+                              deletePvc(projectName, pvc.metadata.name).then(loadPvcs);
+                            }}
+                            handleListItemToggle={handleListItemToggle}
+                            expandedItems={expandedListItems}
+                          />
+                        ))}
+                      </DataList>
+                    ) : (
+                      <Empty type="data" />
+                    )}
                   </Flex>
                 </SidebarContent>
               </Sidebar>
@@ -381,17 +429,20 @@ export const DataProjectDetails: React.FC = () => {
         project={project}
         odhConfig={odhConfig}
         imageStreams={listEmpty(imageList) ? [] : imageList!.items}
+        pvcList={pvcList}
         notebook={activeWorkspace}
         isModalOpen={isCreateWorkspaceModalOpen}
         onClose={handleCreateWorkspaceModalClose}
         dispatchError={dispatchError}
         dispatchSuccess={dispatchSuccess}
-        loadNotebooks={loadNotebooks}
       />
       <DataModal
+        project={project}
+        notebookList={notebookList}
         data={activeData}
         isModalOpen={isAddDataModalOpen}
         onClose={handleAddDataModalClose}
+        dispatchError={dispatchError}
       />
     </>
   );

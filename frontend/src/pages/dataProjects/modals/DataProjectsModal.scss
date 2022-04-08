@@ -38,7 +38,15 @@
       margin-left: var(--pf-global--spacer--sm);
     }
     .pf-c-input-group {
-      width: 100px;
+      width: 160px;
+    }
+    .pf-c-number-input__unit {
+      width:100px;
     }
   }
+}
+
+
+.pf-c-list.pf-m-plain.odh-data-projects__storage-progress {
+  margin-top: 0;
 }
