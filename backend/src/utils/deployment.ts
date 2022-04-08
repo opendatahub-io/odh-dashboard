@@ -1,36 +1,24 @@
 import { KubeFastifyInstance } from '../types';
 
-export const scaleDeploymentConfig = async (
+export const rolloutDeployment = async (
   fastify: KubeFastifyInstance,
+  namespace: string,
   name: string,
-  replicas: number,
 ): Promise<void> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const group = 'apps.openshift.io';
   const version = 'v1';
-  const plural = 'deploymentconfigs';
-  const namespace = fastify.kube.namespace;
+  const plural = `deploymentconfigs/${name}/instantiate`;
+  const body = {
+    kind: 'DeploymentRequest',
+    apiVersion: 'apps.openshift.io/v1',
+    name,
+    latest: true,
+    force: true,
+  };
   try {
-    const res = await customObjectsApi.getNamespacedCustomObject(
-      group,
-      version,
-      namespace,
-      plural,
-      name,
-    );
-    const deployment: any = res.body;
-
-    deployment.spec.replicas = replicas;
-
-    await customObjectsApi.replaceNamespacedCustomObject(
-      group,
-      version,
-      namespace,
-      plural,
-      name,
-      deployment,
-    );
+    await customObjectsApi.createNamespacedCustomObject(group, version, namespace, plural, body);
   } catch (e) {
-    throw new Error('Error scale the deployment pods: ' + e.message);
+    throw new Error('Error rollout the deployment: ' + e.message);
   }
 };

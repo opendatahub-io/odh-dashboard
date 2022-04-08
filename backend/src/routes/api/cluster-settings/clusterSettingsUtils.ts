@@ -1,5 +1,5 @@
 import { FastifyRequest } from 'fastify';
-import { scaleDeploymentConfig } from '../../../utils/deployment';
+import { rolloutDeployment } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 
 const name = 'jupyterhub-cfg';
@@ -14,6 +14,12 @@ export const updateClusterSettings = async (
   try {
     const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(name, namespace);
     if (query.pvcSize && query.cullerTimeout) {
+      if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
+        await rolloutDeployment(fastify, namespace, 'jupyterhub');
+      }
+      if (jupyterhubCM.body.data['culler_timeout'] !== query.cullerTimeout) {
+        await rolloutDeployment(fastify, namespace, 'jupyterhub-idle-culler');
+      }
       await coreV1Api.patchNamespacedConfigMap(
         name,
         namespace,
@@ -30,14 +36,6 @@ export const updateClusterSettings = async (
           },
         },
       );
-      if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
-        await scaleDeploymentConfig(fastify, 'jupyterhub', 0);
-      }
-      if (jupyterhubCM.body.data['culler_timeout'] !== query.cullerTimeout) {
-        // scale down to 0 and scale it up to 1
-        await scaleDeploymentConfig(fastify, 'jupyterhub-idle-culler', 0);
-        await scaleDeploymentConfig(fastify, 'jupyterhub-idle-culler', 1);
-      }
     }
     return { success: true, error: null };
   } catch (e) {
