@@ -83,7 +83,9 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
                 {getResourceAnnotation(pvc, 'opendatahub.io/description')}
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-storage-type`}>
-                <p><CubeIcon/> Persistent Volume</p>
+                <p>
+                  <CubeIcon /> Persistent Volume
+                </p>
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-connections`}>
                 <p className="m-bold">Connections</p>

@@ -19,7 +19,6 @@ import {
 import { mockUIConfig } from '../mockData';
 import ImageStreamSelector from '../spawner/ImageStreamSelector';
 import {
-  Container,
   EnvVarCategoryType,
   ImageStream,
   ImageStreamAndTag,
@@ -52,7 +51,7 @@ type WorkspaceModalProps = {
   notebook: Notebook | null;
   odhConfig: OdhConfig | undefined;
   imageStreams: ImageStream[];
-  pvcList: PersistentVolumeClaimList;
+  pvcList: PersistentVolumeClaimList | undefined;
   dispatchSuccess: (title: string) => void;
   dispatchError: (e: Error, title: string) => void;
 };
@@ -109,11 +108,11 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
         setNotebookName(notebook.metadata.name);
         setNotebookDescription(notebook.metadata.annotations?.[ANNOTATION_DESCRIPTION] ?? '');
         const containers = notebook.spec?.template?.spec?.containers;
-        const container: Container = containers?.find(
+        const container = containers?.find(
           (container) => container.name === notebook.metadata.name,
         );
         const imageStream = getImageStreamByContainer(imageStreams, container);
-        const tag = imageStream?.spec?.tags?.find((tag) => tag.from.name === container.image);
+        const tag = imageStream?.spec?.tags?.find((tag) => tag.from.name === container?.image);
         if (container && imageStream && tag) {
           setSelectedImageTag({ imageStream, tag });
           setSelectedSize('Default');
@@ -439,19 +438,17 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
               />
             </FormGroup>
             <FormGroup fieldId="new-pv-size" label="Size">
-              <InputGroup>
-                <NumberInput
-                  id="new-pv-size-input"
-                  type="number"
-                  name="new-pv-size-input"
-                  value={pvSize}
-                  onMinus={() => setPvSize((pvSize || 1) - 1)}
-                  onChange={(e) => setPvSize(e.target.value)}
-                  onPlus={() => setPvSize((pvSize || 0) + 1)}
-                  widthChars={4}
-                  unit="GiB"
-                />
-              </InputGroup>
+              <NumberInput
+                id="new-pv-size-input"
+                type="number"
+                name="new-pv-size-input"
+                value={pvSize}
+                onMinus={() => setPvSize((pvSize || 1) - 1)}
+                onChange={(e) => setPvSize(e.target.value)}
+                onPlus={() => setPvSize((pvSize || 0) + 1)}
+                widthChars={4}
+                unit="GiB"
+              />
             </FormGroup>
           </FormSection>
         </Form>

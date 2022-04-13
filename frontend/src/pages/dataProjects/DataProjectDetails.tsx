@@ -54,6 +54,7 @@ import { getImageStreams } from '../../services/imageStreamService';
 import { deletePvc, getPvcs } from '../../services/storageService';
 import { addNotification } from '../../redux/actions/actions';
 import { getOdhConfig } from '../../services/odhConfigService';
+import ModelServingModal from './modals/ModelServingModal';
 
 const description = `View and edit data project and environment details.`;
 
@@ -79,6 +80,7 @@ export const DataProjectDetails: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState(0);
   const [isCreateWorkspaceModalOpen, setCreateWorkspaceModalOpen] = React.useState(false);
   const [isAddDataModalOpen, setAddDataModalOpen] = React.useState(false);
+  const [isModelServingModalOpen, setModelServingModalOpen] = React.useState(false);
   const [activeWorkspace, setActiveWorkspace] = React.useState<Notebook | null>(null);
   const [activeData, setActiveData] = React.useState(null);
   const [expandedListItems, setExpandedListItems] = React.useState<Set<string>>(new Set<string>());
@@ -98,6 +100,8 @@ export const DataProjectDetails: React.FC = () => {
 
   const [odhConfig, setOdhConfig] = React.useState<OdhConfig | undefined>(undefined);
   const [odhConfigLoading, setOdhConfigLoading] = React.useState(false);
+
+  const [modelServingList, setModelServingList] = React.useState(undefined);
 
   const dispatchError = (e: Error, title: string) => {
     dispatch(
@@ -182,7 +186,7 @@ export const DataProjectDetails: React.FC = () => {
         setPvcsLoading(false);
       })
       .catch((e) => {
-        dispatchError(e, 'Load Images Error');
+        dispatchError(e, 'Load PVC Error');
       });
   };
 
@@ -196,7 +200,7 @@ export const DataProjectDetails: React.FC = () => {
         setOdhConfigLoading(false);
       })
       .catch((e) => {
-        dispatchError(e, 'Load Images Error');
+        dispatchError(e, 'Load ODH Config Error');
       });
   };
 
@@ -227,7 +231,7 @@ export const DataProjectDetails: React.FC = () => {
 
   useInterval(() => {
     loadNotebooks();
-  }, 5000);
+  }, 50000);
 
   const listEmpty = (
     list: NotebookList | ImageStreamList | PersistentVolumeClaimList | undefined,
@@ -242,6 +246,10 @@ export const DataProjectDetails: React.FC = () => {
   const handleAddDataModalClose = () => {
     setAddDataModalOpen(false);
     loadPvcs();
+  };
+
+  const handleModelServingModalClose = () => {
+    setModelServingModalOpen(false);
   };
 
   const handleTabClick = (event, tabIndex) => {
@@ -300,99 +308,126 @@ export const DataProjectDetails: React.FC = () => {
                         Data science workspaces
                       </JumpLinksItem>
                       <JumpLinksItem href="#data">Data</JumpLinksItem>
+                      <JumpLinksItem href="#model-serving">Model serving</JumpLinksItem>
                     </JumpLinks>
                   </PageSection>
                 </SidebarPanel>
-                <SidebarContent>
-                  <Flex direction={{ default: 'column' }} className="odh-data-projects__details">
-                    <Flex>
-                      <FlexItem>
-                        <Title headingLevel="h3" size="xl" id="data-science-workspaces">
-                          Data science workspaces
-                        </Title>
-                      </FlexItem>
-                      <FlexItem>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setActiveWorkspace(null);
-                            setCreateWorkspaceModalOpen(true);
-                          }}
-                        >
-                          Create data science workspace
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                    {!listEmpty(notebookList) && !listEmpty(imageList) ? (
-                      <DataList isCompact aria-label="Data project workspace list">
-                        {notebookList!.items.map((notebook) => (
-                          <WorkspaceListItem
-                            key={`workspace-${notebook.metadata.name}`}
-                            dataKey={`workspace-${notebook.metadata.name}`}
-                            notebook={notebook}
-                            updateNotebook={updateNotebook}
-                            imageStreams={imageList!.items}
-                            pvcList={pvcList}
-                            setModalOpen={setCreateWorkspaceModalOpen}
-                            setActiveEnvironment={setActiveWorkspace}
-                            onDelete={(workspace) =>
-                              deleteDataProjectNotebook(projectName, workspace.metadata.name)
-                                .then(() => {
-                                  dispatchSuccess('Delete Workspace Successfully');
-                                  loadNotebooks();
-                                })
-                                .catch((e) => {
-                                  dispatchError(e, 'Delete Workspace Error');
-                                })
-                            }
-                            handleListItemToggle={handleListItemToggle}
-                            expandedItems={expandedListItems}
-                          />
-                        ))}
-                      </DataList>
-                    ) : (
-                      <Empty type="data science workspace" />
-                    )}
-                    <Flex>
-                      <FlexItem>
-                        <Title headingLevel="h3" size="xl" id="data">
-                          Data
-                        </Title>
-                      </FlexItem>
-                      <FlexItem>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setActiveData(null);
-                            setAddDataModalOpen(true);
-                          }}
-                        >
-                          Add data
-                        </Button>
-                      </FlexItem>
-                    </Flex>
-                    {/*{!listEmpty(pvcList) && !listEmpty(storageClasses) ? (*/}
-                    {!listEmpty(pvcList) ? (
-                      <DataList isCompact aria-label="Data project pvc list">
-                        {pvcList!.items.map((pvc) => (
-                          <PvcListItem
-                            key={`workspace-${pvc.metadata.name}`}
-                            dataKey={`workspace-${pvc.metadata.name}`}
-                            pvc={pvc}
-                            updatePvc={(pvc: PersistentVolumeClaim) => {}}
-                            setModalOpen={setCreateWorkspaceModalOpen}
-                            onDelete={(pvc) => {
-                              deletePvc(projectName, pvc.metadata.name).then(loadPvcs);
-                            }}
-                            handleListItemToggle={handleListItemToggle}
-                            expandedItems={expandedListItems}
-                          />
-                        ))}
-                      </DataList>
-                    ) : (
-                      <Empty type="data" />
-                    )}
+                <SidebarContent className="odh-data-projects__details">
+                  <Flex>
+                    <FlexItem>
+                      <Title headingLevel="h3" size="xl" id="data-science-workspaces">
+                        Data science workspaces
+                      </Title>
+                    </FlexItem>
+                    <FlexItem>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setActiveWorkspace(null);
+                          setCreateWorkspaceModalOpen(true);
+                        }}
+                      >
+                        Create data science workspace
+                      </Button>
+                    </FlexItem>
                   </Flex>
+                  {!listEmpty(notebookList) && !listEmpty(imageList) ? (
+                    <DataList
+                      className="odh-data-projects__data-list"
+                      isCompact
+                      aria-label="Data project workspace list"
+                    >
+                      {notebookList!.items.map((notebook) => (
+                        <WorkspaceListItem
+                          key={`workspace-${notebook.metadata.name}`}
+                          dataKey={`workspace-${notebook.metadata.name}`}
+                          notebook={notebook}
+                          updateNotebook={updateNotebook}
+                          imageStreams={imageList!.items}
+                          pvcList={pvcList}
+                          setModalOpen={setCreateWorkspaceModalOpen}
+                          setActiveEnvironment={setActiveWorkspace}
+                          onDelete={(workspace) =>
+                            deleteDataProjectNotebook(projectName, workspace.metadata.name)
+                              .then(() => {
+                                dispatchSuccess('Delete Workspace Successfully');
+                                loadNotebooks();
+                              })
+                              .catch((e) => {
+                                dispatchError(e, 'Delete Workspace Error');
+                              })
+                          }
+                          handleListItemToggle={handleListItemToggle}
+                          expandedItems={expandedListItems}
+                        />
+                      ))}
+                    </DataList>
+                  ) : (
+                    <Empty type="data science workspace" />
+                  )}
+                  <Flex>
+                    <FlexItem>
+                      <Title headingLevel="h3" size="xl" id="data">
+                        Data
+                      </Title>
+                    </FlexItem>
+                    <FlexItem>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setActiveData(null);
+                          setAddDataModalOpen(true);
+                        }}
+                      >
+                        Add data
+                      </Button>
+                    </FlexItem>
+                  </Flex>
+                  {/*{!listEmpty(pvcList) && !listEmpty(storageClasses) ? (*/}
+                  {!listEmpty(pvcList) ? (
+                    <DataList
+                      className="odh-data-projects__data-list"
+                      isCompact
+                      aria-label="Data project pvc list"
+                    >
+                      {pvcList!.items.map((pvc) => (
+                        <PvcListItem
+                          key={`workspace-${pvc.metadata.name}`}
+                          dataKey={`workspace-${pvc.metadata.name}`}
+                          pvc={pvc}
+                          updatePvc={(pvc: PersistentVolumeClaim) => {}}
+                          setModalOpen={setCreateWorkspaceModalOpen}
+                          onDelete={(pvc) => {
+                            deletePvc(projectName, pvc.metadata.name).then(loadPvcs);
+                          }}
+                          handleListItemToggle={handleListItemToggle}
+                          expandedItems={expandedListItems}
+                        />
+                      ))}
+                    </DataList>
+                  ) : (
+                    <Empty type="data" />
+                  )}
+                  <Flex>
+                    <FlexItem>
+                      <Title headingLevel="h3" size="xl" id="model-serving">
+                        Model serving
+                      </Title>
+                    </FlexItem>
+                    <FlexItem>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setModelServingModalOpen(true);
+                        }}
+                      >
+                        Serve a model
+                      </Button>
+                    </FlexItem>
+                  </Flex>
+                  {!listEmpty(modelServingList) ? null : ( // waiting for implementing
+                    <Empty type="model served" />
+                  )}
                 </SidebarContent>
               </Sidebar>
             </Tab>
@@ -442,6 +477,13 @@ export const DataProjectDetails: React.FC = () => {
         data={activeData}
         isModalOpen={isAddDataModalOpen}
         onClose={handleAddDataModalClose}
+        dispatchError={dispatchError}
+      />
+      <ModelServingModal
+        project={project}
+        notebookList={notebookList}
+        isModalOpen={isModelServingModalOpen}
+        onClose={handleModelServingModalClose}
         dispatchError={dispatchError}
       />
     </>

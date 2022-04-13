@@ -144,10 +144,10 @@ export const getContainerStatus = (notebook?: Notebook): string => {
 
 export const getImageStreamByContainer = (
   imageStreams: ImageStream[],
-  container: Container,
+  container?: Container,
 ): ImageStream | undefined =>
   imageStreams.find((imageStream) =>
-    imageStream.spec?.tags?.find((tag) => tag.from?.name === container.image),
+    imageStream.spec?.tags?.find((tag) => tag.from?.name === container?.image),
   );
 
 export const getTagByTagNameAndImageStream = (

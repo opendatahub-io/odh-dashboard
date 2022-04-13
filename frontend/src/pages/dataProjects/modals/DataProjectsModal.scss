@@ -6,6 +6,12 @@
     border-bottom: var(--pf-c-select__toggle--before--BorderBottomWidth) solid var(--pf-c-select__toggle--before--BorderBottomColor);
   }
 
+  .pf-c-number-input {
+    .pf-c-input-group {
+      width: 150px;
+    }
+  }
+
   &-form {
     .pf-c-select, .pf-c-form-control, .pf-c-input-group {
       width: 400px;
@@ -39,9 +45,6 @@
     }
     .pf-c-input-group {
       width: 160px;
-    }
-    .pf-c-number-input__unit {
-      width:100px;
     }
   }
 }

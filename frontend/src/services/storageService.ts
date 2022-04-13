@@ -5,7 +5,8 @@ import {
   Notebook,
   NotebookSize,
   PersistentVolumeClaim,
-  PersistentVolumeClaimList, StorageClass,
+  PersistentVolumeClaimList,
+  StorageClass,
   StorageClassList,
 } from '../types';
 import { ANNOTATION_DESCRIPTION } from '../utilities/const';
@@ -41,7 +42,7 @@ export const createPvc = (
   storageClassName: string,
   size: string,
 ): Promise<PersistentVolumeClaim> => {
-  console.log('createPvc', namespace, name, description, storageClassName, size)
+  console.log('createPvc', namespace, name, description, storageClassName, size);
   const url = `/api/kubernetes/api/v1/namespaces/${namespace}/persistentvolumeclaims`;
   const annotations = description ? { [ANNOTATION_DESCRIPTION]: description } : undefined;
 
