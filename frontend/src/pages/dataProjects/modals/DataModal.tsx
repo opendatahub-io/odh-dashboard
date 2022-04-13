@@ -69,11 +69,14 @@ const DataModal: React.FC<DataModalProps> = React.memo(
     const isDisabled = !validate();
 
     React.useEffect(() => {
-      if (isModalOpen && action === 'Add') {
-        initData();
-      }
-      if (isModalOpen && nameInputRef && nameInputRef.current) {
-        nameInputRef.current.focus();
+      if (isModalOpen) {
+        loadSettings();
+        if (action === 'Add') {
+          initData();
+        }
+        if (nameInputRef && nameInputRef.current) {
+          nameInputRef.current.focus();
+        }
       }
     }, [isModalOpen]);
 
@@ -92,12 +95,6 @@ const DataModal: React.FC<DataModalProps> = React.memo(
     const loadSettings = () => {
       loadStorageClasses();
     };
-
-    React.useEffect(() => {
-      if (isModalOpen) {
-        loadSettings();
-      }
-    }, [isModalOpen]);
 
     React.useEffect(() => {
       initData();

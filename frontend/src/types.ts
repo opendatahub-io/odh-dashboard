@@ -204,6 +204,11 @@ export enum DATA_SOURCE {
   objectStorage = 'object',
 }
 
+export enum CONNECTED_MODEL {
+  persistentVolume = 'pv',
+  s3 = 's3',
+}
+
 export type Project = {
   kind: string;
   apiVersion: string;
