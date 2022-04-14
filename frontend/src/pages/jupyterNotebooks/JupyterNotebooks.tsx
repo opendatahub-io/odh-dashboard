@@ -6,8 +6,6 @@ import {
   FormSection,
   Grid,
   GridItem,
-  Modal,
-  ModalVariant,
   Select,
   SelectOption,
   TextArea,
@@ -187,8 +185,9 @@ const Spawner: React.FC<SpawnerProps> = React.memo(
           }
         : undefined;
       const notebookSize = odhConfig?.spec?.notebookSizes?.find((ns) => ns.name === selectedSize);
+      const namespace = 'odh-notebooks';
       createDataProjectNotebook(
-        "opendatahub",
+        namespace,
         notebookName,
         imageStream,
         tag,

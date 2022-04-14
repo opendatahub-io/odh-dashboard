@@ -138,35 +138,46 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     const query = request.query as {
       labels: string;
     };
+    fastify.log.info(params.projectName);
     const body = request.body as Notebook;
+    fastify.log.info(body);
     const notebookName = body?.metadata?.name;
-
-    const createRouteResponse = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-      'route.openshift.io',
-      'v1',
-      params.projectName,
-      'routes',
-      {
-        metadata: {
-          name: notebookName,
-        },
-        spec: {
-          to: {
-            kind: 'Service',
+    fastify.log.info(notebookName)
+    let createRouteResponse
+    try {
+       createRouteResponse = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+        'route.openshift.io',
+        'v1',
+        params.projectName,
+        'routes',
+        {
+          metadata: {
             name: notebookName,
-            weight: 100,
           },
-          port: {
-            targetPort: `http-${notebookName}`,
+          spec: {
+            to: {
+              kind: 'Service',
+              name: notebookName,
+              weight: 100,
+            },
+            port: {
+              targetPort: `http-${notebookName}`,
+            },
+            tls: {
+              termination: 'edge',
+              insecureEdgeTerminationPolicy: 'Redirect',
+            },
+            wildcardPolicy: 'None',
           },
-          tls: {
-            termination: 'edge',
-            insecureEdgeTerminationPolicy: 'Redirect',
-          },
-          wildcardPolicy: 'None',
         },
-      },
-    );
+      );
+    } catch (e) {
+        fastify.log.error(
+          `Unable to create notebook route ${notebookName}: ${e.toString()}`,
+        );
+    }
+    
+    fastify.log.error(createRouteResponse);
 
     const route = createRouteResponse.body as Route;
 
@@ -183,8 +194,10 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       'notebooks',
       notebookData,
     );
+
+    fastify.log.error(createNotebookResponse);
     
-    fastify.log.error(reply)
+    fastify.log.error(reply);
 
     return createNotebookResponse.body as Notebook;  
   });
