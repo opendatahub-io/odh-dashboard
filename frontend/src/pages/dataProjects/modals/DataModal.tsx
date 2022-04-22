@@ -7,29 +7,23 @@ import {
   FormGroup,
   Grid,
   GridItem,
-  InputGroup,
-  InputGroupText,
   Modal,
   ModalVariant,
-  NumberInput,
   Radio,
   Select,
   SelectOption,
-  TextInput,
   Title,
 } from '@patternfly/react-core';
 import DatabaseProviderCard from '../components/DatabaseProviderCard';
 import { mockDataSources } from '../mockData';
-import { DATA_SOURCE, NotebookList, Project } from 'types';
-import { createPvc, getStorageClasses } from '../../../services/storageService';
-import {
-  ANNOTATION_NOTEBOOK_IMAGE_TAG_DEFAULT,
-  ANNOTATION_STORAGE_CLASS_DEFAULT,
-} from '../../../utilities/const';
+import { DATA_SOURCE, NotebookList, Project, StorageClassList } from 'types';
+import { createPvc } from '../../../services/storageService';
+import { ANNOTATION_STORAGE_CLASS_DEFAULT } from '../../../utilities/const';
 
 type DataModalProps = {
   project: Project | undefined;
   notebookList: NotebookList | undefined;
+  storageClassList: StorageClassList | undefined;
   isModalOpen: boolean;
   onClose: () => void;
   dispatchError: (e: Error, title: string) => void;
@@ -37,7 +31,7 @@ type DataModalProps = {
 };
 
 const DataModal: React.FC<DataModalProps> = React.memo(
-  ({ project, notebookList, data, isModalOpen, onClose, dispatchError }) => {
+  ({ project, notebookList, storageClassList, data, isModalOpen, onClose, dispatchError }) => {
     const action = data ? 'Edit' : 'Add';
     const [dataSource, setDataSource] = React.useState('');
     const [dataSourceDropdownOpen, setDataSourceDropdownOpen] = React.useState(false);
@@ -53,9 +47,6 @@ const DataModal: React.FC<DataModalProps> = React.memo(
     const [dbProviderAccountDropdownOpen, setDbProviderAccountDropdownOpen] = React.useState(false);
     const [dbProviderAccount, setDbProviderAccount] = React.useState('');
     const [selectedDatabase, setSelectedDatabase] = React.useState('');
-    // Loaded Data
-    const [storageClasses, setStorageClasses] = React.useState<any>(undefined);
-    const [storageClassesLoading, setStorageClassesLoading] = React.useState<any>(false);
 
     const nameInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -70,7 +61,6 @@ const DataModal: React.FC<DataModalProps> = React.memo(
 
     React.useEffect(() => {
       if (isModalOpen) {
-        loadSettings();
         if (action === 'Add') {
           initData();
         }
@@ -79,22 +69,6 @@ const DataModal: React.FC<DataModalProps> = React.memo(
         }
       }
     }, [isModalOpen]);
-
-    const loadStorageClasses = () => {
-      setStorageClassesLoading(true);
-      getStorageClasses()
-        .then((sc: any) => {
-          setStorageClasses(sc);
-          setStorageClassesLoading(false);
-        })
-        .catch((e) => {
-          dispatchError(e, 'Load Storage Classes Error');
-        });
-    };
-
-    const loadSettings = () => {
-      loadStorageClasses();
-    };
 
     React.useEffect(() => {
       initData();
@@ -106,7 +80,7 @@ const DataModal: React.FC<DataModalProps> = React.memo(
           setPvSize(data.size);
           setConnectToAllEnvChecked(data.allEnvironmentsConnections);
         }
-        if (data.source === DATA_SOURCE.databaseAccess) {
+        if (data.source === DATA_SOURCE.database) {
           setSelectedDatabaseProvider(data.providerId);
           setDbProviderAccount(data.account);
           setSelectedDatabase(data.database);
@@ -115,7 +89,7 @@ const DataModal: React.FC<DataModalProps> = React.memo(
     }, [data]);
 
     React.useEffect(() => {
-      const db = mockDataSources.find((ds) => ds.id === DATA_SOURCE.databaseAccess);
+      const db = mockDataSources.find((ds) => ds.id === DATA_SOURCE.database);
       if (db && db.providers) {
         setDbProviders(db.providers);
       }
@@ -163,7 +137,7 @@ const DataModal: React.FC<DataModalProps> = React.memo(
     };
 
     const addPvc = () => {
-      const defaultStorageClass = storageClasses.items.find(
+      const defaultStorageClass = storageClassList?.items.find(
         (sc) => sc.metadata?.annotations?.[ANNOTATION_STORAGE_CLASS_DEFAULT] === 'true',
       );
 
@@ -179,7 +153,6 @@ const DataModal: React.FC<DataModalProps> = React.memo(
     };
 
     const handleDataAction = () => {
-      console.log('DataModal handleDataAction', dataSource);
       if (dataSource === DATA_SOURCE.persistentVolume) {
         addPvc();
       }
@@ -236,74 +209,7 @@ const DataModal: React.FC<DataModalProps> = React.memo(
 
     const renderForm = () => (
       <>
-        {dataSource === DATA_SOURCE.persistentVolume && (
-          <>
-            <Radio
-              isChecked={isCreatePVChecked}
-              name="create-new-pv"
-              id="create-new-pv"
-              label="Create new PV"
-              onChange={() => setCreatePVChecked(true)}
-            />
-            {isCreatePVChecked && (
-              <div className="odh-data-projects__modal-new-pv">
-                <FormGroup fieldId="new-pv-name" label="Name">
-                  <TextInput
-                    id="new-pv-name-input"
-                    name="new-pv-name-input"
-                    value={pvName}
-                    onChange={(value) => setPvName(value)}
-                  />
-                </FormGroup>
-                <FormGroup fieldId="new-pv-description" label="Description">
-                  <TextInput
-                    id="new-pv-description-input"
-                    name="new-pv-description-input"
-                    value={pvDescription}
-                    onChange={(value) => setPvDescription(value)}
-                  />
-                </FormGroup>
-                <Radio
-                  isChecked={isConnectToAllEnvChecked}
-                  name="new-pv-connect-to-all-environments"
-                  id="new-pv-connect-to-all-environments"
-                  label="Connect to all Environments"
-                  onChange={() => setConnectToAllEnvChecked(true)}
-                />
-                <Radio
-                  isChecked={!isConnectToAllEnvChecked}
-                  name="new-pv-connect-to-specific-environment"
-                  id="new-pv-connect-to-specific-environment"
-                  label="Connect to a specific Environment"
-                  onChange={() => setConnectToAllEnvChecked(false)}
-                />
-                <FormGroup fieldId="new-pv-size" label="Size">
-                  <InputGroup>
-                    <NumberInput
-                      id="new-pv-size-input"
-                      type="number"
-                      name="new-pv-size-input"
-                      value={pvSize}
-                      onMinus={() => setPvSize((pvSize || 1) - 1)}
-                      onChange={(e) => setPvSize(e.target.value)}
-                      onPlus={() => setPvSize((pvSize || 0) + 1)}
-                      widthChars={4}
-                      unit="GiB"
-                    />
-                  </InputGroup>
-                </FormGroup>
-              </div>
-            )}
-            <Radio
-              isChecked={!isCreatePVChecked}
-              name="add-existing-pv"
-              id="add-existing-pv"
-              label="Add existing PV"
-              onChange={() => setCreatePVChecked(false)}
-            />
-          </>
-        )}
-        {dataSource === DATA_SOURCE.databaseAccess && (
+        {dataSource === DATA_SOURCE.database && (
           <>
             <Title headingLevel="h4" size="md">
               Choose a provider:
@@ -329,11 +235,11 @@ const DataModal: React.FC<DataModalProps> = React.memo(
 
     return (
       <Modal
-        aria-label={`${action} data`}
+        aria-label={`${action} data source`}
         className="odh-data-projects__modal"
         variant={ModalVariant.large}
-        title={`${action} data`}
-        description="Select options for your data."
+        title={`${action} data source`}
+        description="Select options for your data source."
         isOpen={isModalOpen}
         onClose={onClose}
         actions={[
@@ -343,7 +249,7 @@ const DataModal: React.FC<DataModalProps> = React.memo(
             isDisabled={isDisabled}
             onClick={handleDataAction}
           >
-            {`${action} data`}
+            {`${action} data source`}
           </Button>,
           <Button key="cancel" variant="secondary" onClick={onClose}>
             Cancel

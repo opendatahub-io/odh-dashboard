@@ -10,32 +10,33 @@ import {
   DataListToggle,
   Dropdown,
   DropdownItem,
-  Flex,
-  FlexItem,
   KebabToggle,
-  List,
-  ListItem,
-  Progress,
-  Split,
-  SplitItem,
   Title,
 } from '@patternfly/react-core';
 import '../DataProjects.scss';
-import { PersistentVolumeClaim } from '../../../types';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { Secret } from '../../../types';
+import { CubeIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 
-type PvcListItemProps = {
+type ObjectStorageListItemProps = {
   dataKey: string;
-  pvc: PersistentVolumeClaim;
-  updatePvc: (pvc: PersistentVolumeClaim) => void;
+  objectStorage: Secret;
+  // updateObjectStorage: (objectStorage: Secret) => void;
   setModalOpen: (isOpen: boolean) => void;
-  onDelete: (pvc: PersistentVolumeClaim) => void;
+  onDelete: (objectStorage: Secret) => void;
   handleListItemToggle: (id: string) => void;
   expandedItems: Set<string>;
 };
 
-const PvcListItem: React.FC<PvcListItemProps> = React.memo(
-  ({ dataKey, pvc, updatePvc, setModalOpen, onDelete, handleListItemToggle, expandedItems }) => {
+const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
+  ({
+    dataKey,
+    objectStorage,
+    // updateObjectStorage,
+    setModalOpen,
+    onDelete,
+    handleListItemToggle,
+    expandedItems,
+  }) => {
     const [isDropdownOpen, setDropdownOpen] = React.useState(false);
     const [isExpanded, setExpanded] = React.useState(expandedItems.has(dataKey));
 
@@ -47,20 +48,22 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
       }
     }, [expandedItems, dataKey, isExpanded]);
 
-    const getResourceAnnotation = (
-      resource: PersistentVolumeClaim,
-      annotationKey: string,
-    ): string => resource?.metadata.annotations?.[annotationKey] ?? '';
+    const getResourceAnnotation = (resource: Secret, annotationKey: string): string =>
+      resource?.metadata.annotations?.[annotationKey] ?? '';
 
     const handleEdit = () => {
-      console.log('PvcListItem handleEdit');
+      console.log('ObjectStorageListItem handleEdit');
     };
 
     const dropdownItems = [
       <DropdownItem onClick={handleEdit} key={`${dataKey}-edit`} component="button">
         Edit
       </DropdownItem>,
-      <DropdownItem onClick={() => onDelete(pvc)} key={`${dataKey}-delete`} component="button">
+      <DropdownItem
+        onClick={() => onDelete(objectStorage)}
+        key={`${dataKey}-delete`}
+        component="button"
+      >
         Delete
       </DropdownItem>,
     ];
@@ -77,13 +80,13 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
             dataListCells={[
               <DataListCell width={5} key={`${dataKey}-name-descriptions`}>
                 <Title size="md" headingLevel="h4">
-                  {pvc.metadata.name}
+                  {objectStorage.metadata.name}
                 </Title>
-                {getResourceAnnotation(pvc, 'opendatahub.io/description')}
+                {getResourceAnnotation(objectStorage, 'opendatahub.io/description')}
               </DataListCell>,
-              <DataListCell width={2} key={`${dataKey}-storage-type`}>
+              <DataListCell width={2} key={`${dataKey}-object-storage-type`}>
                 <p>
-                  <i className="fas fa-hdd" /> Persistent Volume
+                  <CubeIcon /> Object storage
                 </p>
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-connections`}>
@@ -99,7 +102,7 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
             ]}
           />
           <DataListAction
-            aria-label={`Volume ${pvc.metadata.name} Action`}
+            aria-label={`Volume ${objectStorage.metadata.name} Action`}
             aria-labelledby={`${dataKey}-action`}
             id={`${dataKey}-action`}
             isPlainButtonAction
@@ -116,39 +119,20 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
         </DataListItemRow>
         <DataListContent
           hasNoPadding
-          aria-label={`Volume ${pvc.metadata.name} Expanded Content`}
+          aria-label={`Volume ${objectStorage.metadata.name} Expanded Content`}
           id={`${dataKey}-expanded-content`}
           isHidden={!isExpanded}
         >
           <DataListItemCells
             className="odh-data-projects__data-list-item-content"
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-pvc-storage`}>
-                <List className="odh-data-projects__storage-progress" isPlain>
-                  <p className="m-bold">Size</p>
-                  <ListItem>
-                    <Split hasGutter>
-                      <SplitItem>
-                        {/*TODO: Retrieve values from prometheus
-                              /api/prometheus-tenancy/api/v1/query?namespace=my-namespace&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='my-pv'}
-                              */}
-                        <span>{'0.1GB'}</span>
-                      </SplitItem>
-                      <SplitItem isFilled>
-                        <Progress
-                          aria-label={`${pvc.metadata.name} Storage Progress`}
-                          measureLocation="outside"
-                          value={2}
-                          label={pvc.spec.resources.requests.storage}
-                        />
-                      </SplitItem>
-                    </Split>
-                  </ListItem>
-                </List>
+              <DataListCell width={5} key={`${dataKey}-object-storage`}>
+                <p className="m-bold">Endpoint</p>
+                <p>https://s3.amazonaws.com</p>
               </DataListCell>,
-              <DataListCell width={2} key={`${dataKey}-storage-type-detail`}>
-                <p className="m-bold">Type</p>
-                <p>gp2</p>
+              <DataListCell width={2} key={`${dataKey}-object-storage-type-detail`}>
+                <p className="m-bold">Provider</p>
+                <p>AWS S3</p>
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-content-empty-1`} />,
               <DataListCell width={1} key={`${dataKey}-access-empty-2`} />,
@@ -160,6 +144,6 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
   },
 );
 
-PvcListItem.displayName = 'PvcListItem';
+ObjectStorageListItem.displayName = 'ObjectStorageListItem';
 
-export default PvcListItem;
+export default ObjectStorageListItem;

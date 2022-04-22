@@ -199,9 +199,9 @@ export type VariableRow = {
 };
 
 export enum DATA_SOURCE {
-  persistentVolume = 'pv',
-  databaseAccess = 'database',
   objectStorage = 'object',
+  database = 'database',
+  starburst = 'starburst',
 }
 
 export enum CONNECTED_MODEL {
@@ -395,4 +395,25 @@ export type PersistentVolumeClaimList = {
   kind?: string;
   metadata: Record<string, unknown>;
   items: PersistentVolumeClaim[];
+};
+
+export type Secret = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  type: string;
+  stringData?: { [key: string]: string };
+  data?: { [key: string]: string };
+};
+
+export type SecretList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Secret[];
 };

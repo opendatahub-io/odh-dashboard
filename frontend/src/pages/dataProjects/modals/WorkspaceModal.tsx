@@ -38,8 +38,6 @@ import {
   getImageStreamByContainer,
   getDefaultTagByImageStream,
   checkImageStreamOrder,
-  getImageStreamTagVersion,
-  getTagDescription,
 } from '../../../utilities/imageUtils';
 import { ANNOTATION_DESCRIPTION } from '../../../utilities/const';
 import { createPvc } from '../../../services/storageService';
@@ -111,7 +109,9 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
         const container = containers?.find(
           (container) => container.name === notebook.metadata.name,
         );
-        const imageStream = getImageStreamByContainer(imageStreams, container);
+        const imageStream = container
+          ? getImageStreamByContainer(imageStreams, container)
+          : undefined;
         const tag = imageStream?.spec?.tags?.find((tag) => tag.from.name === container?.image);
         if (container && imageStream && tag) {
           setSelectedImageTag({ imageStream, tag });
@@ -141,7 +141,6 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     };
 
     const handleStorageTypeSelection = (checked, e, selection) => {
-      console.log('handleStorageTypeSelection', checked, e, selection);
       setSelectedStorageType(selection);
     };
 
@@ -172,8 +171,8 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
         volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
         volumeMounts = [{ mountPath: '/home/jovyan', name: pvcName }];
       } else {
-        volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-        volumeMounts = [{ mountPath: '/home/jovyan', name: pvcName }];
+        volumes = [];
+        volumeMounts = [];
       }
 
       const notebookSize = odhConfig?.spec?.notebookSizes?.find((ns) => ns.name === selectedSize);
@@ -444,7 +443,11 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
                 name="new-pv-size-input"
                 value={pvSize}
                 onMinus={() => setPvSize((pvSize || 1) - 1)}
-                onChange={(e) => setPvSize(e.target.value)}
+                  onChange={
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    (e) => setPvSize(e.target.value)
+                  }
                 onPlus={() => setPvSize((pvSize || 0) + 1)}
                 widthChars={4}
                 unit="GiB"

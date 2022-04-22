@@ -9,23 +9,48 @@ import {
   ModalVariant,
   Select,
   SelectOption,
+  SelectVariant,
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { CONNECTED_MODEL, NotebookList, Project } from 'types';
+import {
+  CONNECTED_MODEL,
+  NotebookList,
+  PersistentVolumeClaim,
+  PersistentVolumeClaimList,
+  Project,
+  Secret,
+  SecretList,
+} from 'types';
 import ConnectedModelCard from '../components/ConnectedModelCard';
 
 type ModelServingModalProps = {
   project: Project | undefined;
   notebookList: NotebookList | undefined;
+  pvcList: PersistentVolumeClaimList | undefined;
+  objectStorageList: SecretList | undefined;
   isModalOpen: boolean;
   onClose: () => void;
   dispatchError: (e: Error, title: string) => void;
 };
 
 const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
-  ({ project, notebookList, isModalOpen, onClose, dispatchError }) => {
+  ({ project, notebookList, pvcList, objectStorageList, isModalOpen, onClose, dispatchError }) => {
     const [connectedModel, setConnectedModel] = React.useState('');
+
+    const [isPvcSelectOpen, setPvcSelectOpen] = React.useState(false);
+    const [selectedPvc, setSelectedPvc] = React.useState<PersistentVolumeClaim | undefined>(
+      undefined,
+    );
+    const [pvcPath, setPvcPath] = React.useState('');
+
+    const [isObjectStoreSelectOpen, setObjectStoreSelectOpen] = React.useState(false);
+    const [selectedObjectStore, setSelectedObjectStore] = React.useState<Secret | undefined>(
+      undefined,
+    );
+    const [objectStoreBucket, setObjectStoreBucket] = React.useState('');
+    const [objectKey, setObjectKey] = React.useState('');
+
     const [modelName, setModelName] = React.useState('');
     const [modelEngineDropdownOpen, setModelEngineDropdownOpen] = React.useState(false);
     const [modelEngine, setModelEngine] = React.useState('');
@@ -41,6 +66,13 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
 
     const isDisabled = !validate();
 
+    const pvcSelectOptions = pvcList?.items.map((pvc, index) => (
+      <SelectOption key={index + 1} value={pvc.metadata.name} />
+    ));
+    const objectStoreSelectOptions = objectStorageList?.items.map((os, index) => (
+      <SelectOption key={index + 1} value={os.metadata.name} />
+    ));
+
     React.useEffect(() => {
       if (isModalOpen && nameInputRef && nameInputRef.current) {
         nameInputRef.current.focus();
@@ -51,15 +83,32 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
       setConnectedModel('');
     }, []);
 
+    const handlePvcSelection = (e, value) => {
+      if (value === 'None') {
+        setSelectedPvc(undefined);
+      } else {
+        const selected = pvcList?.items.find((pvc) => pvc.metadata.name === value);
+        setSelectedPvc(selected);
+      }
+      setPvcSelectOpen(false);
+    };
+
+    const handleObjectStoreSelection = (e, value) => {
+      if (value === 'None') {
+        setSelectedObjectStore(undefined);
+      } else {
+        const selected = objectStorageList?.items.find((os) => os.metadata.name === value);
+        setSelectedObjectStore(selected);
+      }
+      setObjectStoreSelectOpen(false);
+    };
+
     const modelEngineOptions = [
-      <SelectOption id="engine1" key="engine1" value="engine1">
-        Engine1
+      <SelectOption id="triton" key="seldon" value="triton">
+        Triton
       </SelectOption>,
-      <SelectOption id="engine2" key="engine2" value="engine2">
-        Engine2
-      </SelectOption>,
-      <SelectOption id="engine3" key="engine3" value="engine3">
-        Engine3
+      <SelectOption id="seldon" key="seldon" value="seldon">
+        Seldon
       </SelectOption>,
     ];
 
@@ -76,10 +125,7 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
       setModelEngineDropdownOpen(false);
     };
 
-    const renderForm = () => {
-      if (!connectedModel) {
-        return null;
-      }
+    const renderPvcForm = () => {
       return (
         <>
           <FormGroup fieldId="model-serving-name" label="Model name">
@@ -103,8 +149,98 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
               {modelEngineOptions}
             </Select>
           </FormGroup>
+          <FormGroup label="Persistent Volume Claim" fieldId="pvc">
+            <Select
+              id="model-serving-pvc-input"
+              variant={SelectVariant.single}
+              aria-label="Select VC"
+              onToggle={() => setPvcSelectOpen(!isPvcSelectOpen)}
+              onSelect={handlePvcSelection}
+              selections={selectedPvc?.metadata.name || 'None'}
+              isOpen={isPvcSelectOpen}
+              // isDisabled={isDisabled}
+              // direction={direction}
+              label="Workspace"
+            >
+              {pvcSelectOptions}
+            </Select>
+          </FormGroup>
+          <FormGroup fieldId="pv-mount-location" label="Path">
+            <TextInput
+              id="model-serving-pvc-path-input"
+              name="model-serving-pvc-path-input"
+              value={pvcPath}
+              onChange={(value) => {
+                setPvcPath(value);
+              }}
+              isDisabled={!selectedPvc}
+            />
+          </FormGroup>
         </>
       );
+    };
+
+    const renderS3Form = () => {
+      return (
+        <>
+          <FormGroup fieldId="model-serving-name" label="Model name">
+            <TextInput
+              id="model-serving-name-input"
+              name="model-serving-name-input"
+              value={modelName}
+              onChange={(value) => setModelName(value)}
+            />
+          </FormGroup>
+          <FormGroup fieldId="model-serving-engine" label="Serving engine">
+            <Select
+              isOpen={modelEngineDropdownOpen}
+              onToggle={() => setModelEngineDropdownOpen(!modelEngineDropdownOpen)}
+              aria-labelledby="model-serving-engine-dropdown"
+              placeholderText="Choose one"
+              selections={modelEngine}
+              onSelect={handleModelEngineSelection}
+              menuAppendTo="parent"
+            >
+              {modelEngineOptions}
+            </Select>
+          </FormGroup>
+          <FormGroup label="Object Store" fieldId="object store">
+            <Select
+              variant={SelectVariant.single}
+              aria-label="Select Object Store"
+              onToggle={() => setObjectStoreSelectOpen(!isObjectStoreSelectOpen)}
+              onSelect={handleObjectStoreSelection}
+              selections={selectedObjectStore?.metadata.name || 'None'}
+              isOpen={isObjectStoreSelectOpen}
+              label="Workspace"
+            >
+              {objectStoreSelectOptions}
+            </Select>
+          </FormGroup>
+          <FormGroup fieldId="object-store-key" label="Object Key">
+            <TextInput
+              id="object-store-key-input"
+              name="object-store-key-input"
+              value={objectKey}
+              onChange={(value) => {
+                setObjectKey(value);
+              }}
+              isDisabled={!selectedObjectStore}
+            />
+          </FormGroup>
+        </>
+      );
+    };
+
+    const renderForm = () => {
+      switch (connectedModel) {
+        case CONNECTED_MODEL.s3:
+          return renderS3Form();
+        case CONNECTED_MODEL.persistentVolume:
+          return renderPvcForm();
+        default:
+          return null;
+      }
     };
 
     return (

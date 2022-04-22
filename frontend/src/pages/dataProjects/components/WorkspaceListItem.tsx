@@ -49,6 +49,7 @@ type WorkspaceListItemProps = {
   updateNotebook: (notebook: Notebook) => void;
   imageStreams: ImageStream[];
   pvcList: PersistentVolumeClaimList | undefined;
+  setAttachStorageModalOpen: (isOpen: boolean) => void;
   setModalOpen: (isOpen: boolean) => void;
   setActiveEnvironment: (notebook: Notebook) => void;
   onDelete: (notebook: Notebook) => void;
@@ -63,6 +64,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
     updateNotebook,
     imageStreams,
     pvcList,
+    setAttachStorageModalOpen,
     setModalOpen,
     setActiveEnvironment,
     onDelete,
@@ -160,6 +162,50 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
     const handleNotebookRunningChange = (isChecked: boolean) => {
       setUpdateInProgress(true);
       const updateData = isChecked ? { stopped: false } : { stopped: true };
+      patchDataProjectNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
+        .then((notebook) => {
+          setUpdateInProgress(false);
+          updateNotebook(notebook);
+        })
+        .catch(() => {
+          setUpdateInProgress(false);
+        });
+    };
+
+    const handleAttachStorage = () => {
+      setActiveEnvironment(notebook);
+      setAttachStorageModalOpen(true);
+    };
+
+    const handleDetachStorage = (v) => {
+      const pvcName = v.pvc.metadata.name;
+      const containers: Container[] = notebook.spec?.template?.spec?.containers || [];
+      const existingVolumes: Volume[] = notebook.spec?.template?.spec?.volumes || [];
+      const notebookContainer: Container | undefined = containers.find(
+        (container) => container.name === notebook.metadata.name,
+      );
+
+      if (!notebookContainer) {
+        return;
+      }
+      notebookContainer.volumeMounts = notebookContainer.volumeMounts.filter(
+        (vm) => vm.name !== pvcName,
+      );
+
+      const volumes = existingVolumes.filter((ev) => ev.name !== pvcName);
+
+      const updateData = {
+        spec: {
+          template: {
+            spec: {
+              containers,
+              volumes,
+            },
+          },
+        },
+      };
+
+      setUpdateInProgress(true);
       patchDataProjectNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
         .then((notebook) => {
           setUpdateInProgress(false);
@@ -273,8 +319,13 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
                           </FlexItem>
                           {v?.pvc ? (
                             <FlexItem align={{ default: 'alignRight' }}>
-                              <Button variant="link" isSmall isInline>
-                                Access
+                              <Button
+                                variant="link"
+                                onClick={() => handleDetachStorage(v)}
+                                isSmall
+                                isInline
+                              >
+                                Detach
                               </Button>
                             </FlexItem>
                           ) : null}
@@ -307,8 +358,14 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
                     </>
                   ))}
                   <ListItem>
-                    <Button variant="link" icon={<PlusCircleIcon />} isSmall isInline>
-                      Add storage
+                    <Button
+                      variant="link"
+                      onClick={() => handleAttachStorage()}
+                      icon={<PlusCircleIcon />}
+                      isSmall
+                      isInline
+                    >
+                      Attach storage
                     </Button>
                   </ListItem>
                 </List>

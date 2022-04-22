@@ -30,9 +30,10 @@ import ApplicationsPage from '../ApplicationsPage';
 import { CogIcon, CubeIcon, CubesIcon, UsersIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router-dom';
 import WorkspaceModal from './modals/WorkspaceModal';
-import DataModal from './modals/DataModal';
+import DataSourceModal from './modals/DataSourceModal';
 import WorkspaceListItem from './components/WorkspaceListItem';
 import PvcListItem from './components/PvcListItem';
+import ObjectStorageListItem from './components/ObjectStorageListItem';
 import './DataProjects.scss';
 
 import { useInterval } from '../../utilities/useInterval';
@@ -44,6 +45,8 @@ import {
   OdhConfig,
   PersistentVolumeClaimList,
   PersistentVolumeClaim,
+  StorageClassList,
+  SecretList,
 } from '../../types';
 import {
   deleteDataProjectNotebook,
@@ -51,10 +54,14 @@ import {
   getDataProjectNotebooks,
 } from '../../services/dataProjectsService';
 import { getImageStreams } from '../../services/imageStreamService';
-import { deletePvc, getPvcs } from '../../services/storageService';
+import { deletePvc, getPvcs, getStorageClasses } from '../../services/storageService';
 import { addNotification } from '../../redux/actions/actions';
 import { getOdhConfig } from '../../services/odhConfigService';
 import ModelServingModal from './modals/ModelServingModal';
+import StorageModal from './modals/StorageModal';
+import AttachStorageModal from './modals/AttachStorageModal';
+import { deleteSecret, getSecrets } from '../../services/secretService';
+import { ODH_TYPE_OBJECT_STORAGE } from '../../utilities/const';
 
 const description = `View and edit data project and environment details.`;
 
@@ -62,7 +69,7 @@ const Empty = ({ type }) => (
   <EmptyState>
     <EmptyStateIcon icon={CubesIcon} />
     <Title headingLevel="h4" size="lg">
-      No {type} here
+      No {type} found
     </Title>
     <EmptyStateBody>
       This represents an the empty state pattern in Patternfly 4. Hopefully it&apos;s simple enough
@@ -79,10 +86,13 @@ export const DataProjectDetails: React.FC = () => {
 
   const [activeTabKey, setActiveTabKey] = React.useState(0);
   const [isCreateWorkspaceModalOpen, setCreateWorkspaceModalOpen] = React.useState(false);
-  const [isAddDataModalOpen, setAddDataModalOpen] = React.useState(false);
+  const [isAttachStorageModalOpen, setAttachStorageModalOpen] = React.useState(false);
+  const [isAddStorageModalOpen, setAddStorageModalOpen] = React.useState(false);
+  const [isAddDataSourceModalOpen, setAddDataSourceModalOpen] = React.useState(false);
   const [isModelServingModalOpen, setModelServingModalOpen] = React.useState(false);
-  const [activeWorkspace, setActiveWorkspace] = React.useState<Notebook | null>(null);
-  const [activeData, setActiveData] = React.useState(null);
+  const [selectedWorkspace, setSelectedWorkspace] = React.useState<Notebook | null>(null);
+  const [selectedStorage, setSelectedStorage] = React.useState(null);
+  const [selectedDataSource, setSelectedDataSource] = React.useState(null);
   const [expandedListItems, setExpandedListItems] = React.useState<Set<string>>(new Set<string>());
 
   const [project, setProject] = React.useState<Project | undefined>(undefined);
@@ -95,8 +105,18 @@ export const DataProjectDetails: React.FC = () => {
   const [imageList, setImageList] = React.useState<ImageStreamList | undefined>(undefined);
   const [imagesLoading, setImagesLoading] = React.useState(false);
 
+  const [storageClassList, setStorageClassList] = React.useState<StorageClassList | undefined>(
+    undefined,
+  );
+  const [storageClassListLoading, setStorageClassListLoading] = React.useState(false);
+
   const [pvcList, setPvcList] = React.useState<PersistentVolumeClaimList | undefined>(undefined);
   const [pvcsLoading, setPvcsLoading] = React.useState(false);
+
+  const [objectStorageList, setObjectStorageList] = React.useState<SecretList | undefined>(
+    undefined,
+  );
+  const [objectStorageListLoading, setObjectStorageListLoading] = React.useState(false);
 
   const [odhConfig, setOdhConfig] = React.useState<OdhConfig | undefined>(undefined);
   const [odhConfigLoading, setOdhConfigLoading] = React.useState(false);
@@ -131,7 +151,7 @@ export const DataProjectDetails: React.FC = () => {
 
   const loadProject = () => {
     setProjectLoading(true);
-    getDataProject(projectName)
+    return getDataProject(projectName)
       .then((prj: Project) => {
         setProject(prj);
         setProjectLoading(false);
@@ -144,7 +164,7 @@ export const DataProjectDetails: React.FC = () => {
 
   const loadNotebooks = () => {
     setNotebooksLoading(true);
-    getDataProjectNotebooks(projectName)
+    return getDataProjectNotebooks(projectName)
       .then((nbks: NotebookList) => {
         setNotebookList(nbks);
         setNotebooksLoading(false);
@@ -156,7 +176,7 @@ export const DataProjectDetails: React.FC = () => {
 
   const loadImages = () => {
     setImagesLoading(true);
-    getImageStreams()
+    return getImageStreams()
       .then((il: ImageStreamList) => {
         setImageList(il);
         setImagesLoading(false);
@@ -166,21 +186,21 @@ export const DataProjectDetails: React.FC = () => {
       });
   };
 
-  // const loadStorageClasses = () => {
-  //   setPvcsLoading(true);
-  //   getPvcs(projectName)
-  //     .then((pl: PersistentVolumeClaimList) => {
-  //       setPvcList(pl);
-  //       setPvcsLoading(false);
-  //     })
-  //     .catch((e) => {
-  //       dispatchError(e, 'Load Images Error');
-  //     });
-  // };
-  //
+  const loadStorageClasses = () => {
+    setStorageClassListLoading(true);
+    return getStorageClasses()
+      .then((scl: StorageClassList) => {
+        setStorageClassList(scl);
+        setStorageClassListLoading(false);
+      })
+      .catch((e) => {
+        dispatchError(e, 'Load StorageClasses Error');
+      });
+  };
+
   const loadPvcs = () => {
     setPvcsLoading(true);
-    getPvcs(projectName)
+    return getPvcs(projectName)
       .then((pl: PersistentVolumeClaimList) => {
         setPvcList(pl);
         setPvcsLoading(false);
@@ -190,11 +210,23 @@ export const DataProjectDetails: React.FC = () => {
       });
   };
 
+  const loadObjectStorage = () => {
+    setObjectStorageListLoading(true);
+    return getSecrets(projectName, ODH_TYPE_OBJECT_STORAGE)
+      .then((sl: SecretList) => {
+        setObjectStorageList(sl);
+        setObjectStorageListLoading(false);
+      })
+      .catch((e) => {
+        dispatchError(e, 'Load Object Storage Error');
+      });
+  };
+
   // TODO: used for notebook sizes
   // but should be retrieved from Global Context
   const loadOdhConfig = () => {
     setOdhConfigLoading(true);
-    getOdhConfig()
+    return getOdhConfig()
       .then((cfg: OdhConfig) => {
         setOdhConfig(cfg);
         setOdhConfigLoading(false);
@@ -226,15 +258,19 @@ export const DataProjectDetails: React.FC = () => {
     loadProject();
     loadImages();
     loadNotebooks();
+    loadStorageClasses();
     loadPvcs();
+    loadObjectStorage();
   }, []);
 
   useInterval(() => {
     loadNotebooks();
-  }, 50000);
+    loadPvcs();
+    loadObjectStorage();
+  }, 10000);
 
   const listEmpty = (
-    list: NotebookList | ImageStreamList | PersistentVolumeClaimList | undefined,
+    list: NotebookList | ImageStreamList | PersistentVolumeClaimList | StorageClassList | SecretList | undefined,
   ) => !list || !list.items || list.items.length === 0;
 
   const handleCreateWorkspaceModalClose = () => {
@@ -243,9 +279,27 @@ export const DataProjectDetails: React.FC = () => {
     loadPvcs();
   };
 
-  const handleAddDataModalClose = () => {
-    setAddDataModalOpen(false);
+  const handleAttachStorageModalOpen = (notebook: Notebook) => {
+    setSelectedWorkspace(notebook);
+    setAttachStorageModalOpen(true);
+  };
+
+  const handleAttachStorageModalClose = () => {
+    setAttachStorageModalOpen(false);
+    loadNotebooks();
     loadPvcs();
+  };
+
+  const handleAddStorageModalClose = () => {
+    setAddStorageModalOpen(false);
+    loadNotebooks();
+    loadPvcs();
+  };
+
+  const handleAddDataSourceModalClose = () => {
+    setAddDataSourceModalOpen(false);
+    loadNotebooks();
+    loadObjectStorage();
   };
 
   const handleModelServingModalClose = () => {
@@ -271,7 +325,7 @@ export const DataProjectDetails: React.FC = () => {
         <BreadcrumbItem isActive>{projectDisplayName}</BreadcrumbItem>
       </Breadcrumb>
       <ApplicationsPage
-        title={projectDisplayName + ' Details'}
+        title={projectDisplayName}
         description={description}
         loaded={!projectLoading}
         loadError={projectError}
@@ -307,7 +361,8 @@ export const DataProjectDetails: React.FC = () => {
                       <JumpLinksItem href="#data-science-workspaces">
                         Data science workspaces
                       </JumpLinksItem>
-                      <JumpLinksItem href="#data">Data</JumpLinksItem>
+                      <JumpLinksItem href="#storage">Storage</JumpLinksItem>
+                      <JumpLinksItem href="#data">Data Sources</JumpLinksItem>
                       <JumpLinksItem href="#model-serving">Model serving</JumpLinksItem>
                     </JumpLinks>
                   </PageSection>
@@ -323,7 +378,7 @@ export const DataProjectDetails: React.FC = () => {
                       <Button
                         variant="secondary"
                         onClick={() => {
-                          setActiveWorkspace(null);
+                          setSelectedWorkspace(null);
                           setCreateWorkspaceModalOpen(true);
                         }}
                       >
@@ -345,13 +400,14 @@ export const DataProjectDetails: React.FC = () => {
                           updateNotebook={updateNotebook}
                           imageStreams={imageList!.items}
                           pvcList={pvcList}
+                          setAttachStorageModalOpen={() => handleAttachStorageModalOpen(notebook)}
                           setModalOpen={setCreateWorkspaceModalOpen}
-                          setActiveEnvironment={setActiveWorkspace}
+                          setActiveEnvironment={setSelectedWorkspace}
                           onDelete={(workspace) =>
                             deleteDataProjectNotebook(projectName, workspace.metadata.name)
                               .then(() => {
                                 dispatchSuccess('Delete Workspace Successfully');
-                                loadNotebooks();
+                                loadNotebooks().then(loadPvcs);
                               })
                               .catch((e) => {
                                 dispatchError(e, 'Delete Workspace Error');
@@ -367,33 +423,32 @@ export const DataProjectDetails: React.FC = () => {
                   )}
                   <Flex>
                     <FlexItem>
-                      <Title headingLevel="h3" size="xl" id="data">
-                        Data
+                      <Title headingLevel="h3" size="xl" id="storage">
+                        Storage
                       </Title>
                     </FlexItem>
                     <FlexItem>
                       <Button
                         variant="secondary"
                         onClick={() => {
-                          setActiveData(null);
-                          setAddDataModalOpen(true);
+                          setSelectedStorage(null);
+                          setAddStorageModalOpen(true);
                         }}
                       >
-                        Add data
+                        Add storage
                       </Button>
                     </FlexItem>
                   </Flex>
-                  {/*{!listEmpty(pvcList) && !listEmpty(storageClasses) ? (*/}
-                  {!listEmpty(pvcList) ? (
+                  {!listEmpty(pvcList) && !listEmpty(storageClassList) ? (
                     <DataList
                       className="odh-data-projects__data-list"
                       isCompact
-                      aria-label="Data project pvc list"
+                      aria-label="Data project storage list"
                     >
                       {pvcList!.items.map((pvc) => (
                         <PvcListItem
-                          key={`workspace-${pvc.metadata.name}`}
-                          dataKey={`workspace-${pvc.metadata.name}`}
+                          key={`pvc-${pvc.metadata.name}`}
+                          dataKey={`pvc-${pvc.metadata.name}`}
                           pvc={pvc}
                           updatePvc={(pvc: PersistentVolumeClaim) => {}}
                           setModalOpen={setCreateWorkspaceModalOpen}
@@ -406,7 +461,48 @@ export const DataProjectDetails: React.FC = () => {
                       ))}
                     </DataList>
                   ) : (
-                    <Empty type="data" />
+                    <Empty type="storage" />
+                  )}
+                  <Flex>
+                    <FlexItem>
+                      <Title headingLevel="h3" size="xl" id="data">
+                        Data Sources
+                      </Title>
+                    </FlexItem>
+                    <FlexItem>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedDataSource(null);
+                          setAddDataSourceModalOpen(true);
+                        }}
+                      >
+                        Add data source
+                      </Button>
+                    </FlexItem>
+                  </Flex>
+                  {!listEmpty(objectStorageList) && !listEmpty(objectStorageList) ? (
+                    <DataList
+                      className="odh-data-projects__data-source-list"
+                      isCompact
+                      aria-label="Data project data source list"
+                    >
+                      {objectStorageList!.items.map((objectStorage) => (
+                        <ObjectStorageListItem
+                          key={`object-storage-${objectStorage.metadata.name}`}
+                          dataKey={`pvc-${objectStorage.metadata.name}`}
+                          objectStorage={objectStorage}
+                          setModalOpen={setCreateWorkspaceModalOpen}
+                          onDelete={(os) => {
+                            deleteSecret(projectName, os.metadata.name).then(loadObjectStorage);
+                          }}
+                          handleListItemToggle={handleListItemToggle}
+                          expandedItems={expandedListItems}
+                        />
+                      ))}
+                    </DataList>
+                  ) : (
+                    <Empty type="data sources" />
                   )}
                   <Flex>
                     <FlexItem>
@@ -426,7 +522,7 @@ export const DataProjectDetails: React.FC = () => {
                     </FlexItem>
                   </Flex>
                   {!listEmpty(modelServingList) ? null : ( // waiting for implementing
-                    <Empty type="model served" />
+                    <Empty type="served models" />
                   )}
                 </SidebarContent>
               </Sidebar>
@@ -465,23 +561,41 @@ export const DataProjectDetails: React.FC = () => {
         odhConfig={odhConfig}
         imageStreams={listEmpty(imageList) ? [] : imageList!.items}
         pvcList={pvcList}
-        notebook={activeWorkspace}
+        notebook={selectedWorkspace}
         isModalOpen={isCreateWorkspaceModalOpen}
         onClose={handleCreateWorkspaceModalClose}
         dispatchError={dispatchError}
         dispatchSuccess={dispatchSuccess}
       />
-      <DataModal
+      <AttachStorageModal
+        notebook={selectedWorkspace}
+        notebookList={notebookList}
+        pvcList={pvcList}
+        isModalOpen={isAttachStorageModalOpen}
+        onClose={handleAttachStorageModalClose}
+      />
+      <StorageModal
         project={project}
         notebookList={notebookList}
-        data={activeData}
-        isModalOpen={isAddDataModalOpen}
-        onClose={handleAddDataModalClose}
+        storageClassList={storageClassList}
+        storage={selectedStorage}
+        isModalOpen={isAddStorageModalOpen}
+        onClose={handleAddStorageModalClose}
+      />
+      <DataSourceModal
+        project={project}
+        notebookList={notebookList}
+        storageClassList={storageClassList}
+        data={selectedDataSource}
+        isModalOpen={isAddDataSourceModalOpen}
+        onClose={handleAddDataSourceModalClose}
         dispatchError={dispatchError}
       />
       <ModelServingModal
         project={project}
         notebookList={notebookList}
+        pvcList={pvcList}
+        objectStorageList={objectStorageList}
         isModalOpen={isModelServingModalOpen}
         onClose={handleModelServingModalClose}
         dispatchError={dispatchError}

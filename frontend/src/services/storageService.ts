@@ -1,12 +1,7 @@
 import axios from 'axios';
 import {
-  ImageStream,
-  ImageStreamTag,
-  Notebook,
-  NotebookSize,
   PersistentVolumeClaim,
   PersistentVolumeClaimList,
-  StorageClass,
   StorageClassList,
 } from '../types';
 import { ANNOTATION_DESCRIPTION } from '../utilities/const';
@@ -23,8 +18,8 @@ export const getStorageClasses = (): Promise<StorageClassList> => {
     });
 };
 
-export const getPvcs = (projectName: string): Promise<PersistentVolumeClaimList> => {
-  const url = `/api/kubernetes/api/v1/namespaces/${projectName}/persistentvolumeclaims`;
+export const getPvcs = (namespace: string): Promise<PersistentVolumeClaimList> => {
+  const url = `/api/kubernetes/api/v1/namespaces/${namespace}/persistentvolumeclaims`;
   return axios
     .get(url)
     .then((response) => {
@@ -42,7 +37,6 @@ export const createPvc = (
   storageClassName: string,
   size: string,
 ): Promise<PersistentVolumeClaim> => {
-  console.log('createPvc', namespace, name, description, storageClassName, size);
   const url = `/api/kubernetes/api/v1/namespaces/${namespace}/persistentvolumeclaims`;
   const annotations = description ? { [ANNOTATION_DESCRIPTION]: description } : undefined;
 
