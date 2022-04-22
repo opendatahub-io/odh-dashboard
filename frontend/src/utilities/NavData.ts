@@ -10,28 +10,28 @@ export type NavDataItem = {
 };
 
 export const navData: NavDataItem[] = [
+  { id: 'projects', label: 'Data projects', href: '/' },
   {
     id: 'applications',
     group: { id: 'apps', title: 'Applications' },
     children: [
-      { id: 'apps-installed', label: 'Enabled', href: '/' },
+      { id: 'apps-installed', label: 'Enabled', href: '/enabled' },
       { id: 'apps-explore', label: 'Explore', href: '/explore' },
     ],
   },
-  { id: 'projects', label: 'Data projects', href: '/data-projects' },
   { id: 'resources', label: 'Resources', href: '/resources' },
 ];
 
 export const adminNavData: NavDataItem[] = [
+  { id: 'projects', label: 'Data projects', href: '/' },
   {
     id: 'applications',
     group: { id: 'apps', title: 'Applications' },
     children: [
-      { id: 'apps-installed', label: 'Enabled', href: '/' },
+      { id: 'apps-installed', label: 'Enabled', href: '/enabled' },
       { id: 'apps-explore', label: 'Explore', href: '/explore' },
     ],
   },
-  { id: 'projects', label: 'Data projects', href: '/data-projects' },
   { id: 'resources', label: 'Resources', href: '/resources' },
   {
     id: 'settings',

@@ -30,64 +30,26 @@ const description = `Create new projects, or view everything you've been working
 export const DataProjects: React.FC = React.memo(() => {
   const dispatch = useDispatch();
   const [viewType, setViewType] = useLocalStorage(VIEW_TYPE);
-  const { dataProjects, loaded, loadError, updateDataProjects } = useGetDataProjects();
+  const { dataProjects, loaded, loadError, watchDataProjectStatus } = useGetDataProjects();
   const [isCreateProjectModalOpen, setCreateProjectModalOpen] = React.useState(false);
   const [displayedProjects, setDisplayedProjects] = React.useState<Project[]>([]);
   const [isEmpty, setEmpty] = React.useState<boolean>(true);
 
   React.useEffect(() => {
-    setEmpty(!dataProjects || dataProjects.items?.length <= 0);
-    setDisplayedProjects(dataProjects ? dataProjects.items || [] : []);
-  }, [dataProjects]);
-
-  const watchDataProjectStatus = (project: Project) => {
-    let watchHandle;
-    const projectName = project.metadata?.name;
-    const displayedProject = displayedProjects.find((proj) => proj.metadata.name === projectName);
-    if (!displayedProject) {
-      return;
+    if (dataProjects && dataProjects.items?.length > 0) {
+      setEmpty(false);
+      setDisplayedProjects(dataProjects.items);
+    } else {
+      setEmpty(true);
     }
-    const watchDataProject = () => {
-      getDataProject(projectName)
-        .then(async (newProject: Project) => {
-          if (newProject.status.phase !== displayedProject.status.phase) {
-            displayedProject.status.phase = newProject.status.phase;
-            updateDataProjects();
-          }
-          watchHandle = setTimeout(watchDataProject, 2000); // every 2 seconds
-        })
-        .catch((e) => {
-          if (e.statusCode === 404) {
-            dispatch(
-              addNotification({
-                status: 'success',
-                title: `Data project ${projectName} deleted successfully.`,
-                timestamp: new Date(),
-              }),
-            );
-            updateDataProjects();
-          } else {
-            dispatch(
-              addNotification({
-                status: 'danger',
-                title: `Error refreshing data projects list.`,
-                message: e.message,
-                timestamp: new Date(),
-              }),
-            );
-          }
-        });
-      clearTimeout(watchHandle);
-    };
-    watchDataProject();
-  };
+  }, [dataProjects]);
 
   const handleCreateProjectModalClose = () => {
     setCreateProjectModalOpen(false);
   };
 
-  const onDeleteProject = async (project) => {
-    const projectName = project.metadata?.name;
+  const onDeleteProject = async (project: Project) => {
+    const projectName = project.metadata.name;
     try {
       await deleteDataProject(projectName);
     } catch (e: any) {

@@ -25,9 +25,9 @@ const Routes: React.FC = () => {
       fallback={<ApplicationsPage title="" description="" loaded={false} empty={true} />}
     >
       <Switch>
-        <Route path="/" exact component={InstalledApplications} />
+        <Route path="/" exact component={DataProjects} />
+        <Route path="/enabled" exact component={InstalledApplications} />
         <Route path="/explore" exact component={ExploreApplications} />
-        <Route path="/data-projects" exact component={DataProjects} />
         <Route path="/data-projects/:projectName" exact component={DataProjectDetails} />
         <Route path="/resources" exact component={LearningCenterPage} />
         {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}

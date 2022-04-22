@@ -1,9 +1,5 @@
 import axios from 'axios';
-import {
-  PersistentVolumeClaim,
-  PersistentVolumeClaimList,
-  StorageClassList,
-} from '../types';
+import { PersistentVolumeClaim, PersistentVolumeClaimList, StorageClassList } from '../types';
 import { ANNOTATION_DESCRIPTION } from '../utilities/const';
 
 export const getStorageClasses = (): Promise<StorageClassList> => {

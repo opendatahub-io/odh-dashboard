@@ -6,6 +6,11 @@
   &__data-list {
     margin: var(--pf-global--spacer--md) 0;
     &-item {
+      .pf-m-disabled {
+        a {
+          color: var(--pf-global--disabled-color--100);
+        }
+      }
       font-size: var(--pf-global--FontSize--sm);
       .pf-c-data-list__item-row {
         padding-bottom: var(--pf-global--spacer--sm);
@@ -146,5 +151,8 @@
       width: 30px;
       height: 30px;
     }
+  }
+  &__notebook-switch {
+    font-size: var(--pf-global--FontSize--sm);
   }
 }

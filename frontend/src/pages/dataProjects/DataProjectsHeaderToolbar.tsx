@@ -25,8 +25,6 @@ const DataProjectsHeaderToolbar: React.FC<DataProjectsHeaderToolbarProps> = ({
 }) => {
   const [optionSelection, setOptionSelection] = React.useState();
   const [isOptionsDropdownOpen, setIsOptionsDropdownOpen] = React.useState(false);
-  const [resourceSelection, setResourceSelection] = React.useState();
-  const [isResourcesDropdownOpen, setIsResourcesDropdownOpen] = React.useState(false);
   const [searchInputValue, setSearchInputValue] = React.useState('');
 
   const onOptionSelect = (event, selection) => {
@@ -36,15 +34,6 @@ const DataProjectsHeaderToolbar: React.FC<DataProjectsHeaderToolbarProps> = ({
   const optionsDropdownItems = [
     <SelectOption key={1} value="Option 1" />,
     <SelectOption key={2} value="Option 2" />,
-  ];
-
-  const onResourceSelect = (event, selection) => {
-    setResourceSelection(selection);
-    setIsResourcesDropdownOpen(false);
-  };
-  const resourcesDropdownItems = [
-    <SelectOption key={3} value="Resource 1" />,
-    <SelectOption key={4} value="Resource 2" />,
   ];
 
   const onSearchInputChange = (value) => {
@@ -68,18 +57,6 @@ const DataProjectsHeaderToolbar: React.FC<DataProjectsHeaderToolbarProps> = ({
             </Select>
           </ToolbarItem>
           <ToolbarItem>
-            <Select
-              aria-label="Filter by resource"
-              isOpen={isResourcesDropdownOpen}
-              selections={resourceSelection}
-              onToggle={(isEnabled) => setIsResourcesDropdownOpen(isEnabled)}
-              placeholderText="Filter by resource"
-              onSelect={onResourceSelect}
-            >
-              {resourcesDropdownItems}
-            </Select>
-          </ToolbarItem>
-          <ToolbarItem>
             <SearchInput
               placeholder="Find by name"
               value={searchInputValue}
@@ -87,7 +64,7 @@ const DataProjectsHeaderToolbar: React.FC<DataProjectsHeaderToolbarProps> = ({
               onClear={() => onSearchInputChange('')}
             />
           </ToolbarItem>
-          <ToolbarItem alignment={{ default: 'alignRight' }}>
+          {/* <ToolbarItem alignment={{ default: 'alignRight' }}>
             <ToggleGroup aria-label="View type">
               <ToggleGroupItem
                 icon={<TopologyIcon />}
@@ -104,7 +81,7 @@ const DataProjectsHeaderToolbar: React.FC<DataProjectsHeaderToolbarProps> = ({
                 onChange={() => updateViewType(LIST_VIEW)}
               />
             </ToggleGroup>
-          </ToolbarItem>
+          </ToolbarItem> */}
         </ToolbarContent>
       </Toolbar>
     </div>

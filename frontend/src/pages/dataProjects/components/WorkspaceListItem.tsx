@@ -12,15 +12,12 @@ import {
   DropdownItem,
   Flex,
   FlexItem,
-  GridItem,
   KebabToggle,
   List,
   ListItem,
   Progress,
-  Radio,
   Split,
   SplitItem,
-  Switch,
   Title,
 } from '@patternfly/react-core';
 import '../DataProjects.scss';
@@ -41,17 +38,19 @@ import {
   PersistentVolumeClaimList,
   Volume,
 } from '../../../types';
-import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
+import NotebookStatusSwitch from './NotebookStatusSwitch';
+import { patchDataProjectNotebook } from 'services/dataProjectsService';
 
 type WorkspaceListItemProps = {
   dataKey: string;
   notebook: Notebook;
-  updateNotebook: (notebook: Notebook) => void;
+  loadNotebooks: () => void;
+  watchNotebookStatus: () => { start: () => void; stop: () => void };
   imageStreams: ImageStream[];
   pvcList: PersistentVolumeClaimList | undefined;
   setAttachStorageModalOpen: (isOpen: boolean) => void;
   setModalOpen: (isOpen: boolean) => void;
-  setActiveEnvironment: (notebook: Notebook) => void;
+  setActiveNotebook: (notebook: Notebook) => void;
   onDelete: (notebook: Notebook) => void;
   handleListItemToggle: (id: string) => void;
   expandedItems: Set<string>;
@@ -61,16 +60,18 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
   ({
     dataKey,
     notebook,
-    updateNotebook,
+    loadNotebooks,
+    watchNotebookStatus,
     imageStreams,
     pvcList,
     setAttachStorageModalOpen,
     setModalOpen,
-    setActiveEnvironment,
+    setActiveNotebook,
     onDelete,
     handleListItemToggle,
     expandedItems,
   }) => {
+    const status = getContainerStatus(notebook);
     const [isDropdownOpen, setDropdownOpen] = React.useState(false);
     const [isExpanded, setExpanded] = React.useState(expandedItems.has(dataKey));
     const [updateInProgress, setUpdateInProgress] = React.useState(false);
@@ -150,30 +151,14 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
     const numGpus = getNumGpus(notebookContainer);
     const tagSoftware = getTagDescription(tag);
     const tagDependencies = getTagDependencies(tag);
-    const notebookStatus = getContainerStatus(notebook);
-    const isNotebookStarted = notebookStatus === 'Running' || notebookStatus === 'Starting';
-    const isNotebookRunning = notebookStatus === 'Running';
 
     const getResourceAnnotation = (
       resource: Notebook | ImageStream,
       annotationKey: string,
     ): string => resource?.metadata.annotations?.[annotationKey] ?? '';
 
-    const handleNotebookRunningChange = (isChecked: boolean) => {
-      setUpdateInProgress(true);
-      const updateData = isChecked ? { stopped: false } : { stopped: true };
-      patchDataProjectNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
-        .then((notebook) => {
-          setUpdateInProgress(false);
-          updateNotebook(notebook);
-        })
-        .catch(() => {
-          setUpdateInProgress(false);
-        });
-    };
-
     const handleAttachStorage = () => {
-      setActiveEnvironment(notebook);
+      setActiveNotebook(notebook);
       setAttachStorageModalOpen(true);
     };
 
@@ -207,17 +192,17 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
 
       setUpdateInProgress(true);
       patchDataProjectNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
-        .then((notebook) => {
+        .then(() => {
+          loadNotebooks();
           setUpdateInProgress(false);
-          updateNotebook(notebook);
         })
-        .catch(() => {
+        .catch((e) => {
           setUpdateInProgress(false);
         });
     };
 
     const handleEdit = () => {
-      setActiveEnvironment(notebook);
+      setActiveNotebook(notebook);
       setModalOpen(true);
     };
 
@@ -254,31 +239,30 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
                 {numGpus ? `${numGpus} GPU` : ''}
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-status`}>
-                <Switch
-                  id={`${dataKey}-status-switch`}
-                  label={getContainerStatus(notebook)}
-                  isChecked={isNotebookStarted}
-                  onChange={handleNotebookRunningChange}
-                  isDisabled={updateInProgress}
+                <NotebookStatusSwitch
+                  notebook={notebook}
+                  loadNotebooks={loadNotebooks}
+                  watchNotebookStatus={watchNotebookStatus}
+                  updateInProgress={updateInProgress}
+                  setUpdateInProgress={setUpdateInProgress}
                 />
               </DataListCell>,
               <DataListCell width={1} key={`${dataKey}-open-external-link`}>
-                {isNotebookRunning ? (
-                  <Button
-                    isInline
-                    variant="link"
-                    icon={<ExternalLinkAltIcon />}
-                    iconPosition="right"
+                <Button
+                  isInline
+                  variant="link"
+                  icon={<ExternalLinkAltIcon />}
+                  iconPosition="right"
+                  isDisabled={status !== 'Running'}
+                >
+                  <a
+                    href={notebook.metadata.annotations?.['opendatahub.io/link'] ?? '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    <a
-                      href={notebook.metadata.annotations?.['opendatahub.io/link'] ?? '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open
-                    </a>
-                  </Button>
-                ) : null}
+                    Open
+                  </a>
+                </Button>
               </DataListCell>,
             ]}
           />
@@ -382,10 +366,10 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-requests-limits`}>
                 <p className="m-bold">Limits</p>
-                <p>{`${notebookContainer.resources.limits.cpu} CPU, ${notebookContainer.resources.limits.memory}`}</p>
+                <p>{`${notebookContainer.resources.limits?.cpu} CPU, ${notebookContainer.resources.limits?.memory} Memory`}</p>
                 <br />
                 <p className="m-bold">Requests</p>
-                <p>{`${notebookContainer.resources.requests.cpu} CPU, ${notebookContainer.resources.requests.memory}`}</p>
+                <p>{`${notebookContainer.resources.requests?.cpu} CPU, ${notebookContainer.resources.requests?.memory} Memory`}</p>
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-content-empty-1`} />,
               <DataListCell width={1} key={`${dataKey}-content-empty-2`} />,

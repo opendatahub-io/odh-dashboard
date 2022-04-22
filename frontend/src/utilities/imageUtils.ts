@@ -132,14 +132,14 @@ export const getContainerStatus = (notebook?: Notebook): string => {
   }
 
   if (notebook?.metadata?.annotations?.[ANNOTATION_NOTEBOOK_STARTED]) {
-    if (notebook?.status?.readyReplicas > 0) {
+    if (!notebook.status || notebook.status?.readyReplicas > 0) {
       return 'Running';
     } else {
       return 'Starting';
     }
   }
 
-  return '???';
+  return 'Waiting';
 };
 
 export const getImageStreamByContainer = (
