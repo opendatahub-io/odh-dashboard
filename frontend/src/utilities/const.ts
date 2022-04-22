@@ -16,7 +16,9 @@ export const DOC_TYPE_TOOLTIPS = {
   [OdhDocumentType.HowTo]: 'Instructions and code for everyday procedures',
 };
 
-export const ODH_MANAGED_ANNOTATION = 'opendatahub.io/odh-managed';
+export const ODH_MANAGED = 'opendatahub.io/odh-managed';
+export const ODH_TYPE = 'opendatahub.io/odh-type';
+export const ODH_TYPE_OBJECT_STORAGE = 'object-storage';
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
 export const LABEL_NOTEBOOK_IMAGE = 'opendatahub.io/notebook-image';
 export const ANNOTATION_DESCRIPTION = 'opendatahub.io/description';

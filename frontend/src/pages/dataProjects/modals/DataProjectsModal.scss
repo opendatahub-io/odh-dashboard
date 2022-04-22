@@ -1,4 +1,4 @@
-.odh-data-projects__modal {
+.odh-data-projects__modal,  {
   .pf-c-select__toggle::before {
     border-left: var(--pf-c-select__toggle--before--BorderLeftWidth) solid var(--pf-c-select__toggle--before--BorderLeftColor);
     border-right: var(--pf-c-select__toggle--before--BorderRightWidth) solid var(--pf-c-select__toggle--before--BorderRightColor);
@@ -9,6 +9,10 @@
   .pf-c-number-input {
     .pf-c-input-group {
       width: 150px;
+    }
+
+    .pf-c-number-input__unit {
+      width: 100px;
     }
   }
 

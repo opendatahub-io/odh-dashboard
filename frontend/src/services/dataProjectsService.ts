@@ -190,7 +190,7 @@ export const deleteDataProjectNotebook = (
 export const patchDataProjectNotebook = (
   projectName: string,
   notebookName: string,
-  updateData: { stopped: boolean },
+  updateData: any,
 ): Promise<Notebook> => {
   const url = `/api/data-projects/${projectName}/notebooks/${notebookName}`;
 

@@ -48,7 +48,7 @@ const DataCard: React.FC<DataCardProps> = ({ data, setModalOpen, setActiveData }
           {` PV - ${data.name}`}
         </>
       )}
-      {data.source === DATA_SOURCE.databaseAccess && (
+      {data.source === DATA_SOURCE.database && (
         <>
           <DatabaseIcon />
           {` ${data.providerName}`}
@@ -86,7 +86,7 @@ const DataCard: React.FC<DataCardProps> = ({ data, setModalOpen, setActiveData }
           </DescriptionListGroup>
         </>
       )}
-      {data.source === DATA_SOURCE.databaseAccess && (
+      {data.source === DATA_SOURCE.database && (
         <>
           <DescriptionListGroup>
             <DescriptionListTerm>Provider account</DescriptionListTerm>

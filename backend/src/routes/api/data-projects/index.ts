@@ -7,6 +7,7 @@ import {
   Route,
 } from '../../../types';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { PatchUtils } from '@kubernetes/client-node';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -231,7 +232,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       const requestBody = request.body as { stopped: boolean } | any;
 
       let patch;
-      const options = { headers: { 'Content-type': 'application/merge-patch+json' } };
+      const options = {
+        headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+      };
       if (requestBody.stopped) {
         const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
         patch = { metadata: { annotations: { 'kubeflow-resource-stopped': dateStr } } };
