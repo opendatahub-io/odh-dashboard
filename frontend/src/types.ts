@@ -318,11 +318,11 @@ export type ImageStreamList = {
 export type Container = {
   name: string;
   resources: {
-    limits: {
+    limits?: {
       cpu: string;
       memory: string;
     };
-    requests: {
+    requests?: {
       cpu: string;
       memory: string;
     };

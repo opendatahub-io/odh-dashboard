@@ -69,11 +69,7 @@ const AttachStorageModal: React.FC<AttachStorageModalProps> = React.memo(
     }, [isModalOpen, notebook]);
 
     React.useEffect(() => {
-      if (selectedPvc === undefined) {
-        setMountPath('');
-      } else if (!isMountPathEdited) {
-        setMountPath(`/home/storage/${selectedPvc.metadata.name}`);
-      }
+      setMountPath(selectedPvc ? `/home/storage/${selectedPvc.metadata.name}` : '');
     }, [selectedPvc]);
 
     if (!notebookContainer) {
@@ -174,8 +170,7 @@ const AttachStorageModal: React.FC<AttachStorageModalProps> = React.memo(
               onSelect={handlePvcSelection}
               selections={selectedPvc?.metadata.name || 'None'}
               isOpen={isPvcSelectOpen}
-              // isDisabled={isDisabled}
-              // direction={direction}
+              menuAppendTo="parent"
               label="Workspace"
             >
               {pvcSelectOptions}

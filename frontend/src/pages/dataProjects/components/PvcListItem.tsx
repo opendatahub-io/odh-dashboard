@@ -28,6 +28,7 @@ type PvcListItemProps = {
   dataKey: string;
   pvc: PersistentVolumeClaim;
   updatePvc: (pvc: PersistentVolumeClaim) => void;
+  connections: Map<string, string>;
   setModalOpen: (isOpen: boolean) => void;
   onDelete: (pvc: PersistentVolumeClaim) => void;
   handleListItemToggle: (id: string) => void;
@@ -35,7 +36,16 @@ type PvcListItemProps = {
 };
 
 const PvcListItem: React.FC<PvcListItemProps> = React.memo(
-  ({ dataKey, pvc, updatePvc, setModalOpen, onDelete, handleListItemToggle, expandedItems }) => {
+  ({
+    dataKey,
+    pvc,
+    updatePvc,
+    connections,
+    setModalOpen,
+    onDelete,
+    handleListItemToggle,
+    expandedItems,
+  }) => {
     const [isDropdownOpen, setDropdownOpen] = React.useState(false);
     const [isExpanded, setExpanded] = React.useState(expandedItems.has(dataKey));
 
@@ -88,6 +98,7 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-connections`}>
                 <p className="m-bold">Connections</p>
+                {connections.get(pvc.metadata.name)}
               </DataListCell>,
               <DataListCell width={1} key={`${dataKey}-access-external-link`}>
                 <Button isInline variant="link" icon={<ExternalLinkAltIcon />} iconPosition="right">

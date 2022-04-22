@@ -26,7 +26,15 @@ const ObjectStorageForm: React.FC<ObjectStorageFormProps> = React.memo(
         defaultBucket,
         selectedNotebook,
       });
-    }, [secretName, endpointUrl, accessKeyId, secretAccessKey, defaultBucket, selectedNotebook]);
+    }, [
+      secretName,
+      endpointUrl,
+      accessKeyId,
+      secretAccessKey,
+      defaultBucket,
+      selectedNotebook,
+      setInfo,
+    ]);
 
     let notebookSelectOptions = [<SelectOption key={0} value="None" />];
     if (notebookList?.items?.length) {

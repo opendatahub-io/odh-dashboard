@@ -6,7 +6,6 @@ import {
   FormSection,
   Grid,
   GridItem,
-  InputGroup,
   Modal,
   ModalVariant,
   NumberInput,
@@ -80,7 +79,6 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
     const [pvSize, setPvSize] = React.useState(1);
     const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
     const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
-    const [createError, setCreateError] = React.useState(undefined);
     const nameInputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
@@ -242,7 +240,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
       }
       return variableRows.map((row, index) => (
         <EnvironmentVariablesRow
-          key={index}
+          key={`environment-variable-row-${index}`}
           categories={(mockUIConfig.envVarConfig.categories as EnvVarCategoryType[]) || []}
           variableRow={row}
           onUpdate={(updatedRow) => onUpdateRow(index, updatedRow)}
@@ -315,7 +313,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
           </Button>,
           <Button
             isDisabled={createInProgress}
-            key={action.toLowerCase()}
+            key={`${action.toLowerCase()}-and-start`}
             variant="secondary"
             onClick={() => handleNotebookAction(true)}
           >
@@ -372,6 +370,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
                   aria-labelledby="container-size"
                   selections={selectedSize}
                   onSelect={handleSizeSelection}
+                  menuAppendTo="parent"
                 >
                   {sizeOptions}
                 </Select>
@@ -385,6 +384,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
                   aria-labelledby="gpu-numbers"
                   selections={selectedGpu}
                   onSelect={handleGpuSelection}
+                  menuAppendTo="parent"
                 >
                   {gpuOptions}
                 </Select>
@@ -443,11 +443,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
                 name="new-pv-size-input"
                 value={pvSize}
                 onMinus={() => setPvSize((pvSize || 1) - 1)}
-                  onChange={
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    (e) => setPvSize(e.target.value)
-                  }
+                onChange={(e) => setPvSize(Number((e.target as HTMLInputElement).value))}
                 onPlus={() => setPvSize((pvSize || 0) + 1)}
                 widthChars={4}
                 unit="GiB"
