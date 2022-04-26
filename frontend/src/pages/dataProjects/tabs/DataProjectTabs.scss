@@ -1,0 +1,39 @@
+.odh-data-projects__tabs {
+  &-list {
+    width: 40%;
+
+    &-title {
+      padding: var(--pf-global--spacer--md) 0;
+    }
+
+    &-editable-row {
+      td {
+        padding-top: 0;
+        padding-bottom: 1px;
+      }
+    }
+
+    input {
+      width: 80%;
+      font-size: var(--pf-global--FontSize--sm);
+    }
+
+    .pf-c-select {
+      max-width: 130px;
+      button {
+        font-size: var(--pf-global--FontSize--sm);
+      }
+    }
+
+    .pf-c-table__action {
+      > * {
+        position: absolute;
+        right: 0;
+      }
+    }
+
+    tr>:empty {
+      width: var(--pf-c-table--cell--Width);
+    }
+  }
+}

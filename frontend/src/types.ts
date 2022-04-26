@@ -417,3 +417,8 @@ export type SecretList = {
   metadata: Record<string, unknown>;
   items: Secret[];
 };
+
+export enum PermissionType {
+  Edit = 'Edit',
+  View = 'Read only',
+}
