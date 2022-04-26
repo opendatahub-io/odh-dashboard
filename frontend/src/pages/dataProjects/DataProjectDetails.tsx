@@ -63,6 +63,7 @@ import AttachStorageModal from './modals/AttachStorageModal';
 import { deleteSecret, getSecrets } from '../../services/secretService';
 import { ODH_TYPE_OBJECT_STORAGE } from '../../utilities/const';
 import { useGetNotebooks } from '../../utilities/useGetNotebooks';
+import PermissionTabContent from './tabs/permissionTab/PermissionTabContent';
 
 const description = `View and edit data project and environment details.`;
 
@@ -348,6 +349,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                     <TabTitleText>Components</TabTitleText>
                   </>
                 }
+                id={`${project.metadata.name}-tab-components`}
               >
                 <Sidebar hasGutter>
                   <SidebarPanel variant="sticky">
@@ -537,11 +539,12 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                     <TabTitleIcon>
                       <UsersIcon />
                     </TabTitleIcon>
-                    <TabTitleText>Sharing</TabTitleText>
+                    <TabTitleText>Permissions</TabTitleText>
                   </>
                 }
+                id={`${project.metadata.name}-tab-permissions`}
               >
-                Sharing
+                <PermissionTabContent />
               </Tab>
               <Tab
                 eventKey={2}
@@ -553,6 +556,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                     <TabTitleText>Settings</TabTitleText>
                   </>
                 }
+                id={`${project.metadata.name}-tab-settings`}
               >
                 Settings
               </Tab>
