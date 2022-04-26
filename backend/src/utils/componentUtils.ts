@@ -5,13 +5,9 @@ import {
   KubeFastifyInstance,
   RouteKind,
   KfDefApplication,
+  CSVKind,
 } from '../types';
-import {
-  getConsoleLinks,
-  getInstalledKfdefs,
-  getInstalledOperators,
-  getServices,
-} from './resourceUtils';
+import { getConsoleLinks, getInstalledKfdefs, getSubscriptions } from './resourceUtils';
 
 type RoutesResponse = {
   body: {
@@ -58,7 +54,7 @@ export const getLink = async (
       .then((res) => res.body as RouteKind);
     return getURLForRoute(route, routeSuffix);
   } catch (e) {
-    fastify.log.error(`failed to get route ${routeName} in namespace ${namespace}`);
+    fastify.log.info(`failed to get route ${routeName} in namespace ${namespace}`);
     return null;
   }
 };
@@ -80,8 +76,12 @@ export const getServiceLink = async (
   if (!serviceName) {
     return null;
   }
-  const services = getServices();
-  const service = services.find((service) => service.metadata.name === serviceName);
+  const res = await fastify.kube.coreV1Api.listServiceForAllNamespaces(
+    undefined,
+    undefined,
+    `metadata.name=${serviceName}`,
+  );
+  const service = res?.body.items?.[0];
   if (!service) {
     return null;
   }
@@ -94,7 +94,7 @@ export const getServiceLink = async (
       .then((res: RoutesResponse) => res?.body?.items);
     return getURLForRoute(routes?.[0], routeSuffix);
   } catch (e) {
-    fastify.log.error(`failed to get route in namespace ${namespace}`);
+    fastify.log.info(`failed to get route in namespace ${namespace}`);
     return null;
   }
 };
@@ -109,7 +109,13 @@ export const getRouteForApplication = async (
     return route;
   }
 
-  const operatorCSV = getCSVForApp(app);
+  // Check for specified route
+  route = await getLink(fastify, app.spec.route);
+  if (route) {
+    return route;
+  }
+
+  const operatorCSV = await getCSVForApp(fastify, app);
   // Check for CSV route
   route = await getLink(
     fastify,
@@ -121,14 +127,8 @@ export const getRouteForApplication = async (
     return route;
   }
 
-  // Check for specified route
-  route = await getLink(fastify, app.spec.route);
-  if (route) {
-    return route;
-  }
-
   // Check for console link
-  route = await getConsoleLinkRoute(app);
+  route = getConsoleLinkRoute(app);
   if (route) {
     return route;
   }
@@ -159,11 +159,37 @@ export const getApplicationEnabledConfigMap = async (
   return enabledCM.data?.validation_result === 'true';
 };
 
-const getCSVForApp = (app: OdhApplication): K8sResourceCommon | undefined => {
-  const operatorCSVs = getInstalledOperators();
-  return operatorCSVs.find(
-    (operator) => app.spec.csvName && operator.metadata?.name?.startsWith(app.spec.csvName),
+const getCSVForApp = (
+  fastify: KubeFastifyInstance,
+  app: OdhApplication,
+): Promise<K8sResourceCommon | undefined> => {
+  if (!app.spec.csvName) {
+    return Promise.resolve(undefined);
+  }
+
+  const subscriptions = getSubscriptions();
+  const appSubscription = subscriptions.find((sub) =>
+    sub.status.installedCSV.startsWith(app.spec.csvName),
   );
+  if (!appSubscription) {
+    return Promise.resolve(undefined);
+  }
+
+  return fastify.kube.customObjectsApi
+    .getNamespacedCustomObject(
+      'operators.coreos.com',
+      'v1alpha1',
+      appSubscription.status.installPlanRef.namespace,
+      'clusterserviceversions',
+      appSubscription.status.installedCSV,
+    )
+    .then((response) => {
+      const csv = response.body as CSVKind;
+      if (csv.status?.phase === 'Succeeded') {
+        return csv;
+      }
+      return undefined;
+    });
 };
 
 const getKfDefForApp = (appDef: OdhApplication): KfDefApplication | undefined => {
@@ -214,10 +240,6 @@ export const getIsAppEnabled = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
 ): Promise<boolean> => {
-  if (getCSVForApp(appDef)) {
-    return true;
-  }
-
   if (getKfDefForApp(appDef)) {
     return true;
   }
@@ -228,6 +250,10 @@ export const getIsAppEnabled = async (
   }
   const crEnabled = await getCREnabledForApp(fastify, appDef);
   if (crEnabled) {
+    return true;
+  }
+
+  if (await getCSVForApp(fastify, appDef)) {
     return true;
   }
 

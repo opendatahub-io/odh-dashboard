@@ -11,7 +11,7 @@ export type DashboardConfig = {
 export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
-}
+};
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
@@ -68,6 +68,16 @@ export type RouteKind = {
     host?: string;
     tls?: {
       termination: string;
+    };
+  };
+} & K8sResourceCommon;
+
+// Minimal type for Subscriptions
+export type SubscriptionKind = {
+  status: {
+    installedCSV: string;
+    installPlanRef: {
+      namespace: string;
     };
   };
 } & K8sResourceCommon;
