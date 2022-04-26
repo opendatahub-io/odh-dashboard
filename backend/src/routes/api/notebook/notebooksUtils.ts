@@ -44,6 +44,7 @@ const mapPipelineRunToNotebook = (plr: PipelineRunKind): Notebook => ({
   url: plr.spec.params.find((p) => p.name === 'url')?.value,
   user: plr.spec.params.find((p) => p.name === 'creator')?.value,
   phase: 'Importing',
+  visible: false,
 });
 
 export const getNotebooks = async (
@@ -280,7 +281,10 @@ export const updateNotebook = async (
       imageStream.spec.tags[0].annotations['opendatahub.io/notebook-python-dependencies'] =
         JSON.stringify(packages);
     }
-    if (typeof body.visible !== 'undefined') {
+    if (
+      typeof body.visible !== 'undefined' &&
+      imageStream.metadata.labels['opendatahub.io/notebook-image-phase'] === 'Succeeded'
+    ) {
       if (body.visible) {
         imageStream.metadata.labels['opendatahub.io/notebook-image'] = 'true';
       } else {

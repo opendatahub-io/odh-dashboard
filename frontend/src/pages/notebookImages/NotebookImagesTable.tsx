@@ -337,7 +337,7 @@ export const NotebookImagesTable: React.FC<NotebookImagesTableProps> = ({
                     className="enable-switch"
                     aria-label={`Enable Switch ${notebook.name}`}
                     id={`enabled-disable-${notebook.id}`}
-                    isDisabled={notebook.phase === 'Failed'}
+                    isDisabled={notebook.phase !== 'Succeeded'}
                     isChecked={notebookVisible.find((value) => notebook.id === value.id)?.visible}
                     onChange={() => {
                       updateNotebook({
