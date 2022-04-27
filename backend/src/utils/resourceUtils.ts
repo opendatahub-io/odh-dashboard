@@ -16,6 +16,11 @@ import {
   OdhApplication,
   OdhDocument,
   SubscriptionKind,
+  ImageStreamTag,
+  ImageStream,
+  ImageInfo,
+  ImageTagInfo,
+  TagContent,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -24,7 +29,7 @@ import {
   ResourceWatcherTimeUpdate,
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
-import { yamlRegExp } from './constants';
+import { yamlRegExp, IMAGE_ANNOTATIONS } from './constants';
 import { getIsAppEnabled, getRouteForClusterId } from './componentUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
@@ -40,6 +45,7 @@ let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
+let imageInfoWatcher: ResourceWatcher<ImageInfo>;
 
 const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
   metadata: {
@@ -335,6 +341,105 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
     });
 };
 
+const fetchImageInfo = (fastify: KubeFastifyInstance): Promise<ImageInfo[]> => {
+  const requestPromise = fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'image.openshift.io',
+      'v1',
+      fastify.kube.namespace,
+      'imagestreams',
+      undefined,
+      undefined,
+      undefined,
+      'opendatahub.io/notebook-image=true',
+    )
+    .then((res) => {
+      const list = (
+        res?.body as {
+          items: ImageStream[];
+        }
+      )?.items;
+
+      const imageInfoList = list.map((imageStream) => {
+        return processImageInfo(imageStream);
+      });
+
+      return imageInfoList;
+    })
+    .catch(() => {
+      return [];
+    });
+
+  return requestPromise;
+};
+
+const processImageInfo = (imageStream: ImageStream): ImageInfo => {
+  const annotations = imageStream.metadata.annotations;
+
+  const imageInfo: ImageInfo = {
+    name: imageStream.metadata.name,
+    description: annotations[IMAGE_ANNOTATIONS.DESC] || '',
+    url: annotations[IMAGE_ANNOTATIONS.URL] || '',
+    display_name: annotations[IMAGE_ANNOTATIONS.DISP_NAME] || imageStream.metadata.name,
+    tags: getTagInfo(imageStream),
+    order: +annotations[IMAGE_ANNOTATIONS.IMAGE_ORDER] || 100,
+  };
+
+  return imageInfo;
+};
+
+// Check for existence in status.tags
+const checkTagExistence = (tag: ImageStreamTag, imageStream: ImageStream): boolean => {
+  if (imageStream.status) {
+    const tags = imageStream.status.tags;
+    for (let i = 0; i < tags.length; i++) {
+      if (tags[i].tag === tag.name) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const getTagInfo = (imageStream: ImageStream): ImageTagInfo[] => {
+  const tagInfoArray: ImageTagInfo[] = [];
+  const tags = imageStream.spec.tags;
+  if (!tags?.length) {
+    console.error(`${imageStream.metadata.name} does not have any tags.`);
+    return;
+  }
+  tags.forEach((tag) => {
+    let tagAnnotations;
+    if (tag.annotations != null) {
+      tagAnnotations = tag.annotations;
+    } else {
+      tag.annotations = {};
+      tagAnnotations = {};
+    }
+    if (!checkTagExistence(tag, imageStream)) {
+      return; //Skip tag
+    }
+
+    //Build status should be filled out in frontend
+    const tagInfo: ImageTagInfo = {
+      content: getTagContent(tag),
+      name: tag.name,
+      recommended: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.RECOMMENDED] || 'false'),
+      default: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.DEFAULT] || 'false'),
+    };
+    tagInfoArray.push(tagInfo);
+  });
+  return tagInfoArray;
+};
+
+const getTagContent = (tag: ImageStreamTag): TagContent => {
+  const content: TagContent = {
+    software: JSON.parse(tag.annotations[IMAGE_ANNOTATIONS.SOFTWARE] || '[]'),
+    dependencies: JSON.parse(tag.annotations[IMAGE_ANNOTATIONS.DEPENDENCIES] || '[]'),
+  };
+  return content;
+};
+
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<V1ConfigMap>(fastify, fetchDashboardConfigMap);
   subscriptionWatcher = new ResourceWatcher<SubscriptionKind>(fastify, fetchSubscriptions);
@@ -343,6 +448,7 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
   buildsWatcher = new ResourceWatcher<BuildStatus>(fastify, fetchBuilds, getRefreshTimeForBuilds);
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
+  imageInfoWatcher = new ResourceWatcher<ImageInfo>(fastify, fetchImageInfo);
 };
 
 export const getDashboardConfig = (): DashboardConfig => {
@@ -385,4 +491,8 @@ export const getBuildStatuses = (): BuildStatus[] => {
 
 export const getConsoleLinks = (): ConsoleLinkKind[] => {
   return consoleLinksWatcher.getResources();
+};
+
+export const getImageInfo = (): ImageInfo[] => {
+  return imageInfoWatcher.getResources();
 };

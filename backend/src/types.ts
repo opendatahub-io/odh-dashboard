@@ -230,3 +230,83 @@ export type BuildStatus = {
   status: BUILD_PHASE;
   timestamp?: string;
 };
+
+export type ImageStreamTag = {
+  name: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+  from: {
+    kind: string;
+    name: string;
+  };
+};
+
+export type ImageStreamStatusTagItem = {
+  created: string;
+  dockerImageReference: string;
+  image: string;
+  generation: number;
+};
+
+export type ImageStreamStatusTag = {
+  tag: string;
+  items: ImageStreamStatusTagItem[];
+};
+
+export type ImageStreamStatus = {
+  dockerImageRepository?: string;
+  publicDockerImageRepository?: string;
+  tags?: ImageStreamStatusTag[];
+};
+
+export type ImageStream = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    lookupPolicy?: {
+      local: boolean;
+    };
+    tags?: ImageStreamTag[];
+  };
+  status: ImageStreamStatus;
+};
+
+export type ImageStreamList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: ImageStream[];
+} & K8sResourceCommon;
+
+export type NameVersionPair = {
+  name: string;
+  version: string;
+};
+
+export type TagContent = {
+  software: NameVersionPair[];
+  dependencies: NameVersionPair[];
+};
+
+export type ImageTagInfo = {
+  name: string;
+  content: TagContent;
+  recommended: boolean;
+  default: boolean;
+};
+
+export type ImageInfo = {
+  name: string;
+  tags: ImageTagInfo[];
+  description?: string;
+  url?: string;
+  display_name?: string;
+  default?: boolean;
+  order?: number;
+};
