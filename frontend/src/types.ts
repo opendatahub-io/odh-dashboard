@@ -234,6 +234,7 @@ export type Notebook = {
   metadata: {
     name: string;
     namespace: string;
+    uid: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
@@ -422,3 +423,62 @@ export enum PermissionType {
   Edit = 'Edit',
   View = 'Read only',
 }
+
+export type StatefulSet = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    creationTimestamp: string;
+    name: string;
+    namespace: string;
+    ownerReferences: [
+      {
+        apiVersion: string;
+        blockOwnerDeletion: true;
+        controller: true;
+        kind: string;
+        name: string;
+        uid: string;
+      },
+    ];
+  };
+  spec: {
+    podManagementPolicy: string;
+    replicas: number;
+    revisionHistoryLimit: number;
+    selector: {
+      matchLabels: {
+        statefulset: string;
+      };
+    };
+    serviceName: string;
+    template: {
+      metadata: {
+        creationTimestamp: null;
+        labels?: { [key: string]: string };
+      };
+      spec: {
+        containers: Container[];
+        dnsPolicy: string;
+        restartPolicy: string;
+        schedulerName: string;
+        terminationGracePeriodSeconds: number;
+        volumes: Volume[];
+      };
+    };
+    updateStrategy: {
+      rollingUpdate: {
+        partition: 0;
+      };
+      type: string;
+    };
+  };
+  status?: Record<string, any>;
+};
+
+export type StatefulSetList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: StatefulSet[];
+};

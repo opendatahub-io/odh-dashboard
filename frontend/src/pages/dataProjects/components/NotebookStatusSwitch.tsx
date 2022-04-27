@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
-import { getContainerStatus } from '../../../utilities/imageUtils';
-import { Notebook } from '../../../types';
+import { Notebook, StatefulSet } from '../../../types';
 import { useDispatch } from 'react-redux';
 import { addNotification } from 'redux/actions/actions';
 
 import '../DataProjects.scss';
+import { getNotebookStatefulSet, getNotebookStatus } from '../../../utilities/notebookUtils';
 
 type NotebookStatusSwitchProps = {
   notebook: Notebook;
+  statefulSet: StatefulSet | undefined;
   loadNotebooks: () => void;
   watchNotebookStatus: () => { start: () => void; stop: () => void };
   updateInProgress: boolean;
@@ -17,9 +18,16 @@ type NotebookStatusSwitchProps = {
 };
 
 const NotebookStatusSwitch: React.FC<NotebookStatusSwitchProps> = React.memo(
-  ({ notebook, loadNotebooks, watchNotebookStatus, updateInProgress, setUpdateInProgress }) => {
+  ({
+    notebook,
+    statefulSet,
+    loadNotebooks,
+    watchNotebookStatus,
+    updateInProgress,
+    setUpdateInProgress,
+  }) => {
     const dispatch = useDispatch();
-    const status = getContainerStatus(notebook);
+    const status = getNotebookStatus(notebook, statefulSet);
     const disabled = updateInProgress || (status !== 'Running' && status !== 'Stopped');
 
     React.useEffect(() => {

@@ -7,7 +7,6 @@ import {
   ImageStreamTag,
   ImageTagType,
   ImageType,
-  Notebook,
 } from '../types';
 import {
   ANNOTATION_NOTEBOOK_IMAGE_NAME,
@@ -16,8 +15,6 @@ import {
   ANNOTATION_NOTEBOOK_IMAGE_TAG_DEPENDENCIES,
   ANNOTATION_NOTEBOOK_IMAGE_TAG_RECOMMENDED,
   ANNOTATION_NOTEBOOK_IMAGE_TAG_SOFTWARE,
-  ANNOTATION_NOTEBOOK_STARTED,
-  ANNOTATION_NOTEBOOK_STOPPED,
   LIMIT_NOTEBOOK_IMAGE_GPU,
 } from './const';
 
@@ -120,26 +117,6 @@ export const getTagDependencies = (tag?: ImageStreamTag): ImageSoftwareType[] =>
 
 export const getNumGpus = (container?: Container): number => {
   return container?.resources?.limits?.[LIMIT_NOTEBOOK_IMAGE_GPU] || 0;
-};
-
-export const getContainerStatus = (notebook?: Notebook): string => {
-  if (notebook?.metadata?.annotations?.[ANNOTATION_NOTEBOOK_STOPPED]) {
-    if (notebook?.status?.readyReplicas > 0) {
-      return 'Stopping';
-    } else {
-      return 'Stopped';
-    }
-  }
-
-  if (notebook?.metadata?.annotations?.[ANNOTATION_NOTEBOOK_STARTED]) {
-    if (!notebook.status || notebook.status?.readyReplicas > 0) {
-      return 'Running';
-    } else {
-      return 'Starting';
-    }
-  }
-
-  return 'Waiting';
 };
 
 export const getImageStreamByContainer = (
