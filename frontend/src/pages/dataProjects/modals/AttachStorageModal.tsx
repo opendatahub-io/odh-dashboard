@@ -19,7 +19,7 @@ import {
   Volume,
 } from 'types';
 import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
-import { getContainer } from '../../../utilities/notebookUtils';
+import { getNotebookContainer } from '../../../utilities/notebookUtils';
 
 type AttachStorageModalProps = {
   notebook: Notebook | null;
@@ -41,7 +41,7 @@ const AttachStorageModal: React.FC<AttachStorageModalProps> = React.memo(
     const nameInputRef = React.useRef<HTMLInputElement>(null);
     const validate = () => !!selectedPvc && !!mountPath;
 
-    const notebookContainer = getContainer(notebook);
+    const notebookContainer = getNotebookContainer(notebook);
 
     const pvcSelectOptions = pvcList?.items
       ?.filter((pvc) => {
@@ -52,7 +52,7 @@ const AttachStorageModal: React.FC<AttachStorageModalProps> = React.memo(
           return true;
         }
         const alreadyAttached = notebookList?.items.find((nb) => {
-          const nbc = getContainer(nb);
+          const nbc = getNotebookContainer(nb);
           return nbc?.volumeMounts.find((vm) => vm.name === pvc.metadata.name);
         });
         return !alreadyAttached;
@@ -91,7 +91,7 @@ const AttachStorageModal: React.FC<AttachStorageModalProps> = React.memo(
       const name = selectedPvc.metadata.name;
       const containers = notebook?.spec?.template?.spec?.containers;
       const volumes: Volume[] = notebook?.spec?.template?.spec?.volumes || [];
-      const notebookContainer = getContainer(notebook);
+      const notebookContainer = getNotebookContainer(notebook);
 
       if (!notebookContainer) {
         return Promise.reject('no notebook container');

@@ -104,11 +104,11 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
     };
 
     const modelEngineOptions = [
-      <SelectOption id="triton" key="seldon" value="triton">
+      <SelectOption id="triton" key="triton" value="triton">
         Triton
       </SelectOption>,
-      <SelectOption id="seldon" key="seldon" value="seldon">
-        Seldon
+      <SelectOption id="mlserver" key="mlserver" value="mlserver">
+        MLServer
       </SelectOption>,
     ];
 

@@ -51,7 +51,6 @@ import {
 import {
   deleteDataProjectNotebook,
   getDataProject,
-  getDataProjectNotebooks,
 } from '../../services/dataProjectsService';
 import { getImageStreams } from '../../services/imageStreamService';
 import { deletePvc, getPvcs, getStorageClasses } from '../../services/storageService';
@@ -64,6 +63,7 @@ import { deleteSecret, getSecrets } from '../../services/secretService';
 import { ODH_TYPE_OBJECT_STORAGE } from '../../utilities/const';
 import { useGetNotebooks } from '../../utilities/useGetNotebooks';
 import PermissionTabContent from './tabs/permissionTab/PermissionTabContent';
+import { getNotebookStatefulSet } from '../../utilities/notebookUtils';
 
 const description = `View and edit data project and environment details.`;
 
@@ -85,7 +85,8 @@ export const DataProjectDetails: React.FC = React.memo(() => {
   const history = useHistory();
   const dispatch = useDispatch();
 
-  const { notebookList, loadNotebooks, watchNotebookStatus } = useGetNotebooks(projectName);
+  const { notebookList, statefulSetList, loadNotebooks, watchNotebookStatus } =
+    useGetNotebooks(projectName);
 
   const [offsetHeight, setOffsetHeight] = React.useState(10);
 
@@ -399,6 +400,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                             key={`workspace-${notebook.metadata.name}`}
                             dataKey={`workspace-${notebook.metadata.name}`}
                             notebook={notebook}
+                            statefulSet={getNotebookStatefulSet(notebook, statefulSetList)}
                             loadNotebooks={loadNotebooks}
                             watchNotebookStatus={watchNotebookStatus}
                             imageStreams={imageList?.items ?? []}

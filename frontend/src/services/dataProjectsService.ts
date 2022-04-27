@@ -56,6 +56,7 @@ export const createDataProject = (name: string, description: string): Promise<Pr
       labels: {
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': store.getState().appState.user,
+        'modelmesh-enabled': 'true',
       },
     },
     description,

@@ -10,6 +10,7 @@ import { getContainerStatus } from '../../utilities/imageUtils';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import NotebookStatusSwitch from './components/NotebookStatusSwitch';
 import { relativeTime } from '../../utilities/time';
+import { getNotebookStatefulSet, getNotebookStatus } from '../../utilities/notebookUtils';
 
 type DataProjectsTableRowProps = {
   project: Project;
@@ -21,7 +22,7 @@ type DataProjectsTableRowProps = {
 const DataProjectsTableRow: React.FC<DataProjectsTableRowProps> = React.memo(
   ({ project, rowIndex, columns, rowActions }) => {
     const history = useHistory();
-    const { notebookList, loadNotebooks, watchNotebookStatus } = useGetNotebooks(
+    const { notebookList, statefulSetList, loadNotebooks, watchNotebookStatus } = useGetNotebooks(
       project.metadata.name,
     );
     const [updateInProgress, setUpdateInProgress] = React.useState(false);
@@ -51,7 +52,10 @@ const DataProjectsTableRow: React.FC<DataProjectsTableRowProps> = React.memo(
               key={`${notebook.metadata.name}-link-open`}
               className="odh-data-projects__table-workspace-button"
               isSmall
-              isDisabled={getContainerStatus(notebook) !== 'Running'}
+              isDisabled={
+                getNotebookStatus(notebook, getNotebookStatefulSet(notebook, statefulSetList)) !==
+                'Running'
+              }
               variant="link"
               icon={<ExternalLinkAltIcon />}
               iconPosition="right"
@@ -72,6 +76,7 @@ const DataProjectsTableRow: React.FC<DataProjectsTableRowProps> = React.memo(
               <FlexItem key={`${notebook.metadata.name}-status-switch`}>
                 <NotebookStatusSwitch
                   notebook={notebook}
+                  statefulSet={getNotebookStatefulSet(notebook, statefulSetList)}
                   loadNotebooks={loadNotebooks}
                   watchNotebookStatus={watchNotebookStatus}
                   updateInProgress={updateInProgress}

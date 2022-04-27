@@ -1,19 +1,22 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { NotebookList } from '../types';
+import { NotebookList, StatefulSetList } from '../types';
 import { getDataProjectNotebooks } from '../services/dataProjectsService';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../redux/actions/actions';
+import { getStatefulSets } from '../services/statefulSetsService';
 
 export const useGetNotebooks = (
   projectName: string,
 ): {
   notebookList: NotebookList | undefined;
+  statefulSetList: StatefulSetList | undefined;
   watchNotebookStatus: () => { start: () => void; stop: () => void };
   loadNotebooks: () => void;
 } => {
   const dispatch = useDispatch();
   const [notebookList, setNotebookList] = React.useState<NotebookList>();
+  const [statefulSetList, setStatefulSetList] = React.useState<StatefulSetList>();
   const isWatchingNotebooks = React.useRef(false); // avoid multiple watchers
   const cancelled = React.useRef(false);
 
@@ -25,52 +28,46 @@ export const useGetNotebooks = (
     };
   }, [projectName]);
 
-  const loadNotebooks = () => {
-    getDataProjectNotebooks(projectName)
-      .then((nbks: NotebookList) => {
-        setNotebookList(nbks);
-      })
-      .catch((e) => {
-        dispatch(
-          addNotification({
-            status: 'danger',
-            title: `Load notebooks error.`,
-            message: e.message,
-            timestamp: new Date(),
-          }),
-        );
-      });
+  const loadNotebooks = async () => {
+    const nbPromise = getDataProjectNotebooks(projectName);
+    const ssPromise = getStatefulSets(projectName);
+    try {
+      setNotebookList(await nbPromise);
+      setStatefulSetList(await ssPromise);
+    } catch (e) {
+      dispatch(
+        addNotification({
+          status: 'danger',
+          title: `Load notebooks error.`,
+          message: e.message,
+          timestamp: new Date(),
+        }),
+      );
+    }
   };
 
   const watchNotebookStatus = () => {
     let watchHandle;
     const start = () => {
-      const watchNotebooks = () => {
+      const watchNotebooks = async () => {
         if (!cancelled.current) {
           isWatchingNotebooks.current = true;
-          getDataProjectNotebooks(projectName)
-            .then(async (newNotebookList: NotebookList) => {
-              // const newNotebooks = newNotebookList.items;
-              // const needWatch = newNotebooks.filter(notebook => getContainerStatus(notebook) !== 'Running' && getContainerStatus(notebook) !== 'Stopped').length !== 0;
-              // if(!_.isEqual(newNotebooks, notebooks)) {
-              setNotebookList(newNotebookList);
-              // }
-              // if (needWatch) {
-              watchHandle = setTimeout(watchNotebooks, 5000);
-              // } else {
-              //   isWatchingNotebooks.current = false;
-              // }
-            })
-            .catch((e) => {
-              dispatch(
-                addNotification({
-                  status: 'danger',
-                  title: `Load notebooks error.`,
-                  message: e.message,
-                  timestamp: new Date(),
-                }),
-              );
-            });
+          const nbPromise = getDataProjectNotebooks(projectName);
+          const ssPromise = getStatefulSets(projectName);
+          try {
+            setNotebookList(await nbPromise);
+            setStatefulSetList(await ssPromise);
+            watchHandle = setTimeout(watchNotebooks, 5000);
+          } catch (e) {
+            dispatch(
+              addNotification({
+                status: 'danger',
+                title: `Load notebooks error.`,
+                message: e.message,
+                timestamp: new Date(),
+              }),
+            );
+          }
         }
       };
       if (!isWatchingNotebooks.current) {
@@ -85,5 +82,5 @@ export const useGetNotebooks = (
     return { start, stop };
   };
 
-  return { notebookList, watchNotebookStatus, loadNotebooks };
+  return { notebookList, statefulSetList, watchNotebookStatus, loadNotebooks };
 };

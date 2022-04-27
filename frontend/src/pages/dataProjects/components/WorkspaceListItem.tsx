@@ -36,14 +36,17 @@ import {
   ImageStreamTag,
   Notebook,
   PersistentVolumeClaimList,
+  StatefulSet,
   Volume,
 } from '../../../types';
 import NotebookStatusSwitch from './NotebookStatusSwitch';
 import { patchDataProjectNotebook } from 'services/dataProjectsService';
+import { getNotebookStatus } from '../../../utilities/notebookUtils';
 
 type WorkspaceListItemProps = {
   dataKey: string;
   notebook: Notebook;
+  statefulSet: StatefulSet | undefined;
   loadNotebooks: () => void;
   watchNotebookStatus: () => { start: () => void; stop: () => void };
   imageStreams: ImageStream[];
@@ -60,6 +63,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
   ({
     dataKey,
     notebook,
+    statefulSet,
     loadNotebooks,
     watchNotebookStatus,
     imageStreams,
@@ -71,7 +75,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
     handleListItemToggle,
     expandedItems,
   }) => {
-    const status = getContainerStatus(notebook);
+    const status = getNotebookStatus(notebook, statefulSet);
     const [isDropdownOpen, setDropdownOpen] = React.useState(false);
     const [isExpanded, setExpanded] = React.useState(expandedItems.has(dataKey));
     const [updateInProgress, setUpdateInProgress] = React.useState(false);
@@ -241,6 +245,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
               <DataListCell width={2} key={`${dataKey}-status`}>
                 <NotebookStatusSwitch
                   notebook={notebook}
+                  statefulSet={statefulSet}
                   loadNotebooks={loadNotebooks}
                   watchNotebookStatus={watchNotebookStatus}
                   updateInProgress={updateInProgress}

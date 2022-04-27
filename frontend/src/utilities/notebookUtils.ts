@@ -1,9 +1,51 @@
-import { Container, Notebook } from '../types';
+import { Container, Notebook, StatefulSet, StatefulSetList } from '../types';
+import { ANNOTATION_NOTEBOOK_STARTED, ANNOTATION_NOTEBOOK_STOPPED } from './const';
 
-export const getContainer = (notebook: Notebook | undefined | null): Container | undefined => {
+export const getNotebookContainer = (
+  notebook: Notebook | undefined | null,
+): Container | undefined => {
   if (!notebook) {
     return;
   }
   const containers: Container[] = notebook.spec?.template?.spec?.containers || [];
   return containers.find((container) => container.name === notebook.metadata.name);
+};
+
+export const getNotebookStatefulSet = (
+  notebook: Notebook | undefined | null,
+  statefulSetList: StatefulSetList | undefined | null,
+): StatefulSet | undefined => {
+  if (!notebook) {
+    console.log('getNotebookStatefulSet', notebook);
+    return;
+  }
+  const retval = statefulSetList?.items.find((ss) => {
+    return ss.metadata.ownerReferences.find((owner) => notebook.metadata.uid === owner.uid);
+  });
+  console.log('getNotebookStatefulSet', notebook, retval);
+  return retval;
+};
+
+export const getNotebookStatus = (
+  notebook: Notebook | undefined | null,
+  statefulSet: StatefulSet | undefined | null,
+): string | undefined => {
+  console.log('getNotebookStatus', notebook, statefulSet);
+  if (notebook?.metadata?.annotations?.[ANNOTATION_NOTEBOOK_STOPPED]) {
+    if (statefulSet?.status?.currentReplicas > 0) {
+      return 'Stopping';
+    } else {
+      return 'Stopped';
+    }
+  }
+
+  if (notebook?.metadata?.annotations?.[ANNOTATION_NOTEBOOK_STARTED]) {
+    if (statefulSet?.status?.readyReplicas > 0) {
+      return 'Running';
+    } else {
+      return 'Starting';
+    }
+  }
+
+  return 'Waiting';
 };
