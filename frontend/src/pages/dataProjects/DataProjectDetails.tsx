@@ -48,10 +48,8 @@ import {
   StorageClassList,
   SecretList,
 } from '../../types';
-import {
-  deleteDataProjectNotebook,
-  getDataProject,
-} from '../../services/dataProjectsService';
+import { getDataProject } from '../../services/dataProjectsService';
+import { deleteDataProjectNotebook } from '../../services/notebookService';
 import { getImageStreams } from '../../services/imageStreamService';
 import { deletePvc, getPvcs, getStorageClasses } from '../../services/storageService';
 import { addNotification } from '../../redux/actions/actions';

@@ -32,7 +32,7 @@ import './DataProjectsModal.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EnvironmentVariablesRow from '../spawner/EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '../const';
-import { createDataProjectNotebook } from '../../../services/dataProjectsService';
+import { createDataProjectNotebook } from '../../../services/notebookService';
 import {
   getImageStreamByContainer,
   getDefaultTagByImageStream,

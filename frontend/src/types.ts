@@ -316,8 +316,29 @@ export type ImageStreamList = {
   items: ImageStream[];
 };
 
+export type Probe = {
+  initialDelaySeconds?: number;
+  periodSeconds?: number;
+  timeoutSeconds?: number;
+  successThreshold?: number;
+  failureThreshold?: number;
+  httpGet?: {
+    path?: string;
+    port?: number | string;
+    httpHeaders?: { [key: string]: string };
+  };
+  tcpSocket?: {
+    port: number;
+  };
+};
+
 export type Container = {
   name: string;
+  image: string;
+  imagePullPolicy?: string;
+  env?: { name: string; value: string }[];
+  args?: string[];
+  volumeMounts: VolumeMount[];
   resources: {
     limits?: {
       cpu: string;
@@ -328,12 +349,9 @@ export type Container = {
       memory: string;
     };
   };
+  livenessProbe?: Probe;
+  readinessProbe?: Probe;
   terminationMessagePath?: string;
-  env?: { name: string; value: string }[];
-  imagePullPolicy?: string;
-  image: string;
-  args?: string[];
-  volumeMounts: VolumeMount[];
 };
 
 export type StorageClass = {
