@@ -16,13 +16,11 @@ export const getNotebookStatefulSet = (
   statefulSetList: StatefulSetList | undefined | null,
 ): StatefulSet | undefined => {
   if (!notebook) {
-    console.log('getNotebookStatefulSet', notebook);
     return;
   }
   const retval = statefulSetList?.items.find((ss) => {
     return ss.metadata.ownerReferences.find((owner) => notebook.metadata.uid === owner.uid);
   });
-  console.log('getNotebookStatefulSet', notebook, retval);
   return retval;
 };
 
@@ -30,7 +28,6 @@ export const getNotebookStatus = (
   notebook: Notebook | undefined | null,
   statefulSet: StatefulSet | undefined | null,
 ): string | undefined => {
-  console.log('getNotebookStatus', notebook, statefulSet);
   if (notebook?.metadata?.annotations?.[ANNOTATION_NOTEBOOK_STOPPED]) {
     if (statefulSet?.status?.currentReplicas > 0) {
       return 'Stopping';

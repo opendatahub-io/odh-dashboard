@@ -40,7 +40,7 @@ import {
   Volume,
 } from '../../../types';
 import NotebookStatusSwitch from './NotebookStatusSwitch';
-import { patchDataProjectNotebook } from 'services/dataProjectsService';
+import { patchDataProjectNotebook } from 'services/notebookService';
 import { getNotebookStatus } from '../../../utilities/notebookUtils';
 
 type WorkspaceListItemProps = {

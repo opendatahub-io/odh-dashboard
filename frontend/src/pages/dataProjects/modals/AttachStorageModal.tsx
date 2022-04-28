@@ -18,7 +18,7 @@ import {
   PersistentVolumeClaimList,
   Volume,
 } from 'types';
-import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
+import { patchDataProjectNotebook } from '../../../services/notebookService';
 import { getNotebookContainer } from '../../../utilities/notebookUtils';
 
 type AttachStorageModalProps = {

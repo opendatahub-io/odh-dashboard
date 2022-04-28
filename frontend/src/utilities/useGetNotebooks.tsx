@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { NotebookList, StatefulSetList } from '../types';
-import { getDataProjectNotebooks } from '../services/dataProjectsService';
+import { getDataProjectNotebooks } from '../services/notebookService';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../redux/actions/actions';
 import { getStatefulSets } from '../services/statefulSetsService';

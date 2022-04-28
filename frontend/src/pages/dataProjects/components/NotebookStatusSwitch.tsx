@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
-import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
+import { patchDataProjectNotebook } from '../../../services/notebookService';
 import { Notebook, StatefulSet } from '../../../types';
 import { useDispatch } from 'react-redux';
 import { addNotification } from 'redux/actions/actions';

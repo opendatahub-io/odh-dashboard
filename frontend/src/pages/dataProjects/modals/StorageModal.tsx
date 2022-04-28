@@ -16,7 +16,7 @@ import {
 import { Container, Notebook, NotebookList, Project, StorageClassList, Volume } from 'types';
 import { createPvc } from '../../../services/storageService';
 import { ANNOTATION_STORAGE_CLASS_DEFAULT } from '../../../utilities/const';
-import { patchDataProjectNotebook } from '../../../services/dataProjectsService';
+import { patchDataProjectNotebook } from '../../../services/notebookService';
 
 type StorageModalProps = {
   project: Project | undefined;
