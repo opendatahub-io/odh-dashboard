@@ -14,6 +14,7 @@ const ObjectStorageForm: React.FC<ObjectStorageFormProps> = React.memo(
     const [accessKeyId, setAccessKeyId] = React.useState<string>('');
     const [secretAccessKey, setSecretAccessKey] = React.useState<string>('');
     const [defaultBucket, setDefaultBucket] = React.useState<string>('');
+    const [region, setRegion] = React.useState<string>('');
     const [isNotebookSelectOpen, setIsNotebookSelectOpen] = React.useState(false);
     const [selectedNotebook, setSelectedNotebook] = React.useState<Notebook | undefined>(undefined);
 
@@ -24,6 +25,7 @@ const ObjectStorageForm: React.FC<ObjectStorageFormProps> = React.memo(
         accessKeyId,
         secretAccessKey,
         defaultBucket,
+        region,
         selectedNotebook,
       });
     }, [
@@ -32,6 +34,7 @@ const ObjectStorageForm: React.FC<ObjectStorageFormProps> = React.memo(
       accessKeyId,
       secretAccessKey,
       defaultBucket,
+      region,
       selectedNotebook,
       setInfo,
     ]);
@@ -95,6 +98,14 @@ const ObjectStorageForm: React.FC<ObjectStorageFormProps> = React.memo(
             name="default-bucket-input"
             value={defaultBucket}
             onChange={(value) => setDefaultBucket(value)}
+          />
+        </FormGroup>
+        <FormGroup fieldId="region" label="Region">
+          <TextInput
+            id="region-input"
+            name="region-input"
+            value={region}
+            onChange={(value) => setRegion(value)}
           />
         </FormGroup>
         <FormGroup label="Notebook" fieldId="storage-connection">

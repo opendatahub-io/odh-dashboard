@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Button,
   DataListAction,
   DataListCell,
   DataListContent,
@@ -14,24 +13,26 @@ import {
   Title,
 } from '@patternfly/react-core';
 import '../DataProjects.scss';
-import { Secret } from '../../../types';
-import { CubeIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { OpenShiftRoute, Predictor, ServingRuntimeList } from '../../../types';
+import { getModelRoute, getModelTypeDisplayName } from '../../../utilities/servingUtils';
 
-type ObjectStorageListItemProps = {
+type PredictorListItemProps = {
   dataKey: string;
-  objectStorage: Secret;
-  // updateObjectStorage: (objectStorage: Secret) => void;
+  predictor: Predictor;
+  route: OpenShiftRoute | undefined;
+  servingRuntimeList: ServingRuntimeList | undefined;
   setModalOpen: (isOpen: boolean) => void;
-  onDelete: (objectStorage: Secret) => void;
+  onDelete: (predictor: Predictor) => void;
   handleListItemToggle: (id: string) => void;
   expandedItems: Set<string>;
 };
 
-const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
+const PredictorListItem: React.FC<PredictorListItemProps> = React.memo(
   ({
     dataKey,
-    objectStorage,
-    // updateObjectStorage,
+    predictor,
+    route,
+    servingRuntimeList,
     setModalOpen,
     onDelete,
     handleListItemToggle,
@@ -39,6 +40,11 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
   }) => {
     const [isDropdownOpen, setDropdownOpen] = React.useState(false);
     const [isExpanded, setExpanded] = React.useState(expandedItems.has(dataKey));
+
+    let creationDate;
+    if (predictor.metadata.creationTimestamp) {
+      creationDate = new Date(predictor.metadata.creationTimestamp).toLocaleString();
+    }
 
     React.useEffect(() => {
       if (dataKey) {
@@ -48,11 +54,11 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
       }
     }, [expandedItems, dataKey, isExpanded]);
 
-    const getResourceAnnotation = (resource: Secret, annotationKey: string): string =>
+    const getResourceAnnotation = (resource: Predictor, annotationKey: string): string =>
       resource?.metadata.annotations?.[annotationKey] ?? '';
 
     const handleEdit = () => {
-      console.log('ObjectStorageListItem handleEdit');
+      console.log('PredictorListItem handleEdit');
     };
 
     const dropdownItems = [
@@ -60,7 +66,7 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
         Edit
       </DropdownItem>,
       <DropdownItem
-        onClick={() => onDelete(objectStorage)}
+        onClick={() => onDelete(predictor)}
         key={`${dataKey}-delete`}
         component="button"
       >
@@ -78,31 +84,29 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
           />
           <DataListItemCells
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-name-descriptions`}>
+              <DataListCell width={3} key={`${dataKey}-name-descriptions`}>
                 <Title size="md" headingLevel="h4">
-                  {objectStorage.metadata.name}
+                  {predictor.metadata.name}
                 </Title>
-                {getResourceAnnotation(objectStorage, 'opendatahub.io/description')}
+                {getResourceAnnotation(predictor, 'opendatahub.io/description')}
               </DataListCell>,
-              <DataListCell width={2} key={`${dataKey}-object-storage-type`}>
-                <p>
-                  <CubeIcon /> Object storage
-                </p>
+              <DataListCell width={1} key={`${dataKey}-model-type`}>
+                <p>{getModelTypeDisplayName(predictor)}</p>
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-connections`}>
-                <p className="m-bold">Connections</p>
+                <p>{predictor.spec.storage.s3.secretKey}</p>
+                <p>{predictor.spec.path}</p>
               </DataListCell>,
               <DataListCell width={1} key={`${dataKey}-access-external-link`}>
-                <Button isInline variant="link" icon={<ExternalLinkAltIcon />} iconPosition="right">
-                  <a href={'#'} target="_blank" rel="noopener noreferrer">
-                    Access
-                  </a>
-                </Button>
+                <p>{predictor.status?.activeModelState}</p>
+              </DataListCell>,
+              <DataListCell width={1} key={`${dataKey}-access-external-link`}>
+                <p>{creationDate}</p>
               </DataListCell>,
             ]}
           />
           <DataListAction
-            aria-label={`Volume ${objectStorage.metadata.name} Action`}
+            aria-label={`Volume ${predictor.metadata.name} Action`}
             aria-labelledby={`${dataKey}-action`}
             id={`${dataKey}-action`}
             isPlainButtonAction
@@ -119,25 +123,18 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
         </DataListItemRow>
         <DataListContent
           hasNoPadding
-          aria-label={`Volume ${objectStorage.metadata.name} Expanded Content`}
+          aria-label={`Volume ${predictor.metadata.name} Expanded Content`}
           id={`${dataKey}-expanded-content`}
           isHidden={!isExpanded}
         >
           <DataListItemCells
             className="odh-data-projects__data-list-item-content"
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-object-storage`}>
-                <p className="m-bold">Endpoint</p>
-                <p>{atob(objectStorage?.data?.endpoint_url || '')}</p>
+              <DataListCell width={5} key={`${dataKey}-predictor`}>
+                <p className="m-bold">API Endpoint</p>
+                <p>{getModelRoute(predictor, route)}</p>
               </DataListCell>,
-              <DataListCell width={2} key={`${dataKey}-object-storage-type-detail`}>
-                <p className="m-bold">Provider</p>
-                <p>
-                  {(objectStorage?.data?.endpoint_url || '').includes('amazon')
-                    ? 'AWS S3'
-                    : 'Object Store'}
-                </p>
-              </DataListCell>,
+              <DataListCell width={2} key={`${dataKey}-predictor-type-detail`}></DataListCell>,
               <DataListCell width={2} key={`${dataKey}-content-empty-1`} />,
               <DataListCell width={1} key={`${dataKey}-access-empty-2`} />,
             ]}
@@ -148,6 +145,6 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
   },
 );
 
-ObjectStorageListItem.displayName = 'ObjectStorageListItem';
+PredictorListItem.displayName = 'PredictorListItem';
 
-export default ObjectStorageListItem;
+export default PredictorListItem;

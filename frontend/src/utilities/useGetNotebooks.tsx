@@ -1,7 +1,6 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { NotebookList, StatefulSetList } from '../types';
-import { getDataProjectNotebooks } from '../services/notebookService';
+import { getNotebooks } from '../services/notebookService';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../redux/actions/actions';
 import { getStatefulSets } from '../services/statefulSetsService';
@@ -29,7 +28,7 @@ export const useGetNotebooks = (
   }, [projectName]);
 
   const loadNotebooks = async () => {
-    const nbPromise = getDataProjectNotebooks(projectName);
+    const nbPromise = getNotebooks(projectName);
     const ssPromise = getStatefulSets(projectName);
     try {
       setNotebookList(await nbPromise);
@@ -52,7 +51,7 @@ export const useGetNotebooks = (
       const watchNotebooks = async () => {
         if (!cancelled.current) {
           isWatchingNotebooks.current = true;
-          const nbPromise = getDataProjectNotebooks(projectName);
+          const nbPromise = getNotebooks(projectName);
           const ssPromise = getStatefulSets(projectName);
           try {
             setNotebookList(await nbPromise);

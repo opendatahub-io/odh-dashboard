@@ -47,9 +47,13 @@ import {
   PersistentVolumeClaim,
   StorageClassList,
   SecretList,
+  PredictorList,
+  Predictor,
+  OpenShiftRoute,
+  ServingRuntimeList,
 } from '../../types';
 import { getDataProject } from '../../services/dataProjectsService';
-import { deleteDataProjectNotebook } from '../../services/notebookService';
+import { deleteNotebook } from '../../services/notebookService';
 import { getImageStreams } from '../../services/imageStreamService';
 import { deletePvc, getPvcs, getStorageClasses } from '../../services/storageService';
 import { addNotification } from '../../redux/actions/actions';
@@ -58,10 +62,12 @@ import ModelServingModal from './modals/ModelServingModal';
 import StorageModal from './modals/StorageModal';
 import AttachStorageModal from './modals/AttachStorageModal';
 import { deleteSecret, getSecrets } from '../../services/secretService';
-import { ODH_TYPE_OBJECT_STORAGE } from '../../utilities/const';
+import { ODH_TYPE, ODH_TYPE_OBJECT_STORAGE } from '../../utilities/const';
 import { useGetNotebooks } from '../../utilities/useGetNotebooks';
 import PermissionTabContent from './tabs/permissionTab/PermissionTabContent';
 import { getNotebookStatefulSet } from '../../utilities/notebookUtils';
+import { deletePredictor, getPredictors, getServingRoute } from '../../services/predictorService';
+import PredictorListItem from './components/PredictorListItem';
 
 const description = `View and edit data project and environment details.`;
 
@@ -115,15 +121,33 @@ export const DataProjectDetails: React.FC = React.memo(() => {
   const [pvcList, setPvcList] = React.useState<PersistentVolumeClaimList | undefined>(undefined);
   const [pvcsLoading, setPvcsLoading] = React.useState(false);
 
-  const [objectStorageList, setObjectStorageList] = React.useState<SecretList | undefined>(
-    undefined,
-  );
+  const [secretList, setSecretList] = React.useState<SecretList | undefined>(undefined);
   const [objectStorageListLoading, setObjectStorageListLoading] = React.useState(false);
 
   const [odhConfig, setOdhConfig] = React.useState<OdhConfig | undefined>(undefined);
   const [odhConfigLoading, setOdhConfigLoading] = React.useState(false);
 
-  const [modelServingList, setModelServingList] = React.useState(undefined);
+  const [predictorList, setPredictorList] = React.useState<PredictorList | undefined>(undefined);
+  const [predictorListLoading, setPredictorListLoading] = React.useState(false);
+
+  const [servingRuntimeList, setServingRuntimeList] = React.useState<
+    ServingRuntimeList | undefined
+  >(undefined);
+  const [servingRoute, setServingRoute] = React.useState<OpenShiftRoute | undefined>(undefined);
+
+  const objectStorageList: SecretList = {
+    metadata: {},
+    items:
+      secretList?.items.filter((secret) => {
+        return secret?.metadata?.labels?.[ODH_TYPE] === ODH_TYPE_OBJECT_STORAGE;
+      }) || [],
+  };
+
+  const servingStorageConfig = {
+    items: secretList?.items.find((secret) => {
+      return secret?.metadata?.name === 'storage-config';
+    }),
+  };
 
   const dispatchError = (e: Error, title: string) => {
     dispatch(
@@ -203,13 +227,33 @@ export const DataProjectDetails: React.FC = React.memo(() => {
 
   const loadObjectStorage = () => {
     setObjectStorageListLoading(true);
-    return getSecrets(projectName, ODH_TYPE_OBJECT_STORAGE)
+    return getSecrets(projectName)
       .then((sl: SecretList) => {
-        setObjectStorageList(sl);
+        setSecretList(sl);
         setObjectStorageListLoading(false);
       })
       .catch((e) => {
         dispatchError(e, 'Load Object Storage Error');
+      });
+  };
+
+  const loadServing = () => {
+    getServingRoute(projectName)
+      .then((sr: OpenShiftRoute) => {
+        setServingRoute(sr);
+      })
+      .catch((e) => {
+        dispatchError(e, 'Load Serving Route Error');
+      });
+
+    setPredictorListLoading(true);
+    return getPredictors(projectName)
+      .then((pl: PredictorList) => {
+        setPredictorList(pl);
+        setPredictorListLoading(false);
+      })
+      .catch((e) => {
+        dispatchError(e, 'Load Served Models Error');
       });
   };
 
@@ -240,6 +284,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
     loadStorageClasses();
     loadPvcs();
     loadObjectStorage();
+    loadServing();
   }, []);
 
   React.useEffect(() => {
@@ -260,6 +305,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
   useInterval(() => {
     loadPvcs();
     loadObjectStorage();
+    loadServing();
   }, 10000);
 
   const listEmpty = (
@@ -269,6 +315,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
       | PersistentVolumeClaimList
       | StorageClassList
       | SecretList
+      | PredictorList
       | undefined,
   ) => !list || !list.items || list.items.length === 0;
 
@@ -303,6 +350,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
 
   const handleModelServingModalClose = () => {
     setModelServingModalOpen(false);
+    loadServing();
   };
 
   const handleTabClick = (event, tabIndex) => {
@@ -407,7 +455,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                             setModalOpen={setCreateWorkspaceModalOpen}
                             setActiveNotebook={setSelectedWorkspace}
                             onDelete={(workspace) =>
-                              deleteDataProjectNotebook(projectName, workspace.metadata.name)
+                              deleteNotebook(projectName, workspace.metadata.name)
                                 .then(() => {
                                   dispatchSuccess('Delete Workspace Successfully');
                                   loadNotebooks();
@@ -526,7 +574,31 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                         </Button>
                       </FlexItem>
                     </Flex>
-                    {!listEmpty(modelServingList) ? null : ( // waiting for implementing
+                    {!listEmpty(predictorList) && !listEmpty(predictorList) ? (
+                      <DataList
+                        className="odh-data-projects__predictor-list"
+                        isCompact
+                        aria-label="Data project predictor list"
+                      >
+                        {predictorList?.items.map((predictor) => (
+                          <PredictorListItem
+                            key={`predictor-${predictor.metadata.name}`}
+                            dataKey={`predictor-${predictor.metadata.name}`}
+                            predictor={predictor}
+                            route={servingRoute}
+                            servingRuntimeList={undefined}
+                            setModalOpen={setModelServingModalOpen}
+                            onDelete={(predictor) => {
+                              deletePredictor(projectName, predictor.metadata.name).then(
+                                loadServing,
+                              );
+                            }}
+                            handleListItemToggle={handleListItemToggle}
+                            expandedItems={expandedListItems}
+                          />
+                        ))}
+                      </DataList>
+                    ) : (
                       <Empty type="served models" />
                     )}
                   </SidebarContent>

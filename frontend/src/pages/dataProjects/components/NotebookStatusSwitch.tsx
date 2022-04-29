@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
-import { patchDataProjectNotebook } from '../../../services/notebookService';
+import { patchNotebook } from '../../../services/notebookService';
 import { Notebook, StatefulSet } from '../../../types';
 import { useDispatch } from 'react-redux';
 import { addNotification } from 'redux/actions/actions';
@@ -37,7 +37,7 @@ const NotebookStatusSwitch: React.FC<NotebookStatusSwitchProps> = React.memo(
     const handleNotebookRunningChange = (isChecked: boolean) => {
       const updateData = isChecked ? { stopped: false } : { stopped: true };
       setUpdateInProgress(true);
-      patchDataProjectNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
+      patchNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
         .then(() => {
           loadNotebooks();
           setUpdateInProgress(false);

@@ -1,4 +1,4 @@
-import { KubeFastifyInstance, Project } from '../../../types';
+import { KubeFastifyInstance, OdhConfig } from '../../../types';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
@@ -10,6 +10,6 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       'odhconfigs',
       'odhconfig',
     );
-    return kubeResponse.body as Project;
+    return kubeResponse.body as OdhConfig;
   });
 };

@@ -32,7 +32,7 @@ import './DataProjectsModal.scss';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EnvironmentVariablesRow from '../spawner/EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '../const';
-import { createDataProjectNotebook } from '../../../services/notebookService';
+import { createNotebook } from '../../../services/notebookService';
 import {
   getImageStreamByContainer,
   getDefaultTagByImageStream,
@@ -174,7 +174,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
       }
 
       const notebookSize = odhConfig?.spec?.notebookSizes?.find((ns) => ns.name === selectedSize);
-      createDataProjectNotebook(
+      createNotebook(
         namespace,
         notebookName,
         imageStream,

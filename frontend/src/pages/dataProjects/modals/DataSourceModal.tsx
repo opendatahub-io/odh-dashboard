@@ -77,13 +77,11 @@ const DataSourceModal: React.FC<DataSourceModalProps> = React.memo(
               objectStorageInfo.secretName,
               {
                 type: 's3',
-                access_key: objectStorageInfo.accessKeyId,
-                secret_access_key: objectStorageInfo.secretAccessKey,
-                endpoint_url: objectStorageInfo.endpointUrl,
-                default_bucket: 'modelmesh-example-models',
                 AWS_S3_ENDPOINT: objectStorageInfo.endpointUrl,
                 AWS_ACCESS_KEY_ID: objectStorageInfo.accessKeyId,
                 AWS_SECRET_ACCESS_KEY: objectStorageInfo.secretAccessKey,
+                AWS_DEFAULT_BUCKET: objectStorageInfo.defaultBucket,
+                AWS_DEFAULT_REGION: objectStorageInfo.region,
               },
               ODH_TYPE_OBJECT_STORAGE,
             ).then(onClose);

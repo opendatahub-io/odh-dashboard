@@ -18,7 +18,7 @@ import {
   PersistentVolumeClaimList,
   Volume,
 } from 'types';
-import { patchDataProjectNotebook } from '../../../services/notebookService';
+import { patchNotebook } from '../../../services/notebookService';
 import { getNotebookContainer } from '../../../utilities/notebookUtils';
 
 type AttachStorageModalProps = {
@@ -109,7 +109,7 @@ const AttachStorageModal: React.FC<AttachStorageModalProps> = React.memo(
           },
         },
       };
-      return patchDataProjectNotebook(
+      return patchNotebook(
         notebook.metadata.namespace,
         notebook.metadata.name,
         updateData,

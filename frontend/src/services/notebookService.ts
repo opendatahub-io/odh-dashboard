@@ -5,15 +5,13 @@ import {
   Notebook,
   NotebookList,
   NotebookSize,
-  Project,
-  ProjectList,
   Volume,
   VolumeMount,
 } from '../types';
 import { store } from '../redux/store/store';
-import { ANNOTATION_DESCRIPTION, LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
+import { ANNOTATION_DESCRIPTION } from '../utilities/const';
 
-export const getDataProjectNotebooks = (projectName: string): Promise<NotebookList> => {
+export const getNotebooks = (projectName: string): Promise<NotebookList> => {
   const url = `/api/data-projects/${projectName}/notebooks`;
   return axios
     .get(url)
@@ -25,7 +23,7 @@ export const getDataProjectNotebooks = (projectName: string): Promise<NotebookLi
     });
 };
 
-export const createDataProjectNotebook = (
+export const createNotebook = (
   namespace: string,
   name: string,
   imageStream: ImageStream,
@@ -116,10 +114,7 @@ export const createDataProjectNotebook = (
     });
 };
 
-export const deleteDataProjectNotebook = (
-  projectName: string,
-  notebookName: string,
-): Promise<any> => {
+export const deleteNotebook = (projectName: string, notebookName: string): Promise<any> => {
   const url = `/api/data-projects/${projectName}/notebooks/${notebookName}`;
 
   return axios
@@ -132,7 +127,7 @@ export const deleteDataProjectNotebook = (
     });
 };
 
-export const patchDataProjectNotebook = (
+export const patchNotebook = (
   projectName: string,
   notebookName: string,
   updateData: any,

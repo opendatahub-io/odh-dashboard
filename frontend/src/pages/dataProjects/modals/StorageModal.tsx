@@ -16,7 +16,7 @@ import {
 import { Container, Notebook, NotebookList, Project, StorageClassList, Volume } from 'types';
 import { createPvc } from '../../../services/storageService';
 import { ANNOTATION_STORAGE_CLASS_DEFAULT } from '../../../utilities/const';
-import { patchDataProjectNotebook } from '../../../services/notebookService';
+import { patchNotebook } from '../../../services/notebookService';
 
 type StorageModalProps = {
   project: Project | undefined;
@@ -131,7 +131,7 @@ const StorageModal: React.FC<StorageModalProps> = React.memo(
             },
           },
         };
-        patchDataProjectNotebook(project.metadata.name, selectedNotebook.metadata.name, updateData);
+        patchNotebook(project.metadata.name, selectedNotebook.metadata.name, updateData);
       }
     };
 

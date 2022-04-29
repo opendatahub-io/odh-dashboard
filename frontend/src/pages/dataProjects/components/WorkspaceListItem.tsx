@@ -28,7 +28,6 @@ import {
   getTagDependencies,
   getImageStreamByContainer,
   getNumGpus,
-  getContainerStatus,
 } from '../../../utilities/imageUtils';
 import {
   Container,
@@ -40,7 +39,7 @@ import {
   Volume,
 } from '../../../types';
 import NotebookStatusSwitch from './NotebookStatusSwitch';
-import { patchDataProjectNotebook } from 'services/notebookService';
+import { patchNotebook } from 'services/notebookService';
 import { getNotebookStatus } from '../../../utilities/notebookUtils';
 
 type WorkspaceListItemProps = {
@@ -195,7 +194,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
       };
 
       setUpdateInProgress(true);
-      patchDataProjectNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
+      patchNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData)
         .then(() => {
           loadNotebooks();
           setUpdateInProgress(false);
