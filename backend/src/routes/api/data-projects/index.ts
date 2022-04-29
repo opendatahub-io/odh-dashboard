@@ -52,15 +52,6 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     const projectName = project.metadata.name;
     const user = project.metadata?.labels?.['opendatahub.io/user'];
 
-    const createServingRuntime = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-      'route.openshift.io',
-      'v1',
-      projectName,
-      'routes',
-      {
-      },
-    );
-
     await fastify.kube.rbacAuthorizationV1Api.createNamespacedRoleBinding(projectName, {
       metadata: {
         name: 'admin',
