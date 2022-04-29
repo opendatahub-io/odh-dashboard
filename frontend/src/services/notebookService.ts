@@ -80,11 +80,13 @@ export const createNotebook = (
               ],
               resources,
               volumeMounts,
-              ports: {
-                name: 'notebook-port',
-                containerPort: 8888,
-                protocol: 'TCP',
-              },
+              ports: [
+                {
+                  name: 'notebook-port',
+                  containerPort: 8888,
+                  protocol: 'TCP',
+                },
+              ],
               readinessProbe: {
                 initialDelaySeconds: 5,
                 periodSeconds: 5,
