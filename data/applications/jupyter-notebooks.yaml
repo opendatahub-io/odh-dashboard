@@ -1,0 +1,15 @@
+metadata:
+  name: jupyter-notebooks
+  annotations:
+    opendatahub.io/categories: 'Jupyter notebook'
+spec:
+  displayName: Jupyter Notebooks
+  provider: OpenDataHub
+  description: |-
+    Customize and create workspaces using available notebook images.
+  # crdName: notebooks.kubeflow.org
+  internalRoute: jupyter-notebooks
+  img: images/odh-logo.svg
+  category: Red Hat managed
+  support: red hat
+  featureFlag: notebook-controller

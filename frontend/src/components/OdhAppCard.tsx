@@ -1,6 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router';
 import {
   Button,
   Card,
@@ -37,6 +38,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   );
   const disabled = !odhApp.spec.isEnabled;
   const dispatch = useDispatch();
+  const history = useHistory();
 
   const onToggle = (value) => {
     setIsOpen(value);
@@ -113,15 +115,21 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const cardFooter = (
     <CardFooter className="odh-card__footer">
-      <a
-        className={launchClasses}
-        href={odhApp.spec.link || '#'}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Launch application
-        <ExternalLinkAltIcon />
-      </a>
+      {odhApp.spec.internalRoute ? (
+        <Button variant="link" onClick={() => history.push(`/${odhApp.spec.internalRoute}`)}>
+          Launch application
+        </Button>
+      ) : (
+        <a
+          className={launchClasses}
+          href={odhApp.spec.link || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Launch application
+          <ExternalLinkAltIcon />
+        </a>
+      )}
     </CardFooter>
   );
 

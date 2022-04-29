@@ -6,6 +6,7 @@ export type DashboardConfig = {
   enablement: boolean;
   disableInfo: boolean;
   disableSupport: boolean;
+  notebookController: boolean;
 };
 
 export type ClusterSettings = {
