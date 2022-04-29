@@ -1,0 +1,18 @@
+metadata:
+  name: pachyderm
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Data management,Jupyter notebook,Python'
+spec:
+  displayName: Pachyderm
+  provider: Pachyderm
+  description: |-
+      Pachyderm is the data foundation for machine learning. It provides industry-leading pipelines, data versioning, and lineage for data science teams to automate the machine learning lifecycle.
+  kfdefApplications: []
+  route: ''
+  img: images/pachyderm.svg
+  docsLink: https://docs.pachyderm.com/
+  category: Self-managed
+  support: third party support
+  quickStart: pachyderm-beginner-tutorial-notebook
+  getStartedLink: https://docs.pachyderm.com/latest/getting_started/
+  csvName: pachyderm-operator

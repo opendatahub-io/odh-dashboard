@@ -2,29 +2,75 @@
   padding-bottom: var(--pf-global--spacer--md);
   word-break: break-word;
 
-  > pre {
-    display: block;
-    font-size: var(--pf-global--FontSize--sm);
-    margin-left: var(--pf-global--spacer--sm);
-    padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--sm);
-    white-space: pre-wrap;
-    word-break: break-all;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--pf-global--FontFamily--heading--sans-serif);
+    font-weight: var(--pf-global--FontWeight--normal);
+    margin-top: var(--pf-global--spacer--md);
+    margin-bottom: var(--pf-global--spacer--sm);
   }
 
-  tr > th {
-    text-align: left;
+  h1 {
+    font-size: var(--pf-global--FontSize--2xl);
   }
 
-  td, th {
-    padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--md);
-    word-break: break-word;
-    border-bottom: 1px solid var(--pf-global--BorderColor--100);
-    vertical-align: top;
+  h2 {
+    font-size: var(--pf-global--FontSize--xl)
   }
+
+  h3 {
+    font-size: var(--pf-global--FontSize--lg);
+  }
+
+  h4, h5, h6 {
+    font-size: var(--pf-global--FontSize--md);
+    margin-top: var(--pf-global--spacer--sm);
+  }
+
+  p {
+    margin-bottom: var(--pf-global--spacer--sm);
+  }
+
+  ul, ol {
+    margin-top: 0;
+    margin-bottom: var(--pf-global--spacer--sm);
+  }
+
   ul {
     list-style: initial;
   }
+
   li {
     margin-left: var(--pf-global--spacer--lg);
+  }
+
+  code, pre {
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    background-color: var(--pf-global--BackgroundColor--200);
+    border-radius: var(--pf-global--BorderRadius--sm);
+  }
+
+  code {
+    padding: 2px 4px;
+    font-size: 85%;
+    color: var(--pf-global--danger-color--100);
+  }
+
+  pre {
+    display: block;
+    padding: var(--pf-global--spacer--sm);
+    margin-bottom: var(--pf-global--spacer--sm);
+    font-size: var(--pf-global--FontSize--sm);
+    color: var(--pf-global--Color--300);
+    word-break: break-all;
+    word-wrap: break-word;
+    background-color: var(--pf-global--BackgroundColor--200);
+    border: var(--pf-global--BorderWidth--sm) solid var(--pf-global--Color--light-300);
+    border-radius: var(--pf-global--BorderRadius--sm);
+    code {
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      white-space: pre-wrap;
+    }
   }
 }

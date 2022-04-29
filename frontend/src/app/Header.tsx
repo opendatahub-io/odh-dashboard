@@ -1,6 +1,6 @@
 import React from 'react';
 import { Brand, PageHeader } from '@patternfly/react-core';
-import odhLogo from '../images/odh-logo.svg';
+import odhLogo from '../images/rhods-logo.svg';
 import HeaderTools from './HeaderTools';
 
 type HeaderProps = {

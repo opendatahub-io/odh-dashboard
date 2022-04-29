@@ -1,0 +1,25 @@
+metadata:
+  name: rhosak
+  annotations:
+    opendatahub.io/categories: 'Data management'
+spec:
+  displayName: OpenShift Streams for Apache Kafka
+  provider: Red Hat
+  description: |-
+    OpenShift Streams for Apache Kafka is a service for streaming data that reduces the cost and complexity of delivering real-time applications.
+  kfdefApplications: []
+  endpoint: https://cloud.redhat.com/application-services/streams/kafkas
+  img: images/red-hat.svg
+  category: Red Hat managed
+  support: red hat
+  docsLink: https://access.redhat.com/documentation/en-us/red_hat_openshift_streams_for_apache_kafka
+  quickStart: connect-rhosak-notebook
+  getStartedLink: https://cloud.redhat.com/beta/application-services/streams/kafkas
+  enable:
+    title: Enable OpenShift Streams for Apache Kafka
+    actionLabel: Enable
+    description: Clicking enable will add a card to the Enabled page to access the Kafka interface.
+    linkPreface: |-
+      Before enabling, be sure you can access:
+    link: https://cloud.redhat.com/beta/application-services/streams/kafkas
+    validationConfigMap: rhosak-validation-result

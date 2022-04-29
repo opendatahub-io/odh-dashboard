@@ -1,0 +1,17 @@
+metadata:
+  name: openvino
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Jupyter notebook,TensorFlow,Python,PyTorch'
+spec:
+  displayName: OpenVINO
+  provider: Intel®
+  description: |-
+    OpenVINO is an open source toolkit to help optimize deep learning performance and deploy using an inference engine onto Intel® hardware.
+  kfdefApplications: []
+  img: images/openvino.svg
+  category: Self-managed
+  support: third party support
+  csvName: openvino-operator
+  docsLink: https://docs.openvinotoolkit.org/latest/index.html
+  quickStart: openvino-inference-notebook
+  getStartedLink: https://github.com/openvinotoolkit/openvino_notebooks

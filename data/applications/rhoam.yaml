@@ -1,0 +1,24 @@
+metadata:
+  name: rhoam
+  annotations:
+    opendatahub.io/categories: 'Deployment,Model serving'
+spec:
+  displayName: OpenShift API Management
+  provider: Red Hat
+  description: |-
+    OpenShift API Management is a service that accelerates time-to-value and reduces the cost of delivering API-first, microservices-based applications.
+  enableCR:
+    group: integreatly.org
+    version: v1alpha1
+    plural: rhmis
+    name: rhoam
+    namespace: redhat-rhoam-operator
+    field: status.stage
+    value: complete
+  consoleLink: 'rhmi-3scale-console-link'
+  img: images/red-hat.svg
+  category: Red Hat managed
+  support: red hat
+  docsLink: https://access.redhat.com/documentation/en-us/red_hat_openshift_api_management
+  quickStart: deploy-model-rhoam
+  getStartedLink: https://console.redhat.com/openshift/details/<CLUSTER_ID/>#addOns

@@ -1,0 +1,28 @@
+metadata:
+  name: anaconda-ce
+spec:
+  displayName: Anaconda Commercial Edition
+  provider: Anaconda
+  description: |-
+    Anaconda Commercial Edition is a popular open source package distribution and management experience that is optimized for commercial use.
+  kfdefApplications: []
+  route: ''
+  img: images/anaconda-ce.svg
+  category: Partner managed
+  support: third party support
+  docsLink: https://docs.anaconda.com/
+  quickStart: 'create-jupyter-notebook-anaconda'
+  getStartedLink: https://anaconda.cloud/register?utm_source=redhat-rhods-summit
+  enable:
+    title: Connect Anaconda to JupyterHub
+    actionLabel: Connect
+    description: ''
+    variables:
+      Anaconda_ce_key: password
+    variableDisplayText:
+      Anaconda_ce_key: Anaconda CE Key
+    variableHelpText:
+      Anaconda_ce_key: This key is given to you by Anaconda
+    validationJob: anaconda-ce-periodic-validator
+    validationSecret: anaconda-ce-access
+    validationConfigMap: anaconda-ce-validation-result

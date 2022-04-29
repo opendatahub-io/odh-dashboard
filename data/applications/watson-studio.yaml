@@ -1,0 +1,19 @@
+metadata:
+  name: watson-studio
+  annotations:
+    opendatahub.io/categories: 'AI/Machine learning,Deployment,Jupyter notebook,Model serving,Python'
+spec:
+  displayName: IBM Watson Studio
+  provider: IBM
+  description: |-
+    IBM Watson Studio is a platform for embedding AI and machine learning into your business and creating custom models with your own data. 
+  kfdefApplications: []
+  route: ''
+  csvName: 'ibm-cp-data-operator'
+  serviceName: 'ibm-nginx-svc'
+  img: images/ibm.svg
+  docsLink: https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/svc-welcome/wsl.html
+  category: Self-managed
+  support: third party support
+  quickStart: build-deploy-watson-model
+  getStartedLink: https://developer.ibm.com/series/cloud-pak-for-data-learning-path

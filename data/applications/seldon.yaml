@@ -1,0 +1,17 @@
+metadata:
+  name: seldon-deploy
+spec:
+  displayName: Seldon Deploy
+  provider: Seldon
+  description: |-
+    Seldon Deploy is a set of tools to  simplify and accelerate the process of deploying and managing your machine learning models.
+  csvName: seldon-deploy-operator
+  routeNamespace: 'istio-system'
+  route: 'istio-ingressgateway'
+  routeSuffix: 'seldon-deploy/deployments?ns=seldon'
+  img: images/seldon.svg
+  docsLink: https://deploy-v1-0.seldon.io/docs/
+  category: Self-managed
+  support: third party support
+  quickStart: 'seldon-deploy-model-canary'
+  getStartedLink: 'https://deploy.seldon.io/en/latest/contents/getting-started/'
