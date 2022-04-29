@@ -34,6 +34,7 @@ export type OdhConfig = {
   kind?: string;
   metadata: {
     name: string;
+    namespace: string;
     annotations?: { [key: string]: string };
   };
   spec: {

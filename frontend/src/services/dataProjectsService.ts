@@ -1,17 +1,9 @@
 import axios from 'axios';
 import {
-  ImageStream,
-  ImageStreamTag,
-  Notebook,
-  NotebookList,
-  NotebookSize,
   Project,
   ProjectList,
-  Volume,
-  VolumeMount,
 } from '../types';
 import { store } from '../redux/store/store';
-import { ANNOTATION_DESCRIPTION, LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 
 export const getDataProjects = (): Promise<ProjectList> => {
   const url = '/api/data-projects';

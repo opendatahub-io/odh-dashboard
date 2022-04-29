@@ -2,23 +2,12 @@ import axios from 'axios';
 import { Secret, SecretList } from '../types';
 import { ODH_MANAGED, ODH_TYPE } from '../utilities/const';
 
-export const getSecrets = (namespace: string, odhType?: string): Promise<SecretList> => {
+export const getSecrets = (namespace: string): Promise<SecretList> => {
   const url = `/api/kubernetes/api/v1/namespaces/${namespace}/secrets`;
-  const params = new URLSearchParams();
-  const labels = [`${ODH_MANAGED}=true`, `${ODH_TYPE}=${odhType}`];
-  params.set('labels', labels.join(','));
-  const options = { params };
   return axios
-    .get(url, options)
+    .get(url)
     .then((response) => {
-      //TODO fix broken query by label instead of filtering
-      const responseData = response.data;
-      if (odhType) {
-        responseData.items = responseData.items.filter((secret) => {
-          return secret?.metadata?.labels?.[ODH_TYPE] === odhType;
-        });
-      }
-      return responseData;
+      return response.data;
     })
     .catch((e) => {
       throw new Error(e.response.data.message);

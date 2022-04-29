@@ -491,7 +491,7 @@ export type StatefulSet = {
       type: string;
     };
   };
-  status?: Record<string, any>;
+  status?: Record<string, unknown>;
 };
 
 export type StatefulSetList = {
@@ -499,4 +499,97 @@ export type StatefulSetList = {
   kind?: string;
   metadata: Record<string, unknown>;
   items: StatefulSet[];
+};
+
+export type Predictor = {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+    creationTimestamp?: string;
+  };
+  spec: {
+    modelType: {
+      name: string;
+    };
+    path: string;
+    storage: {
+      s3: {
+        secretKey: string;
+      };
+    };
+  };
+  status?: Record<string, any>;
+};
+
+export type PredictorList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Predictor[];
+};
+
+export type ServingRuntime = {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    builtInAdapter: {
+      memBufferBytes: number;
+      modelLoadingTimeoutMillis: number;
+      runtimeManagementPort: number;
+      serverType: string;
+    };
+    containers: Container[];
+    grpcDataEndpoint: string;
+    grpcEndpoint: string;
+    multiModel: boolean;
+    supportedModelFormats: {
+      autoSelect: boolean;
+      name: string;
+      version: string;
+    }[];
+  };
+};
+
+export type ServingRuntimeList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: ServingRuntime[];
+};
+
+export type OpenShiftRoute = {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    host: string;
+    port: {
+      targetPort: string;
+    };
+    to: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
+    tls: {
+      termination: string;
+      insecureEdgeTerminationPolicy: string;
+    };
+    wildcardPolicy: string;
+  };
 };

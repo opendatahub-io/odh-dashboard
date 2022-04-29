@@ -23,6 +23,8 @@ import {
   SecretList,
 } from 'types';
 import ConnectedModelCard from '../components/ConnectedModelCard';
+import { modelTypeDisplayNames } from '../../../utilities/servingUtils';
+import { createPredictor } from '../../../services/predictorService';
 
 type ModelServingModalProps = {
   project: Project | undefined;
@@ -52,19 +54,32 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
     const [objectKey, setObjectKey] = React.useState('');
 
     const [modelName, setModelName] = React.useState('');
-    const [modelEngineDropdownOpen, setModelEngineDropdownOpen] = React.useState(false);
-    const [modelEngine, setModelEngine] = React.useState('');
+    const [modelTypeDropdownOpen, setModelTypeDropdownOpen] = React.useState(false);
+    const [modelType, setModelType] = React.useState('');
 
-    const nameInputRef = React.useRef<HTMLInputElement>(null);
+    const [createInProgress, setCreateInProgress] = React.useState(false);
 
     const validate = () => {
-      if (connectedModel) {
-        return true;
+      if (!connectedModel) return false;
+
+      if (connectedModel === 's3') {
+        if (!selectedObjectStore) return false;
+        if (!objectKey) return false;
       }
-      return false;
+
+      if (connectedModel === 'pv') {
+        return false; //PV not supported yet
+        // if (!selectedPvc) return false;
+        // if (!pvcPath) return false;
+      }
+
+      if (!modelName) return false;
+      if (!modelType) return false;
+
+      return true;
     };
 
-    const isDisabled = !validate();
+    const isDisabled = createInProgress || !validate();
 
     const pvcSelectOptions = pvcList?.items.map((pvc, index) => (
       <SelectOption key={index + 1} value={pvc.metadata.name} />
@@ -74,10 +89,27 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
     ));
 
     React.useEffect(() => {
-      if (isModalOpen && nameInputRef && nameInputRef.current) {
-        nameInputRef.current.focus();
-      }
+      init();
+      // if (predictor) {
+      // }
     }, [isModalOpen]);
+
+    React.useEffect(() => {}, []);
+
+    const init = () => {
+      setConnectedModel('');
+      setPvcSelectOpen(false);
+      setSelectedPvc(undefined);
+      setPvcPath('');
+      setObjectStoreSelectOpen(false);
+      setSelectedObjectStore(undefined);
+      setObjectStoreBucket('');
+      setObjectKey('');
+      setModelName('');
+      setModelTypeDropdownOpen(false);
+      setModelType('');
+      setCreateInProgress(false);
+    };
 
     React.useEffect(() => {
       setConnectedModel('');
@@ -103,26 +135,50 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
       setObjectStoreSelectOpen(false);
     };
 
-    const modelEngineOptions = [
-      <SelectOption id="triton" key="triton" value="triton">
-        Triton
-      </SelectOption>,
-      <SelectOption id="mlserver" key="mlserver" value="mlserver">
-        MLServer
-      </SelectOption>,
-    ];
+    const modelTypeOptions: JSX.Element[] = [];
+    for (const [key, value] of Object.entries(modelTypeDisplayNames)) {
+      modelTypeOptions.push(
+        <SelectOption id={key} key={key} value={key}>
+          {value}
+        </SelectOption>,
+      );
+    }
 
     const handleConnectedModelSelection = (event: React.MouseEvent) => {
       const { id } = event.currentTarget;
       const newSelected = id === connectedModel ? '' : id;
       setConnectedModel(newSelected);
       setModelName('');
-      setModelEngine('');
+      setModelType('');
     };
 
     const handleModelEngineSelection = (event, selection) => {
-      setModelEngine(selection);
-      setModelEngineDropdownOpen(false);
+      setModelType(selection);
+      setModelTypeDropdownOpen(false);
+    };
+
+    const handleServeAction = () => {
+      if (!project) return;
+      if (connectedModel === 's3') {
+        if (!selectedObjectStore) return;
+        setCreateInProgress(true);
+        createPredictor(
+          project.metadata.name,
+          modelName,
+          modelType,
+          objectKey,
+          selectedObjectStore.metadata.name,
+        )
+          .then(() => {
+            setCreateInProgress(false);
+            onClose();
+          })
+          .catch((e) => {
+            setCreateInProgress(false);
+            dispatchError(e, 'Error serving model');
+            onClose();
+          });
+      }
     };
 
     const renderPvcForm = () => {
@@ -136,17 +192,17 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
               onChange={(value) => setModelName(value)}
             />
           </FormGroup>
-          <FormGroup fieldId="model-serving-engine" label="Serving engine">
+          <FormGroup fieldId="model-type" label="Model Type">
             <Select
-              isOpen={modelEngineDropdownOpen}
-              onToggle={() => setModelEngineDropdownOpen(!modelEngineDropdownOpen)}
+              isOpen={modelTypeDropdownOpen}
+              onToggle={() => setModelTypeDropdownOpen(!modelTypeDropdownOpen)}
               aria-labelledby="model-serving-engine-dropdown"
               placeholderText="Choose one"
-              selections={modelEngine}
+              selections={modelType}
               onSelect={handleModelEngineSelection}
               menuAppendTo="parent"
             >
-              {modelEngineOptions}
+              {modelTypeOptions}
             </Select>
           </FormGroup>
           <FormGroup label="Persistent Volume Claim" fieldId="pvc">
@@ -191,17 +247,17 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
               onChange={(value) => setModelName(value)}
             />
           </FormGroup>
-          <FormGroup fieldId="model-serving-engine" label="Serving engine">
+          <FormGroup fieldId="model-type" label="Model Type">
             <Select
-              isOpen={modelEngineDropdownOpen}
-              onToggle={() => setModelEngineDropdownOpen(!modelEngineDropdownOpen)}
+              isOpen={modelTypeDropdownOpen}
+              onToggle={() => setModelTypeDropdownOpen(!modelTypeDropdownOpen)}
               aria-labelledby="model-serving-engine-dropdown"
               placeholderText="Choose one"
-              selections={modelEngine}
+              selections={modelType}
               onSelect={handleModelEngineSelection}
               menuAppendTo="parent"
             >
-              {modelEngineOptions}
+              {modelTypeOptions}
             </Select>
           </FormGroup>
           <FormGroup label="Object Store" fieldId="object store">
@@ -253,7 +309,7 @@ const ModelServingModal: React.FC<ModelServingModalProps> = React.memo(
         isOpen={isModalOpen}
         onClose={onClose}
         actions={[
-          <Button key="Serve" variant="primary" isDisabled={isDisabled} onClick={() => {}}>
+          <Button key="Serve" variant="primary" isDisabled={isDisabled} onClick={handleServeAction}>
             Serve
           </Button>,
           <Button key="cancel" variant="secondary" onClick={onClose}>
