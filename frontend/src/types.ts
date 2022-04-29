@@ -234,7 +234,7 @@ export type Notebook = {
   metadata: {
     name: string;
     namespace: string;
-    uid: string;
+    uid?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
