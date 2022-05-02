@@ -214,3 +214,49 @@ export type BuildStatus = {
   status: BUILD_PHASE;
   timestamp?: string;
 };
+
+export type Notebook = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec?: Record<string, unknown>;
+  status?: Record<string, unknown>;
+} & K8sResourceCommon;
+
+export type NotebookList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Notebook[];
+} & K8sResourceCommon;
+
+export type Route = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    host: string;
+    port: {
+      targetPort: string;
+    };
+    tls: {
+      insecureEdgeTerminationPolicy: string;
+      termination: string;
+    };
+    to: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
+    wildcardPolicy: string;
+  };
+};
