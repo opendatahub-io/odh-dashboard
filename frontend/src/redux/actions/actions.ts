@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { getBackendURL } from '../../utilities/utils';
 import { ThunkAction } from 'redux-thunk';
 import { Actions, AppNotification, AppState, GetUserAction } from '../types';
 import { Action } from 'redux';
@@ -10,12 +9,13 @@ export const getUserPending = (): GetUserAction => ({
 });
 
 export const getUserFulfilled = (response: {
-  kube: { userName: string; clusterID: string };
+  kube: { userName: string; clusterID: string; isAdmin: boolean };
 }): GetUserAction => ({
   type: Actions.GET_USER_FULFILLED,
   payload: {
     user: response.kube.userName,
     clusterID: response.kube.clusterID,
+    isAdmin: response.kube.isAdmin,
   },
 });
 
@@ -27,13 +27,13 @@ export const getUserRejected = (error: Error): GetUserAction => ({
 });
 
 export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string>> => {
-  const url = getBackendURL('/api/status');
+  const url = '/api/status';
   return async (dispatch) => {
     dispatch(getUserPending());
     try {
       const response = await axios.get(url, {});
       dispatch(getUserFulfilled(response.data));
-    } catch (e) {
+    } catch (e: any) {  // eslint-disable-line
       dispatch(getUserRejected(e.response.data));
     }
   };

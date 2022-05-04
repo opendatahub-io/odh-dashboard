@@ -8,6 +8,11 @@ export type DashboardConfig = {
   disableSupport: boolean;
 };
 
+export type ClusterSettings = {
+  pvcSize: number;
+  cullerTimeout: number;
+};
+
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
   apiVersion?: string;
@@ -67,6 +72,16 @@ export type RouteKind = {
   };
 } & K8sResourceCommon;
 
+// Minimal type for Subscriptions
+export type SubscriptionKind = {
+  status: {
+    installedCSV: string;
+    installPlanRef: {
+      namespace: string;
+    };
+  };
+} & K8sResourceCommon;
+
 // Minimal type for CSVs
 export type CSVKind = {
   status: {
@@ -104,6 +119,7 @@ export type KubeStatus = {
   namespace: string;
   userName: string | string[];
   clusterID: string;
+  isAdmin: boolean;
 };
 
 export type KubeDecorator = KubeStatus & {
@@ -215,16 +231,69 @@ export type BuildStatus = {
   timestamp?: string;
 };
 
+export type EnvironmentVariable = {
+  name: string;
+  value: string;
+}
+
+export type NotebookResources = {
+  requests: {
+    cpu?: string;
+    memory?: string;
+  };
+  limits?: {
+    cpu?: string;
+    memory?: string;
+  };
+};
+
+export type NotebookRequest = {
+  name: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+  image: string;
+  resources: NotebookResources;
+  gpu?: number
+  env?: EnvironmentVariable[];
+};
+
+export type NotebookStatus = {
+
+};
+
+export type NotebookPort = {
+  name: string;
+  containerPort: number;
+  protocol: string;
+}
+
+export type NotebookContainer = {
+  name: string;
+  image: string;
+  imagePullPolicy?: string;
+  workingDir?: string;
+  env: EnvironmentVariable[];
+  ports?: NotebookPort[];
+  resources?: NotebookResources;
+  livenessProbe?: Record<string, unknown>;
+};
+
 export type Notebook = {
   apiVersion?: string;
   kind?: string;
   metadata: {
     name: string;
-    namespace: string;
+    namespace?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
-  spec?: Record<string, unknown>;
+  spec: {
+    template: {
+      spec: {
+        containers: NotebookContainer[]
+      }
+    }
+  }
   status?: Record<string, unknown>;
 } & K8sResourceCommon;
 

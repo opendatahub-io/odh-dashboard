@@ -20,6 +20,7 @@
   "scripts": {
     "start": "npm run tsc && NODE_ENV=production node ./dist/server.js --log=1 --registry=localhost:50051",
     "start:dev": "export NODE_ENV=development && nodemon src/server.ts --log=1 --registry=localhost:50051",
+    "debug": "npm run tsc && export NODE_ENV=development && node --inspect ./dist/server.js --log=1 --registry=localhost:50051",
     "build-only": "tsc -p . && node ./dist/server.js --log=1 --registry=localhost:50051 --buildonly",
     "build": "npm run build:clean; npm run tsc",
     "build:clean": "rimraf ./dist",

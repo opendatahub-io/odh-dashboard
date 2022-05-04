@@ -8,7 +8,6 @@ import {
   BuildKind,
   BuildStatus,
   ConsoleLinkKind,
-  CSVKind,
   DashboardConfig,
   K8sResourceCommon,
   KfDefApplication,
@@ -16,9 +15,11 @@ import {
   KubeFastifyInstance,
   OdhApplication,
   OdhDocument,
+  SubscriptionKind,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
+  DEFAULT_INACTIVE_TIMEOUT,
   ResourceWatcher,
   ResourceWatcherTimeUpdate,
 } from './resourceWatcher';
@@ -33,8 +34,7 @@ const consoleLinksPlural = 'consolelinks';
 const enabledAppsConfigMapName = process.env.ENABLED_APPS_CM;
 
 let dashboardConfigWatcher: ResourceWatcher<V1ConfigMap>;
-let operatorWatcher: ResourceWatcher<CSVKind>;
-let serviceWatcher: ResourceWatcher<K8sResourceCommon>;
+let subscriptionWatcher: ResourceWatcher<SubscriptionKind>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
@@ -60,44 +60,48 @@ const fetchDashboardConfigMap = (fastify: KubeFastifyInstance): Promise<V1Config
     .catch(() => [DEFAULT_DASHBOARD_CONFIG]);
 };
 
-const fetchInstalledOperators = (fastify: KubeFastifyInstance): Promise<CSVKind[]> => {
-  return fastify.kube.customObjectsApi
-    .listNamespacedCustomObject('operators.coreos.com', 'v1alpha1', '', 'clusterserviceversions')
-    .then((res) => {
-      const csvs = (res?.body as { items: CSVKind[] })?.items;
-      if (csvs?.length) {
-        return csvs.reduce((acc, csv) => {
-          if (csv.status?.phase === 'Succeeded' && csv.status?.reason === 'InstallSucceeded') {
-            acc.push(csv);
-          }
-          return acc;
-        }, []);
+const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionKind[]> => {
+  const fetchAll = async (): Promise<SubscriptionKind[]> => {
+    const subscriptions: SubscriptionKind[] = [];
+    let _continue: string = undefined;
+    let remainingItemCount = 1;
+    try {
+      while (remainingItemCount) {
+        const res = (await fastify.kube.customObjectsApi.listNamespacedCustomObject(
+          'operators.coreos.com',
+          'v1alpha1',
+          '',
+          'subscriptions',
+          undefined,
+          _continue,
+          undefined,
+          undefined,
+          250,
+        )) as {
+          body: {
+            items: SubscriptionKind[];
+            metadata: { _continue: string; remainingItemCount: number };
+          };
+        };
+        const subs = res?.body.items;
+        remainingItemCount = res.body?.metadata?.remainingItemCount;
+        _continue = res.body?.metadata?._continue;
+        if (subs?.length) {
+          subscriptions.push(...subs);
+        }
       }
-      return [];
-    })
-    .catch((e) => {
-      console.error(e, 'failed to get ClusterServiceVersions');
-      return [];
-    });
-};
-
-const fetchServices = (fastify: KubeFastifyInstance) => {
-  return fastify.kube.coreV1Api
-    .listServiceForAllNamespaces()
-    .then((res) => {
-      return res?.body?.items;
-    })
-    .catch((e) => {
-      console.error(e, 'failed to get Services');
-      return [];
-    });
+    } catch (e) {
+      console.log(`ERROR: `, e.body.message);
+    }
+    return subscriptions;
+  };
+  return fetchAll();
 };
 
 const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDefApplication[]> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
 
-  let kfdef: KfDefResource;
   try {
     const res = await customObjectsApi.listNamespacedCustomObject(
       'kfdef.apps.kubeflow.org',
@@ -105,7 +109,13 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
       namespace,
       'kfdefs',
     );
-    kfdef = (res?.body as { items: KfDefResource[] })?.items?.[0];
+    const kfdefs = (res?.body as { items: KfDefResource[] })?.items;
+    return kfdefs.reduce((acc, kfdef) => {
+      if (kfdef?.spec?.applications?.length) {
+        acc.push(...kfdef.spec.applications);
+      }
+      return acc;
+    }, [] as KfDefApplication[]);
   } catch (e) {
     fastify.log.error(e, 'failed to get kfdefs');
     const error = createError(500, 'failed to get kfdefs');
@@ -115,8 +125,6 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
       'Unable to load Kubeflow resources. Please ensure the Open Data Hub operator has been installed.';
     throw error;
   }
-
-  return kfdef?.spec?.applications || [];
 };
 
 const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhApplication[]> => {
@@ -247,9 +255,11 @@ const getBuildConfigStatus = (
       `buildconfig=${bcName}`,
     )
     .then((res) => {
-      const bcBuilds = (res?.body as {
-        items: BuildKind[];
-      })?.items;
+      const bcBuilds = (
+        res?.body as {
+          items: BuildKind[];
+        }
+      )?.items;
       if (bcBuilds.length === 0) {
         return {
           name: notebookName,
@@ -304,10 +314,13 @@ const getRefreshTimeForBuilds = (buildStatuses: BuildStatus[]): ResourceWatcherT
     runningStatuses.includes(buildStatus.status.toLowerCase()),
   );
   if (building.length) {
-    return { activeWatchInterval: 30 * 1000 };
+    return { activeWatchInterval: 30 * 1000, inactiveWatchInterval: DEFAULT_INACTIVE_TIMEOUT };
   }
 
-  return { activeWatchInterval: DEFAULT_ACTIVE_TIMEOUT };
+  return {
+    activeWatchInterval: DEFAULT_ACTIVE_TIMEOUT,
+    inactiveWatchInterval: DEFAULT_INACTIVE_TIMEOUT,
+  };
 };
 
 const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
@@ -324,8 +337,7 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<V1ConfigMap>(fastify, fetchDashboardConfigMap);
-  operatorWatcher = new ResourceWatcher<CSVKind>(fastify, fetchInstalledOperators);
-  serviceWatcher = new ResourceWatcher<K8sResourceCommon>(fastify, fetchServices);
+  subscriptionWatcher = new ResourceWatcher<SubscriptionKind>(fastify, fetchSubscriptions);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplicationDefs);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
@@ -342,12 +354,8 @@ export const getDashboardConfig = (): DashboardConfig => {
   };
 };
 
-export const getInstalledOperators = (): K8sResourceCommon[] => {
-  return operatorWatcher.getResources();
-};
-
-export const getServices = (): K8sResourceCommon[] => {
-  return serviceWatcher.getResources();
+export const getSubscriptions = (): SubscriptionKind[] => {
+  return subscriptionWatcher.getResources();
 };
 
 export const getInstalledKfdefs = (): KfDefApplication[] => {

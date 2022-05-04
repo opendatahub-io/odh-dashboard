@@ -8,6 +8,11 @@ export type DashboardConfig = {
   disableSupport: boolean;
 };
 
+export type ClusterSettings = {
+  pvcSize: number | string;
+  cullerTimeout: number;
+};
+
 export type OdhApplication = {
   metadata: {
     name: string;

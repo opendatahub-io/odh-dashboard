@@ -1,12 +1,5 @@
 import { OdhApplication, OdhDocument, OdhDocumentType } from '../types';
-import { DEV_MODE, API_PORT, CATEGORY_ANNOTATION } from './const';
-
-export const getBackendURL = (path: string): string => {
-  if (!DEV_MODE) {
-    return path;
-  }
-  return `${window.location.protocol}//${window.location.hostname}:${API_PORT}${path}`;
-};
+import { CATEGORY_ANNOTATION } from './const';
 
 export const makeCardVisible = (id: string): void => {
   setTimeout(() => {
@@ -123,3 +116,13 @@ export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean 
     (description?.toLowerCase().includes(searchText) ?? false)
   );
 };
+
+export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minute: number } => {
+  const total_minutes = timeout / 60;
+  const hour = Math.floor(total_minutes / 60);
+  const minute = total_minutes % 60;
+  return { hour, minute };
+};
+
+export const getTimeoutByHourAndMinute = (hour: number, minute: number): number =>
+  (hour * 60 + minute) * 60;
