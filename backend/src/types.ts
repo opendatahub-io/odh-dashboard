@@ -239,7 +239,7 @@ export type Notebook = {
   phase?: NotebookStatus;
   user?: string;
   uploaded?: Date;
-  error?: NotebookError;
+  error?: NotebookError[];
   software?: NotebookPackage[];
 } & NotebookCreateRequest & NotebookUpdateRequest;
 

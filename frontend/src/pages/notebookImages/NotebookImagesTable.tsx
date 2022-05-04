@@ -91,7 +91,15 @@ export const NotebookImagesTable: React.FC<NotebookImagesTableProps> = ({
           headerComponent="h1"
           bodyContent={
             <div>
-              {nb.error && nb.error.message ? nb.error?.message : 'An unknown error has occurred.'}
+              {nb.error?.length ? (
+                <ul>
+                  {nb.error.map((e) => (
+                    <li>{e.message}</li>
+                  ))}
+                </ul>
+              ) : (
+                'An unknown error has occurred.'
+              )}
             </div>
           }
         >
