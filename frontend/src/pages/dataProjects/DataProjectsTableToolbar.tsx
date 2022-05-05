@@ -4,6 +4,7 @@ import {
   Dropdown,
   DropdownItem,
   KebabToggle,
+  Pagination,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -13,12 +14,22 @@ import './DataProjectsToolbar.scss';
 
 type DataProjectsTableToolbarProps = {
   setCreateProjectModalOpen: (isOpen: boolean) => void;
+  projectsCount: number;
 };
 
 const DataProjectsTableToolbar: React.FC<DataProjectsTableToolbarProps> = ({
   setCreateProjectModalOpen,
+  projectsCount,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [pageNumber, setPageNumber] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+  const onSetPage = (event, pageNumber) => {
+    setPageNumber(pageNumber);
+  };
+  const onPerPageSelect = (event, perPage) => {
+    setPerPage(perPage);
+  };
 
   const dropdownItems = [
     <DropdownItem key={1}>Action 1</DropdownItem>,
@@ -50,6 +61,15 @@ const DataProjectsTableToolbar: React.FC<DataProjectsTableToolbarProps> = ({
             }
             isPlain
             dropdownItems={dropdownItems}
+          />
+        </ToolbarItem>
+        <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
+          <Pagination
+            itemCount={projectsCount}
+            page={pageNumber}
+            onSetPage={onSetPage}
+            perPage={perPage}
+            onPerPageSelect={onPerPageSelect}
           />
         </ToolbarItem>
       </ToolbarContent>

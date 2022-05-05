@@ -97,13 +97,7 @@ const StorageModal: React.FC<StorageModalProps> = React.memo(
       );
 
       if (project && defaultStorageClass) {
-        createPvc(
-          project.metadata.name,
-          pvName,
-          pvDescription,
-          defaultStorageClass.metadata.name,
-          pvSize + 'Gi',
-        ).then(onClose);
+        createPvc(project.metadata.name, pvName, pvDescription, pvSize + 'Gi').then(onClose);
 
         if (!selectedNotebook || !mountPath) {
           return;

@@ -20,7 +20,7 @@ import './DataProjects.scss';
 import { CubesIcon } from '@patternfly/react-icons';
 import CreateProjectModal from './modals/CreateProjectModal';
 import { useDispatch } from 'react-redux';
-import { Project } from '../../types';
+import { FilterSelectOptionType, Project, ProjectsTableFilter } from '../../types';
 import { addNotification } from '../../redux/actions/actions';
 import { deleteDataProject, getDataProject } from '../../services/dataProjectsService';
 import { useGetDataProjects } from '../../utilities/useGetDataProjects';
@@ -29,10 +29,25 @@ const description = `Create new projects, or view everything you've been working
 
 export const DataProjects: React.FC = React.memo(() => {
   const dispatch = useDispatch();
+  const filterSelectOption = (filter: ProjectsTableFilter): FilterSelectOptionType => {
+    const toString = () => `Filter by ${filter.toLowerCase()}`;
+    const compareTo = (value: FilterSelectOptionType) => toString().includes(value.toString());
+    return {
+      filter,
+      toString,
+      compareTo,
+    };
+  };
+  const filterArray = Object.values(ProjectsTableFilter);
   const [viewType, setViewType] = useLocalStorage(VIEW_TYPE);
   const { dataProjects, loaded, loadError, watchDataProjectStatus } = useGetDataProjects();
   const [isCreateProjectModalOpen, setCreateProjectModalOpen] = React.useState(false);
   const [displayedProjects, setDisplayedProjects] = React.useState<Project[]>([]);
+  const [filterSelection, setFilterSelection] = React.useState<FilterSelectOptionType>(
+    filterSelectOption(filterArray[0]),
+  );
+  const [filteredProjects, setFilteredProjects] = React.useState<Project[]>([]);
+  const [searchInputValue, setSearchInputValue] = React.useState('');
   const [isEmpty, setEmpty] = React.useState<boolean>(true);
 
   React.useEffect(() => {
@@ -44,8 +59,30 @@ export const DataProjects: React.FC = React.memo(() => {
     }
   }, [dataProjects]);
 
+  React.useEffect(() => {
+    filterProjects(displayedProjects, filterSelection.filter, searchInputValue);
+  }, [displayedProjects]);
+
   const handleCreateProjectModalClose = () => {
     setCreateProjectModalOpen(false);
+  };
+
+  const filterProjects = (projects: Project[], filter: ProjectsTableFilter, value: string) => {
+    const searchedValue = value.toLowerCase();
+    setFilteredProjects(
+      projects.filter((project) => {
+        switch (filter) {
+          case ProjectsTableFilter.Name:
+            return project.metadata.name.toLowerCase().includes(searchedValue);
+          case ProjectsTableFilter.User:
+            return project.metadata.labels?.['opendatahub.io/user']
+              ?.toLowerCase()
+              .includes(searchedValue);
+          default:
+            return true;
+        }
+      }),
+    );
   };
 
   const onDeleteProject = async (project: Project) => {
@@ -97,11 +134,25 @@ export const DataProjects: React.FC = React.memo(() => {
         empty={isEmpty}
         emptyComponent={emptyComponent}
       >
-        <DataProjectsHeaderToolbar viewType={viewType || LIST_VIEW} updateViewType={setViewType} />
+        <DataProjectsHeaderToolbar
+          projects={displayedProjects}
+          filterArray={filterArray}
+          filterSelection={filterSelection}
+          setFilterSelection={setFilterSelection}
+          filterSelectOption={filterSelectOption}
+          searchInputValue={searchInputValue}
+          setSearchInputValue={setSearchInputValue}
+          filterProjects={filterProjects}
+          viewType={viewType || LIST_VIEW}
+          updateViewType={setViewType}
+        />
         <Divider />
         <PageSection variant="light" padding={{ default: 'noPadding' }} isFilled>
-          <DataProjectsTableToolbar setCreateProjectModalOpen={setCreateProjectModalOpen} />
-          <DataProjectsTable projects={displayedProjects} onDelete={onDeleteProject} />
+          <DataProjectsTableToolbar
+            projectsCount={filteredProjects.length}
+            setCreateProjectModalOpen={setCreateProjectModalOpen}
+          />
+          <DataProjectsTable projects={filteredProjects} onDelete={onDeleteProject} />
         </PageSection>
       </ApplicationsPage>
       <CreateProjectModal

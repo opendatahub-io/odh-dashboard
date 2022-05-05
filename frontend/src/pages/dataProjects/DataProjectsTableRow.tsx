@@ -6,7 +6,6 @@ import { useHistory } from 'react-router';
 
 import './DataProjectsTable.scss';
 import { useGetNotebooks } from '../../utilities/useGetNotebooks';
-import { getContainerStatus } from '../../utilities/imageUtils';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import NotebookStatusSwitch from './components/NotebookStatusSwitch';
 import { relativeTime } from '../../utilities/time';

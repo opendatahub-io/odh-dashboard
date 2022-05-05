@@ -1,6 +1,16 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption, SelectVariant, TextInput } from '@patternfly/react-core';
+import {
+  Button,
+  FormGroup,
+  InputGroup,
+  Select,
+  SelectOption,
+  SelectVariant,
+  TextInput,
+  TextInputTypes,
+} from '@patternfly/react-core';
 import { Notebook, NotebookList } from 'types';
+import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 
 type ObjectStorageFormProps = {
   notebookList: NotebookList | undefined;
@@ -17,6 +27,8 @@ const ObjectStorageForm: React.FC<ObjectStorageFormProps> = React.memo(
     const [region, setRegion] = React.useState<string>('');
     const [isNotebookSelectOpen, setIsNotebookSelectOpen] = React.useState(false);
     const [selectedNotebook, setSelectedNotebook] = React.useState<Notebook | undefined>(undefined);
+    const [showAccessKeyId, setShowAccessKeyId] = React.useState<boolean>(false);
+    const [showSecretAccessKey, setShowSecretAccessKey] = React.useState<boolean>(false);
 
     React.useEffect(() => {
       setInfo({
@@ -77,20 +89,32 @@ const ObjectStorageForm: React.FC<ObjectStorageFormProps> = React.memo(
           />
         </FormGroup>
         <FormGroup fieldId="access-key-id" label="Access Key ID">
-          <TextInput
-            id="access-key-id-input"
-            name="access-key-id-input"
-            value={accessKeyId}
-            onChange={(value) => setAccessKeyId(value)}
-          />
+          <InputGroup>
+            <TextInput
+              id="access-key-id-input"
+              type={showAccessKeyId ? TextInputTypes.text : TextInputTypes.password}
+              name="access-key-id-input"
+              value={accessKeyId}
+              onChange={(value) => setAccessKeyId(value)}
+            />
+            <Button variant="control" onClick={() => setShowAccessKeyId(!showAccessKeyId)}>
+              {showAccessKeyId ? <EyeSlashIcon /> : <EyeIcon />}
+            </Button>
+          </InputGroup>
         </FormGroup>
         <FormGroup fieldId="access-key" label="Secret Access Key">
-          <TextInput
-            id="secret-access-key-input"
-            name="secret-access-key-input"
-            value={secretAccessKey}
-            onChange={(value) => setSecretAccessKey(value)}
-          />
+          <InputGroup>
+            <TextInput
+              id="secret-access-key-input"
+              type={showSecretAccessKey ? TextInputTypes.text : TextInputTypes.password}
+              name="secret-access-key-input"
+              value={secretAccessKey}
+              onChange={(value) => setSecretAccessKey(value)}
+            />
+            <Button variant="control" onClick={() => setShowSecretAccessKey(!showSecretAccessKey)}>
+              {showSecretAccessKey ? <EyeSlashIcon /> : <EyeIcon />}
+            </Button>
+          </InputGroup>
         </FormGroup>
         <FormGroup fieldId="default-bucket" label="Default Bucket">
           <TextInput
