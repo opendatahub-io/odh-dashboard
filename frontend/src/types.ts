@@ -403,7 +403,7 @@ export type PersistentVolumeClaim = {
         storage: string;
       };
     };
-    storageClassName: string;
+    storageClassName?: string;
     volumeMode: 'Filesystem' | 'Block';
   };
   status?: Record<string, any>;
