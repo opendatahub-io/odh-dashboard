@@ -30,7 +30,6 @@ export const createPvc = (
   namespace: string,
   name: string,
   description: string | undefined,
-  storageClassName: string,
   size: string,
 ): Promise<PersistentVolumeClaim> => {
   const url = `/api/kubernetes/api/v1/namespaces/${namespace}/persistentvolumeclaims`;
@@ -50,7 +49,6 @@ export const createPvc = (
           storage: size,
         },
       },
-      storageClassName: 'gp2',
       volumeMode: 'Filesystem',
     },
     status: {

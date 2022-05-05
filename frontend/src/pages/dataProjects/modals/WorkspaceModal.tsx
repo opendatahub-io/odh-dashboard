@@ -165,7 +165,7 @@ const WorkspaceModal: React.FC<WorkspaceModalProps> = React.memo(
       if (selectedStorageType === 'pvc') {
         const pvcName = `${notebookName}-${makeid(4)}`;
         const pvcDesc = `Workspace storage for ${notebookName}`;
-        createPvc(namespace, pvcName, pvcDesc, 'gp2', pvSize + 'Gi');
+        createPvc(namespace, pvcName, pvcDesc, pvSize + 'Gi');
         volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
         volumeMounts = [{ mountPath: '/home/jovyan', name: pvcName }];
       } else {
