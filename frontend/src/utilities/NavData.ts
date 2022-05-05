@@ -10,7 +10,7 @@ export type NavDataItem = {
 };
 
 export const navData: NavDataItem[] = [
-  { id: 'projects', label: 'Data projects', href: '/' },
+  { id: 'data-projects', label: 'Data projects', href: '/' },
   {
     id: 'applications',
     group: { id: 'apps', title: 'Applications' },
@@ -23,7 +23,7 @@ export const navData: NavDataItem[] = [
 ];
 
 export const adminNavData: NavDataItem[] = [
-  { id: 'projects', label: 'Data projects', href: '/' },
+  { id: 'data-projects', label: 'Data projects', href: '/' },
   {
     id: 'applications',
     group: { id: 'apps', title: 'Applications' },

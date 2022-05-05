@@ -1,7 +1,4 @@
-import {
-  OpenShiftRoute,
-  Predictor,
-} from '../types';
+import { OpenShiftRoute, Predictor } from '../types';
 
 export const modelTypeDisplayNames = {
   sklearn: 'scikit-learn',

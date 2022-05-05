@@ -1,8 +1,5 @@
 import axios from 'axios';
-import {
-  Project,
-  ProjectList,
-} from '../types';
+import { Project, ProjectList } from '../types';
 import { store } from '../redux/store/store';
 
 export const getDataProjects = (): Promise<ProjectList> => {

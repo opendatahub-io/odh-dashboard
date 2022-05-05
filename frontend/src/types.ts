@@ -593,3 +593,18 @@ export type OpenShiftRoute = {
     wildcardPolicy: string;
   };
 };
+
+export enum ProjectsTableFilter {
+  Name = 'Name',
+  User = 'User',
+  WorkspaceName = 'Workspace name',
+  Status = 'Status',
+  Created = 'Created',
+  ServingStatus = 'Serving status',
+}
+
+export type FilterSelectOptionType = {
+  filter: ProjectsTableFilter;
+  toString: () => string;
+  compareTo: (value: FilterSelectOptionType) => boolean;
+};

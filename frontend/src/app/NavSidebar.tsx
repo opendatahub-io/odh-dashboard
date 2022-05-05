@@ -9,7 +9,9 @@ const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, 
   const { children, group } = item;
   const isGroup = group !== undefined;
   const isActive =
-    group && children ? !!children.find((c) => pathname === c.href) : pathname === item.href;
+    group && children
+      ? !!children.find((c) => pathname === c.href)
+      : pathname === item.href || pathname.split('/')[1] === item.id;
   const [expanded, setExpanded] = React.useState<boolean>(isGroup && isActive);
 
   if (group && children?.length) {

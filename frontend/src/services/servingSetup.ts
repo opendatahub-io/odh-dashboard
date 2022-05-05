@@ -193,7 +193,7 @@ export const servingRoute = {
   spec: {
     to: {
       kind: 'Service',
-      name: 'modelmesh-serving'
+      name: 'modelmesh-serving',
     },
     port: {
       targetPort: 'http',

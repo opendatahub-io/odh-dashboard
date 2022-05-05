@@ -109,11 +109,7 @@ const AttachStorageModal: React.FC<AttachStorageModalProps> = React.memo(
           },
         },
       };
-      return patchNotebook(
-        notebook.metadata.namespace,
-        notebook.metadata.name,
-        updateData,
-      );
+      return patchNotebook(notebook.metadata.namespace, notebook.metadata.name, updateData);
     };
 
     const handlePvcSelection = (e, value) => {

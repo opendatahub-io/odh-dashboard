@@ -13,31 +13,59 @@ import { TopologyIcon, ListIcon } from '@patternfly/react-icons';
 import { TOPOLOGY_VIEW, LIST_VIEW } from './const';
 
 import './DataProjectsToolbar.scss';
+import { usePrevious } from '../../utilities/usePrevious';
+import { FilterSelectOptionType, Project, ProjectsTableFilter } from '../../types';
 
 type DataProjectsHeaderToolbarProps = {
+  projects: Project[];
+  filterArray: ProjectsTableFilter[];
+  filterSelection: FilterSelectOptionType;
+  setFilterSelection: (filter: FilterSelectOptionType) => void;
+  filterSelectOption: (filter: ProjectsTableFilter) => FilterSelectOptionType;
+  searchInputValue: string;
+  setSearchInputValue: (value: string) => void;
+  filterProjects: (projects: Project[], filter: ProjectsTableFilter, value: string) => void;
   viewType: string;
   updateViewType: (updatedType: string) => void;
 };
 
 const DataProjectsHeaderToolbar: React.FC<DataProjectsHeaderToolbarProps> = ({
+  projects,
+  filterArray,
+  filterSelection,
+  setFilterSelection,
+  filterSelectOption,
+  searchInputValue,
+  setSearchInputValue,
+  filterProjects,
   viewType,
   updateViewType,
 }) => {
-  const [optionSelection, setOptionSelection] = React.useState();
-  const [isOptionsDropdownOpen, setIsOptionsDropdownOpen] = React.useState(false);
-  const [searchInputValue, setSearchInputValue] = React.useState('');
+  const [isFilterDropdownOpen, setFilterDropdownOpen] = React.useState(false);
+  const [searchInputPlaceholder, setSearchInputPlaceholder] = React.useState(filterArray[0]);
+  const prevFilterSelection = usePrevious(filterSelection);
 
-  const onOptionSelect = (event, selection) => {
-    setOptionSelection(selection);
-    setIsOptionsDropdownOpen(false);
+  React.useEffect(() => {
+    if (prevFilterSelection && filterSelection.toString() !== prevFilterSelection.toString()) {
+      setSearchInputValue('');
+    }
+  }, [filterSelection]);
+
+  const onFilterSelect = (event, selection) => {
+    setFilterSelection(selection);
+    setFilterDropdownOpen(false);
+    setSearchInputPlaceholder(selection.filter);
   };
-  const optionsDropdownItems = [
-    <SelectOption key={1} value="Option 1" />,
-    <SelectOption key={2} value="Option 2" />,
-  ];
+
+  const filterDropdownItems = () => {
+    return filterArray.map((filter, index) => (
+      <SelectOption key={index} value={filterSelectOption(filter)} />
+    ));
+  };
 
   const onSearchInputChange = (value) => {
     setSearchInputValue(value);
+    filterProjects(projects, filterSelection.filter, value);
   };
 
   return (
@@ -46,19 +74,18 @@ const DataProjectsHeaderToolbar: React.FC<DataProjectsHeaderToolbarProps> = ({
         <ToolbarContent>
           <ToolbarItem>
             <Select
-              aria-label="Select options"
-              isOpen={isOptionsDropdownOpen}
-              selections={optionSelection}
-              onToggle={(isEnabled) => setIsOptionsDropdownOpen(isEnabled)}
-              placeholderText="Select options"
-              onSelect={onOptionSelect}
+              aria-label="Filter by"
+              isOpen={isFilterDropdownOpen}
+              selections={filterSelection}
+              onToggle={(isEnabled) => setFilterDropdownOpen(isEnabled)}
+              onSelect={onFilterSelect}
             >
-              {optionsDropdownItems}
+              {filterDropdownItems()}
             </Select>
           </ToolbarItem>
           <ToolbarItem>
             <SearchInput
-              placeholder="Find by name"
+              placeholder={searchInputPlaceholder}
               value={searchInputValue}
               onChange={onSearchInputChange}
               onClear={() => onSearchInputChange('')}
