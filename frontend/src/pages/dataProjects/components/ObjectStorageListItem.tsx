@@ -78,7 +78,7 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
           />
           <DataListItemCells
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-name-descriptions`}>
+              <DataListCell width={3} key={`${dataKey}-name-descriptions`}>
                 <Title size="md" headingLevel="h4">
                   {objectStorage.metadata.name}
                 </Title>
@@ -126,7 +126,7 @@ const ObjectStorageListItem: React.FC<ObjectStorageListItemProps> = React.memo(
           <DataListItemCells
             className="odh-data-projects__data-list-item-content"
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-object-storage`}>
+              <DataListCell width={3} key={`${dataKey}-object-storage`}>
                 <p className="m-bold">Endpoint</p>
                 <p>{atob(objectStorage?.data?.endpoint_url || '')}</p>
               </DataListCell>,

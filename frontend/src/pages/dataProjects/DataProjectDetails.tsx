@@ -536,7 +536,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                     </Flex>
                     {!listEmpty(objectStorageList) && !listEmpty(objectStorageList) ? (
                       <DataList
-                        className="odh-data-projects__data-source-list"
+                        className="odh-data-projects__data-list"
                         isCompact
                         aria-label="Data project data source list"
                       >
@@ -576,7 +576,7 @@ export const DataProjectDetails: React.FC = React.memo(() => {
                     </Flex>
                     {!listEmpty(predictorList) && !listEmpty(predictorList) ? (
                       <DataList
-                        className="odh-data-projects__predictor-list"
+                        className="odh-data-projects__data-list"
                         isCompact
                         aria-label="Data project predictor list"
                       >

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  ClipboardCopy,
   DataListAction,
   DataListCell,
   DataListContent,
@@ -93,11 +94,11 @@ const PredictorListItem: React.FC<PredictorListItemProps> = React.memo(
               <DataListCell width={1} key={`${dataKey}-model-type`}>
                 <p>{getModelTypeDisplayName(predictor)}</p>
               </DataListCell>,
-              <DataListCell width={2} key={`${dataKey}-connections`}>
+              <DataListCell width={1} key={`${dataKey}-connections`}>
                 <p>{predictor.spec.storage.s3.secretKey}</p>
                 <p>{predictor.spec.path}</p>
               </DataListCell>,
-              <DataListCell width={1} key={`${dataKey}-access-external-link`}>
+              <DataListCell width={2} key={`${dataKey}-access-external-link`}>
                 <p>{predictor.status?.activeModelState}</p>
               </DataListCell>,
               <DataListCell width={1} key={`${dataKey}-access-external-link`}>
@@ -130,9 +131,17 @@ const PredictorListItem: React.FC<PredictorListItemProps> = React.memo(
           <DataListItemCells
             className="odh-data-projects__data-list-item-content"
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-predictor`}>
+              <DataListCell width={3} key={`${dataKey}-predictor`}>
                 <p className="m-bold">API Endpoint</p>
-                <p>{getModelRoute(predictor, route)}</p>
+                <ClipboardCopy
+                  className="odh-data-projects__data-list-api-endpoint"
+                  hoverTip="Copy"
+                  clickTip="Copied"
+                  variant="inline-compact"
+                  isBlock
+                >
+                  {getModelRoute(predictor, route)}
+                </ClipboardCopy>
               </DataListCell>,
               <DataListCell width={2} key={`${dataKey}-predictor-type-detail`}></DataListCell>,
               <DataListCell width={2} key={`${dataKey}-content-empty-1`} />,

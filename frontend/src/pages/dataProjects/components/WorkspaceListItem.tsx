@@ -228,7 +228,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
           />
           <DataListItemCells
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-name-descriptions`}>
+              <DataListCell width={4} key={`${dataKey}-name-descriptions`}>
                 <Title size="md" headingLevel="h4">
                   {notebook.metadata.name}
                 </Title>
@@ -295,7 +295,7 @@ const WorkspaceListItem: React.FC<WorkspaceListItemProps> = React.memo(
           <DataListItemCells
             className="odh-data-projects__data-list-item-content"
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-notebook-storage`}>
+              <DataListCell width={4} key={`${dataKey}-notebook-storage`}>
                 <p className="m-bold">Storage</p>
                 <List className="odh-data-projects__storage-progress" isPlain>
                   {volumeList?.map((v) => (

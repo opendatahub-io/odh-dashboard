@@ -85,7 +85,7 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
           />
           <DataListItemCells
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-name-descriptions`}>
+              <DataListCell width={3} key={`${dataKey}-name-descriptions`}>
                 <Title size="md" headingLevel="h4">
                   {pvc.metadata.name}
                 </Title>
@@ -134,7 +134,7 @@ const PvcListItem: React.FC<PvcListItemProps> = React.memo(
           <DataListItemCells
             className="odh-data-projects__data-list-item-content"
             dataListCells={[
-              <DataListCell width={5} key={`${dataKey}-pvc-storage`}>
+              <DataListCell width={3} key={`${dataKey}-pvc-storage`}>
                 <List className="odh-data-projects__storage-progress" isPlain>
                   <p className="m-bold">Size</p>
                   <ListItem>
