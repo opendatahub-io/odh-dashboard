@@ -89,7 +89,11 @@ export const getQuickStartCompletionStatus = (
         if (status === QuickStartTaskStatus.FAILED) {
           qsStatus = CompletionStatusEnum.Failed;
         }
-        if (status === QuickStartTaskStatus.REVIEW || status === QuickStartTaskStatus.VISITED) {
+        if (
+          status === QuickStartTaskStatus.REVIEW ||
+          status === QuickStartTaskStatus.VISITED ||
+          status === QuickStartTaskStatus.INIT
+        ) {
           return CompletionStatusEnum.InProgress;
         }
         currentStep++;
