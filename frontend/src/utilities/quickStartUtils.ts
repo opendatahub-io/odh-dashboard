@@ -75,17 +75,23 @@ export const getQuickStartCompletionStatus = (
   if (!quickStartId || !qsContext || !qsContext.allQuickStartStates) {
     return undefined;
   }
+
   const quickStartState = qsContext.allQuickStartStates[quickStartId];
   if (!quickStartState || quickStartState.taskNumber === -1) {
     return undefined;
   }
 
   if (quickStartState.status === QuickStartStatus.COMPLETE) {
+    const quickStart = qsContext.allQuickStarts?.find((qs) => qs.metadata.name === quickStartId);
     let qsStatus = CompletionStatusEnum.Success,
       currentStep = 0;
-    while (quickStartState[`taskStatus${currentStep}`]) {
-      const status = quickStartState[`taskStatus${currentStep}`];
-      if (status) {
+    const tasks = quickStart?.spec.tasks;
+    if (tasks) {
+      while (currentStep < tasks.length) {
+        const status = quickStartState[`taskStatus${currentStep}`];
+        if (!status) {
+          return CompletionStatusEnum.InProgress;
+        }
         if (status === QuickStartTaskStatus.FAILED) {
           qsStatus = CompletionStatusEnum.Failed;
         }
