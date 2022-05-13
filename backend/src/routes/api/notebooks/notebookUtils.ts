@@ -1,12 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as jsYaml from 'js-yaml';
-import { yamlRegExp } from '../../../utils/constants';
 import {
      KubeFastifyInstance,
-     Notebook, NotebookList, NotebookRequest, NotebookResources } from '../../../types';
-import { getComponentFeatureFlags } from '../../../utils/features';
-import fastify from 'fastify';
+     Notebook, NotebookList, NotebookResources, Route } from '../../../types';
 import { PatchUtils } from '@kubernetes/client-node';
 
 export const getNotebooks = async (fastify: KubeFastifyInstance, namespace: string, labels: string): Promise<NotebookList> => {
@@ -45,42 +39,29 @@ export const verifyResources = (resources: NotebookResources): NotebookResources
     return resources;
 }
 
-export const postNotebook = async (fastify: KubeFastifyInstance, namespace: string, notebookRequest: NotebookRequest): Promise<Notebook> => {
-  const notebookData: Notebook = {
-      apiVersion: 'kubeflow.org/v1',
-      kind: 'Notebook',
-      metadata: {
-          name: notebookRequest.name,
-          namespace: namespace,
-          labels: notebookRequest?.labels,
-          annotations: { ...notebookRequest?.annotations, ...{'notebooks.opendatahub.io/inject-oauth': 'true'}},
-      },
-      spec: {
-          template: {
-              spec: {
-                  containers: [
-                      {
-                          name: notebookRequest.name, //Has to be same as notebook name
-                          image: notebookRequest.image,
-                          imagePullPolicy: 'Always',
-                          workingDir: '/opt/app-root/src',
-                          env: {
-                                ...notebookRequest?.env,
-                                ...[
-                                        {name: "JUPYTER_NOTEBOOK_PORT", value:"8888"},
-                                        {name:"NOTEBOOK_ARGS", value: "--NotebookApp.token='' --NotebookApp.password=''"},
-                                  ]
-                              }, //TODO: Gather from secrets
-                          resources: verifyResources(notebookRequest.resources)//Should not be optional to prevent unlimited resources
-                      },
-                  ],
-              },
-          },
-      },
+export const postNotebook = async (fastify: KubeFastifyInstance, namespace: string, notebookData: Notebook): Promise<Notebook> => {
+
+  if (!notebookData?.metadata?.annotations) {
+    notebookData.metadata.annotations = {};
   }
 
+  notebookData.metadata.annotations['notebooks.opendatahub.io/inject-oauth'] = 'true';
+  const notebookContainers = notebookData.spec.template.spec.containers;
+
+  if (!notebookContainers[0]) {
+    console.error("No containers found in posted notebook")
+  }
+  notebookContainers[0].env.push(
+    {name: "JUPYTER_NOTEBOOK_PORT", value:"8888"},
+    {name:"NOTEBOOK_ARGS", value: "--NotebookApp.token='' --NotebookApp.password=''"}
+    );
+  notebookContainers[0].imagePullPolicy = 'Always';
+  notebookContainers[0].workingDir = '/opt/app-root/src';
+
+  notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
+  notebookContainers[0].name = notebookData.metadata.name;
   
-  const createNotebookResponse = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+  await fastify.kube.customObjectsApi.createNamespacedCustomObject(
     'kubeflow.org',
     'v1',
     namespace,
@@ -88,10 +69,29 @@ export const postNotebook = async (fastify: KubeFastifyInstance, namespace: stri
     notebookData,
   );
 
-  return createNotebookResponse.body as Notebook;
+  const getRouteResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
+    'route.openshift.io',
+    'v1',
+    namespace,
+    'routes',
+    notebookData.metadata.name
+  )
+
+  const route = getRouteResponse.body as Route;
+
+  const patch = {
+      "metadata": {
+        "annotations": {
+          'opendatahub.io/link': `https://${route.spec.host}`,
+      },
+    },
+  }
+  const patchNotebookResponse = await patchNotebook(fastify, patch, namespace, notebookData.metadata.name);
+
+  return patchNotebookResponse as Notebook;
 };
 
-export const patchNotebook =async (fastify: KubeFastifyInstance, request: { stopped: boolean } | any, namespace: string, notebookName: string): Promise<Notebook> => {
+export const patchNotebook = async (fastify: KubeFastifyInstance, request: { stopped: boolean } | any, namespace: string, notebookName: string): Promise<Notebook> => {
     let patch;
         const options = {
           headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },

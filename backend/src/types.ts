@@ -247,20 +247,6 @@ export type NotebookResources = {
   };
 };
 
-export type NotebookRequest = {
-  name: string;
-  labels?: { [key: string]: string };
-  annotations?: { [key: string]: string };
-  image: string;
-  resources: NotebookResources;
-  gpu?: number
-  env?: EnvironmentVariable[];
-};
-
-export type NotebookStatus = {
-
-};
-
 export type NotebookPort = {
   name: string;
   containerPort: number;

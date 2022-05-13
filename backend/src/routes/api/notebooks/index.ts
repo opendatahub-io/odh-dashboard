@@ -1,13 +1,9 @@
 import {
     KubeFastifyInstance,
     Notebook,
-    NotebookList,
-    NotebookRequest,
-    Route,
   } from '../../../types';
   import { FastifyReply, FastifyRequest } from 'fastify';
 import { getNotebook, getNotebooks, patchNotebook, postNotebook } from './notebookUtils';
-import { isLabeledStatement } from 'typescript';
   
   module.exports = async (fastify: KubeFastifyInstance) => {  
     fastify.get('/:projectName', async (request: FastifyRequest, reply: FastifyReply) => {
