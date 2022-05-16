@@ -18,6 +18,11 @@
     font-weight: var(--pf-global--FontWeight--bold);
   }
 
+  &__view-switcher {
+    font-weight: var(--pf-global--FontWeight--bold);
+    margin-left: var(--pf-global--spacer--xs);
+  }
+
   &__filtered-types {
     display: flex;
     align-items: center;

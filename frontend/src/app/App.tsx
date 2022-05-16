@@ -5,6 +5,8 @@ import '@patternfly/patternfly/patternfly-addons.css';
 import { Page } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
+import { useTrackHistory } from '../utilities/useTrackHistory';
+import { useSegmentTracking } from '../utilities/useSegmentTracking';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
@@ -19,6 +21,8 @@ const App: React.FC = () => {
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const dispatch = useDispatch();
+  useSegmentTracking();
+  useTrackHistory();
 
   useWatchBuildStatus();
 

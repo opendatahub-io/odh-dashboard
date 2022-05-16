@@ -17,11 +17,13 @@ import { OdhApplication } from '../../types';
 import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
+import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 
 import './ExploreApplications.scss';
+import { ODH_PRODUCT_NAME } from 'utilities/const';
 
-const description = `Add optional applications to your Open Data Hub instance.`;
-const disabledDescription = `View optional applications for your Open Data Hub instance. Contact an administrator to install these applications.`;
+const description = `Add optional applications to your ${ODH_PRODUCT_NAME} OpenShift Data Science instance.`;
+const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} OpenShift Data Science instance. Contact an administrator to install these applications.`;
 
 type ExploreApplicationsInnerProps = {
   loaded: boolean;
@@ -68,7 +70,12 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                           key={c.metadata.name}
                           odhApp={c}
                           isSelected={selectedComponent?.metadata.name === c.metadata.name}
-                          onSelect={() => updateSelection(c.metadata.name)}
+                          onSelect={() => {
+                            updateSelection(c.metadata.name);
+                            fireTrackingEvent('Explore card clicked', {
+                              name: c.metadata.name,
+                            });
+                          }}
                           disableInfo={dashboardConfig.disableInfo}
                           enableOpen={c.metadata.name === enableApp?.metadata.name}
                           onEnableClose={() => setEnableApp(undefined)}

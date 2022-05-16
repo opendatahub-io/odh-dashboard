@@ -8,6 +8,10 @@ const DEFAULT_CONFIG: DashboardConfig = {
   enablement: true,
   disableInfo: false,
   disableSupport: false,
+  disableClusterManager: false,
+  disableTracking: true,
+  disableISVBadges: true,
+  disableBYONImageStream: true
 };
 
 export const useWatchDashboardConfig = (): {

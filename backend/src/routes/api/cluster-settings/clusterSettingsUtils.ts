@@ -2,7 +2,8 @@ import { FastifyRequest } from 'fastify';
 import { rolloutDeployment } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 
-const name = 'jupyterhub-cfg';
+const juypterhubCfg = 'jupyterhub-cfg';
+const segmentKeyCfg = 'odh-segment-key-config';
 
 export const updateClusterSettings = async (
   fastify: KubeFastifyInstance,
@@ -12,7 +13,25 @@ export const updateClusterSettings = async (
   const namespace = fastify.kube.namespace;
   const query = request.query as { [key: string]: string };
   try {
-    const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(name, namespace);
+    if (query.userTrackingEnabled) {
+      await coreV1Api.patchNamespacedConfigMap(
+        segmentKeyCfg,
+        namespace,
+        {
+          data: { segmentKeyEnabled: query.userTrackingEnabled },
+        },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          headers: {
+            'Content-Type': 'application/merge-patch+json',
+          },
+        },
+      );
+    }
+    const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
     if (query.pvcSize && query.cullerTimeout) {
       if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
         await rolloutDeployment(fastify, namespace, 'jupyterhub');
@@ -21,7 +40,7 @@ export const updateClusterSettings = async (
         await rolloutDeployment(fastify, namespace, 'jupyterhub-idle-culler');
       }
       await coreV1Api.patchNamespacedConfigMap(
-        name,
+        juypterhubCfg,
         namespace,
         {
           data: { singleuser_pvc_size: `${query.pvcSize}Gi`, culler_timeout: query.cullerTimeout },
@@ -52,10 +71,13 @@ export const getClusterSettings = async (
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   try {
-    const clusterSettingsRes = await coreV1Api.readNamespacedConfigMap(name, namespace);
+    const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
+    const jupyterhubCfgResponse = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
+
     return {
-      pvcSize: Number(clusterSettingsRes.body.data.singleuser_pvc_size.replace('Gi', '')),
-      cullerTimeout: Number(clusterSettingsRes.body.data.culler_timeout),
+      pvcSize: Number(jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', '')),
+      cullerTimeout: Number(jupyterhubCfgResponse.body.data.culler_timeout),
+      userTrackingEnabled: segmentEnabledRes.body.data.segmentKeyEnabled === 'true',
     };
   } catch (e) {
     if (e.response?.statusCode !== 404) {

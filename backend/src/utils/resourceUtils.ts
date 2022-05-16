@@ -50,6 +50,10 @@ const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
     enablement: 'true',
     disableInfo: 'false',
     disableSupport: 'false',
+    disableClusterManager: 'false',
+    disableTracking: 'true',
+    disableBYONImageStream: 'true',
+    disableISVBadges: 'true',
   },
 };
 
@@ -351,6 +355,10 @@ export const getDashboardConfig = (): DashboardConfig => {
     enablement: (config.data?.enablement ?? '').toLowerCase() !== 'false',
     disableInfo: (config.data?.disableInfo ?? '').toLowerCase() === 'true',
     disableSupport: (config.data?.disableSupport ?? '').toLowerCase() === 'true',
+    disableClusterManager: (config.data?.disableClusterManager ?? '').toLowerCase() === 'true',
+    disableTracking: (config.data?.disableTracking ?? '').toLowerCase() === 'true',
+    disableBYONImageStream: (config.data?.disableBYONImageStream ?? '').toLowerCase() === 'true',
+    disableISVBadges: (config.data?.disableISVBadges ?? '').toLowerCase() === 'true',
   };
 };
 

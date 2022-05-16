@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Nav, NavExpandable, NavItem, NavList, PageSidebar } from '@patternfly/react-core';
-import { adminNavData, navData, NavDataItem } from '../utilities/NavData';
+import { getNavBarData, NavDataItem } from '../utilities/NavData';
 import { State } from '../redux/types';
 import { useSelector } from 'react-redux';
+import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
 
 const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, pathname }) => {
   const { children, group } = item;
@@ -46,7 +47,8 @@ type NavSidebarProps = {
 const NavSidebar: React.FC<NavSidebarProps> = ({ isNavOpen }) => {
   const routerLocation = useLocation();
   const isAdmin = useSelector<State, boolean>((state) => state.appState.isAdmin || false);
-  const userNavData = isAdmin ? adminNavData : navData;
+  const { dashboardConfig } = useWatchDashboardConfig();
+  const userNavData = getNavBarData(isAdmin, dashboardConfig);
   const nav = (
     <Nav className="nav" theme="dark" aria-label="Nav">
       <NavList>

@@ -3,7 +3,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
 
 type groupObjResponse = {
-  users: string[] | null;
+  users: string[];
 };
 
 const status = async (
@@ -11,7 +11,7 @@ const status = async (
   request: FastifyRequest,
 ): Promise<{ kube: KubeStatus }> => {
   const kubeContext = fastify.kube.currentContext;
-  const { currentContext, namespace, currentUser, clusterID } = fastify.kube;
+  const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
   const currentUserName =
     (request.headers['x-forwarded-user'] as string) || currentUser.username || currentUser.name;
   let userName = currentUserName?.split('/')[0];
@@ -34,15 +34,11 @@ const status = async (
       adminGroup,
     );
     const adminUsers = (adminGroupResponse.body as groupObjResponse).users;
-    if (!adminUsers || !adminUsers?.length) {
-      console.log('Warning: No admin user in admin groups');
-    } else {
-      isAdmin = adminUsers.includes(userName);
-    }
+    isAdmin = adminUsers.includes(userName);
   } catch (e) {
     console.log('Failed to get groups: ' + e.toString());
   }
-
+  fastify.kube.coreV1Api.getAPIResources();
   if (!kubeContext && !kubeContext.trim()) {
     const error = createError(500, 'failed to get kube status');
     error.explicitInternalServerError = true;
@@ -59,6 +55,7 @@ const status = async (
         namespace,
         userName,
         clusterID,
+        clusterBranding,
         isAdmin,
       },
     });
