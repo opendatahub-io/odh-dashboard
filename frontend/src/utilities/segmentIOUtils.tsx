@@ -21,7 +21,7 @@ export const fireTrackingEvent = (
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const initSegment = async (props) => {
-  const { segmentKey, username } = props;
+  const { segmentKey, username, enabled } = props;
   const analytics = (window.analytics = window.analytics || []);
   if (analytics.initialize) {
     return;
@@ -76,7 +76,7 @@ export const initSegment = async (props) => {
       analytics._loadOptions = e;
     };
     analytics.SNIPPET_VERSION = '4.13.1';
-    if (segmentKey) {
+    if (segmentKey && enabled) {
       analytics.load(segmentKey);
     }
     const anonymousIDBuffer = await crypto.subtle.digest(
