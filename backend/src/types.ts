@@ -15,7 +15,7 @@ export type DashboardConfig = {
 export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
-  userTrackingEnabled: boolean;
+  userTrackingEnabled: boolean | null;
 }
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules

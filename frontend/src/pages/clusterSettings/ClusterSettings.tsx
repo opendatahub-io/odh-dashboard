@@ -38,7 +38,6 @@ import {
   MAX_HOUR,
   DEFAULT_HOUR,
   MIN_CULLER_TIMEOUT,
-  DEFAULT_USER_TRACKING,
 } from './const';
 import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '../../utilities/utils';
 import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
@@ -54,7 +53,7 @@ const ClusterSettings: React.FC = () => {
   const [clusterSettings, setClusterSettings] = React.useState(DEFAULT_CONFIG);
   const [pvcSize, setPvcSize] = React.useState<number | string>(DEFAULT_PVC_SIZE);
   const [userTrackingEnabled, setUserTrackingEnabled] =
-    React.useState<boolean>(DEFAULT_USER_TRACKING);
+    React.useState<boolean | null>(null);
   const [cullerTimeoutChecked, setCullerTimeoutChecked] =
     React.useState<string>(CULLER_TIMEOUT_UNLIMITED);
   const [cullerTimeout, setCullerTimeout] = React.useState<number>(DEFAULT_CULLER_TIMEOUT);
@@ -77,7 +76,9 @@ const ClusterSettings: React.FC = () => {
           setHour(getHourAndMinuteByTimeout(clusterSettings.cullerTimeout).hour);
           setMinute(getHourAndMinuteByTimeout(clusterSettings.cullerTimeout).minute);
         }
-        setUserTrackingEnabled(clusterSettings.userTrackingEnabled);
+        if (clusterSettings.userTrackingEnabled) {
+          setUserTrackingEnabled(clusterSettings.userTrackingEnabled);
+        }
       })
       .catch((e) => {
         setLoadError(e);
@@ -85,7 +86,9 @@ const ClusterSettings: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    setCullerTimeout(getTimeoutByHourAndMinute(hour, minute));
+    if (cullerTimeoutChecked === CULLER_TIMEOUT_LIMITED) {
+      setCullerTimeout(getTimeoutByHourAndMinute(hour, minute));
+    }
   }, [hour, minute]);
 
   React.useEffect(() => {

@@ -12,9 +12,8 @@ export const MAX_MINUTE = 59;
 export const MIN_MINUTE = 0;
 export const MIN_CULLER_TIMEOUT = 600; // 10 minutes
 export const DEFAULT_CULLER_TIMEOUT = 31536000; // 1 year as no culling
-export const DEFAULT_USER_TRACKING = false;
 export const DEFAULT_CONFIG: ClusterSettings = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
-  userTrackingEnabled: DEFAULT_USER_TRACKING,
+  userTrackingEnabled: null,
 };
