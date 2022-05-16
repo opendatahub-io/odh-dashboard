@@ -79,7 +79,7 @@ export const getClusterSettings = async (
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   const clusterSettings = {
-    ...DEFAULT_CLUSTER_SETTINGS
+    ...DEFAULT_CLUSTER_SETTINGS,
   };
   try {
     const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
@@ -89,7 +89,9 @@ export const getClusterSettings = async (
   }
   try {
     const jupyterhubCfgResponse = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
-    clusterSettings.pvcSize = Number(jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', ''));
+    clusterSettings.pvcSize = Number(
+      jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', ''),
+    );
     clusterSettings.cullerTimeout = Number(jupyterhubCfgResponse.body.data.culler_timeout);
   } catch (e) {
     fastify.log.error('Error retrieving cluster settings: ' + e.toString());
