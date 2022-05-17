@@ -12,10 +12,22 @@ spec:
       labels:
         deployment: odh-dashboard
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - odh-dashboard
+                topologyKey: topology.kubernetes.io/zone
       serviceAccount: odh-dashboard
       containers:
       - name: odh-dashboard
-        image: quay.io/modh/odh-dashboard:v1.0.11
+        image: odh-dashboard    # Replaced by the kustomize images parameter
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -46,5 +58,3 @@ spec:
           periodSeconds: 30
           successThreshold: 1
           failureThreshold: 3
-      imagePullSecrets:
-      - name: addon-managed-odh-pullsecret

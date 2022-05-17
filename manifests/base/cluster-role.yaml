@@ -20,6 +20,7 @@ rules:
       - operators.coreos.com
     resources:
       - clusterserviceversions
+      - subscriptions
   - verbs:
       - get
       - list
@@ -62,4 +63,11 @@ rules:
       - integreatly.org
     resources:
       - rhmis
-
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
+      - user.openshift.io
+    resources:
+      - groups

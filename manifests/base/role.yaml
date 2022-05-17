@@ -52,7 +52,9 @@ rules:
       - create
       - get
       - list
+      - update
       - patch
+      - delete
     resources:
       - imagestreams
   - apiGroups:
@@ -61,6 +63,29 @@ rules:
       - get
       - list
       - watch
+      - create
+      - patch
+      - delete
     resources:
       - builds
       - buildconfigs
+      - buildconfigs/instantiate
+  - verbs:
+      - list
+    apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+  - apiGroups:
+      - apps.openshift.io
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - deploymentconfigs
+      - deploymentconfigs/instantiate
