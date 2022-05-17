@@ -54,6 +54,7 @@ const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
     disableTracking: 'true',
     disableBYONImageStream: 'true',
     disableISVBadges: 'true',
+    disableAppLauncher: 'true',
   },
 };
 
@@ -359,6 +360,7 @@ export const getDashboardConfig = (): DashboardConfig => {
     disableTracking: (config.data?.disableTracking ?? '').toLowerCase() === 'true',
     disableBYONImageStream: (config.data?.disableBYONImageStream ?? '').toLowerCase() === 'true',
     disableISVBadges: (config.data?.disableISVBadges ?? '').toLowerCase() === 'true',
+    disableAppLauncher: (config.data?.disableAppLauncher ?? '').toLowerCase() === 'true',
   };
 };
 

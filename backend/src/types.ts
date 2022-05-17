@@ -10,6 +10,7 @@ export type DashboardConfig = {
   disableTracking: boolean;
   disableBYONImageStream: boolean;
   disableISVBadges: boolean;
+  disableAppLauncher: boolean;
 };
 
 export type ClusterSettings = {

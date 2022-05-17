@@ -101,7 +101,9 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   return (
     <PageHeaderTools>
       <PageHeaderToolsGroup className="hidden-xs">
-        <AppLauncher dashboardConfig={dashboardConfig} />
+        {!dashboardConfig.disableAppLauncher ? (
+          <AppLauncher dashboardConfig={dashboardConfig} />
+        ) : null}
         <PageHeaderToolsItem>
           <NotificationBadge isRead count={newNotifications} onClick={onNotificationsClick} />
         </PageHeaderToolsItem>

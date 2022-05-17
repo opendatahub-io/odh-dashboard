@@ -12,6 +12,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
   disableTracking: true,
   disableISVBadges: true,
   disableBYONImageStream: true,
+  disableAppLauncher: true,
 };
 
 export const useWatchDashboardConfig = (): {
