@@ -2,11 +2,59 @@ import k8s from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance } from 'fastify';
 
-export type DashboardConfig = {
-  enablement: boolean;
-  disableInfo: boolean;
-  disableSupport: boolean;
+export type DashboardConfig = K8sResourceCommon & {
+  spec: {
+    dashboardConfig?: {
+      enablement?: boolean;
+      disableInfo?: boolean;
+      disableSupport?: boolean;
+      disableClusterManager?: boolean;
+      disableTracking?: boolean;
+      disableBYONImageStream?: boolean;
+      disableISVBadges?: boolean;
+    }
+    notebookSizes?: [
+      {
+        name: string;
+        resources: NotebookResources;
+      }
+    ];
+    notebookController?: {
+      enabled: boolean;
+      gpuConfig?: {
+        enabled: boolean;
+      };
+      envVarConfig?: {
+        enabled: boolean;
+      }
+    }
+    notebookControllerState?: [
+      {
+        user: string;
+        lastSelectedImage: string;
+        lastSelectedSize: string;
+        environmentVariables: EnvironmentVariable[];
+        secrets: string;
+      }
+    ];
+  }
 };
+
+export type NotebookResources = {
+  requests: {
+    cpu?: string;
+    memory?: string;
+  };
+  limits?: {
+    cpu?: string;
+    memory?: string;
+  };
+};
+
+export type EnvironmentVariable = {
+  key: string;
+  value: string;
+}
 
 export type ClusterSettings = {
   pvcSize: number;

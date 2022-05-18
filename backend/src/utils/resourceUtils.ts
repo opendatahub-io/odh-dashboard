@@ -24,8 +24,9 @@ import {
   ResourceWatcherTimeUpdate,
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
-import { yamlRegExp } from './constants';
+import { yamlRegExp, blankDashboardCR } from './constants';
 import { getIsAppEnabled, getRouteForClusterId } from './componentUtils';
+import fastify from 'fastify';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -33,7 +34,7 @@ const consoleLinksVersion = 'v1';
 const consoleLinksPlural = 'consolelinks';
 const enabledAppsConfigMapName = process.env.ENABLED_APPS_CM;
 
-let dashboardConfigWatcher: ResourceWatcher<V1ConfigMap>;
+let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionKind>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
@@ -41,24 +42,55 @@ let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 
-const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
-  metadata: {
-    name: dashboardConfigMapName,
-    namespace: 'default',
-  },
-  data: {
-    enablement: 'true',
-    disableInfo: 'false',
-    disableSupport: 'false',
-  },
+// const fetchDashboardConfigMap = (fastify: KubeFastifyInstance): Promise<V1ConfigMap[]> => {
+//   return fastify.kube.coreV1Api
+//     .readNamespacedConfigMap(dashboardConfigMapName, fastify.kube.namespace)
+//     .then((result) => [result.body])
+//     .catch(() => [DEFAULT_DASHBOARD_CONFIG]);
+// };
+
+const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
+  const crResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
+  .listNamespacedCustomObject(
+    'opendatahub.io',
+    'v1alpha',
+    fastify.kube.namespace,
+    'odhdashboards',
+  )
+  .then((res) => {
+    const dashboardCR = (
+      res?.body as {
+        items: DashboardConfig[];
+      }
+    )?.items;
+    if (dashboardCR.length === 0) {
+      return createDashboardCR(fastify);
+    }
+    return dashboardCR;
+  })
+  .catch(() => {
+    return null
+  });
+
+  return crResponse;
 };
 
-const fetchDashboardConfigMap = (fastify: KubeFastifyInstance): Promise<V1ConfigMap[]> => {
-  return fastify.kube.coreV1Api
-    .readNamespacedConfigMap(dashboardConfigMapName, fastify.kube.namespace)
-    .then((result) => [result.body])
-    .catch(() => [DEFAULT_DASHBOARD_CONFIG]);
+const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
+  const createResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
+  .createNamespacedCustomObject(
+    'opendatahub.io',
+    'v1alpha',
+    fastify.kube.namespace,
+    'odhdashboards',
+    blankDashboardCR,
+  )
+  .then((result) => [result.body])
+  .catch(() => null);
+
+  return createResponse;
 };
+
+
 
 const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionKind[]> => {
   const fetchAll = async (): Promise<SubscriptionKind[]> => {
@@ -336,7 +368,7 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 };
 
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
-  dashboardConfigWatcher = new ResourceWatcher<V1ConfigMap>(fastify, fetchDashboardConfigMap);
+  dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
   subscriptionWatcher = new ResourceWatcher<SubscriptionKind>(fastify, fetchSubscriptions);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplicationDefs);
@@ -346,12 +378,8 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
 };
 
 export const getDashboardConfig = (): DashboardConfig => {
-  const config = dashboardConfigWatcher.getResources()?.[0] ?? DEFAULT_DASHBOARD_CONFIG;
-  return {
-    enablement: (config.data?.enablement ?? '').toLowerCase() !== 'false',
-    disableInfo: (config.data?.disableInfo ?? '').toLowerCase() === 'true',
-    disableSupport: (config.data?.disableSupport ?? '').toLowerCase() === 'true',
-  };
+  const config = dashboardConfigWatcher.getResources()?.[0];
+  return config
 };
 
 export const getSubscriptions = (): SubscriptionKind[] => {
