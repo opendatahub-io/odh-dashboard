@@ -55,5 +55,6 @@ For in-depth testing guidance review the [contribution guidelines](./CONTRIBUTIN
 
 ### Enabling / Disabling Features
 ODH Dashboard has the capiability to enable and disable features based on the environment that dashboard is running in.  See [enabling and disabling features](./docs/FEATURES.md)
+
 ## Contributing
 Contributing encompasses [repository specific requirements](./CONTRIBUTING.md)
