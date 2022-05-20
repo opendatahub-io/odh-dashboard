@@ -6,7 +6,7 @@ The following are a list of features that are supported, along with there defaul
 
 | Feature | Default | Description |
 |-------|-------| ------- |
-|  enablement| true | Disables the ability to enable addition  applications |
+|  enablement| true | Enables the ability to enable ISVs to the dashboard |
 |  disableInfo| false | Removes the information panel in Explore Application section |
 |  disableSupport| false | Disables components related to support. |
 |  disableClusterManager | false | Disables cluster management section for admins
