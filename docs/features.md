@@ -1,5 +1,5 @@
 # Configurable Features
-By default the ODH Dashboard comes with a set of core features enabled that are design to work for most scenarios.  There are also advance features that can be enable and disabled by using the **odh-dashboard-config** map.  The ODH Dashboard will attempt to read features from this config map to enable features that are not enabled by default.  
+By default the ODH Dashboard comes with a set of core features enabled that are design to work for most scenarios.  There are also advance features that can be enable and disabled by using the **odh-dashboard-config** `ConfigMap`.  The ODH Dashboard will attempt to read features from this `ConfigMap` to enable features that are not enabled by default.  
 
 ## Features
 The following are a list of features that are supported, along with there default settings.
