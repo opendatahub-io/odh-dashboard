@@ -2,12 +2,13 @@ import * as React from 'react';
 import { store } from '../redux/store/store';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { mount } from 'enzyme';
 import { LearningCenter } from '../pages/learningCenter/LearningCenter';
 import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
 import { mockDocs } from '../../__mocks__/mockDocs';
-import { act } from 'react-dom/test-utils';
 import { Options } from 'react-cool-dimensions';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 
 jest.mock('react-router-dom', () => {
   const reactRouterDom = jest.requireActual('react-router-dom');
@@ -62,7 +63,7 @@ jest.mock('../utilities/router', () => ({
 
 describe('Resources page', () => {
   it('should display available resources', () => {
-    const wrapper = mount(
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <LearningCenter />
@@ -70,17 +71,14 @@ describe('Resources page', () => {
       </Provider>,
     );
 
-    const viewPanel = wrapper.find('.odh-learning-paths__view-panel');
-    expect(viewPanel.exists()).toBe(true);
-    expect(viewPanel.html()).toMatchSnapshot();
+    expect(container.querySelector('.odh-learning-paths__view-panel')).toBeInTheDocument();
 
-    const cards = viewPanel.find('.pf-c-card__header');
-    expect(cards.length).toBe(6);
-
-    wrapper.unmount();
+    const cards = screen.getAllByRole('article');
+    expect(cards.length).toBe(7);
   });
+
   it('should display available filters', () => {
-    const wrapper = mount(
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <LearningCenter />
@@ -88,20 +86,18 @@ describe('Resources page', () => {
       </Provider>,
     );
 
-    const filterPanel = wrapper.find('.odh-learning-paths__filter-panel');
-    expect(filterPanel.exists()).toBe(true);
-    expect(filterPanel.html()).toMatchSnapshot();
+    expect(container.querySelector('.odh-learning-paths__filter-panel')).toBeInTheDocument();
 
-    const categories = filterPanel.find('.vertical-tabs-pf-tab');
+    const categories = container.querySelectorAll('.vertical-tabs-pf-tab');
     expect(categories.length).toBe(5);
-    const activeCategories = filterPanel.find('.vertical-tabs-pf-tab.active');
+    const activeCategories = container.querySelectorAll('.vertical-tabs-pf-tab.active');
     expect(activeCategories.length).toBe(1);
-    expect(activeCategories.text()).toBe('All Items');
-
-    wrapper.unmount();
+    expect(activeCategories[0].textContent).toBe('All Items');
   });
-  it('should show the list view when selected', () => {
-    const wrapper = mount(
+
+  it('should show the list view when selected', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <LearningCenter />
@@ -109,36 +105,26 @@ describe('Resources page', () => {
       </Provider>,
     );
 
-    let viewPanel = wrapper.find('.odh-learning-paths__view-panel');
-    expect(viewPanel.length).toBe(1);
-    let listView = viewPanel.find('section.odh-learning-paths__view-panel__list-view');
-    let cardView = viewPanel.find('section.odh-learning-paths__view-panel__card-view');
-    expect(listView.length).toBe(0);
-    expect(cardView.length).toBe(1);
+    expect(container.querySelector('section.odh-learning-paths__view-panel__list-view')).toBeNull();
+    expect(
+      container.querySelector('section.odh-learning-paths__view-panel__card-view'),
+    ).toBeInTheDocument();
 
-    const viewFilter = wrapper.find('.odh-learning-paths__toolbar__view-filter');
-    expect(viewFilter.exists()).toBe(true);
+    expect(container.querySelector('.odh-learning-paths__toolbar__view-filter')).toBeInTheDocument;
 
-    const viewButtons = viewFilter.find('.pf-c-toggle-group__button');
+    const viewButtons = container.querySelectorAll('.pf-c-toggle-group__button');
     expect(viewButtons.length).toBe(2);
 
-    act(() => {
-      viewButtons.at(1).simulate('click');
-    });
-    wrapper.update();
+    await user.click(viewButtons[1]);
 
-    viewPanel = wrapper.find('.odh-learning-paths__view-panel');
-    expect(viewPanel.html()).toMatchSnapshot();
-
-    listView = viewPanel.find('section.odh-learning-paths__view-panel__list-view');
-    cardView = viewPanel.find('section.odh-learning-paths__view-panel__card-view');
-    expect(listView.length).toBe(1);
-    expect(cardView.length).toBe(0);
-
-    wrapper.unmount();
+    expect(
+      container.querySelector('section.odh-learning-paths__view-panel__list-view'),
+    ).toBeInTheDocument();
+    expect(container.querySelector('section.odh-learning-paths__view-panel__card-view')).toBeNull();
   });
+
   it('should not collapse the filter panel at higher resolutions', () => {
-    const wrapper = mount(
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <LearningCenter />
@@ -146,59 +132,54 @@ describe('Resources page', () => {
       </Provider>,
     );
 
-    const filterPanel = wrapper.find('.odh-learning-paths__filter-panel');
-    expect(filterPanel.hasClass('m-is-collapsible')).toBe(false);
-    expect(filterPanel.find('.odh-learning-paths__filter-panel__collapse-button').exists()).toBe(
-      false,
+    expect(container.querySelector('.odh-learning-paths__filter-panel')).not.toHaveClass(
+      'm-is-collapsible',
     );
-
-    wrapper.unmount();
+    expect(
+      container.querySelector('.odh-learning-paths__filter-panel__collapse-button'),
+    ).toBeNull();
   });
 
-  it('should collapse the filter panel at low resolutions', () => {
+  it('should collapse the filter panel at low resolutions', async () => {
     count = 0;
     currSize = 'sm';
-    const wrapper = mount(
+    const user = userEvent.setup();
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <LearningCenter />
         </Router>
       </Provider>,
     );
-    let filterPanel = wrapper.find('.odh-learning-paths__filter-panel');
-    expect(filterPanel.hasClass('m-is-collapsible')).toBe(true);
-    expect(filterPanel.hasClass('m-is-collapsed')).toBe(true);
-    expect(filterPanel.find('.odh-learning-paths__filter-panel__collapse-button').exists()).toBe(
-      true,
-    );
+    let filterPanel = container.querySelector('.odh-learning-paths__filter-panel');
+    expect(filterPanel).toHaveClass('m-is-collapsible');
+    expect(filterPanel).toHaveClass('m-is-collapsed');
+    expect(
+      container.querySelector('.odh-learning-paths__filter-panel__collapse-button'),
+    ).toBeInTheDocument();
 
-    const clickFilterToggle = () => {
-      act(() => {
-        const viewFilter = wrapper.find('.odh-learning-paths__toolbar__view-filter');
-        const filterButton = viewFilter.find('.pf-c-button.pf-m-link').at(0);
-        filterButton.simulate('click');
-      });
-      wrapper.update();
-      filterPanel = wrapper.find('.odh-learning-paths__filter-panel');
+    const clickFilterToggle = async () => {
+      const viewFilter = container.querySelector('.odh-learning-paths__toolbar__view-filter');
+      const filterButton = viewFilter?.querySelector('.pf-c-button.pf-m-link');
+      await user.click(filterButton as Element);
+      filterPanel = container.querySelector('.odh-learning-paths__filter-panel');
     };
 
-    clickFilterToggle();
-    expect(filterPanel.hasClass('m-is-collapsed')).toBe(false);
+    await clickFilterToggle();
+    expect(filterPanel).not.toHaveClass('m-is-collapsed');
 
-    clickFilterToggle();
-    expect(filterPanel.hasClass('m-is-collapsed')).toBe(true);
+    await clickFilterToggle();
+    expect(filterPanel).toHaveClass('m-is-collapsed');
 
-    clickFilterToggle();
-    act(() => {
-      const closeButton = wrapper.find(
+    await clickFilterToggle();
+
+    // Click close button
+    await user.click(
+      container.querySelector(
         '.pf-c-button.odh-learning-paths__filter-panel__collapse-button',
-      );
-      closeButton.simulate('click');
-    });
-    wrapper.update();
-    filterPanel = wrapper.find('.odh-learning-paths__filter-panel');
-    expect(filterPanel.hasClass('m-is-collapsed')).toBe(true);
-
-    wrapper.unmount();
+      ) as Element,
+    );
+    filterPanel = container.querySelector('.odh-learning-paths__filter-panel');
+    expect(filterPanel).toHaveClass('m-is-collapsed');
   });
 });

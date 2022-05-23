@@ -45,6 +45,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   return (
     <Card
       id={odhApp.metadata.name}
+      role="article"
       isHoverable={!disabled}
       isSelectable={!disabled}
       isSelected={isSelected}

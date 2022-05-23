@@ -120,6 +120,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
   return (
     <Card
       id={odhDoc.metadata.name}
+      role="article"
       isHoverable
       className="odh-card odh-tourable-card"
       isSelected={selected}
