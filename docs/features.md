@@ -9,7 +9,7 @@ The following are a list of features that are supported, along with there defaul
 |  enablement| true | Enables the ability to enable ISVs to the dashboard |
 |  disableInfo| false | Removes the information panel in Explore Application section |
 |  disableSupport| false | Disables components related to support. |
-|  disableClusterManager | false | Disables cluster management section for admins
+|  disableClusterManager | true | Disables cluster management section for admins
 |  disableTracking | true | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured
 |  disableBYONImageStream| true | Disables custom notebook images that are created via image streams
 |  disableISVBadges | true | Removes the badge that indicate if a product is ISV or not.

@@ -8,7 +8,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
   enablement: true,
   disableInfo: false,
   disableSupport: false,
-  disableClusterManager: false,
+  disableClusterManager: true,
   disableTracking: true,
   disableISVBadges: true,
   disableBYONImageStream: true,
