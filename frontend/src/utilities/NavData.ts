@@ -1,3 +1,4 @@
+import { DashboardConfig } from '../types';
 export type NavDataItem = {
   id?: string;
   label?: string;
@@ -9,7 +10,7 @@ export type NavDataItem = {
   children?: NavDataItem[];
 };
 
-export const navData: NavDataItem[] = [
+const baseNavData: NavDataItem[] = [
   {
     id: 'applications',
     group: { id: 'apps', title: 'Applications' },
@@ -21,21 +22,46 @@ export const navData: NavDataItem[] = [
   { id: 'resources', label: 'Resources', href: '/resources' },
 ];
 
-export const adminNavData: NavDataItem[] = [
-  {
-    id: 'applications',
-    group: { id: 'apps', title: 'Applications' },
-    children: [
-      { id: 'apps-installed', label: 'Enabled', href: '/' },
-      { id: 'apps-explore', label: 'Explore', href: '/explore' },
-    ],
-  },
-  { id: 'resources', label: 'Resources', href: '/resources' },
-  {
-    id: 'settings',
-    group: { id: 'settings', title: 'Settings' },
-    children: [
-      { id: 'settings-cluster-settings', label: 'Cluster settings', href: '/clusterSettings' },
-    ],
-  },
-];
+export const getNavBarData = (
+  isAdmin: boolean,
+  dashboardConfig: DashboardConfig,
+): NavDataItem[] => {
+  if (!isAdmin) return baseNavData;
+
+  const enabledFeatures: NavDataItem[] = [];
+
+  if (!dashboardConfig.disableBYONImageStream)
+    enabledFeatures.push({
+      id: 'settings-notebook-images',
+      label: 'Notebook Images',
+      href: '/notebookImages',
+    });
+
+  if (!dashboardConfig.disableClusterManager)
+    enabledFeatures.push({
+      id: 'settings-cluster-settings',
+      label: 'Cluster settings',
+      href: '/clusterSettings',
+    });
+
+  if (enabledFeatures.length > 0) {
+    return [
+      {
+        id: 'applications',
+        group: { id: 'apps', title: 'Applications' },
+        children: [
+          { id: 'apps-installed', label: 'Enabled', href: '/' },
+          { id: 'apps-explore', label: 'Explore', href: '/explore' },
+        ],
+      },
+      { id: 'resources', label: 'Resources', href: '/resources' },
+      {
+        id: 'settings',
+        group: { id: 'settings', title: 'Settings' },
+        children: enabledFeatures,
+      },
+    ];
+  }
+
+  return baseNavData;
+};

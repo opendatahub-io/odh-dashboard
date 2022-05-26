@@ -40,7 +40,7 @@ This is the default context for running a local UI.  Make sure you build the pro
   $ npm run start
   ```
 
-For in-depth local run guidance review the [contribution guidelines](./CONTRIBUTING.md#Serving%20Content)
+For in-depth local run guidance review the [contribution guidelines](./docs/CONTRIBUTING.md#Serving%20Content)
 
 
 ### Testing
@@ -50,7 +50,11 @@ Run the tests.
   $ npm run test
   ```
 
-For in-depth testing guidance review the [contribution guidelines](./CONTRIBUTING.md#Testing)
+For in-depth testing guidance review the [contribution guidelines](./docs/CONTRIBUTING.md#Testing)
 
 ## Contributing
-Contributing encompasses [repository specific requirements](./CONTRIBUTING.md)
+Contributing encompasses [repository specific requirements](./docs/CONTRIBUTING.md)
+
+## Documentation
+
+You can find more information about this project in the [document section](./docs/README.md)

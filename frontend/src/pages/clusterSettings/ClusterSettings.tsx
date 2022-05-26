@@ -4,18 +4,20 @@ import {
   ActionGroup,
   Button,
   ButtonVariant,
+  Checkbox,
+  TextVariants,
   Form,
   FormGroup,
-  HelperText,
-  HelperTextItem,
   InputGroup,
   InputGroupText,
   InputGroupTextVariant,
   PageSection,
   PageSectionVariants,
-  Radio,
   Text,
   TextInput,
+  HelperText,
+  HelperTextItem,
+  Radio,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
 import { fetchClusterSettings, updateClusterSettings } from '../../services/clusterSettingsService';
@@ -38,6 +40,7 @@ import {
   MIN_CULLER_TIMEOUT,
 } from './const';
 import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '../../utilities/utils';
+import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
 
 import './ClusterSettings.scss';
 
@@ -49,6 +52,7 @@ const ClusterSettings: React.FC = () => {
   const [loadError, setLoadError] = React.useState<Error>();
   const [clusterSettings, setClusterSettings] = React.useState(DEFAULT_CONFIG);
   const [pvcSize, setPvcSize] = React.useState<number | string>(DEFAULT_PVC_SIZE);
+  const [userTrackingEnabled, setUserTrackingEnabled] = React.useState<boolean | null>(null);
   const [cullerTimeoutChecked, setCullerTimeoutChecked] =
     React.useState<string>(CULLER_TIMEOUT_UNLIMITED);
   const [cullerTimeout, setCullerTimeout] = React.useState<number>(DEFAULT_CULLER_TIMEOUT);
@@ -56,6 +60,7 @@ const ClusterSettings: React.FC = () => {
   const [minute, setMinute] = React.useState<number>(0);
   const [isSettingsChanged, setSettingsChanged] = React.useState<boolean>(false);
   const pvcDefaultBtnRef = React.useRef<HTMLButtonElement>();
+  const { dashboardConfig } = useWatchDashboardConfig();
   const dispatch = useDispatch();
 
   React.useEffect(() => {
@@ -70,7 +75,9 @@ const ClusterSettings: React.FC = () => {
           setHour(getHourAndMinuteByTimeout(clusterSettings.cullerTimeout).hour);
           setMinute(getHourAndMinuteByTimeout(clusterSettings.cullerTimeout).minute);
         }
-        setCullerTimeout(clusterSettings.cullerTimeout);
+        if (clusterSettings.userTrackingEnabled) {
+          setUserTrackingEnabled(clusterSettings.userTrackingEnabled);
+        }
       })
       .catch((e) => {
         setLoadError(e);
@@ -78,25 +85,26 @@ const ClusterSettings: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    setCullerTimeout(getTimeoutByHourAndMinute(hour, minute));
-  }, [hour, minute]);
+    if (cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED) {
+      setCullerTimeout(DEFAULT_CULLER_TIMEOUT);
+    } else if (cullerTimeoutChecked === CULLER_TIMEOUT_LIMITED) {
+      setCullerTimeout(getTimeoutByHourAndMinute(hour, minute));
+    }
+  }, [hour, minute, cullerTimeoutChecked]);
 
   React.useEffect(() => {
-    setSettingsChanged(!_.isEqual(clusterSettings, { pvcSize, cullerTimeout }));
-  }, [pvcSize, cullerTimeout, clusterSettings]);
+    setSettingsChanged(
+      !_.isEqual(clusterSettings, { pvcSize, cullerTimeout, userTrackingEnabled }),
+    );
+  }, [pvcSize, cullerTimeout, userTrackingEnabled, clusterSettings]);
 
   const radioCheckedChange = (_, event) => {
     const { value } = event.currentTarget;
     setCullerTimeoutChecked(value);
-    if (value === CULLER_TIMEOUT_UNLIMITED) {
-      setCullerTimeout(DEFAULT_CULLER_TIMEOUT);
-    } else if (value === CULLER_TIMEOUT_LIMITED) {
-      setCullerTimeout(getTimeoutByHourAndMinute(hour, minute));
-    }
   };
 
   const handleSaveButtonClicked = () => {
-    const newClusterSettings = { pvcSize, cullerTimeout };
+    const newClusterSettings = { pvcSize, cullerTimeout, userTrackingEnabled };
     if (!_.isEqual(clusterSettings, newClusterSettings)) {
       if (
         Number(newClusterSettings?.pvcSize) !== 0 &&
@@ -289,6 +297,36 @@ const ClusterSettings: React.FC = () => {
                 </HelperTextItem>
               </HelperText>
             </FormGroup>
+            {!dashboardConfig.disableTracking ? (
+              <FormGroup
+                fieldId="usage-data"
+                label="Usage Data Collection"
+                helperText={
+                  <Text component={TextVariants.small}>
+                    For more information see the{' '}
+                    <Text
+                      component={TextVariants.a}
+                      href="https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/usage-data-collection#usage-data-collection-notice-for-openshift-data-science"
+                      target="_blank"
+                    >
+                      documentation
+                    </Text>
+                    .
+                  </Text>
+                }
+              >
+                <Checkbox
+                  label="Allow collection of usage data"
+                  isChecked={userTrackingEnabled}
+                  onChange={() => {
+                    setUserTrackingEnabled(!userTrackingEnabled);
+                  }}
+                  aria-label="usageData"
+                  id="usage-data-checkbox"
+                  name="usageDataCheckbox"
+                />
+              </FormGroup>
+            ) : null}
             <ActionGroup>
               <Button
                 isDisabled={!isSettingsChanged}

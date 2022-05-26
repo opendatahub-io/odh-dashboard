@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as _ from 'lodash';
 import { useHistory } from 'react-router';
 import {
   Button,
@@ -24,6 +25,7 @@ import {
 } from '@patternfly/react-icons';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { useQueryParams } from '../../utilities/useQueryParams';
+import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,
@@ -52,6 +54,16 @@ type LearningCenterToolbarProps = {
   filtersCollapsible: boolean;
   onToggleFiltersCollapsed: () => void;
 };
+
+// add 1 second debounce to fire the search event
+// to avoid firing event with every single character input
+const fireSearchedEvent = _.debounce((val: string) => {
+  if (val) {
+    fireTrackingEvent('Resource Searched', {
+      term: val,
+    });
+  }
+}, 1000);
 
 const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   count,
@@ -88,6 +100,10 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   React.useEffect(() => {
     setSearchInputText(searchQuery);
   }, [searchQuery]);
+
+  React.useEffect(() => {
+    fireSearchedEvent(searchInputText);
+  }, [searchInputText]);
 
   const onSortTypeSelect = React.useCallback(
     (e) => {

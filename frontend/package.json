@@ -1,7 +1,7 @@
 {
-  "name": "ods-dashboard-frontend",
+  "name": "odh-dashboard-frontend",
   "version": "0.1.0",
-  "description": "Frontend for ODS dashboard.",
+  "description": "Frontend for ODH dashboard.",
   "author": "",
   "license": "ISC",
   "private": true,
@@ -42,6 +42,7 @@
     "@patternfly/react-catalog-view-extension": "^4.49.5",
     "@patternfly/react-core": "4.198.5",
     "@patternfly/react-icons": "4.49.5",
+    "@patternfly/react-table": "4.75.2",
     "@patternfly/react-styles": "4.48.5",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.0.4",

@@ -11,15 +11,30 @@ import {
 } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
+import { fireTrackingEvent } from '../utilities/segmentIOUtils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 
 import './OdhCard.scss';
+import { QuickStartContextValues } from '@patternfly/quickstarts';
 
 type OdhDocCardProps = {
   odhDoc: OdhDocument;
   favorite: boolean;
   updateFavorite: (isFavorite: boolean) => void;
 };
+
+// fire an event when any resource on the Resource page is accessed
+const fireResourceAccessedEvent =
+  (name: string, type: string, qsContext?: QuickStartContextValues) => () => {
+    const quickStartLabel = getQuickStartLabel(name, qsContext);
+    fireTrackingEvent(
+      type === OdhDocumentType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
+      {
+        name: name,
+        type: type,
+      },
+    );
+  };
 
 const RIGHT_JUSTIFIED_STATUSES = [
   LaunchStatusEnum.Restart,
@@ -45,6 +60,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
   const onQuickStart = (e) => {
     e.preventDefault();
     launchQuickStart(odhDoc.metadata.name, qsContext);
+    fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.metadata.type, qsContext)();
   };
 
   const renderDocLink = () => {
@@ -53,6 +69,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         <a
           className="odh-card__footer__link"
           href={odhDoc.spec?.url ?? '#'}
+          onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.metadata.type)}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -66,6 +83,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         <a
           className="odh-card__footer__link"
           href={odhDoc.spec?.url ?? '#'}
+          onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.metadata.type)}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -86,6 +104,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         <a
           className="odh-card__footer__link"
           href={odhDoc.spec?.url ?? '#'}
+          onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.metadata.type)}
           target="_blank"
           rel="noopener noreferrer"
         >
