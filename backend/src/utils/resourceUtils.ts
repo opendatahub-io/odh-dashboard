@@ -28,6 +28,8 @@ import { yamlRegExp, blankDashboardCR } from './constants';
 import { getIsAppEnabled, getRouteForClusterId } from './componentUtils';
 import fastify from 'fastify';
 
+var _ = require('lodash');
+
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
 const consoleLinksVersion = 'v1';
@@ -41,13 +43,6 @@ let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
-
-// const fetchDashboardConfigMap = (fastify: KubeFastifyInstance): Promise<V1ConfigMap[]> => {
-//   return fastify.kube.coreV1Api
-//     .readNamespacedConfigMap(dashboardConfigMapName, fastify.kube.namespace)
-//     .then((result) => [result.body])
-//     .catch(() => [DEFAULT_DASHBOARD_CONFIG]);
-// };
 
 const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
   const crResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
@@ -90,7 +85,26 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
   return createResponse;
 };
 
-
+const verifyCRSizes = (dashboardCR: DashboardConfig) => {
+  const sizes = dashboardCR.spec.notebookSizes;
+  for (let i = 0; i < sizes.length; i++) {
+    if (sizes[i].resources) {
+      if (sizes[i].resources.limits && !sizes[i].resources.requests) {
+        sizes[i].resources.requests = sizes[i].resources.limits
+      } 
+      if (sizes[i].resources.requests && !sizes[i].resources.limits) {
+        sizes[i].resources.limits = sizes[i].resources.requests
+      }
+      if (sizes[i].resources.requests && sizes[i].resources.limits) {
+        const requests = sizes[i].resources.requests
+        const limits = sizes[i].resources.limits
+        if (requests.memory) {
+          
+        } 
+      }
+    }
+  }
+}
 
 const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionKind[]> => {
   const fetchAll = async (): Promise<SubscriptionKind[]> => {
@@ -379,7 +393,7 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
 
 export const getDashboardConfig = (): DashboardConfig => {
   const config = dashboardConfigWatcher.getResources()?.[0];
-  return config
+  return _.merge({} , blankDashboardCR, config); // merge with blank CR to prevent any missing values
 };
 
 export const getSubscriptions = (): SubscriptionKind[] => {

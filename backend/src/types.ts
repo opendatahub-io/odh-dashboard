@@ -41,11 +41,11 @@ export type DashboardConfig = K8sResourceCommon & {
 };
 
 export type NotebookResources = {
-  requests: {
+  requests?: {
     cpu?: string;
     memory?: string;
   };
-  limits?: {
+  limits: {
     cpu?: string;
     memory?: string;
   };

@@ -28,3 +28,10 @@ export const blankDashboardCR: DashboardConfig = {
         },
     }
 };
+
+export const sizeBytes = {
+    Ki: 1000,
+    Mi: 1000000,
+    Gi: 1000000000,
+    Ti: 1000000000000,
+}
