@@ -15,4 +15,5 @@ export const DEFAULT_CULLER_TIMEOUT = 31536000; // 1 year as no culling
 export const DEFAULT_CONFIG: ClusterSettings = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
+  userTrackingEnabled: null,
 };

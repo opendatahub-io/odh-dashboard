@@ -1,4 +1,7 @@
 import * as React from 'react';
+import { store } from './store/store';
+
+export type RootState = ReturnType<typeof store.getState>;
 
 export enum Actions {
   GET_USER_PENDING = 'GET_USER_PENDING',
@@ -27,6 +30,7 @@ export interface GetUserAction {
   payload: {
     user?: string;
     clusterID?: string;
+    clusterBranding?: string;
     isAdmin?: boolean;
     error?: Error | null;
     notification?: AppNotification;
@@ -38,6 +42,7 @@ export interface AppState {
   userLoading: boolean;
   userError?: Error | null;
   clusterID?: string;
+  clusterBranding?: string;
   isAdmin?: boolean;
   notifications: AppNotification[];
   forceComponentsUpdate: number;

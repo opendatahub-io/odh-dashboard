@@ -1,8 +1,8 @@
 import React from 'react';
 import { Brand, PageHeader } from '@patternfly/react-core';
-import odhLogo from '../images/odh-logo.svg';
 import HeaderTools from './HeaderTools';
-
+import { ODH_PRODUCT_NAME } from '../utilities/const';
+import logo from '../images/logo.svg';
 type HeaderProps = {
   isNavOpen: boolean;
   onNavToggle: () => void;
@@ -12,7 +12,7 @@ type HeaderProps = {
 const Header: React.FC<HeaderProps> = ({ isNavOpen, onNavToggle, onNotificationsClick }) => {
   return (
     <PageHeader
-      logo={<Brand src={odhLogo} alt="ODH Logo" />}
+      logo={<Brand src={logo} alt={`${ODH_PRODUCT_NAME} Logo`} />}
       headerTools={<HeaderTools onNotificationsClick={onNotificationsClick} />}
       showNavToggle
       isNavOpen={isNavOpen}

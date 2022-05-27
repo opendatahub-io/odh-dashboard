@@ -10,6 +10,7 @@ import EnabledFilters from './EnabledFilters';
 import DocTypeFilters from './DocTypeFilters';
 import { CATEGORY_FILTER_KEY } from './const';
 import ApplicationFilters from './ApplicationFilters';
+import ProviderTypeFilters from './ProviderTypeFilters';
 
 type LearningCenterFilterProps = {
   docApps: OdhDocument[];
@@ -49,6 +50,7 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
       <EnabledFilters categoryApps={categoryApps} />
       <DocTypeFilters categoryApps={categoryApps} />
       <ApplicationFilters docApps={docApps} categoryApps={categoryApps} />
+      <ProviderTypeFilters docApps={docApps} categoryApps={categoryApps} />
     </div>
   );
 };

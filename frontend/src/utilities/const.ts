@@ -6,8 +6,19 @@ const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTE
 const DOC_LINK = process.env.DOC_LINK;
 const COMMUNITY_LINK = process.env.COMMUNITY_LINK;
 const SUPPORT_LINK = process.env.SUPPORT_LINK;
+const ODH_LOGO = process.env.ODH_LOGO;
+const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 
-export { DEV_MODE, API_PORT, POLL_INTERVAL, DOC_LINK, COMMUNITY_LINK, SUPPORT_LINK };
+export {
+  DEV_MODE,
+  API_PORT,
+  POLL_INTERVAL,
+  DOC_LINK,
+  COMMUNITY_LINK,
+  SUPPORT_LINK,
+  ODH_LOGO,
+  ODH_PRODUCT_NAME,
+};
 
 export const DOC_TYPE_TOOLTIPS = {
   [OdhDocumentType.Documentation]: 'Technical information for using the service',

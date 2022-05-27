@@ -14,6 +14,7 @@ import { CaretDownIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@pattern
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
 import { AppNotification, State } from '../redux/types';
 import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
+import AppLauncher from './AppLauncher';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -100,6 +101,9 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   return (
     <PageHeaderTools>
       <PageHeaderToolsGroup className="hidden-xs">
+        {!dashboardConfig.disableAppLauncher ? (
+          <AppLauncher dashboardConfig={dashboardConfig} />
+        ) : null}
         <PageHeaderToolsItem>
           <NotificationBadge isRead count={newNotifications} onClick={onNotificationsClick} />
         </PageHeaderToolsItem>

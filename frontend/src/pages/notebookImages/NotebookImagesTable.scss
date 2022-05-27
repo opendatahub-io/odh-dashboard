@@ -1,0 +1,29 @@
+.filter-select {
+    margin-right: 0px;
+}
+.filter-search {
+    margin-right: var(--pf-global--spacer--md);
+}
+.included-packages {
+    margin-left: var(--pf-global--spacer--2xl);
+}
+.included-packages-font {
+    color: var(--pf-global--Color--200);
+}
+.phase-success {
+    color: var(--pf-global--success-color--100);
+}
+.phase-failed {
+    color: var(--pf-global--warning-color--100);
+}
+.phase-failed-cursor{
+    cursor: pointer;
+}
+.enable-switch {
+    size: 75%
+}
+
+.empty-table {
+    margin-left: var(--pf-global--spacer--2xl);
+    margin-right: var(--pf-global--spacer--2xl);
+}

@@ -26,14 +26,14 @@ import {
 import LearningCenterToolbar from './LearningCenterToolbar';
 import LearningCenterFilters from './LearningCenterFilters';
 import { useDocFilterer } from './useDocFilterer';
-import { DOC_LINK } from '../../utilities/const';
+import { DOC_LINK, ODH_PRODUCT_NAME } from '../../utilities/const';
 import { combineCategoryAnnotations } from '../../utilities/utils';
 import LearningCenterDataView from './LearningCenterDataView';
 
 import './LearningCenter.scss';
 
-const description = `Access all learning resources for Open Data Hub and supported applications.`;
-const docText = ` To learn more about Open Data Hub, `;
+const description = `Access all learning resources for ${ODH_PRODUCT_NAME} OpenShift Data Science and supported applications.`;
+const docText = ` To learn more about ${ODH_PRODUCT_NAME} OpenShift Data Science, `;
 
 export const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
@@ -102,6 +102,7 @@ export const LearningCenter: React.FC = () => {
             updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
             updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
             updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
+            updatedDoc.spec.appCategory = odhDoc.spec.appCategory || odhApp.spec.category;
           } else {
             updatedDoc.spec.appEnabled = false;
           }

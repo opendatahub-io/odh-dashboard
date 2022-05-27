@@ -19,8 +19,9 @@ export const updateClusterSettings = (
   const url = '/api/cluster-settings/update';
   const updateParams = new URLSearchParams();
 
-  updateParams.set('pvcSize', `${settings.pvcSize}`);
+  updateParams.set('userTrackingEnabled', JSON.stringify(settings.userTrackingEnabled));
   updateParams.set('cullerTimeout', `${settings.cullerTimeout}`);
+  updateParams.set('pvcSize', `${settings.pvcSize}`);
 
   const options = { params: updateParams };
   return axios

@@ -7,7 +7,7 @@ import { getComponentFeatureFlags } from '../../../utils/features';
 
 const quickStartsGroup = 'console.openshift.io';
 const quickStartsVersion = 'apiextensions.k8s.io/v1';
-const quickStartsPlural = 'rhodsquickstarts';
+const quickStartsPlural = 'odhquickstarts';
 
 export const getInstalledQuickStarts = async (
   fastify: KubeFastifyInstance,

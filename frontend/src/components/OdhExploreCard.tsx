@@ -6,6 +6,8 @@ import { makeCardVisible } from '../utilities/utils';
 import EnableModal from '../pages/exploreApplication/EnableModal';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
+import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
+import { ODH_PRODUCT_NAME } from '../utilities/const';
 
 import './OdhCard.scss';
 
@@ -28,6 +30,11 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
 }) => {
   const disabled = odhApp.spec.comingSoon || disableInfo;
   const cardClasses = classNames('odh-card', { 'm-disabled': disabled });
+  const badgeClasses = classNames('odh-card__partner-badge', {
+    'm-warning': odhApp.spec.category === 'Third party support',
+    'm-hidden': odhApp.spec.category === ODH_PRODUCT_NAME,
+  });
+  const { dashboardConfig } = useWatchDashboardConfig();
 
   React.useEffect(() => {
     if (isSelected) {
@@ -50,14 +57,19 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           src={odhApp.spec.img}
           alt={odhApp.spec.displayName}
         />
-        <div className="odh-card__explore-badges">
-          {odhApp.spec.comingSoon ? (
-            <span className="odh-card__coming-soon">Coming soon</span>
-          ) : null}
-          {odhApp.spec.beta ? (
-            <span className="odh-card__partner-badge odh-m-beta">Beta</span>
-          ) : null}
-        </div>
+        {!dashboardConfig.disableISVBadges ? (
+          <div className="odh-card__explore-badges">
+            {odhApp.spec.comingSoon ? (
+              <span className="odh-card__coming-soon">Coming soon</span>
+            ) : null}
+            {!odhApp.spec.comingSoon && odhApp.spec.category ? (
+              <span className={badgeClasses}>{odhApp.spec.category}</span>
+            ) : null}
+            {odhApp.spec.beta ? (
+              <span className="odh-card__partner-badge odh-m-beta">Beta</span>
+            ) : null}
+          </div>
+        ) : null}
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} showProvider />
       <CardBody>{odhApp.spec.description}</CardBody>

@@ -6,6 +6,7 @@ import { OdhApplication } from '../../types';
 import ApplicationsPage from '../ApplicationsPage';
 import OdhAppCard from '../../components/OdhAppCard';
 import QuickStarts from '../../app/QuickStarts';
+import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 
 import './EnabledApplications.scss';
 
@@ -16,9 +17,14 @@ type EnabledApplicationsInnerProps = {
   loadError?: Error;
   components: OdhApplication[];
 };
+
+// use to record the current enabled components
+let enabledComponents: OdhApplication[] = [];
+
 export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
   ({ loaded, loadError, components }) => {
     const isEmpty = !components || components.length === 0;
+
     return (
       <ApplicationsPage
         title="Enabled"
@@ -52,6 +58,26 @@ const EnabledApplications: React.FC = () => {
       a.spec.displayName.localeCompare(b.spec.displayName),
     );
   }, [components]);
+
+  React.useEffect(() => {
+    /*
+     * compare the current enabled applications and new fetched enabled applications
+     * fire an individual segment.io tracking event for every different enabled application
+     */
+    if (loaded && components.length) {
+      _.difference(
+        components.filter((component) => component.spec.isEnabled).map((c) => c.metadata.name),
+        enabledComponents
+          .filter((component) => component.spec.isEnabled)
+          .map((c) => c.metadata.name),
+      ).forEach((name) =>
+        fireTrackingEvent('Application Enabled', {
+          name,
+        }),
+      );
+      enabledComponents = components;
+    }
+  }, [components, loaded]);
 
   return (
     <QuickStarts>

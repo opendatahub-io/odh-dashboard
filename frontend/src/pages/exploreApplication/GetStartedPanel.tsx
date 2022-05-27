@@ -22,13 +22,14 @@ import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig
 import { useGettingStarted } from '../../utilities/useGettingStarted';
 import MarkdownView from '../../components/MarkdownView';
 import { markdownConverter } from '../../utilities/markdown';
+import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 
 import './GetStartedPanel.scss';
 
 const DEFAULT_BETA_TEXT =
-  'Beta means the service is available for early access prior to official' +
-  " release and will not appear in the 'Enabled' view. You can still access the service by" +
-  ' following the instructions';
+  'This application is available for early access prior to official ' +
+  ' release. It won’t appear in the *Enabled* view, but you can access it by' +
+  ' [signing up for beta access.](https://www.starburst.io/platform/starburst-galaxy/).';
 
 type GetStartedPanelProps = {
   selectedApp?: OdhApplication;
@@ -125,6 +126,11 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
               href={selectedApp.spec.getStartedLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() =>
+                fireTrackingEvent('Explore card get started clicked', {
+                  name: selectedApp.metadata.name,
+                })
+              }
             >
               <span className="odh-get-started__get-started-text">Get started</span>
               <ExternalLinkAltIcon />

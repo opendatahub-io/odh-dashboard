@@ -1,5 +1,5 @@
 import { OdhApplication, OdhDocument, OdhDocumentType } from '../types';
-import { CATEGORY_ANNOTATION } from './const';
+import { CATEGORY_ANNOTATION, ODH_PRODUCT_NAME } from './const';
 
 export const makeCardVisible = (id: string): void => {
   setTimeout(() => {
@@ -115,6 +115,11 @@ export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean 
     displayName.toLowerCase().includes(searchText) ||
     (description?.toLowerCase().includes(searchText) ?? false)
   );
+};
+
+export const isRedHatSupported = (app: OdhApplication): boolean => {
+  const support = (app.spec.support || '').toLowerCase();
+  return support === ODH_PRODUCT_NAME || support === 'redhat';
 };
 
 export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minute: number } => {

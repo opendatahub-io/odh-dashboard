@@ -21,8 +21,10 @@ import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import EnableModal from '../pages/exploreApplication/EnableModal';
 import { removeComponent } from '../services/componentsServices';
 import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
+import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
 
 import './OdhCard.scss';
+import { ODH_PRODUCT_NAME } from 'utilities/const';
 
 type OdhAppCardProps = {
   odhApp: OdhApplication;
@@ -36,6 +38,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.metadata.name,
   );
   const disabled = !odhApp.spec.isEnabled;
+  const { dashboardConfig } = useWatchDashboardConfig();
   const dispatch = useDispatch();
 
   const onToggle = (value) => {
@@ -91,6 +94,10 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       <ExternalLinkAltIcon />
     </DropdownItem>,
   ];
+
+  const badgeClasses = classNames('odh-card__partner-badge', {
+    'm-warning': odhApp.spec.category === 'Third party support',
+  });
 
   const quickStartClasses = classNames('odh-dashboard__external-link', {
     'm-hidden': !odhApp.spec.quickStart,
@@ -190,7 +197,16 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         </div>
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
-      <CardBody>{odhApp.spec.description}</CardBody>
+      <CardBody>
+        {!dashboardConfig.disableISVBadges &&
+        odhApp.spec.category &&
+        odhApp.spec.category !== ODH_PRODUCT_NAME ? (
+          <div className="odh-card__partner-badge-container">
+            <span className={badgeClasses}>{odhApp.spec.category}</span>
+          </div>
+        ) : null}
+        {odhApp.spec.description}
+      </CardBody>
       {cardFooter}
       <EnableModal shown={enableOpen} onClose={() => setEnableOpen(false)} selectedApp={odhApp} />
     </Card>
