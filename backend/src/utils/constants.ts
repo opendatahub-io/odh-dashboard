@@ -11,27 +11,27 @@ export const yamlRegExp = /\.ya?ml$/;
 export const mdRegExp = /\.md$/;
 
 export const blankDashboardCR: DashboardConfig = {
-    apiVersion: 'opendatahub.io/v1alpha',
-    kind: 'OdhDashboard',
-    metadata: {
-        name: 'odh-dashboard-config',
-    },   
-    spec: {
-        dashboardConfig: {
-            enablement: true,
-            disableInfo: false,
-            disableSupport: false,
-            disableClusterManager: false,
-            disableTracking: false,
-            disableBYONImageStream: false,
-            disableISVBadges: false
-        },
-    }
+  apiVersion: 'opendatahub.io/v1alpha',
+  kind: 'OdhDashboard',
+  metadata: {
+    name: 'odh-dashboard-config',
+  },
+  spec: {
+    dashboardConfig: {
+      enablement: true,
+      disableInfo: false,
+      disableSupport: false,
+      disableClusterManager: false,
+      disableTracking: false,
+      disableBYONImageStream: false,
+      disableISVBadges: false,
+    },
+  },
 };
 
 export const sizeBytes = {
-    Ki: 1000,
-    Mi: 1000000,
-    Gi: 1000000000,
-    Ti: 1000000000000,
-}
+  Ki: 1000,
+  Mi: 1000000,
+  Gi: 1000000000,
+  Ti: 1000000000000,
+};

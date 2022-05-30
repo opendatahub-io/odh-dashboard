@@ -12,12 +12,12 @@ export type DashboardConfig = K8sResourceCommon & {
       disableTracking?: boolean;
       disableBYONImageStream?: boolean;
       disableISVBadges?: boolean;
-    }
+    };
     notebookSizes?: [
       {
         name: string;
         resources: NotebookResources;
-      }
+      },
     ];
     notebookController?: {
       enabled: boolean;
@@ -26,8 +26,8 @@ export type DashboardConfig = K8sResourceCommon & {
       };
       envVarConfig?: {
         enabled: boolean;
-      }
-    }
+      };
+    };
     notebookControllerState?: [
       {
         user: string;
@@ -35,9 +35,9 @@ export type DashboardConfig = K8sResourceCommon & {
         lastSelectedSize: string;
         environmentVariables: EnvironmentVariable[];
         secrets: string;
-      }
+      },
     ];
-  }
+  };
 };
 
 export type NotebookResources = {
@@ -54,11 +54,12 @@ export type NotebookResources = {
 export type EnvironmentVariable = {
   key: string;
   value: string;
-}
+};
 
 export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
+  userTrackingEnabled: boolean | null;
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
@@ -83,6 +84,9 @@ export declare type QuickStart = {
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
+};
+
+export type K8sResourceCommon = {
   metadata?: {
     name?: string;
     namespace?: string;
@@ -90,7 +94,7 @@ export type K8sResourceCommon = {
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
-};
+} & K8sResourceBase;
 
 export enum BUILD_PHASE {
   none = 'Not started',
@@ -278,3 +282,101 @@ export type BuildStatus = {
   status: BUILD_PHASE;
   timestamp?: string;
 };
+
+export type ODHSegmentKey = {
+  segmentKey: string;
+};
+
+export type NotebookError = {
+  severity: string;
+  message: string;
+};
+
+export type NotebookStatus = 'Importing' | 'Validating' | 'Succeeded' | 'Failed';
+
+export type Notebook = {
+  id: string;
+  phase?: NotebookStatus;
+  user?: string;
+  uploaded?: Date;
+  error?: NotebookError;
+} & NotebookCreateRequest &
+  NotebookUpdateRequest;
+
+export type NotebookCreateRequest = {
+  name: string;
+  url: string;
+  description?: string;
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  user: string;
+  software?: NotebookPackage[];
+  packages?: NotebookPackage[];
+};
+
+export type NotebookUpdateRequest = {
+  id: string;
+  name?: string;
+  description?: string;
+  visible?: boolean;
+  software?: NotebookPackage[];
+  packages?: NotebookPackage[];
+};
+
+export type NotebookPackage = {
+  name: string;
+  version: string;
+  visible: boolean;
+};
+
+export type ImageStreamTagSpec = {
+  name: string;
+  annotations?: { [key: string]: string };
+  from?: {
+    kind: string;
+    name: string;
+  };
+};
+export type ImageStreamKind = {
+  spec?: {
+    lookupPolicy?: {
+      local: boolean;
+    };
+    tags: ImageStreamTagSpec[];
+  };
+  status?: any;
+} & K8sResourceCommon;
+
+export type ImageStreamListKind = {
+  items: ImageStreamKind[];
+} & K8sResourceBase;
+
+export type PipelineRunKind = {
+  spec: {
+    params: {
+      name: string;
+      value: string;
+    }[];
+    pipelineRef: {
+      name: string;
+    };
+    workspaces?: [
+      {
+        name: string;
+        volumeClaimTemplate: {
+          spec: {
+            accessModes: string[];
+            resources: {
+              requests: {
+                storage: string;
+              };
+            };
+          };
+        };
+      },
+    ];
+  };
+} & K8sResourceCommon;
+
+export type PipelineRunListKind = {
+  items: PipelineRunKind[];
+} & K8sResourceBase;

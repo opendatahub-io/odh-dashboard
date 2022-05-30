@@ -28,7 +28,7 @@ import { yamlRegExp, blankDashboardCR } from './constants';
 import { getIsAppEnabled, getRouteForClusterId } from './componentUtils';
 import fastify from 'fastify';
 
-var _ = require('lodash');
+const _ = require('lodash');
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -46,41 +46,41 @@ let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 
 const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
   const crResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
-  .listNamespacedCustomObject(
-    'opendatahub.io',
-    'v1alpha',
-    fastify.kube.namespace,
-    'odhdashboards',
-  )
-  .then((res) => {
-    const dashboardCR = (
-      res?.body as {
-        items: DashboardConfig[];
+    .listNamespacedCustomObject(
+      'opendatahub.io',
+      'v1alpha',
+      fastify.kube.namespace,
+      'odhdashboards',
+    )
+    .then((res) => {
+      const dashboardCR = (
+        res?.body as {
+          items: DashboardConfig[];
+        }
+      )?.items;
+      if (dashboardCR.length === 0) {
+        return createDashboardCR(fastify);
       }
-    )?.items;
-    if (dashboardCR.length === 0) {
-      return createDashboardCR(fastify);
-    }
-    return dashboardCR;
-  })
-  .catch(() => {
-    return null
-  });
+      return dashboardCR;
+    })
+    .catch(() => {
+      return null;
+    });
 
   return crResponse;
 };
 
 const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
   const createResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
-  .createNamespacedCustomObject(
-    'opendatahub.io',
-    'v1alpha',
-    fastify.kube.namespace,
-    'odhdashboards',
-    blankDashboardCR,
-  )
-  .then((result) => [result.body])
-  .catch(() => null);
+    .createNamespacedCustomObject(
+      'opendatahub.io',
+      'v1alpha',
+      fastify.kube.namespace,
+      'odhdashboards',
+      blankDashboardCR,
+    )
+    .then((result) => [result.body])
+    .catch(() => null);
 
   return createResponse;
 };
@@ -372,7 +372,7 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
 
 export const getDashboardConfig = (): DashboardConfig => {
   const config = dashboardConfigWatcher.getResources()?.[0];
-  return _.merge({} , blankDashboardCR, config); // merge with blank CR to prevent any missing values
+  return _.merge({}, blankDashboardCR, config); // merge with blank CR to prevent any missing values
 };
 
 export const getSubscriptions = (): SubscriptionKind[] => {
