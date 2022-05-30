@@ -85,27 +85,6 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
   return createResponse;
 };
 
-const verifyCRSizes = (dashboardCR: DashboardConfig) => {
-  const sizes = dashboardCR.spec.notebookSizes;
-  for (let i = 0; i < sizes.length; i++) {
-    if (sizes[i].resources) {
-      if (sizes[i].resources.limits && !sizes[i].resources.requests) {
-        sizes[i].resources.requests = sizes[i].resources.limits
-      } 
-      if (sizes[i].resources.requests && !sizes[i].resources.limits) {
-        sizes[i].resources.limits = sizes[i].resources.requests
-      }
-      if (sizes[i].resources.requests && sizes[i].resources.limits) {
-        const requests = sizes[i].resources.requests
-        const limits = sizes[i].resources.limits
-        if (requests.memory) {
-          
-        } 
-      }
-    }
-  }
-}
-
 const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionKind[]> => {
   const fetchAll = async (): Promise<SubscriptionKind[]> => {
     const subscriptions: SubscriptionKind[] = [];
