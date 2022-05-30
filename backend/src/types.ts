@@ -17,7 +17,7 @@ export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
   userTrackingEnabled: boolean | null;
-}
+};
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
@@ -41,7 +41,7 @@ export declare type QuickStart = {
 export type K8sResourceBase = {
   apiVersion?: string;
   kind?: string;
-}
+};
 
 export type K8sResourceCommon = {
   metadata?: {
@@ -54,7 +54,6 @@ export type K8sResourceCommon = {
     creationTimestamp?: Date;
   };
 } & K8sResourceBase;
-
 
 export enum BUILD_PHASE {
   none = 'Not started',
@@ -248,7 +247,7 @@ export type BuildStatus = {
 export type EnvironmentVariable = {
   name: string;
   value: string;
-}
+};
 
 export type NotebookResources = {
   requests: {
@@ -265,7 +264,7 @@ export type NotebookPort = {
   name: string;
   containerPort: number;
   protocol: string;
-}
+};
 
 export type NotebookContainer = {
   name: string;
@@ -290,10 +289,10 @@ export type Notebook = {
   spec: {
     template: {
       spec: {
-        containers: NotebookContainer[]
-      }
-    }
-  }
+        containers: NotebookContainer[];
+      };
+    };
+  };
   status?: Record<string, unknown>;
 } & K8sResourceCommon;
 
@@ -336,9 +335,9 @@ export type ODHSegmentKey = {
 export type NotebookImageError = {
   severity: string;
   message: string;
-}
+};
 
-export type NotebookImageStatus = "Importing" | "Validating" | "Succeeded" | "Failed";
+export type NotebookImageStatus = 'Importing' | 'Validating' | 'Succeeded' | 'Failed';
 
 export type NotebookImage = {
   id: string;
@@ -346,7 +345,8 @@ export type NotebookImage = {
   user?: string;
   uploaded?: Date;
   error?: NotebookImageError;
-} & NotebookImageCreateRequest & NotebookImageUpdateRequest;
+} & NotebookImageCreateRequest &
+  NotebookImageUpdateRequest;
 
 export type NotebookImageCreateRequest = {
   name: string;
@@ -356,7 +356,7 @@ export type NotebookImageCreateRequest = {
   user: string;
   software?: NotebookImagePackage[];
   packages?: NotebookImagePackage[];
-}
+};
 
 export type NotebookImageUpdateRequest = {
   id: string;
@@ -365,14 +365,13 @@ export type NotebookImageUpdateRequest = {
   visible?: boolean;
   software?: NotebookImagePackage[];
   packages?: NotebookImagePackage[];
-}
+};
 
 export type NotebookImagePackage = {
   name: string;
   version: string;
   visible: boolean;
-}
-
+};
 
 export type ImageStreamTagSpec = {
   name: string;
@@ -380,16 +379,16 @@ export type ImageStreamTagSpec = {
   from?: {
     kind: string;
     name: string;
-  }
-}
+  };
+};
 export type ImageStreamKind = {
   spec?: {
     lookupPolicy?: {
-      local: boolean
-    }
+      local: boolean;
+    };
     tags: ImageStreamTagSpec[];
-  }
-  status?: any
+  };
+  status?: any;
 } & K8sResourceCommon;
 
 export type ImageStreamListKind = {
@@ -401,26 +400,26 @@ export type PipelineRunKind = {
     params: {
       name: string;
       value: string;
-    }[]
+    }[];
     pipelineRef: {
       name: string;
-    }
+    };
     workspaces?: [
       {
-        name: string
+        name: string;
         volumeClaimTemplate: {
           spec: {
-            accessModes: string[]
+            accessModes: string[];
             resources: {
               requests: {
-                storage: string
-              }
-            }
-          }
-        }
-      }
-    ]
-  }
+                storage: string;
+              };
+            };
+          };
+        };
+      },
+    ];
+  };
 } & K8sResourceCommon;
 
 export type PipelineRunListKind = {
