@@ -13,6 +13,8 @@ resources:
 - deployment.yaml
 - routes.yaml
 - service.yaml
+- odh-dashboard-crd.yaml
+- odh-dashboard-config.yaml
 images:
 - name: odh-dashboard
   newName: quay.io/opendatahub/odh-dashboard

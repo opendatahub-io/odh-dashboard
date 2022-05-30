@@ -2,15 +2,59 @@
  * Common types, should be kept up to date with backend types
  */
 
-export type DashboardConfig = {
-  enablement: boolean;
-  disableInfo: boolean;
-  disableSupport: boolean;
-  disableClusterManager: boolean;
-  disableTracking: boolean;
-  disableBYONImageStream: boolean;
-  disableISVBadges: boolean;
-  disableAppLauncher: boolean;
+export type DashboardConfig = K8sResourceCommon & {
+  spec: {
+    dashboardConfig: {
+      enablement: boolean;
+      disableInfo: boolean;
+      disableSupport: boolean;
+      disableClusterManager: boolean;
+      disableTracking: boolean;
+      disableBYONImageStream: boolean;
+      disableISVBadges: boolean;
+      disableAppLauncher: boolean;
+    };
+    notebookSizes?: [
+      {
+        name: string;
+        resources: NotebookResources;
+      },
+    ];
+    notebookController?: {
+      enabled: boolean;
+      gpuConfig?: {
+        enabled: boolean;
+      };
+      envVarConfig?: {
+        enabled: boolean;
+      };
+    };
+    notebookControllerState?: [
+      {
+        user: string;
+        lastSelectedImage: string;
+        lastSelectedSize: string;
+        environmentVariables: EnvironmentVariable[];
+        secrets: string;
+      },
+    ];
+  };
+};
+
+export type NotebookResources = {
+  requests?: {
+    cpu?: string;
+    memory?: string;
+  };
+  limits: {
+    cpu?: string;
+    memory?: string;
+  };
+};
+
+export type EnvironmentVariable = {
+  key: string;
+  value: string;
 };
 
 export type ClusterSettings = {
@@ -121,7 +165,7 @@ export type K8sResourceCommon = {
   metadata: {
     name: string;
     namespace?: string;
-    uid: string;
+    uid?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
@@ -162,9 +206,73 @@ export type TrackingEventProperties = {
   term?: string;
 };
 
-export type ResponseStatus = {
-  success: boolean;
-  error: string;
+export type NotebookPort = {
+  name: string;
+  containerPort: number;
+  protocol: string;
+};
+
+export type NotebookContainer = {
+  name: string;
+  image: string;
+  imagePullPolicy?: string;
+  workingDir?: string;
+  env: EnvironmentVariable[];
+  ports?: NotebookPort[];
+  resources?: NotebookResources;
+  livenessProbe?: Record<string, unknown>;
+};
+
+export type Notebook = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    template: {
+      spec: {
+        containers: NotebookContainer[];
+      };
+    };
+  };
+  status?: Record<string, unknown>;
+} & K8sResourceCommon;
+
+export type NotebookList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Notebook[];
+} & K8sResourceCommon;
+
+export type Route = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    host: string;
+    port: {
+      targetPort: string;
+    };
+    tls: {
+      insecureEdgeTerminationPolicy: string;
+      termination: string;
+    };
+    to: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
+    wildcardPolicy: string;
+  };
 };
 
 export type BYONImageError = {
@@ -243,6 +351,11 @@ export type ImageStreamTag = {
     kind: string;
     name: string;
   };
+};
+
+export type ResponseStatus = {
+  success: boolean;
+  error: string;
 };
 
 export type ImageStreamStatusTagItem = {

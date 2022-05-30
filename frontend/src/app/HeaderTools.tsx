@@ -27,7 +27,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     (state) => state.appState.notifications,
   );
   const userName: string = useSelector<State, string>((state) => state.appState.user || '');
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
 
   const newNotifications = React.useMemo(() => {
     return notifications.filter((notification) => !notification.read).length;

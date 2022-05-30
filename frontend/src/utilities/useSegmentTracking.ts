@@ -7,7 +7,7 @@ import { useWatchDashboardConfig } from './useWatchDashboardConfig';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
   const username = useSelector((state: RootState) => state.appState.user);
   const clusterID = useSelector((state: RootState) => state.appState.clusterID);
 

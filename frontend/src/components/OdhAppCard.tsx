@@ -38,7 +38,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.metadata.name,
   );
   const disabled = !odhApp.spec.isEnabled;
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
   const dispatch = useDispatch();
 
   const onToggle = (value) => {

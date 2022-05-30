@@ -34,7 +34,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
     'm-warning': odhApp.spec.category === 'Third party support',
     'm-hidden': odhApp.spec.category === ODH_PRODUCT_NAME,
   });
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
 
   React.useEffect(() => {
     if (isSelected) {

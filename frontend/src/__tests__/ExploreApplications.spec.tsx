@@ -10,8 +10,12 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
 const dashboardConfig = {
-  disableInfo: false,
-  enablement: true,
+  spec: {
+    dashboardConfig: {
+      enablement: true,
+      disableInfo: true,
+    },
+  },
 };
 
 jest.mock('react-router-dom', () => {
@@ -64,8 +68,8 @@ window.HTMLElement.prototype.scrollIntoView = jest.fn();
 
 describe('ExploreApplications', () => {
   beforeEach(() => {
-    dashboardConfig.disableInfo = false;
-    dashboardConfig.enablement = true;
+    dashboardConfig.spec.dashboardConfig.disableInfo = false;
+    dashboardConfig.spec.dashboardConfig.enablement = true;
   });
 
   it('should display available applications', () => {
@@ -149,7 +153,7 @@ describe('ExploreApplications', () => {
   });
 
   it('should disable the cards when disableInfo is set', async () => {
-    dashboardConfig.disableInfo = true;
+    dashboardConfig.spec.dashboardConfig.disableInfo = true;
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -169,7 +173,7 @@ describe('ExploreApplications', () => {
   });
 
   it('should hide the enable button when dashboard config enablement is false', async () => {
-    dashboardConfig.enablement = false;
+    dashboardConfig.spec.dashboardConfig.enablement = false;
     const user = userEvent.setup();
     const { container } = render(
       <Provider store={store}>

@@ -4,15 +4,24 @@ import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchDashboardConfig } from '../services/dashboardConfigService';
 
-const DEFAULT_CONFIG: DashboardConfig = {
-  enablement: true,
-  disableInfo: false,
-  disableSupport: false,
-  disableClusterManager: true,
-  disableTracking: true,
-  disableISVBadges: true,
-  disableBYONImageStream: true,
-  disableAppLauncher: true,
+const blankDashboardCR: DashboardConfig = {
+  apiVersion: 'opendatahub.io/v1alpha',
+  kind: 'OdhDashboardConfig',
+  metadata: {
+    name: 'odh-dashboard-config',
+  },
+  spec: {
+    dashboardConfig: {
+      enablement: true,
+      disableInfo: false,
+      disableSupport: false,
+      disableClusterManager: false,
+      disableTracking: false,
+      disableBYONImageStream: false,
+      disableISVBadges: false,
+      disableAppLauncher: false,
+    },
+  },
 };
 
 export const useWatchDashboardConfig = (): {
@@ -22,7 +31,7 @@ export const useWatchDashboardConfig = (): {
 } => {
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfig>(DEFAULT_CONFIG);
+  const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfig>(blankDashboardCR);
 
   React.useEffect(() => {
     let watchHandle;
@@ -54,5 +63,5 @@ export const useWatchDashboardConfig = (): {
 
   const retConfig = useDeepCompareMemoize<DashboardConfig>(dashboardConfig);
 
-  return { dashboardConfig: retConfig || DEFAULT_CONFIG, loaded, loadError };
+  return { dashboardConfig: retConfig || blankDashboardCR, loaded, loadError };
 };
