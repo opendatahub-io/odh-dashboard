@@ -2,16 +2,16 @@ import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
 import {
   KubeFastifyInstance,
-  Notebook,
+  NotebookImage,
   ImageStreamListKind,
   ImageStreamKind,
-  NotebookStatus,
-  NotebookCreateRequest,
-  NotebookUpdateRequest,
-  NotebookPackage,
+  NotebookImageStatus,
+  NotebookImageCreateRequest,
+  NotebookImageUpdateRequest,
+  NotebookImagePackage,
 } from '../../../types';
 
-const packagesToString = (packages: NotebookPackage[]): string => {
+const packagesToString = (packages: NotebookImagePackage[]): string => {
   if (packages.length > 0) {
     let packageAsString = '[';
     packages.forEach((value, index) => {
@@ -26,11 +26,11 @@ const packagesToString = (packages: NotebookPackage[]): string => {
   }
   return '[]';
 };
-const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
+const mapImageStreamToNotebook = (is: ImageStreamKind): NotebookImage => ({
   id: is.metadata.name,
   name: is.metadata.annotations['opendatahub.io/notebook-image-name'],
   description: is.metadata.annotations['opendatahub.io/notebook-image-desc'],
-  phase: is.metadata.annotations['opendatahub.io/notebook-image-phase'] as NotebookStatus,
+  phase: is.metadata.annotations['opendatahub.io/notebook-image-phase'] as NotebookImageStatus,
   visible: is.metadata.labels['opendatahub.io/notebook-image'] === 'true',
   error: is.metadata.annotations['opendatahub.io/notebook-image-messages']
     ? JSON.parse(is.metadata.annotations['opendatahub.io/notebook-image-messages'])
@@ -39,12 +39,12 @@ const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
     is.spec.tags &&
     (JSON.parse(
       is.spec.tags[0].annotations['opendatahub.io/notebook-python-dependencies'],
-    ) as NotebookPackage[]),
+    ) as NotebookImagePackage[]),
   software:
     is.spec.tags &&
     (JSON.parse(
       is.spec.tags[0].annotations['opendatahub.io/notebook-software'],
-    ) as NotebookPackage[]),
+    ) as NotebookImagePackage[]),
   uploaded: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
   user: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
@@ -52,7 +52,7 @@ const mapImageStreamToNotebook = (is: ImageStreamKind): Notebook => ({
 
 export const getNotebooks = async (
   fastify: KubeFastifyInstance,
-): Promise<{ notebooks: Notebook[]; error: string }> => {
+): Promise<{ notebooks: NotebookImage[]; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
 
@@ -73,7 +73,9 @@ export const getNotebooks = async (
     const imageStreamNames = imageStreams.items.map((is) => {
       is.metadata.name;
     });
-    const notebooks: Notebook[] = [...imageStreams.items.map((is) => mapImageStreamToNotebook(is))];
+    const notebooks: NotebookImage[] = [
+      ...imageStreams.items.map((is) => mapImageStreamToNotebook(is)),
+    ];
 
     return { notebooks: notebooks, error: null };
   } catch (e) {
@@ -87,7 +89,7 @@ export const getNotebooks = async (
 export const getNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
-): Promise<{ notebooks: Notebook; error: string }> => {
+): Promise<{ notebooks: NotebookImage; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
   const params = request.params as { notebook: string };
@@ -108,7 +110,7 @@ export const getNotebook = async (
       return { notebooks: mapImageStreamToNotebook(imageStream), error: null };
     }
 
-    throw new createError.NotFound(`Notebook ${params.notebook} does not exist.`);
+    throw new createError.NotFound(`NotebookImage ${params.notebook} does not exist.`);
   } catch (e) {
     if (e.response?.statusCode !== 404) {
       fastify.log.error('Unable to retrieve notebook image(s): ' + e.toString());
@@ -123,7 +125,7 @@ export const addNotebook = async (
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const body = request.body as NotebookCreateRequest;
+  const body = request.body as NotebookImageCreateRequest;
   const imageTag = body.url.split(':')[1];
 
   const notebooks = await getNotebooks(fastify);
@@ -228,7 +230,7 @@ export const updateNotebook = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
   const params = request.params as { notebook: string };
-  const body = request.body as NotebookUpdateRequest;
+  const body = request.body as NotebookImageUpdateRequest;
 
   const notebooks = await getNotebooks(fastify);
   const validName = notebooks.notebooks.filter((nb) => nb.name === body.name && nb.id !== body.id);

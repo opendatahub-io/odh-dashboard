@@ -17,7 +17,7 @@ export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
   userTrackingEnabled: boolean | null;
-}
+};
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
 export declare type QuickStart = {
@@ -41,7 +41,7 @@ export declare type QuickStart = {
 export type K8sResourceBase = {
   apiVersion?: string;
   kind?: string;
-}
+};
 
 export type K8sResourceCommon = {
   metadata?: {
@@ -54,7 +54,6 @@ export type K8sResourceCommon = {
     creationTimestamp?: Date;
   };
 } & K8sResourceBase;
-
 
 export enum BUILD_PHASE {
   none = 'Not started',
@@ -346,7 +345,7 @@ export type PipelineRunListKind = {
 export type EnvironmentVariable = {
   name: string;
   value: string;
-}
+};
 
 export type NotebookResources = {
   requests: {
@@ -363,7 +362,7 @@ export type NotebookPort = {
   name: string;
   containerPort: number;
   protocol: string;
-}
+};
 
 export type NotebookContainer = {
   name: string;
@@ -388,10 +387,10 @@ export type Notebook = {
   spec: {
     template: {
       spec: {
-        containers: NotebookContainer[]
-      }
-    }
-  }
+        containers: NotebookContainer[];
+      };
+    };
+  };
   status?: Record<string, unknown>;
 } & K8sResourceCommon;
 
@@ -427,3 +426,101 @@ export type Route = {
     wildcardPolicy: string;
   };
 };
+
+export type ODHSegmentKey = {
+  segmentKey: string;
+};
+
+export type NotebookImageError = {
+  severity: string;
+  message: string;
+};
+
+export type NotebookImageStatus = 'Importing' | 'Validating' | 'Succeeded' | 'Failed';
+
+export type NotebookImage = {
+  id: string;
+  phase?: NotebookImageStatus;
+  user?: string;
+  uploaded?: Date;
+  error?: NotebookImageError;
+} & NotebookImageCreateRequest &
+  NotebookImageUpdateRequest;
+
+export type NotebookImageCreateRequest = {
+  name: string;
+  url: string;
+  description?: string;
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  user: string;
+  software?: NotebookImagePackage[];
+  packages?: NotebookImagePackage[];
+};
+
+export type NotebookImageUpdateRequest = {
+  id: string;
+  name?: string;
+  description?: string;
+  visible?: boolean;
+  software?: NotebookImagePackage[];
+  packages?: NotebookImagePackage[];
+};
+
+export type NotebookImagePackage = {
+  name: string;
+  version: string;
+  visible: boolean;
+};
+
+export type ImageStreamTagSpec = {
+  name: string;
+  annotations?: { [key: string]: string };
+  from?: {
+    kind: string;
+    name: string;
+  };
+};
+export type ImageStreamKind = {
+  spec?: {
+    lookupPolicy?: {
+      local: boolean;
+    };
+    tags: ImageStreamTagSpec[];
+  };
+  status?: any;
+} & K8sResourceCommon;
+
+export type ImageStreamListKind = {
+  items: ImageStreamKind[];
+} & K8sResourceBase;
+
+export type PipelineRunKind = {
+  spec: {
+    params: {
+      name: string;
+      value: string;
+    }[];
+    pipelineRef: {
+      name: string;
+    };
+    workspaces?: [
+      {
+        name: string;
+        volumeClaimTemplate: {
+          spec: {
+            accessModes: string[];
+            resources: {
+              requests: {
+                storage: string;
+              };
+            };
+          };
+        };
+      },
+    ];
+  };
+} & K8sResourceCommon;
+
+export type PipelineRunListKind = {
+  items: PipelineRunKind[];
+} & K8sResourceBase;
