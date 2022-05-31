@@ -169,9 +169,19 @@ const getCSVForApp = (
 
   const subscriptions = getSubscriptions();
   const appSubscription = subscriptions.find((sub) =>
-    sub.status.installedCSV.startsWith(app.spec.csvName),
+    sub.status?.installedCSV?.startsWith(app.spec.csvName),
   );
   if (!appSubscription) {
+    return Promise.resolve(undefined);
+  }
+
+  const appInstalledCSV = appSubscription.status?.installedCSV;
+  if (!appInstalledCSV) {
+    return Promise.resolve(undefined);
+  }
+
+  const namespace = appSubscription.status?.installPlanRef?.namespace;
+  if (!namespace) {
     return Promise.resolve(undefined);
   }
 
@@ -179,9 +189,9 @@ const getCSVForApp = (
     .getNamespacedCustomObject(
       'operators.coreos.com',
       'v1alpha1',
-      appSubscription.status.installPlanRef.namespace,
+      namespace,
       'clusterserviceversions',
-      appSubscription.status.installedCSV,
+      appInstalledCSV,
     )
     .then((response) => {
       const csv = response.body as CSVKind;
