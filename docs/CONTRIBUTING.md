@@ -6,6 +6,7 @@ Contributing encompasses repository specific requirements.
 Before developing you'll need to install:
 * [NodeJS and NPM](https://nodejs.org/)
 * [OpenShift CLI](https://docs.openshift.com/enterprise/3.2/cli_reference/get_started_cli.html#installing-the-cli)
+* [kustomize](https://github.com/kubernetes-sigs/kustomize)
 * [s2i](https://github.com/openshift/source-to-image)
 * and have access to [Quay.io](https://quay.io/)
 

@@ -3,6 +3,7 @@ kind: Kustomization
 commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
+namespace: odh-dashboard
 resources:
 - role.yaml
 - cluster-role.yaml
@@ -12,3 +13,7 @@ resources:
 - deployment.yaml
 - routes.yaml
 - service.yaml
+images:
+- name: odh-dashboard
+  newName: quay.io/opendatahub/odh-dashboard
+  newTag: v1.0

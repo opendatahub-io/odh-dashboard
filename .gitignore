@@ -18,5 +18,4 @@ yarn-debug.log*
 yarn-error.log*
 yarn.lock
 
-install/odh/overlays/dev/kustomization.yaml
-install/odh/overlays/dev/deployment_patch.yaml
+manifests/overlays/dev/

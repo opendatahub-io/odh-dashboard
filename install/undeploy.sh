@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 printf "\n\n######## undeploy ########\n"
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+KUSTOMIZE_MANIFEST_DIR_OVERLAY_DEV="${KUSTOMIZE_MANIFEST_DIR}/overlays/dev"
 
 oc project ${OC_PROJECT} 2> /dev/null
 oc project
 
-envsubst < "${DIR}/odh/overlays/dev/kustomization_template.yaml" > "${DIR}/odh/overlays/dev/kustomization.yaml"
-envsubst < "${DIR}/odh/overlays/dev/deployment_patch_template.yaml" > "${DIR}/odh/overlays/dev/deployment_patch.yaml"
-oc delete -k "${DIR}/odh/overlays/dev"
+pushd ${KUSTOMIZE_MANIFEST_DIR_OVERLAY_DEV}
+kustomize edit set namespace ${OC_PROJECT}
+popd
+
+# Use kustomize to build the yaml objects so we get full support for all the kustomize standards
+kustomize build ${KUSTOMIZE_MANIFEST_DIR_OVERLAY_DEV} | oc delete -f -

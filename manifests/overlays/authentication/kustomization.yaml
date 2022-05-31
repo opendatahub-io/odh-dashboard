@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+- clusterrolebinding.yaml
+patchesJson6902:
+- path: deployment.yaml
+  target:
+    group: apps
+    kind: Deployment
+    name: odh-dashboard
+    version: v1
+- path: service-account.yaml
+  target:
+    kind: ServiceAccount
+    name: odh-dashboard
+    version: v1
+- path: service.yaml
+  target:
+    kind: Service
+    name: odh-dashboard
+    version: v1
+- path: route.yaml
+  target:
+    group: route.openshift.io
+    kind: Route
+    name: odh-dashboard
+    version: v1
+images:
+- name: oauth-proxy
+  newName: registry.redhat.io/openshift4/ose-oauth-proxy
+  newTag: v4.8
