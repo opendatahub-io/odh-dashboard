@@ -1,6 +1,5 @@
 import React from 'react';
 import useDimensions from 'react-cool-dimensions';
-import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument } from '../../types';
 import { useWatchDocs } from '../../utilities/useWatchDocs';
@@ -25,7 +24,6 @@ import LearningCenterToolbar from './LearningCenterToolbar';
 import LearningCenterFilters from './LearningCenterFilters';
 import { useDocFilterer } from './useDocFilterer';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '../../utilities/const';
-import { combineCategoryAnnotations } from '../../utilities/utils';
 import LearningCenterDataView from './LearningCenterDataView';
 
 import './LearningCenter.scss';
@@ -54,58 +52,8 @@ export const LearningCenter: React.FC = () => {
   });
 
   React.useEffect(() => {
-    if (loaded && !loadError && docsLoaded && !docsLoadError) {
-      const docs = odhDocs ? [...odhDocs] : [];
-
-      // Add doc cards for all components' documentation
-      if (components) {
-        components.forEach((component) => {
-          if (component.spec.docsLink) {
-            const odhDoc: OdhDocument = {
-              metadata: {
-                name: `${component.metadata.name}-doc`,
-              },
-              spec: {
-                appName: component.metadata.name,
-                type: OdhDocumentType.Documentation,
-                provider: component.spec.provider,
-                url: component.spec.docsLink,
-                displayName: component.spec.displayName,
-                description: component.spec.description,
-              },
-            };
-            docs.push(odhDoc);
-          }
-        });
-      }
-      // Add doc cards for all quick starts
-      qsContext.allQuickStarts?.forEach((quickStart) => {
-        const odhDoc: OdhDocument = _.merge({}, quickStart, {
-          spec: { ...quickStart.spec, type: OdhDocumentType.QuickStart },
-        });
-        docs.push(odhDoc);
-      });
-
-      const updatedDocApps = docs
-        .filter((doc) => doc.spec.type !== 'getting-started')
-        .map((odhDoc) => {
-          const odhApp =
-            components && components.find((c) => c.metadata.name === odhDoc.spec.appName);
-          const updatedDoc = _.cloneDeep(odhDoc);
-          if (odhApp) {
-            combineCategoryAnnotations(odhDoc, odhApp);
-            updatedDoc.spec.appDisplayName = odhApp.spec.displayName;
-            updatedDoc.spec.appEnabled = odhApp.spec.isEnabled ?? false;
-            updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
-            updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
-            updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
-            updatedDoc.spec.appCategory = odhDoc.spec.appCategory || odhApp.spec.category;
-          } else {
-            updatedDoc.spec.appEnabled = false;
-          }
-          return updatedDoc;
-        });
-      setDocApps(updatedDocApps);
+    if (!odhDocs) {
+      return;
     }
     const filtered = docFilterer(odhDocs);
     setFilteredDocApps(

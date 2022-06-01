@@ -37,7 +37,7 @@
     "test:type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@patternfly/quickstarts": "2.0.1",
+    "@patternfly/quickstarts": "2.2.3",
     "@patternfly/patternfly": "4.179.1",
     "@patternfly/react-catalog-view-extension": "^4.49.5",
     "@patternfly/react-core": "4.198.5",
