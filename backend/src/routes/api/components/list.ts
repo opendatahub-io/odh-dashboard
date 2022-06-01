@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getApplications } from '../../../utils/resourceUtils';
+import { getApplications, updateApplications } from '../../../utils/resourceUtils';
 
 export const listComponents = async (
   fastify: KubeFastifyInstance,
@@ -40,7 +40,7 @@ export const removeComponent = async (
       data: enabledAppsCMData,
     };
     await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName, namespace, cmBody);
-    await updateApplicationDefs();
+    await updateApplications();
     return { success: true, error: null };
   } catch (e) {
     fastify.log.error(e.message);

@@ -228,7 +228,7 @@ export const validateISV = async (
   const checkResult = async () => {
     const success = await getApplicationEnabledConfigMap(fastify, appDef);
     if (success) {
-      await updateApplicationDefs();
+      await updateApplications();
     }
     return {
       complete: true,

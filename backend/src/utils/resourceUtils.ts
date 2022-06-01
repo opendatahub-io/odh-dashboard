@@ -15,6 +15,7 @@ import {
   OdhDocument,
   OdhDocumentType,
   QuickStart,
+  SubscriptionKind
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,

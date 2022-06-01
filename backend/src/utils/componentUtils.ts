@@ -6,6 +6,7 @@ import {
   RouteKind,
   KfDefApplication,
   OdhDocument,
+  CSVKind
 } from '../types';
 import { getConsoleLinks, getInstalledKfdefs, getSubscriptions } from './resourceUtils';
 
