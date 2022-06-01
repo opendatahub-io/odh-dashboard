@@ -31,10 +31,6 @@ The backend for the dashboard is node REST server that performs k8s calls on beh
 
 **GET** - Retrieves the list of docs.  The returns an array of [document objects](https://github.com/opendatahub-io/odh-dashboard/blob/bf49dc23cd4b5477111ad4590e401a423186fa54/backend/src/types.ts#L218)
 
-### /getting-started
-
-**GET** - Retrieves the list of getting started documents.  The returns an array of [getting started document objects](https://github.com/opendatahub-io/odh-dashboard/blob/bf49dc23cd4b5477111ad4590e401a423186fa54/backend/src/types.ts#L237)
-
 ### /notebook
 
 **GET** - Retrieves the list of notebooks.  The returns an array of [notebook objects](https://github.com/opendatahub-io/odh-dashboard/blob/bf49dc23cd4b5477111ad4590e401a423186fa54/backend/src/types.ts#L259)

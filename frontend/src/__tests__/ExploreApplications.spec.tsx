@@ -4,7 +4,6 @@ import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
 import ExploreApplications from '../pages/exploreApplication/ExploreApplications';
 import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
-import { mockGettingStartedDoc } from '../../__mocks__/mockGettingStartedDoc';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
@@ -41,13 +40,6 @@ jest.mock('../utilities/useWatchComponents', () => ({
     loaded: true,
     loadError: null,
     components: mockExploreApplications,
-  }),
-}));
-jest.mock('../utilities/useGettingStarted', () => ({
-  useGettingStarted: () => ({
-    odhGettingStarted: mockGettingStartedDoc,
-    loaded: true,
-    loadError: null,
   }),
 }));
 jest.mock('../utilities/router', () => ({

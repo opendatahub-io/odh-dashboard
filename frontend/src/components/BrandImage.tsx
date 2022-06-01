@@ -10,19 +10,33 @@ type BrandImageProps = {
 };
 
 const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => {
-  const [isSrcValid, setIsSrcValid] = React.useState<boolean>(true);
+  const [image, setImage] = React.useState<{ imgSrc: string; isValid: boolean }>({
+    imgSrc: '',
+    isValid: true,
+  });
 
   const brandClasses = classNames('odh-card__header-brand', className, {
-    'pf-c-brand': !isSrcValid,
-    'odh-card__header-fallback-img': !isSrcValid,
+    'pf-c-brand': !image.isValid,
+    'odh-card__header-fallback-img': !image.isValid,
   });
 
   React.useEffect(() => {
-    setIsSrcValid(!!src);
+    let newSrc = src;
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(src, 'text/xml');
+    if (parsed.getElementsByTagName('parsererror').length === 0) {
+      newSrc = `data:image/svg+xml;base64,${btoa(src)}`;
+    }
+    setImage({ imgSrc: newSrc, isValid: !!src });
   }, [src]);
 
-  return isSrcValid ? (
-    <Brand {...props} className={brandClasses} src={src} onError={() => setIsSrcValid(false)} />
+  return image.isValid ? (
+    <Brand
+      {...props}
+      className={brandClasses}
+      src={image.imgSrc}
+      onError={() => setImage((prevImage) => ({ imgSrc: prevImage.imgSrc, isValid: false }))}
+    />
   ) : (
     <RocketIcon className={brandClasses} {...props} />
   );
