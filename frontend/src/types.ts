@@ -87,7 +87,7 @@ export type OdhDocument = {
     appCategory?: string; // Only set on UI side in resources section
     provider?: string;
     description: string;
-    url: string;
+    url?: string; // only quickstarts won't have a url
     img?: string;
     icon?: string;
     durationMinutes?: number;

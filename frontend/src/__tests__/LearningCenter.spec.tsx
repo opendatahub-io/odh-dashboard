@@ -4,7 +4,6 @@ import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { mount } from 'enzyme';
 import { LearningCenter } from '../pages/learningCenter/LearningCenter';
-import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
 import { mockDocs } from '../../__mocks__/mockDocs';
 import { act } from 'react-dom/test-utils';
 import { Options } from 'react-cool-dimensions';
@@ -37,13 +36,6 @@ jest.mock('react-cool-dimensions', () => (options: Options) => {
   };
 });
 
-jest.mock('../utilities/useWatchComponents', () => ({
-  useWatchComponents: () => ({
-    loaded: true,
-    loadError: null,
-    results: mockExploreApplications,
-  }),
-}));
 jest.mock('../utilities/useWatchDocs', () => ({
   useWatchDocs: () => ({
     results: mockDocs,
@@ -75,7 +67,7 @@ describe('Resources page', () => {
     expect(viewPanel.html()).toMatchSnapshot();
 
     const cards = viewPanel.find('.pf-c-card__header');
-    expect(cards.length).toBe(6);
+    expect(cards.length).toBe(7);
 
     wrapper.unmount();
   });
@@ -93,7 +85,7 @@ describe('Resources page', () => {
     expect(filterPanel.html()).toMatchSnapshot();
 
     const categories = filterPanel.find('.vertical-tabs-pf-tab');
-    expect(categories.length).toBe(5);
+    expect(categories.length).toBe(8);
     const activeCategories = filterPanel.find('.vertical-tabs-pf-tab.active');
     expect(activeCategories.length).toBe(1);
     expect(activeCategories.text()).toBe('All Items');

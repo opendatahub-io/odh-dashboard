@@ -1,5 +1,6 @@
 import createError from 'http-errors';
 import { V1ConfigMap } from '@kubernetes/client-node';
+import * as _ from 'lodash';
 import {
   BUILD_PHASE,
   BuildKind,
@@ -12,6 +13,7 @@ import {
   KubeFastifyInstance,
   OdhApplication,
   OdhDocument,
+  OdhDocumentType,
   QuickStart,
 } from '../types';
 import {
@@ -21,7 +23,12 @@ import {
   ResourceWatcherTimeUpdate,
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
-import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from './componentUtils';
+import {
+  combineCategoryAnnotations,
+  getIsAppEnabled,
+  getRouteForApplication,
+  getRouteForClusterId,
+} from './componentUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -190,9 +197,10 @@ export const fetchApplications = async (
 const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> => {
   const docs: OdhDocument[] = [];
   const featureFlags = getComponentFeatureFlags();
+  const appDefs = await fetchApplicationDefs(fastify);
+  const quickStarts = await fetchQuickStarts(fastify);
 
   try {
-    const appDefs = await fetchApplicationDefs(fastify);
     const customObjectsApi = fastify.kube.customObjectsApi;
     const res = await customObjectsApi.listNamespacedCustomObject(
       dashboardGroup,
@@ -218,7 +226,53 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
     );
   }
 
-  return Promise.resolve(docs);
+  // Add docs for all components' documentation
+  appDefs.forEach((component) => {
+    if (component.spec.docsLink) {
+      const odhDoc: OdhDocument = {
+        metadata: {
+          name: `${component.metadata.name}-doc`,
+        },
+        spec: {
+          appName: component.metadata.name,
+          type: OdhDocumentType.Documentation,
+          provider: component.spec.provider,
+          url: component.spec.docsLink,
+          displayName: component.spec.displayName,
+          description: component.spec.description,
+        },
+      };
+      docs.push(odhDoc);
+    }
+  });
+
+  // Add doc cards for all quick starts
+  quickStarts.forEach((quickStart) => {
+    const odhDoc: OdhDocument = _.merge({}, quickStart, {
+      spec: { ...quickStart.spec, type: OdhDocumentType.QuickStart },
+    });
+    docs.push(odhDoc);
+  });
+
+  const updatedDocApps = docs
+    .filter((doc) => doc.spec.type !== 'getting-started')
+    .map((odhDoc) => {
+      const odhApp = appDefs && appDefs.find((c) => c.metadata.name === odhDoc.spec.appName);
+      const updatedDoc = _.cloneDeep(odhDoc);
+      if (odhApp) {
+        combineCategoryAnnotations(odhDoc, odhApp);
+        updatedDoc.spec.appDisplayName = odhApp.spec.displayName;
+        updatedDoc.spec.appEnabled = odhApp.spec.isEnabled ?? false;
+        updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
+        updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;
+        updatedDoc.spec.provider = odhDoc.spec.provider || odhApp.spec.provider;
+      } else {
+        updatedDoc.spec.appEnabled = false;
+      }
+      return updatedDoc;
+    });
+
+  return Promise.resolve(updatedDocApps);
 };
 
 const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStart[]> => {

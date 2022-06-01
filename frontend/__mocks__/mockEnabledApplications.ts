@@ -28,6 +28,7 @@ export const mockEnabledApplications: OdhApplication[] = [
       isEnabled: true,
       kfdefApplications: ['jupyterhub', 'notebook-images'],
       csvName: '',
+      getStartedMarkDown: '',
     },
   },
 ];

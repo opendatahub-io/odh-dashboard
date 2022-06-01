@@ -5,9 +5,11 @@ import {
   KubeFastifyInstance,
   RouteKind,
   KfDefApplication,
-  CSVKind,
+  OdhDocument,
 } from '../types';
 import { getConsoleLinks, getInstalledKfdefs, getSubscriptions } from './resourceUtils';
+
+export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
 
 type RoutesResponse = {
   body: {
@@ -269,4 +271,25 @@ export const getIsAppEnabled = async (
 
   // Failed all checks
   return false;
+};
+
+export const combineCategoryAnnotations = (doc: OdhDocument, app: OdhApplication): void => {
+  const docCategories = (doc.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
+    .split(',')
+    .map((c) => c.trim());
+  const appCategories = (app.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
+    .split(',')
+    .map((c) => c.trim());
+
+  const combined = appCategories.reduce((acc, category) => {
+    if (category && !acc.includes(category)) {
+      acc.push(category);
+    }
+    return acc;
+  }, docCategories);
+
+  doc.metadata.annotations = {
+    ...(doc.metadata.annotations || {}),
+    [CATEGORY_ANNOTATION]: combined.join(','),
+  };
 };

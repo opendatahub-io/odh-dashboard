@@ -225,9 +225,11 @@ export type OdhDocument = {
     displayName: string;
     appName?: string;
     type: string;
+    appDisplayName?: string; // manufactured to aid with filtering in UI resources section
+    appEnabled?: boolean; // manufactured to aid with UI resources section
     provider?: string;
     description: string;
-    url: string;
+    url?: string;
     img?: string;
     icon?: string;
     durationMinutes?: number;

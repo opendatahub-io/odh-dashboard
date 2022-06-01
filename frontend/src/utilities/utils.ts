@@ -66,26 +66,6 @@ export const getLabelColorForDocType = (
       return 'grey';
   }
 };
-export const combineCategoryAnnotations = (doc: OdhDocument, app: OdhApplication): void => {
-  const docCategories = (doc.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
-    .split(',')
-    .map((c) => c.trim());
-  const appCategories = (app.metadata.annotations?.[CATEGORY_ANNOTATION] ?? '')
-    .split(',')
-    .map((c) => c.trim());
-
-  const combined = appCategories.reduce((acc, category) => {
-    if (category && !acc.includes(category)) {
-      acc.push(category);
-    }
-    return acc;
-  }, docCategories);
-
-  doc.metadata.annotations = {
-    ...(doc.metadata.annotations || {}),
-    [CATEGORY_ANNOTATION]: combined.join(','),
-  };
-};
 
 export const matchesCategories = (
   odhDoc: OdhDocument,
