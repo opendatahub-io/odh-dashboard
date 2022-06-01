@@ -5,9 +5,9 @@ import '@patternfly/quickstarts/dist/quickstarts.min.css';
 import { useWatchQuickStarts } from '../utilities/useWatchQuickStarts';
 
 const QuickStarts: React.FC = ({ children }) => {
-  const [activeQuickStartID, setActiveQuickStartID] = useLocalStorage('rhodsQuickstartId', '');
-  const [allQuickStartStates, setAllQuickStartStates] = useLocalStorage('rhodsQuickstarts', {});
-  const { quickStarts } = useWatchQuickStarts();
+  const [activeQuickStartID, setActiveQuickStartID] = useLocalStorage('odsQuickstartId', '');
+  const [allQuickStartStates, setAllQuickStartStates] = useLocalStorage('odsQuickstarts', {});
+  const { results: quickStarts } = useWatchQuickStarts();
 
   const valuesForQuickStartContext = {
     quickStarts,

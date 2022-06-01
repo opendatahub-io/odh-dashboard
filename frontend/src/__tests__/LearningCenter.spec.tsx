@@ -41,12 +41,12 @@ jest.mock('../utilities/useWatchComponents', () => ({
   useWatchComponents: () => ({
     loaded: true,
     loadError: null,
-    components: mockExploreApplications,
+    results: mockExploreApplications,
   }),
 }));
 jest.mock('../utilities/useWatchDocs', () => ({
   useWatchDocs: () => ({
-    docs: mockDocs,
+    results: mockDocs,
     loaded: true,
     loadError: null,
   }),

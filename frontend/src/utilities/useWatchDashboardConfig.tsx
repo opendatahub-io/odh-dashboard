@@ -1,8 +1,6 @@
-import * as React from 'react';
 import { DashboardConfig } from '../types';
-import { POLL_INTERVAL } from './const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchDashboardConfig } from '../services/dashboardConfigService';
+import { useFetchWatcher } from './useFetchWatcher';
 
 const DEFAULT_CONFIG: DashboardConfig = {
   enablement: true,
@@ -16,43 +14,9 @@ const DEFAULT_CONFIG: DashboardConfig = {
 };
 
 export const useWatchDashboardConfig = (): {
-  dashboardConfig: DashboardConfig;
+  results: DashboardConfig | null;
   loaded: boolean;
-  loadError: Error | undefined;
+  loadError?: Error;
 } => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
-  const [loadError, setLoadError] = React.useState<Error>();
-  const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfig>(DEFAULT_CONFIG);
-
-  React.useEffect(() => {
-    let watchHandle;
-    let cancelled = false;
-    const watchDashboardConfig = () => {
-      fetchDashboardConfig()
-        .then((config) => {
-          if (cancelled) {
-            return;
-          }
-          setLoaded(true);
-          setLoadError(undefined);
-          setDashboardConfig(config);
-        })
-        .catch((e) => {
-          setLoadError(e);
-        });
-      watchHandle = setTimeout(watchDashboardConfig, POLL_INTERVAL);
-    };
-    watchDashboardConfig();
-
-    return () => {
-      cancelled = true;
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
-    };
-  }, []);
-
-  const retConfig = useDeepCompareMemoize<DashboardConfig>(dashboardConfig);
-
-  return { dashboardConfig: retConfig || DEFAULT_CONFIG, loaded, loadError };
+  return useFetchWatcher<DashboardConfig>(fetchDashboardConfig);
 };

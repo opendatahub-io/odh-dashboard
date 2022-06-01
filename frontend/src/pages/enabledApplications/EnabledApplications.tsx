@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { Gallery, PageSection } from '@patternfly/react-core';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import { OdhApplication } from '../../types';
@@ -51,12 +50,12 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
 EnabledApplicationsInner.displayName = 'EnabledApplicationsInner';
 
 const EnabledApplications: React.FC = () => {
-  const { components, loaded, loadError } = useWatchComponents(true);
+  const { results: components, loaded, loadError } = useWatchComponents(true);
 
   const sortedComponents = React.useMemo(() => {
-    return _.cloneDeep(components).sort((a, b) =>
-      a.spec.displayName.localeCompare(b.spec.displayName),
-    );
+    return components
+      ? components.slice().sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName))
+      : [];
   }, [components]);
 
   React.useEffect(() => {
