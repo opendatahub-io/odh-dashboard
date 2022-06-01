@@ -1,7 +1,4 @@
-import * as jsYaml from 'js-yaml';
 import createError from 'http-errors';
-import fs from 'fs';
-import path from 'path';
 import { V1ConfigMap } from '@kubernetes/client-node';
 import {
   BUILD_PHASE,
@@ -15,7 +12,7 @@ import {
   KubeFastifyInstance,
   OdhApplication,
   OdhDocument,
-  SubscriptionKind,
+  QuickStart,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -24,8 +21,7 @@ import {
   ResourceWatcherTimeUpdate,
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
-import { yamlRegExp } from './constants';
-import { getIsAppEnabled, getRouteForClusterId } from './componentUtils';
+import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from './componentUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -37,6 +33,7 @@ let dashboardConfigWatcher: ResourceWatcher<V1ConfigMap>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionKind>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
+let quickStartWatcher: ResourceWatcher<QuickStart>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
@@ -57,6 +54,16 @@ const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
     disableAppLauncher: 'true',
   },
 };
+
+const dashboardGroup = 'dashboard.opendatahub.io';
+const dashboardVersion = 'v1';
+
+const applicationsPlural = 'odhapplications';
+const documentationsPlural = 'odhdocuments';
+
+const quickStartsGroup = 'console.openshift.io';
+const quickStartsVersion = 'v1';
+const quickStartsPlural = 'odhquickstarts';
 
 const fetchDashboardConfigMap = (fastify: KubeFastifyInstance): Promise<V1ConfigMap[]> => {
   return fastify.kube.coreV1Api
@@ -133,93 +140,110 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
 };
 
 const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhApplication[]> => {
-  const normalizedPath = path.join(__dirname, '../../../data/applications');
   const applicationDefs: OdhApplication[] = [];
   const featureFlags = getComponentFeatureFlags();
-  fs.readdirSync(normalizedPath).forEach((file) => {
-    if (yamlRegExp.test(file)) {
-      try {
-        const doc = jsYaml.load(fs.readFileSync(path.join(normalizedPath, file), 'utf8'));
-        if (!doc.spec.featureFlag || featureFlags[doc.spec.featureFlag]) {
-          applicationDefs.push(doc);
-        }
-      } catch (e) {
-        console.error(`Error loading application definition ${file}: ${e}`);
+
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  try {
+    const res = await customObjectsApi.listNamespacedCustomObject(
+      dashboardGroup,
+      dashboardVersion,
+      fastify.kube.namespace,
+      applicationsPlural,
+    );
+    const odhApplications = (res.body as { items: OdhApplication[] })?.items ?? [];
+
+    odhApplications.forEach((app) => {
+      if (!app.spec.featureFlag || featureFlags[app.spec.featureFlag]) {
+        applicationDefs.push(app);
       }
-    }
-  });
-
-  const enabledAppsCMData: { [key: string]: string } = {};
-  let changed = false;
-
-  // fetch enabled apps configmap
-  const coreV1Api = fastify.kube.coreV1Api;
-  const namespace = fastify.kube.namespace;
-  const enabledAppsCM: V1ConfigMap = await coreV1Api
-    .readNamespacedConfigMap(enabledAppsConfigMapName, namespace)
-    .then((result) => result.body)
-    .catch(() => null);
-
-  for (const appDef of applicationDefs) {
-    appDef.spec.getStartedLink = getRouteForClusterId(fastify, appDef.spec.getStartedLink);
-    appDef.spec.shownOnEnabledPage = enabledAppsCM?.data[appDef.metadata.name] === 'true'; // check cm isEnabled
-    appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef);
-    if (appDef.spec.isEnabled) {
-      if (!appDef.spec.shownOnEnabledPage) {
-        changed = true;
-        appDef.spec.shownOnEnabledPage = true;
-        enabledAppsCMData[appDef.metadata.name] = 'true';
-      }
-    }
-  }
-
-  if (changed) {
-    // write enabled apps configmap
-    const cmBody: V1ConfigMap = {
-      metadata: {
-        name: enabledAppsConfigMapName,
-        namespace: namespace,
-      },
-      data: enabledAppsCMData,
-    };
-    if (!enabledAppsCM) {
-      await coreV1Api.createNamespacedConfigMap(namespace, cmBody);
-    } else {
-      cmBody.data = { ...enabledAppsCM.data, ...enabledAppsCMData };
-      await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName, namespace, cmBody);
-    }
+    });
+  } catch (e) {
+    fastify.log.error(`Error fetching applications: ${e.response?.body?.message || e.message}`);
   }
 
   return Promise.resolve(applicationDefs);
 };
 
+export const fetchApplications = async (
+  fastify: KubeFastifyInstance,
+): Promise<OdhApplication[]> => {
+  const applicationDefs = await fetchApplicationDefs(fastify);
+  const applications = [];
+
+  for (const appDef of applicationDefs) {
+    const isEnabled = await getIsAppEnabled(fastify, appDef);
+    applications.push({
+      ...appDef,
+      spec: {
+        ...appDef.spec,
+        getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
+        isEnabled,
+        link: isEnabled ? await getRouteForApplication(fastify, appDef) : undefined,
+      },
+    });
+  }
+
+  return Promise.resolve(applications);
+};
+
 const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> => {
-  const normalizedPath = path.join(__dirname, '../../../data/docs');
   const docs: OdhDocument[] = [];
   const featureFlags = getComponentFeatureFlags();
-  const appDefs = await fetchApplicationDefs(fastify);
 
-  fs.readdirSync(normalizedPath).forEach((file) => {
-    if (yamlRegExp.test(file)) {
-      try {
-        const doc: OdhDocument = jsYaml.load(
-          fs.readFileSync(path.join(normalizedPath, file), 'utf8'),
-        );
-        if (doc.spec.featureFlag) {
-          if (featureFlags[doc.spec.featureFlag]) {
-            docs.push(doc);
-          }
-          return;
-        }
-        if (!doc.spec.appName || appDefs.find((def) => def.metadata.name === doc.spec.appName)) {
+  try {
+    const appDefs = await fetchApplicationDefs(fastify);
+    const customObjectsApi = fastify.kube.customObjectsApi;
+    const res = await customObjectsApi.listNamespacedCustomObject(
+      dashboardGroup,
+      dashboardVersion,
+      fastify.kube.namespace,
+      documentationsPlural,
+    );
+    const odhDocuments = (res.body as { items: OdhDocument[] })?.items ?? [];
+    odhDocuments.forEach((doc) => {
+      if (doc.spec.featureFlag) {
+        if (featureFlags[doc.spec.featureFlag]) {
           docs.push(doc);
         }
-      } catch (e) {
-        console.error(`Error loading doc ${file}: ${e}`);
+        return;
       }
-    }
-  });
+      if (!doc.spec.appName || appDefs.find((def) => def.metadata.name === doc.spec.appName)) {
+        docs.push(doc);
+      }
+    });
+  } catch (e) {
+    fastify.log.error(
+      `Error fetching documentation resources: ${e.response?.body?.message || e.message}`,
+    );
+  }
+
   return Promise.resolve(docs);
+};
+
+const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStart[]> => {
+  const installedQuickStarts: QuickStart[] = [];
+  const featureFlags = getComponentFeatureFlags();
+
+  const customObjectsApi = fastify.kube.customObjectsApi;
+  try {
+    const res = await customObjectsApi.listNamespacedCustomObject(
+      quickStartsGroup,
+      quickStartsVersion,
+      fastify.kube.namespace,
+      quickStartsPlural,
+    );
+    const quickStarts = (res.body as { items: QuickStart[] })?.items ?? [];
+    quickStarts.forEach((quickStart) => {
+      if (!quickStart.spec.featureFlag || featureFlags[quickStart.spec.featureFlag]) {
+        installedQuickStarts.push(quickStart);
+      }
+    });
+  } catch (e) {
+    fastify.log.error(`Error fetching quick starts: ${e.response?.body?.message || e.message}`);
+  }
+
+  return installedQuickStarts;
 };
 
 const getBuildNumber = (build: BuildKind): number => {
@@ -344,8 +368,9 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   dashboardConfigWatcher = new ResourceWatcher<V1ConfigMap>(fastify, fetchDashboardConfigMap);
   subscriptionWatcher = new ResourceWatcher<SubscriptionKind>(fastify, fetchSubscriptions);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
-  appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplicationDefs);
+  appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplications);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
+  quickStartWatcher = new ResourceWatcher<QuickStart>(fastify, fetchQuickStarts);
   buildsWatcher = new ResourceWatcher<BuildStatus>(fastify, fetchBuilds, getRefreshTimeForBuilds);
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
 };
@@ -372,21 +397,25 @@ export const getInstalledKfdefs = (): KfDefApplication[] => {
   return kfDefWatcher.getResources();
 };
 
-export const getApplicationDefs = (): OdhApplication[] => {
+export const getApplications = (): OdhApplication[] => {
   return appWatcher.getResources();
 };
 
-export const updateApplicationDefs = (): Promise<void> => {
+export const updateApplications = (): Promise<void> => {
   return appWatcher.updateResults();
 };
 
-export const getApplicationDef = (appName: string): OdhApplication => {
-  const appDefs = getApplicationDefs();
-  return appDefs.find((appDef) => appDef.metadata.name === appName);
+export const getApplication = (appName: string): OdhApplication => {
+  const apps = getApplications();
+  return apps.find((app) => app.metadata.name === appName);
 };
 
 export const getDocs = (): OdhDocument[] => {
   return docWatcher.getResources();
+};
+
+export const getQuickStarts = (): QuickStart[] => {
+  return quickStartWatcher.getResources();
 };
 
 export const getBuildStatuses = (): BuildStatus[] => {

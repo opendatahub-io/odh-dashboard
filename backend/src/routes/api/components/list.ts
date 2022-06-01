@@ -1,34 +1,18 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getRouteForApplication } from '../../../utils/componentUtils';
-import { getApplicationDefs, updateApplicationDefs } from '../../../utils/resourceUtils';
+import { getApplications } from '../../../utils/resourceUtils';
 
 export const listComponents = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OdhApplication[]> => {
-  const applicationDefs = getApplicationDefs();
-  const installedComponents = [];
+  const applications = await getApplications();
   const query = request.query as { [key: string]: string };
 
-  if (!query.installed) {
-    return await Promise.all(applicationDefs);
+  if (query.installed) {
+    return Promise.resolve(applications.filter((app) => app.spec.isEnabled));
   }
-
-  for (const appDef of applicationDefs) {
-    if (appDef.spec.shownOnEnabledPage) {
-      const app = {
-        ...appDef,
-        spec: {
-          ...appDef.spec,
-          link: await getRouteForApplication(fastify, appDef),
-        },
-      };
-      installedComponents.push(app);
-    }
-  }
-
-  return installedComponents;
+  return Promise.resolve(applications);
 };
 
 export const removeComponent = async (
