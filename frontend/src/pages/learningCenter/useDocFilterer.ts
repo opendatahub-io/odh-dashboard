@@ -26,7 +26,7 @@ export const useDocFilterer = (
     (odhDocs: OdhDocument[]) =>
       odhDocs
         .filter((odhDoc) => !enabled || enabled.includes(`${odhDoc.spec.appEnabled}`))
-        .filter((odhDoc) => !docTypes || docTypes.includes(`${odhDoc.metadata.type}`))
+        .filter((odhDoc) => !docTypes || docTypes.includes(`${odhDoc.spec.type}`))
         .filter((odhDoc) => !applications || applications.includes(`${odhDoc.spec.appDisplayName}`))
         .filter((odhDoc) => !providerTypes || providerTypes.includes(`${odhDoc.spec.appCategory}`))
         .filter((odhDoc) => matchesCategories(odhDoc, category, favorites))

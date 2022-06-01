@@ -20,6 +20,7 @@ export const mockEnabledApplications: OdhApplication[] = [
       img: 'images/jupyterhub.svg',
       docsLink: 'https://jupyter.org/hub',
       getStartedLink: 'https://jupyterhub.readthedocs.io/en/stable/getting-started/index.html',
+      getStartedMarkDown: '',
       category: 'Red Hat managed',
       support: 'red hat',
       quickStart: 'create-jupyter-notebook',

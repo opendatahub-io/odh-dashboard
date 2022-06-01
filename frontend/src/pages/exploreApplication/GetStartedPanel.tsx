@@ -8,17 +8,11 @@ import {
   DrawerPanelContent,
   DrawerActions,
   DrawerCloseButton,
-  EmptyState,
-  EmptyStateVariant,
-  EmptyStateIcon,
-  EmptyStateBody,
-  Spinner,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon, WarningTriangleIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../../types';
-import { useGettingStarted } from '../../utilities/useGettingStarted';
 import MarkdownView from '../../components/MarkdownView';
 import { markdownConverter } from '../../utilities/markdown';
 import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
@@ -38,44 +32,11 @@ type GetStartedPanelProps = {
 };
 
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
-  const appName = selectedApp?.metadata.name;
-  const { odhGettingStarted, loaded, loadError } = useGettingStarted(appName);
   const { dashboardConfig } = useAppContext();
   const enablement = dashboardConfig.spec.dashboardConfig.enablement;
   if (!selectedApp) {
     return null;
   }
-
-  const renderMarkdownContents = () => {
-    if (loadError) {
-      return (
-        <EmptyState variant={EmptyStateVariant.full}>
-          <EmptyStateIcon icon={WarningTriangleIcon} />
-          <Title headingLevel="h5" size="md">
-            Error loading getting started information
-          </Title>
-          <EmptyStateBody className="odh-dashboard__error-body">
-            <div>
-              <code className="odh-dashboard__display-error">{loadError.message}</code>
-            </div>
-          </EmptyStateBody>
-        </EmptyState>
-      );
-    }
-
-    if (!loaded) {
-      return (
-        <EmptyState variant={EmptyStateVariant.full}>
-          <Spinner size="xl" />
-          <Title headingLevel="h5" size="lg">
-            Loading
-          </Title>
-        </EmptyState>
-      );
-    }
-
-    return <MarkdownView markdown={odhGettingStarted?.markdown} />;
-  };
 
   const renderEnableButton = () => {
     if (!selectedApp.spec.enable || selectedApp.spec.isEnabled) {
@@ -161,7 +122,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
               />
             </Alert>
           ) : null}
-          {renderMarkdownContents()}
+          {<MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />}
         </DrawerPanelBody>
       </DrawerPanelContent>
     </>
