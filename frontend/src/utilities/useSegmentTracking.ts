@@ -7,14 +7,14 @@ import { useWatchDashboardConfig } from './useWatchDashboardConfig';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { results } = useWatchDashboardConfig();
   const username = useSelector((state: RootState) => state.appState.user);
   const clusterID = useSelector((state: RootState) => state.appState.clusterID);
 
   React.useEffect(() => {
     if (segmentKey && loaded && !loadError && username && clusterID) {
       window.clusterID = clusterID;
-      initSegment({ segmentKey, username, enabled: !dashboardConfig.disableTracking });
+      if (results) initSegment({ segmentKey, username, enabled: !results.disableTracking });
     }
-  }, [clusterID, loadError, loaded, segmentKey, username, dashboardConfig]);
+  }, [clusterID, loadError, loaded, segmentKey, username, results]);
 };

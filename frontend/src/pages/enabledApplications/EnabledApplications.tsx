@@ -63,7 +63,7 @@ const EnabledApplications: React.FC = () => {
      * compare the current enabled applications and new fetched enabled applications
      * fire an individual segment.io tracking event for every different enabled application
      */
-    if (loaded && components.length) {
+    if (loaded && components && components.length) {
       _.difference(
         components.filter((component) => component.spec.isEnabled).map((c) => c.metadata.name),
         enabledComponents

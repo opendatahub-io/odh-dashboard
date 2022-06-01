@@ -34,7 +34,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
     'm-warning': odhApp.spec.category === 'Third party support',
     'm-hidden': odhApp.spec.category === ODH_PRODUCT_NAME,
   });
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { results } = useWatchDashboardConfig();
 
   React.useEffect(() => {
     if (isSelected) {
@@ -57,7 +57,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           src={odhApp.spec.img}
           alt={odhApp.spec.displayName}
         />
-        {!dashboardConfig.disableISVBadges ? (
+        {!results?.disableISVBadges ? (
           <div className="odh-card__explore-badges">
             {odhApp.spec.comingSoon ? (
               <span className="odh-card__coming-soon">Coming soon</span>
