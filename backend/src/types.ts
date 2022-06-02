@@ -342,16 +342,70 @@ export type PipelineRunKind = {
 export type PipelineRunListKind = {
   items: PipelineRunKind[];
 } & K8sResourceBase;
+
+export type EnvironmentVariable = {
+  name: string;
+  value: string;
+}
+
+export type NotebookResources = {
+  requests: {
+    cpu?: string;
+    memory?: string;
+  };
+  limits?: {
+    cpu?: string;
+    memory?: string;
+  };
+};
+
+export type NotebookRequest = {
+  name: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+  image: string;
+  resources: NotebookResources;
+  gpu?: number
+  env?: EnvironmentVariable[];
+};
+
+export type NotebookStatus = {
+
+};
+
+export type NotebookPort = {
+  name: string;
+  containerPort: number;
+  protocol: string;
+}
+
+export type NotebookContainer = {
+  name: string;
+  image: string;
+  imagePullPolicy?: string;
+  workingDir?: string;
+  env: EnvironmentVariable[];
+  ports?: NotebookPort[];
+  resources?: NotebookResources;
+  livenessProbe?: Record<string, unknown>;
+};
+
 export type Notebook = {
   apiVersion?: string;
   kind?: string;
   metadata: {
     name: string;
-    namespace: string;
+    namespace?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
   };
-  spec?: Record<string, unknown>;
+  spec: {
+    template: {
+      spec: {
+        containers: NotebookContainer[]
+      }
+    }
+  }
   status?: Record<string, unknown>;
 } & K8sResourceCommon;
 
