@@ -50,11 +50,11 @@ const DEFAULT_DASHBOARD_CONFIG: V1ConfigMap = {
     enablement: 'true',
     disableInfo: 'false',
     disableSupport: 'false',
-    disableClusterManager: 'false',
-    disableTracking: 'false',
-    disableBYONImageStream: 'false',
-    disableISVBadges: 'false',
-    disableAppLauncher: 'false',
+    disableClusterManager: 'true',
+    disableTracking: 'true',
+    disableBYONImageStream: 'true',
+    disableISVBadges: 'true',
+    disableAppLauncher: 'true',
   },
 };
 
