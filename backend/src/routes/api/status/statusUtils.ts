@@ -18,7 +18,7 @@ export class ConfigGroupError extends Error {
   }
 
   getErrorMessage(): string {
-    return 'Error retrieving group config ConfigMap: ' + this.message;
+    return 'Error retrieving ConfigMap ' + this.message;
   }
 }
 
@@ -29,7 +29,7 @@ export class GroupError extends Error {
   }
 
   getErrorMessage(): string {
-    return 'Error retrieving admin Group: ' + this.message;
+    return 'Error retrieving Group ' + this.message;
   }
 }
 
@@ -50,7 +50,9 @@ export const status = async (
   let isAdmin = false;
 
   try {
-    const adminGroup = await getGroupsConfig(coreV1Api, namespace);
+    const groupConfig = await getGroupsConfig(coreV1Api, namespace);
+    const adminGroup = await getGroupsAdminConfig(coreV1Api, namespace, groupConfig);
+
     if (adminGroup === SYSTEM_AUTHENTICATED) {
       isAdmin = true;
     } else {
@@ -91,14 +93,25 @@ export const createCustomError = (): createError.HttpError<500> => {
 
 export const getGroupsConfig = async (coreV1Api: CoreV1Api, namespace: string): Promise<string> => {
   try {
-    const configGroupName = (
-      await coreV1Api.readNamespacedConfigMap(GROUPS_CONFIGMAP_NAME, namespace)
-    ).body.data['groups-config'];
-    return (await coreV1Api.readNamespacedConfigMap(configGroupName, namespace)).body.data[
+    return (await coreV1Api.readNamespacedConfigMap(GROUPS_CONFIGMAP_NAME, namespace)).body.data[
+      'groups-config'
+    ];
+  } catch (e) {
+    throw new ConfigGroupError(`${GROUPS_CONFIGMAP_NAME}, might be malformed or doesn't exist.`);
+  }
+};
+
+export const getGroupsAdminConfig = async (
+  coreV1Api: CoreV1Api,
+  namespace: string,
+  groupsConfigName: string,
+): Promise<string> => {
+  try {
+    return (await coreV1Api.readNamespacedConfigMap(groupsConfigName, namespace)).body.data[
       'admin_groups'
     ];
   } catch (e) {
-    throw new ConfigGroupError(e);
+    throw new ConfigGroupError(`${groupsConfigName}, might be malformed or doesn't exist.`);
   }
 };
 
@@ -115,6 +128,6 @@ export const getGroup = async (
     );
     return (adminGroupResponse.body as groupObjResponse).users;
   } catch (e) {
-    throw new GroupError(e);
+    throw new GroupError(`${adminGroup}, might not exist.`);
   }
 };
