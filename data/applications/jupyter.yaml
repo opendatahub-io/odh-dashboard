@@ -1,0 +1,15 @@
+metadata:
+  name: jupyter
+  annotations:
+    opendatahub.io/categories: 'Jupyter notebook'
+spec:
+  displayName: Jupyter
+  provider: Jupyter
+  description: |-
+    A multi-user version of the notebook designed for companies, classrooms and research labs.
+  kfdefApplications: ['jupyterhub', 'notebook-images']
+  img: images/jupyter.svg
+  category: Red Hat managed
+  support: red hat
+  docsLink: https://jupyter.org
+  internalRoute: notebookController

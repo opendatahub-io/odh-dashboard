@@ -28,3 +28,16 @@ export const DOC_TYPE_TOOLTIPS = {
 };
 
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
+export const ANNOTATION_NOTEBOOK_IMAGE_NAME = 'opendatahub.io/notebook-image-name';
+export const ANNOTATION_NOTEBOOK_IMAGE_DESC = 'opendatahub.io/notebook-image-desc';
+export const ANNOTATION_NOTEBOOK_IMAGE_ORDER = 'opendatahub.io/notebook-image-order';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_SOFTWARE = 'opendatahub.io/notebook-software';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_DEPENDENCIES =
+  'opendatahub.io/notebook-python-dependencies';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_DEFAULT = 'opendatahub.io/default-image';
+export const ANNOTATION_NOTEBOOK_IMAGE_TAG_RECOMMENDED =
+  'opendatahub.io/notebook-image-recommended';
+export const ANNOTATION_NOTEBOOK_STOPPED = 'kubeflow-resource-stopped';
+export const ANNOTATION_NOTEBOOK_STARTED = 'notebooks.kubeflow.org/last-activity';
+export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
+export const ANNOTATION_STORAGE_CLASS_DEFAULT = 'storageclass.kubernetes.io/is-default-class';

@@ -62,6 +62,7 @@ export type OdhApplication = {
       validationConfigMap?: string;
     };
     featureFlag?: string;
+    internalRoute?: string;
   };
 };
 
@@ -206,4 +207,166 @@ export type NotebookPackage = {
 export type ResponseStatus = {
   success: boolean;
   error: string;
+};
+
+export type ImageSoftwareType = {
+  name: string;
+  version?: string;
+};
+
+export type ImageTagType = {
+  content?: {
+    software: ImageSoftwareType[];
+    dependencies: ImageSoftwareType[];
+  };
+  name: string;
+  recommended: boolean;
+  default: boolean | undefined;
+  build_status: string | null;
+};
+
+export type ImageType = {
+  description: string | null;
+  url: string | null;
+  display_name: string;
+  name: string;
+  order: number;
+  tags?: ImageTagType[];
+};
+
+export type SizeDescription = {
+  name: string;
+  resources: {
+    limits: {
+      cpu: number;
+      memory: string;
+    };
+    requests: {
+      cpu: number;
+      memory: string;
+    };
+  };
+  schedulable?: boolean;
+};
+
+export type EnvVarType = {
+  name: string;
+  type: string;
+  value: string | number;
+};
+
+export type EnvVarCategoryType = {
+  name: string;
+  variables: [
+    {
+      name: string;
+      type: string;
+    },
+  ];
+};
+
+export type VariableRow = {
+  variableType: string;
+  variables: EnvVarType[];
+  errors: { [key: string]: string };
+};
+
+export type ImageStreamAndTag = {
+  imageStream?: ImageStream;
+  tag?: ImageStreamTag;
+};
+
+// ImageStreamTag type when included in an ImageStream
+// Fetching an ImageStreamTag directly has a different structure
+export type ImageStreamTag = {
+  name: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+  from: {
+    kind: string;
+    name: string;
+  };
+};
+
+export type ImageStreamStatusTagItem = {
+  created: string;
+  dockerImageReference: string;
+  image: string;
+  generetion: number;
+};
+
+export type ImageStreamStatusTag = {
+  tag: string;
+  items: ImageStreamStatusTagItem[];
+};
+
+export type ImageStreamStatus = {
+  dockerImageRepository?: string;
+  publicDockerImageRepository?: string;
+  tags?: ImageStreamStatusTag[];
+};
+
+export type ImageStream = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec?: {
+    lookupPolicy?: {
+      local: boolean;
+    };
+    tags?: ImageStreamTag[];
+  };
+  status?: ImageStreamStatus;
+};
+
+export type ImageStreamList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: ImageStream[];
+};
+
+export type VolumeMount = { mountPath: string; name: string };
+
+export type Container = {
+  name: string;
+  image: string;
+  imagePullPolicy?: string;
+  env?: { name: string; value: string }[];
+  args?: string[];
+  volumeMounts: VolumeMount[];
+  resources: {
+    limits?: {
+      cpu: string;
+      memory: string;
+    };
+    requests?: {
+      cpu: string;
+      memory: string;
+    };
+  };
+  livenessProbe?: Probe;
+  readinessProbe?: Probe;
+  terminationMessagePath?: string;
+};
+
+export type Probe = {
+  initialDelaySeconds?: number;
+  periodSeconds?: number;
+  timeoutSeconds?: number;
+  successThreshold?: number;
+  failureThreshold?: number;
+  httpGet?: {
+    path?: string;
+    port?: number | string;
+    httpHeaders?: { [key: string]: string };
+  };
+  tcpSocket?: {
+    port: number;
+  };
 };

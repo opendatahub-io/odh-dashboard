@@ -10,6 +10,9 @@ const InstalledApplications = React.lazy(
 const ExploreApplications = React.lazy(
   () => import('../pages/exploreApplication/ExploreApplications'),
 );
+const NotebookController = React.lazy(
+  () => import('../pages/notebookController/NotebookController'),
+);
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
@@ -27,6 +30,7 @@ const Routes: React.FC = () => {
         <Route path="/" exact component={InstalledApplications} />
         <Route path="/explore" exact component={ExploreApplications} />
         <Route path="/resources" exact component={LearningCenterPage} />
+        <Route path="/notebookController" exact component={NotebookController} />
         {isAdmin && <Route path="/notebookImages" exact component={NotebookImagesPage} />}
         {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}
         <Route component={NotFound} />

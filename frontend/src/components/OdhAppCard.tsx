@@ -21,10 +21,11 @@ import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import EnableModal from '../pages/exploreApplication/EnableModal';
 import { removeComponent } from '../services/componentsServices';
 import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
-import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
+import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
+import { ODH_PRODUCT_NAME } from '../utilities/const';
+import { useHistory } from 'react-router';
 
 import './OdhCard.scss';
-import { ODH_PRODUCT_NAME } from 'utilities/const';
 
 type OdhAppCardProps = {
   odhApp: OdhApplication;
@@ -39,6 +40,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   );
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useWatchDashboardConfig();
+  const history = useHistory();
   const dispatch = useDispatch();
 
   const onToggle = (value) => {
@@ -120,15 +122,24 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const cardFooter = (
     <CardFooter className="odh-card__footer">
-      <a
-        className={launchClasses}
-        href={odhApp.spec.link || '#'}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Launch application
-        <ExternalLinkAltIcon />
-      </a>
+      {odhApp.spec.internalRoute ? (
+        <a
+          className="odh-card__footer__link"
+          onClick={() => history.push(odhApp.spec.internalRoute)}
+        >
+          Launch application
+        </a>
+      ) : (
+        <a
+          className={launchClasses}
+          href={odhApp.spec.link || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Launch application
+          <ExternalLinkAltIcon />
+        </a>
+      )}
     </CardFooter>
   );
 

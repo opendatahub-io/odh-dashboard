@@ -169,5 +169,8 @@
         color: var(--pf-global--disabled-color--100);
       }
     }
+    &__internal-link {
+      font-size: var(--pf-global--FontSize--md);
+    }
   }
 }
