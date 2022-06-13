@@ -11,28 +11,6 @@ const SYSTEM_AUTHENTICATED = 'system:authenticated';
 const GROUPS_CONFIGMAP_NAME = 'groups-config';
 const DEFAULT_USERNAME = 'kube:admin';
 
-export class ConfigGroupError extends Error {
-  constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, ConfigGroupError.prototype);
-  }
-
-  getErrorMessage(): string {
-    return 'Error retrieving ConfigMap ' + this.message;
-  }
-}
-
-export class GroupError extends Error {
-  constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, GroupError.prototype);
-  }
-
-  getErrorMessage(): string {
-    return 'Error retrieving Group ' + this.message;
-  }
-}
-
 export const status = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
@@ -53,14 +31,16 @@ export const status = async (
     const groupConfig = await getGroupsConfig(coreV1Api, namespace);
     const adminGroup = await getGroupsAdminConfig(coreV1Api, namespace, groupConfig);
 
-    if (adminGroup === SYSTEM_AUTHENTICATED) {
-      isAdmin = true;
+    if (adminGroup === SYSTEM_AUTHENTICATED || adminGroup === '') {
+      throw new Error(
+        'It is not allowed to set "system:authenticated" or an empty string as admin group.',
+      );
     } else {
       const adminUsers = await getGroup(customObjectsApi, adminGroup);
       isAdmin = adminUsers?.includes(userName) ?? false;
     }
   } catch (e) {
-    fastify.log.error(e.getErrorMessage());
+    fastify.log.error(e.toString());
   }
 
   if (!kubeContext && !kubeContext.trim()) {
@@ -97,7 +77,9 @@ export const getGroupsConfig = async (coreV1Api: CoreV1Api, namespace: string): 
       'groups-config'
     ];
   } catch (e) {
-    throw new ConfigGroupError(`${GROUPS_CONFIGMAP_NAME}, might be malformed or doesn't exist.`);
+    throw new Error(
+      `Failed to retrieve ConfigMap ${GROUPS_CONFIGMAP_NAME}, might be malformed or doesn't exist.`,
+    );
   }
 };
 
@@ -111,7 +93,9 @@ export const getGroupsAdminConfig = async (
       'admin_groups'
     ];
   } catch (e) {
-    throw new ConfigGroupError(`${groupsConfigName}, might be malformed or doesn't exist.`);
+    throw new Error(
+      `Failed to retrieve ConfigMap ${groupsConfigName}, might be malformed or doesn't exist.`,
+    );
   }
 };
 
@@ -128,6 +112,6 @@ export const getGroup = async (
     );
     return (adminGroupResponse.body as groupObjResponse).users;
   } catch (e) {
-    throw new GroupError(`${adminGroup}, might not exist.`);
+    throw new Error(`Failed to retrieve Group ${adminGroup}, might not exist.`);
   }
 };
