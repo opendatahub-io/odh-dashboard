@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Notebook, NotebookCreateRequest, NotebookUpdateRequest, ResponseStatus } from '../types';
 
 export const fetchNotebooks = (): Promise<Notebook[]> => {
-  const url = '/api/notebook';
+  const url = '/api/notebook-images';
   return axios
     .get(url)
     .then((response) => {
@@ -14,7 +14,7 @@ export const fetchNotebooks = (): Promise<Notebook[]> => {
 };
 
 export const importNotebook = (notebook: NotebookCreateRequest): Promise<ResponseStatus> => {
-  const url = '/api/notebook';
+  const url = '/api/notebook-images';
   return axios
     .post(url, notebook)
     .then((response) => {
@@ -26,7 +26,7 @@ export const importNotebook = (notebook: NotebookCreateRequest): Promise<Respons
 };
 
 export const deleteNotebook = (notebook: Notebook): Promise<ResponseStatus> => {
-  const url = `/api/notebook/${notebook.id}`;
+  const url = `/api/notebook-images/${notebook.id}`;
   return axios
     .delete(url, notebook)
     .then((response) => {
@@ -38,7 +38,7 @@ export const deleteNotebook = (notebook: Notebook): Promise<ResponseStatus> => {
 };
 
 export const updateNotebook = (notebook: NotebookUpdateRequest): Promise<ResponseStatus> => {
-  const url = `/api/notebook/${notebook.id}`;
+  const url = `/api/notebook-images/${notebook.id}`;
   return axios
     .put(url, notebook)
     .then((response) => {
