@@ -34,7 +34,8 @@ export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string
     try {
       const response = await axios.get(url, {});
       dispatch(getUserFulfilled(response.data));
-    } catch (e: any) {  // eslint-disable-line
+    } catch (e: any) {
+      // eslint-disable-line
       dispatch(getUserRejected(e.response.data));
     }
   };

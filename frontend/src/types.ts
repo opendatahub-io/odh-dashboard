@@ -162,48 +162,157 @@ export type TrackingEventProperties = {
   term?: string;
 };
 
-export type NotebookError = {
+export type ResponseStatus = {
+  success: boolean;
+  error: string;
+};
+
+export type BYONImageError = {
   severity: string;
   message: string;
 };
 
-export type NotebookStatus = 'Importing' | 'Validating' | 'Succeeded' | 'Failed';
+export type BYONImageStatus = 'Importing' | 'Validating' | 'Succeeded' | 'Failed';
 
-export type Notebook = {
+export type BYONImage = {
   id: string;
-  phase?: NotebookStatus;
+  phase?: BYONImageStatus;
   user?: string;
   uploaded?: Date;
-  error?: NotebookError;
-} & NotebookCreateRequest &
-  NotebookUpdateRequest;
+  error?: BYONImageError;
+} & BYONImageCreateRequest &
+  BYONImageUpdateRequest;
 
-export type NotebookCreateRequest = {
+export type BYONImageCreateRequest = {
   name: string;
   url: string;
   description?: string;
   // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
   user: string;
-  software?: NotebookPackage[];
-  packages?: NotebookPackage[];
+  software?: BYONImagePackage[];
+  packages?: BYONImagePackage[];
 };
 
-export type NotebookUpdateRequest = {
+export type BYONImageUpdateRequest = {
   id: string;
   name?: string;
   description?: string;
   visible?: boolean;
-  software?: NotebookPackage[];
-  packages?: NotebookPackage[];
+  software?: BYONImagePackage[];
+  packages?: BYONImagePackage[];
 };
 
-export type NotebookPackage = {
+export type BYONImagePackage = {
   name: string;
   version: string;
   visible: boolean;
 };
 
-export type ResponseStatus = {
-  success: boolean;
-  error: string;
+export type PipelineRunKind = {
+  spec: {
+    params: {
+      name: string;
+      value: string;
+    }[];
+    pipelineRef: {
+      name: string;
+    };
+    workspaces?: [
+      {
+        name: string;
+        volumeClaimTemplate: {
+          spec: {
+            accessModes: string[];
+            resources: {
+              requests: {
+                storage: string;
+              };
+            };
+          };
+        };
+      },
+    ];
+  };
+} & K8sResourceCommon;
+
+export type ImageStreamTag = {
+  name: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+  from: {
+    kind: string;
+    name: string;
+  };
 };
+
+export type ImageStreamStatusTagItem = {
+  created: string;
+  dockerImageReference: string;
+  image: string;
+  generation: number;
+};
+
+export type ImageStreamStatusTag = {
+  tag: string;
+  items: ImageStreamStatusTagItem[];
+};
+
+export type ImageStreamStatus = {
+  dockerImageRepository?: string;
+  publicDockerImageRepository?: string;
+  tags?: ImageStreamStatusTag[];
+};
+
+export type ImageStream = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    lookupPolicy?: {
+      local: boolean;
+    };
+    tags?: ImageStreamTag[];
+  };
+  status?: ImageStreamStatus;
+} & K8sResourceCommon;
+
+export type ImageStreamList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: ImageStream[];
+} & K8sResourceCommon;
+
+export type NameVersionPair = {
+  name: string;
+  version: string;
+};
+
+export type TagContent = {
+  software: NameVersionPair[];
+  dependencies: NameVersionPair[];
+};
+
+export type ImageTagInfo = {
+  name: string;
+  content: TagContent;
+  recommended: boolean;
+  default: boolean;
+};
+
+export type ImageInfo = {
+  name: string;
+  tags: ImageTagInfo[];
+  description?: string;
+  url?: string;
+  display_name?: string;
+  default?: boolean;
+  order?: number;
+};
+
+export type ImageType = 'byon' | 'jupyter' | 'other';
