@@ -33,7 +33,7 @@ export const status = async (
 
     if (adminGroup === SYSTEM_AUTHENTICATED || adminGroup === '') {
       throw new Error(
-        'It is not allowed to set "system:authenticated" or an empty string as admin group.',
+        'It is not allowed to set system:authenticated or an empty string as admin group.',
       );
     } else {
       const adminUsers = await getGroup(customObjectsApi, adminGroup);
