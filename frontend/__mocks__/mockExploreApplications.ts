@@ -3,6 +3,30 @@ import { OdhApplication } from '../src/types';
 export const mockExploreApplications: OdhApplication[] = [
   {
     metadata: {
+      name: 'jupyterhub-disabled',
+      annotations: { 'opendatahub.io/categories': 'Jupyter notebook' },
+    },
+    spec: {
+      displayName: 'JupyterHub-Disabled',
+      provider: 'Jupyter',
+      description:
+        'A multi-user version of the notebook designed for companies, classrooms and research labs.',
+      kfdefApplications: ['jupyterhub', 'notebook-images'],
+      route: 'jupyterhub',
+      img: 'images/jupyterhub.svg',
+      category: 'Red Hat managed',
+      support: 'red hat',
+      docsLink: 'https://jupyter.org/hub',
+      quickStart: 'create-jupyter-notebook',
+      getStartedLink: 'https://jupyterhub.readthedocs.io/en/stable/getting-started/index.html',
+      shownOnEnabledPage: false,
+      isEnabled: false,
+      comingSoon: true,
+      link: 'https://jupyterhub-redhat-ods-applications.apps.jephilli-4-9-06-21-0953.devcluster.openshift.com',
+    },
+  },
+  {
+    metadata: {
       name: 'jupyterhub',
       annotations: { 'opendatahub.io/categories': 'Jupyter notebook' },
     },

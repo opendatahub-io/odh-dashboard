@@ -43,7 +43,11 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
     const [enableApp, setEnableApp] = React.useState<OdhApplication>();
 
     return (
-      <Drawer isExpanded={!dashboardConfig.disableInfo && !!selectedComponent} isInline>
+      <Drawer
+        data-testid="explore-applications"
+        isExpanded={!dashboardConfig.disableInfo && !!selectedComponent}
+        isInline
+      >
         <DrawerContent
           panelContent={
             <GetStartedPanel
@@ -62,9 +66,9 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               loadError={loadError}
             >
               {!isEmpty ? (
-                <div className="odh-dashboard__page-content">
+                <div className="odh-dashboard__page-content" data-testid="page-content">
                   <PageSection>
-                    <Gallery className="odh-explore-apps__gallery" hasGutter>
+                    <Gallery role="list" className="odh-explore-apps__gallery" hasGutter>
                       {exploreComponents.map((c) => (
                         <OdhExploreCard
                           key={c.metadata.name}

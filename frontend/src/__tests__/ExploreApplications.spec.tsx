@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { act } from 'react-dom/test-utils';
 import { store } from '../redux/store/store';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { mount } from 'enzyme';
 import ExploreApplications from '../pages/exploreApplication/ExploreApplications';
 import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
 import { mockGettingStartedDoc } from '../../__mocks__/mockGettingStartedDoc';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 
 const dashboardConfig = {
   disableInfo: false,
@@ -58,6 +59,9 @@ jest.mock('../utilities/useWatchDashboardConfig', () => ({
   }),
 }));
 
+// scrollIntoView is not implemented in jsdom
+window.HTMLElement.prototype.scrollIntoView = jest.fn();
+
 describe('ExploreApplications', () => {
   beforeEach(() => {
     dashboardConfig.disableInfo = false;
@@ -65,51 +69,44 @@ describe('ExploreApplications', () => {
   });
 
   it('should display available applications', () => {
-    const wrapper = mount(
+    render(
       <Provider store={store}>
         <Router>
           <ExploreApplications />
         </Router>
       </Provider>,
     );
-    expect(wrapper.find('.odh-explore-apps__body').exists()).toBe(true);
-    const cards = wrapper.find('.pf-m-selectable.odh-card');
-    expect(cards.length).toBe(2);
-
-    expect(wrapper.html()).toMatchSnapshot();
-    wrapper.unmount();
+    const cards = screen.getAllByRole('article');
+    expect(cards.length).toBe(3);
+    expect(cards.filter((card) => card.classList.contains('pf-m-selectable')).length).toBe(2);
   });
 
-  it('should show the getting started panel on card click', () => {
-    const wrapper = mount(
+  it('should show the getting started panel on card click', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <ExploreApplications />
         </Router>
       </Provider>,
     );
-    expect(wrapper.find('.m-side-panel-open').exists()).toBe(false);
+    expect(screen.queryByTestId('explore-drawer-panel')).toBeNull();
 
-    act(() => {
-      const card = wrapper.find('.pf-m-selectable.odh-card').at(0);
-      card.simulate('click');
-    });
-    wrapper.update();
+    // Click on the selectable card, check whether it opens the drawer panel
+    const cards = screen.getAllByRole('article');
+    const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
+    await user.click(selectableCards[0]);
+    expect(screen.queryByTestId('explore-drawer-panel')).toBeInTheDocument();
 
-    expect(wrapper.find('.m-side-panel-open').exists()).toBe(true);
-    expect(wrapper.html()).toMatchSnapshot();
-
-    act(() => {
-      const close = wrapper.find('.pf-c-drawer__close .pf-c-button');
-      close.simulate('click');
-    });
-    wrapper.update();
-    expect(wrapper.find('.m-side-panel-open').exists()).toBe(false);
-    wrapper.unmount();
+    // Click on the close button on the drawer panel
+    const closeButton = container.querySelector('.pf-c-drawer__close .pf-c-button');
+    await user.click(closeButton as Element);
+    expect(screen.queryByTestId('explore-drawer-panel')).toBeNull();
   });
 
-  it('should show the enable modal when clicked', () => {
-    const wrapper = mount(
+  it('should show the enable modal when clicked', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <ExploreApplications />
@@ -118,52 +115,43 @@ describe('ExploreApplications', () => {
     );
 
     // First app is enabled, there should be no enable button
-    act(() => {
-      const card = wrapper.find('.pf-m-selectable.odh-card').at(0);
-      card.simulate('click');
-    });
-    wrapper.update();
-    expect(wrapper.find('.m-side-panel-open').exists()).toBe(true);
+    const cards = screen.getAllByRole('article');
+    const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
+    await user.click(selectableCards[0]);
     expect(
-      wrapper.find('.odh-get-started__button-panel .pf-c-button.pf-m-secondary').exists(),
-    ).toBe(false);
+      container.querySelector('.odh-get-started__button-panel .pf-c-button.pf-m-secondary'),
+    ).toBeNull();
 
     // Second app is enable-able, there should be an enable button
-    act(() => {
-      const card = wrapper.find('.pf-m-selectable.odh-card').at(1);
-      card.simulate('click');
-    });
-    wrapper.update();
-    expect(wrapper.find('.m-side-panel-open').exists()).toBe(true);
+    await user.click(selectableCards[1]);
     expect(
-      wrapper.find('.odh-get-started__button-panel .pf-c-button.pf-m-secondary').exists(),
-    ).toBe(true);
+      container.querySelector('.odh-get-started__button-panel .pf-c-button.pf-m-secondary'),
+    ).toBeInTheDocument();
 
-    expect(wrapper.find('.odh-enable-modal').exists()).toBe(false);
-    act(() => {
-      const close = wrapper.find('.odh-get-started__button-panel .pf-c-button.pf-m-secondary');
-      close.simulate('click');
-    });
-    wrapper.update();
-    expect(wrapper.find('.odh-enable-modal').exists()).toBe(true);
+    // Click the enable button
+    expect(screen.queryByTestId('enable-modal')).toBeNull();
+    await user.click(
+      container.querySelector(
+        '.odh-get-started__button-panel .pf-c-button.pf-m-secondary',
+      ) as Element,
+    );
+    expect(screen.queryByTestId('enable-modal')).toBeInTheDocument();
 
-    expect(wrapper.find('.pf-c-modal-box.odh-enable-modal').html()).toMatchSnapshot();
-
-    act(() => {
-      const close = wrapper.find(
-        '.odh-enable-modal .pf-c-modal-box__footer .pf-c-button.pf-m-link',
-      );
-      close.simulate('click');
-    });
-    wrapper.update();
-    expect(wrapper.find('.odh-enable-modal').exists()).toBe(false);
-
-    wrapper.unmount();
+    // Close the enable modal
+    await user.click(
+      screen
+        .getByTestId('enable-modal')
+        .parentElement?.querySelector(
+          '.odh-enable-modal .pf-c-modal-box__footer .pf-c-button.pf-m-link',
+        ) as Element,
+    );
+    expect(screen.queryByTestId('enable-modal')).toBeNull();
   });
 
-  it('should disable the cards when disableInfo is set', () => {
+  it('should disable the cards when disableInfo is set', async () => {
     dashboardConfig.disableInfo = true;
-    const wrapper = mount(
+    const user = userEvent.setup();
+    render(
       <Provider store={store}>
         <Router>
           <ExploreApplications />
@@ -172,24 +160,18 @@ describe('ExploreApplications', () => {
     );
 
     // Cards should be disabled
-    expect(wrapper.find('.odh-card').first().hasClass('m-disabled')).toBe(true);
+    const cards = screen.getAllByRole('article');
+    expect(cards.filter((card) => card.classList.contains('pf-m-selectable')).length).toBe(0);
 
     // First app is enabled, but clicking should have no effect
-    act(() => {
-      const card = wrapper.find('.odh-card').at(0);
-      card.simulate('click');
-    });
-    wrapper.update();
-    expect(wrapper.find('.m-side-panel-open').exists()).toBe(false);
-
-    expect(wrapper.html()).toMatchSnapshot();
-
-    wrapper.unmount();
+    await user.click(cards[0]);
+    expect(screen.queryByTestId('explore-drawer-panel')).toBeNull();
   });
 
-  it('should hide the enable button when dashboard config enablement is false', () => {
+  it('should hide the enable button when dashboard config enablement is false', async () => {
     dashboardConfig.enablement = false;
-    const wrapper = mount(
+    const user = userEvent.setup();
+    const { container } = render(
       <Provider store={store}>
         <Router>
           <ExploreApplications />
@@ -198,17 +180,11 @@ describe('ExploreApplications', () => {
     );
 
     // Second app is enable-able, there would be an enable button if enablement is allowed
-    act(() => {
-      const card = wrapper.find('.pf-m-selectable.odh-card').at(1);
-      card.simulate('click');
-    });
-    wrapper.update();
-    expect(wrapper.find('.m-side-panel-open').exists()).toBe(true);
+    const cards = screen.getAllByRole('article');
+    const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
+    await user.click(selectableCards[1]);
     expect(
-      wrapper
-        .find('.odh-get-started__button-panel .pf-c-button.pf-m-secondary')
-        .first()
-        .hasClass('pf-m-disabled'),
-    ).toBe(true);
+      container.querySelector('.odh-get-started__button-panel .pf-c-button.pf-m-secondary'),
+    ).toHaveClass('pf-m-disabled');
   });
 });

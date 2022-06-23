@@ -77,7 +77,7 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
 
       if (viewType !== LIST_VIEW) {
         return (
-          <Gallery className="odh-learning-paths__gallery" hasGutter>
+          <Gallery role="list" className="odh-learning-paths__gallery" hasGutter>
             {filteredDocApps.map((doc) => (
               <OdhDocCard
                 key={`${doc.metadata.name}`}

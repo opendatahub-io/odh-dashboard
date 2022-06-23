@@ -101,7 +101,12 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
 
   return (
     <>
-      <DrawerPanelContent className="odh-get-started" isResizable minSize="350px">
+      <DrawerPanelContent
+        data-testid="explore-drawer-panel"
+        className="odh-get-started"
+        isResizable
+        minSize="350px"
+      >
         <DrawerHead>
           <div className="odh-get-started__header">
             <Title headingLevel="h1" size="xl">
