@@ -7,7 +7,7 @@ Before developing you'll need to install:
 * [NodeJS and NPM](https://nodejs.org/)
 * [OpenShift CLI](https://docs.openshift.com/enterprise/3.2/cli_reference/get_started_cli.html#installing-the-cli)
 * [kustomize](https://github.com/kubernetes-sigs/kustomize)
-* [s2i](https://github.com/openshift/source-to-image)
+* [podman](https://github.com/containers/podman)
 * and have access to [Quay.io](https://quay.io/)
 
 ## Writing code
@@ -110,7 +110,6 @@ $ npm run make:undeploy
 Customize `.env.local` file to image and source information as desired. `npm` and the `s2i` command line tool is required.
 
 ```.env.local
-CONTAINER_BUILDER=docker
 IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
 SOURCE_REPOSITORY_URL=git@github.com:my-org/odh-dashboard.git
 SOURCE_REPOSITORY_REF=my-branch

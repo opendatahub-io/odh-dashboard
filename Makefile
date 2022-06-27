@@ -10,6 +10,9 @@ include ${ENV_FILE}
 export $(shell sed 's/=.*//' ${ENV_FILE})
 endif
 
+CONTAINER_BUILDER=podman
+CONTAINER_DOCKERFILE=Dockerfile
+
 ##################################
 
 # DEV Convenience
@@ -22,7 +25,8 @@ reinstall: build push undeploy deploy
 
 .PHONY: build
 build:
-	./install/build.sh
+	echo "Building ${IMAGE_REPOSITORY} from ${CONTAINER_DOCKERFILE}"
+	${CONTAINER_BUILDER} build -f ${CONTAINER_DOCKERFILE} -t ${IMAGE_REPOSITORY} .
 
 ##################################
 
@@ -30,7 +34,8 @@ build:
 
 .PHONY: push
 push:
-	./install/push.sh
+	echo "Pushing ${IMAGE_REPOSITORY}"
+	${CONTAINER_BUILDER} push ${IMAGE_REPOSITORY}
 
 ##################################
 
