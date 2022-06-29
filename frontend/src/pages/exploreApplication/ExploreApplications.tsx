@@ -22,8 +22,8 @@ import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 import './ExploreApplications.scss';
 import { ODH_PRODUCT_NAME } from 'utilities/const';
 
-const description = `Add optional applications to your ${ODH_PRODUCT_NAME} OpenShift Data Science instance.`;
-const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} OpenShift Data Science instance. Contact an administrator to install these applications.`;
+const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
+const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
 
 type ExploreApplicationsInnerProps = {
   loaded: boolean;
