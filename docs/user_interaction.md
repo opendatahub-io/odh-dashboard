@@ -28,7 +28,7 @@ The built-in library includes several segment tracking methods to help in the us
       "path": "/",
       "referrer": "",
       "search": "",
-      "title": "Red Hat OpenShift Data Science Dashboard",
+      "title": "Open Data Hub Dashboard",
       "url": "http://localhost:4010/"
     },
     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Safari/605.1.15"
@@ -63,8 +63,8 @@ The built-in library includes several segment tracking methods to help in the us
       "path": "/",
       "referrer": "",
       "search": "",
-      "title": "Red Hat OpenShift Data Science Dashboard",
-      "url": "https://rhods-dashboard-redhat-ods-applications.apps.lferrnan-dev.dev.datahub.redhat.com/"
+      "title": "Open Data Hub Dashboard",
+      "url": "https://odh-dashboard-my-namepsace.apps.odh-cluster.com/"
     },
     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.109 Safari/537.36"
   },
@@ -98,10 +98,10 @@ The built-in library includes several segment tracking methods to help in the us
     "locale": "en-GB",
     "page": {
       "path": "/explore",
-      "referrer": "https://oauth-openshift.apps.ods-qe-psi2.dev.datahub.redhat.com/",
+      "referrer": "https://oauth-openshift.apps.my-referrer.com/",
       "search": "",
-      "title": "Red Hat OpenShift Data Science Dashboard",
-      "url": "https://rhods-dashboard-redhat-ods-applications.apps.ods-qe-psi2.dev.datahub.redhat.com/explore"
+      "title": "Open Data Hub Dashboard",
+      "url": "https:///odh-dashboard-my-namepsace.apps.odh-cluster.com/explore"
     },
     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.109 Safari/537.36"
   },
@@ -111,10 +111,10 @@ The built-in library includes several segment tracking methods to help in the us
   "properties": {
     "clusterID": "a8ff924d-c667-4b4f-9d16-f3135b6082ca",
     "path": "/explore",
-    "referrer": "https://oauth-openshift.apps.ods-qe-psi2.dev.datahub.redhat.com/",
+    "referrer": "https://oauth-openshift.apps.my-referrer.com/",
     "search": "",
-    "title": "Red Hat OpenShift Data Science Dashboard",
-    "url": "https://rhods-dashboard-redhat-ods-applications.apps.ods-qe-psi2.dev.datahub.redhat.com/explore"
+    "title": "Open Data Hub Dashboard",
+    "url": "https://odh-dashboard-my-namepsace.apps.odh-cluster.com/explore"
   },
   "receivedAt": "2022-03-01T16:49:11.668Z",
   "sentAt": "2022-03-01T16:49:11.528Z",
@@ -137,7 +137,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: odh-segment-key-config
-  namespace: redhat-ods-applications
+  namespace: opendatahub
 data:
   segmentKeyEnabled: "true"
 ```
@@ -149,7 +149,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: odh-segment-key
-  namespace: redhat-ods-applications
+  namespace: opendatahub
 type: Opaque
 data:
    segmentKey: [segment key in base64]
