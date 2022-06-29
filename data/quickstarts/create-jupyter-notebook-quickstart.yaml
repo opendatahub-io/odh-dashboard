@@ -11,7 +11,7 @@ spec:
   description: This quick start will walk you through creating a Jupyter notebook.
   introduction: |-
     ### This quick start shows you how to create a Jupyter notebook.
-    Red Hat® OpenShift® Data Science lets you run Jupyter notebooks on our Red Hat® OpenShift® Dedicated environment.
+    Open Data Hub lets you run Jupyter notebooks in a scalable OpenShift hybrid cloud environment.
 
     We have configured the JupyterHub spawner to support your amazing Data Scientist explorations and model deployments.
 
