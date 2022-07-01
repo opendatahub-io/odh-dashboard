@@ -1,16 +1,16 @@
 import React from 'react';
 import { Button, Modal, ModalVariant } from '@patternfly/react-core';
-import { deleteNotebook } from '../../services/notebookImageService';
-import { Notebook } from 'types';
+import { deleteBYONImage } from '../../services/BYONImageService';
+import { BYONImage } from 'types';
 export type ImportImageModalProps = {
   isOpen: boolean;
-  notebook: Notebook;
+  image: BYONImage;
   onDeleteHandler: () => void;
   onCloseHandler: () => void;
 };
 export const DeleteImageModal: React.FC<ImportImageModalProps> = ({
   isOpen,
-  notebook,
+  image,
   onDeleteHandler,
   onCloseHandler,
 }) => {
@@ -26,8 +26,8 @@ export const DeleteImageModal: React.FC<ImportImageModalProps> = ({
           key="confirm"
           variant="danger"
           onClick={() => {
-            if (notebook) {
-              deleteNotebook(notebook).then(() => {
+            if (image) {
+              deleteBYONImage(image).then(() => {
                 onDeleteHandler();
                 onCloseHandler();
               });
@@ -41,7 +41,7 @@ export const DeleteImageModal: React.FC<ImportImageModalProps> = ({
         </Button>,
       ]}
     >
-      Do you wish to permanently delete <b>{notebook?.name}</b>?
+      Do you wish to permanently delete <b>{image?.name}</b>?
     </Modal>
   );
 };

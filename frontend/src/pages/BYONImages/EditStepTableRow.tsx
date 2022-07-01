@@ -2,25 +2,25 @@ import * as React from 'react';
 import { Tr, Td } from '@patternfly/react-table';
 import { Button, TextInput } from '@patternfly/react-core';
 import { PencilAltIcon, TimesIcon, CheckIcon, MinusCircleIcon } from '@patternfly/react-icons';
-import { NotebookPackage } from '../../types';
+import { BYONImagePackage } from '../../types';
 
 interface EditStepTableRowProps {
-  notebookPackage: NotebookPackage;
-  setEditedValues: (values: NotebookPackage) => void;
+  imagePackage: BYONImagePackage;
+  setEditedValues: (values: BYONImagePackage) => void;
   onDeleteHandler: () => void;
 }
 
 export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = ({
-  notebookPackage,
+  imagePackage,
   setEditedValues,
   onDeleteHandler,
 }) => {
-  const [modifiedValue, setModifiedValue] = React.useState<NotebookPackage>(notebookPackage);
+  const [modifiedValue, setModifiedValue] = React.useState<BYONImagePackage>(imagePackage);
   const [isEditMode, setIsEditMode] = React.useState(false);
 
   return (
-    <Tr key={notebookPackage.name}>
-      <Td dataLabel={notebookPackage.name}>
+    <Tr key={imagePackage.name}>
+      <Td dataLabel={imagePackage.name}>
         {isEditMode ? (
           <TextInput
             id="software-package-input"
@@ -35,10 +35,10 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
             }}
           />
         ) : (
-          notebookPackage.name
+          imagePackage.name
         )}
       </Td>
-      <Td dataLabel={notebookPackage.version}>
+      <Td dataLabel={imagePackage.version}>
         {isEditMode ? (
           <TextInput
             id="version-input"
@@ -53,7 +53,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
             }}
           />
         ) : (
-          notebookPackage.version
+          imagePackage.version
         )}
       </Td>
       <Td modifier="nowrap">
@@ -64,7 +64,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
             icon={<PencilAltIcon />}
             iconPosition="right"
             onClick={() => {
-              setModifiedValue(notebookPackage);
+              setModifiedValue(imagePackage);
               setIsEditMode(true);
             }}
           />
@@ -84,7 +84,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
               variant="plain"
               icon={<TimesIcon />}
               onClick={() => {
-                setEditedValues(notebookPackage);
+                setEditedValues(imagePackage);
                 setIsEditMode(false);
               }}
             />

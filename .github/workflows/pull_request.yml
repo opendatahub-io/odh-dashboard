@@ -20,7 +20,7 @@ jobs:
         id: repo-cache
         with:
           path: ${{ github.workspace }}/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.lock') }}
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
       - name: Node.js modules cache, backend
@@ -28,7 +28,7 @@ jobs:
         id: backend-cache
         with:
           path: ${{ github.workspace }}/backend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.lock') }}
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
       - name: Node.js modules cache, frontend
@@ -36,7 +36,7 @@ jobs:
         id: frontend-cache
         with:
           path: ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.lock') }}
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
       - name: Install Node.js packages

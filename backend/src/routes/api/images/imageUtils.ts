@@ -1,17 +1,141 @@
+import { IMAGE_ANNOTATIONS } from '../../../utils/constants';
+import { convertLabelsToString } from '../../../utils/componentUtils';
+import {
+  ImageStreamTag,
+  ImageTagInfo,
+  ImageInfo,
+  ImageStream,
+  TagContent,
+  KubeFastifyInstance,
+  BYONImageCreateRequest,
+  BYONImageUpdateRequest,
+  BYONImagePackage,
+  BYONImage,
+  BYONImageStatus,
+} from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
-import {
-  KubeFastifyInstance,
-  NotebookImage,
-  ImageStreamListKind,
-  ImageStreamKind,
-  NotebookImageStatus,
-  NotebookImageCreateRequest,
-  NotebookImageUpdateRequest,
-  NotebookImagePackage,
-} from '../../../types';
 
-const packagesToString = (packages: NotebookImagePackage[]): string => {
+export const getImageList = async (
+  fastify: KubeFastifyInstance,
+  labels: { [key: string]: string },
+): Promise<BYONImage[] | ImageInfo[]> => {
+  const imageStreamList = await Promise.resolve(getImageStreams(fastify, labels));
+  // Return BYON structured response if BYON label is included
+  if (labels['app.kubernetes.io/created-by'] === 'byon') {
+    const BYONImageList: BYONImage[] = [
+      ...imageStreamList.map((is) => mapImageStreamToBYONImage(is)),
+    ];
+    return BYONImageList;
+  }
+  // Return ImageInfo structure if request does not have BYON label
+  else {
+    const imageInfoList = imageStreamList.map((imageStream) => {
+      return processImageInfo(imageStream);
+    });
+    return imageInfoList;
+  }
+};
+
+const getImageStreams = async (
+  fastify: KubeFastifyInstance,
+  labels: { [key: string]: string },
+): Promise<ImageStream[]> => {
+  const labelString = convertLabelsToString(labels);
+  const requestPromise = fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'image.openshift.io',
+      'v1',
+      fastify.kube.namespace,
+      'imagestreams',
+      undefined,
+      undefined,
+      undefined,
+      labelString,
+    )
+    .then((res) => {
+      const list = (
+        res?.body as {
+          items: ImageStream[];
+        }
+      ).items;
+      return list;
+    })
+    .catch((e) => {
+      fastify.log.error(e);
+      return [];
+    });
+  return await requestPromise;
+};
+
+const processImageInfo = (imageStream: ImageStream): ImageInfo => {
+  const annotations = imageStream.metadata.annotations;
+
+  const imageInfo: ImageInfo = {
+    name: imageStream.metadata.name,
+    description: annotations[IMAGE_ANNOTATIONS.DESC] || '',
+    url: annotations[IMAGE_ANNOTATIONS.URL] || '',
+    display_name: annotations[IMAGE_ANNOTATIONS.DISP_NAME] || imageStream.metadata.name,
+    tags: getTagInfo(imageStream),
+    order: +annotations[IMAGE_ANNOTATIONS.IMAGE_ORDER] || 100,
+  };
+
+  return imageInfo;
+};
+
+// Check for existence in status.tags
+const checkTagExistence = (tag: ImageStreamTag, imageStream: ImageStream): boolean => {
+  if (imageStream.status) {
+    const tags = imageStream.status.tags;
+    for (let i = 0; i < tags.length; i++) {
+      if (tags[i].tag === tag.name) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const getTagInfo = (imageStream: ImageStream): ImageTagInfo[] => {
+  const tagInfoArray: ImageTagInfo[] = [];
+  const tags = imageStream.spec.tags;
+  if (!tags?.length) {
+    console.error(`${imageStream.metadata.name} does not have any tags.`);
+    return;
+  }
+  tags.forEach((tag) => {
+    let tagAnnotations;
+    if (tag.annotations != null) {
+      tagAnnotations = tag.annotations;
+    } else {
+      tag.annotations = {};
+      tagAnnotations = {};
+    }
+    if (!checkTagExistence(tag, imageStream)) {
+      return; //Skip tag
+    }
+
+    //TODO: add build status
+    const tagInfo: ImageTagInfo = {
+      content: getTagContent(tag),
+      name: tag.name,
+      recommended: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.RECOMMENDED] || 'false'),
+      default: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.DEFAULT] || 'false'),
+    };
+    tagInfoArray.push(tagInfo);
+  });
+  return tagInfoArray;
+};
+
+const getTagContent = (tag: ImageStreamTag): TagContent => {
+  const content: TagContent = {
+    software: JSON.parse(tag.annotations[IMAGE_ANNOTATIONS.SOFTWARE] || '[]'),
+    dependencies: JSON.parse(tag.annotations[IMAGE_ANNOTATIONS.DEPENDENCIES] || '[]'),
+  };
+  return content;
+};
+
+const packagesToString = (packages: BYONImagePackage[]): string => {
   if (packages.length > 0) {
     let packageAsString = '[';
     packages.forEach((value, index) => {
@@ -26,11 +150,11 @@ const packagesToString = (packages: NotebookImagePackage[]): string => {
   }
   return '[]';
 };
-const mapImageStreamToNotebook = (is: ImageStreamKind): NotebookImage => ({
+const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   id: is.metadata.name,
   name: is.metadata.annotations['opendatahub.io/notebook-image-name'],
   description: is.metadata.annotations['opendatahub.io/notebook-image-desc'],
-  phase: is.metadata.annotations['opendatahub.io/notebook-image-phase'] as NotebookImageStatus,
+  phase: is.metadata.annotations['opendatahub.io/notebook-image-phase'] as BYONImageStatus,
   visible: is.metadata.labels['opendatahub.io/notebook-image'] === 'true',
   error: is.metadata.annotations['opendatahub.io/notebook-image-messages']
     ? JSON.parse(is.metadata.annotations['opendatahub.io/notebook-image-messages'])
@@ -39,104 +163,38 @@ const mapImageStreamToNotebook = (is: ImageStreamKind): NotebookImage => ({
     is.spec.tags &&
     (JSON.parse(
       is.spec.tags[0].annotations['opendatahub.io/notebook-python-dependencies'],
-    ) as NotebookImagePackage[]),
+    ) as BYONImagePackage[]),
   software:
     is.spec.tags &&
     (JSON.parse(
       is.spec.tags[0].annotations['opendatahub.io/notebook-software'],
-    ) as NotebookImagePackage[]),
+    ) as BYONImagePackage[]),
   uploaded: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
   user: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
 });
 
-export const getNotebooks = async (
-  fastify: KubeFastifyInstance,
-): Promise<{ notebooks: NotebookImage[]; error: string }> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
-
-  try {
-    const imageStreams = await customObjectsApi
-      .listNamespacedCustomObject(
-        'image.openshift.io',
-        'v1',
-        namespace,
-        'imagestreams',
-        undefined,
-        undefined,
-        undefined,
-        'app.kubernetes.io/created-by=byon',
-      )
-      .then((r) => r.body as ImageStreamListKind);
-
-    const imageStreamNames = imageStreams.items.map((is) => {
-      is.metadata.name;
-    });
-    const notebooks: NotebookImage[] = [
-      ...imageStreams.items.map((is) => mapImageStreamToNotebook(is)),
-    ];
-
-    return { notebooks: notebooks, error: null };
-  } catch (e) {
-    if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to retrieve notebook image(s): ' + e.toString());
-      return { notebooks: null, error: 'Unable to retrieve notebook image(s): ' + e.message };
-    }
-  }
-};
-
-export const getNotebook = async (
-  fastify: KubeFastifyInstance,
-  request: FastifyRequest,
-): Promise<{ notebooks: NotebookImage; error: string }> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
-  const params = request.params as { notebook: string };
-
-  try {
-    const imageStream = await customObjectsApi
-      .getNamespacedCustomObject(
-        'image.openshift.io',
-        'v1',
-        namespace,
-        'imagestreams',
-        params.notebook,
-      )
-      .then((r) => r.body as ImageStreamKind)
-      .catch((r) => null);
-
-    if (imageStream) {
-      return { notebooks: mapImageStreamToNotebook(imageStream), error: null };
-    }
-
-    throw new createError.NotFound(`NotebookImage ${params.notebook} does not exist.`);
-  } catch (e) {
-    if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to retrieve notebook image(s): ' + e.toString());
-      return { notebooks: null, error: 'Unable to retrieve notebook image(s): ' + e.message };
-    }
-  }
-};
-
-export const addNotebook = async (
+export const postImage = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const body = request.body as NotebookImageCreateRequest;
+  const body = request.body as BYONImageCreateRequest;
   const imageTag = body.url.split(':')[1];
-
-  const notebooks = await getNotebooks(fastify);
-  const validName = notebooks.notebooks.filter((nb) => nb.name === body.name);
+  const labels = {
+    'app.kubernetes.io/created-by': 'byon',
+    'opendatahub.io/notebook-image': 'true',
+  };
+  const imageStreams = (await getImageStreams(fastify, labels)) as ImageStream[];
+  const validName = imageStreams.filter((is) => is.metadata.name === body.name);
 
   if (validName.length > 0) {
     fastify.log.error('Duplicate name unable to add notebook image');
     return { success: false, error: 'Unable to add notebook image: ' + body.name };
   }
 
-  const payload: ImageStreamKind = {
+  const payload: ImageStream = {
     kind: 'ImageStream',
     apiVersion: 'image.openshift.io/v1',
     metadata: {
@@ -151,10 +209,7 @@ export const addNotebook = async (
       },
       name: `byon-${Date.now()}`,
       namespace: namespace,
-      labels: {
-        'app.kubernetes.io/created-by': 'byon',
-        'opendatahub.io/notebook-image': 'true',
-      },
+      labels: labels,
     },
     spec: {
       lookupPolicy: {
@@ -194,13 +249,13 @@ export const addNotebook = async (
   }
 };
 
-export const deleteNotebook = async (
+export const deleteImage = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const params = request.params as { notebook: string };
+  const params = request.params as { image: string };
 
   try {
     await customObjectsApi
@@ -209,7 +264,7 @@ export const deleteNotebook = async (
         'v1',
         namespace,
         'imagestreams',
-        params.notebook,
+        params.image,
       )
       .catch((e) => {
         throw createError(e.statusCode, e?.body?.message);
@@ -223,17 +278,25 @@ export const deleteNotebook = async (
   }
 };
 
-export const updateNotebook = async (
+export const updateImage = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const params = request.params as { notebook: string };
-  const body = request.body as NotebookImageUpdateRequest;
+  const params = request.params as { image: string };
+  const body = request.body as BYONImageUpdateRequest;
+  const labels = {
+    'app.kubernetes.io/created-by': 'byon',
+    'opendatahub.io/notebook-image': 'true',
+  };
 
-  const notebooks = await getNotebooks(fastify);
-  const validName = notebooks.notebooks.filter((nb) => nb.name === body.name && nb.id !== body.id);
+  const imageStreams = await getImageStreams(fastify, labels);
+  const validName = imageStreams.filter(
+    (is) =>
+      is.metadata.annotations['opendatahub.io/notebook-image-name'] === body.name &&
+      is.metadata.name !== body.id,
+  );
 
   if (validName.length > 0) {
     fastify.log.error('Duplicate name unable to add notebook image');
@@ -247,9 +310,9 @@ export const updateNotebook = async (
         'v1',
         namespace,
         'imagestreams',
-        params.notebook,
+        params.image,
       )
-      .then((r) => r.body as ImageStreamKind)
+      .then((r) => r.body as ImageStream)
       .catch((e) => {
         throw createError(e.statusCode, e?.body?.message);
       });
@@ -286,7 +349,7 @@ export const updateNotebook = async (
         'v1',
         namespace,
         'imagestreams',
-        params.notebook,
+        params.image,
         imageStream,
         undefined,
         undefined,
