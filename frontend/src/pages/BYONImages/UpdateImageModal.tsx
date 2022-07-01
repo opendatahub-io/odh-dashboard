@@ -7,54 +7,56 @@ import {
   EmptyStateVariant,
   Form,
   FormGroup,
+  Tab,
+  Tabs,
+  TabTitleText,
   TextInput,
   Title,
   Modal,
   ModalVariant,
-  Tabs,
-  Tab,
-  TabTitleText,
 } from '@patternfly/react-core';
 import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
-import { importNotebook } from '../../services/notebookImageService';
-import { State } from '../../redux/types';
-import { useSelector } from 'react-redux';
-import { ResponseStatus, NotebookPackage } from 'types';
-import { EditStepTableRow } from './EditStepTableRow';
 import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import './ImportImageModal.scss';
+import { updateBYONImage } from '../../services/BYONImageService';
+import { EditStepTableRow } from './EditStepTableRow';
+import { BYONImage, BYONImagePackage } from 'types';
+import './UpdateImageModal.scss';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../redux/actions/actions';
 
-export type ImportImageModalProps = {
+export type UpdateImageModalProps = {
   isOpen: boolean;
+  image: BYONImage;
   onCloseHandler: () => void;
-  onImportHandler();
+  onUpdateHandler();
 };
-export const ImportImageModal: React.FC<ImportImageModalProps> = ({
+export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
   isOpen,
-  onImportHandler,
+  image,
+  onUpdateHandler,
   onCloseHandler,
 }) => {
-  const [repository, setRepository] = React.useState<string>('');
-  const [name, setName] = React.useState<string>('');
-  const [description, setDescription] = React.useState<string>('');
-  const [software, setSoftware] = React.useState<NotebookPackage[]>([]);
-  const [packages, setPackages] = React.useState<NotebookPackage[]>([]);
+  const [name, setName] = React.useState<string>(image.name);
+  const [description, setDescription] = React.useState<string>(
+    image.description != undefined ? image.description : '',
+  );
+  const [packages, setPackages] = React.useState<BYONImagePackage[]>(
+    image.packages != undefined ? image.packages : [],
+  );
+  const [software, setSoftware] = React.useState<BYONImagePackage[]>(
+    image.software != undefined ? image.software : [],
+  );
   const [activeTabKey, setActiveTabKey] = React.useState<number>(0);
   const [validName, setValidName] = React.useState<boolean>(true);
-  const [validRepo, setValidRepo] = React.useState<boolean>(true);
-  const userName: string = useSelector<State, string>((state) => state.appState.user || '');
   const dispatch = useDispatch();
 
   React.useEffect(() => {
     if (isOpen === true) {
-      setName('');
-      setDescription('');
-      setPackages([]);
-      setSoftware([]);
+      setName(image.name);
+      setDescription(image.description != undefined ? image.description : '');
+      setPackages(image.packages != undefined ? image.packages : []);
+      setSoftware(image.software != undefined ? image.software : []);
       setValidName(true);
-      setValidRepo(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -62,45 +64,44 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
   return (
     <Modal
       variant={ModalVariant.medium}
-      title="Import Notebook images"
+      title={`Edit Package Documentation for ${image.name}`}
       isOpen={isOpen}
       onClose={onCloseHandler}
       actions={[
         <Button
+          id="save-button"
           key="confirm"
           variant="primary"
           onClick={() => {
-            if (name.length > 0 && repository.length > 0) {
-              importNotebook({
+            if (name.length > 0) {
+              updateBYONImage({
+                id: image.id,
                 name: name,
-                url: repository,
                 description: description,
-                user: userName,
-                software: software,
                 packages: packages,
-              }).then((value: ResponseStatus) => {
+                software: software,
+              }).then((value) => {
                 if (value.success === false) {
                   dispatch(
                     addNotification({
                       status: 'danger',
                       title: 'Error',
-                      message: `Unable to add notebook image ${name}`,
+                      message: `Unable to update image ${name}`,
                       timestamp: new Date(),
                     }),
                   );
                 }
-                onImportHandler();
+                onUpdateHandler();
                 onCloseHandler();
               });
             } else {
               name.length > 0 ? setValidName(true) : setValidName(false);
-              repository.length > 0 ? setValidRepo(true) : setValidRepo(false);
             }
           }}
         >
-          Import
+          Save Changes
         </Button>,
-        <Button key="cancel" variant="link" onClick={onCloseHandler}>
+        <Button id="cancel-button" key="cancel" variant="link" onClick={onCloseHandler}>
           Cancel
         </Button>,
       ]}
@@ -111,30 +112,9 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
         }}
       >
         <FormGroup
-          label="Repository"
-          isRequired
-          fieldId="notebook-image-repository-label"
-          helperText="Repo where notebook images are stored."
-          helperTextInvalid="This field is required."
-          helperTextInvalidIcon={<ExclamationCircleIcon />}
-          validated={validRepo ? undefined : 'error'}
-        >
-          <TextInput
-            isRequired
-            type="text"
-            id="notebook-image-repository-input"
-            name="notebook-image-repository-input"
-            aria-describedby="notebook-image-repository-input"
-            value={repository}
-            onChange={(value) => {
-              setRepository(value);
-            }}
-          />
-        </FormGroup>
-        <FormGroup
           label="Name"
           isRequired
-          fieldId="notebook-image-name-label"
+          fieldId="byon-image-name-label"
           helperTextInvalid="This field is required."
           helperTextInvalidIcon={<ExclamationCircleIcon />}
           validated={validName ? undefined : 'error'}
@@ -142,28 +122,28 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
           <TextInput
             isRequired
             type="text"
-            id="notebook-image-name-input"
-            name="notebook-image-name-input"
+            id="byon-image-name-input"
+            name="byon-image-name-input"
             value={name}
             onChange={(value) => {
               setName(value);
             }}
           />
         </FormGroup>
-        <FormGroup label="Description" fieldId="notebook-image-description">
+        <FormGroup label="Description" fieldId="byon-image-description">
           <TextInput
             isRequired
             type="text"
-            id="notebook-image-description-input"
-            name="notebook-image-description-input"
-            aria-describedby="notebook-image-description-input"
+            id="byon-image-description-input"
+            name="byon-image-description-input"
+            aria-describedby="byon-image-description-input"
             value={description}
             onChange={(value) => {
               setDescription(value);
             }}
           />
         </FormGroup>
-        <FormGroup fieldId="notebook-software-packages">
+        <FormGroup fieldId="image-software-packages">
           <Tabs
             activeKey={activeTabKey}
             onSelect={(_event, indexKey) => {
@@ -175,13 +155,13 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                 <>
                   <TableComposable aria-label="Simple table" variant="compact">
                     <Caption>
-                      Add the advertised software shown with this notebook image. Modifying the
-                      software here does not effect the contents of the notebook image.
+                      Change the advertised software shown with this BYON image. Modifying the
+                      software here does not effect the contents of the BYON image.
                     </Caption>
                     <Thead>
                       <Tr>
-                        <Th>Software</Th>
-                        <Th>Version</Th>
+                        <Th id="software-column">Software</Th>
+                        <Th id="version-column">Version</Th>
                         <Th />
                       </Tr>
                     </Thead>
@@ -189,7 +169,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                       {software.map((value, currentIndex) => (
                         <EditStepTableRow
                           key={`${value.name}-${currentIndex}`}
-                          notebookPackage={value}
+                          imagePackage={value}
                           setEditedValues={(values) => {
                             const updatedPackages = [...software];
                             updatedPackages[currentIndex] = values;
@@ -203,6 +183,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
+                    id="add-software-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {
@@ -226,10 +207,11 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     No software added
                   </Title>
                   <EmptyStateBody>
-                    Add software to be advertised with your notebook image. Making changes here
-                    won’t affect the contents of the image.{' '}
+                    Add software to be advertised with your BYON image. Making changes here won’t
+                    affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
+                    id="add-software-button"
                     className="empty-button"
                     variant="secondary"
                     onClick={() => {
@@ -253,13 +235,13 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                 <>
                   <TableComposable aria-label="Simple table" variant="compact" isStickyHeader>
                     <Caption>
-                      Add the advertised packages shown with this notebook image. Modifying the
-                      packages here does not effect the contents of the notebook image.
+                      Change the advertised packages shown with this BYON image. Modifying the
+                      packages here does not effect the contents of the BYON image.
                     </Caption>
                     <Thead>
                       <Tr>
-                        <Th>Package</Th>
-                        <Th>Version</Th>
+                        <Th id="package-column">Package</Th>
+                        <Th id="version-column">Version</Th>
                         <Th />
                       </Tr>
                     </Thead>
@@ -267,7 +249,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                       {packages.map((value, currentIndex) => (
                         <EditStepTableRow
                           key={`${value.name}-${currentIndex}`}
-                          notebookPackage={value}
+                          imagePackage={value}
                           setEditedValues={(values) => {
                             const updatedPackages = [...packages];
                             updatedPackages[currentIndex] = values;
@@ -281,6 +263,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
+                    id="add-package-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {
@@ -304,10 +287,11 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     No packages added
                   </Title>
                   <EmptyStateBody>
-                    Add packages to be advertised with your notebook image. Making changes here
-                    won’t affect the contents of the image.{' '}
+                    Add packages to be advertised with your BYON image. Making changes here won’t
+                    affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
+                    id="add-package-button"
                     className="empty-button"
                     variant="secondary"
                     onClick={() => {
@@ -333,4 +317,4 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
   );
 };
 
-export default ImportImageModal;
+export default UpdateImageModal;

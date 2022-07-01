@@ -270,3 +270,11 @@ export const getIsAppEnabled = async (
   // Failed all checks
   return false;
 };
+
+export const convertLabelsToString = (labels: { [key: string]: string }): string => {
+  let outputString = '';
+  for (const key in labels) {
+    outputString = outputString.concat(key, '=', labels[key], ' ');
+  }
+  return outputString;
+};

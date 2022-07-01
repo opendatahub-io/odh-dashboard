@@ -27,13 +27,13 @@
     "format": "prettier --write \"./**/*.ts\" \"./**/*.tsx\" \"./**/*.scss\"",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
     "test": "run-s test:lint test:jest",
-    "test:jest": "./node_modules/.bin/jest",
-    "test:ci": "export CI=true; ./node_modules/.bin/jest --collectCoverage",
-    "test:clearCache": "./node_modules/.bin/jest --clearCache",
+    "test:jest": "jest",
+    "test:ci": "export CI=true; jest --collectCoverage",
+    "test:clearCache": "jest --clearCache",
     "test:dev": "run-s test:lint test:local",
     "test:fix": "eslint --ext .json,.js,.ts,.jsx,.tsx ./src --fix",
     "test:lint": "eslint --ext .json,.js,.ts,.jsx,.tsx ./src",
-    "test:local": "./node_modules/.bin/jest --watchAll",
+    "test:local": "jest --watchAll",
     "test:type-check": "tsc --noEmit"
   },
   "dependencies": {

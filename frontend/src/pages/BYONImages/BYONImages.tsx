@@ -13,20 +13,20 @@ import {
   Title,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
-import { useWatchNotebookImages } from '../../utilities/useWatchNotebookImages';
+import { useWatchBYONImages } from '../../utilities/useWatchBYONImages';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { ImportImageModal } from './ImportImageModal';
-import { NotebookImagesTable } from './NotebookImagesTable';
+import { BYONImagesTable } from './BYONImagesTable';
 
 const description = `Import, delete, and modify notebook images.`;
 
-const NotebookImages: React.FC = () => {
+const BYONImages: React.FC = () => {
   const [importImageModalVisible, setImportImageModalVisible] = React.useState<boolean>(false);
 
-  const { notebooks, loaded, loadError, forceUpdate } = useWatchNotebookImages();
-  const isEmpty = !notebooks || notebooks.length === 0;
+  const { images, loaded, loadError, forceUpdate } = useWatchBYONImages();
+  const isEmpty = !images || images.length === 0;
 
-  const noNotebooksPageSection = (
+  const noImagesPageSection = (
     <PageSection isFilled>
       <EmptyState variant={EmptyStateVariant.full} data-test-id="empty-empty-state">
         <EmptyStateIcon icon={PlusCircleIcon} />
@@ -55,13 +55,13 @@ const NotebookImages: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Notebook image settings"
+      title="BYON image settings"
       description={description}
       loaded={loaded}
       empty={isEmpty}
       loadError={loadError}
-      errorMessage="Unable to load Notebook images."
-      emptyStatePage={noNotebooksPageSection}
+      errorMessage="Unable to load BYON images."
+      emptyStatePage={noImagesPageSection}
     >
       {!isEmpty ? (
         <div className="odh-cluster-settings">
@@ -69,7 +69,7 @@ const NotebookImages: React.FC = () => {
             <Flex direction={{ default: 'column' }}>
               <FlexItem>
                 {' '}
-                <NotebookImagesTable notebooks={notebooks} forceUpdate={forceUpdate} />
+                <BYONImagesTable images={images} forceUpdate={forceUpdate} />
               </FlexItem>
             </Flex>
           </PageSection>
@@ -79,4 +79,4 @@ const NotebookImages: React.FC = () => {
   );
 };
 
-export default NotebookImages;
+export default BYONImages;
