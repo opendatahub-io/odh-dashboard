@@ -1,8 +1,11 @@
 import { FastifyRequest } from 'fastify';
-import { rolloutDeployment } from '../../../utils/deployment';
+import { rolloutDeployment, rolloutDeploymentConfig } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
-
-const juypterhubCfg = 'jupyterhub-cfg';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
+import { defaultCullingSettings } from '../../../utils/constants';
+import { setDashboardConfig } from '../config/configUtils';
+const jupyterhubCfg = 'jupyterhub-cfg';
+const nbcCfg = 'notebook-controller-culler-config';
 const segmentKeyCfg = 'odh-segment-key-config';
 
 const DEFAULT_PVC_SIZE = 20;
@@ -20,6 +23,7 @@ export const updateClusterSettings = async (
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   const query = request.query as { [key: string]: string };
+  const dashConfig = getDashboardConfig();
   try {
     if (query.userTrackingEnabled !== 'null') {
       await coreV1Api.patchNamespacedConfigMap(
@@ -39,30 +43,70 @@ export const updateClusterSettings = async (
         },
       );
     }
-    const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
     if (query.pvcSize && query.cullerTimeout) {
+      if (dashConfig.spec?.notebookController?.enabled) {
+        let isEnabled = true;
+        const cullingTimeMin = Number(query.cullerTimeout) / 60; // Seconds to minutes
+        if (Number(query.cullerTimeout) === DEFAULT_CULLER_TIMEOUT) {
+          isEnabled = false;
+        }
+        await coreV1Api.patchNamespacedConfigMap(
+          nbcCfg,
+          namespace,
+          {
+            data: { ENABLE_CULLING: String(isEnabled), CULL_IDLE_TIME: String(cullingTimeMin) },
+          },
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          {
+            headers: {
+              'Content-Type': 'application/merge-patch+json',
+            },
+          },
+        );
+        await setDashboardConfig(fastify, {
+          spec: {
+            dashboardConfig: dashConfig.spec.dashboardConfig,
+            notebookController: {
+              enabled: dashConfig.spec.notebookController.enabled,
+              pvcSize: `${query.pvcSize}Gi`,
+            },
+          },
+        });
+      } else {
+        await coreV1Api.patchNamespacedConfigMap(
+          jupyterhubCfg,
+          namespace,
+          {
+            data: {
+              singleuser_pvc_size: `${query.pvcSize}Gi`,
+              culler_timeout: query.cullerTimeout,
+            },
+          },
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          {
+            headers: {
+              'Content-Type': 'application/merge-patch+json',
+            },
+          },
+        );
+      }
+    }
+    if (dashConfig.spec.notebookController.enabled) {
+      await rolloutDeployment(fastify, namespace);
+    } else {
+      const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(jupyterhubCfg, namespace);
       if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
-        await rolloutDeployment(fastify, namespace, 'jupyterhub');
+        await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub');
       }
       if (jupyterhubCM.body.data['culler_timeout'] !== query.cullerTimeout) {
-        await rolloutDeployment(fastify, namespace, 'jupyterhub-idle-culler');
+        await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub-idle-culler');
       }
-      await coreV1Api.patchNamespacedConfigMap(
-        juypterhubCfg,
-        namespace,
-        {
-          data: { singleuser_pvc_size: `${query.pvcSize}Gi`, culler_timeout: query.cullerTimeout },
-        },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          headers: {
-            'Content-Type': 'application/merge-patch+json',
-          },
-        },
-      );
     }
     return { success: true, error: null };
   } catch (e) {
@@ -81,20 +125,76 @@ export const getClusterSettings = async (
   const clusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
   };
+  const dashConfig = getDashboardConfig();
   try {
     const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
     clusterSettings.userTrackingEnabled = segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
   } catch (e) {
     fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
   }
-  try {
-    const jupyterhubCfgResponse = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
-    clusterSettings.pvcSize = Number(
-      jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', ''),
-    );
-    clusterSettings.cullerTimeout = Number(jupyterhubCfgResponse.body.data.culler_timeout);
-  } catch (e) {
-    fastify.log.error('Error retrieving cluster settings: ' + e.toString());
+  if (dashConfig.spec?.notebookController?.enabled) {
+    let nbcCfgResponse;
+    try {
+      nbcCfgResponse = await fastify.kube.coreV1Api.readNamespacedConfigMap(
+        nbcCfg,
+        fastify.kube.namespace,
+      );
+      const cullerTimeout = nbcCfgResponse.body.data['CULL_IDLE_TIME'];
+      const isEnabled = Boolean(nbcCfgResponse.body.data['ENABLE_CULLING']);
+      if (isEnabled) {
+        clusterSettings.cullerTimeout = Number(cullerTimeout) * 60; //minutes to seconds;
+      } else {
+        clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT; // For backwards compatibility with jupyterhub and less changes to UI
+      }
+      clusterSettings.pvcSize = DEFAULT_PVC_SIZE;
+      if (dashConfig.spec.notebookController.pvcSize) {
+        clusterSettings.pvcSize = Number(
+          dashConfig.spec.notebookController.pvcSize.replace('Gi', ''),
+        );
+      }
+    } catch (e) {
+      if (e.statusCode === 404) {
+        fastify.log.warn('Creating new notebook controller culling settings.');
+        nbcCfgResponse = await fastify.kube.coreV1Api.createNamespacedConfigMap(
+          fastify.kube.namespace,
+          defaultCullingSettings,
+        );
+        const cullerTimeout = nbcCfgResponse.body.data['CULL_IDLE_TIME'];
+        const isEnabled = Boolean(nbcCfgResponse.body.data['ENABLE_CULLING']);
+        if (isEnabled) {
+          clusterSettings.cullerTimeout = Number(cullerTimeout) * 60; //minutes to seconds;
+        } else {
+          clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT; // For backwards compatibility with jupyterhub and less changes to UI
+        }
+        clusterSettings.pvcSize = DEFAULT_PVC_SIZE;
+        if (dashConfig.spec.notebookController.pvcSize) {
+          clusterSettings.pvcSize = Number(
+            dashConfig.spec.notebookController.pvcSize.replace('Gi', ''),
+          );
+        }
+      } else {
+        fastify.log.error('Error getting notebook controller culling settings: ' + e.toString());
+      }
+    }
+  } else {
+    try {
+      const [pvcSize, cullerTimeout] = await readJupyterhubCfg(fastify);
+      clusterSettings.pvcSize = pvcSize;
+      clusterSettings.cullerTimeout = cullerTimeout;
+    } catch (e) {
+      fastify.log.error('Error retrieving cluster settings: ' + e.toString());
+    }
   }
+
   return clusterSettings;
+};
+
+const readJupyterhubCfg = async (fastify: KubeFastifyInstance): Promise<[number, number]> => {
+  const jupyterhubCfgResponse = await fastify.kube.coreV1Api.readNamespacedConfigMap(
+    jupyterhubCfg,
+    fastify.kube.namespace,
+  );
+  const pvcSize = Number(jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', ''));
+  const cullerTimeout = Number(jupyterhubCfgResponse.body.data.culler_timeout);
+  return [pvcSize, cullerTimeout];
 };

@@ -19,6 +19,7 @@ export const status = async (
   const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
   const customObjectsApi = fastify.kube.customObjectsApi;
   const coreV1Api = fastify.kube.coreV1Api;
+
   let isAdmin = false;
 
   const userName = await getUserName(fastify, request, customObjectsApi);

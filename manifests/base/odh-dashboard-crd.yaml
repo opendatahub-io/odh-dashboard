@@ -81,6 +81,8 @@ spec:
                       properties:
                         enabled: 
                           type: boolean
+                    pvcSize:
+                      type: string
             status:
               type: object
               properties:

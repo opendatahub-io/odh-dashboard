@@ -67,6 +67,7 @@ notebookController:
         enabled: true
     gpuConfig:
         enabled: true
+    pvcSize: 20Gi
 ```
 
 ### Notebook Controller State

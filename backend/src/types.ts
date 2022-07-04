@@ -24,6 +24,7 @@ export type DashboardConfig = K8sResourceCommon & {
       envVarConfig?: {
         enabled: boolean;
       };
+      pvcSize?: string;
     };
   };
   status?: {
