@@ -36,7 +36,7 @@ type ExploreApplicationsInnerProps = {
 
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
-    const { dashboardConfig } = useWatchDashboardConfig();
+    const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
     const bodyClasses = classNames('odh-explore-apps__body', {
       'm-side-panel-open': !!selectedComponent,
     });

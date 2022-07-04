@@ -30,14 +30,14 @@ export const getNavBarData = (
 
   const enabledFeatures: NavDataItem[] = [];
 
-  if (!dashboardConfig.disableBYONImageStream)
+  if (!dashboardConfig.spec.dashboardConfig.disableBYONImageStream)
     enabledFeatures.push({
       id: 'settings-notebook-images',
       label: 'Notebook Images',
       href: '/notebookImages',
     });
 
-  if (!dashboardConfig.disableClusterManager)
+  if (!dashboardConfig.spec.dashboardConfig.disableClusterManager)
     enabledFeatures.push({
       id: 'settings-cluster-settings',
       label: 'Cluster settings',

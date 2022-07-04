@@ -40,7 +40,7 @@ type GetStartedPanelProps = {
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const appName = selectedApp?.metadata.name;
   const { odhGettingStarted, loaded, loadError } = useGettingStarted(appName);
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
   if (!selectedApp) {
     return null;
   }
