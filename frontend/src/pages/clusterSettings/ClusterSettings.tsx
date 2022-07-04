@@ -60,7 +60,7 @@ const ClusterSettings: React.FC = () => {
   const [minute, setMinute] = React.useState<number>(0);
   const [isSettingsChanged, setSettingsChanged] = React.useState<boolean>(false);
   const pvcDefaultBtnRef = React.useRef<HTMLButtonElement>();
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
   const dispatch = useDispatch();
 
   React.useEffect(() => {

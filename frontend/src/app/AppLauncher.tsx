@@ -69,7 +69,7 @@ const sectionSortValue = (section: Section): number => {
 };
 
 type AppLauncherProps = {
-  dashboardConfig: DashboardConfig;
+  dashboardConfig: any; // Changed to avoid creating new types.
 };
 
 const AppLauncher: React.FC<AppLauncherProps> = ({ dashboardConfig }) => {
