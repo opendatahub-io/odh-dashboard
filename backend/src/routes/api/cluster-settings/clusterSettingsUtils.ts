@@ -1,6 +1,7 @@
 import { FastifyRequest } from 'fastify';
 import { rolloutDeployment } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
 
 const juypterhubCfg = 'jupyterhub-cfg';
 const segmentKeyCfg = 'odh-segment-key-config';
@@ -81,20 +82,34 @@ export const getClusterSettings = async (
   const clusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
   };
+  const dashConfig = getDashboardConfig()
   try {
     const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
     clusterSettings.userTrackingEnabled = segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
   } catch (e) {
     fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
   }
+  
   try {
-    const jupyterhubCfgResponse = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
-    clusterSettings.pvcSize = Number(
-      jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', ''),
-    );
-    clusterSettings.cullerTimeout = Number(jupyterhubCfgResponse.body.data.culler_timeout);
+    // const jupyterhubCfgResponse = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
+    // clusterSettings.pvcSize = Number(
+    //   jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', ''),
+    // );
+    // clusterSettings.cullerTimeout = Number(jupyterhubCfgResponse.body.data.culler_timeout);
+    let pvcSize, cullerTimeout;
+    [pvcSize, cullerTimeout] = await readJupyterhubCfg(fastify);
+    clusterSettings.pvcSize = pvcSize;
+    clusterSettings.cullerTimeout = cullerTimeout
+
   } catch (e) {
     fastify.log.error('Error retrieving cluster settings: ' + e.toString());
   }
   return clusterSettings;
+};
+
+const readJupyterhubCfg = async(fastify: KubeFastifyInstance): Promise<[number, number]> => {
+  const jupyterhubCfgResponse = await fastify.kube.coreV1Api.readNamespacedConfigMap(juypterhubCfg, fastify.kube.namespace);
+  const pvcSize = Number(jupyterhubCfgResponse.body.data.singleuser_pvc_size.replace('Gi', ''))
+  const cullerTimeout = Number(jupyterhubCfgResponse.body.data.culler_timeout)
+  return [pvcSize, cullerTimeout]
 };
