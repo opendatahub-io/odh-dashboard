@@ -1,5 +1,7 @@
 import { PatchUtils } from '@kubernetes/client-node';
+import { updateDashboardConfig } from '../../../utils/resourceUtils';
 import { KubeFastifyInstance, DashboardConfig } from '../../../types';
+import { FastifyRequest } from 'fastify';
 
 export const setDashboardConfig = async (
   fastify: KubeFastifyInstance,
@@ -20,5 +22,6 @@ export const setDashboardConfig = async (
     undefined,
     options,
   );
+  await updateDashboardConfig();
   return response.body as DashboardConfig;
 };

@@ -1,6 +1,5 @@
 import { KubeFastifyInstance } from '../../../types';
 import { V1Secret } from '@kubernetes/client-node';
-import { PatchUtils } from '@kubernetes/client-node';
 
 export const getSecret = (fastify: KubeFastifyInstance, name: string): Promise<V1Secret> => {
   const coreV1Api = fastify.kube.coreV1Api;
@@ -10,8 +9,10 @@ export const getSecret = (fastify: KubeFastifyInstance, name: string): Promise<V
       return res.body;
     })
     .catch((e) => {
+      if (e.response?.statusCode === 404) {
+        return null;
+      }
       fastify.log.error(`Could not read secret ${name}, ${e}`);
-      return {};
     });
   return secretResponse;
 };

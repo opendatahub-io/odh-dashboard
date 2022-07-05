@@ -16,7 +16,7 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
-import { importBYONImage } from '../../services/BYONImageService';
+import { importBYONImage } from '../../services/imagesService';
 import { State } from '../../redux/types';
 import { useSelector } from 'react-redux';
 import { ResponseStatus, BYONImagePackage } from 'types';

@@ -15,12 +15,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
     };
-    notebookSizes?: [
-      {
-        name: string;
-        resources: NotebookResources;
-      },
-    ];
+    notebookSizes?: NotebookSize[];
     notebookController?: {
       enabled: boolean;
       gpuConfig?: {
@@ -56,6 +51,11 @@ export type NotebookResources = {
 export type EnvironmentVariable = {
   name: string;
   value: string;
+};
+
+export type NotebookSize = {
+  name: string;
+  resources: NotebookResources;
 };
 
 export type ClusterSettings = {
@@ -111,6 +111,13 @@ export enum BUILD_PHASE {
 }
 
 export type BuildKind = {
+  spec: {
+    output: {
+      to: {
+        name: string;
+      }
+    }
+  }
   status: {
     phase: BUILD_PHASE;
     completionTimestamp: string;
@@ -512,6 +519,35 @@ export type ImageInfo = {
   display_name?: string;
   default?: boolean;
   order?: number;
+  dockerImageRepo?: string;
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
+
+export type PersistentVolumeClaimKind = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    accessModes: string[];
+    resources: {
+      requests: {
+        storage: string;
+      };
+    };
+    storageClassName?: string;
+    volumeMode: 'Filesystem' | 'Block';
+  };
+  status?: Record<string, any>;
+};
+
+export type PersistentVolumeClaimListKind = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: PersistentVolumeClaimKind[];
+};

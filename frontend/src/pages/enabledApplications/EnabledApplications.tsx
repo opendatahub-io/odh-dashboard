@@ -9,6 +9,7 @@ import QuickStarts from '../../app/QuickStarts';
 import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 
 import './EnabledApplications.scss';
+import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 
@@ -52,12 +53,16 @@ EnabledApplicationsInner.displayName = 'EnabledApplicationsInner';
 
 const EnabledApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(true);
+  const { dashboardConfig } = useWatchDashboardConfig();
 
   const sortedComponents = React.useMemo(() => {
-    return _.cloneDeep(components).sort((a, b) =>
+    const filteredComponents = dashboardConfig.spec.notebookController?.enabled
+      ? components.filter((component) => component.metadata.name !== 'jupyterhub')
+      : components.filter((component) => component.metadata.name !== 'jupyter');
+    return _.cloneDeep(filteredComponents).sort((a, b) =>
       a.spec.displayName.localeCompare(b.spec.displayName),
     );
-  }, [components]);
+  }, [components, dashboardConfig.spec.notebookController?.enabled]);
 
   React.useEffect(() => {
     /*
