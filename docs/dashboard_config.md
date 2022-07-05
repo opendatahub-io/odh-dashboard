@@ -1,12 +1,27 @@
 # Dashboard Config
 
-The dashboard can be configured from its OdhDashboard CR, `odh-dashboard-config`.
+By default the ODH Dashboard comes with a set of core features enabled that are design to work for most scenarios.  The dashboard can be configured from its OdhDashboard CR, `odh-dashboard-config`.
+
+## Features
+
+The following are a list of features that are supported, along with there default settings.
+
+| Feature | Default | Description |
+|-------|-------| ------- |
+|  enablement| true | Enables the ability to enable ISVs to the dashboard |
+|  disableInfo| false | Removes the information panel in Explore Application section |
+|  disableSupport| false | Disables components related to support. |
+|  disableClusterManager | false | Disables cluster management section for admins
+|  disableTracking | false | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured
+|  disableBYONImageStream| false | Disables custom notebook images that are created via image streams
+|  disableISVBadges | false | Removes the badge that indicate if a product is ISV or not.
+|  disableAppLauncher | false | Removes the application launcher that is used in OKD environments
 
 ## Defaults
 
 In its default state the Dashboard config is in this form:
 
-```
+```yaml
 spec:
   dashboardConfig:
     disableBYONImageStream: false
@@ -28,7 +43,8 @@ The Dashboard config enables adding additional configuration
 The `notebookSizes` field of the config lists kubernetes style size descriptions. These are added to the dropdown shown when spawning notebooks with the notebook controller.
 
 Note: These sizes must follow conventions such as requests smaller than limits
-```
+
+```yaml
 notebookSizes:
 - name: XSmall
     resources:
@@ -39,11 +55,12 @@ notebookSizes:
         memory: 2Gi
         cpu: '0.1'
 ```
+
 ### Notebook controller
 
 The `notebookController` field controls the Notebook Controller options such as whether it is enabled in the dashboard and which parts should be visible.
 
-```
+```yaml
 notebookController:
     enabled: true
     envVarConfig:
@@ -56,7 +73,7 @@ notebookController:
 
 This field (`notebookControllerState`) controls the state of each user of the Notebook controller. This field is managed by the backend of the Dashboard and should not be manually modified.
 
-```
+```yaml
 notebookControllerState:
 - user: username
     environmentVariables:
@@ -68,7 +85,8 @@ notebookControllerState:
 ```
 
 ## Example OdhDashboard Config
-```
+
+```yaml
 apiVersion: opendatahub.io/v1alpha
 kind: OdhDashboardConfig
 metadata:
@@ -111,5 +129,3 @@ spec:
         memory: 8Gi
         cpu: '8'
 ```
-
-
