@@ -32,8 +32,8 @@ import LearningCenterDataView from './LearningCenterDataView';
 
 import './LearningCenter.scss';
 
-const description = `Access all learning resources for ${ODH_PRODUCT_NAME} OpenShift Data Science and supported applications.`;
-const docText = ` To learn more about ${ODH_PRODUCT_NAME} OpenShift Data Science, `;
+const description = `Access all learning resources for ${ODH_PRODUCT_NAME} and supported applications.`;
+const docText = ` To learn more about ${ODH_PRODUCT_NAME}, `;
 
 export const LearningCenter: React.FC = () => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
