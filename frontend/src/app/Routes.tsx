@@ -17,6 +17,7 @@ const NotebookController = React.lazy(
 );
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
+const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
@@ -46,6 +47,7 @@ const Routes: React.FC = () => {
         )}
         {isAdmin && <Route path="/notebookImages" exact component={BYONImagesPage} />}
         {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}
+        {isAdmin && <Route path="/groupSettings" exact component={GroupSettingsPage} />}
         <Route component={NotFound} />
       </Switch>
     </React.Suspense>

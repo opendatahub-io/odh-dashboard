@@ -16,6 +16,7 @@ The following are a list of features that are supported, along with there defaul
 |  disableBYONImageStream| false | Disables custom notebook images that are created via image streams
 |  disableISVBadges | false | Removes the badge that indicate if a product is ISV or not.
 |  disableAppLauncher | false | Removes the application launcher that is used in OKD environments
+|  disableUserManagement | false | Removes the User Management panel in Settings.
 
 ## Defaults
 
@@ -31,6 +32,7 @@ spec:
     disableSupport: false
     disableTracking: false
     disableAppLauncher: false
+    disableUserManagement: false
     enablement: true
 ```
 
@@ -110,6 +112,7 @@ spec:
     disableSupport: false
     disableTracking: false
     disableAppLauncher: false
+    disableUserManagement: false
     enablement: true
   groupsConfig:
     adminGroups: odh-admins

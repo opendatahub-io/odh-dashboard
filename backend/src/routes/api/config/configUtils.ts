@@ -1,10 +1,10 @@
 import { PatchUtils } from '@kubernetes/client-node';
 import { getDashboardConfig, updateDashboardConfig } from '../../../utils/resourceUtils';
-import { KubeFastifyInstance, DashboardConfig } from '../../../types';
+import { KubeFastifyInstance, DashboardConfig, RecursivePartial } from '../../../types';
 
 export const setDashboardConfig = async (
   fastify: KubeFastifyInstance,
-  request: Partial<DashboardConfig>,
+  request: RecursivePartial<DashboardConfig>,
 ): Promise<DashboardConfig> => {
   const options = {
     headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
