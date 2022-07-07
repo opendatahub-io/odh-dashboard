@@ -514,3 +514,26 @@ export type Volume = {
 };
 
 export type VolumeMount = { mountPath: string; name: string };
+export type GroupsConfig = {
+  adminGroups: GroupStatus[];
+  userGroups: GroupStatus[];
+  errorAdmin?: string;
+  errorUser?: string;
+};
+
+export enum GroupsConfigField {
+  ADMIN,
+  USER,
+}
+
+export type GroupStatus = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};
+
+export type MenuItemStatus = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};

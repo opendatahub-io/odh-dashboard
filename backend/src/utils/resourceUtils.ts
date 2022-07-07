@@ -74,7 +74,7 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
     )
     .then((result) => [result.body])
     .catch((e) => {
-      fastify.log.error(e);
+      fastify.log.error('Error creating Dashboard CR: ', e);
       return null;
     });
 
@@ -295,7 +295,7 @@ const getBuildConfigStatus = (
       };
     })
     .catch((e) => {
-      fastify.log.error(e.response?.body?.message || e.message);
+      fastify.log.error(e.response?.body?.message || e.message, 'failed to get build configs');
       return {
         name: notebookName,
         status: BUILD_PHASE.pending,

@@ -115,9 +115,9 @@ export type BuildKind = {
     output: {
       to: {
         name: string;
-      }
-    }
-  }
+      };
+    };
+  };
   status: {
     phase: BUILD_PHASE;
     completionTimestamp: string;
@@ -550,4 +550,48 @@ export type PersistentVolumeClaimListKind = {
   kind?: string;
   metadata: Record<string, unknown>;
   items: PersistentVolumeClaimKind[];
+};
+export type GroupsConfig = {
+  adminGroups: GroupStatus[];
+  userGroups: GroupStatus[];
+  errorAdmin?: string;
+  errorUser?: string;
+};
+
+export type GroupStatus = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};
+
+export type GroupConfigMapData = {
+  admin_groups: string;
+  allowed_groups: string;
+};
+
+export type GroupConfigMapDataProcessed = {
+  adminGroup: string[];
+  allowedGroup: string[];
+};
+
+export type groupObjResponse = {
+  users: string[] | null;
+};
+
+export type GroupCustomObject = {
+  kind: string;
+  apiVersion: string;
+  items: GroupCustomObjectItem[];
+};
+
+export type GroupCustomObjectItem = {
+  metadata: GroupCustomObjectItemMetadata;
+  users: string[];
+};
+
+type GroupCustomObjectItemMetadata = {
+  name: string;
+  uid: string;
+  resourceVersion: string;
+  creationTimestamp: string;
 };

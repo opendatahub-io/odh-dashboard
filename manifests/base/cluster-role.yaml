@@ -83,3 +83,9 @@ rules:
       - secrets
       - services
       - namespaces
+  - verbs:
+      - list
+    apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings

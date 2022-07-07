@@ -1,14 +1,15 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
 import createError from 'http-errors';
-import { CoreV1Api, CustomObjectsApi } from '@kubernetes/client-node';
-
-type groupObjResponse = {
-  users: string[] | null;
-};
+import { CustomObjectsApi, RbacAuthorizationV1Api } from '@kubernetes/client-node';
+import {
+  getGroupsConfigMapName,
+  getAdminGroups,
+  getGroup,
+  MissingGroupError,
+} from '../../../utils/groupsUtils';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
-const GROUPS_CONFIGMAP_NAME = 'groups-config';
 const DEFAULT_USERNAME = 'kube:admin';
 
 export const status = async (
@@ -25,26 +26,40 @@ export const status = async (
   }
   const customObjectsApi = fastify.kube.customObjectsApi;
   const coreV1Api = fastify.kube.coreV1Api;
+  const rbacAuthorizationApi = fastify.kube.rbac;
+
   let isAdmin = false;
+  let adminGroupsList: string[] = [];
 
   try {
-    const groupConfig = await getGroupsConfig(coreV1Api, namespace);
-    const adminGroup = await getGroupsAdminConfig(coreV1Api, namespace, groupConfig);
+    const groupConfig = await getGroupsConfigMapName(coreV1Api, namespace);
+    const adminGroups = await getAdminGroups(coreV1Api, namespace, groupConfig);
 
-    if (adminGroup === SYSTEM_AUTHENTICATED || adminGroup === '') {
-      throw new Error(
-        'It is not allowed to set system:authenticated or an empty string as admin group.',
+    adminGroupsList = adminGroups.split(',');
+
+    if (adminGroupsList.includes(SYSTEM_AUTHENTICATED)) {
+      throw new Error('It is not allowed to set system:authenticated or as admin group.');
+    } else if (adminGroups === '') {
+      fastify.log.error(
+        'Error, there is no group assigned for admins, getting Namespaced Admin or Cluster Admin as default admin.',
       );
+      isAdmin = await isUserAdmin(rbacAuthorizationApi, userName, namespace);
     } else {
-      const adminUsers = await getGroup(customObjectsApi, adminGroup);
-      isAdmin = adminUsers?.includes(userName) ?? false;
+      isAdmin = await checkUserInGroups(
+        fastify,
+        customObjectsApi,
+        rbacAuthorizationApi,
+        adminGroupsList,
+        userName,
+        namespace,
+      );
     }
   } catch (e) {
     fastify.log.error(e.toString());
   }
 
   if (!kubeContext && !kubeContext.trim()) {
-    const error = createCustomError;
+    const error = createCustomError();
     fastify.log.error(error, 'failed to get status');
     throw error;
   } else {
@@ -62,6 +77,59 @@ export const status = async (
   }
 };
 
+export const checkUserInGroups = async (
+  fastify: KubeFastifyInstance,
+  customObjectApi: CustomObjectsApi,
+  rbacAuthorizationApi: RbacAuthorizationV1Api,
+  adminGroupsList: string[],
+  userName: string,
+  namespace: string,
+): Promise<boolean> => {
+  let isAdmin = false;
+  try {
+    for (const group of adminGroupsList) {
+      const adminUsers = await getGroup(customObjectApi, group);
+      if (adminUsers?.includes(userName)) {
+        isAdmin = true;
+      }
+    }
+  } catch (e) {
+    if (e instanceof MissingGroupError && adminGroupsList.length === 1) {
+      isAdmin = await isUserAdmin(rbacAuthorizationApi, userName, namespace);
+      fastify.log.error(
+        e.toString() +
+          ' Getting Namespaced Admin or Cluster Admin as default admin since it was the only group.',
+      );
+    } else {
+      fastify.log.error(e.toString());
+    }
+  }
+  return isAdmin;
+};
+
+export const isUserAdmin = async (
+  rbacAuthorizationApi: RbacAuthorizationV1Api,
+  username: string,
+  namespace: string,
+): Promise<boolean> => {
+  try {
+    const rolebindings = await rbacAuthorizationApi.listNamespacedRoleBinding(namespace);
+    const clusterrolebinding = await rbacAuthorizationApi.listClusterRoleBinding();
+    const isClusterAdmin =
+      clusterrolebinding.body.items
+        .filter((role) => role.subjects?.some((subject) => subject.name === username))
+        .map((element) => element.roleRef.name).length !== 0;
+    const isAdmin =
+      rolebindings.body.items
+        .filter((role) => role.subjects?.some((subject) => subject.name === username))
+        .map((element) => element.roleRef.name).length !== 0;
+
+    return isClusterAdmin || isAdmin;
+  } catch (e) {
+    throw new Error(`Failed to list rolebindings for user`);
+  }
+};
+
 export const createCustomError = (): createError.HttpError<500> => {
   const error = createError(500, 'failed to get kube status');
   error.explicitInternalServerError = true;
@@ -69,49 +137,4 @@ export const createCustomError = (): createError.HttpError<500> => {
   error.message =
     'Unable to determine current login stats. Please make sure you are logged into OpenShift.';
   return error;
-};
-
-export const getGroupsConfig = async (coreV1Api: CoreV1Api, namespace: string): Promise<string> => {
-  try {
-    return (await coreV1Api.readNamespacedConfigMap(GROUPS_CONFIGMAP_NAME, namespace)).body.data[
-      'groups-config'
-    ];
-  } catch (e) {
-    throw new Error(
-      `Failed to retrieve ConfigMap ${GROUPS_CONFIGMAP_NAME}, might be malformed or doesn't exist.`,
-    );
-  }
-};
-
-export const getGroupsAdminConfig = async (
-  coreV1Api: CoreV1Api,
-  namespace: string,
-  groupsConfigName: string,
-): Promise<string> => {
-  try {
-    return (await coreV1Api.readNamespacedConfigMap(groupsConfigName, namespace)).body.data[
-      'admin_groups'
-    ];
-  } catch (e) {
-    throw new Error(
-      `Failed to retrieve ConfigMap ${groupsConfigName}, might be malformed or doesn't exist.`,
-    );
-  }
-};
-
-export const getGroup = async (
-  customObjectsApi: CustomObjectsApi,
-  adminGroup: string,
-): Promise<string[]> => {
-  try {
-    const adminGroupResponse = await customObjectsApi.getClusterCustomObject(
-      'user.openshift.io',
-      'v1',
-      'groups',
-      adminGroup,
-    );
-    return (adminGroupResponse.body as groupObjResponse).users;
-  } catch (e) {
-    throw new Error(`Failed to retrieve Group ${adminGroup}, might not exist.`);
-  }
 };
