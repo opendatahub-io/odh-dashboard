@@ -19,7 +19,7 @@ Before developing for ODH, the basic requirements:
 ## Development
    1. Clone the repository
       ```
-      $ git clone https://github.com/red-hat-data-services/odh-dashboard
+      $ git clone https://github.com/opendatahub-io/odh-dashboard
       ```
 
    1. Within the repo context, install project dependencies

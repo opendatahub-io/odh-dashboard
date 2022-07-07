@@ -42,16 +42,6 @@ export const updateClusterSettings = async (
     }
     const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(juypterhubCfg, namespace);
     if (query.pvcSize && query.cullerTimeout) {
-      if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
-        await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub');
-      }
-      if (jupyterhubCM.body.data['culler_timeout'] !== query.cullerTimeout) {
-        if (dashConfig.spec.notebookController.enabled) {
-          await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
-        } else {
-          await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub-idle-culler');
-        }
-      }
       if (dashConfig.spec?.notebookController?.enabled) {
         let isEnabled = true;
         const cullingTimeMin = Number(query.cullerTimeout) / 60; // Seconds to minutes
@@ -94,6 +84,16 @@ export const updateClusterSettings = async (
             },
           },
         );
+      }
+    }
+    if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
+      await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub');
+    }
+    if (jupyterhubCM.body.data['culler_timeout'] !== query.cullerTimeout) {
+      if (dashConfig.spec.notebookController.enabled) {
+        await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
+      } else {
+        await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub-idle-culler');
       }
     }
     return { success: true, error: null };

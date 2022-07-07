@@ -41,6 +41,7 @@
     "@typescript-eslint/no-empty-function": "warn",
     "@typescript-eslint/no-inferrable-types": "error",
     "prefer-const": "warn",
+    "@typescript-eslint/no-explicit-any": "off",
     "import/extensions": "off",
     "import/no-unresolved": "off",
     "prettier/prettier": [
