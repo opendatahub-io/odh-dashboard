@@ -11,6 +11,7 @@ spec:
     disableSupport: false
     disableTracking: false
     disableAppLauncher: false
+    disableUserManagement: false
     enablement: true
   notebookController:
     enabled: false

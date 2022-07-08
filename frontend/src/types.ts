@@ -13,6 +13,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableBYONImageStream: boolean;
       disableISVBadges: boolean;
       disableAppLauncher: boolean;
+      disableUserManagement: boolean;
     };
     notebookSizes?: [
       {
