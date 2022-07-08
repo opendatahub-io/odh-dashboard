@@ -12,3 +12,15 @@ export const fetchDashboardConfig = (): Promise<DashboardConfig> => {
       throw new Error(e.response.data.message);
     });
 };
+
+export const patchDashboardConfig = (updateData: any): Promise<DashboardConfig> => {
+  const url = '/api/config';
+  return axios
+    .patch(url, updateData)
+    .then((response) => {
+      return response.data;
+    })
+    .catch((e) => {
+      throw new Error(e.response.data.message);
+    });
+};

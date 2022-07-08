@@ -37,7 +37,7 @@ import { relativeTime } from '../../utilities/time';
 import './BYONImagesTable.scss';
 import { DeleteImageModal } from './DeleteBYONImageModal';
 import { UpdateImageModal } from './UpdateImageModal';
-import { updateBYONImage } from '../../services/BYONImageService';
+import { updateBYONImage } from '../../services/imagesService';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];

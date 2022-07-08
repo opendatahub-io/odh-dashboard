@@ -22,7 +22,7 @@ const filterBuilds = (
   return buildStatuses.filter((buildStatus) => filterStatuses.includes(buildStatus.status));
 };
 
-export const useWatchBuildStatus = (): void => {
+export const useWatchBuildStatus = (): BuildStatus[] => {
   const [statuses, setStatuses] = React.useState<BuildStatus[]>([]);
   const prevBuildStatuses = React.useRef<BuildStatus[]>([]);
   const dispatch = useDispatch();
@@ -144,4 +144,6 @@ export const useWatchBuildStatus = (): void => {
 
     prevBuildStatuses.current = buildStatuses;
   }, [buildStatuses, dispatch]);
+
+  return buildStatuses || [];
 };

@@ -2,14 +2,14 @@ import React from 'react';
 import { Brand, PageHeader } from '@patternfly/react-core';
 import HeaderTools from './HeaderTools';
 import { ODH_LOGO, ODH_PRODUCT_NAME } from '../utilities/const';
+import AppContext from './AppContext';
 
 type HeaderProps = {
-  isNavOpen: boolean;
-  onNavToggle: () => void;
   onNotificationsClick: () => void;
 };
 
-const Header: React.FC<HeaderProps> = ({ isNavOpen, onNavToggle, onNotificationsClick }) => {
+const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
+  const { isNavOpen, onNavToggle } = React.useContext(AppContext);
   return (
     <PageHeader
       logo={<Brand src={ODH_LOGO} alt={`${ODH_PRODUCT_NAME} Logo`} />}

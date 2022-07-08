@@ -4,23 +4,8 @@
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
-    dashboardConfig: {
-      enablement: boolean;
-      disableInfo: boolean;
-      disableSupport: boolean;
-      disableClusterManager: boolean;
-      disableTracking: boolean;
-      disableBYONImageStream: boolean;
-      disableISVBadges: boolean;
-      disableAppLauncher: boolean;
-      disableUserManagement: boolean;
-    };
-    notebookSizes?: [
-      {
-        name: string;
-        resources: NotebookResources;
-      },
-    ];
+    dashboardConfig: DashboardCommonConfig;
+    notebookSizes?: NotebookSize[];
     notebookController?: {
       enabled: boolean;
       gpuConfig?: {
@@ -30,16 +15,28 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
       };
     };
-    notebookControllerState?: [
-      {
-        user: string;
-        lastSelectedImage: string;
-        lastSelectedSize: string;
-        environmentVariables: EnvironmentVariable[];
-        secrets: string;
-      },
-    ];
+    notebookControllerState?: NotebookControllerUserState[];
   };
+};
+
+export type DashboardCommonConfig = {
+  enablement: boolean;
+  disableInfo: boolean;
+  disableSupport: boolean;
+  disableClusterManager: boolean;
+  disableTracking: boolean;
+  disableBYONImageStream: boolean;
+  disableISVBadges: boolean;
+  disableAppLauncher: boolean;
+  disableUserManagement: boolean;
+};
+
+export type NotebookControllerUserState = {
+  user: string;
+  lastSelectedImage: string;
+  lastSelectedSize: string;
+  environmentVariables: EnvironmentVariable[];
+  secrets: string;
 };
 
 export type NotebookResources = {
@@ -55,7 +52,12 @@ export type NotebookResources = {
 
 export type EnvironmentVariable = {
   key: string;
-  value: string;
+  value: string | number;
+};
+
+export type NotebookSize = {
+  name: string;
+  resources: NotebookResources;
 };
 
 export type ClusterSettings = {
@@ -63,6 +65,12 @@ export type ClusterSettings = {
   pvcSize: number | string;
   cullerTimeout: number;
 };
+
+export type Secret = {
+  data?: Record<string, string>;
+  stringData?: Record<string, string>;
+  type?: string;
+} & K8sResourceCommon;
 
 export type OdhApplication = {
   metadata: {
@@ -107,6 +115,8 @@ export type OdhApplication = {
       validationConfigMap?: string;
     };
     featureFlag?: string;
+    internalRoute?: string;
+    hiddenOnExplorePage?: boolean | null;
   };
 };
 
@@ -152,10 +162,12 @@ export enum BUILD_PHASE {
   complete = 'Complete',
   failed = 'Failed',
   cancelled = 'Cancelled',
+  error = 'Error',
 }
 
 export type BuildStatus = {
   name: string;
+  imageTag: string;
   status: BUILD_PHASE;
   timestamp: string;
 };
@@ -240,7 +252,9 @@ export type Notebook = {
       };
     };
   };
-  status?: Record<string, unknown>;
+  status?: {
+    readyReplicas: number;
+  } & Record<string, unknown>;
 } & K8sResourceCommon;
 
 export type NotebookList = {
@@ -344,6 +358,38 @@ export type PipelineRunKind = {
   };
 } & K8sResourceCommon;
 
+export type ImageTag = {
+  image: ImageInfo | undefined;
+  tag: ImageTagInfo | undefined;
+};
+
+export type ImageSoftwareType = {
+  name: string;
+  version?: string;
+};
+
+export type EnvVarCategoryType = {
+  name: string;
+  variables: [
+    {
+      name: string;
+      type: string;
+    },
+  ];
+};
+
+export type VariableRow = {
+  variableType: string;
+  variables: EnvVarType[];
+  errors: { [key: string]: string };
+};
+
+export type EnvVarType = {
+  name: string;
+  type: string;
+  value: string | number;
+};
+
 export type ImageStreamTag = {
   name: string;
   labels?: { [key: string]: string };
@@ -424,9 +470,48 @@ export type ImageInfo = {
   tags: ImageTagInfo[];
   description?: string;
   url?: string;
-  display_name?: string;
+  display_name: string;
   default?: boolean;
-  order?: number;
+  order: number;
+  dockerImageRepo: string;
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
+
+export type PersistentVolumeClaim = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    accessModes: string[];
+    resources: {
+      requests: {
+        storage: string;
+      };
+    };
+    storageClassName?: string;
+    volumeMode: 'Filesystem' | 'Block';
+  };
+  status?: Record<string, any>;
+};
+
+export type PersistentVolumeClaimList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: PersistentVolumeClaim[];
+};
+
+export type Volume = {
+  name: string;
+  emptyDir?: Record<string, any>;
+  persistentVolumeClaim?: {
+    claimName: string;
+  };
+};
+
+export type VolumeMount = { mountPath: string; name: string };

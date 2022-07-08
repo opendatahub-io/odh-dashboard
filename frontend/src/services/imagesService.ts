@@ -3,17 +3,28 @@ import {
   BYONImage,
   BYONImageCreateRequest,
   BYONImageUpdateRequest,
-  ImageType,
+  ImageInfo,
   ResponseStatus,
 } from '../types';
 
-//BYON Specific functions
-export const fetchBYONImages = (type: ImageType): Promise<BYONImage[]> => {
-  const url = `/api/images/${type}`;
+export const fetchImages = (): Promise<ImageInfo[]> => {
+  const url = `/api/images/jupyter`;
   return axios
     .get(url)
     .then((response) => {
-      return response.data.notebooks;
+      return response.data;
+    })
+    .catch((e) => {
+      throw new Error(e.response.data.message);
+    });
+};
+
+export const fetchBYONImages = (): Promise<BYONImage[]> => {
+  const url = '/api/images/byon';
+  return axios
+    .get(url)
+    .then((response) => {
+      return response.data;
     })
     .catch((e) => {
       throw new Error(e.response.data.message);
