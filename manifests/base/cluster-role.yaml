@@ -71,3 +71,15 @@ rules:
       - user.openshift.io
     resources:
       - groups
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - pods
+      - serviceaccounts
+      - secrets
+      - services
+      - namespaces
