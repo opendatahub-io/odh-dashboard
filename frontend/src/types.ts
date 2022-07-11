@@ -28,7 +28,6 @@ export type DashboardCommonConfig = {
   disableBYONImageStream: boolean;
   disableISVBadges: boolean;
   disableAppLauncher: boolean;
-  disableUserManagement: boolean;
 };
 
 export type NotebookControllerUserState = {
