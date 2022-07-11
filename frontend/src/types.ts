@@ -1,3 +1,5 @@
+// TODO: Once we move away from the existing legacy type we should rename this back to K8sResourceCommon
+// import { K8sResourceCommon as K8sResourceCommonSDK } from '@openshift/dynamic-plugin-sdk-utils';
 /*
  * Common types, should be kept up to date with backend types
  */
@@ -201,6 +203,11 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+/**
+ * @deprecated -- use the SDK version
+ * All references that use this are un-vetted data against existing types, should be converted over
+ * to the new K8sResourceCommon from the SDK to keep everythung unified on one front.
+ */
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
