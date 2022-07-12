@@ -65,7 +65,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
       title="Starting server"
       isOpen={startShown}
       showClose
-      onClose={onClose}
+      onClose={() => (isNotebookRunning ? setStartModalShown(false) : onClose())}
     >
       {isNotebookRunning ? running() : loading()}
     </Modal>

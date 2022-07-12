@@ -11,16 +11,12 @@ import { useWatchNotebook } from 'utilities/useWatchNotebook';
 import { deleteNotebook } from '../../services/notebookService';
 import { useSelector } from 'react-redux';
 import { State } from 'redux/types';
-import {
-  generateNotebookNameFromUsername,
-  generateSecretNameFromUsername,
-} from '../../utilities/utils';
+import { generateNotebookNameFromUsername } from '../../utilities/utils';
 import { FAST_POLL_INTERVAL, ODH_NOTEBOOK_REPO, POLL_INTERVAL } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import StartServerModal from './StartServerModal';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { NotebookControllerUserState, Secret } from '../../types';
-import { createSecret, getSecret } from '../../services/secretsService';
+import { NotebookControllerUserState } from '../../types';
 import { EMPTY_USER_STATE } from './const';
 
 export const NotebookController: React.FC = React.memo(() => {
@@ -51,27 +47,12 @@ export const NotebookController: React.FC = React.memo(() => {
       if (username && dashboardConfig.spec.notebookController) {
         const notebookControllerState = dashboardConfig.spec.notebookControllerState;
         const fetchedUserState = notebookControllerState?.find((state) => state.user === username);
-        const secretName = generateSecretNameFromUsername(username);
-        const secret = await getSecret(secretName);
-        if (!secret) {
-          const newSecret: Secret = {
-            apiVersion: 'v1',
-            metadata: {
-              name: secretName,
-              namespace: namespace,
-            },
-            stringData: {},
-            type: 'Opaque',
-          };
-          await createSecret(newSecret);
-        }
         if (!fetchedUserState) {
           const newUserState: NotebookControllerUserState = {
             user: username,
             lastSelectedImage: '',
             lastSelectedSize: '',
             environmentVariables: [],
-            secrets: secretName,
           };
           const patch = {
             spec: {
