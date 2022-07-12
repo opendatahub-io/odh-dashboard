@@ -58,7 +58,7 @@ export const createNotebook = (
               env: [
                 {
                   name: 'NOTEBOOK_ARGS',
-                  value: "--NotebookApp.token='' --NotebookApp.password=''",
+                  value: `--ServerApp.port=8888\n--ServerApp.token=''\n--ServerApp.password=''\n--ServerApp.base_url=/notebook/${projectName}/${notebookName}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
@@ -82,7 +82,7 @@ export const createNotebook = (
                 failureThreshold: 3,
                 httpGet: {
                   scheme: 'HTTP',
-                  path: '/api',
+                  path: `/notebook/${projectName}/${notebookName}/api`,
                   port: 'notebook-port',
                 },
               },
@@ -94,7 +94,7 @@ export const createNotebook = (
                 failureThreshold: 3,
                 httpGet: {
                   scheme: 'HTTP',
-                  path: '/api',
+                  path: `/notebook/${projectName}/${notebookName}/api`,
                   port: 'notebook-port',
                 },
               },
