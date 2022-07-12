@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash-es';
 import { Button, ActionList, ActionListItem } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
 import SpawnerPage from './SpawnerPage';
@@ -17,7 +16,6 @@ import NotebookControllerContext from './NotebookControllerContext';
 import StartServerModal from './StartServerModal';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { NotebookControllerUserState } from '../../types';
-import { EMPTY_USER_STATE } from './const';
 
 export const NotebookController: React.FC = React.memo(() => {
   const { setIsNavOpen } = React.useContext(AppContext);
@@ -40,7 +38,6 @@ export const NotebookController: React.FC = React.memo(() => {
   );
 
   const [startShown, setStartShown] = React.useState<boolean>(false);
-  const [userState, setUserState] = React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
 
   React.useEffect(() => {
     const checkUserState = async () => {
@@ -62,16 +59,11 @@ export const NotebookController: React.FC = React.memo(() => {
             },
           };
           await patchDashboardConfig(patch);
-          setUserState(newUserState);
-        } else {
-          if (!_.isEqual(userState, fetchedUserState)) {
-            setUserState(fetchedUserState);
-          }
         }
       }
     };
     checkUserState().catch((e) => console.error(e));
-  }, [username, dashboardConfig, namespace, userState]);
+  }, [username, dashboardConfig, namespace]);
 
   React.useEffect(() => {
     setNotebookPollInterval(startShown ? FAST_POLL_INTERVAL : POLL_INTERVAL);
@@ -96,7 +88,6 @@ export const NotebookController: React.FC = React.memo(() => {
         notebook,
         isNotebookRunning,
         projectName,
-        userState,
       }}
     >
       <ApplicationsPage
