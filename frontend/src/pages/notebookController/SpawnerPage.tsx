@@ -16,7 +16,7 @@ import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } f
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from './const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, EMPTY_USER_STATE } from './const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useHistory } from 'react-router';
 import { createNotebook } from '../../services/notebookService';
@@ -44,12 +44,15 @@ type SpawnerPageProps = {
 
 const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown }) => {
   const history = useHistory();
-  const { images, dashboardConfig, userState } = React.useContext(NotebookControllerContext);
+  const { images, dashboardConfig } = React.useContext(NotebookControllerContext);
   const [username, namespace] = useSelector<State, [string, string]>((state) => [
     state.appState.user || '',
     state.appState.namespace || '',
   ]);
   const projectName = ODH_NOTEBOOK_REPO || namespace;
+  const userState =
+    dashboardConfig?.spec.notebookControllerState?.find((state) => state.user === username) ||
+    EMPTY_USER_STATE;
   const { buildStatuses } = React.useContext(AppContext);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
@@ -182,7 +185,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     return () => {
       cancelled = true;
     };
-  }, [userState]);
+  }, [userState, username]);
 
   const handleImageTagSelection = (image: ImageInfo, tag: ImageTagInfo, checked: boolean) => {
     if (checked) {
@@ -334,7 +337,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         stringData: envVars.secrets,
         type: 'Opaque',
       };
-      if (!secret) {
+      if (!secret && envVars.secrets) {
         createSecret(newSecret);
       } else if (!_.isEqual(secret.data, envVars.secrets)) {
         replaceSecret(secretName, newSecret);
