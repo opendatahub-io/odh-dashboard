@@ -74,10 +74,7 @@ export const postNotebook = async (
   if (!notebookContainers[0]) {
     console.error('No containers found in posted notebook');
   }
-  notebookContainers[0].env.push(
-    { name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' },
-    { name: 'NOTEBOOK_ARGS', value: "--NotebookApp.token='' --NotebookApp.password=''" },
-  );
+  notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
   notebookContainers[0].imagePullPolicy = 'Always';
   notebookContainers[0].workingDir = '/opt/app-root/src';
 

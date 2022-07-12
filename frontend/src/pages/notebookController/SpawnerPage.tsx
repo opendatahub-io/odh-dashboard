@@ -25,13 +25,14 @@ import { State } from '../../redux/types';
 import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
+  generateSecretNameFromUsername,
 } from '../../utilities/utils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { getSecret, replaceSecret } from '../../services/secretsService';
+import { createSecret, getSecret, replaceSecret } from '../../services/secretsService';
 
 import './NotebookController.scss';
 
@@ -151,28 +152,27 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           });
         });
       }
-      if (userState.secrets) {
-        const secret = await getSecret(userState.secrets);
-        if (secret.data) {
-          Object.entries(secret.data).forEach(([key, value]) => {
-            const errors = fetchedVariableRows.find((variableRow) =>
-              variableRow.variables.find((variable) => variable.name === key),
-            )
-              ? { [key]: 'That name is already in use. Try a different name.' }
-              : {};
-            fetchedVariableRows.push({
-              variableType: CUSTOM_VARIABLE,
-              variables: [
-                {
-                  name: key,
-                  value: Buffer.from(value, 'base64').toString(),
-                  type: 'password',
-                },
-              ],
-              errors,
-            });
+      const secretName = generateSecretNameFromUsername(username);
+      const secret = await getSecret(secretName);
+      if (secret && secret.data) {
+        Object.entries(secret.data).forEach(([key, value]) => {
+          const errors = fetchedVariableRows.find((variableRow) =>
+            variableRow.variables.find((variable) => variable.name === key),
+          )
+            ? { [key]: 'That name is already in use. Try a different name.' }
+            : {};
+          fetchedVariableRows.push({
+            variableType: CUSTOM_VARIABLE,
+            variables: [
+              {
+                name: key,
+                value: Buffer.from(value, 'base64').toString(),
+                type: 'password',
+              },
+            ],
+            errors,
           });
-        }
+        });
       }
       if (!cancelled) {
         setVariableRows(fetchedVariableRows);
@@ -323,25 +323,27 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         },
         { configMap: [] as EnvironmentVariable[], secrets: {} },
       );
-      const secrets = await getSecret(userState.secrets);
-      if (!_.isEqual(secrets.data ?? {}, envVars.secrets)) {
-        const newSecret = {
-          apiVersion: 'v1',
-          metadata: {
-            name: userState.secrets,
-            namespace,
-          },
-          stringData: envVars.secrets,
-          type: 'Opaque',
-        };
-        replaceSecret(userState.secrets, newSecret);
+      const secretName = generateSecretNameFromUsername(username);
+      const secret = await getSecret(secretName);
+      const newSecret = {
+        apiVersion: 'v1',
+        metadata: {
+          name: secretName,
+          namespace,
+        },
+        stringData: envVars.secrets,
+        type: 'Opaque',
+      };
+      if (!secret) {
+        createSecret(newSecret);
+      } else if (!_.isEqual(secret.data, envVars.secrets)) {
+        replaceSecret(secretName, newSecret);
       }
       const updatedUserState = {
         ...userState,
         lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
         lastSelectedSize: selectedSize,
         environmentVariables: envVars.configMap,
-        secrets: userState.secrets,
       };
       const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
         (state) => state.user !== username,

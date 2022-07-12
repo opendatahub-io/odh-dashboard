@@ -36,7 +36,6 @@ export type NotebookControllerUserState = {
   lastSelectedImage: string;
   lastSelectedSize: string;
   environmentVariables: EnvironmentVariable[];
-  secrets: string;
 };
 
 export type NotebookResources = {
