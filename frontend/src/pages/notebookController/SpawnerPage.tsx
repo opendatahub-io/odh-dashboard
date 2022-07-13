@@ -16,7 +16,7 @@ import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } f
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from './const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, EMPTY_USER_STATE } from './const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useHistory } from 'react-router';
 import { createNotebook } from '../../services/notebookService';
@@ -25,13 +25,14 @@ import { State } from '../../redux/types';
 import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
+  generateSecretNameFromUsername,
 } from '../../utilities/utils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { getSecret, replaceSecret } from '../../services/secretsService';
+import { createSecret, getSecret, replaceSecret } from '../../services/secretsService';
 
 import './NotebookController.scss';
 
@@ -43,12 +44,15 @@ type SpawnerPageProps = {
 
 const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown }) => {
   const history = useHistory();
-  const { images, dashboardConfig, userState } = React.useContext(NotebookControllerContext);
+  const { images, dashboardConfig } = React.useContext(NotebookControllerContext);
   const [username, namespace] = useSelector<State, [string, string]>((state) => [
     state.appState.user || '',
     state.appState.namespace || '',
   ]);
   const projectName = ODH_NOTEBOOK_REPO || namespace;
+  const userState =
+    dashboardConfig?.spec.notebookControllerState?.find((state) => state.user === username) ||
+    EMPTY_USER_STATE;
   const { buildStatuses } = React.useContext(AppContext);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
@@ -151,28 +155,27 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           });
         });
       }
-      if (userState.secrets) {
-        const secret = await getSecret(userState.secrets);
-        if (secret.data) {
-          Object.entries(secret.data).forEach(([key, value]) => {
-            const errors = fetchedVariableRows.find((variableRow) =>
-              variableRow.variables.find((variable) => variable.name === key),
-            )
-              ? { [key]: 'That name is already in use. Try a different name.' }
-              : {};
-            fetchedVariableRows.push({
-              variableType: CUSTOM_VARIABLE,
-              variables: [
-                {
-                  name: key,
-                  value: Buffer.from(value, 'base64').toString(),
-                  type: 'password',
-                },
-              ],
-              errors,
-            });
+      const secretName = generateSecretNameFromUsername(username);
+      const secret = await getSecret(secretName);
+      if (secret && secret.data) {
+        Object.entries(secret.data).forEach(([key, value]) => {
+          const errors = fetchedVariableRows.find((variableRow) =>
+            variableRow.variables.find((variable) => variable.name === key),
+          )
+            ? { [key]: 'That name is already in use. Try a different name.' }
+            : {};
+          fetchedVariableRows.push({
+            variableType: CUSTOM_VARIABLE,
+            variables: [
+              {
+                name: key,
+                value: Buffer.from(value, 'base64').toString(),
+                type: 'password',
+              },
+            ],
+            errors,
           });
-        }
+        });
       }
       if (!cancelled) {
         setVariableRows(fetchedVariableRows);
@@ -182,7 +185,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     return () => {
       cancelled = true;
     };
-  }, [userState]);
+  }, [userState, username]);
 
   const handleImageTagSelection = (image: ImageInfo, tag: ImageTagInfo, checked: boolean) => {
     if (checked) {
@@ -323,25 +326,27 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         },
         { configMap: [] as EnvironmentVariable[], secrets: {} },
       );
-      const secrets = await getSecret(userState.secrets);
-      if (!_.isEqual(secrets.data ?? {}, envVars.secrets)) {
-        const newSecret = {
-          apiVersion: 'v1',
-          metadata: {
-            name: userState.secrets,
-            namespace,
-          },
-          stringData: envVars.secrets,
-          type: 'Opaque',
-        };
-        replaceSecret(userState.secrets, newSecret);
+      const secretName = generateSecretNameFromUsername(username);
+      const secret = await getSecret(secretName);
+      const newSecret = {
+        apiVersion: 'v1',
+        metadata: {
+          name: secretName,
+          namespace,
+        },
+        stringData: envVars.secrets,
+        type: 'Opaque',
+      };
+      if (!secret && envVars.secrets) {
+        createSecret(newSecret);
+      } else if (!_.isEqual(secret.data, envVars.secrets)) {
+        replaceSecret(secretName, newSecret);
       }
       const updatedUserState = {
         ...userState,
         lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
         lastSelectedSize: selectedSize,
         environmentVariables: envVars.configMap,
-        secrets: userState.secrets,
       };
       const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
         (state) => state.user !== username,

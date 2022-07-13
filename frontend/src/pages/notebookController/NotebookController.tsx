@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash-es';
 import { Button, ActionList, ActionListItem } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
 import SpawnerPage from './SpawnerPage';
@@ -11,17 +10,12 @@ import { useWatchNotebook } from 'utilities/useWatchNotebook';
 import { deleteNotebook } from '../../services/notebookService';
 import { useSelector } from 'react-redux';
 import { State } from 'redux/types';
-import {
-  generateNotebookNameFromUsername,
-  generateSecretNameFromUsername,
-} from '../../utilities/utils';
+import { generateNotebookNameFromUsername } from '../../utilities/utils';
 import { FAST_POLL_INTERVAL, ODH_NOTEBOOK_REPO, POLL_INTERVAL } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import StartServerModal from './StartServerModal';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { NotebookControllerUserState, Secret } from '../../types';
-import { createSecret, getSecret } from '../../services/secretsService';
-import { EMPTY_USER_STATE } from './const';
+import { NotebookControllerUserState } from '../../types';
 
 export const NotebookController: React.FC = React.memo(() => {
   const { setIsNavOpen } = React.useContext(AppContext);
@@ -44,34 +38,18 @@ export const NotebookController: React.FC = React.memo(() => {
   );
 
   const [startShown, setStartShown] = React.useState<boolean>(false);
-  const [userState, setUserState] = React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
 
   React.useEffect(() => {
     const checkUserState = async () => {
       if (username && dashboardConfig.spec.notebookController) {
         const notebookControllerState = dashboardConfig.spec.notebookControllerState;
         const fetchedUserState = notebookControllerState?.find((state) => state.user === username);
-        const secretName = generateSecretNameFromUsername(username);
-        const secret = await getSecret(secretName);
-        if (!secret) {
-          const newSecret: Secret = {
-            apiVersion: 'v1',
-            metadata: {
-              name: secretName,
-              namespace: namespace,
-            },
-            stringData: {},
-            type: 'Opaque',
-          };
-          await createSecret(newSecret);
-        }
         if (!fetchedUserState) {
           const newUserState: NotebookControllerUserState = {
             user: username,
             lastSelectedImage: '',
             lastSelectedSize: '',
             environmentVariables: [],
-            secrets: secretName,
           };
           const patch = {
             spec: {
@@ -81,16 +59,11 @@ export const NotebookController: React.FC = React.memo(() => {
             },
           };
           await patchDashboardConfig(patch);
-          setUserState(newUserState);
-        } else {
-          if (!_.isEqual(userState, fetchedUserState)) {
-            setUserState(fetchedUserState);
-          }
         }
       }
     };
     checkUserState().catch((e) => console.error(e));
-  }, [username, dashboardConfig, namespace, userState]);
+  }, [username, dashboardConfig, namespace]);
 
   React.useEffect(() => {
     setNotebookPollInterval(startShown ? FAST_POLL_INTERVAL : POLL_INTERVAL);
@@ -115,7 +88,6 @@ export const NotebookController: React.FC = React.memo(() => {
         notebook,
         isNotebookRunning,
         projectName,
-        userState,
       }}
     >
       <ApplicationsPage
