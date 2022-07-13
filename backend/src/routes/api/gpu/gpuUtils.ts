@@ -30,19 +30,19 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
         promPort = promService.spec.ports[i].port.toString();
       }
     }
-    const promSA = await fastify.kube.coreV1Api
-      .readNamespacedServiceAccount('prometheus-k8s', 'openshift-monitoring')
+    const dashboardSA = await fastify.kube.coreV1Api
+      .readNamespacedServiceAccount('odh-dashboard', fastify.kube.namespace)
       .then((res) => res.body as V1ServiceAccount);
-    let promTokenName = '';
-    for (let i = 0; i < promSA.secrets.length; i++) {
-      if (promSA.secrets[i].name.includes('token')) {
-        promTokenName = promSA.secrets[i].name;
+    let dashboardTokenName = '';
+    for (let i = 0; i < dashboardSA.secrets.length; i++) {
+      if (dashboardSA.secrets[i].name.includes('token')) {
+        dashboardTokenName = dashboardSA.secrets[i].name;
       }
     }
-    const promSecret = await fastify.kube.coreV1Api
-      .readNamespacedSecret(promTokenName, 'openshift-monitoring')
+    const dashboardSecret = await fastify.kube.coreV1Api
+      .readNamespacedSecret(dashboardTokenName, fastify.kube.namespace)
       .then((res) => res.body as V1Secret);
-    const promToken = decodeB64(promSecret.data.token);
+    const promToken = decodeB64(dashboardSecret.data.token);
     for (let i = 0; i < gpuPodList.items.length; i++) {
       const podIP = gpuPodList.items[i].status.podIP;
       const options = {
