@@ -16,7 +16,7 @@ import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } f
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, EMPTY_USER_STATE } from './const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, EMPTY_USER_STATE, MOUNT_PATH } from './const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useHistory } from 'react-router';
 import { createNotebook } from '../../services/notebookService';
@@ -293,7 +293,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         await createPvc(pvcName, '20Gi');
       }
       const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-      const volumeMounts = [{ mountPath: '/opt/app-root/src', name: pvcName }];
+      const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
       const notebookName = generateNotebookNameFromUsername(username);
       const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
       setCreateInProgress(true);
