@@ -52,8 +52,12 @@ Run the tests.
 
 For in-depth testing guidance review the [contribution guidelines](./docs/CONTRIBUTING.md#Testing)
 
+## Deploying the ODH Dashbard
+## Deploying the ODH Dashbard using kustomize
+The [manifests](./manifests) folder contains a [kustomize](https://kustomize.io) manifest that can be used with `kustomize build`.
+
 ## Deploying the ODH Dashbard using a kfdef
-The [manifests](./manifests) folder contains a [kustomize](https://kustomize.io) manifest that can be used with `kustomize build` or included as a `kustomizeConfig` in a `kfdef` format that is supported by the ODH operator. An example kfdef to deploy ODH Dashboard with the Notebook Controller backend is located in [odh-dashboard-kfnbc-test.yaml](manifests/kfdef/odh-dashboard-kfnbc-test.yaml)
+The [manifests/kfdef](./manifests/kfdef) folder contains an example kfdef to deploy ODH Dashboard with the Notebook Controller backend is located in [odh-dashboard-kfnbc-test.yaml](manifests/kfdef/odh-dashboard-kfnbc-test.yaml).
 
 ## Contributing
 Contributing encompasses [repository specific requirements](./docs/CONTRIBUTING.md)
