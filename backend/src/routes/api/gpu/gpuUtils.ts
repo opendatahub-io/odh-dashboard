@@ -21,15 +21,6 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
       return { items: [] } as V1PodList;
     });
   if (gpuPodList.items.length != 0) {
-    const promService = await fastify.kube.coreV1Api
-      .readNamespacedService('prometheus-k8s', 'openshift-monitoring')
-      .then((res: { response: http.IncomingMessage; body: V1Service }) => res.body as V1Service);
-    let promPort = '';
-    for (let i = 0; i < promService.spec.ports.length; i++) {
-      if (promService.spec.ports[i].name == 'web') {
-        promPort = promService.spec.ports[i].port.toString();
-      }
-    }
     const dashboardSA = await fastify.kube.coreV1Api
       .readNamespacedServiceAccount('odh-dashboard', fastify.kube.namespace)
       .then((res) => res.body as V1ServiceAccount);
@@ -39,15 +30,15 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
         dashboardTokenName = dashboardSA.secrets[i].name;
       }
     }
-    const dashboardSecret = await fastify.kube.coreV1Api
+    const dashboardSASecret = await fastify.kube.coreV1Api
       .readNamespacedSecret(dashboardTokenName, fastify.kube.namespace)
       .then((res) => res.body as V1Secret);
-    const promToken = decodeB64(dashboardSecret.data.token);
+    const promToken = decodeB64(dashboardSASecret.data.token);
     for (let i = 0; i < gpuPodList.items.length; i++) {
       const podIP = gpuPodList.items[i].status.podIP;
       const options = {
-        hostname: `${promService.spec.clusterIP}`,
-        port: promPort,
+        hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
+        port: 9091,
         path: `/api/v1/query?query=count (count by (UUID,GPU_I_ID) (DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400"})
                      or vector(0)) - count(count by (UUID,GPU_I_ID) (DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400", exported_pod=~".+"}) or vector(0))`,
         headers: {
