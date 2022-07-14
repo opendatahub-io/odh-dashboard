@@ -293,7 +293,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         await createPvc(pvcName, '20Gi');
       }
       const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-      const volumeMounts = [{ mountPath: '/home/jovyan', name: pvcName }];
+      const volumeMounts = [{ mountPath: '/opt/app-root/src', name: pvcName }];
       const notebookName = generateNotebookNameFromUsername(username);
       const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
       setCreateInProgress(true);
