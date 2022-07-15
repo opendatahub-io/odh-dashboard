@@ -58,6 +58,10 @@ export const createNotebook = (
                   name: 'NOTEBOOK_ARGS',
                   value: "--NotebookApp.token='' --NotebookApp.password=''",
                 },
+                {
+                  name: 'JUPYTER_IMAGE',
+                  value: imageUrl,
+                },
               ],
               resources,
               volumeMounts,

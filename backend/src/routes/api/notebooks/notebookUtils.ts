@@ -79,7 +79,6 @@ export const postNotebook = async (
   notebookContainers[0].workingDir = '/opt/app-root/src';
 
   notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
-  notebookContainers[0].name = notebookData.metadata.name;
 
   try {
     await fastify.kube.customObjectsApi.createNamespacedCustomObject(
