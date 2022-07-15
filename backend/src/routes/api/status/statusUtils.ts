@@ -21,9 +21,20 @@ export const status = async (
   const currentUserName =
     (request.headers['x-forwarded-user'] as string) || currentUser.username || currentUser.name;
   let userName = currentUserName?.split('/')[0];
+  console.log('*********************');
+  console.log(currentUser)
+  console.log('*********************');
+  console.log(userName)
+  console.log('*********************');
+  console.log(request.headers['x-forwarded-user'] as string)
+  console.log('*********************');
+
   if (!userName || userName === 'inClusterUser') {
     userName = DEFAULT_USERNAME;
   }
+  console.log('--------------------');
+  console.log(userName)
+  console.log('--------------------');
   const customObjectsApi = fastify.kube.customObjectsApi;
   const coreV1Api = fastify.kube.coreV1Api;
   const rbacAuthorizationApi = fastify.kube.rbac;
@@ -63,6 +74,17 @@ export const status = async (
     fastify.log.error(error, 'failed to get status');
     throw error;
   } else {
+    console.log('################');
+    console.log({
+      currentContext,
+      currentUser,
+      namespace,
+      userName,
+      clusterID,
+      clusterBranding,
+      isAdmin,
+    })
+    console.log('###############3');
     return {
       kube: {
         currentContext,
@@ -86,6 +108,9 @@ export const checkUserInGroups = async (
   namespace: string,
 ): Promise<boolean> => {
   let isAdmin = false;
+  console.log('++++++++++++++++++');
+  console.log(userName)
+  console.log('++++++++++++++++++');
   try {
     for (const group of adminGroupsList) {
       const adminUsers = await getGroup(customObjectApi, group);
@@ -104,6 +129,9 @@ export const checkUserInGroups = async (
       fastify.log.error(e.toString());
     }
   }
+  console.log('++++++++++++++++++');
+  console.log(isAdmin + 'is Admin!!!!!')
+  console.log('++++++++++++++++++');
   return isAdmin;
 };
 
