@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as _ from 'lodash-es';
 import {
   DescriptionList,
   DescriptionListDescription,
@@ -20,7 +21,7 @@ import NotebookControllerContext from './NotebookControllerContext';
 
 const NotebookServerDetails: React.FC = () => {
   const [isExpanded, setExpanded] = React.useState(false);
-  const { notebook, images } = React.useContext(NotebookControllerContext);
+  const { notebook, images, dashboardConfig } = React.useContext(NotebookControllerContext);
 
   const empty = React.useCallback(() => <div>Error load notebook details</div>, []);
 
@@ -40,6 +41,9 @@ const NotebookServerDetails: React.FC = () => {
   const tagSoftware = getDescriptionForTag(tag);
   const tagDependencies = tag.content.dependencies ?? [];
   const numGpus = getNumGpus(container);
+  const size = dashboardConfig?.spec.notebookSizes?.find((size) =>
+    _.isEqual(size.resources.limits, container.resources?.limits),
+  );
 
   const onToggle = (expanded: boolean) => setExpanded(expanded);
 
@@ -73,7 +77,7 @@ const NotebookServerDetails: React.FC = () => {
       <DescriptionList isCompact>
         <DescriptionListGroup>
           <DescriptionListTerm>Container size</DescriptionListTerm>
-          <DescriptionListDescription>Default</DescriptionListDescription>
+          <DescriptionListDescription>{size ? size.name : 'Unknown'}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Limits</DescriptionListTerm>
