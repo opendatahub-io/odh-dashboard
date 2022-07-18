@@ -71,16 +71,14 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
   const [gpuSize, setGpuSize] = React.useState<number>(0);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
-  const [userState, setUserState] = React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
-
-  React.useMemo(() => {
+  const userState = React.useMemo(() => {
     if (translatedUsername) {
       const newUserState = dashboardConfig?.spec.notebookControllerState?.find(
         (state) => state.user === translatedUsername,
       );
-      if (newUserState) {
-        setUserState(newUserState);
-      }
+      return newUserState;
+    } else {
+      return EMPTY_USER_STATE;
     }
   }, [dashboardConfig, translatedUsername]);
 
