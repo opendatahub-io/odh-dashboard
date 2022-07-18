@@ -12,7 +12,14 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../utilities/imageUtils';
-import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } from '../../types';
+import {
+  ImageInfo,
+  ImageTag,
+  VariableRow,
+  ImageTagInfo,
+  EnvironmentVariable,
+  NotebookControllerUserState,
+} from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -26,6 +33,7 @@ import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
   generateSecretNameFromUsername,
+  usernameTranslate,
 } from '../../utilities/utils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
@@ -50,9 +58,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     state.appState.namespace || '',
   ]);
   const projectName = ODH_NOTEBOOK_REPO || namespace;
-  const userState =
-    dashboardConfig?.spec.notebookControllerState?.find((state) => state.user === username) ||
-    EMPTY_USER_STATE;
+  const translatedUsername = usernameTranslate(username);
   const { buildStatuses } = React.useContext(AppContext);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
@@ -65,6 +71,18 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
   const [gpuSize, setGpuSize] = React.useState<number>(0);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
+  const [userState, setUserState] = React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
+
+  React.useEffect(() => {
+    if (translatedUsername) {
+      const newUserState = dashboardConfig?.spec.notebookControllerState?.find(
+        (state) => state.user === translatedUsername,
+      );
+      if (newUserState) {
+        setUserState(newUserState);
+      }
+    }
+  }, [dashboardConfig, translatedUsername]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -300,6 +318,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       await createNotebook(
         projectName,
         notebookName,
+        translatedUsername,
         imageUrl,
         notebookSize,
         parseInt(selectedGpu),
@@ -349,7 +368,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         environmentVariables: envVars.configMap,
       };
       const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
-        (state) => state.user !== username,
+        (state) => state.user !== translatedUsername,
       );
       const dashboardConfigPatch = {
         spec: {
