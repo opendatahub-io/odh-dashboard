@@ -73,7 +73,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const [userState, setUserState] = React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
 
-  React.useEffect(() => {
+  React.useMemo(() => {
     if (translatedUsername) {
       const newUserState = dashboardConfig?.spec.notebookControllerState?.find(
         (state) => state.user === translatedUsername,
