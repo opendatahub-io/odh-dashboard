@@ -18,7 +18,6 @@ import {
   VariableRow,
   ImageTagInfo,
   EnvironmentVariable,
-  NotebookControllerUserState,
 } from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
@@ -76,7 +75,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       const newUserState = dashboardConfig?.spec.notebookControllerState?.find(
         (state) => state.user === translatedUsername,
       );
-      if (newUserState)
+      if (newUserState) {
         return newUserState;
       }
     }
