@@ -64,6 +64,10 @@ export const createNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                {
+                  name: 'TENSORBOARD_PROXY_URL',
+                  value: `/notebook/${projectName}/${notebookName}/proxy/6006/`,
+                },
               ],
               resources,
               volumeMounts,
