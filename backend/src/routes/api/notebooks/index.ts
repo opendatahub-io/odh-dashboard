@@ -11,7 +11,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       labels: string;
     };
 
-    return await getNotebooks(fastify, params.projectName, query.labels);
+    return await getNotebooks(fastify, params.projectName, query.labels)
+      .then((res) => {
+        return res;
+      })
+      .catch((res) => {
+        reply.send(res);
+      });
   });
 
   fastify.get(
@@ -21,11 +27,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         projectName: string;
         notebookName: string;
       };
-      const query = request.query as {
-        labels: string;
-      };
 
-      return await getNotebook(fastify, params.projectName, params.notebookName);
+      return await getNotebook(fastify, params.projectName, params.notebookName)
+        .then((res) => {
+          return res;
+        })
+        .catch((res) => {
+          reply.send(res);
+        });
     },
   );
 
@@ -35,7 +44,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     };
     const notebookData = request.body as Notebook;
 
-    return await postNotebook(fastify, params.projectName, notebookData);
+    return await postNotebook(fastify, params.projectName, notebookData)
+      .then((res) => {
+        return res;
+      })
+      .catch((res) => {
+        reply.send(res);
+      });
   });
 
   fastify.delete(
@@ -46,13 +61,20 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         notebookName: string;
       };
 
-      return fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
-        'kubeflow.org',
-        'v1',
-        params.projectName,
-        'notebooks',
-        params.notebookName,
-      );
+      return fastify.kube.customObjectsApi
+        .deleteNamespacedCustomObject(
+          'kubeflow.org',
+          'v1',
+          params.projectName,
+          'notebooks',
+          params.notebookName,
+        )
+        .then((res) => {
+          return res;
+        })
+        .catch((res) => {
+          reply.send(res);
+        });
     },
   );
 
@@ -65,7 +87,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       };
       const requestBody = request.body as { stopped: boolean } | any;
 
-      return await patchNotebook(fastify, requestBody, params.projectName, params.notebookName);
+      return await patchNotebook(fastify, requestBody, params.projectName, params.notebookName)
+        .then((res) => {
+          return res;
+        })
+        .catch((res) => {
+          reply.send(res);
+        });
     },
   );
 };

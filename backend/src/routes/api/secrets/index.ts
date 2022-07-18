@@ -21,7 +21,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       postSecret(fastify, secret);
       return `Secret succesfully created`;
     } catch (e) {
-      return `Secret could not be created ${e}`;
+      reply.send(`Secret could not be created ${e}`);
     }
   });
   fastify.put('/:name', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -33,7 +33,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       replaceSecret(fastify, secret, params.name);
       return `Secret succesfully replaced`;
     } catch (e) {
-      return `Secret could not be replaced ${e}`;
+      reply.send(`Secret could not be replaced ${e}`);
     }
   });
 };
