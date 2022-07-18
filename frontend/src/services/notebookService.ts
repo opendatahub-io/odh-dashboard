@@ -58,7 +58,10 @@ export const createNotebook = (
               env: [
                 {
                   name: 'NOTEBOOK_ARGS',
-                  value: `--ServerApp.port=8888\n--ServerApp.token=''\n--ServerApp.password=''\n--ServerApp.base_url=/notebook/${projectName}/${notebookName}`,
+                  value: `--ServerApp.port=8888
+                  --ServerApp.token=''
+                  --ServerApp.password=''
+                  --ServerApp.base_url=/notebook/${projectName}/${notebookName}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
