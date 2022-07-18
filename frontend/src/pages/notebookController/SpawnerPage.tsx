@@ -12,13 +12,7 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../utilities/imageUtils';
-import {
-  ImageInfo,
-  ImageTag,
-  VariableRow,
-  ImageTagInfo,
-  EnvironmentVariable,
-} from '../../types';
+import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
