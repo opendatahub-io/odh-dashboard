@@ -77,7 +77,6 @@ export const postNotebook = async (
   notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
 
   notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
-  notebookContainers[0].name = notebookData.metadata.name;
 
   try {
     await fastify.kube.customObjectsApi.createNamespacedCustomObject(
