@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Notebook, NotebookSize, Volume, VolumeMount } from '../types';
 import { store } from '../redux/store/store';
-import { LIMIT_NOTEBOOK_IMAGE_GPU } from 'utilities/const';
+import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
+import { MOUNT_PATH } from '../pages/notebookController/const';
 
 export const getNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
@@ -52,6 +53,7 @@ export const createNotebook = (
             {
               image: imageUrl,
               imagePullPolicy: 'Always',
+              workingDir: MOUNT_PATH,
               name: notebookName,
               env: [
                 {
