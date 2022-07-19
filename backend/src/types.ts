@@ -115,9 +115,9 @@ export type BuildKind = {
     output: {
       to: {
         name: string;
-      }
-    }
-  }
+      };
+    };
+  };
   status: {
     phase: BUILD_PHASE;
     completionTimestamp: string;
