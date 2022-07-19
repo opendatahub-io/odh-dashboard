@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { Notebook, NotebookSize, Volume, VolumeMount } from '../types';
-import { store } from '../redux/store/store';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
 
@@ -19,6 +18,7 @@ export const getNotebook = (projectName: string, notebookName: string): Promise<
 export const createNotebook = (
   projectName: string,
   notebookName: string,
+  username: string,
   imageUrl: string,
   notebookSize: NotebookSize | undefined,
   gpus: number,
@@ -42,7 +42,7 @@ export const createNotebook = (
       labels: {
         app: notebookName,
         'opendatahub.io/odh-managed': 'true',
-        'opendatahub.io/user': store.getState().appState.user,
+        'opendatahub.io/user': username,
       },
       name: notebookName,
     },
