@@ -75,11 +75,8 @@ export const postNotebook = async (
     console.error('No containers found in posted notebook');
   }
   notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
-  notebookContainers[0].imagePullPolicy = 'Always';
-  notebookContainers[0].workingDir = '/opt/app-root/src';
 
   notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
-  notebookContainers[0].name = notebookData.metadata.name;
 
   try {
     await fastify.kube.customObjectsApi.createNamespacedCustomObject(

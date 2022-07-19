@@ -1,11 +1,7 @@
 name: Bug Report
 description: File a bug report
 title: "[Bug]: "
-labels: ["bug"]
-assignees:
-  - lucferbux
-  - DaoDaoNoCode
-  - dlabaj
+labels: ["kind/bug", "untriaged"]
 body:
   - type: markdown
     attributes:
