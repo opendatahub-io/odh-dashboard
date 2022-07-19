@@ -32,7 +32,7 @@
     "test:clearCache": "jest --clearCache",
     "test:dev": "run-s test:lint test:local",
     "test:fix": "eslint --ext .json,.js,.ts,.jsx,.tsx ./src --fix",
-    "test:lint": "eslint --ext .json,.js,.ts,.jsx,.tsx ./src",
+    "test:lint": "eslint --max-warnings 0 --ext .json,.js,.ts,.jsx,.tsx ./src",
     "test:local": "jest --watchAll",
     "test:type-check": "tsc --noEmit"
   },
