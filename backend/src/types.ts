@@ -1,4 +1,4 @@
-import k8s from '@kubernetes/client-node';
+import k8s, { V1Event } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance } from 'fastify';
 
@@ -36,6 +36,14 @@ export type DashboardConfig = K8sResourceCommon & {
     ];
   };
 };
+
+export type NotebookStatus = {
+  percentile: number;
+  currentStatus: "Warning" | "Error" | "In Progress" | "Success";
+  currentEvent: string;
+  currentEventDescription: string;
+  events: V1Event[]
+}
 
 export type NotebookResources = {
   requests?: {
