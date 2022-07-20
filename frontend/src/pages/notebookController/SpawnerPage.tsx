@@ -298,6 +298,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       { configMap: {}, secrets: {} },
     );
     const secret = await getSecret(envVarFileName);
+    if (!secret.data) {
+      secret.data = {};
+    }
     const newSecret = {
       apiVersion: 'v1',
       metadata: {
@@ -313,6 +316,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       await replaceSecret(envVarFileName, newSecret);
     }
     const configMap = await getConfigMap(envVarFileName);
+    if (!configMap.data) {
+      configMap.data = {};
+    }
     const newConfigMap = {
       apiVersion: 'v1',
       metadata: {
