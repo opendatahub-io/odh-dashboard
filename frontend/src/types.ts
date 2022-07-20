@@ -247,6 +247,7 @@ export type Notebook = {
   spec: {
     template: {
       spec: {
+        enableServiceLinks?: boolean;
         containers: NotebookContainer[];
       };
     };
