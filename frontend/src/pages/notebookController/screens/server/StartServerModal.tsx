@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert, AlertVariant, Button, Modal, ModalVariant, Spinner } from '@patternfly/react-core';
-import { Notebook } from '../../types';
-import { checkNotebookRunning } from '../../utilities/notebookControllerUtils';
+import { Notebook } from '../../../../types';
+import { checkNotebookRunning } from '../../../../utilities/notebookControllerUtils';
 
-import './NotebookController.scss';
+import '../../NotebookController.scss';
 
 type StartServerModalProps = {
   notebook?: Notebook;

@@ -80,6 +80,7 @@ notebookControllerState:
 - user: username
   lastSelectedImage: foo:bar
   lastSelectedSize: XSmall
+  lastActivity: 733122000000
 ```
 
 ## Example OdhDashboard Config
@@ -131,4 +132,5 @@ status:
   - user: username
     lastSelectedImage: foo:bar
     lastSelectedSize: XSmall
+    lastActivity: 733122000000
 ```

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import * as _ from 'lodash';
 import { AxiosError } from 'axios';
 import {
@@ -24,6 +25,7 @@ import {
   VariableRow,
 } from '../types';
 import { createRoleBinding, getRoleBinding } from 'services/roleBindingService';
+import AppContext from '../app/AppContext';
 
 export const usernameTranslate = (username: string): string =>
   username
@@ -205,6 +207,21 @@ export const getUserStateFromDashboardConfig = (
   notebookControllerState: NotebookControllerUserState[],
 ): NotebookControllerUserState | undefined =>
   notebookControllerState.find((state) => usernameTranslate(state.user) === translatedUsername);
+
+export const useGetUserStateFromDashboardConfig = (): ((
+  username: string,
+) => NotebookControllerUserState | undefined) => {
+  const { dashboardConfig } = React.useContext(AppContext);
+
+  return React.useCallback(
+    (username: string) =>
+      getUserStateFromDashboardConfig(
+        username,
+        dashboardConfig.status?.notebookControllerState || [],
+      ),
+    [dashboardConfig],
+  );
+};
 
 /** Check whether the namespace of the notebooks has the access to image streams
  * If not, create the rolebinding

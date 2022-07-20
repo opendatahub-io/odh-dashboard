@@ -1,8 +1,8 @@
 .odh-notebook-controller {
   &__page {
     padding: 0 var(--pf-global--spacer--lg) var(--pf-global--spacer--lg) var(--pf-global--spacer--lg);
-    &-form {
-      width: 50%;
+    &-content {
+      max-width: 1000px;
     }
     .pf-c-select {
       width: 70%;

@@ -34,6 +34,7 @@ export type DashboardConfig = K8sResourceCommon & {
         user: string;
         lastSelectedImage: string;
         lastSelectedSize: string;
+        lastActivity: number;
       },
     ];
   };

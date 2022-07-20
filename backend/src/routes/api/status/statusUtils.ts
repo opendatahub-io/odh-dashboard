@@ -33,7 +33,10 @@ export const status = async (
       );
     } else {
       const adminUsers = await getGroup(customObjectsApi, adminGroup);
-      isAdmin = adminUsers?.includes(userName) ?? false;
+      if (adminUsers) {
+        // Usernames with invalid characters can start with `b64:` to keep their unwanted characters
+        isAdmin = adminUsers.includes(userName) || adminUsers.includes(`b64:${userName}`);
+      }
     }
   } catch (e) {
     fastify.log.error(e.toString());

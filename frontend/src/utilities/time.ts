@@ -26,7 +26,7 @@ export const relativeTime = (current: number, previous: number): string => {
     if (months > 1) return `${months} months ago`;
     else return `${months} months`;
   } else {
-    const date = new Date(current);
+    const date = new Date(previous);
 
     const month = date.getMonth();
     let monthAsString = 'Jan';

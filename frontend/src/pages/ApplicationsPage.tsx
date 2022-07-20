@@ -11,6 +11,8 @@ import {
   Spinner,
   Title,
   EmptyStateBody,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 
 import './ApplicationsPage.scss';
@@ -24,6 +26,7 @@ type ApplicationsPageProps = {
   errorMessage?: string;
   emptyMessage?: string;
   emptyStatePage?: React.ReactNode;
+  headerAction?: React.ReactNode;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -36,13 +39,19 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   errorMessage,
   emptyMessage,
   emptyStatePage,
+  headerAction,
 }) => {
   const renderHeader = () => (
     <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
-      <TextContent className="odh-apps__heading__text">
-        <Text component="h1">{title}</Text>
-        <Text component="p">{description}</Text>
-      </TextContent>
+      <Split>
+        <SplitItem isFilled>
+          <TextContent className="odh-apps__heading__text">
+            <Text component="h1">{title}</Text>
+            <Text component="p">{description}</Text>
+          </TextContent>
+        </SplitItem>
+        {headerAction && <SplitItem>{headerAction}</SplitItem>}
+      </Split>
     </PageSection>
   );
 

@@ -81,7 +81,7 @@ spec:
                     envVarConfig:
                       type: object
                       properties:
-                        enabled: 
+                        enabled:
                           type: boolean
                     pvcSize:
                       type: string
@@ -93,9 +93,11 @@ spec:
                   items:
                     type: object
                     properties:
-                      user: 
+                      user:
                         type: string
                       lastSelectedImage:
                         type: string
                       lastSelectedSize:
                         type: string
+                      lastActivity:
+                        type: number

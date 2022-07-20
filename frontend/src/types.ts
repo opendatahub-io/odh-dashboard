@@ -43,6 +43,7 @@ export type NotebookControllerUserState = {
   user: string;
   lastSelectedImage: string;
   lastSelectedSize: string;
+  lastActivity: number;
 };
 
 export type NotebookResources = {
