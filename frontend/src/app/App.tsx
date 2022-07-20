@@ -16,6 +16,7 @@ import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
 import AppContext from './AppContext';
 
 import './App.scss';
+import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
 
 const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   useTrackHistory();
 
   const buildStatuses = useWatchBuildStatus();
+  const { dashboardConfig } = useWatchDashboardConfig();
 
   React.useEffect(() => {
     dispatch(detectUser());
@@ -46,6 +48,7 @@ const App: React.FC = () => {
         setIsNavOpen,
         onNavToggle,
         buildStatuses,
+        dashboardConfig,
       }}
     >
       <Page

@@ -3,6 +3,7 @@ import { Route, Switch } from 'react-router-dom';
 import ApplicationsPage from '../pages/ApplicationsPage';
 import { State } from '../redux/types';
 import { useSelector } from 'react-redux';
+import NotebookControllerRoutes from '../pages/notebookController/NotebookControllerRoutes';
 
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
@@ -10,8 +11,8 @@ const InstalledApplications = React.lazy(
 const ExploreApplications = React.lazy(
   () => import('../pages/exploreApplication/ExploreApplications'),
 );
-const NotebookController = React.lazy(
-  () => import('../pages/notebookController/NotebookController'),
+const NotebookLogoutRedirectPage = React.lazy(
+  () => import('../pages/notebookController/NotebookLogoutRedirect'),
 );
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
@@ -30,7 +31,14 @@ const Routes: React.FC = () => {
         <Route path="/" exact component={InstalledApplications} />
         <Route path="/explore" exact component={ExploreApplications} />
         <Route path="/resources" exact component={LearningCenterPage} />
-        <Route path="/notebookController" exact component={NotebookController} />
+        <Route path="/notebookController">
+          <NotebookControllerRoutes />
+        </Route>
+        <Route
+          path="/notebook/:namespace/:notebookName/logout"
+          exact
+          component={NotebookLogoutRedirectPage}
+        />
         {isAdmin && <Route path="/notebookImages" exact component={BYONImagesPage} />}
         {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}
         <Route component={NotFound} />

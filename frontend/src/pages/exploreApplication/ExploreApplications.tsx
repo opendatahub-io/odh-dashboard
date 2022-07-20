@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router';
+import { useHistory } from 'react-router-dom';
 import classNames from 'classnames';
 import * as _ from 'lodash';
 import {

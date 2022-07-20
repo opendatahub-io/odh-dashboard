@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router';
+import { useHistory } from 'react-router-dom';
 import { VerticalTabs, VerticalTabsTab } from '@patternfly/react-catalog-view-extension';
 import { OdhDocument } from '../../types';
 import { CATEGORY_ANNOTATION } from '../../utilities/const';
