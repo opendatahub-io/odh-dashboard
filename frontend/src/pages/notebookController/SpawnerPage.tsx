@@ -12,7 +12,15 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../utilities/imageUtils';
-import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } from '../../types';
+import {
+  ImageInfo,
+  ImageTag,
+  VariableRow,
+  ImageTagInfo,
+  ConfigMap,
+  Secret,
+  EnvVarReducedTypeKeyValues,
+} from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -25,7 +33,7 @@ import { State } from '../../redux/types';
 import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
-  generateSecretNameFromUsername,
+  generateEnvVarFileNameFromUsername,
   usernameTranslate,
 } from '../../utilities/utils';
 import AppContext from '../../app/AppContext';
@@ -34,6 +42,7 @@ import NotebookControllerContext from './NotebookControllerContext';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { createSecret, getSecret, replaceSecret } from '../../services/secretsService';
+import { createConfigMap, getConfigMap, replaceConfigMap } from '../../services/configMapService';
 
 import './NotebookController.scss';
 
@@ -141,34 +150,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     }
   }, [dashboardConfig, userState]);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    const mapEnvironmentVariableRows = async () => {
+  const mapRows = React.useCallback(
+    async (isSecret: boolean, callback: (name: string) => Promise<ConfigMap | Secret>) => {
       const fetchedVariableRows: VariableRow[] = [];
-      if (userState?.environmentVariables && userState?.environmentVariables.length !== 0) {
-        userState.environmentVariables.forEach((envVariable) => {
-          const errors = fetchedVariableRows.find((variableRow) =>
-            variableRow.variables.find((variable) => variable.name === envVariable.key),
-          )
-            ? { [envVariable.key]: 'That name is already in use. Try a different name.' }
-            : {};
-          fetchedVariableRows.push({
-            variableType: CUSTOM_VARIABLE,
-            variables: [
-              {
-                name: envVariable.key,
-                value: envVariable.value,
-                type: 'text',
-              },
-            ],
-            errors,
-          });
-        });
-      }
-      const secretName = generateSecretNameFromUsername(username);
-      const secret = await getSecret(secretName);
-      if (secret && secret.data) {
-        Object.entries(secret.data).forEach(([key, value]) => {
+      const envVarFileName = generateEnvVarFileNameFromUsername(username);
+      const response: ConfigMap | Secret = await callback(envVarFileName);
+      if (response && response.data) {
+        Object.entries(response.data).forEach(([key, value]) => {
           const errors = fetchedVariableRows.find((variableRow) =>
             variableRow.variables.find((variable) => variable.name === key),
           )
@@ -179,14 +167,25 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
             variables: [
               {
                 name: key,
-                value: Buffer.from(value, 'base64').toString(),
-                type: 'password',
+                value: isSecret ? Buffer.from(value, 'base64').toString() : value,
+                type: isSecret ? 'password' : 'text',
               },
             ],
             errors,
           });
         });
       }
+      return fetchedVariableRows;
+    },
+    [username],
+  );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const mapEnvironmentVariableRows = async () => {
+      const fetchedVariableRowsConfigMap = await mapRows(false, getConfigMap);
+      const fetchedVariableRowsSecret = await mapRows(true, getSecret);
+      const fetchedVariableRows = [...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret];
       if (!cancelled) {
         setVariableRows(fetchedVariableRows);
       }
@@ -195,7 +194,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     return () => {
       cancelled = true;
     };
-  }, [userState, username]);
+  }, [mapRows]);
 
   const handleImageTagSelection = (image: ImageInfo, tag: ImageTagInfo, checked: boolean) => {
     if (checked) {
@@ -277,6 +276,59 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     setVariableRows(updatedRows);
   };
 
+  // update the config map and secret file on the cluster
+  const checkEnvVarFile = async () => {
+    const envVarFileName = generateEnvVarFileNameFromUsername(username);
+    const envVars: EnvVarReducedTypeKeyValues = variableRows.reduce(
+      (prev, curr) => {
+        const vars: Record<string, string | number> = {};
+        const secretVars: Record<string, string | number> = {};
+        curr.variables.forEach((variable) => {
+          if (variable.type === 'text') {
+            vars[variable.name] = variable.value;
+          } else {
+            secretVars[variable.name] = variable.value;
+          }
+        });
+        return {
+          configMap: { ...prev.configMap, ...vars },
+          secrets: { ...prev.secrets, ...secretVars },
+        };
+      },
+      { configMap: {}, secrets: {} },
+    );
+    const secret = await getSecret(envVarFileName);
+    const newSecret = {
+      apiVersion: 'v1',
+      metadata: {
+        name: envVarFileName,
+        namespace,
+      },
+      stringData: envVars.secrets,
+      type: 'Opaque',
+    };
+    if (!secret && envVars.secrets) {
+      await createSecret(newSecret);
+    } else if (!_.isEqual(secret.data, envVars.secrets)) {
+      await replaceSecret(envVarFileName, newSecret);
+    }
+    const configMap = await getConfigMap(envVarFileName);
+    const newConfigMap = {
+      apiVersion: 'v1',
+      metadata: {
+        name: envVarFileName,
+        namespace,
+      },
+      data: envVars.configMap,
+    };
+    if (!configMap && envVars.configMap) {
+      await createConfigMap(newConfigMap);
+    } else if (!_.isEqual(configMap.data, envVars.configMap)) {
+      await replaceConfigMap(envVarFileName, newConfigMap);
+    }
+    return { envVarFileName, ...envVars };
+  };
+
   const addEnvironmentVariableRow = () => {
     const newRow: VariableRow = {
       variableType: CUSTOM_VARIABLE,
@@ -307,6 +359,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       const notebookName = generateNotebookNameFromUsername(username);
       const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
       setCreateInProgress(true);
+      const envVars = await checkEnvVarFile();
       await createNotebook(
         projectName,
         notebookName,
@@ -314,50 +367,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         imageUrl,
         notebookSize,
         parseInt(selectedGpu),
+        envVars,
         volumes,
         volumeMounts,
       );
       setCreateInProgress(false);
       setStartModalShown(true);
-      const envVars = variableRows.reduce(
-        (prev, curr) => {
-          const vars: EnvironmentVariable[] = [];
-          const secretVars: Record<string, string | number> = {};
-          curr.variables.forEach((variable) => {
-            if (variable.type === 'text') {
-              vars.push({ key: variable.name, value: variable.value });
-            } else {
-              secretVars[variable.name] = variable.value;
-            }
-          });
-          return {
-            configMap: [...prev.configMap, ...vars],
-            secrets: { ...prev.secrets, ...secretVars },
-          };
-        },
-        { configMap: [] as EnvironmentVariable[], secrets: {} },
-      );
-      const secretName = generateSecretNameFromUsername(username);
-      const secret = await getSecret(secretName);
-      const newSecret = {
-        apiVersion: 'v1',
-        metadata: {
-          name: secretName,
-          namespace,
-        },
-        stringData: envVars.secrets,
-        type: 'Opaque',
-      };
-      if (!secret && envVars.secrets) {
-        createSecret(newSecret);
-      } else if (!_.isEqual(secret.data, envVars.secrets)) {
-        replaceSecret(secretName, newSecret);
-      }
       const updatedUserState = {
         ...userState,
         lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
         lastSelectedSize: selectedSize,
-        environmentVariables: envVars.configMap,
       };
       const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
         (state) => state.user !== translatedUsername,

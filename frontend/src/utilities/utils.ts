@@ -146,5 +146,5 @@ export const generateNotebookNameFromUsername = (username: string): string =>
 export const generatePvcNameFromUsername = (username: string): string =>
   `jupyterhub-nb-${usernameTranslate(username)}-pvc`;
 
-export const generateSecretNameFromUsername = (username: string): string =>
+export const generateEnvVarFileNameFromUsername = (username: string): string =>
   `jupyterhub-singleuser-profile-${usernameTranslate(username)}-envs`;

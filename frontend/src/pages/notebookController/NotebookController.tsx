@@ -52,7 +52,6 @@ export const NotebookController: React.FC = React.memo(() => {
             user: translatedUsername,
             lastSelectedImage: '',
             lastSelectedSize: '',
-            environmentVariables: [],
           };
           const patch = {
             spec: {

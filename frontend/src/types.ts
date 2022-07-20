@@ -35,7 +35,6 @@ export type NotebookControllerUserState = {
   user: string;
   lastSelectedImage: string;
   lastSelectedSize: string;
-  environmentVariables: EnvironmentVariable[];
 };
 
 export type NotebookResources = {
@@ -54,6 +53,15 @@ export type EnvironmentVariable = {
   value: string | number;
 };
 
+export type EnvVarReducedType = {
+  envVarFileName: string;
+} & EnvVarReducedTypeKeyValues;
+
+export type EnvVarReducedTypeKeyValues = {
+  configMap: Record<string, string>;
+  secrets: Record<string, string>;
+};
+
 export type NotebookSize = {
   name: string;
   resources: NotebookResources;
@@ -69,6 +77,10 @@ export type Secret = {
   data?: Record<string, string>;
   stringData?: Record<string, string>;
   type?: string;
+} & K8sResourceCommon;
+
+export type ConfigMap = {
+  data?: Record<string, string>;
 } & K8sResourceCommon;
 
 export type OdhApplication = {

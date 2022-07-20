@@ -5,5 +5,4 @@ export const EMPTY_USER_STATE = {
   user: '',
   lastSelectedImage: '',
   lastSelectedSize: '',
-  environmentVariables: [],
 };
