@@ -12,7 +12,7 @@
       - --cookie-secret=SECRET
       - '--openshift-delegate-urls={"/": {"resource": "route", "verb": "get", "name": "odh-dashboard"}}'
       - --skip-auth-regex=^/metrics
-    image: oauth-proxy    # Replaced by the kustomize images parameter
+    image: oauth-proxy
     ports:
       - containerPort: 8443
         name: https

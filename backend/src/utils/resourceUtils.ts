@@ -1,4 +1,5 @@
 import * as jsYaml from 'js-yaml';
+import * as _ from 'lodash';
 import createError from 'http-errors';
 import fs from 'fs';
 import path from 'path';
@@ -26,9 +27,6 @@ import {
 import { getComponentFeatureFlags } from './features';
 import { yamlRegExp, blankDashboardCR } from './constants';
 import { getIsAppEnabled, getRouteForClusterId } from './componentUtils';
-import fastify from 'fastify';
-
-const _ = require('lodash');
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -45,7 +43,7 @@ let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 
 const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
-  const dashboardName = process.env['DASHBOARD_CONFIG'] || 'odh-dashboard-config';
+  const dashboardName = process.env['DASHBOARD_CONFIG'] || dashboardConfigMapName;
   const crResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
     .getNamespacedCustomObject(
       'opendatahub.io',
@@ -114,7 +112,7 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionK
         }
       }
     } catch (e) {
-      console.log(`ERROR: `, e.body.message);
+      console.error(`ERROR: `, e.body.message);
     }
     return subscriptions;
   };
@@ -180,7 +178,7 @@ const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhAp
 
   for (const appDef of applicationDefs) {
     appDef.spec.getStartedLink = getRouteForClusterId(fastify, appDef.spec.getStartedLink);
-    appDef.spec.shownOnEnabledPage = enabledAppsCM?.data[appDef.metadata.name] === 'true'; // check cm isEnabled
+    appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true'; // check cm isEnabled
     appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef);
     if (appDef.spec.isEnabled) {
       if (!appDef.spec.shownOnEnabledPage) {
@@ -371,6 +369,10 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
 export const getDashboardConfig = (): DashboardConfig => {
   const config = dashboardConfigWatcher.getResources()?.[0];
   return _.merge({}, blankDashboardCR, config); // merge with blank CR to prevent any missing values
+};
+
+export const updateDashboardConfig = (): Promise<void> => {
+  return dashboardConfigWatcher.updateResults();
 };
 
 export const getSubscriptions = (): SubscriptionKind[] => {

@@ -9,8 +9,8 @@ import {
 import openshiftLogo from '../images/openshift.svg';
 import { RootState } from '../redux/types';
 import { useWatchConsoleLinks } from '../utilities/useWatchConsoleLinks';
-import { DashboardConfig } from '../types';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
+import { DashboardCommonConfig } from '../types';
 
 type ApplicationAction = {
   label: string;
@@ -69,7 +69,7 @@ const sectionSortValue = (section: Section): number => {
 };
 
 type AppLauncherProps = {
-  dashboardConfig: any; // Changed to avoid creating new types.
+  dashboardConfig: DashboardCommonConfig; // Changed to avoid creating new types.
 };
 
 const AppLauncher: React.FC<AppLauncherProps> = ({ dashboardConfig }) => {

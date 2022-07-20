@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Modal, ModalVariant } from '@patternfly/react-core';
-import { deleteBYONImage } from '../../services/BYONImageService';
+import { deleteBYONImage } from '../../services/imagesService';
 import { BYONImage } from 'types';
 export type ImportImageModalProps = {
   isOpen: boolean;

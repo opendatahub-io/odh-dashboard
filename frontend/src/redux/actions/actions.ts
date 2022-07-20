@@ -9,7 +9,13 @@ export const getUserPending = (): GetUserAction => ({
 });
 
 export const getUserFulfilled = (response: {
-  kube: { userName: string; clusterID: string; clusterBranding: string; isAdmin: boolean };
+  kube: {
+    userName: string;
+    clusterID: string;
+    clusterBranding: string;
+    isAdmin: boolean;
+    namespace: string;
+  };
 }): GetUserAction => ({
   type: Actions.GET_USER_FULFILLED,
   payload: {
@@ -17,6 +23,7 @@ export const getUserFulfilled = (response: {
     clusterID: response.kube.clusterID,
     clusterBranding: response.kube.clusterBranding,
     isAdmin: response.kube.isAdmin,
+    namespace: response.kube.namespace,
   },
 });
 

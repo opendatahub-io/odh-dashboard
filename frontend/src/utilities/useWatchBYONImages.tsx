@@ -1,7 +1,7 @@
 import * as React from 'react';
 // import { useSelector } from 'react-redux';
 // import { State } from '../redux/types';
-import { fetchBYONImages } from '../services/BYONImageService';
+import { fetchBYONImages } from '../services/imagesService';
 import { BYONImage } from '../types';
 import { POLL_INTERVAL } from './const';
 //import { useDeepCompareMemoize } from './useDeepCompareMemoize';
@@ -17,7 +17,7 @@ export const useWatchBYONImages = (): {
   const [images, setImages] = React.useState<BYONImage[]>([]);
   const forceUpdate = () => {
     setLoaded(false);
-    fetchBYONImages('byon')
+    fetchBYONImages()
       .then((data: BYONImage[]) => {
         setLoaded(true);
         setLoadError(undefined);
@@ -31,7 +31,7 @@ export const useWatchBYONImages = (): {
   React.useEffect(() => {
     let watchHandle;
     const watchImages = () => {
-      fetchBYONImages('byon')
+      fetchBYONImages()
         .then((data: BYONImage[]) => {
           setLoaded(true);
           setLoadError(undefined);

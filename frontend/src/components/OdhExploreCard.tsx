@@ -28,19 +28,21 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   enableOpen,
   onEnableClose,
 }) => {
+  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+  React.useEffect(() => {
+    if (isSelected) {
+      makeCardVisible(odhApp.metadata.name);
+    }
+  }, [odhApp.metadata.name, isSelected]);
+  if (odhApp.spec.hiddenOnExplorePage) {
+    return null;
+  }
   const disabled = odhApp.spec.comingSoon || disableInfo;
   const cardClasses = classNames('odh-card', { 'm-disabled': disabled });
   const badgeClasses = classNames('odh-card__partner-badge', {
     'm-warning': odhApp.spec.category === 'Third party support',
     'm-hidden': odhApp.spec.category === ODH_PRODUCT_NAME,
   });
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
-
-  React.useEffect(() => {
-    if (isSelected) {
-      makeCardVisible(odhApp.metadata.name);
-    }
-  }, [odhApp.metadata.name, isSelected]);
 
   return (
     <Card

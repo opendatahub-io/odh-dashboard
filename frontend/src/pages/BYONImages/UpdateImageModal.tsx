@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
 import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { updateBYONImage } from '../../services/BYONImageService';
+import { updateBYONImage } from '../../services/imagesService';
 import { EditStepTableRow } from './EditStepTableRow';
 import { BYONImage, BYONImagePackage } from 'types';
 import './UpdateImageModal.scss';

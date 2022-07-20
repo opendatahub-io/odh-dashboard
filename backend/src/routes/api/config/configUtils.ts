@@ -1,4 +1,5 @@
 import { PatchUtils } from '@kubernetes/client-node';
+import { getDashboardConfig, updateDashboardConfig } from '../../../utils/resourceUtils';
 import { KubeFastifyInstance, DashboardConfig } from '../../../types';
 
 export const setDashboardConfig = async (
@@ -8,7 +9,7 @@ export const setDashboardConfig = async (
   const options = {
     headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
   };
-  const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+  await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
     'opendatahub.io',
     'v1alpha',
     fastify.kube.namespace,
@@ -20,5 +21,6 @@ export const setDashboardConfig = async (
     undefined,
     options,
   );
-  return response.body as DashboardConfig;
+  await updateDashboardConfig();
+  return getDashboardConfig();
 };

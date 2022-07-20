@@ -1,4 +1,3 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
 import { getGPUNumber } from './gpuUtils';
 

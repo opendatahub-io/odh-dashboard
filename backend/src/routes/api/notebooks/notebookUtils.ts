@@ -30,14 +30,21 @@ export const getNotebook = async (
   namespace: string,
   notebookName: string,
 ): Promise<Notebook> => {
-  const kubeResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
-    'kubeflow.org',
-    'v1',
-    namespace,
-    'notebooks',
-    notebookName,
-  );
-  return kubeResponse.body as Notebook;
+  try {
+    const kubeResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
+      'kubeflow.org',
+      'v1',
+      namespace,
+      'notebooks',
+      notebookName,
+    );
+    return kubeResponse.body as Notebook;
+  } catch (e) {
+    if (e.response?.statusCode === 404) {
+      return null;
+    }
+    throw e;
+  }
 };
 
 export const verifyResources = (resources: NotebookResources): NotebookResources => {
@@ -55,6 +62,8 @@ export const postNotebook = async (
   namespace: string,
   notebookData: Notebook,
 ): Promise<Notebook> => {
+  const notebookName = notebookData.metadata.name;
+  notebookData.metadata.namespace = namespace;
   if (!notebookData?.metadata?.annotations) {
     notebookData.metadata.annotations = {};
   }
@@ -65,30 +74,29 @@ export const postNotebook = async (
   if (!notebookContainers[0]) {
     console.error('No containers found in posted notebook');
   }
-  notebookContainers[0].env.push(
-    { name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' },
-    { name: 'NOTEBOOK_ARGS', value: "--NotebookApp.token='' --NotebookApp.password=''" },
-  );
-  notebookContainers[0].imagePullPolicy = 'Always';
-  notebookContainers[0].workingDir = '/opt/app-root/src';
+  notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
 
   notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
-  notebookContainers[0].name = notebookData.metadata.name;
 
-  await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-    'kubeflow.org',
-    'v1',
-    namespace,
-    'notebooks',
-    notebookData,
-  );
-
+  try {
+    await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+      'kubeflow.org',
+      'v1',
+      namespace,
+      'notebooks',
+      notebookData,
+    );
+  } catch (e) {
+    fastify.log.error(e.toString());
+  }
+  // wait until the Route is created
+  await new Promise((r) => setTimeout(r, 500));
   const getRouteResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
     'route.openshift.io',
     'v1',
     namespace,
     'routes',
-    notebookData.metadata.name,
+    notebookName,
   );
 
   const route = getRouteResponse.body as Route;
@@ -96,16 +104,11 @@ export const postNotebook = async (
   const patch = {
     metadata: {
       annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}`,
+        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
       },
     },
   };
-  const patchNotebookResponse = await patchNotebook(
-    fastify,
-    patch,
-    namespace,
-    notebookData.metadata.name,
-  );
+  const patchNotebookResponse = await patchNotebook(fastify, patch, namespace, notebookName);
 
   return patchNotebookResponse as Notebook;
 };

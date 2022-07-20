@@ -37,6 +37,8 @@ spec:
                       type: boolean
                     disableISVBadges:
                       type: boolean
+                    disableUserManagement:
+                      type: boolean
                 notebookSizes:
                   type: array
                   items:
