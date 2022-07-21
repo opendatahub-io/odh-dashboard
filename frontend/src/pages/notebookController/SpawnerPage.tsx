@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash-es';
 import {
   ActionGroup,
   Button,
@@ -19,7 +18,7 @@ import {
   ImageTagInfo,
   ConfigMap,
   Secret,
-  EnvVarReducedTypeKeyValues,
+  EnvVarResourceKind,
 } from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
@@ -35,14 +34,17 @@ import {
   generatePvcNameFromUsername,
   generateEnvVarFileNameFromUsername,
   usernameTranslate,
+  verifyResource,
+  checkEnvVarFile,
+  generatePvc,
 } from '../../utilities/utils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { createSecret, getSecret, replaceSecret } from '../../services/secretsService';
-import { createConfigMap, getConfigMap, replaceConfigMap } from '../../services/configMapService';
+import { getSecret } from '../../services/secretsService';
+import { getConfigMap } from '../../services/configMapService';
 
 import './NotebookController.scss';
 
@@ -151,18 +153,19 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
   }, [dashboardConfig, userState]);
 
   const mapRows = React.useCallback(
-    async (isSecret: boolean, callback: (name: string) => Promise<ConfigMap | Secret>) => {
-      const fetchedVariableRows: VariableRow[] = [];
+    async (fetchFunc: (name: string) => Promise<ConfigMap | Secret>) => {
+      let fetchedVariableRows: VariableRow[] = [];
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
-      const response: ConfigMap | Secret = await callback(envVarFileName);
+      const response = await verifyResource(envVarFileName, fetchFunc);
       if (response && response.data) {
-        Object.entries(response.data).forEach(([key, value]) => {
+        const isSecret = response.kind === EnvVarResourceKind.Secret;
+        fetchedVariableRows = Object.entries(response.data).map(([key, value]) => {
           const errors = fetchedVariableRows.find((variableRow) =>
             variableRow.variables.find((variable) => variable.name === key),
           )
             ? { [key]: 'That name is already in use. Try a different name.' }
             : {};
-          fetchedVariableRows.push({
+          return {
             variableType: CUSTOM_VARIABLE,
             variables: [
               {
@@ -172,7 +175,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
               },
             ],
             errors,
-          });
+          };
         });
       }
       return fetchedVariableRows;
@@ -183,11 +186,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
   React.useEffect(() => {
     let cancelled = false;
     const mapEnvironmentVariableRows = async () => {
-      const fetchedVariableRowsConfigMap = await mapRows(false, getConfigMap);
-      const fetchedVariableRowsSecret = await mapRows(true, getSecret);
-      const fetchedVariableRows = [...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret];
+      const fetchedVariableRowsConfigMap = await mapRows(getConfigMap);
+      const fetchedVariableRowsSecret = await mapRows(getSecret);
       if (!cancelled) {
-        setVariableRows(fetchedVariableRows);
+        setVariableRows([...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret]);
       }
     };
     mapEnvironmentVariableRows().catch((e) => console.error(e));
@@ -276,65 +278,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     setVariableRows(updatedRows);
   };
 
-  // update the config map and secret file on the cluster
-  const checkEnvVarFile = async () => {
-    const envVarFileName = generateEnvVarFileNameFromUsername(username);
-    const envVars: EnvVarReducedTypeKeyValues = variableRows.reduce(
-      (prev, curr) => {
-        const vars: Record<string, string | number> = {};
-        const secretVars: Record<string, string | number> = {};
-        curr.variables.forEach((variable) => {
-          if (variable.type === 'text') {
-            vars[variable.name] = variable.value;
-          } else {
-            secretVars[variable.name] = variable.value;
-          }
-        });
-        return {
-          configMap: { ...prev.configMap, ...vars },
-          secrets: { ...prev.secrets, ...secretVars },
-        };
-      },
-      { configMap: {}, secrets: {} },
-    );
-    const secret = await getSecret(envVarFileName);
-    if (!secret.data) {
-      secret.data = {};
-    }
-    const newSecret = {
-      apiVersion: 'v1',
-      metadata: {
-        name: envVarFileName,
-        namespace,
-      },
-      stringData: envVars.secrets,
-      type: 'Opaque',
-    };
-    if (!secret && envVars.secrets) {
-      await createSecret(newSecret);
-    } else if (!_.isEqual(secret.data, envVars.secrets)) {
-      await replaceSecret(envVarFileName, newSecret);
-    }
-    const configMap = await getConfigMap(envVarFileName);
-    if (!configMap.data) {
-      configMap.data = {};
-    }
-    const newConfigMap = {
-      apiVersion: 'v1',
-      metadata: {
-        name: envVarFileName,
-        namespace,
-      },
-      data: envVars.configMap,
-    };
-    if (!configMap && envVars.configMap) {
-      await createConfigMap(newConfigMap);
-    } else if (!_.isEqual(configMap.data, envVars.configMap)) {
-      await replaceConfigMap(envVarFileName, newConfigMap);
-    }
-    return { envVarFileName, ...envVars };
-  };
-
   const addEnvironmentVariableRow = () => {
     const newRow: VariableRow = {
       variableType: CUSTOM_VARIABLE,
@@ -354,52 +297,46 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
       (ns) => ns.name === selectedSize,
     );
-    try {
-      const pvcName = generatePvcNameFromUsername(username);
-      const pvc = await getPvc(pvcName);
-      if (!pvc) {
-        await createPvc(pvcName, '20Gi');
-      }
-      const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-      const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
-      const notebookName = generateNotebookNameFromUsername(username);
-      const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
-      setCreateInProgress(true);
-      const envVars = await checkEnvVarFile();
-      await createNotebook(
-        projectName,
-        notebookName,
-        translatedUsername,
-        imageUrl,
-        notebookSize,
-        parseInt(selectedGpu),
-        envVars,
-        volumes,
-        volumeMounts,
-      );
-      setCreateInProgress(false);
-      setStartModalShown(true);
-      const updatedUserState = {
-        ...userState,
-        lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
-        lastSelectedSize: selectedSize,
-      };
-      const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
-        (state) => state.user !== translatedUsername,
-      );
-      const dashboardConfigPatch = {
-        spec: {
-          notebookControllerState: otherUsersStates
-            ? [...otherUsersStates, updatedUserState]
-            : [updatedUserState],
-        },
-      };
-      await patchDashboardConfig(dashboardConfigPatch);
-    } catch (e) {
-      setCreateInProgress(false);
-      setStartModalShown(false);
-      console.error(e);
-    }
+    const pvcName = generatePvcNameFromUsername(username);
+    const pvcBody = generatePvc(pvcName, '20Gi');
+    await verifyResource(pvcName, getPvc, createPvc, pvcBody).catch((e) =>
+      console.error(`Something wrong with PVC ${pvcName}: ${e}`),
+    );
+    const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
+    const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
+    const notebookName = generateNotebookNameFromUsername(username);
+    const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
+    setCreateInProgress(true);
+    const envVars = await checkEnvVarFile(username, namespace, variableRows);
+    await createNotebook(
+      projectName,
+      notebookName,
+      translatedUsername,
+      imageUrl,
+      notebookSize,
+      parseInt(selectedGpu),
+      envVars,
+      volumes,
+      volumeMounts,
+    );
+    setCreateInProgress(false);
+    setStartModalShown(true);
+    const updatedUserState = {
+      ...userState,
+      lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+      lastSelectedSize: selectedSize,
+    };
+    const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
+      (state) => state.user !== translatedUsername,
+    );
+    const dashboardConfigPatch = {
+      spec: {
+        notebookControllerState: otherUsersStates
+          ? [...otherUsersStates, updatedUserState]
+          : [updatedUserState],
+      },
+    };
+    await patchDashboardConfig(dashboardConfigPatch);
   };
 
   return (
@@ -464,7 +401,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           </Button>
         </FormSection>
         <ActionGroup>
-          <Button variant="primary" onClick={handleNotebookAction} isDisabled={createInProgress}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              handleNotebookAction().catch((e) => {
+                setCreateInProgress(false);
+                setStartModalShown(false);
+                console.error(e);
+              });
+            }}
+            isDisabled={createInProgress}
+          >
             Start server
           </Button>
           <Button variant="secondary" onClick={() => history.push('/')}>

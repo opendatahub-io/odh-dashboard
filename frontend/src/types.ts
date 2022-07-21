@@ -83,6 +83,13 @@ export type ConfigMap = {
   data?: Record<string, string>;
 } & K8sResourceCommon;
 
+export type EnvVarResource = Secret | ConfigMap;
+
+export enum EnvVarResourceKind {
+  Secret = 'Secret',
+  ConfigMap = 'ConfigMap',
+}
+
 export type OdhApplication = {
   metadata: {
     name: string;

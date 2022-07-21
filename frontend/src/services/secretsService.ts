@@ -1,38 +1,30 @@
 import axios from 'axios';
 import { Secret } from '../types';
 
-export const getSecret = (name: string): Promise<Secret> => {
-  const url = `/api/secrets/${name}`;
-  return axios
-    .get(url)
-    .then((response) => {
-      return response.data;
-    })
-    .catch((e) => {
-      throw new Error(e.response.data.message);
-    });
+export const getSecret = (secretName: string): Promise<Secret> => {
+  const url = `/api/secrets/${secretName}`;
+  return axios.get(url).then((response) => {
+    return response.data;
+  });
 };
 
 export const createSecret = (data: Secret): Promise<Secret> => {
   const url = `/api/secrets`;
-  return axios
-    .post(url, data)
-    .then((response) => {
-      return response.data;
-    })
-    .catch((e) => {
-      throw new Error(e.response.data.message);
-    });
+  return axios.post(url, data).then((response) => {
+    return response.data;
+  });
 };
 
 export const replaceSecret = (secretName: string, data: Secret): Promise<Secret> => {
   const url = `/api/secrets/${secretName}`;
-  return axios
-    .put(url, data)
-    .then((response) => {
-      return response.data;
-    })
-    .catch((e) => {
-      throw new Error(e.response.data.message);
-    });
+  return axios.put(url, data).then((response) => {
+    return response.data;
+  });
+};
+
+export const deleteSecret = (secretName: string): Promise<void> => {
+  const url = `/api/secrets/${secretName}`;
+  return axios.delete(url).then((response) => {
+    return response.data;
+  });
 };
