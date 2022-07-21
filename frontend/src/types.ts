@@ -495,7 +495,7 @@ export type PersistentVolumeClaim = {
     storageClassName?: string;
     volumeMode: 'Filesystem' | 'Block';
   };
-  status?: Record<string, any>;
+  status?: Record<string, any>; // eslint-disable-line
 };
 
 export type PersistentVolumeClaimList = {
@@ -507,7 +507,7 @@ export type PersistentVolumeClaimList = {
 
 export type Volume = {
   name: string;
-  emptyDir?: Record<string, any>;
+  emptyDir?: Record<string, any>; // eslint-disable-line
   persistentVolumeClaim?: {
     claimName: string;
   };
