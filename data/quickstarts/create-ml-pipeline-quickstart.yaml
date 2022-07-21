@@ -1,0 +1,92 @@
+kind: ConsoleQuickStart
+metadata:
+  name: create-ml-pipeline
+  annotations:
+    opendatahub.io/categories: 'Getting started,ML Pipelines'
+spec:
+  displayName: Creating an ML Pipeline
+  appName: ml-pipelines
+  durationMinutes: 5
+  icon: 'images/kubeflow.svg'
+  description: Create a simple pipeline that automatically runs tasks in a machine learning deployment workflow
+  introduction: |-
+    ### This quick start shows you how to create an ML Pipeline.
+    Open Data Hub lets you run Kubeflow or Tekton Pipelines in a scalable OpenShift hybrid cloud environment.
+
+    This quickstart shows you how to compile, create and run a simple example pipeline execution using the Kubeflow Pipelines Python SDK and ML Pipelines UI.
+  tasks:
+    - title: Launch ML Pipelines
+      description: |-
+        ### To find the ML Pipelines Launch action:
+        1. Click **Applications** &#x2192; **Enabled**.
+        2. Find the ML Pipelines card.
+        3. Click **Launch** on the ML Pipelines card to access the **Piplines dashboard**.
+
+        A new browser tab will open displaying the **Pipelines Dashboard** page.
+      review:
+        instructions: |-
+          #### To verify you have launched ML Pipelines:
+          Is a new **ML Pipelines** browser tab visible with the **Dashboard** page open?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have launched ML Pipelines.
+        failed: Try the steps again.
+
+    - title: Install Python SDK and compile sample pipeline
+      description: |-
+        ### Install the Kubeflow Pipelines Python SDK
+        1. Follow the [Kubeflow Pipelines Tekton Python SDK Installation instructions](https://github.com/kubeflow/kfp-tekton/blob/master/samples/README.md#prerequisites)
+        2. Download, clone or copy the [flip-coin example pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/core/condition/condition.py)
+        3. Compile the python pipeline defintion into a Tekton YAML:
+        ```
+        python condition.py
+        ```
+      review:
+        instructions: |-
+          #### To verify you compiled the flip-coin sample pipeline:
+          Is there now a `condition.yaml` file in the directory you downloaded `condition.py` from?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have installed the Kubeflow Pipelines Tekton SDK and compiled a sample pipeline definition into a Tekton yaml
+        failed: Try the steps again.
+
+    - title: Create a Pipeline
+      description: |-
+        ### Create a simple Pipeline from an example Kubeflow Pipeline .py file:
+        1. Click the **+Upload Pipeline** button in the top right corner
+        2. Leave the **Create a new pipeline** radio button selected
+        3. Type a pipeline name in the **Pipeline Name** field
+        4. Add a short description in the **Pipeline Description** field
+        5. Select the **Upload a file** radio button and click **Choose file** in the **File** text box
+        6. Find and select the condition.yaml file you compiled from the previous step
+        7. Click **Create**
+
+        The ML Pipelines **Upload Pipeline** page will redirect to a graph of the Pipeline you created
+      review:
+        instructions: |-
+          #### To verify that you have created a Pipeline:
+          Do you see a graph/chart in the shape of a flow diagram, that is titled with your sample pipeline's name?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have successfully created an ML Pipeline.
+        failed: Try the steps again.
+
+    - title: Run the Pipeline
+      description: |-
+        ### Create the pipeline created in the previous setp:
+        1. Click the **+ Create run** button in the top right corner. You will be redirected to a **Start a run** form.
+        2. Click the **Choose** button in the **Experiment** text field.  Select the **Default** experiment.
+        3. Leave all other fields the same.
+        4. Click the **Start** button.
+
+        You will now be redirected to the **Default** Experiment page.  You should see an execution of the pipeline you created in the **Active** list of runs.
+      review:
+        instructions: |-
+          #### To verify that you have executed a Pipeline run:
+          Are you on the **Experiments** page of the ML Pipelines UI?  Do you see an entry under **Active** runs with the name of the pipeline you created?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have successfully run an ML Pipeline.
+        failed: Try the steps again.
+  conclusion: You are now able to create and run a sample ML Pipeline!
+  nextQuickStart: []

@@ -1,0 +1,17 @@
+metadata:
+  name: mlpipelines
+  annotations:
+    opendatahub.io/categories: 'ML Pipelines'
+spec:
+  displayName: ML Pipelines
+  provider: Kubeflow
+  description: |-
+    Pipeline tool specialized for Machine Learning workloads, leveraging Kubeflow and Openshift Pipelines
+  kfdefApplications: ['ml-pipelines']
+  route: ml-pipeline-ui
+  img: images/kubeflow.svg
+  category: ODH Core
+  support: Open Data Hub
+  docsLink: https://www.kubeflow.org/docs/components/pipelines/
+  quickStart: create-ml-pipeline
+  getStartedLink: https://www.kubeflow.org/docs/started/
