@@ -37,7 +37,7 @@ import {
   verifyResource,
   checkEnvVarFile,
   generatePvc,
-} from '../../utilities/utils';
+} from '../../utilities/notebookControllerUtils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
