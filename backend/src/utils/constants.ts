@@ -1,6 +1,5 @@
 import './dotenv';
 import { DashboardConfig } from '../types';
-import { V1ConfigMap } from '@kubernetes/client-node';
 
 export const PORT = process.env.PORT || process.env.BACKEND_PORT || 8080;
 export const IP = process.env.IP || '0.0.0.0';
@@ -40,12 +39,4 @@ export const blankDashboardCR: DashboardConfig = {
       disableUserManagement: false,
     },
   },
-};
-export const blankEnvCM: V1ConfigMap = {
-  apiVersion: 'v1',
-  kind: 'ConfigMap',
-  metadata: {
-    name: '',
-  },
-  data: {},
 };
