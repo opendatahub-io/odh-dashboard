@@ -4,7 +4,7 @@ import { KubeFastifyInstance, DashboardConfig } from '../../../types';
 
 export const setDashboardConfig = async (
   fastify: KubeFastifyInstance,
-  request: any,
+  request: Partial<DashboardConfig>,
 ): Promise<DashboardConfig> => {
   const options = {
     headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
