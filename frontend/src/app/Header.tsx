@@ -3,6 +3,7 @@ import { Brand, PageHeader } from '@patternfly/react-core';
 import HeaderTools from './HeaderTools';
 import { ODH_LOGO, ODH_PRODUCT_NAME } from '../utilities/const';
 import AppContext from './AppContext';
+import { Link } from 'react-router-dom';
 
 type HeaderProps = {
   onNotificationsClick: () => void;
@@ -12,7 +13,11 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
   const { isNavOpen, onNavToggle } = React.useContext(AppContext);
   return (
     <PageHeader
-      logo={<Brand src={ODH_LOGO} alt={`${ODH_PRODUCT_NAME} Logo`} />}
+      logo={
+        <Link to="/">
+          <Brand src={ODH_LOGO} alt={`${ODH_PRODUCT_NAME} Logo`} />
+        </Link>
+      }
       headerTools={<HeaderTools onNotificationsClick={onNotificationsClick} />}
       showNavToggle
       isNavOpen={isNavOpen}
