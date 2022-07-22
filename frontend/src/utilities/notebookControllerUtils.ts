@@ -9,10 +9,11 @@ import {
 import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
 import {
   ConfigMap,
+  DeleteStatus,
   EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
-  EnvVarResourceKind,
+  EnvVarResourceType,
   PersistentVolumeClaim,
   Secret,
   VariableRow,
@@ -88,7 +89,7 @@ export const verifyEnvVars = async (
   fetchFunc: (resourceName: string) => Promise<EnvVarResource>,
   createFunc: (resource: Secret | ConfigMap) => Promise<EnvVarResource>,
   replaceFunc: (resourceName: string, resource: EnvVarResource) => Promise<EnvVarResource>,
-  deleteFunc: (resourceName: string) => Promise<void>,
+  deleteFunc: (resourceName: string) => Promise<DeleteStatus>,
 ): Promise<void> => {
   if (!envVars) {
     const resource = await verifyResource(name, fetchFunc);
@@ -97,7 +98,7 @@ export const verifyEnvVars = async (
     }
   } else {
     const body =
-      kind === EnvVarResourceKind.Secret
+      kind === EnvVarResourceType.Secret
         ? {
             stringData: envVars,
             type: 'Opaque',
@@ -132,7 +133,7 @@ export const checkEnvVarFile = async (
   await verifyEnvVars(
     envVarFileName,
     namespace,
-    EnvVarResourceKind.Secret,
+    EnvVarResourceType.Secret,
     envVars.secrets,
     getSecret,
     createSecret,
@@ -142,7 +143,7 @@ export const checkEnvVarFile = async (
   await verifyEnvVars(
     envVarFileName,
     namespace,
-    EnvVarResourceKind.ConfigMap,
+    EnvVarResourceType.ConfigMap,
     envVars.configMap,
     getConfigMap,
     createConfigMap,

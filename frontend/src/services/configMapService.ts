@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ConfigMap } from '../types';
+import { ConfigMap, DeleteStatus } from '../types';
 
 export const getConfigMap = (configMapName: string): Promise<ConfigMap> => {
   const url = `/api/configmaps/${configMapName}`;
@@ -22,7 +22,7 @@ export const replaceConfigMap = (configMapName: string, data: ConfigMap): Promis
   });
 };
 
-export const deleteConfigMap = (configMapName: string): Promise<void> => {
+export const deleteConfigMap = (configMapName: string): Promise<DeleteStatus> => {
   const url = `/api/configmaps/${configMapName}`;
   return axios.delete(url).then((response) => {
     return response.data;

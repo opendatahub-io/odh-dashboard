@@ -18,7 +18,7 @@ import {
   ImageTagInfo,
   ConfigMap,
   Secret,
-  EnvVarResourceKind,
+  EnvVarResourceType,
 } from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
@@ -69,7 +69,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     tag: undefined,
   });
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
-  const [selectedSize, setSelectedSize] = React.useState<string>();
+  const [selectedSize, setSelectedSize] = React.useState<string>('');
   const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [gpuSize, setGpuSize] = React.useState<number>(0);
@@ -158,7 +158,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
       const response = await verifyResource(envVarFileName, fetchFunc);
       if (response && response.data) {
-        const isSecret = response.kind === EnvVarResourceKind.Secret;
+        const isSecret = response.kind === EnvVarResourceType.Secret;
         fetchedVariableRows = Object.entries(response.data).map(([key, value]) => {
           const errors = fetchedVariableRows.find((variableRow) =>
             variableRow.variables.find((variable) => variable.name === key),

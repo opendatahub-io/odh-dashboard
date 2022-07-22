@@ -2,6 +2,10 @@
  * Common types, should be kept up to date with backend types
  */
 
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
+};
+
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
@@ -85,7 +89,7 @@ export type ConfigMap = {
 
 export type EnvVarResource = Secret | ConfigMap;
 
-export enum EnvVarResourceKind {
+export enum EnvVarResourceType {
   Secret = 'Secret',
   ConfigMap = 'ConfigMap',
 }
@@ -533,3 +537,13 @@ export type Volume = {
 };
 
 export type VolumeMount = { mountPath: string; name: string };
+
+/** Copy from partial of V1Status that will returned by the delete CoreV1Api */
+export type DeleteStatus = {
+  apiVersion?: string;
+  code?: number;
+  kind?: string;
+  message?: string;
+  reason?: string;
+  status?: string;
+};

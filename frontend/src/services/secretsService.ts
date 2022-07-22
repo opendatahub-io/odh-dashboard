@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Secret } from '../types';
+import { DeleteStatus, Secret } from '../types';
 
 export const getSecret = (secretName: string): Promise<Secret> => {
   const url = `/api/secrets/${secretName}`;
@@ -22,7 +22,7 @@ export const replaceSecret = (secretName: string, data: Secret): Promise<Secret>
   });
 };
 
-export const deleteSecret = (secretName: string): Promise<void> => {
+export const deleteSecret = (secretName: string): Promise<DeleteStatus> => {
   const url = `/api/secrets/${secretName}`;
   return axios.delete(url).then((response) => {
     return response.data;
