@@ -1,8 +1,10 @@
 import { KubeFastifyInstance } from '../../../types';
 import { V1PodList, V1Secret, V1Service, V1ServiceAccount } from '@kubernetes/client-node';
+import https from 'https';
 import http from 'http';
+import gpu from '.';
 
-export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number> => {
+export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<any> => {
   let maxGpuNumber = 0;
   const gpuPodList = await fastify.kube.coreV1Api
     .listNamespacedPod(
@@ -46,15 +48,15 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
     for (let i = 0; i < gpuPodList.items.length; i++) {
       const podIP = gpuPodList.items[i].status.podIP;
       const options = {
-        hostname: `${promService.spec.clusterIP}`,
-        port: promPort,
-        path: `/api/v1/query?query=count (count by (UUID,GPU_I_ID) (DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400"})
-                     or vector(0)) - count(count by (UUID,GPU_I_ID) (DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400", exported_pod=~".+"}) or vector(0))`,
+        hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
+        port: 9091,
+        path: `/api/v1/query?query=DCGM_FI_PROF_GR_ENGINE_ACTIVE`,
         headers: {
           Authorization: `Bearer ${promToken}`,
         },
-        protocol: 'https://',
+        protocol: 'https:',
       };
+      //const fullURL = "https://thanos-querier.openshift-monitoring.svc.cluster.local:9091/api/v1/query?query=DCGM_FI_PROF_GR_ENGINE_ACTIVE"
       let gpuNumberData: any = null;
       const callback = function (res: any) {
         res.setEncoding('utf8');
@@ -72,11 +74,12 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
         });
       };
 
-      http.get(options, callback).end();
-      const gpuNumber = gpuNumberData[0]['value'][1];
-      if (gpuNumber > maxGpuNumber) {
-        maxGpuNumber = gpuNumber;
-      }
+      https.get(options, callback).end();
+      maxGpuNumber = gpuNumberData;
+      //const gpuNumber = gpuNumberData[0]['value'][1];
+      //if (gpuNumber > maxGpuNumber) {
+      //  maxGpuNumber = gpuNumber;
+      //}
     }
   }
   return maxGpuNumber;
