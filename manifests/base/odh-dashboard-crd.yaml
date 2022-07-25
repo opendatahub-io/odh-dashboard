@@ -71,6 +71,8 @@ spec:
                   properties:
                     enabled:
                       type: boolean
+                    notebookNamespace:
+                      type: string
                     gpuConfig:
                       type: object
                       properties:

@@ -8,7 +8,6 @@ import {
 } from '../services/configMapService';
 import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
 import {
-  ConfigMap,
   DeleteStatus,
   EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
@@ -17,9 +16,10 @@ import {
   Notebook,
   NotebookControllerUserState,
   PersistentVolumeClaim,
-  Secret,
+  RoleBinding,
   VariableRow,
 } from '../types';
+import { createRoleBinding, getRoleBinding } from 'services/roleBindingService';
 
 export const usernameTranslate = (username: string): string =>
   username
@@ -44,11 +44,12 @@ export const generateEnvVarFileNameFromUsername = (username: string): string =>
  */
 export const verifyResource = async <T>(
   name: string,
-  fetchFunc: (resourceName: string) => Promise<T>,
+  namespace: string,
+  fetchFunc: (projectName: string, resourceName: string) => Promise<T>,
   createFunc?: (resource: T) => Promise<T>,
   createBody?: T,
 ): Promise<T | undefined> => {
-  return await fetchFunc(name).catch(async (e: AxiosError) => {
+  return await fetchFunc(namespace, name).catch(async (e: AxiosError) => {
     if (e.response?.status === 404) {
       if (createFunc && createBody) {
         return await createFunc(createBody);
@@ -88,15 +89,15 @@ export const verifyEnvVars = async (
   namespace: string,
   kind: string,
   envVars: Record<string, string>,
-  fetchFunc: (resourceName: string) => Promise<EnvVarResource>,
-  createFunc: (resource: Secret | ConfigMap) => Promise<EnvVarResource>,
-  replaceFunc: (resourceName: string, resource: EnvVarResource) => Promise<EnvVarResource>,
-  deleteFunc: (resourceName: string) => Promise<DeleteStatus>,
+  fetchFunc: (projectName: string, resourceName: string) => Promise<EnvVarResource>,
+  createFunc: (resource: EnvVarResource) => Promise<EnvVarResource>,
+  replaceFunc: (resource: EnvVarResource) => Promise<EnvVarResource>,
+  deleteFunc: (projectName: string, resourceName: string) => Promise<DeleteStatus>,
 ): Promise<void> => {
   if (!envVars) {
-    const resource = await verifyResource(name, fetchFunc);
+    const resource = await verifyResource(name, namespace, fetchFunc);
     if (resource) {
-      deleteFunc(name);
+      deleteFunc(namespace, name);
     }
   } else {
     const body =
@@ -117,9 +118,15 @@ export const verifyEnvVars = async (
       },
       ...body,
     };
-    const response = await verifyResource<EnvVarResource>(name, fetchFunc, createFunc, newResource);
+    const response = await verifyResource<EnvVarResource>(
+      name,
+      namespace,
+      fetchFunc,
+      createFunc,
+      newResource,
+    );
     if (!_.isEqual(response?.data, envVars)) {
-      await replaceFunc(name, newResource);
+      await replaceFunc(newResource);
     }
   }
 };
@@ -155,11 +162,16 @@ export const checkEnvVarFile = async (
   return { envVarFileName, ...envVars };
 };
 
-export const generatePvc = (pvcName: string, pvcSize: string): PersistentVolumeClaim => ({
+export const generatePvc = (
+  pvcName: string,
+  namespace: string,
+  pvcSize: string,
+): PersistentVolumeClaim => ({
   apiVersion: 'v1',
   kind: 'PersistentVolumeClaim',
   metadata: {
     name: pvcName,
+    namespace,
   },
   spec: {
     accessModes: ['ReadWriteOnce'],
@@ -187,3 +199,40 @@ export const getUserStateFromDashboardConfig = (
   notebookControllerState: NotebookControllerUserState[],
 ): NotebookControllerUserState | undefined =>
   notebookControllerState.find((state) => usernameTranslate(state.user) === translatedUsername);
+
+/** Check whether the namespace of the notebooks has the access to image streams
+ * If not, create the rolebinding
+ */
+export const validateNotebookNamespaceRoleBinding = async (
+  notebookNamespace: string,
+  dashboardNamespace: string,
+): Promise<RoleBinding | undefined> => {
+  const roleBindingName = `${notebookNamespace}-image-pullers`;
+  const roleBindingObject: RoleBinding = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'RoleBinding',
+    metadata: {
+      name: roleBindingName,
+      namespace: dashboardNamespace,
+    },
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'ClusterRole',
+      name: 'system:image-puller',
+    },
+    subjects: [
+      {
+        apiGroup: 'rbac.authorization.k8s.io',
+        kind: 'Group',
+        name: `system:serviceaccounts:${notebookNamespace}`,
+      },
+    ],
+  };
+  return await verifyResource<RoleBinding>(
+    roleBindingName,
+    dashboardNamespace,
+    getRoleBinding,
+    createRoleBinding,
+    roleBindingObject,
+  );
+};

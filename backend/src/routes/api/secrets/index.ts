@@ -4,13 +4,17 @@ import { V1Secret } from '@kubernetes/client-node';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get(
-    '/:name',
-    async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
+    '/:namespace/:name',
+    async (
+      request: FastifyRequest<{ Params: { namespace: string; name: string } }>,
+      reply: FastifyReply,
+    ) => {
       const secretName = request.params.name;
+      const secretNamespace = request.params.namespace;
       try {
         const secretResponse = await fastify.kube.coreV1Api.readNamespacedSecret(
           secretName,
-          fastify.kube.namespace,
+          secretNamespace,
         );
         return secretResponse.body;
       } catch (e) {
@@ -24,7 +28,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     const secretRequest = request.body;
     try {
       const secretResponse = await fastify.kube.coreV1Api.createNamespacedSecret(
-        fastify.kube.namespace,
+        secretRequest.metadata.namespace,
         secretRequest,
       );
       return secretResponse.body;
@@ -34,36 +38,33 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     }
   });
 
-  fastify.put(
-    '/:name',
-    async (
-      request: FastifyRequest<{ Body: V1Secret; Params: { name: string } }>,
-      reply: FastifyReply,
-    ) => {
-      const params = request.params;
-      const secretRequest = request.body;
-      try {
-        const secretResponse = await fastify.kube.coreV1Api.replaceNamespacedSecret(
-          params.name,
-          fastify.kube.namespace,
-          secretRequest,
-        );
-        return secretResponse.body;
-      } catch (e) {
-        fastify.log.error(`Secret ${params.name} could not be replaced: ${e}`);
-        reply.send(e);
-      }
-    },
-  );
+  fastify.put('/', async (request: FastifyRequest<{ Body: V1Secret }>, reply: FastifyReply) => {
+    const secretRequest = request.body;
+    try {
+      const secretResponse = await fastify.kube.coreV1Api.replaceNamespacedSecret(
+        secretRequest.metadata.name,
+        secretRequest.metadata.namespace,
+        secretRequest,
+      );
+      return secretResponse.body;
+    } catch (e) {
+      fastify.log.error(`Secret ${secretRequest.metadata.name} could not be replaced: ${e}`);
+      reply.send(e);
+    }
+  });
 
   fastify.delete(
-    '/:name',
-    async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
+    '/:namespace/:name',
+    async (
+      request: FastifyRequest<{ Params: { namespace: string; name: string } }>,
+      reply: FastifyReply,
+    ) => {
       const secretName = request.params.name;
+      const secretNamespace = request.params.namespace;
       try {
         const secretResponse = await fastify.kube.coreV1Api.deleteNamespacedSecret(
           secretName,
-          fastify.kube.namespace,
+          secretNamespace,
         );
         return secretResponse.body;
       } catch (e) {

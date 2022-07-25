@@ -55,7 +55,7 @@ export const useWatchNotebook = (
     };
     // Don't update when components are updated
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username, pollInterval]);
+  }, [username, pollInterval, projectName]);
 
   return { notebook, loaded, loadError, setPollInterval };
 };

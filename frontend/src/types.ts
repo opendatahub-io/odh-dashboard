@@ -18,6 +18,7 @@ export type DashboardConfig = K8sResourceCommon & {
       envVarConfig?: {
         enabled: boolean;
       };
+      notebookNamespace?: string;
     };
   };
   status?: {
@@ -550,3 +551,14 @@ export type DeleteStatus = {
   reason?: string;
   status?: string;
 };
+
+export type RoleBindingSubject = {
+  kind: string;
+  apiGroup: string;
+  name: string;
+};
+
+export type RoleBinding = {
+  subjects: RoleBindingSubject[];
+  roleRef: RoleBindingSubject;
+} & K8sResourceCommon;

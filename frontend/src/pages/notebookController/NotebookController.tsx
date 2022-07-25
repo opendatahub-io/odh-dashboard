@@ -13,8 +13,10 @@ import {
   generateNotebookNameFromUsername,
   getUserStateFromDashboardConfig,
   usernameTranslate,
+  validateNotebookNamespaceRoleBinding,
 } from '../../utilities/notebookControllerUtils';
-import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
+import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '../../utilities/const';
+import StartServerModal from './StartServerModal';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { Redirect, useHistory } from 'react-router-dom';
 import NotebookControllerContext from './NotebookControllerContext';
@@ -30,7 +32,7 @@ export const NotebookController: React.FC = React.memo(() => {
   const username = currentUserState.user || stateUsername;
   const translatedUsername = usernameTranslate(username);
   const namespace = useSelector<State, string>((state) => state.appState.namespace || '');
-  const projectName = ODH_NOTEBOOK_REPO || namespace;
+  const projectName = dashboardConfig.spec.notebookController?.notebookNamespace || namespace;
   const { notebook, loaded, loadError } = useWatchNotebook(projectName, username);
 
   React.useEffect(() => {
@@ -58,6 +60,19 @@ export const NotebookController: React.FC = React.memo(() => {
     };
     checkUserState().catch((e) => console.error(e));
   }, [translatedUsername, dashboardConfig, currentUserState, setCurrentUserState, username]);
+
+  const notebookNamespace = React.useMemo(
+    () => dashboardConfig.spec.notebookController?.notebookNamespace,
+    [dashboardConfig],
+  );
+
+  React.useEffect(() => {
+    if (notebookNamespace && namespace) {
+      validateNotebookNamespaceRoleBinding(notebookNamespace, namespace).catch((e) =>
+        console.error(e),
+      );
+    }
+  }, [notebookNamespace, namespace]);
 
   React.useEffect(() => {
     setIsNavOpen(false);

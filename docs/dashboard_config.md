@@ -67,6 +67,7 @@ notebookController:
         enabled: true
     gpuConfig:
         enabled: true
+    notebookNamespace: odh-notebooks
 ```
 
 ### Notebook Controller State
