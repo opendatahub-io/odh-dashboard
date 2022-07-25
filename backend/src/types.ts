@@ -39,11 +39,11 @@ export type DashboardConfig = K8sResourceCommon & {
 
 export type NotebookStatus = {
   percentile: number;
-  currentStatus: "Warning" | "Error" | "In Progress" | "Success";
+  currentStatus: 'Warning' | 'Error' | 'In Progress' | 'Success';
   currentEvent: string;
   currentEventDescription: string;
-  events: V1Event[]
-}
+  events: V1Event[];
+};
 
 export type NotebookResources = {
   requests?: {
@@ -123,9 +123,9 @@ export type BuildKind = {
     output: {
       to: {
         name: string;
-      }
-    }
-  }
+      };
+    };
+  };
   status: {
     phase: BUILD_PHASE;
     completionTimestamp: string;
