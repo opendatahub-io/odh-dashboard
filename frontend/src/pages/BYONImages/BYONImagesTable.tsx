@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { DetailedHTMLProps, HTMLAttributes } from 'react';
 import {
   Button,
   Bullseye,
@@ -311,7 +311,10 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
         </Thead>
         {tableFilter.count > 0 ? (
           images.map((image, rowIndex) => {
-            const packages: any = [];
+            const packages: DetailedHTMLProps<
+              HTMLAttributes<HTMLParagraphElement>,
+              HTMLParagraphElement
+            >[] = [];
             image.packages?.forEach((nbpackage) => {
               packages.push(<p>{`${nbpackage.name} ${nbpackage.version}`}</p>);
             });

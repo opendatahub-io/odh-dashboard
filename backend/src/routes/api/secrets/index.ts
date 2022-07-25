@@ -15,7 +15,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
         reply.send(res);
       });
   });
-  fastify.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/', async (request: FastifyRequest) => {
     const secret = request.body as V1Secret;
     try {
       postSecret(fastify, secret);
@@ -24,7 +24,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       return `Secret could not be created ${e}`;
     }
   });
-  fastify.put('/:name', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.put('/:name', async (request: FastifyRequest) => {
     const secret = request.body as V1Secret;
     const params = request.params as {
       name: string;

@@ -119,7 +119,7 @@ export const createNotebook = (
     });
 };
 
-export const deleteNotebook = (projectName: string, notebookName: string): Promise<any> => {
+export const deleteNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
 
   return axios
@@ -135,7 +135,7 @@ export const deleteNotebook = (projectName: string, notebookName: string): Promi
 export const patchNotebook = (
   projectName: string,
   notebookName: string,
-  updateData: any,
+  updateData: Partial<Notebook>,
 ): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
 
