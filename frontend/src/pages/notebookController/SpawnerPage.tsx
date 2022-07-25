@@ -58,7 +58,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     tag: undefined,
   });
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
-  const [selectedSize, setSelectedSize] = React.useState<string>();
+  const [selectedSize, setSelectedSize] = React.useState<string>('');
   const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [gpuSize, setGpuSize] = React.useState<number>(0);
@@ -66,7 +66,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const userState = React.useMemo(() => {
     if (translatedUsername) {
-      const newUserState = dashboardConfig?.spec.notebookControllerState?.find(
+      const newUserState = dashboardConfig?.status?.notebookControllerState?.find(
         (state) => state.user === translatedUsername,
       );
       if (newUserState) {
@@ -359,11 +359,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         lastSelectedSize: selectedSize,
         environmentVariables: envVars.configMap,
       };
-      const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
+      const otherUsersStates = dashboardConfig?.status?.notebookControllerState?.filter(
         (state) => state.user !== translatedUsername,
       );
       const dashboardConfigPatch = {
-        spec: {
+        status: {
           notebookControllerState: otherUsersStates
             ? [...otherUsersStates, updatedUserState]
             : [updatedUserState],
