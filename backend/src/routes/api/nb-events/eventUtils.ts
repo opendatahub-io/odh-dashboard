@@ -1,7 +1,10 @@
 import { V1EventList } from '@kubernetes/client-node';
 import { KubeFastifyInstance, NotebookStatus } from '../../../types';
 
-export const getNotebookEvents = async (fastify: KubeFastifyInstance, nbName: string) => {
+export const getNotebookEvents = async (
+  fastify: KubeFastifyInstance,
+  nbName: string,
+): Promise<NotebookStatus> => {
   const response = await fastify.kube.coreV1Api
     .listNamespacedEvent(
       fastify.kube.namespace,
