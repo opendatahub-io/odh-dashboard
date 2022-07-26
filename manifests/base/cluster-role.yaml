@@ -83,3 +83,12 @@ rules:
       - secrets
       - services
       - namespaces
+  - verbs:
+      - create
+      - delete
+      - list
+    apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
