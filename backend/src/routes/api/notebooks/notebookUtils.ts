@@ -96,7 +96,7 @@ export const postNotebook = async (
     'v1',
     namespace,
     'routes',
-    notebookData.metadata.name,
+    notebookName,
   );
 
   const route = getRouteResponse.body as Route;
@@ -104,7 +104,7 @@ export const postNotebook = async (
   const patch = {
     metadata: {
       annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}`,
+        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
       },
     },
   };

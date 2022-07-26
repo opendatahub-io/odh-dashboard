@@ -10,7 +10,7 @@ import { useWatchNotebook } from 'utilities/useWatchNotebook';
 import { deleteNotebook } from '../../services/notebookService';
 import { useSelector } from 'react-redux';
 import { State } from 'redux/types';
-import { generateNotebookNameFromUsername } from '../../utilities/utils';
+import { generateNotebookNameFromUsername, usernameTranslate } from '../../utilities/utils';
 import { FAST_POLL_INTERVAL, ODH_NOTEBOOK_REPO, POLL_INTERVAL } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import StartServerModal from './StartServerModal';
@@ -42,11 +42,14 @@ export const NotebookController: React.FC = React.memo(() => {
   React.useEffect(() => {
     const checkUserState = async () => {
       if (username && dashboardConfig.spec.notebookController) {
+        const translatedUsername = usernameTranslate(username);
         const notebookControllerState = dashboardConfig.spec.notebookControllerState;
-        const fetchedUserState = notebookControllerState?.find((state) => state.user === username);
+        const fetchedUserState = notebookControllerState?.find(
+          (state) => state.user === translatedUsername,
+        );
         if (!fetchedUserState) {
           const newUserState: NotebookControllerUserState = {
-            user: username,
+            user: translatedUsername,
             lastSelectedImage: '',
             lastSelectedSize: '',
             environmentVariables: [],

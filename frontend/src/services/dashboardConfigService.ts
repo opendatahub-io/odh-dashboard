@@ -13,7 +13,9 @@ export const fetchDashboardConfig = (): Promise<DashboardConfig> => {
     });
 };
 
-export const patchDashboardConfig = (updateData: any): Promise<DashboardConfig> => {
+export const patchDashboardConfig = (
+  updateData: Partial<DashboardConfig>,
+): Promise<DashboardConfig> => {
   const url = '/api/config';
   return axios
     .patch(url, updateData)

@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { Notebook, NotebookSize, Volume, VolumeMount } from '../types';
-import { store } from '../redux/store/store';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
 
@@ -19,6 +18,7 @@ export const getNotebook = (projectName: string, notebookName: string): Promise<
 export const createNotebook = (
   projectName: string,
   notebookName: string,
+  username: string,
   imageUrl: string,
   notebookSize: NotebookSize | undefined,
   gpus: number,
@@ -42,7 +42,7 @@ export const createNotebook = (
       labels: {
         app: notebookName,
         'opendatahub.io/odh-managed': 'true',
-        'opendatahub.io/user': store.getState().appState.user,
+        'opendatahub.io/user': username,
       },
       name: notebookName,
     },
@@ -58,7 +58,10 @@ export const createNotebook = (
               env: [
                 {
                   name: 'NOTEBOOK_ARGS',
-                  value: "--NotebookApp.token='' --NotebookApp.password=''",
+                  value: `--ServerApp.port=8888
+                  --ServerApp.token=''
+                  --ServerApp.password=''
+                  --ServerApp.base_url=/notebook/${projectName}/${notebookName}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
@@ -82,7 +85,7 @@ export const createNotebook = (
                 failureThreshold: 3,
                 httpGet: {
                   scheme: 'HTTP',
-                  path: '/api',
+                  path: `/notebook/${projectName}/${notebookName}/api`,
                   port: 'notebook-port',
                 },
               },
@@ -94,7 +97,7 @@ export const createNotebook = (
                 failureThreshold: 3,
                 httpGet: {
                   scheme: 'HTTP',
-                  path: '/api',
+                  path: `/notebook/${projectName}/${notebookName}/api`,
                   port: 'notebook-port',
                 },
               },
@@ -116,7 +119,7 @@ export const createNotebook = (
     });
 };
 
-export const deleteNotebook = (projectName: string, notebookName: string): Promise<any> => {
+export const deleteNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
 
   return axios
@@ -132,7 +135,7 @@ export const deleteNotebook = (projectName: string, notebookName: string): Promi
 export const patchNotebook = (
   projectName: string,
   notebookName: string,
-  updateData: any,
+  updateData: Partial<Notebook>,
 ): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
 
