@@ -32,7 +32,7 @@ module.exports = merge(
       inline: true,
       historyApiFallback: true,
       hot: true,
-      overlay: true,
+      overlay: false,
       open: true,
       stats: 'errors-only',
       proxy: {

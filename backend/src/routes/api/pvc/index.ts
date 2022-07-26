@@ -1,44 +1,39 @@
-import { KubeFastifyInstance, PersistentVolumeClaimKind } from '../../../types';
+import { KubeFastifyInstance } from '../../../types';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { createPVC, getPVC } from './pvcUtils';
+import { V1PersistentVolumeClaim } from '@kubernetes/client-node';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
-  fastify.get('/:pvcName', async (request: FastifyRequest, reply: FastifyReply) => {
-    const params = request.params as {
-      pvcName: string;
-    };
-    return getPVC(fastify, params.pvcName)
-      .then((res) => {
-        return res;
-      })
-      .catch((res) => {
-        reply.send(res);
-      });
-  });
+  fastify.get(
+    '/:name',
+    async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
+      const pvcName = request.params.name;
+      try {
+        const pvcResponse = await fastify.kube.coreV1Api.readNamespacedPersistentVolumeClaim(
+          pvcName,
+          fastify.kube.namespace,
+        );
+        return pvcResponse.body;
+      } catch (e) {
+        fastify.log.error(`Secret ${pvcName} could not be read, ${e}`);
+        reply.send(e);
+      }
+    },
+  );
 
-  fastify.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
-    const pvcData = request.body as PersistentVolumeClaimKind;
-    return createPVC(fastify, pvcData)
-      .then((res) => {
-        return res;
-      })
-      .catch((res) => {
-        reply.send(res);
-      });
-  });
-
-  fastify.delete('/:pvcName', async (request: FastifyRequest, reply: FastifyReply) => {
-    const namespace = fastify.kube.namespace;
-    const params = request.params as {
-      pvcName: string;
-    };
-    return fastify.kube.coreV1Api
-      .deleteNamespacedPersistentVolumeClaim(params.pvcName, namespace)
-      .then((res) => {
-        return res;
-      })
-      .catch((res) => {
-        reply.send(res);
-      });
-  });
+  fastify.post(
+    '/',
+    async (request: FastifyRequest<{ Body: V1PersistentVolumeClaim }>, reply: FastifyReply) => {
+      const pvcRequest = request.body;
+      try {
+        const pvcResponse = await fastify.kube.coreV1Api.createNamespacedPersistentVolumeClaim(
+          fastify.kube.namespace,
+          pvcRequest,
+        );
+        return pvcResponse.body;
+      } catch (e) {
+        fastify.log.error(`Secret could not be created: ${e}`);
+        reply.send(e);
+      }
+    },
+  );
 };

@@ -2,6 +2,10 @@
  * Common types, should be kept up to date with backend types
  */
 
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
+};
+
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
@@ -35,7 +39,6 @@ export type NotebookControllerUserState = {
   user: string;
   lastSelectedImage: string;
   lastSelectedSize: string;
-  environmentVariables: EnvironmentVariable[];
 };
 
 export type NotebookResources = {
@@ -54,6 +57,15 @@ export type EnvironmentVariable = {
   value: string | number;
 };
 
+export type EnvVarReducedType = {
+  envVarFileName: string;
+} & EnvVarReducedTypeKeyValues;
+
+export type EnvVarReducedTypeKeyValues = {
+  configMap: Record<string, string>;
+  secrets: Record<string, string>;
+};
+
 export type NotebookSize = {
   name: string;
   resources: NotebookResources;
@@ -70,6 +82,17 @@ export type Secret = {
   stringData?: Record<string, string>;
   type?: string;
 } & K8sResourceCommon;
+
+export type ConfigMap = {
+  data?: Record<string, string>;
+} & K8sResourceCommon;
+
+export type EnvVarResource = Secret | ConfigMap;
+
+export enum EnvVarResourceType {
+  Secret = 'Secret',
+  ConfigMap = 'ConfigMap',
+}
 
 export type OdhApplication = {
   metadata: {
@@ -514,3 +537,13 @@ export type Volume = {
 };
 
 export type VolumeMount = { mountPath: string; name: string };
+
+/** Copy from partial of V1Status that will returned by the delete CoreV1Api */
+export type DeleteStatus = {
+  apiVersion?: string;
+  code?: number;
+  kind?: string;
+  message?: string;
+  reason?: string;
+  status?: string;
+};

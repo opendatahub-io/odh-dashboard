@@ -76,12 +76,8 @@ This field (`notebookControllerState`) controls the state of each user of the No
 ```yaml
 notebookControllerState:
 - user: username
-    environmentVariables:
-    - key: foo
-        value: bar
-    lastSelectedImage: foo:bar
-    lastSelectedSize: XSmall
-    secrets: odh-secrets-username
+  lastSelectedImage: foo:bar
+  lastSelectedSize: XSmall
 ```
 
 ## Example OdhDashboard Config

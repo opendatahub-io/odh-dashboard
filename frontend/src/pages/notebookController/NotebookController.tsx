@@ -10,7 +10,10 @@ import { useWatchNotebook } from 'utilities/useWatchNotebook';
 import { deleteNotebook } from '../../services/notebookService';
 import { useSelector } from 'react-redux';
 import { State } from 'redux/types';
-import { generateNotebookNameFromUsername, usernameTranslate } from '../../utilities/utils';
+import {
+  generateNotebookNameFromUsername,
+  usernameTranslate,
+} from '../../utilities/notebookControllerUtils';
 import { FAST_POLL_INTERVAL, ODH_NOTEBOOK_REPO, POLL_INTERVAL } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import StartServerModal from './StartServerModal';
@@ -52,7 +55,6 @@ export const NotebookController: React.FC = React.memo(() => {
             user: translatedUsername,
             lastSelectedImage: '',
             lastSelectedSize: '',
-            environmentVariables: [],
           };
           const patch = {
             spec: {
