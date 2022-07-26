@@ -326,11 +326,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
       lastSelectedSize: selectedSize,
     };
-    const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
+    const otherUsersStates = dashboardConfig?.status?.notebookControllerState?.filter(
       (state) => state.user !== translatedUsername,
     );
     const dashboardConfigPatch = {
-      spec: {
+      status: {
         notebookControllerState: otherUsersStates
           ? [...otherUsersStates, updatedUserState]
           : [updatedUserState],

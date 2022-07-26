@@ -127,10 +127,6 @@ spec:
 status:
   notebookControllerState:
   - user: username
-      environmentVariables:
-      - key: foo
-          value: bar
-      lastSelectedImage: foo:bar
-      lastSelectedSize: XSmall
-      secrets: odh-secrets-username
+    lastSelectedImage: foo:bar
+    lastSelectedSize: XSmall
 ```
