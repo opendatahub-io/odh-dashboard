@@ -35,7 +35,7 @@ module.exports = env => {
             {
               loader: 'ts-loader',
               options: {
-                transpileOnly: true,
+                transpileOnly: env !== 'development',
                 experimentalWatchApi: true
               }
             }

@@ -1,6 +1,8 @@
+# ODHDashboardConfig to enable the notebook-controller feature and add notebook sizes
 apiVersion: opendatahub.io/v1alpha
 kind: OdhDashboardConfig
 metadata:
+  creationTimestamp: null
   name: odh-dashboard-config
 spec:
   dashboardConfig:
@@ -9,33 +11,32 @@ spec:
     disableISVBadges: false
     disableInfo: false
     disableSupport: false
-    disableTracking: false
-    disableAppLauncher: false
+    disableTracking: true
     enablement: true
   notebookController:
-    enabled: false
+    enabled: true
   notebookSizes:
   - name: Small
     resources:
-      requests:
-        memory: 1Gi
-        cpu: '1'
       limits:
+        cpu: "2"
         memory: 2Gi
-        cpu: '2'
+      requests:
+        cpu: "1"
+        memory: 1Gi
   - name: Medium
     resources:
-      requests:
-        memory: 2Gi
-        cpu: '2'
       limits:
+        cpu: "4"
         memory: 4Gi
-        cpu: '4'
+      requests:
+        cpu: "2"
+        memory: 2Gi
   - name: Large
     resources:
-      requests:
-        memory: 4Gi
-        cpu: '4'
       limits:
+        cpu: "8"
         memory: 8Gi
-        cpu: '8'
+      requests:
+        cpu: "4"
+        memory: 4Gi

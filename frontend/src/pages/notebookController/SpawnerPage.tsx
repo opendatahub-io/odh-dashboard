@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash-es';
 import {
   ActionGroup,
   Button,
@@ -12,7 +11,15 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../utilities/imageUtils';
-import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } from '../../types';
+import {
+  ImageInfo,
+  ImageTag,
+  VariableRow,
+  ImageTagInfo,
+  ConfigMap,
+  Secret,
+  EnvVarResourceType,
+} from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -25,15 +32,19 @@ import { State } from '../../redux/types';
 import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
-  generateSecretNameFromUsername,
+  generateEnvVarFileNameFromUsername,
   usernameTranslate,
-} from '../../utilities/utils';
+  verifyResource,
+  checkEnvVarFile,
+  generatePvc,
+} from '../../utilities/notebookControllerUtils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { createSecret, getSecret, replaceSecret } from '../../services/secretsService';
+import { getSecret } from '../../services/secretsService';
+import { getConfigMap } from '../../services/configMapService';
 
 import './NotebookController.scss';
 
@@ -141,61 +152,51 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     }
   }, [dashboardConfig, userState]);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    const mapEnvironmentVariableRows = async () => {
-      const fetchedVariableRows: VariableRow[] = [];
-      if (userState?.environmentVariables && userState?.environmentVariables.length !== 0) {
-        userState.environmentVariables.forEach((envVariable) => {
-          const errors = fetchedVariableRows.find((variableRow) =>
-            variableRow.variables.find((variable) => variable.name === envVariable.key),
-          )
-            ? { [envVariable.key]: 'That name is already in use. Try a different name.' }
-            : {};
-          fetchedVariableRows.push({
-            variableType: CUSTOM_VARIABLE,
-            variables: [
-              {
-                name: envVariable.key,
-                value: envVariable.value,
-                type: 'text',
-              },
-            ],
-            errors,
-          });
-        });
-      }
-      const secretName = generateSecretNameFromUsername(username);
-      const secret = await getSecret(secretName);
-      if (secret && secret.data) {
-        Object.entries(secret.data).forEach(([key, value]) => {
+  const mapRows = React.useCallback(
+    async (fetchFunc: (name: string) => Promise<ConfigMap | Secret>) => {
+      let fetchedVariableRows: VariableRow[] = [];
+      const envVarFileName = generateEnvVarFileNameFromUsername(username);
+      const response = await verifyResource(envVarFileName, fetchFunc);
+      if (response && response.data) {
+        const isSecret = response.kind === EnvVarResourceType.Secret;
+        fetchedVariableRows = Object.entries(response.data).map(([key, value]) => {
           const errors = fetchedVariableRows.find((variableRow) =>
             variableRow.variables.find((variable) => variable.name === key),
           )
             ? { [key]: 'That name is already in use. Try a different name.' }
             : {};
-          fetchedVariableRows.push({
+          return {
             variableType: CUSTOM_VARIABLE,
             variables: [
               {
                 name: key,
-                value: Buffer.from(value, 'base64').toString(),
-                type: 'password',
+                value: isSecret ? Buffer.from(value, 'base64').toString() : value,
+                type: isSecret ? 'password' : 'text',
               },
             ],
             errors,
-          });
+          };
         });
       }
+      return fetchedVariableRows;
+    },
+    [username],
+  );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const mapEnvironmentVariableRows = async () => {
+      const fetchedVariableRowsConfigMap = await mapRows(getConfigMap);
+      const fetchedVariableRowsSecret = await mapRows(getSecret);
       if (!cancelled) {
-        setVariableRows(fetchedVariableRows);
+        setVariableRows([...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret]);
       }
     };
     mapEnvironmentVariableRows().catch((e) => console.error(e));
     return () => {
       cancelled = true;
     };
-  }, [userState, username]);
+  }, [mapRows]);
 
   const handleImageTagSelection = (image: ImageInfo, tag: ImageTagInfo, checked: boolean) => {
     if (checked) {
@@ -296,85 +297,46 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
       (ns) => ns.name === selectedSize,
     );
-    try {
-      const pvcName = generatePvcNameFromUsername(username);
-      const pvc = await getPvc(pvcName);
-      if (!pvc) {
-        await createPvc(pvcName, '20Gi');
-      }
-      const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-      const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
-      const notebookName = generateNotebookNameFromUsername(username);
-      const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
-      setCreateInProgress(true);
-      await createNotebook(
-        projectName,
-        notebookName,
-        translatedUsername,
-        imageUrl,
-        notebookSize,
-        parseInt(selectedGpu),
-        volumes,
-        volumeMounts,
-      );
-      setCreateInProgress(false);
-      setStartModalShown(true);
-      const envVars = variableRows.reduce(
-        (prev, curr) => {
-          const vars: EnvironmentVariable[] = [];
-          const secretVars: Record<string, string | number> = {};
-          curr.variables.forEach((variable) => {
-            if (variable.type === 'text') {
-              vars.push({ key: variable.name, value: variable.value });
-            } else {
-              secretVars[variable.name] = variable.value;
-            }
-          });
-          return {
-            configMap: [...prev.configMap, ...vars],
-            secrets: { ...prev.secrets, ...secretVars },
-          };
-        },
-        { configMap: [] as EnvironmentVariable[], secrets: {} },
-      );
-      const secretName = generateSecretNameFromUsername(username);
-      const secret = await getSecret(secretName);
-      const newSecret = {
-        apiVersion: 'v1',
-        metadata: {
-          name: secretName,
-          namespace,
-        },
-        stringData: envVars.secrets,
-        type: 'Opaque',
-      };
-      if (!secret && envVars.secrets) {
-        createSecret(newSecret);
-      } else if (!_.isEqual(secret.data, envVars.secrets)) {
-        replaceSecret(secretName, newSecret);
-      }
-      const updatedUserState = {
-        ...userState,
-        lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
-        lastSelectedSize: selectedSize,
-        environmentVariables: envVars.configMap,
-      };
-      const otherUsersStates = dashboardConfig?.status?.notebookControllerState?.filter(
-        (state) => state.user !== translatedUsername,
-      );
-      const dashboardConfigPatch = {
-        status: {
-          notebookControllerState: otherUsersStates
-            ? [...otherUsersStates, updatedUserState]
-            : [updatedUserState],
-        },
-      };
-      await patchDashboardConfig(dashboardConfigPatch);
-    } catch (e) {
-      setCreateInProgress(false);
-      setStartModalShown(false);
-      console.error(e);
-    }
+    const pvcName = generatePvcNameFromUsername(username);
+    const pvcBody = generatePvc(pvcName, '20Gi');
+    await verifyResource(pvcName, getPvc, createPvc, pvcBody).catch((e) =>
+      console.error(`Something wrong with PVC ${pvcName}: ${e}`),
+    );
+    const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
+    const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
+    const notebookName = generateNotebookNameFromUsername(username);
+    const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
+    setCreateInProgress(true);
+    const envVars = await checkEnvVarFile(username, namespace, variableRows);
+    await createNotebook(
+      projectName,
+      notebookName,
+      translatedUsername,
+      imageUrl,
+      notebookSize,
+      parseInt(selectedGpu),
+      envVars,
+      volumes,
+      volumeMounts,
+    );
+    setCreateInProgress(false);
+    setStartModalShown(true);
+    const updatedUserState = {
+      ...userState,
+      lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+      lastSelectedSize: selectedSize,
+    };
+    const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
+      (state) => state.user !== translatedUsername,
+    );
+    const dashboardConfigPatch = {
+      spec: {
+        notebookControllerState: otherUsersStates
+          ? [...otherUsersStates, updatedUserState]
+          : [updatedUserState],
+      },
+    };
+    await patchDashboardConfig(dashboardConfigPatch);
   };
 
   return (
@@ -439,7 +401,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           </Button>
         </FormSection>
         <ActionGroup>
-          <Button variant="primary" onClick={handleNotebookAction} isDisabled={createInProgress}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              handleNotebookAction().catch((e) => {
+                setCreateInProgress(false);
+                setStartModalShown(false);
+                console.error(e);
+              });
+            }}
+            isDisabled={createInProgress}
+          >
             Start server
           </Button>
           <Button variant="secondary" onClick={() => history.push('/')}>

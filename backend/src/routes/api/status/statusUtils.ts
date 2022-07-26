@@ -20,7 +20,6 @@ export const status = async (
   const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
   const customObjectsApi = fastify.kube.customObjectsApi;
   const coreV1Api = fastify.kube.coreV1Api;
-  const rbacAuthorizationApi = fastify.kube.rbac;
   let userName = DEFAULT_USERNAME;
 
   try {

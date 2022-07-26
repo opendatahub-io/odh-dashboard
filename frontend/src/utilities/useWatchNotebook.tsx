@@ -4,7 +4,7 @@ import { POLL_INTERVAL } from './const';
 import { getNotebook } from 'services/notebookService';
 import { useSelector } from 'react-redux';
 import { State } from 'redux/types';
-import { generateNotebookNameFromUsername } from './utils';
+import { generateNotebookNameFromUsername } from './notebookControllerUtils';
 
 export const useWatchNotebook = (
   projectName: string,
