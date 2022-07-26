@@ -25,6 +25,8 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
       };
     };
+  };
+  status?: {
     notebookControllerState?: [
       {
         user: string;

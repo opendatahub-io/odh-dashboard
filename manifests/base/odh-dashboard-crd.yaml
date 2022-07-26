@@ -81,6 +81,9 @@ spec:
                       properties:
                         enabled: 
                           type: boolean
+            status:
+              type: object
+              properties:
                 notebookControllerState:
                   type: array
                   items:
