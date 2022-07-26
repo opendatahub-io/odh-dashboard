@@ -39,11 +39,18 @@ export type DashboardConfig = K8sResourceCommon & {
 
 export type NotebookStatus = {
   percentile: number;
-  currentStatus: 'Warning' | 'Error' | 'In Progress' | 'Success';
+  currentStatus: EventStatus;
   currentEvent: string;
   currentEventDescription: string;
   events: V1Event[];
 };
+
+export enum EventStatus {
+  IN_PROGRESS = 'In Progress',
+  WARNING = 'Warning',
+  ERROR = 'Error',
+  SUCCESS = 'Success',
+}
 
 export type NotebookResources = {
   requests?: {
