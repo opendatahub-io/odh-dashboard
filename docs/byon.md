@@ -4,7 +4,7 @@ ODH provides several out-of-the-box notebook images that automatically include p
 
 ## Enabling BYON
 
-To enable this feature, you need to have first enable the [admin panel](admin_dashboard.md) and then the flag `disableBYONImageStream` in the [dashboard configuration](features.md) turned to `false`.
+To enable this feature, you need to have first enable the [admin panel](admin_dashboard.md) and then the flag `disableBYONImageStream` in the [dashboard configuration](dashboard_config.md) turned to `false`.
 
 Once you have completed both steps you will see a section called `Notebook Images` inside the `Settings` panel.
 
