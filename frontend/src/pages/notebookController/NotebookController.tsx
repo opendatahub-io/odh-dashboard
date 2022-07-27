@@ -10,12 +10,16 @@ import { useWatchNotebook } from 'utilities/useWatchNotebook';
 import { deleteNotebook } from '../../services/notebookService';
 import { useSelector } from 'react-redux';
 import { State } from 'redux/types';
-import { generateNotebookNameFromUsername, usernameTranslate } from '../../utilities/utils';
+import {
+  generateNotebookNameFromUsername,
+  usernameTranslate,
+} from '../../utilities/notebookControllerUtils';
 import { FAST_POLL_INTERVAL, ODH_NOTEBOOK_REPO, POLL_INTERVAL } from '../../utilities/const';
 import NotebookControllerContext from './NotebookControllerContext';
 import StartServerModal from './StartServerModal';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { NotebookControllerUserState } from '../../types';
+import QuickStarts from '../../app/QuickStarts';
 
 export const NotebookController: React.FC = React.memo(() => {
   const { setIsNavOpen } = React.useContext(AppContext);
@@ -43,7 +47,7 @@ export const NotebookController: React.FC = React.memo(() => {
     const checkUserState = async () => {
       if (username && dashboardConfig.spec.notebookController) {
         const translatedUsername = usernameTranslate(username);
-        const notebookControllerState = dashboardConfig.spec.notebookControllerState;
+        const notebookControllerState = dashboardConfig.status?.notebookControllerState;
         const fetchedUserState = notebookControllerState?.find(
           (state) => state.user === translatedUsername,
         );
@@ -52,10 +56,9 @@ export const NotebookController: React.FC = React.memo(() => {
             user: translatedUsername,
             lastSelectedImage: '',
             lastSelectedSize: '',
-            environmentVariables: [],
           };
           const patch = {
-            spec: {
+            status: {
               notebookControllerState: notebookControllerState
                 ? [...notebookControllerState, newUserState]
                 : [newUserState],
@@ -84,66 +87,68 @@ export const NotebookController: React.FC = React.memo(() => {
   };
 
   return (
-    <NotebookControllerContext.Provider
-      value={{
-        images,
-        dashboardConfig,
-        notebook,
-        isNotebookRunning,
-        projectName,
-      }}
-    >
-      <ApplicationsPage
-        title={!isNotebookRunning ? 'Start a Notebook server' : 'Notebook server control panel'}
-        description={!isNotebookRunning ? 'Select options for your Notebook server.' : null}
-        loaded={loaded}
-        loadError={loadError}
-        empty={!isNotebookRunning}
-        emptyStatePage={
-          <SpawnerPage
-            setStartModalShown={setStartShown}
-            updateNotebook={updateNotebook}
-            setNotebookPollInterval={setNotebookPollInterval}
-          />
-        }
+    <QuickStarts>
+      <NotebookControllerContext.Provider
+        value={{
+          images,
+          dashboardConfig,
+          notebook,
+          isNotebookRunning,
+          projectName,
+        }}
       >
-        {notebook && (
-          <div className="odh-notebook-controller__page">
-            <ActionList>
-              <ActionListItem
-                onClick={() => {
-                  deleteNotebook(projectName, generateNotebookNameFromUsername(username))
-                    .then(() => {
-                      updateNotebook();
-                    })
-                    .catch((e) => console.error(e));
-                }}
-              >
-                <Button variant="primary">Stop notebook server</Button>
-              </ActionListItem>
-              <ActionListItem>
-                <Button
-                  variant="secondary"
+        <ApplicationsPage
+          title={!isNotebookRunning ? 'Start a Notebook server' : 'Notebook server control panel'}
+          description={!isNotebookRunning ? 'Select options for your Notebook server.' : null}
+          loaded={loaded}
+          loadError={loadError}
+          empty={!isNotebookRunning}
+          emptyStatePage={
+            <SpawnerPage
+              setStartModalShown={setStartShown}
+              updateNotebook={updateNotebook}
+              setNotebookPollInterval={setNotebookPollInterval}
+            />
+          }
+        >
+          {notebook && (
+            <div className="odh-notebook-controller__page">
+              <ActionList>
+                <ActionListItem
                   onClick={() => {
-                    window.open(notebook?.metadata.annotations?.['opendatahub.io/link']);
+                    deleteNotebook(projectName, generateNotebookNameFromUsername(username))
+                      .then(() => {
+                        updateNotebook();
+                      })
+                      .catch((e) => console.error(e));
                   }}
                 >
-                  Return to server
-                </Button>
-              </ActionListItem>
-            </ActionList>
-            <NotebookServerDetails />
-          </div>
+                  <Button variant="primary">Stop notebook server</Button>
+                </ActionListItem>
+                <ActionListItem>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      window.open(notebook?.metadata.annotations?.['opendatahub.io/link']);
+                    }}
+                  >
+                    Return to server
+                  </Button>
+                </ActionListItem>
+              </ActionList>
+              <NotebookServerDetails />
+            </div>
+          )}
+        </ApplicationsPage>
+        {startShown && (
+          <StartServerModal
+            startShown={startShown}
+            setStartModalShown={setStartShown}
+            onClose={onModalClose}
+          />
         )}
-      </ApplicationsPage>
-      {startShown && (
-        <StartServerModal
-          startShown={startShown}
-          setStartModalShown={setStartShown}
-          onClose={onModalClose}
-        />
-      )}
-    </NotebookControllerContext.Provider>
+      </NotebookControllerContext.Provider>
+    </QuickStarts>
   );
 });
 

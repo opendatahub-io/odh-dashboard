@@ -25,13 +25,13 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
       };
     };
+  };
+  status?: {
     notebookControllerState?: [
       {
         user: string;
         lastSelectedImage: string;
         lastSelectedSize: string;
-        environmentVariables: EnvironmentVariable[];
-        secrets: string;
       },
     ];
   };
@@ -115,9 +115,9 @@ export type BuildKind = {
     output: {
       to: {
         name: string;
-      }
-    }
-  }
+      };
+    };
+  };
   status: {
     phase: BUILD_PHASE;
     completionTimestamp: string;

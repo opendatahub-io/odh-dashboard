@@ -88,9 +88,11 @@ const processImageInfo = (imageStream: ImageStream): ImageInfo => {
 const checkTagExistence = (tag: ImageStreamTag, imageStream: ImageStream): boolean => {
   if (imageStream.status) {
     const tags = imageStream.status.tags;
-    for (let i = 0; i < tags.length; i++) {
-      if (tags[i].tag === tag.name) {
-        return true;
+    if (tags) {
+      for (let i = 0; i < tags.length; i++) {
+        if (tags[i].tag === tag.name) {
+          return true;
+        }
       }
     }
   }

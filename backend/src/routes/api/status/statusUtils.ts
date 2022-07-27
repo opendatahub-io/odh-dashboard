@@ -2,6 +2,7 @@ import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
 import createError from 'http-errors';
 import { CoreV1Api, CustomObjectsApi } from '@kubernetes/client-node';
+import { getUser } from '../../../utils/userUtils';
 
 type groupObjResponse = {
   users: string[] | null;
@@ -17,14 +18,19 @@ export const status = async (
 ): Promise<{ kube: KubeStatus }> => {
   const kubeContext = fastify.kube.currentContext;
   const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
-  const currentUserName =
-    (request.headers['x-forwarded-user'] as string) || currentUser.username || currentUser.name;
-  let userName = currentUserName?.split('/')[0];
-  if (!userName || userName === 'inClusterUser') {
-    userName = DEFAULT_USERNAME;
-  }
   const customObjectsApi = fastify.kube.customObjectsApi;
   const coreV1Api = fastify.kube.coreV1Api;
+  let userName = DEFAULT_USERNAME;
+
+  try {
+    const userOauth = await getUser(request, customObjectsApi);
+    userName = userOauth.metadata.name;
+  } catch (e) {
+    fastify.log.error(`${e}. Getting the cluster info.`);
+    const userCluster = (currentUser.username || currentUser.name)?.split('/')[0];
+    userName = !userCluster || userCluster === 'inClusterUser' ? userName : userCluster;
+  }
+
   let isAdmin = false;
 
   try {

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { DashboardConfig } from '../types';
+import { DashboardConfig, RecursivePartial } from '../types';
 
 export const fetchDashboardConfig = (): Promise<DashboardConfig> => {
   const url = '/api/config';
@@ -13,7 +13,9 @@ export const fetchDashboardConfig = (): Promise<DashboardConfig> => {
     });
 };
 
-export const patchDashboardConfig = (updateData: any): Promise<DashboardConfig> => {
+export const patchDashboardConfig = (
+  updateData: RecursivePartial<DashboardConfig>,
+): Promise<DashboardConfig> => {
   const url = '/api/config';
   return axios
     .patch(url, updateData)

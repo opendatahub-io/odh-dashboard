@@ -81,6 +81,9 @@ spec:
                       properties:
                         enabled: 
                           type: boolean
+            status:
+              type: object
+              properties:
                 notebookControllerState:
                   type: array
                   items:
@@ -91,15 +94,4 @@ spec:
                       lastSelectedImage:
                         type: string
                       lastSelectedSize:
-                        type: string
-                      environmentVariables:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            key:
-                              type: string
-                            value: 
-                              type: string
-                      secrets:
                         type: string
