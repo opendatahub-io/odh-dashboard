@@ -47,7 +47,7 @@ export const NotebookController: React.FC = React.memo(() => {
     const checkUserState = async () => {
       if (username && dashboardConfig.spec.notebookController) {
         const translatedUsername = usernameTranslate(username);
-        const notebookControllerState = dashboardConfig.spec.notebookControllerState;
+        const notebookControllerState = dashboardConfig.status?.notebookControllerState;
         const fetchedUserState = notebookControllerState?.find(
           (state) => state.user === translatedUsername,
         );
@@ -58,7 +58,7 @@ export const NotebookController: React.FC = React.memo(() => {
             lastSelectedSize: '',
           };
           const patch = {
-            spec: {
+            status: {
               notebookControllerState: notebookControllerState
                 ? [...notebookControllerState, newUserState]
                 : [newUserState],
