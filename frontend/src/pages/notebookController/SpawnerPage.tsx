@@ -60,8 +60,11 @@ const SpawnerPage: React.FC = React.memo(() => {
   const { buildStatuses, dashboardConfig, setIsNavOpen } = React.useContext(AppContext);
   const stateUsername = useSelector<State, string>((state) => state.appState.user || '');
   const username = currentUserState.user || stateUsername;
-  const namespace = useSelector<State, string>((state) => state.appState.namespace || '');
-  const projectName = dashboardConfig.spec.notebookController?.notebookNamespace || namespace;
+  const dashboardNamespace = useSelector<State, string>(
+    (state) => state.appState.dashboardNamespace || '',
+  );
+  const projectName =
+    dashboardConfig.spec.notebookController?.notebookNamespace || dashboardNamespace;
   const [startShown, setStartShown] = React.useState<boolean>(false);
   const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
     startShown,
@@ -69,7 +72,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     username,
   );
   const isNotebookRunning = checkNotebookRunning(notebook);
-  
+
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,

@@ -23,7 +23,7 @@ export const getUserFulfilled = (response: {
     clusterID: response.kube.clusterID,
     clusterBranding: response.kube.clusterBranding,
     isAdmin: response.kube.isAdmin,
-    namespace: response.kube.namespace,
+    dashboardNamespace: response.kube.namespace,
   },
 });
 

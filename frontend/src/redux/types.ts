@@ -31,7 +31,7 @@ export interface GetUserAction {
     user?: string;
     clusterID?: string;
     clusterBranding?: string;
-    namespace?: string;
+    dashboardNamespace?: string;
     isAdmin?: boolean;
     error?: Error | null;
     notification?: AppNotification;
@@ -45,7 +45,7 @@ export interface AppState {
   clusterID?: string;
   clusterBranding?: string;
   isAdmin?: boolean;
-  namespace?: string;
+  dashboardNamespace?: string;
   notifications: AppNotification[];
   forceComponentsUpdate: number;
 }

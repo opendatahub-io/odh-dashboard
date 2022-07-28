@@ -8,14 +8,18 @@ import {
 } from '../services/configMapService';
 import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
 import {
-  DeleteStatus,
   EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
   EnvVarResourceType,
+  K8sResourceCommon,
   Notebook,
   NotebookControllerUserState,
   PersistentVolumeClaim,
+  ResourceCreator,
+  ResourceDeleter,
+  ResourceGetter,
+  ResourceReplacer,
   RoleBinding,
   VariableRow,
 } from '../types';
@@ -38,15 +42,16 @@ export const generatePvcNameFromUsername = (username: string): string =>
 export const generateEnvVarFileNameFromUsername = (username: string): string =>
   `jupyterhub-singleuser-profile-${usernameTranslate(username)}-envs`;
 
-/** Verify whether a resource is on the cluster
+/**
+ * Verify whether a resource is on the cluster
  * If it exists, return the resource object, else, return null
  * If the createFunc is also passed, create it when it doesn't exist
  */
-export const verifyResource = async <T>(
+export const verifyResource = async <T extends K8sResourceCommon>(
   name: string,
   namespace: string,
-  fetchFunc: (projectName: string, resourceName: string) => Promise<T>,
-  createFunc?: (resource: T) => Promise<T>,
+  fetchFunc: ResourceGetter<T>,
+  createFunc?: ResourceCreator<T>,
   createBody?: T,
 ): Promise<T | undefined> => {
   return await fetchFunc(namespace, name).catch(async (e: AxiosError) => {
@@ -89,45 +94,46 @@ export const verifyEnvVars = async (
   namespace: string,
   kind: string,
   envVars: Record<string, string>,
-  fetchFunc: (projectName: string, resourceName: string) => Promise<EnvVarResource>,
-  createFunc: (resource: EnvVarResource) => Promise<EnvVarResource>,
-  replaceFunc: (resource: EnvVarResource) => Promise<EnvVarResource>,
-  deleteFunc: (projectName: string, resourceName: string) => Promise<DeleteStatus>,
+  fetchFunc: ResourceGetter<EnvVarResource>,
+  createFunc: ResourceCreator<EnvVarResource>,
+  replaceFunc: ResourceReplacer<EnvVarResource>,
+  deleteFunc: ResourceDeleter,
 ): Promise<void> => {
   if (!envVars) {
     const resource = await verifyResource(name, namespace, fetchFunc);
     if (resource) {
-      deleteFunc(namespace, name);
+      await deleteFunc(namespace, name);
     }
-  } else {
-    const body =
-      kind === EnvVarResourceType.Secret
-        ? {
-            stringData: envVars,
-            type: 'Opaque',
-          }
-        : {
-            data: envVars,
-          };
-    const newResource: EnvVarResource = {
-      apiVersion: 'v1',
-      kind,
-      metadata: {
-        name,
-        namespace,
-      },
-      ...body,
-    };
-    const response = await verifyResource<EnvVarResource>(
+    return;
+  }
+
+  const body =
+    kind === EnvVarResourceType.Secret
+      ? {
+          stringData: envVars,
+          type: 'Opaque',
+        }
+      : {
+          data: envVars,
+        };
+  const newResource: EnvVarResource = {
+    apiVersion: 'v1',
+    kind,
+    metadata: {
       name,
       namespace,
-      fetchFunc,
-      createFunc,
-      newResource,
-    );
-    if (!_.isEqual(response?.data, envVars)) {
-      await replaceFunc(newResource);
-    }
+    },
+    ...body,
+  };
+  const response = await verifyResource<EnvVarResource>(
+    name,
+    namespace,
+    fetchFunc,
+    createFunc,
+    newResource,
+  );
+  if (!_.isEqual(response?.data, envVars)) {
+    await replaceFunc(newResource);
   }
 };
 

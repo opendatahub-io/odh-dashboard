@@ -562,3 +562,14 @@ export type RoleBinding = {
   subjects: RoleBindingSubject[];
   roleRef: RoleBindingSubject;
 } & K8sResourceCommon;
+
+export type ResourceGetter<T extends K8sResourceCommon> = (
+  projectName: string,
+  resourceName: string,
+) => Promise<T>;
+
+export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+
+export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+
+export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
