@@ -5,7 +5,11 @@ import {
   NotebookResources,
   Route,
 } from '../../../types';
-import { PatchUtils } from '@kubernetes/client-node';
+import { PatchUtils, V1Role, V1RoleBinding } from '@kubernetes/client-node';
+import { FastifyRequest } from 'fastify';
+import { createCustomError } from '../../../utils/requestUtils';
+import createHttpError from 'http-errors';
+import { getUserName } from '../../../utils/userUtils';
 
 export const getNotebooks = async (
   fastify: KubeFastifyInstance,
@@ -59,11 +63,18 @@ export const verifyResources = (resources: NotebookResources): NotebookResources
 
 export const postNotebook = async (
   fastify: KubeFastifyInstance,
-  namespace: string,
-  notebookData: Notebook,
+  request: FastifyRequest<{
+    Params: {
+      projectName: string;
+    };
+    Body: Notebook;
+  }>,
 ): Promise<Notebook> => {
+  const namespace = request.params.projectName;
+  const notebookData = request.body;
   const notebookName = notebookData.metadata.name;
   notebookData.metadata.namespace = namespace;
+
   if (!notebookData?.metadata?.annotations) {
     notebookData.metadata.annotations = {};
   }
@@ -72,24 +83,39 @@ export const postNotebook = async (
   const notebookContainers = notebookData.spec.template.spec.containers;
 
   if (!notebookContainers[0]) {
-    console.error('No containers found in posted notebook');
+    const error: createHttpError.HttpError<500> = createCustomError(
+      'missing notebook containers',
+      'No containers found in posted notebook.',
+    );
+    fastify.log.error(error.message);
+    throw error;
   }
-  notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
 
+  notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
   notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
 
-  try {
-    await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-      'kubeflow.org',
-      'v1',
-      namespace,
-      'notebooks',
-      notebookData,
+  await fastify.kube.customObjectsApi
+    .createNamespacedCustomObject('kubeflow.org', 'v1', namespace, 'notebooks', notebookData)
+    .catch((e) => {
+      const error: createHttpError.HttpError<500> = createCustomError(
+        'error creating Notebook Custom Resource',
+        `Error, failed to create Notebook Custom Resource. ${e.toString()}`,
+      );
+      fastify.log.error(
+        `Error creating Notebook Custom Resource for ${notebookName}, ${e.toString()}`,
+      );
+      throw error;
+    });
+
+  await createRBAC(fastify, request, namespace, notebookData).catch((e) => {
+    const error: createHttpError.HttpError<500> = createCustomError(
+      'error creating Notebook RBAC',
+      'Error, failed to create Notebook RBAC.',
     );
-  } catch (e) {
-    fastify.log.error(e.toString());
-  }
-  // wait until the Route is created
+    fastify.log.error(`Error creating Notebook RBAC for ${notebookName}, ${e.toString()}`);
+    throw error;
+  });
+
   await new Promise((r) => setTimeout(r, 500));
   const getRouteResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
     'route.openshift.io',
@@ -108,9 +134,18 @@ export const postNotebook = async (
       },
     },
   };
-  const patchNotebookResponse = await patchNotebook(fastify, patch, namespace, notebookName);
 
-  return patchNotebookResponse as Notebook;
+  const patchNotebookResponse = await patchNotebook(fastify, patch, namespace, notebookName).catch(
+    (e) => {
+      const error: createHttpError.HttpError<500> = createCustomError(
+        'error patching Notebook route',
+        'Error, failed to patch Notebook route.',
+      );
+      fastify.log.error(`Error patching Notebook route for ${notebookName}, ${e.toString()}`);
+      throw error;
+    },
+  );
+  return patchNotebookResponse;
 };
 
 export const patchNotebook = async (
@@ -145,4 +180,102 @@ export const patchNotebook = async (
     options,
   );
   return kubeResponse.body as Notebook;
+};
+
+export const deleteNotebook = async (
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest<{
+    Params: {
+      projectName: string;
+      notebookName: string;
+    };
+  }>,
+): Promise<Record<string, unknown>> => {
+  const namespace = request.params.projectName;
+  const notebookName = request.params.notebookName;
+
+  try {
+    await fastify.kube.rbac.deleteNamespacedRole(`${notebookName}-notebook-view`, namespace);
+    await fastify.kube.rbac.deleteNamespacedRoleBinding(`${notebookName}-notebook-view`, namespace);
+  } catch (e) {
+    const error: createHttpError.HttpError<500> = createCustomError(
+      'error deleting Notebook RBAC',
+      'Error, failed to delete Notebook RBAC.',
+    );
+    fastify.log.error(`Error deleting Notebook RBAC for ${notebookName}, ${e.toString()}`);
+    throw error;
+  }
+
+  try {
+    const deletedCR = await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
+      'kubeflow.org',
+      'v1',
+      request.params.projectName,
+      'notebooks',
+      request.params.notebookName,
+    );
+    return deletedCR;
+  } catch (e) {
+    const error: createHttpError.HttpError<500> = createCustomError(
+      'error deleting Notebook Custom Resource',
+      'Error, failed to delete Notebook Custom Resource.',
+    );
+    fastify.log.error(
+      `Error deleting Notebook Custom Resource for ${notebookName}, ${e.toString()}`,
+    );
+    throw error;
+  }
+};
+
+export const createRBAC = async (
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest<{
+    Params: {
+      projectName: string;
+    };
+    Body: Notebook;
+  }>,
+  namespace: string,
+  notebookData: Notebook,
+): Promise<void> => {
+  const userName = await getUserName(fastify, request, fastify.kube.customObjectsApi);
+
+  const notebookRole: V1Role = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'Role',
+    metadata: {
+      name: `${notebookData.metadata.name}-notebook-view`,
+    },
+    rules: [
+      {
+        apiGroups: ['kubeflow.org'],
+        resources: ['notebooks'],
+        resourceNames: [`${notebookData.metadata.name}`],
+        verbs: ['get'],
+      },
+    ],
+  };
+
+  const notebookRoleBinding: V1RoleBinding = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'RoleBinding',
+    metadata: {
+      name: `${notebookData.metadata.name}-notebook-view`,
+    },
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'Role',
+      name: `${notebookData.metadata.name}-notebook-view`,
+    },
+    subjects: [
+      {
+        apiGroup: 'rbac.authorization.k8s.io',
+        kind: 'User',
+        name: userName,
+      },
+    ],
+  };
+
+  await fastify.kube.rbac.createNamespacedRole(namespace, notebookRole);
+  await fastify.kube.rbac.createNamespacedRoleBinding(namespace, notebookRoleBinding);
 };
