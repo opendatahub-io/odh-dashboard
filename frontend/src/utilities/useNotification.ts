@@ -11,26 +11,33 @@ const useNotification = (): {
 } => {
   const dispatch = useDispatch();
 
-  const success: SuccessProps = (title) => {
-    dispatch(
-      addNotification({
-        status: 'success',
-        title,
-        timestamp: new Date(),
-      }),
-    );
-  };
+  const success: SuccessProps = React.useCallback(
+    (title) => {
+      dispatch(
+        addNotification({
+          status: 'success',
+          title,
+          timestamp: new Date(),
+        }),
+      );
+    },
+    [dispatch],
+  );
 
-  const error: ErrorProps = (title, message?) => {
-    dispatch(
-      addNotification({
-        status: 'danger',
-        title,
-        message,
-        timestamp: new Date(),
-      }),
-    );
-  };
+  const error: ErrorProps = React.useCallback(
+    (title, message?) => {
+      dispatch(
+        addNotification({
+          status: 'danger',
+          title,
+          message,
+          timestamp: new Date(),
+        }),
+      );
+    },
+    [dispatch],
+  );
+
   return { success, error };
 };
 
