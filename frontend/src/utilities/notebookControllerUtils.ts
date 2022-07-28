@@ -1,4 +1,4 @@
-import * as _ from 'lodash-es';
+import * as _ from 'lodash';
 import { AxiosError } from 'axios';
 import {
   createConfigMap,
@@ -14,6 +14,8 @@ import {
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
   EnvVarResourceType,
+  Notebook,
+  NotebookControllerUserState,
   PersistentVolumeClaim,
   Secret,
   VariableRow,
@@ -172,3 +174,16 @@ export const generatePvc = (pvcName: string, pvcSize: string): PersistentVolumeC
     phase: 'Pending',
   },
 });
+
+export const checkNotebookRunning = (notebook?: Notebook): boolean =>
+  !!(
+    notebook?.status?.readyReplicas &&
+    notebook?.status?.readyReplicas >= 1 &&
+    notebook?.metadata.annotations?.['opendatahub.io/link']
+  );
+
+export const getUserStateFromDashboardConfig = (
+  translatedUsername: string,
+  notebookControllerState: NotebookControllerUserState[],
+): NotebookControllerUserState | undefined =>
+  notebookControllerState.find((state) => usernameTranslate(state.user) === translatedUsername);

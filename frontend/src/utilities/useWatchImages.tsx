@@ -15,14 +15,21 @@ export const useWatchImages = (): {
 
   React.useEffect(() => {
     let watchHandle;
+    let cancelled = false;
     const watchImages = () => {
       fetchImages()
         .then((data: ImageInfo[]) => {
+          if (cancelled) {
+            return;
+          }
           setLoaded(true);
           setLoadError(undefined);
           setImages(data);
         })
         .catch((e) => {
+          if (cancelled) {
+            return;
+          }
           setLoadError(e);
         });
       watchHandle = setTimeout(watchImages, POLL_INTERVAL);
@@ -30,6 +37,7 @@ export const useWatchImages = (): {
     watchImages();
 
     return () => {
+      cancelled = true;
       if (watchHandle) {
         clearTimeout(watchHandle);
       }

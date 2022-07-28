@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router';
+import { useHistory } from 'react-router-dom';
 import { OdhDocument } from '../../types';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
 import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';

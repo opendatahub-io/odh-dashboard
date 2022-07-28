@@ -9,7 +9,7 @@ const FAST_POLL_INTERVAL = process.env.FAST_POLL_INTERVAL
 const DOC_LINK = process.env.DOC_LINK;
 const COMMUNITY_LINK = process.env.COMMUNITY_LINK;
 const SUPPORT_LINK = process.env.SUPPORT_LINK;
-const ODH_LOGO = process.env.ODH_LOGO;
+const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo.svg';
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const ODH_NOTEBOOK_REPO = process.env.ODH_NOTEBOOK_REPO;
 

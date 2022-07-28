@@ -55,7 +55,7 @@ export type NotebookResources = {
 };
 
 export type EnvironmentVariable = {
-  key: string;
+  name: string;
   value: string | number;
 };
 

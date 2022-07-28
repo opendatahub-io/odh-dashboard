@@ -9,19 +9,23 @@ import {
   Text,
   TextVariants,
 } from '@patternfly/react-core';
-import { NotebookContainer } from '../../types';
+import { ImageInfo, Notebook, NotebookContainer } from '../../types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
   getNumGpus,
 } from '../../utilities/imageUtils';
+import AppContext from '../../app/AppContext';
 
-import NotebookControllerContext from './NotebookControllerContext';
+type NotebookServerDetailsProps = {
+  notebook?: Notebook;
+  images: ImageInfo[];
+};
 
-const NotebookServerDetails: React.FC = () => {
+const NotebookServerDetails: React.FC<NotebookServerDetailsProps> = ({ notebook, images }) => {
   const [isExpanded, setExpanded] = React.useState(false);
-  const { notebook, images, dashboardConfig } = React.useContext(NotebookControllerContext);
+  const { dashboardConfig } = React.useContext(AppContext);
 
   const empty = React.useCallback(() => <div>Error load notebook details</div>, []);
 

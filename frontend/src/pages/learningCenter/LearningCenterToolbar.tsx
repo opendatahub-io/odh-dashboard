@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { useHistory } from 'react-router';
+import { useHistory } from 'react-router-dom';
 import {
   Button,
   ButtonVariant,
