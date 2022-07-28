@@ -2,7 +2,6 @@ import { FastifyRequest } from 'fastify';
 import { rolloutDeploymentConfig, rolloutDeployment } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
-import { defaultCullingSettings } from '../../../utils/constants';
 import { V1ConfigMap } from '@kubernetes/client-node';
 const jupyterhubCfg = 'jupyterhub-cfg';
 const nbcCfg = 'notebook-controller-culler-config';
@@ -10,6 +9,7 @@ const segmentKeyCfg = 'odh-segment-key-config';
 
 const DEFAULT_PVC_SIZE = 20;
 const DEFAULT_CULLER_TIMEOUT = 31536000; // 1 year as no culling
+const DEFAULT_IDLENESS_CHECK_PERIOD = '5'; //5 minutes
 const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
@@ -46,10 +46,17 @@ export const updateClusterSettings = async (
             });
           } catch (e) {
             if (e.statusCode === 404) {
-              const cm = defaultCullingSettings;
-              cm.data = {
-                ENABLE_CULLING: String(isEnabled),
-                CULL_IDLE_TIME: String(cullingTimeMin),
+              const cm: V1ConfigMap = {
+                apiVersion: 'v1',
+                kind: 'ConfigMap',
+                metadata: {
+                  name: 'notebook-controller-culler-config',
+                },
+                data: {
+                  ENABLE_CULLING: String(isEnabled),
+                  CULL_IDLE_TIME: String(cullingTimeMin), // In minutes
+                  IDLENESS_CHECK_PERIOD: DEFAULT_IDLENESS_CHECK_PERIOD, //In minutes
+                },
               };
               await fastify.kube.coreV1Api.createNamespacedConfigMap(fastify.kube.namespace, cm);
             }
