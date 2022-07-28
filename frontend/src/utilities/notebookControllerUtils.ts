@@ -184,6 +184,6 @@ export const checkNotebookRunning = (notebook?: Notebook): boolean =>
 
 export const getUserStateFromDashboardConfig = (
   translatedUsername: string,
-  notebookControllerState?: NotebookControllerUserState[],
+  notebookControllerState: NotebookControllerUserState[],
 ): NotebookControllerUserState | undefined =>
-  notebookControllerState?.find((state) => usernameTranslate(state.user) === translatedUsername);
+  notebookControllerState.find((state) => usernameTranslate(state.user) === translatedUsername);

@@ -91,7 +91,7 @@ export const createNotebook = (
                   --ServerApp.password=''
                   --ServerApp.base_url=/notebook/${projectName}/${notebookName}
                   --ServerApp.quit_button=False
-                  --ServerApp.tornado_settings={"user":"${username}","hub_host":"${origin}","hub_prefix":"/notebookController/${translatedUsername}"}`,
+                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/notebookController/${translatedUsername}"}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
@@ -140,8 +140,6 @@ export const createNotebook = (
       },
     },
   };
-
-  console.log(data);
 
   return axios
     .post(url, data)

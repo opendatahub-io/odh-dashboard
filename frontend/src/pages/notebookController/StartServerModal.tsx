@@ -6,7 +6,7 @@ import { checkNotebookRunning } from '../../utilities/notebookControllerUtils';
 import './NotebookController.scss';
 
 type StartServerModalProps = {
-  notebook: Notebook | undefined;
+  notebook?: Notebook;
   startShown: boolean;
   setStartModalShown: (shown: boolean) => void;
   onClose: () => void;
@@ -39,6 +39,12 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
       timer = setTimeout(() => {
         if (notebook?.metadata.annotations?.['opendatahub.io/link']) {
           window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
+        } else {
+          setSpawnStatus({
+            status: AlertVariant.danger,
+            title: 'Failed to redirect',
+            reason: 'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+          });
         }
       }, 6000);
     }
@@ -47,7 +53,6 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
         clearTimeout(timer);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNotebookRunning]);
 
   const loading = () => (

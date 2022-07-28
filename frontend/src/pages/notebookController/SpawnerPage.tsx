@@ -47,7 +47,6 @@ import { getConfigMap } from '../../services/configMapService';
 import { useWatchImages } from '../../utilities/useWatchImages';
 import ApplicationsPage from '../../pages/ApplicationsPage';
 import StartServerModal from './StartServerModal';
-import QuickStarts from '../../app/QuickStarts';
 import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage';
 import useNotification from '../../utilities/useNotification';
 import NotebookControllerContext from './NotebookControllerContext';
@@ -103,7 +102,7 @@ const SpawnerPage: React.FC = React.memo(() => {
         if (!isNotebookRunning) {
           setStartShown(true);
         } else {
-          history.push('/notebookController');
+          history.replace('/notebookController');
         }
       }
     }
@@ -367,7 +366,6 @@ const SpawnerPage: React.FC = React.memo(() => {
   };
 
   return (
-    <QuickStarts>
       <ApplicationsPage
         title="Start a Notebook server"
         description="Select options for your Notebook server."
@@ -460,7 +458,6 @@ const SpawnerPage: React.FC = React.memo(() => {
           onClose={onModalClose}
         />
       </ApplicationsPage>
-    </QuickStarts>
   );
 });
 

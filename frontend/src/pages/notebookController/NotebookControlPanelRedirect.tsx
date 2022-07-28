@@ -14,13 +14,13 @@ const NotebookControlPanelRedirect: React.FC = () => {
     if (translatedUsername && dashboardConfig.spec.notebookController?.enabled) {
       const userState = getUserStateFromDashboardConfig(
         translatedUsername,
-        dashboardConfig.status?.notebookControllerState,
+        dashboardConfig.status?.notebookControllerState || [],
       );
       if (!userState) {
         history.push('/not-found');
       } else {
         setCurrentUserState(userState);
-        history.push('/notebookController');
+        history.replace('/notebookController');
       }
     }
   }, [translatedUsername, dashboardConfig, history, setCurrentUserState]);

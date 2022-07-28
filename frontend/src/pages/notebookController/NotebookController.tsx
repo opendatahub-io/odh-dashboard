@@ -14,7 +14,6 @@ import {
   getUserStateFromDashboardConfig,
   usernameTranslate,
 } from '../../utilities/notebookControllerUtils';
-import QuickStarts from '../../app/QuickStarts';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { Redirect, useHistory } from 'react-router-dom';
@@ -37,7 +36,7 @@ export const NotebookController: React.FC = React.memo(() => {
   React.useEffect(() => {
     const checkUserState = async () => {
       if (translatedUsername && dashboardConfig.spec.notebookController) {
-        const notebookControllerState = dashboardConfig.status?.notebookControllerState;
+        const notebookControllerState = dashboardConfig.status?.notebookControllerState || [];
         const fetchedUserState = getUserStateFromDashboardConfig(
           translatedUsername,
           notebookControllerState,
@@ -65,7 +64,6 @@ export const NotebookController: React.FC = React.memo(() => {
   }, [setIsNavOpen]);
 
   return (
-    <QuickStarts>
       <ApplicationsPage
         title="Notebook server control panel"
         description={null}
@@ -102,7 +100,6 @@ export const NotebookController: React.FC = React.memo(() => {
           </div>
         )}
       </ApplicationsPage>
-    </QuickStarts>
   );
 });
 
