@@ -366,98 +366,98 @@ const SpawnerPage: React.FC = React.memo(() => {
   };
 
   return (
-      <ApplicationsPage
-        title="Start a Notebook server"
-        description="Select options for your Notebook server."
-        loaded={loaded}
-        loadError={loadError}
-        empty={!images || images.length === 0}
-      >
-        <Form className="odh-notebook-controller__page odh-notebook-controller__page-form">
-          <FormSection title="Notebook image">
-            <FormGroup fieldId="modal-notebook-image">
-              <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-                {images.sort(checkOrder).map((image) => (
-                  <GridItem key={image.name}>
-                    <ImageSelector
-                      image={image}
-                      selectedImage={selectedImageTag.image}
-                      selectedTag={selectedImageTag.tag}
-                      handleSelection={handleImageTagSelection}
-                    />
-                  </GridItem>
-                ))}
-              </Grid>
+    <ApplicationsPage
+      title="Start a Notebook server"
+      description="Select options for your Notebook server."
+      loaded={loaded}
+      loadError={loadError}
+      empty={!images || images.length === 0}
+    >
+      <Form className="odh-notebook-controller__page odh-notebook-controller__page-form">
+        <FormSection title="Notebook image">
+          <FormGroup fieldId="modal-notebook-image">
+            <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
+              {images.sort(checkOrder).map((image) => (
+                <GridItem key={image.name}>
+                  <ImageSelector
+                    image={image}
+                    selectedImage={selectedImageTag.image}
+                    selectedTag={selectedImageTag.tag}
+                    handleSelection={handleImageTagSelection}
+                  />
+                </GridItem>
+              ))}
+            </Grid>
+          </FormGroup>
+        </FormSection>
+        <FormSection title="Deployment size">
+          {sizeOptions && (
+            <FormGroup label="Container size" fieldId="modal-notebook-container-size">
+              <Select
+                isOpen={sizeDropdownOpen}
+                onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
+                aria-labelledby="container-size"
+                selections={selectedSize}
+                onSelect={handleSizeSelection}
+                menuAppendTo="parent"
+              >
+                {sizeOptions}
+              </Select>
             </FormGroup>
-          </FormSection>
-          <FormSection title="Deployment size">
-            {sizeOptions && (
-              <FormGroup label="Container size" fieldId="modal-notebook-container-size">
-                <Select
-                  isOpen={sizeDropdownOpen}
-                  onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
-                  aria-labelledby="container-size"
-                  selections={selectedSize}
-                  onSelect={handleSizeSelection}
-                  menuAppendTo="parent"
-                >
-                  {sizeOptions}
-                </Select>
-              </FormGroup>
-            )}
-            {gpuOptions && (
-              <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
-                <Select
-                  isOpen={gpuDropdownOpen}
-                  onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
-                  aria-labelledby="gpu-numbers"
-                  selections={selectedGpu}
-                  onSelect={handleGpuSelection}
-                  menuAppendTo="parent"
-                >
-                  {gpuOptions}
-                </Select>
-              </FormGroup>
-            )}
-          </FormSection>
-          <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
-            {renderEnvironmentVariableRows()}
-            <Button
-              className="odh-notebook-controller__env-var-add-button"
-              isInline
-              variant="link"
-              onClick={addEnvironmentVariableRow}
-            >
-              <PlusCircleIcon />
-              {` Add more variables`}
-            </Button>
-          </FormSection>
-          <ActionGroup>
-            <Button
-              variant="primary"
-              onClick={() => {
-                handleNotebookAction().catch((e) => {
-                  setCreateInProgress(false);
-                  setStartShown(false);
-                  console.error(e);
-                });
-              }}
-              isDisabled={createInProgress}
-            >
-              Start server
-            </Button>
-            <Button variant="secondary" onClick={() => history.push('/')}>
-              Cancel
-            </Button>
-          </ActionGroup>
-        </Form>
-        <StartServerModal
-          notebook={notebook}
-          startShown={startShown}
-          setStartModalShown={setStartShown}
-          onClose={onModalClose}
-        />
-      </ApplicationsPage>
+          )}
+          {gpuOptions && (
+            <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
+              <Select
+                isOpen={gpuDropdownOpen}
+                onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
+                aria-labelledby="gpu-numbers"
+                selections={selectedGpu}
+                onSelect={handleGpuSelection}
+                menuAppendTo="parent"
+              >
+                {gpuOptions}
+              </Select>
+            </FormGroup>
+          )}
+        </FormSection>
+        <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
+          {renderEnvironmentVariableRows()}
+          <Button
+            className="odh-notebook-controller__env-var-add-button"
+            isInline
+            variant="link"
+            onClick={addEnvironmentVariableRow}
+          >
+            <PlusCircleIcon />
+            {` Add more variables`}
+          </Button>
+        </FormSection>
+        <ActionGroup>
+          <Button
+            variant="primary"
+            onClick={() => {
+              handleNotebookAction().catch((e) => {
+                setCreateInProgress(false);
+                setStartShown(false);
+                console.error(e);
+              });
+            }}
+            isDisabled={createInProgress}
+          >
+            Start server
+          </Button>
+          <Button variant="secondary" onClick={() => history.push('/')}>
+            Cancel
+          </Button>
+        </ActionGroup>
+      </Form>
+      <StartServerModal
+        notebook={notebook}
+        startShown={startShown}
+        setStartModalShown={setStartShown}
+        onClose={onModalClose}
+      />
+    </ApplicationsPage>
   );
 });
 

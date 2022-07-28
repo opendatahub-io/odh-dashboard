@@ -27,6 +27,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
 
   const isNotebookRunning = checkNotebookRunning(notebook);
+  const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
 
   React.useEffect(() => {
     let timer;
@@ -37,13 +38,14 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
         reason: 'The notebook server is up and running. This page will update momentarily.',
       });
       timer = setTimeout(() => {
-        if (notebook?.metadata.annotations?.['opendatahub.io/link']) {
-          window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
+        if (notebookLink) {
+          window.location.href = notebookLink;
         } else {
           setSpawnStatus({
             status: AlertVariant.danger,
             title: 'Failed to redirect',
-            reason: 'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+            reason:
+              'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
           });
         }
       }, 6000);
@@ -53,7 +55,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
         clearTimeout(timer);
       }
     };
-  }, [isNotebookRunning]);
+  }, [isNotebookRunning, notebookLink]);
 
   const loading = () => (
     <>
@@ -66,7 +68,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
 
   const running = () => (
     <p className="odh-notebook-controller__start-server-modal-text">
-      Server ready at {notebook?.metadata.annotations?.['opendatahub.io/link']}
+      Server ready at {notebookLink}
     </p>
   );
 

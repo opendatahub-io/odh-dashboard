@@ -16,7 +16,10 @@ const NotebookLogoutRedirect: React.FC = () => {
             const location = new URL(notebook.metadata.annotations['opendatahub.io/link']);
             window.location.href = `${location.origin}/oauth/sign_out`;
           } else {
-            notification.error("Error fetching notebook URL.", "Please check the status of your notebook.");
+            notification.error(
+              'Error fetching notebook URL.',
+              'Please check the status of your notebook.',
+            );
             history.push('not-found');
           }
         })
@@ -24,7 +27,7 @@ const NotebookLogoutRedirect: React.FC = () => {
           console.error(e);
         });
     }
-  }, [namespace, notebookName]);
+  }, [namespace, notebookName, history, notification]);
   return (
     <ApplicationsPage title="Logging out..." description={null} loaded={false} empty={false} />
   );

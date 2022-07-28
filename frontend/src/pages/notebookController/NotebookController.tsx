@@ -64,42 +64,42 @@ export const NotebookController: React.FC = React.memo(() => {
   }, [setIsNavOpen]);
 
   return (
-      <ApplicationsPage
-        title="Notebook server control panel"
-        description={null}
-        loaded={loaded}
-        loadError={loadError}
-        empty={loaded && !checkNotebookRunning(notebook)}
-        emptyStatePage={<Redirect to={`/notebookController/spawner`} />}
-      >
-        {notebook && (
-          <div className="odh-notebook-controller__page">
-            <ActionList>
-              <ActionListItem
-                onClick={() => {
-                  deleteNotebook(projectName, generateNotebookNameFromUsername(username))
-                    .then(() => {
-                      history.push(`/notebookController/spawner`);
-                    })
-                    .catch((e) => console.error(e));
-                }}
-              >
-                <Button variant="primary">Stop notebook server</Button>
-              </ActionListItem>
-              <ActionListItem
-                onClick={() => {
-                  if (notebook?.metadata.annotations?.['opendatahub.io/link']) {
-                    window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
-                  }
-                }}
-              >
-                <Button variant="secondary">Return to server</Button>
-              </ActionListItem>
-            </ActionList>
-            <NotebookServerDetails notebook={notebook} images={images} />
-          </div>
-        )}
-      </ApplicationsPage>
+    <ApplicationsPage
+      title="Notebook server control panel"
+      description={null}
+      loaded={loaded}
+      loadError={loadError}
+      empty={loaded && !checkNotebookRunning(notebook)}
+      emptyStatePage={<Redirect to={`/notebookController/spawner`} />}
+    >
+      {notebook && (
+        <div className="odh-notebook-controller__page">
+          <ActionList>
+            <ActionListItem
+              onClick={() => {
+                deleteNotebook(projectName, generateNotebookNameFromUsername(username))
+                  .then(() => {
+                    history.push(`/notebookController/spawner`);
+                  })
+                  .catch((e) => console.error(e));
+              }}
+            >
+              <Button variant="primary">Stop notebook server</Button>
+            </ActionListItem>
+            <ActionListItem
+              onClick={() => {
+                if (notebook?.metadata.annotations?.['opendatahub.io/link']) {
+                  window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
+                }
+              }}
+            >
+              <Button variant="secondary">Return to server</Button>
+            </ActionListItem>
+          </ActionList>
+          <NotebookServerDetails notebook={notebook} images={images} />
+        </div>
+      )}
+    </ApplicationsPage>
   );
 });
 
