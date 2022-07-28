@@ -1,5 +1,5 @@
 import { KubeFastifyInstance } from '../../../types';
-import { V1PodList, V1Secret, V1Service, V1ServiceAccount } from '@kubernetes/client-node';
+import { V1PodList, V1Secret, V1ServiceAccount } from '@kubernetes/client-node';
 import https from 'https';
 
 export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number> => {
@@ -35,41 +35,51 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
       .then((res) => res.body as V1Secret);
     const promToken = decodeB64(dashboardSASecret.data.token);
     for (let i = 0; i < gpuPodList.items.length; i++) {
-      const podIP = gpuPodList.items[i].status.podIP;
-      const options = {
-        hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
-        port: 9091,
-        path: `/api/v1/query?query={count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:9400\"})+or+vector(0))+\-+count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:9400\",exported_pod=~\".\+\"})+or+vector(0))}`,
-        headers: {
-          Authorization: `Bearer ${promToken}`,
-        },
-        protocol: 'https:',
-      };
-      let gpuNumberData: any = null;
-      const callback = function (res: any) {
-        res.setEncoding('utf8');
-        let rawData = '';
-        res.on('data', (chunk: any) => {
-          rawData += chunk;
-        });
-        res.on('end', () => {
-          try {
-            const parsedData = JSON.parse(rawData);
-            gpuNumberData = parsedData;
-          } catch (e) {
-            console.error(e.message);
-          }
-        });
-      };
-
-      https.get(options, callback).end();
-      const gpuNumber = gpuNumberData[0]['value'][1];
+      const data = await getGPUData(fastify, gpuPodList.items[i].status.podIP, promToken)
+      console.log("Got data: " + data)
+      const gpuNumber = data[0]['value'][1]
+      console.log("Got number: " + gpuNumber)
       if (gpuNumber > maxGpuNumber) {
         maxGpuNumber = gpuNumber;
       }
+      console.log("Current max: " + maxGpuNumber)
     }
-  }
+  };
   return maxGpuNumber;
+};
+
+export const getGPUData = async (fastify: KubeFastifyInstance, podIP: string, token: string): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
+      port: 9091,
+      path: `/api/v1/query?query={count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:9400\"})+or+vector(0))+\-+count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:9400\",exported_pod=~\".\+\"})+or+vector(0))}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      protocol: 'https:',
+    };
+    console.log("Starting request...")
+    const httpsRequest = https.get(options, (res) => {
+      res.setEncoding('utf8');
+      let rawData = '';
+      res.on('data', (chunk: any) => {
+        rawData += chunk;
+      });
+      res.on('end', () => {
+        try {
+          const parsedData = JSON.parse(rawData);
+          console.log("Parsed data: " + parsedData)
+          resolve({ response: parsedData })
+        } catch (e) {
+          console.error(e.message);
+          reject({ code: 500, response: rawData})
+        }
+      });
+    });
+    console.log("Ending request...")
+    httpsRequest.end();
+  })
 };
 
 const decodeB64 = (str: string): string => Buffer.from(str, 'base64').toString('binary');
