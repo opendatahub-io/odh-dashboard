@@ -70,6 +70,7 @@ export const createNotebook = (
     spec: {
       template: {
         spec: {
+          enableServiceLinks: false,
           containers: [
             {
               image: imageUrl,
