@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Notebook, NotebookSize, Volume, VolumeMount } from '../types';
+import { EnvVarReducedType, Notebook, NotebookSize, Volume, VolumeMount } from '../types';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
 
@@ -22,6 +22,7 @@ export const createNotebook = (
   imageUrl: string,
   notebookSize: NotebookSize | undefined,
   gpus: number,
+  envVars: EnvVarReducedType,
   volumes?: Volume[],
   volumeMounts?: VolumeMount[],
 ): Promise<Notebook> => {
@@ -33,6 +34,26 @@ export const createNotebook = (
     }
     resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
   }
+
+  const configMapEnvs = Object.keys(envVars.configMap).map((key) => ({
+    name: key,
+    valueFrom: {
+      configMapKeyRef: {
+        key,
+        name: envVars.envVarFileName,
+      },
+    },
+  }));
+
+  const secretEnvs = Object.keys(envVars.secrets).map((key) => ({
+    name: key,
+    valueFrom: {
+      secretKeyRef: {
+        key,
+        name: envVars.envVarFileName,
+      },
+    },
+  }));
 
   //TODO: instead of store.getState().appState.user, we need to use session and proper auth permissions
   const data = {
@@ -49,6 +70,7 @@ export const createNotebook = (
     spec: {
       template: {
         spec: {
+          enableServiceLinks: false,
           containers: [
             {
               image: imageUrl,
@@ -67,6 +89,8 @@ export const createNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...configMapEnvs,
+                ...secretEnvs,
               ],
               resources,
               volumeMounts,

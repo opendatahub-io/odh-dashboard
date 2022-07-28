@@ -25,13 +25,13 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
       };
     };
+  };
+  status?: {
     notebookControllerState?: [
       {
         user: string;
         lastSelectedImage: string;
         lastSelectedSize: string;
-        environmentVariables: EnvironmentVariable[];
-        secrets: string;
       },
     ];
   };
@@ -325,6 +325,7 @@ export type Notebook = {
   spec: {
     template: {
       spec: {
+        enableServiceLinks?: boolean;
         containers: NotebookContainer[];
       };
     };
