@@ -23,69 +23,90 @@ import {
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, EMPTY_USER_STATE, MOUNT_PATH } from './const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH } from './const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { useHistory } from 'react-router';
-import { createNotebook } from '../../services/notebookService';
+import { useHistory } from 'react-router-dom';
+import { createNotebook, deleteNotebook } from '../../services/notebookService';
 import { createPvc, getPvc } from '../../services/pvcService';
 import { State } from '../../redux/types';
 import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
   generateEnvVarFileNameFromUsername,
-  usernameTranslate,
   verifyResource,
   checkEnvVarFile,
   generatePvc,
+  checkNotebookRunning,
 } from '../../utilities/notebookControllerUtils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
-import NotebookControllerContext from './NotebookControllerContext';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { getSecret } from '../../services/secretsService';
 import { getConfigMap } from '../../services/configMapService';
+import { useWatchImages } from '../../utilities/useWatchImages';
+import ApplicationsPage from '../../pages/ApplicationsPage';
+import StartServerModal from './StartServerModal';
+import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage';
+import useNotification from '../../utilities/useNotification';
+import NotebookControllerContext from './NotebookControllerContext';
 
 import './NotebookController.scss';
 
-type SpawnerPageProps = {
-  setStartModalShown: (shown: boolean) => void;
-  updateNotebook: () => void;
-  setNotebookPollInterval: (interval: number) => void;
-};
-
-const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown }) => {
+const SpawnerPage: React.FC = React.memo(() => {
   const history = useHistory();
-  const { images, dashboardConfig } = React.useContext(NotebookControllerContext);
-  const [username, namespace] = useSelector<State, [string, string]>((state) => [
-    state.appState.user || '',
-    state.appState.namespace || '',
-  ]);
+  const notification = useNotification();
+  const { images, loaded, loadError } = useWatchImages();
+  const { currentUserState, setCurrentUserState } = React.useContext(NotebookControllerContext);
+  const stateUsername = useSelector<State, string>((state) => state.appState.user || '');
+  const username = currentUserState.user || stateUsername;
+  const namespace = useSelector<State, string>((state) => state.appState.namespace || '');
   const projectName = ODH_NOTEBOOK_REPO || namespace;
-  const translatedUsername = usernameTranslate(username);
-  const { buildStatuses } = React.useContext(AppContext);
+  const [startShown, setStartShown] = React.useState<boolean>(false);
+  const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
+    startShown,
+    projectName,
+    username,
+  );
+  const isNotebookRunning = checkNotebookRunning(notebook);
+  const { buildStatuses, dashboardConfig, setIsNavOpen } = React.useContext(AppContext);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
   });
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
   const [selectedSize, setSelectedSize] = React.useState<string>('');
-  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
+  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [gpuSize, setGpuSize] = React.useState<number>(0);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
-  const userState = React.useMemo(() => {
-    if (translatedUsername) {
-      const newUserState = dashboardConfig?.status?.notebookControllerState?.find(
-        (state) => state.user === translatedUsername,
+  const [shouldRedirect, setShouldRedirect] = React.useState<boolean>(true);
+
+  const onModalClose = () => {
+    setStartShown(false);
+    if (notebook) {
+      deleteNotebook(projectName, notebook.metadata.name).catch((e) =>
+        notification.error(`Error delete notebook ${notebook.metadata.name}`, e.message),
       );
-      if (newUserState) {
-        return newUserState;
+    }
+  };
+
+  React.useEffect(() => {
+    setIsNavOpen(false);
+  }, [setIsNavOpen]);
+
+  React.useEffect(() => {
+    if (shouldRedirect) {
+      if (notebookLoaded && notebook) {
+        if (!isNotebookRunning) {
+          setStartShown(true);
+        } else {
+          history.replace('/notebookController');
+        }
       }
     }
-    return EMPTY_USER_STATE;
-  }, [dashboardConfig, translatedUsername]);
+  }, [notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -117,8 +138,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           }
         }
       };
-      if (userState?.lastSelectedImage) {
-        const [imageName, tagName] = [...userState?.lastSelectedImage.split(':')];
+      if (currentUserState?.lastSelectedImage) {
+        const [imageName, tagName] = [...currentUserState?.lastSelectedImage.split(':')];
         const image = images.find((image) => image.name === imageName);
         const tag = image?.tags.find((tag) => tag.name === tagName);
         if (image && tag && isImageTagBuildValid(buildStatuses, image, tag)) {
@@ -130,16 +151,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         getDefaultImageTag();
       }
     };
-    if (images && userState) {
+    if (images && currentUserState) {
       setFirstValidImage();
     }
-  }, [userState, images, buildStatuses]);
+  }, [currentUserState, images, buildStatuses]);
 
   React.useEffect(() => {
     if (dashboardConfig?.spec.notebookSizes) {
-      if (userState?.lastSelectedSize) {
+      if (currentUserState?.lastSelectedSize) {
         const size = dashboardConfig.spec.notebookSizes.find(
-          (notebookSize) => notebookSize.name === userState.lastSelectedSize,
+          (notebookSize) => notebookSize.name === currentUserState.lastSelectedSize,
         );
         if (size) {
           setSelectedSize(size.name);
@@ -150,10 +171,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
       }
     }
-  }, [dashboardConfig, userState]);
+  }, [dashboardConfig, currentUserState]);
 
   const mapRows = React.useCallback(
     async (fetchFunc: (name: string) => Promise<ConfigMap | Secret>) => {
+      if (!username) {
+        return [];
+      }
       let fetchedVariableRows: VariableRow[] = [];
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
       const response = await verifyResource(envVarFileName, fetchFunc);
@@ -311,7 +335,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     await createNotebook(
       projectName,
       notebookName,
-      translatedUsername,
+      username,
       imageUrl,
       notebookSize,
       parseInt(selectedGpu),
@@ -320,14 +344,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
       volumeMounts,
     );
     setCreateInProgress(false);
-    setStartModalShown(true);
+    setShouldRedirect(false);
+    setStartShown(true);
     const updatedUserState = {
-      ...userState,
+      ...currentUserState,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
       lastSelectedSize: selectedSize,
     };
+    setCurrentUserState(updatedUserState);
     const otherUsersStates = dashboardConfig?.status?.notebookControllerState?.filter(
-      (state) => state.user !== translatedUsername,
+      (state) => state.user !== username,
     );
     const dashboardConfigPatch = {
       status: {
@@ -340,7 +366,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
   };
 
   return (
-    <>
+    <ApplicationsPage
+      title="Start a Notebook server"
+      description="Select options for your Notebook server."
+      loaded={loaded}
+      loadError={loadError}
+      empty={!images || images.length === 0}
+    >
       <Form className="odh-notebook-controller__page odh-notebook-controller__page-form">
         <FormSection title="Notebook image">
           <FormGroup fieldId="modal-notebook-image">
@@ -406,7 +438,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
             onClick={() => {
               handleNotebookAction().catch((e) => {
                 setCreateInProgress(false);
-                setStartModalShown(false);
+                setStartShown(false);
                 console.error(e);
               });
             }}
@@ -419,7 +451,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           </Button>
         </ActionGroup>
       </Form>
-    </>
+      <StartServerModal
+        notebook={notebook}
+        startShown={startShown}
+        setStartModalShown={setStartShown}
+        onClose={onModalClose}
+      />
+    </ApplicationsPage>
   );
 });
 

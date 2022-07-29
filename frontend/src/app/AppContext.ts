@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { BuildStatus } from '../types';
+import { blankDashboardCR } from '../utilities/useWatchDashboardConfig';
+import { BuildStatus, DashboardConfig } from '../types';
 
 type AppContextProps = {
   isNavOpen: boolean;
   setIsNavOpen: (isNavOpen: boolean) => void;
   onNavToggle: () => void;
   buildStatuses: BuildStatus[];
+  dashboardConfig: DashboardConfig;
 };
 
 const defaultAppContext: AppContextProps = {
@@ -13,6 +15,7 @@ const defaultAppContext: AppContextProps = {
   setIsNavOpen: () => undefined,
   onNavToggle: () => undefined,
   buildStatuses: [],
+  dashboardConfig: blankDashboardCR,
 };
 
 const AppContext = React.createContext(defaultAppContext);

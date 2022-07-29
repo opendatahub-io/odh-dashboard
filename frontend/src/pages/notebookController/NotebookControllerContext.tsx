@@ -1,20 +1,15 @@
 import * as React from 'react';
-import { DashboardConfig, ImageInfo, Notebook } from 'types';
+import { NotebookControllerUserState } from '../../types';
+import { EMPTY_USER_STATE } from './const';
 
 type NotebookControllerContextProps = {
-  notebook: Notebook | null | undefined;
-  dashboardConfig: DashboardConfig | undefined;
-  images: ImageInfo[];
-  isNotebookRunning: boolean;
-  projectName: string;
+  setCurrentUserState: (userState: NotebookControllerUserState) => void;
+  currentUserState: NotebookControllerUserState;
 };
 
 const defaultNotebookControllerContext: NotebookControllerContextProps = {
-  notebook: undefined,
-  dashboardConfig: undefined,
-  images: [],
-  isNotebookRunning: false,
-  projectName: '',
+  setCurrentUserState: () => undefined,
+  currentUserState: EMPTY_USER_STATE,
 };
 
 const NotebookControllerContext = React.createContext(defaultNotebookControllerContext);

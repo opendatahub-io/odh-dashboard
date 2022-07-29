@@ -1,8 +1,11 @@
 import { CustomObjectsApi } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
+import { KubeFastifyInstance } from '../types';
+
 import * as _ from 'lodash';
 
 const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
+const DEFAULT_USERNAME = 'kube:admin';
 
 export type OpenShiftUser = {
   kind: string;
@@ -39,4 +42,24 @@ export const getUser = async (
   } catch (e) {
     throw new Error(`Error getting Oauth Info for user, ${e.toString()}`);
   }
+};
+
+export const getUserName = async (
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest,
+  customObjectApi: CustomObjectsApi,
+): Promise<string> => {
+  const { currentUser } = fastify.kube;
+  let userName = '';
+
+  try {
+    const userOauth = await getUser(request, customObjectApi);
+    userName = userOauth.metadata.name;
+  } catch (e) {
+    fastify.log.error(`${e}. Getting the cluster info.`);
+    const userCluster = (currentUser.username || currentUser.name)?.split('/')[0];
+    userName = !userCluster || userCluster === 'inClusterUser' ? DEFAULT_USERNAME : userCluster;
+  }
+
+  return userName;
 };

@@ -14,10 +14,13 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
   return (
     <PageHeader
       logo={
-        <Link to="/">
-          <Brand src={ODH_LOGO} alt={`${ODH_PRODUCT_NAME} Logo`} />
-        </Link>
+        <Brand
+          src={`${window.location.origin}/images/${ODH_LOGO}`}
+          alt={`${ODH_PRODUCT_NAME} Logo`}
+        />
       }
+      logoComponent={Link}
+      logoProps={{ to: '/' }}
       headerTools={<HeaderTools onNotificationsClick={onNotificationsClick} />}
       showNavToggle
       isNavOpen={isNavOpen}

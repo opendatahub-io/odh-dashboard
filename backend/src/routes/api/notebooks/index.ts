@@ -1,6 +1,12 @@
 import { KubeFastifyInstance, Notebook } from '../../../types';
 import { FastifyRequest } from 'fastify';
-import { getNotebook, getNotebooks, patchNotebook, postNotebook } from './notebookUtils';
+import {
+  deleteNotebook,
+  getNotebook,
+  getNotebooks,
+  patchNotebook,
+  postNotebook,
+} from './notebookUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get('/:projectName', async (request: FastifyRequest) => {
@@ -23,29 +29,33 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     return await getNotebook(fastify, params.projectName, params.notebookName);
   });
 
-  fastify.post('/:projectName', async (request: FastifyRequest) => {
-    const params = request.params as {
-      projectName: string;
-    };
-    const notebookData = request.body as Notebook;
+  fastify.post(
+    '/:projectName',
+    async (
+      request: FastifyRequest<{
+        Params: {
+          projectName: string;
+        };
+        Body: Notebook;
+      }>,
+    ) => {
+      return postNotebook(fastify, request);
+    },
+  );
 
-    return await postNotebook(fastify, params.projectName, notebookData);
-  });
-
-  fastify.delete('/:projectName/:notebookName', async (request: FastifyRequest) => {
-    const params = request.params as {
-      projectName: string;
-      notebookName: string;
-    };
-
-    return fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
-      'kubeflow.org',
-      'v1',
-      params.projectName,
-      'notebooks',
-      params.notebookName,
-    );
-  });
+  fastify.delete(
+    '/:projectName/:notebookName',
+    async (
+      request: FastifyRequest<{
+        Params: {
+          projectName: string;
+          notebookName: string;
+        };
+      }>,
+    ) => {
+      return deleteNotebook(fastify, request);
+    },
+  );
 
   fastify.patch('/:projectName/:notebookName', async (request: FastifyRequest) => {
     const params = request.params as {

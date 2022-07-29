@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router';
+import { useHistory } from 'react-router-dom';
 import { ArrowsAltVIcon, LongArrowAltDownIcon, LongArrowAltUpIcon } from '@patternfly/react-icons';
 import { setQueryArgument } from '../../utilities/router';
 import { useQueryParams } from '../../utilities/useQueryParams';

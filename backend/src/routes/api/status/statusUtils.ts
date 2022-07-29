@@ -1,8 +1,8 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
-import createError from 'http-errors';
 import { CoreV1Api, CustomObjectsApi } from '@kubernetes/client-node';
-import { getUser } from '../../../utils/userUtils';
+import { getUserName } from '../../../utils/userUtils';
+import { createCustomError } from '../../../utils/requestUtils';
 
 type groupObjResponse = {
   users: string[] | null;
@@ -10,7 +10,6 @@ type groupObjResponse = {
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
 const GROUPS_CONFIGMAP_NAME = 'groups-config';
-const DEFAULT_USERNAME = 'kube:admin';
 
 export const status = async (
   fastify: KubeFastifyInstance,
@@ -20,18 +19,9 @@ export const status = async (
   const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
   const customObjectsApi = fastify.kube.customObjectsApi;
   const coreV1Api = fastify.kube.coreV1Api;
-  let userName = DEFAULT_USERNAME;
-
-  try {
-    const userOauth = await getUser(request, customObjectsApi);
-    userName = userOauth.metadata.name;
-  } catch (e) {
-    fastify.log.error(`${e}. Getting the cluster info.`);
-    const userCluster = (currentUser.username || currentUser.name)?.split('/')[0];
-    userName = !userCluster || userCluster === 'inClusterUser' ? userName : userCluster;
-  }
-
   let isAdmin = false;
+
+  const userName = await getUserName(fastify, request, customObjectsApi);
 
   try {
     const groupConfig = await getGroupsConfig(coreV1Api, namespace);
@@ -50,7 +40,10 @@ export const status = async (
   }
 
   if (!kubeContext && !kubeContext.trim()) {
-    const error = createCustomError;
+    const error = createCustomError(
+      'failed to get kube status',
+      'Unable to determine current login stats. Please make sure you are logged into OpenShift.',
+    );
     fastify.log.error(error, 'failed to get status');
     throw error;
   } else {
@@ -66,15 +59,6 @@ export const status = async (
       },
     };
   }
-};
-
-export const createCustomError = (): createError.HttpError<500> => {
-  const error = createError(500, 'failed to get kube status');
-  error.explicitInternalServerError = true;
-  error.error = 'failed to get kube status';
-  error.message =
-    'Unable to determine current login stats. Please make sure you are logged into OpenShift.';
-  return error;
 };
 
 export const getGroupsConfig = async (coreV1Api: CoreV1Api, namespace: string): Promise<string> => {

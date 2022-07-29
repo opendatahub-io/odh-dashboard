@@ -14,7 +14,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         );
         return pvcResponse.body;
       } catch (e) {
-        fastify.log.error(`Secret ${pvcName} could not be read, ${e}`);
+        fastify.log.error(`PVC ${pvcName} could not be read, ${e}`);
         reply.send(e);
       }
     },
@@ -31,7 +31,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         );
         return pvcResponse.body;
       } catch (e) {
-        fastify.log.error(`Secret could not be created: ${e}`);
+        fastify.log.error(`PVC could not be created: ${e}`);
         reply.send(e);
       }
     },
