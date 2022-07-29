@@ -2,25 +2,20 @@ import * as React from 'react';
 import { Button, ActionList, ActionListItem } from '@patternfly/react-core';
 import ApplicationsPage from '../../../ApplicationsPage';
 import NotebookServerDetails from './NotebookServerDetails';
-import AppContext from '../../../../app/AppContext';
 import { useWatchImages } from '../../../../utilities/useWatchImages';
 import { useWatchNotebook } from 'utilities/useWatchNotebook';
 import { deleteNotebook } from '../../../../services/notebookService';
-import { useSelector } from 'react-redux';
-import { State } from '../../../../redux/types';
 import {
   checkNotebookRunning,
   generateNotebookNameFromUsername,
-  getUserStateFromDashboardConfig,
-  usernameTranslate,
   validateNotebookNamespaceRoleBinding,
 } from '../../../../utilities/notebookControllerUtils';
-import { patchDashboardConfig } from '../../../../services/dashboardConfigService';
 import { Redirect, useHistory } from 'react-router-dom';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
 import useNotification from '../../../../utilities/useNotification';
-import { useUser } from '../../../../redux/selectors';
+import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
+import AppContext from '../../../../app/AppContext';
 
 import '../../NotebookController.scss';
 
@@ -29,43 +24,13 @@ export const NotebookServer: React.FC = React.memo(() => {
   const notification = useNotification();
   const { dashboardConfig } = React.useContext(AppContext);
   const { images } = useWatchImages();
-  const { currentUserState, setCurrentUserState, impersonatingUser } =
-    React.useContext(NotebookControllerContext);
+  const { currentUserState, impersonatingUser } = React.useContext(NotebookControllerContext);
   const { username: stateUsername } = useUser();
   const username = currentUserState.user || stateUsername;
-  const translatedUsername = usernameTranslate(username);
-  const dashboardNamespace = useSelector<State, string>(
-    (state) => state.appState.dashboardNamespace || '',
-  );
+  const { dashboardNamespace } = useDashboardNamespace();
   const notebookNamespace = dashboardConfig.spec.notebookController?.notebookNamespace;
   const projectName = notebookNamespace || dashboardNamespace;
   const { notebook, loaded, loadError } = useWatchNotebook(projectName, username);
-
-  React.useEffect(() => {
-    const checkUserState = async () => {
-      if (translatedUsername && dashboardConfig.spec.notebookController) {
-        const notebookControllerState = dashboardConfig.status?.notebookControllerState || [];
-        const fetchedUserState = getUserStateFromDashboardConfig(
-          translatedUsername,
-          notebookControllerState,
-        );
-        if (!fetchedUserState) {
-          currentUserState.user = username;
-          const patch = {
-            status: {
-              notebookControllerState: notebookControllerState
-                ? [...notebookControllerState, currentUserState]
-                : [currentUserState],
-            },
-          };
-          await patchDashboardConfig(patch);
-        } else {
-          setCurrentUserState(fetchedUserState);
-        }
-      }
-    };
-    checkUserState().catch((e) => console.error(e));
-  }, [translatedUsername, dashboardConfig, currentUserState, setCurrentUserState, username]);
 
   React.useEffect(() => {
     if (notebookNamespace && dashboardNamespace) {
