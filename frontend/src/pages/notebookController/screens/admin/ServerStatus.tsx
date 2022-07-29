@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { useDashboardNamespace } from '../../../../redux/selectors';
+import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
 import { deleteNotebook } from '../../../../services/notebookService';
 import { User } from './types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { usernameTranslate } from '../../../../utilities/notebookControllerUtils';
 import useNotification from '../../../../utilities/useNotification';
+import { NotebookControllerTabTypes } from '../../const';
 
 type ServerStatusProps = {
   data: User['serverStatus'];
@@ -15,7 +16,9 @@ type ServerStatusProps = {
 const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
   const { dashboardNamespace } = useDashboardNamespace(); // TODO: notebook namespace
   const notification = useNotification();
-  const { setImpersonatingUsername } = React.useContext(NotebookControllerContext);
+  const { setImpersonatingUsername, setCurrentAdminTab } =
+    React.useContext(NotebookControllerContext);
+  const { username: stateUser } = useUser();
 
   if (!data.notebook) {
     return (
@@ -23,6 +26,11 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
         variant="link"
         isInline
         onClick={() => {
+          if (stateUser === username) {
+            // Starting your own server, no need to impersonate
+            setCurrentAdminTab(NotebookControllerTabTypes.SERVER);
+            return;
+          }
           setImpersonatingUsername(usernameTranslate(username));
         }}
       >
