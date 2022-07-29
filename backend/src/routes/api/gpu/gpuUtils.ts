@@ -17,7 +17,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
       return res.body as V1PodList;
     })
     .catch((e) => {
-      fastify.log.error(`Exception when claling DCGM exporter pods: ${e}`);
+      fastify.log.error(`Exception when calling DCGM exporter pods: ${e}`);
       return { items: [] } as V1PodList;
     });
   if (gpuPodList.items.length != 0) {
@@ -36,8 +36,8 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
     const promToken = decodeB64(dashboardSASecret.data.token);
     for (let i = 0; i < gpuPodList.items.length; i++) {
       const data = await getGPUData(fastify, gpuPodList.items[i].status.podIP, promToken)
-      console.log("Got data: " + data)
-      const gpuNumber = data[0]['value'][1]
+      console.log("Got data: " + JSON.stringify(data, null, 2))
+      const gpuNumber = Number(data["response"]["data"]["result"][0]['value'][1])
       console.log("Got number: " + gpuNumber)
       if (gpuNumber > maxGpuNumber) {
         maxGpuNumber = gpuNumber;
@@ -49,15 +49,16 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
 };
 
 export const getGPUData = async (fastify: KubeFastifyInstance, podIP: string, token: string): Promise<any> => {
-  return new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     const options = {
       hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
       port: 9091,
-      path: `/api/v1/query?query={count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:9400\"})+or+vector(0))+\-+count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:9400\",exported_pod=~\".\+\"})+or+vector(0))}`,
+      path: `/api/v1/query?query=count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:8080\"})+or+vector(0))+-+count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance=\"${podIP}:8080\",exported_pod=~\".+\"})+or+vector(0))`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
       protocol: 'https:',
+      rejectUnauthorized: false
     };
     console.log("Starting request...")
     const httpsRequest = https.get(options, (res) => {
@@ -69,7 +70,7 @@ export const getGPUData = async (fastify: KubeFastifyInstance, podIP: string, to
       res.on('end', () => {
         try {
           const parsedData = JSON.parse(rawData);
-          console.log("Parsed data: " + parsedData)
+          console.log("Parsed data: " + JSON.stringify(parsedData, null, 2))
           resolve({ response: parsedData })
         } catch (e) {
           console.error(e.message);
