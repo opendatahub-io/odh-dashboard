@@ -9,7 +9,7 @@ const segmentKeyCfg = 'odh-segment-key-config';
 
 const DEFAULT_PVC_SIZE = 20;
 const DEFAULT_CULLER_TIMEOUT = 31536000; // 1 year as no culling
-const DEFAULT_IDLENESS_CHECK_PERIOD = '5'; //5 minutes
+const DEFAULT_IDLENESS_CHECK_PERIOD = '1'; // 1 minute
 const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
@@ -85,9 +85,6 @@ export const updateClusterSettings = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      console.log(e.response);
-      console.log(e.response.body);
-      console.log(e.response.body.message);
       fastify.log.error('Setting cluster settings error: ' + e.toString() + e.respose.body.message);
       return { success: false, error: 'Unable to update cluster settings. ' + e.message };
     }
