@@ -21,15 +21,20 @@ rules:
     resources:
       - clusterserviceversions
       - subscriptions
-  - verbs:
+  - apiGroups:
+      - ''
+    verbs:
+      - create
+      - delete
       - get
       - list
+      - patch
+      - update
       - watch
-    apiGroups:
-      - ''
     resources:
-      - services
       - configmaps
+      - persistentvolumeclaims
+      - secrets
   - verbs:
       - get
       - list
@@ -80,15 +85,30 @@ rules:
     resources:
       - pods
       - serviceaccounts
-      - secrets
       - services
       - namespaces
-  - verbs:
-      - create
-      - delete
-      - list
-    apiGroups:
+  - apiGroups:
       - rbac.authorization.k8s.io
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
     resources:
-      - roles
       - rolebindings
+      - roles
+  - apiGroups:
+      - kubeflow.org
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - notebooks

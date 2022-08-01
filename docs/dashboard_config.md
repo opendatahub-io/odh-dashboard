@@ -68,6 +68,7 @@ notebookController:
     gpuConfig:
         enabled: true
     pvcSize: 20Gi
+    notebookNamespace: odh-notebooks
 ```
 
 ### Notebook Controller State

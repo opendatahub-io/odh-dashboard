@@ -25,6 +25,7 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
       };
       pvcSize?: string;
+      notebookNamespace?: string;
     };
   };
   status?: {

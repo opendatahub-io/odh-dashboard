@@ -20,20 +20,6 @@ rules:
       - list
       - watch
   - apiGroups:
-      - ''
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-    resources:
-      - configmaps
-      - persistentvolumeclaims
-      - secrets
-  - apiGroups:
       - batch
     verbs:
       - create
@@ -71,12 +57,13 @@ rules:
       - builds
       - buildconfigs
       - buildconfigs/instantiate
-  - verbs:
-      - list
-    apiGroups:
-      - rbac.authorization.k8s.io
+  - apiGroups:
+      - apps
+    verbs:
+      - patch
+      - update
     resources:
-      - rolebindings
+      - deployments
   - apiGroups:
       - apps.openshift.io
     verbs:
@@ -114,10 +101,3 @@ rules:
       - delete
     resources:
       - notebooks
-  - verbs:
-      - patch
-      - update
-    apiGroups:
-      - apps
-    resources:
-      - deployments

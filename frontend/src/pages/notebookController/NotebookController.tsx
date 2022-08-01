@@ -13,24 +13,29 @@ import {
   generateNotebookNameFromUsername,
   getUserStateFromDashboardConfig,
   usernameTranslate,
+  validateNotebookNamespaceRoleBinding,
 } from '../../utilities/notebookControllerUtils';
-import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { Redirect, useHistory } from 'react-router-dom';
 import NotebookControllerContext from './NotebookControllerContext';
+import useNotification from '../../utilities/useNotification';
 
 import './NotebookController.scss';
 
 export const NotebookController: React.FC = React.memo(() => {
   const history = useHistory();
+  const notification = useNotification();
   const { setIsNavOpen, dashboardConfig } = React.useContext(AppContext);
   const { images } = useWatchImages();
   const { currentUserState, setCurrentUserState } = React.useContext(NotebookControllerContext);
   const stateUsername = useSelector<State, string>((state) => state.appState.user || '');
   const username = currentUserState.user || stateUsername;
   const translatedUsername = usernameTranslate(username);
-  const namespace = useSelector<State, string>((state) => state.appState.namespace || '');
-  const projectName = ODH_NOTEBOOK_REPO || namespace;
+  const dashboardNamespace = useSelector<State, string>(
+    (state) => state.appState.dashboardNamespace || '',
+  );
+  const notebookNamespace = dashboardConfig.spec.notebookController?.notebookNamespace;
+  const projectName = notebookNamespace || dashboardNamespace;
   const { notebook, loaded, loadError } = useWatchNotebook(projectName, username);
 
   React.useEffect(() => {
@@ -58,6 +63,17 @@ export const NotebookController: React.FC = React.memo(() => {
     };
     checkUserState().catch((e) => console.error(e));
   }, [translatedUsername, dashboardConfig, currentUserState, setCurrentUserState, username]);
+
+  React.useEffect(() => {
+    if (notebookNamespace && dashboardNamespace) {
+      validateNotebookNamespaceRoleBinding(notebookNamespace, dashboardNamespace).catch((e) =>
+        notification.error(
+          'Error validating the role binding of your notebookNamespace',
+          `${e.response.data.message}. You might not be able to create the notebook in this namespace.`,
+        ),
+      );
+    }
+  }, [notebookNamespace, dashboardNamespace, notification]);
 
   React.useEffect(() => {
     setIsNavOpen(false);

@@ -19,6 +19,7 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
       };
       pvcSize?: string;
+      notebookNamespace?: string;
     };
   };
   status?: {
@@ -551,3 +552,25 @@ export type DeleteStatus = {
   reason?: string;
   status?: string;
 };
+
+export type RoleBindingSubject = {
+  kind: string;
+  apiGroup: string;
+  name: string;
+};
+
+export type RoleBinding = {
+  subjects: RoleBindingSubject[];
+  roleRef: RoleBindingSubject;
+} & K8sResourceCommon;
+
+export type ResourceGetter<T extends K8sResourceCommon> = (
+  projectName: string,
+  resourceName: string,
+) => Promise<T>;
+
+export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+
+export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+
+export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
