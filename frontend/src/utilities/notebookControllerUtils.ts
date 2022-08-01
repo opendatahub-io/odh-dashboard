@@ -8,18 +8,22 @@ import {
 } from '../services/configMapService';
 import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
 import {
-  ConfigMap,
-  DeleteStatus,
   EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
   EnvVarResourceType,
+  K8sResourceCommon,
   Notebook,
   NotebookControllerUserState,
   PersistentVolumeClaim,
-  Secret,
+  ResourceCreator,
+  ResourceDeleter,
+  ResourceGetter,
+  ResourceReplacer,
+  RoleBinding,
   VariableRow,
 } from '../types';
+import { createRoleBinding, getRoleBinding } from 'services/roleBindingService';
 
 export const usernameTranslate = (username: string): string =>
   username
@@ -38,17 +42,19 @@ export const generatePvcNameFromUsername = (username: string): string =>
 export const generateEnvVarFileNameFromUsername = (username: string): string =>
   `jupyterhub-singleuser-profile-${usernameTranslate(username)}-envs`;
 
-/** Verify whether a resource is on the cluster
+/**
+ * Verify whether a resource is on the cluster
  * If it exists, return the resource object, else, return null
  * If the createFunc is also passed, create it when it doesn't exist
  */
-export const verifyResource = async <T>(
+export const verifyResource = async <T extends K8sResourceCommon>(
   name: string,
-  fetchFunc: (resourceName: string) => Promise<T>,
-  createFunc?: (resource: T) => Promise<T>,
+  namespace: string,
+  fetchFunc: ResourceGetter<T>,
+  createFunc?: ResourceCreator<T>,
   createBody?: T,
 ): Promise<T | undefined> => {
-  return await fetchFunc(name).catch(async (e: AxiosError) => {
+  return await fetchFunc(namespace, name).catch(async (e: AxiosError) => {
     if (e.response?.status === 404) {
       if (createFunc && createBody) {
         return await createFunc(createBody);
@@ -88,39 +94,46 @@ export const verifyEnvVars = async (
   namespace: string,
   kind: string,
   envVars: Record<string, string>,
-  fetchFunc: (resourceName: string) => Promise<EnvVarResource>,
-  createFunc: (resource: Secret | ConfigMap) => Promise<EnvVarResource>,
-  replaceFunc: (resourceName: string, resource: EnvVarResource) => Promise<EnvVarResource>,
-  deleteFunc: (resourceName: string) => Promise<DeleteStatus>,
+  fetchFunc: ResourceGetter<EnvVarResource>,
+  createFunc: ResourceCreator<EnvVarResource>,
+  replaceFunc: ResourceReplacer<EnvVarResource>,
+  deleteFunc: ResourceDeleter,
 ): Promise<void> => {
   if (!envVars) {
-    const resource = await verifyResource(name, fetchFunc);
+    const resource = await verifyResource(name, namespace, fetchFunc);
     if (resource) {
-      deleteFunc(name);
+      await deleteFunc(namespace, name);
     }
-  } else {
-    const body =
-      kind === EnvVarResourceType.Secret
-        ? {
-            stringData: envVars,
-            type: 'Opaque',
-          }
-        : {
-            data: envVars,
-          };
-    const newResource: EnvVarResource = {
-      apiVersion: 'v1',
-      kind,
-      metadata: {
-        name,
-        namespace,
-      },
-      ...body,
-    };
-    const response = await verifyResource<EnvVarResource>(name, fetchFunc, createFunc, newResource);
-    if (!_.isEqual(response?.data, envVars)) {
-      await replaceFunc(name, newResource);
-    }
+    return;
+  }
+
+  const body =
+    kind === EnvVarResourceType.Secret
+      ? {
+          stringData: envVars,
+          type: 'Opaque',
+        }
+      : {
+          data: envVars,
+        };
+  const newResource: EnvVarResource = {
+    apiVersion: 'v1',
+    kind,
+    metadata: {
+      name,
+      namespace,
+    },
+    ...body,
+  };
+  const response = await verifyResource<EnvVarResource>(
+    name,
+    namespace,
+    fetchFunc,
+    createFunc,
+    newResource,
+  );
+  if (!_.isEqual(response?.data, envVars)) {
+    await replaceFunc(newResource);
   }
 };
 
@@ -155,11 +168,16 @@ export const checkEnvVarFile = async (
   return { envVarFileName, ...envVars };
 };
 
-export const generatePvc = (pvcName: string, pvcSize: string): PersistentVolumeClaim => ({
+export const generatePvc = (
+  pvcName: string,
+  namespace: string,
+  pvcSize: string,
+): PersistentVolumeClaim => ({
   apiVersion: 'v1',
   kind: 'PersistentVolumeClaim',
   metadata: {
     name: pvcName,
+    namespace,
   },
   spec: {
     accessModes: ['ReadWriteOnce'],
@@ -187,3 +205,40 @@ export const getUserStateFromDashboardConfig = (
   notebookControllerState: NotebookControllerUserState[],
 ): NotebookControllerUserState | undefined =>
   notebookControllerState.find((state) => usernameTranslate(state.user) === translatedUsername);
+
+/** Check whether the namespace of the notebooks has the access to image streams
+ * If not, create the rolebinding
+ */
+export const validateNotebookNamespaceRoleBinding = async (
+  notebookNamespace: string,
+  dashboardNamespace: string,
+): Promise<RoleBinding | undefined> => {
+  const roleBindingName = `${notebookNamespace}-image-pullers`;
+  const roleBindingObject: RoleBinding = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'RoleBinding',
+    metadata: {
+      name: roleBindingName,
+      namespace: dashboardNamespace,
+    },
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'ClusterRole',
+      name: 'system:image-puller',
+    },
+    subjects: [
+      {
+        apiGroup: 'rbac.authorization.k8s.io',
+        kind: 'Group',
+        name: `system:serviceaccounts:${notebookNamespace}`,
+      },
+    ],
+  };
+  return await verifyResource<RoleBinding>(
+    roleBindingName,
+    dashboardNamespace,
+    getRoleBinding,
+    createRoleBinding,
+    roleBindingObject,
+  );
+};

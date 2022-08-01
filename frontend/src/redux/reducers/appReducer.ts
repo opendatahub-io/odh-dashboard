@@ -17,7 +17,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         userError: null,
         clusterID: '',
         clusterBranding: '',
-        namespace: '',
+        dashboardNamespace: '',
       };
     case Actions.GET_USER_FULFILLED:
       return {
@@ -28,7 +28,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         clusterID: action.payload.clusterID,
         clusterBranding: action.payload.clusterBranding,
         isAdmin: action.payload.isAdmin,
-        namespace: action.payload.namespace,
+        dashboardNamespace: action.payload.dashboardNamespace,
       };
     case Actions.GET_USER_REJECTED:
       return {
@@ -38,7 +38,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         userError: action.payload.error,
         clusterID: '',
         clusterBranding: '',
-        namespace: '',
+        dashboardNamespace: '',
       };
     case Actions.ADD_NOTIFICATION:
       if (!action.payload.notification) {

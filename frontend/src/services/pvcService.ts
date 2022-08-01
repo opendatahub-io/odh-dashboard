@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { PersistentVolumeClaim } from '../types';
 
-export const getPvc = (pvcName: string): Promise<PersistentVolumeClaim> => {
-  const url = `/api/pvc/${pvcName}`;
+export const getPvc = (projectName: string, pvcName: string): Promise<PersistentVolumeClaim> => {
+  const url = `/api/pvc/${projectName}/${pvcName}`;
   return axios.get(url).then((response) => {
     return response.data;
   });
