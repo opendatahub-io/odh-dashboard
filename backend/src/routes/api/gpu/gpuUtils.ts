@@ -1,4 +1,4 @@
-import { KubeFastifyInstance } from '../../../types';
+import { KubeFastifyInstance, PrometheusResponse } from '../../../types';
 import { V1PodList, V1Secret, V1ServiceAccount } from '@kubernetes/client-node';
 import https from 'https';
 
@@ -36,9 +36,13 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
     const promToken = decodeB64(dashboardSASecret.data.token);
     for (let i = 0; i < gpuPodList.items.length; i++) {
       const data = await getGPUData(gpuPodList.items[i].status.podIP, promToken);
-      const gpuNumber = Number(data['response']['data']['result'][0]['value'][1]);
-      if (gpuNumber > maxGpuNumber) {
-        maxGpuNumber = gpuNumber;
+      if (data.code === 200) {
+        const gpuNumber = data.response;
+        if (gpuNumber > maxGpuNumber) {
+          maxGpuNumber = gpuNumber;
+        }
+      } else {
+        fastify.log.warn(`Error getting GPUData ${data.response}`);
       }
     }
   }
@@ -48,7 +52,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
 export const getGPUData = async (
   podIP: string,
   token: string,
-): Promise<any> => {
+): Promise<{ code: number; response: number | any }> => {
   return await new Promise((resolve, reject) => {
     const options = {
       hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
@@ -60,7 +64,6 @@ export const getGPUData = async (
       protocol: 'https:',
       rejectUnauthorized: false,
     };
-    console.log('Starting request...');
     const httpsRequest = https.get(options, (res) => {
       res.setEncoding('utf8');
       let rawData = '';
@@ -69,8 +72,8 @@ export const getGPUData = async (
       });
       res.on('end', () => {
         try {
-          const parsedData = JSON.parse(rawData);
-          resolve({ response: parsedData });
+          const parsedData: PrometheusResponse = JSON.parse(rawData);
+          resolve({ code: 200, response: Number(parsedData['data']['result'][0]['value'][1]) });
         } catch (e) {
           reject({ code: 500, response: rawData });
         }
