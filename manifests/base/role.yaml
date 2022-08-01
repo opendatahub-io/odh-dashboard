@@ -58,6 +58,13 @@ rules:
       - buildconfigs
       - buildconfigs/instantiate
   - apiGroups:
+      - apps
+    verbs:
+      - patch
+      - update
+    resources:
+      - deployments
+  - apiGroups:
       - apps.openshift.io
     verbs:
       - get
@@ -82,3 +89,15 @@ rules:
       - delete
     resources:
       - odhdashboardconfigs
+  - apiGroups:
+      - kubeflow.org
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - notebooks
