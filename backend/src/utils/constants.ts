@@ -1,6 +1,5 @@
 import './dotenv';
 import { DashboardConfig } from '../types';
-import { V1ConfigMap } from '@kubernetes/client-node';
 
 export const PORT = process.env.PORT || process.env.BACKEND_PORT || 8080;
 export const IP = process.env.IP || '0.0.0.0';
@@ -39,18 +38,5 @@ export const blankDashboardCR: DashboardConfig = {
       disableAppLauncher: false,
       disableUserManagement: false,
     },
-  },
-};
-
-export const defaultCullingSettings: V1ConfigMap = {
-  apiVersion: 'v1',
-  kind: 'ConfigMap',
-  metadata: {
-    name: 'notebook-controller-culler-config',
-  },
-  data: {
-    ENABLE_CULLING: 'true',
-    CULL_IDLE_TIME: '60', // In minutes
-    IDLENESS_CHECK_PERIOD: '5', //In minutes
   },
 };
