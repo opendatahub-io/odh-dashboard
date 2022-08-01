@@ -1,0 +1,138 @@
+# This YAML adds a mock server of gpu metrics for gpu testing
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nvidia-dcgm-exporter
+  labels:
+    app: nvidia-dcgm-exporter
+spec:
+  replicas: 1
+  selector:
+    type: RollingUpdate
+    matchLabels:
+      app: nvidia-dcgm-exporter
+  template:
+    metadata:
+      labels:
+        app: nvidia-dcgm-exporter
+    spec:
+      containers:
+        - name: metrics
+          image: registry.redhat.io/rhel8/nodejs-14-minimal:latest
+          imagePullPolicy: Always
+          workingDir: /usr/tmp
+          command:
+            - /bin/bash
+            - -c
+            - |
+              #/bin/bash
+              cat <<EOF>> package.json
+              {
+                  "type": "module"
+              }
+              EOF
+              cat <<EOF > mock-server.js
+              import client from 'prom-client';
+              import http from 'http';
+              import url from 'url';
+
+              const registry = new client.Registry
+
+              const mockGPU = new client.Gauge(
+                  {
+                      name: "DCGM_FI_PROF_GR_ENGINE_ACTIVE",
+                      help: "Mock gpu data",
+                      labelNames: [
+                          'Hostname',
+                          'UUID',
+                          'device',
+                          'gpu',
+                          'instance',
+                          'endpoint',
+                          'namespace',
+                          'modelName',
+                      ],
+                      registers: [registry],
+                  },
+              );
+
+              ` DCGM_FI_PROF_GR_ENGINE_ACTIVE
+              {
+                  Hostname="ip-10-0-150-8",
+                  UUID="GPU-cd248e1c-1c37-7bd5-076c-25d95eca8e2b", 
+                  container="nvidia-dcgm-exporter", 
+                  device="nvidia0", 
+                  endpoint="gpu-metrics", 
+                  gpu="0", 
+                  instance="10.0.150.8:9400", 
+                  job="nvidia-dcgm-exporter", 
+                  modelName="Tesla T4", 
+                  namespace="nvidia-gpu-operator", 
+                  pod="nvidia-dcgm-exporter-b4f8j", 
+                  service="nvidia-dcgm-exporter"
+              }
+
+              `
+
+              mockGPU.labels(
+                  {
+                      modelName: "Tesla T4",
+                      UUID: "GPU-cd248e1c-1c37-7bd5-076c-25d95eca8e2b",
+                      device: "nvidia0",
+                      gpu: "1",
+                      instance: "10.0.150.8:9400",
+                      endpoint: "gpu-metrics",
+                      namespace: "nvidia-gpu-operator",
+                      Hostname: "ip-10-0-150-8"
+
+                  }).set(1)
+
+              mockGPU.labels(
+                  {
+                      modelName: "Tesla T5",
+                      UUID: "GPU-di032ks3-3124-dsa3-1asf-41nk2ojdoi21n",
+                      device: "nvidia1",
+                      gpu: "2",
+                      instance: "10.0.150.10:9400",
+                      endpoint: "gpu-metrics",
+                      namespace: "nvidia-gpu-operator",
+                      Hostname: "ip-10-0-150-10"
+
+                  }).set(2)
+
+              const server = http.createServer();
+              server.on('request', async (req, res) => {
+                  var requestPath = String(req.url)
+                  if (requestPath === "/metrics") {
+                      var metric = await registry.metrics()
+                      res.write(metric);
+                      res.end();
+                  }
+              });
+              server.listen(9400)
+              console.log("Started mock server...")
+              EOF
+              npm install prom-client
+              node mock-server.js
+          ports:
+            - containerPort: 9400
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nvidia-dcgm-exporter
+  labels:
+    app: nvidia-dcgm-exporter
+    opendatahub.io/component: "true"
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  selector:
+    app: nvidia-dcgm-exporter
+  ports:
+    - name: gpu-metrics
+      port: 9400
+      protocol: TCP
+      targetPort: 9400
