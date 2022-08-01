@@ -4,7 +4,7 @@ import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchDashboardConfig } from '../services/dashboardConfigService';
 
-const blankDashboardCR: DashboardConfig = {
+export const blankDashboardCR: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
   metadata: {

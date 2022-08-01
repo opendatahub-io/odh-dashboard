@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHistory } from 'react-router';
+import { useHistory } from 'react-router-dom';
 import classNames from 'classnames';
 import useDimensions from 'react-cool-dimensions';
 import {

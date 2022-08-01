@@ -114,3 +114,10 @@ rules:
       - delete
     resources:
       - notebooks
+  - verbs:
+      - patch
+      - update
+    apiGroups:
+      - apps
+    resources:
+      - deployments

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash-es';
 import {
   ActionGroup,
   Button,
@@ -12,69 +11,102 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../utilities/imageUtils';
-import { ImageInfo, ImageTag, VariableRow, ImageTagInfo, EnvironmentVariable } from '../../types';
+import {
+  ImageInfo,
+  ImageTag,
+  VariableRow,
+  ImageTagInfo,
+  ConfigMap,
+  Secret,
+  EnvVarResourceType,
+} from '../../types';
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, EMPTY_USER_STATE, MOUNT_PATH } from './const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH } from './const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { useHistory } from 'react-router';
-import { createNotebook } from '../../services/notebookService';
+import { useHistory } from 'react-router-dom';
+import { createNotebook, deleteNotebook } from '../../services/notebookService';
 import { createPvc, getPvc } from '../../services/pvcService';
 import { State } from '../../redux/types';
 import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
-  generateSecretNameFromUsername,
-  usernameTranslate,
-} from '../../utilities/utils';
+  generateEnvVarFileNameFromUsername,
+  verifyResource,
+  checkEnvVarFile,
+  generatePvc,
+  checkNotebookRunning,
+} from '../../utilities/notebookControllerUtils';
 import AppContext from '../../app/AppContext';
 import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
-import NotebookControllerContext from './NotebookControllerContext';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { createSecret, getSecret, replaceSecret } from '../../services/secretsService';
+import { getSecret } from '../../services/secretsService';
+import { getConfigMap } from '../../services/configMapService';
+import { useWatchImages } from '../../utilities/useWatchImages';
+import ApplicationsPage from '../../pages/ApplicationsPage';
+import StartServerModal from './StartServerModal';
+import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage';
+import useNotification from '../../utilities/useNotification';
+import NotebookControllerContext from './NotebookControllerContext';
 
 import './NotebookController.scss';
 
-type SpawnerPageProps = {
-  setStartModalShown: (shown: boolean) => void;
-  updateNotebook: () => void;
-  setNotebookPollInterval: (interval: number) => void;
-};
-
-const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown }) => {
+const SpawnerPage: React.FC = React.memo(() => {
   const history = useHistory();
-  const { images, dashboardConfig } = React.useContext(NotebookControllerContext);
-  const [username, namespace] = useSelector<State, [string, string]>((state) => [
-    state.appState.user || '',
-    state.appState.namespace || '',
-  ]);
+  const notification = useNotification();
+  const { images, loaded, loadError } = useWatchImages();
+  const { currentUserState, setCurrentUserState } = React.useContext(NotebookControllerContext);
+  const stateUsername = useSelector<State, string>((state) => state.appState.user || '');
+  const username = currentUserState.user || stateUsername;
+  const namespace = useSelector<State, string>((state) => state.appState.namespace || '');
   const projectName = ODH_NOTEBOOK_REPO || namespace;
-  const translatedUsername = usernameTranslate(username);
-  const { buildStatuses } = React.useContext(AppContext);
+  const [startShown, setStartShown] = React.useState<boolean>(false);
+  const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
+    startShown,
+    projectName,
+    username,
+  );
+  const isNotebookRunning = checkNotebookRunning(notebook);
+  const { buildStatuses, dashboardConfig, setIsNavOpen } = React.useContext(AppContext);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
   });
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
-  const [selectedSize, setSelectedSize] = React.useState<string>();
-  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
+  const [selectedSize, setSelectedSize] = React.useState<string>('');
+  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [gpuSize, setGpuSize] = React.useState<number>(0);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
-  const userState = React.useMemo(() => {
-    if (translatedUsername) {
-      const newUserState = dashboardConfig?.spec.notebookControllerState?.find(
-        (state) => state.user === translatedUsername,
+  const [shouldRedirect, setShouldRedirect] = React.useState<boolean>(true);
+
+  const onModalClose = () => {
+    setStartShown(false);
+    if (notebook) {
+      deleteNotebook(projectName, notebook.metadata.name).catch((e) =>
+        notification.error(`Error delete notebook ${notebook.metadata.name}`, e.message),
       );
-      if (newUserState) {
-        return newUserState;
+    }
+  };
+
+  React.useEffect(() => {
+    setIsNavOpen(false);
+  }, [setIsNavOpen]);
+
+  React.useEffect(() => {
+    if (shouldRedirect) {
+      if (notebookLoaded && notebook) {
+        if (!isNotebookRunning) {
+          setStartShown(true);
+        } else {
+          history.replace('/notebookController');
+        }
       }
     }
-    return EMPTY_USER_STATE;
-  }, [dashboardConfig, translatedUsername]);
+  }, [notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -106,8 +138,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           }
         }
       };
-      if (userState?.lastSelectedImage) {
-        const [imageName, tagName] = [...userState?.lastSelectedImage.split(':')];
+      if (currentUserState?.lastSelectedImage) {
+        const [imageName, tagName] = [...currentUserState?.lastSelectedImage.split(':')];
         const image = images.find((image) => image.name === imageName);
         const tag = image?.tags.find((tag) => tag.name === tagName);
         if (image && tag && isImageTagBuildValid(buildStatuses, image, tag)) {
@@ -119,16 +151,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         getDefaultImageTag();
       }
     };
-    if (images && userState) {
+    if (images && currentUserState) {
       setFirstValidImage();
     }
-  }, [userState, images, buildStatuses]);
+  }, [currentUserState, images, buildStatuses]);
 
   React.useEffect(() => {
     if (dashboardConfig?.spec.notebookSizes) {
-      if (userState?.lastSelectedSize) {
+      if (currentUserState?.lastSelectedSize) {
         const size = dashboardConfig.spec.notebookSizes.find(
-          (notebookSize) => notebookSize.name === userState.lastSelectedSize,
+          (notebookSize) => notebookSize.name === currentUserState.lastSelectedSize,
         );
         if (size) {
           setSelectedSize(size.name);
@@ -139,63 +171,56 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
         setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
       }
     }
-  }, [dashboardConfig, userState]);
+  }, [dashboardConfig, currentUserState]);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    const mapEnvironmentVariableRows = async () => {
-      const fetchedVariableRows: VariableRow[] = [];
-      if (userState?.environmentVariables && userState?.environmentVariables.length !== 0) {
-        userState.environmentVariables.forEach((envVariable) => {
-          const errors = fetchedVariableRows.find((variableRow) =>
-            variableRow.variables.find((variable) => variable.name === envVariable.key),
-          )
-            ? { [envVariable.key]: 'That name is already in use. Try a different name.' }
-            : {};
-          fetchedVariableRows.push({
-            variableType: CUSTOM_VARIABLE,
-            variables: [
-              {
-                name: envVariable.key,
-                value: envVariable.value,
-                type: 'text',
-              },
-            ],
-            errors,
-          });
-        });
+  const mapRows = React.useCallback(
+    async (fetchFunc: (name: string) => Promise<ConfigMap | Secret>) => {
+      if (!username) {
+        return [];
       }
-      const secretName = generateSecretNameFromUsername(username);
-      const secret = await getSecret(secretName);
-      if (secret && secret.data) {
-        Object.entries(secret.data).forEach(([key, value]) => {
+      let fetchedVariableRows: VariableRow[] = [];
+      const envVarFileName = generateEnvVarFileNameFromUsername(username);
+      const response = await verifyResource(envVarFileName, fetchFunc);
+      if (response && response.data) {
+        const isSecret = response.kind === EnvVarResourceType.Secret;
+        fetchedVariableRows = Object.entries(response.data).map(([key, value]) => {
           const errors = fetchedVariableRows.find((variableRow) =>
             variableRow.variables.find((variable) => variable.name === key),
           )
             ? { [key]: 'That name is already in use. Try a different name.' }
             : {};
-          fetchedVariableRows.push({
+          return {
             variableType: CUSTOM_VARIABLE,
             variables: [
               {
                 name: key,
-                value: Buffer.from(value, 'base64').toString(),
-                type: 'password',
+                value: isSecret ? Buffer.from(value, 'base64').toString() : value,
+                type: isSecret ? 'password' : 'text',
               },
             ],
             errors,
-          });
+          };
         });
       }
+      return fetchedVariableRows;
+    },
+    [username],
+  );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const mapEnvironmentVariableRows = async () => {
+      const fetchedVariableRowsConfigMap = await mapRows(getConfigMap);
+      const fetchedVariableRowsSecret = await mapRows(getSecret);
       if (!cancelled) {
-        setVariableRows(fetchedVariableRows);
+        setVariableRows([...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret]);
       }
     };
     mapEnvironmentVariableRows().catch((e) => console.error(e));
     return () => {
       cancelled = true;
     };
-  }, [userState, username]);
+  }, [mapRows]);
 
   const handleImageTagSelection = (image: ImageInfo, tag: ImageTagInfo, checked: boolean) => {
     if (checked) {
@@ -296,89 +321,58 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
     const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
       (ns) => ns.name === selectedSize,
     );
-    try {
-      const pvcName = generatePvcNameFromUsername(username);
-      const pvc = await getPvc(pvcName);
-      if (!pvc) {
-        await createPvc(pvcName, '20Gi');
-      }
-      const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-      const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
-      const notebookName = generateNotebookNameFromUsername(username);
-      const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
-      setCreateInProgress(true);
-      await createNotebook(
-        projectName,
-        notebookName,
-        translatedUsername,
-        imageUrl,
-        notebookSize,
-        parseInt(selectedGpu),
-        volumes,
-        volumeMounts,
-      );
-      setCreateInProgress(false);
-      setStartModalShown(true);
-      const envVars = variableRows.reduce(
-        (prev, curr) => {
-          const vars: EnvironmentVariable[] = [];
-          const secretVars: Record<string, string | number> = {};
-          curr.variables.forEach((variable) => {
-            if (variable.type === 'text') {
-              vars.push({ key: variable.name, value: variable.value });
-            } else {
-              secretVars[variable.name] = variable.value;
-            }
-          });
-          return {
-            configMap: [...prev.configMap, ...vars],
-            secrets: { ...prev.secrets, ...secretVars },
-          };
-        },
-        { configMap: [] as EnvironmentVariable[], secrets: {} },
-      );
-      const secretName = generateSecretNameFromUsername(username);
-      const secret = await getSecret(secretName);
-      const newSecret = {
-        apiVersion: 'v1',
-        metadata: {
-          name: secretName,
-          namespace,
-        },
-        stringData: envVars.secrets,
-        type: 'Opaque',
-      };
-      if (!secret && envVars.secrets) {
-        createSecret(newSecret);
-      } else if (!_.isEqual(secret.data, envVars.secrets)) {
-        replaceSecret(secretName, newSecret);
-      }
-      const updatedUserState = {
-        ...userState,
-        lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
-        lastSelectedSize: selectedSize,
-        environmentVariables: envVars.configMap,
-      };
-      const otherUsersStates = dashboardConfig?.spec.notebookControllerState?.filter(
-        (state) => state.user !== translatedUsername,
-      );
-      const dashboardConfigPatch = {
-        spec: {
-          notebookControllerState: otherUsersStates
-            ? [...otherUsersStates, updatedUserState]
-            : [updatedUserState],
-        },
-      };
-      await patchDashboardConfig(dashboardConfigPatch);
-    } catch (e) {
-      setCreateInProgress(false);
-      setStartModalShown(false);
-      console.error(e);
-    }
+    const pvcName = generatePvcNameFromUsername(username);
+    const pvcBody = generatePvc(pvcName, '20Gi');
+    await verifyResource(pvcName, getPvc, createPvc, pvcBody).catch((e) =>
+      console.error(`Something wrong with PVC ${pvcName}: ${e}`),
+    );
+    const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
+    const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
+    const notebookName = generateNotebookNameFromUsername(username);
+    const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
+    setCreateInProgress(true);
+    const envVars = await checkEnvVarFile(username, namespace, variableRows);
+    await createNotebook(
+      projectName,
+      notebookName,
+      username,
+      imageUrl,
+      notebookSize,
+      parseInt(selectedGpu),
+      envVars,
+      volumes,
+      volumeMounts,
+    );
+    setCreateInProgress(false);
+    setShouldRedirect(false);
+    setStartShown(true);
+    const updatedUserState = {
+      ...currentUserState,
+      lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+      lastSelectedSize: selectedSize,
+    };
+    setCurrentUserState(updatedUserState);
+    const otherUsersStates = dashboardConfig?.status?.notebookControllerState?.filter(
+      (state) => state.user !== username,
+    );
+    const dashboardConfigPatch = {
+      status: {
+        notebookControllerState: otherUsersStates
+          ? [...otherUsersStates, updatedUserState]
+          : [updatedUserState],
+      },
+    };
+    await patchDashboardConfig(dashboardConfigPatch);
   };
 
   return (
-    <>
+    <ApplicationsPage
+      title="Start a Notebook server"
+      description="Select options for your Notebook server."
+      loaded={loaded}
+      loadError={loadError}
+      empty={!images || images.length === 0}
+    >
       <Form className="odh-notebook-controller__page odh-notebook-controller__page-form">
         <FormSection title="Notebook image">
           <FormGroup fieldId="modal-notebook-image">
@@ -439,7 +433,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           </Button>
         </FormSection>
         <ActionGroup>
-          <Button variant="primary" onClick={handleNotebookAction} isDisabled={createInProgress}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              handleNotebookAction().catch((e) => {
+                setCreateInProgress(false);
+                setStartShown(false);
+                console.error(e);
+              });
+            }}
+            isDisabled={createInProgress}
+          >
             Start server
           </Button>
           <Button variant="secondary" onClick={() => history.push('/')}>
@@ -447,7 +451,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = React.memo(({ setStartModalShown
           </Button>
         </ActionGroup>
       </Form>
-    </>
+      <StartServerModal
+        notebook={notebook}
+        startShown={startShown}
+        setStartModalShown={setStartShown}
+        onClose={onModalClose}
+      />
+    </ApplicationsPage>
   );
 });
 

@@ -23,7 +23,7 @@ import { removeComponent } from '../services/componentsServices';
 import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
 import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
-import { useHistory } from 'react-router';
+import { useHistory } from 'react-router-dom';
 
 import './OdhCard.scss';
 
@@ -122,7 +122,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const cardFooter = (
     <CardFooter className="odh-card__footer">
-      {odhApp.spec.internalRoute ? (
+      {odhApp.metadata.name === 'jupyter' ? (
         <a
           className="odh-card__footer__link"
           onClick={() => history.push(odhApp.spec.internalRoute)}

@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { Notebook, NotebookSize, Volume, VolumeMount } from '../types';
+import { EnvVarReducedType, Notebook, NotebookSize, Volume, VolumeMount } from '../types';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
+import { usernameTranslate } from 'utilities/notebookControllerUtils';
 
 export const getNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
@@ -22,6 +23,7 @@ export const createNotebook = (
   imageUrl: string,
   notebookSize: NotebookSize | undefined,
   gpus: number,
+  envVars: EnvVarReducedType,
   volumes?: Volume[],
   volumeMounts?: VolumeMount[],
 ): Promise<Notebook> => {
@@ -33,8 +35,30 @@ export const createNotebook = (
     }
     resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
   }
+  const translatedUsername = usernameTranslate(username);
 
-  //TODO: instead of store.getState().appState.user, we need to use session and proper auth permissions
+  const configMapEnvs = Object.keys(envVars.configMap).map((key) => ({
+    name: key,
+    valueFrom: {
+      configMapKeyRef: {
+        key,
+        name: envVars.envVarFileName,
+      },
+    },
+  }));
+
+  const secretEnvs = Object.keys(envVars.secrets).map((key) => ({
+    name: key,
+    valueFrom: {
+      secretKeyRef: {
+        key,
+        name: envVars.envVarFileName,
+      },
+    },
+  }));
+  const location = new URL(window.location.href);
+  const origin = location.origin;
+
   const data = {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -42,13 +66,17 @@ export const createNotebook = (
       labels: {
         app: notebookName,
         'opendatahub.io/odh-managed': 'true',
-        'opendatahub.io/user': username,
+        'opendatahub.io/user': translatedUsername,
+      },
+      annotations: {
+        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/notebookController/${translatedUsername}/home`,
       },
       name: notebookName,
     },
     spec: {
       template: {
         spec: {
+          enableServiceLinks: false,
           containers: [
             {
               image: imageUrl,
@@ -61,12 +89,16 @@ export const createNotebook = (
                   value: `--ServerApp.port=8888
                   --ServerApp.token=''
                   --ServerApp.password=''
-                  --ServerApp.base_url=/notebook/${projectName}/${notebookName}`,
+                  --ServerApp.base_url=/notebook/${projectName}/${notebookName}
+                  --ServerApp.quit_button=False
+                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/notebookController/${translatedUsername}"}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...configMapEnvs,
+                ...secretEnvs,
               ],
               resources,
               volumeMounts,

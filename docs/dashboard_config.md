@@ -71,17 +71,13 @@ notebookController:
 
 ### Notebook Controller State
 
-This field (`notebookControllerState`) controls the state of each user of the Notebook controller. This field is managed by the backend of the Dashboard and should not be manually modified.
+This field (`notebookControllerState`) controls the state of each user of the Notebook controller. This field is managed by the backend of the Dashboard and should not be manually modified. This field is present on the `status` stanza of the OdhDashboardConfig
 
 ```yaml
 notebookControllerState:
 - user: username
-    environmentVariables:
-    - key: foo
-        value: bar
-    lastSelectedImage: foo:bar
-    lastSelectedSize: XSmall
-    secrets: odh-secrets-username
+  lastSelectedImage: foo:bar
+  lastSelectedSize: XSmall
 ```
 
 ## Example OdhDashboard Config
@@ -128,4 +124,9 @@ spec:
       limits:
         memory: 8Gi
         cpu: '8'
+status:
+  notebookControllerState:
+  - user: username
+    lastSelectedImage: foo:bar
+    lastSelectedSize: XSmall
 ```

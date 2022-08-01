@@ -1,4 +1,4 @@
-import k8s from '@kubernetes/client-node';
+import k8s, { V1Event } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance } from 'fastify';
 
@@ -25,17 +25,32 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
       };
     };
+  };
+  status?: {
     notebookControllerState?: [
       {
         user: string;
         lastSelectedImage: string;
         lastSelectedSize: string;
-        environmentVariables: EnvironmentVariable[];
-        secrets: string;
       },
     ];
   };
 };
+
+export type NotebookStatus = {
+  percentile: number;
+  currentStatus: EventStatus;
+  currentEvent: string;
+  currentEventDescription: string;
+  events: V1Event[];
+};
+
+export enum EventStatus {
+  IN_PROGRESS = 'In Progress',
+  WARNING = 'Warning',
+  ERROR = 'Error',
+  SUCCESS = 'Success',
+}
 
 export type NotebookResources = {
   requests?: {
@@ -325,6 +340,7 @@ export type Notebook = {
   spec: {
     template: {
       spec: {
+        enableServiceLinks?: boolean;
         containers: NotebookContainer[];
       };
     };
