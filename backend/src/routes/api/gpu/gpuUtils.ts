@@ -35,21 +35,17 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
       .then((res) => res.body as V1Secret);
     const promToken = decodeB64(dashboardSASecret.data.token);
     for (let i = 0; i < gpuPodList.items.length; i++) {
-      const data = await getGPUData(fastify, gpuPodList.items[i].status.podIP, promToken);
-      //console.log('Got data: ' + JSON.stringify(data, null, 2));
+      const data = await getGPUData(gpuPodList.items[i].status.podIP, promToken);
       const gpuNumber = Number(data['response']['data']['result'][0]['value'][1]);
-      //console.log('Got number: ' + gpuNumber);
       if (gpuNumber > maxGpuNumber) {
         maxGpuNumber = gpuNumber;
       }
-      //console.log('Current max: ' + maxGpuNumber);
     }
   }
   return maxGpuNumber;
 };
 
 export const getGPUData = async (
-  fastify: KubeFastifyInstance,
   podIP: string,
   token: string,
 ): Promise<any> => {
@@ -74,15 +70,12 @@ export const getGPUData = async (
       res.on('end', () => {
         try {
           const parsedData = JSON.parse(rawData);
-          //console.log('Parsed data: ' + JSON.stringify(parsedData, null, 2));
           resolve({ response: parsedData });
         } catch (e) {
-          //console.error(e.message);
           reject({ code: 500, response: rawData });
         }
       });
     });
-    //console.log('Ending request...');
     httpsRequest.end();
   });
 };
