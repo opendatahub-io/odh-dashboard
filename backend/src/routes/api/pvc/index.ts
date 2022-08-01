@@ -4,13 +4,17 @@ import { V1PersistentVolumeClaim } from '@kubernetes/client-node';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get(
-    '/:name',
-    async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
+    '/:namespace/:name',
+    async (
+      request: FastifyRequest<{ Params: { namespace: string; name: string } }>,
+      reply: FastifyReply,
+    ) => {
       const pvcName = request.params.name;
+      const pvcNamespace = request.params.namespace;
       try {
         const pvcResponse = await fastify.kube.coreV1Api.readNamespacedPersistentVolumeClaim(
           pvcName,
-          fastify.kube.namespace,
+          pvcNamespace,
         );
         return pvcResponse.body;
       } catch (e) {
@@ -26,7 +30,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       const pvcRequest = request.body;
       try {
         const pvcResponse = await fastify.kube.coreV1Api.createNamespacedPersistentVolumeClaim(
-          fastify.kube.namespace,
+          pvcRequest.metadata.namespace,
           pvcRequest,
         );
         return pvcResponse.body;

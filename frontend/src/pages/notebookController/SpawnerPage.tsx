@@ -39,7 +39,6 @@ import {
   checkNotebookRunning,
 } from '../../utilities/notebookControllerUtils';
 import AppContext from '../../app/AppContext';
-import { ODH_NOTEBOOK_REPO } from '../../utilities/const';
 import { getGPU } from '../../services/gpuService';
 import { patchDashboardConfig } from '../../services/dashboardConfigService';
 import { getSecret } from '../../services/secretsService';
@@ -58,10 +57,14 @@ const SpawnerPage: React.FC = React.memo(() => {
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
   const { currentUserState, setCurrentUserState } = React.useContext(NotebookControllerContext);
+  const { buildStatuses, dashboardConfig, setIsNavOpen } = React.useContext(AppContext);
   const stateUsername = useSelector<State, string>((state) => state.appState.user || '');
   const username = currentUserState.user || stateUsername;
-  const namespace = useSelector<State, string>((state) => state.appState.namespace || '');
-  const projectName = ODH_NOTEBOOK_REPO || namespace;
+  const dashboardNamespace = useSelector<State, string>(
+    (state) => state.appState.dashboardNamespace || '',
+  );
+  const projectName =
+    dashboardConfig.spec.notebookController?.notebookNamespace || dashboardNamespace;
   const [startShown, setStartShown] = React.useState<boolean>(false);
   const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
     startShown,
@@ -69,7 +72,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     username,
   );
   const isNotebookRunning = checkNotebookRunning(notebook);
-  const { buildStatuses, dashboardConfig, setIsNavOpen } = React.useContext(AppContext);
+
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
@@ -174,13 +177,13 @@ const SpawnerPage: React.FC = React.memo(() => {
   }, [dashboardConfig, currentUserState]);
 
   const mapRows = React.useCallback(
-    async (fetchFunc: (name: string) => Promise<ConfigMap | Secret>) => {
+    async (fetchFunc: (namespace: string, name: string) => Promise<ConfigMap | Secret>) => {
       if (!username) {
         return [];
       }
       let fetchedVariableRows: VariableRow[] = [];
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
-      const response = await verifyResource(envVarFileName, fetchFunc);
+      const response = await verifyResource(envVarFileName, projectName, fetchFunc);
       if (response && response.data) {
         const isSecret = response.kind === EnvVarResourceType.Secret;
         fetchedVariableRows = Object.entries(response.data).map(([key, value]) => {
@@ -204,7 +207,7 @@ const SpawnerPage: React.FC = React.memo(() => {
       }
       return fetchedVariableRows;
     },
-    [username],
+    [username, projectName],
   );
 
   React.useEffect(() => {
@@ -322,8 +325,8 @@ const SpawnerPage: React.FC = React.memo(() => {
       (ns) => ns.name === selectedSize,
     );
     const pvcName = generatePvcNameFromUsername(username);
-    const pvcBody = generatePvc(pvcName, '20Gi');
-    await verifyResource(pvcName, getPvc, createPvc, pvcBody).catch((e) =>
+    const pvcBody = generatePvc(pvcName, projectName, '20Gi');
+    await verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody).catch((e) =>
       console.error(`Something wrong with PVC ${pvcName}: ${e}`),
     );
     const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
@@ -331,7 +334,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     const notebookName = generateNotebookNameFromUsername(username);
     const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
     setCreateInProgress(true);
-    const envVars = await checkEnvVarFile(username, namespace, variableRows);
+    const envVars = await checkEnvVarFile(username, projectName, variableRows);
     await createNotebook(
       projectName,
       notebookName,
