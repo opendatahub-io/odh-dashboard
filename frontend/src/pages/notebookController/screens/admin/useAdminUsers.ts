@@ -7,7 +7,7 @@ import { User } from './types';
 
 const useAdminUsers = (): [User[], boolean, Error | undefined] => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const { dashboardNamespace } = useDashboardNamespace(); // TODO: needs to use the notebook namespace
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const userStates = dashboardConfig.status?.notebookControllerState || [];
   const usernames = userStates.map(({ user }) => user);

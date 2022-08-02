@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Alert, Stack, StackItem, Title } from '@patternfly/react-core';
+import {
+  Alert,
+  Pagination,
+  PaginationVariant,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import ApplicationsPage from '../../../ApplicationsPage';
 import { columnNames } from './const';
@@ -8,8 +15,11 @@ import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
 import ExternalLink from '../../../../components/ExternalLink';
 
+const INITIAL_PAGE_LIMIT = 10;
 const NotebookAdminControl: React.FC = () => {
   const [users, loaded, loadError] = useAdminUsers();
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [perPage, setPerPage] = React.useState(INITIAL_PAGE_LIMIT);
 
   return (
     <div className="odh-notebook-controller__page-content">
@@ -46,7 +56,7 @@ const NotebookAdminControl: React.FC = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {users.map((user) => (
+                  {users.slice(perPage * pageIndex, perPage * pageIndex + perPage).map((user) => (
                     <Tr key={user.name}>
                       {columnNames.map((column) => (
                         <Td key={column.name} dataLabel={column.name}>
@@ -57,6 +67,16 @@ const NotebookAdminControl: React.FC = () => {
                   ))}
                 </Tbody>
               </TableComposable>
+              {users.length > INITIAL_PAGE_LIMIT && (
+                <Pagination
+                  itemCount={users.length}
+                  perPage={perPage}
+                  page={pageIndex + 1}
+                  variant={PaginationVariant.bottom}
+                  onSetPage={(e, pageNumber) => setPageIndex(pageNumber - 1)}
+                  onPerPageSelect={(e, newPerPage) => setPerPage(newPerPage)}
+                />
+              )}
             </StackItem>
           </Stack>
         </div>

@@ -14,7 +14,7 @@ type ServerStatusProps = {
 };
 
 const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
-  const { dashboardNamespace } = useDashboardNamespace(); // TODO: notebook namespace
+  const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
   const { setImpersonatingUsername, setCurrentAdminTab } =
     React.useContext(NotebookControllerContext);
