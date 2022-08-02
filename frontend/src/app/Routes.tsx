@@ -22,6 +22,7 @@ const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const Routes: React.FC = () => {
   const isAdmin = useSelector<State, boolean>((state) => state.appState.isAdmin || false);
+  const isAllowed = useSelector<State, boolean>((state) => state.appState.isAllowed || false);
 
   return (
     <React.Suspense
@@ -31,14 +32,18 @@ const Routes: React.FC = () => {
         <Route path="/" exact component={InstalledApplications} />
         <Route path="/explore" exact component={ExploreApplications} />
         <Route path="/resources" exact component={LearningCenterPage} />
-        <Route path="/notebookController">
-          <NotebookControllerRoutes />
-        </Route>
-        <Route
-          path="/notebook/:namespace/:notebookName/logout"
-          exact
-          component={NotebookLogoutRedirectPage}
-        />
+        {isAllowed && (
+          <Route path="/notebookController">
+            <NotebookControllerRoutes />
+          </Route>
+        )}
+        {isAllowed && (
+          <Route
+            path="/notebook/:namespace/:notebookName/logout"
+            exact
+            component={NotebookLogoutRedirectPage}
+          />
+        )}
         {isAdmin && <Route path="/notebookImages" exact component={BYONImagesPage} />}
         {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}
         <Route component={NotFound} />

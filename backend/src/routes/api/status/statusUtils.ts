@@ -19,12 +19,14 @@ export const status = async (
   const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
   const customObjectsApi = fastify.kube.customObjectsApi;
   let isAdmin = false;
+  let isAllowed = false;
 
   const userName = await getUserName(fastify, request, customObjectsApi);
 
   try {
     const dashCR = getDashboardConfig().spec;
     const adminGroup = dashCR.groupsConfig.adminGroups;
+    const allowedGroup = dashCR.groupsConfig.allowedGroups;
 
     if (adminGroup === SYSTEM_AUTHENTICATED || adminGroup === '') {
       throw new Error(
@@ -33,6 +35,13 @@ export const status = async (
     } else {
       const adminUsers = await getGroup(customObjectsApi, adminGroup);
       isAdmin = adminUsers?.includes(userName) ?? false;
+    }
+
+    if (allowedGroup === '') {
+      throw new Error('It is not allowed to set an empty string as allowed group.');
+    } else {
+      const allowedUsers = await getGroup(customObjectsApi, allowedGroup);
+      isAllowed = allowedUsers?.includes(userName) ?? false;
     }
   } catch (e) {
     fastify.log.error(e.toString());
@@ -55,6 +64,7 @@ export const status = async (
         clusterID,
         clusterBranding,
         isAdmin,
+        isAllowed,
       },
     };
   }
