@@ -49,6 +49,13 @@ export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string
   };
 };
 
+export const getPrivileges = (
+  users: string[],
+): Promise<{ [username: string]: 'Admin' | 'User' }> => {
+  const url = '/api/status/privilege';
+  return axios.post(url, { users }).then((response) => response.data);
+};
+
 let notificationCount = 0;
 
 export const addNotification = (

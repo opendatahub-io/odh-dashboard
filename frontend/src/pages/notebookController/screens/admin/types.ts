@@ -2,6 +2,7 @@ import { Notebook } from '../../../../types';
 
 export type User = {
   name: string;
+  privilege: 'Admin' | 'User';
   lastActivity: number;
   serverStatus: { notebook?: Notebook; forceRefresh: () => void };
 };

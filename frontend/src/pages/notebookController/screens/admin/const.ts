@@ -3,6 +3,7 @@ import { SortableData } from '../../../../utilities/useTableColumnSort';
 
 export const columns: SortableData<User>[] = [
   { label: 'User', field: 'name', sortable: true },
+  { label: 'Privilege', field: 'privilege', sortable: true },
   { label: 'Last activity', field: 'lastActivity', sortable: true },
   {
     label: 'Server status',
