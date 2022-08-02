@@ -3,16 +3,17 @@ import { getNotebookEvents } from './eventUtils';
 
 export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get(
-    '/:notebookName',
+    '/:namespace/:notebookName',
     async (
       request: FastifyRequest<{
         Params: {
+          namespace: string;
           notebookName: string;
         };
       }>,
     ) => {
       const params = request.params;
-      return getNotebookEvents(fastify, params.notebookName);
+      return getNotebookEvents(fastify, params.namespace, params.notebookName);
     },
   );
 };
