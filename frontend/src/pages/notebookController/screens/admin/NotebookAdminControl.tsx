@@ -9,17 +9,22 @@ import {
 } from '@patternfly/react-core';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import ApplicationsPage from '../../../ApplicationsPage';
-import { columnNames } from './const';
+import { columns } from './const';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
 import ExternalLink from '../../../../components/ExternalLink';
+import useTableColumnSort from '../../../../utilities/useTableColumnSort';
+import { User } from './types';
 
 const INITIAL_PAGE_LIMIT = 10;
 const NotebookAdminControl: React.FC = () => {
-  const [users, loaded, loadError] = useAdminUsers();
+  const [unsortedUsers, loaded, loadError] = useAdminUsers();
   const [pageIndex, setPageIndex] = React.useState(0);
   const [perPage, setPerPage] = React.useState(INITIAL_PAGE_LIMIT);
+  const { transformData, getColumnSort } = useTableColumnSort<User>(columns);
+
+  const users = transformData(unsortedUsers);
 
   return (
     <div className="odh-notebook-controller__page-content">
@@ -50,16 +55,18 @@ const NotebookAdminControl: React.FC = () => {
               <TableComposable aria-label="Users table" variant="compact">
                 <Thead>
                   <Tr>
-                    {columnNames.map((column) => (
-                      <Th key={column.name}>{column.name}</Th>
+                    {columns.map((column, i) => (
+                      <Th key={column.field} sort={getColumnSort(i)}>
+                        {column.label}
+                      </Th>
                     ))}
                   </Tr>
                 </Thead>
                 <Tbody>
                   {users.slice(perPage * pageIndex, perPage * pageIndex + perPage).map((user) => (
                     <Tr key={user.name}>
-                      {columnNames.map((column) => (
-                        <Td key={column.name} dataLabel={column.name}>
+                      {columns.map((column) => (
+                        <Td key={column.field} dataLabel={column.field}>
                           <UserTableCellTransform user={user} userProperty={column.field} />
                         </Td>
                       ))}

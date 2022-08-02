@@ -1,7 +1,16 @@
 import { User } from './types';
+import { SortableData } from '../../../../utilities/useTableColumnSort';
 
-export const columnNames: { name: string; field: keyof User }[] = [
-  { name: 'User', field: 'name' },
-  { name: 'Last activity', field: 'lastActivity' },
-  { name: 'Server status', field: 'serverStatus' },
+export const columns: SortableData<User>[] = [
+  { label: 'User', field: 'name', sortable: true },
+  { label: 'Last activity', field: 'lastActivity', sortable: true },
+  {
+    label: 'Server status',
+    field: 'serverStatus',
+    sortable: (a: User, b: User): number => {
+      const first = a.serverStatus.notebook ? 1 : -1;
+      const second = b.serverStatus.notebook ? 1 : -1;
+      return first - second;
+    },
+  },
 ];
