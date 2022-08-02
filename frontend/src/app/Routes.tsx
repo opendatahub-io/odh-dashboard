@@ -21,8 +21,10 @@ const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages')
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const Routes: React.FC = () => {
-  const isAdmin = useSelector<State, boolean>((state) => state.appState.isAdmin || false);
-  const isAllowed = useSelector<State, boolean>((state) => state.appState.isAllowed || false);
+  const [isAdmin, isAllowed] = useSelector<State, [boolean, boolean]>((state) => [
+    state.appState.isAdmin || false,
+    state.appState.isAllowed || false,
+  ]);
 
   return (
     <React.Suspense
