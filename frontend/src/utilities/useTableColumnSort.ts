@@ -23,11 +23,14 @@ export type SortableData<T> = {
  */
 const useTableColumnSort = <T>(
   columns: SortableData<T>[],
+  defaultSortColIndex?: number,
 ): {
   transformData: (data: T[]) => T[];
   getColumnSort: (columnIndex: number) => ThProps['sort'];
 } => {
-  const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>();
+  const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(
+    defaultSortColIndex,
+  );
   const [activeSortDirection, setActiveSortDirection] = React.useState<
     'desc' | 'asc' | undefined
   >();

@@ -46,8 +46,8 @@ const useWatchNotebooksForUsers = (
           const newNotebooks = successes.reduce((notebookMap, { value }) => {
             notebookMap[value.name] = value.data;
             return notebookMap;
-          }, notebooks);
-          setNotebooks(newNotebooks);
+          }, {});
+          setNotebooks((prevState) => ({ ...prevState, ...newNotebooks }));
           setLoaded(true);
         })
         .catch((e) => {
@@ -56,7 +56,7 @@ const useWatchNotebooksForUsers = (
           setLoaded(false);
         });
     },
-    [notebooks, projectName],
+    [projectName],
   );
 
   const forceRefresh = React.useCallback(

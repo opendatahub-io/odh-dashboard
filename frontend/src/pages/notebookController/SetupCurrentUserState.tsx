@@ -14,11 +14,11 @@ const SetupCurrentUserState: React.FC = ({ children }) => {
   const { dashboardConfig } = React.useContext(AppContext);
   const { currentUserState, setCurrentUserState } = React.useContext(NotebookControllerContext);
   const { username } = useUser();
-  const translatedUsername = usernameTranslate(username);
 
   React.useEffect(() => {
     if (!currentUserState.user) {
       // Load the user's current state for the NotebookController
+      const translatedUsername = usernameTranslate(username);
       if (translatedUsername && dashboardConfig.spec.notebookController) {
         const notebookControllerState = dashboardConfig.status?.notebookControllerState || [];
         let fetchedUserState = getUserStateFromDashboardConfig(
@@ -44,9 +44,9 @@ const SetupCurrentUserState: React.FC = ({ children }) => {
         setCurrentUserState(fetchedUserState);
       }
     }
-  }, [translatedUsername, dashboardConfig, currentUserState, setCurrentUserState, username]);
+  }, [dashboardConfig, currentUserState, setCurrentUserState, username]);
 
-  if (!currentUserState?.user) {
+  if (!currentUserState.user) {
     return <ApplicationsPage title="Loading..." description={null} loaded={false} empty={false} />;
   }
 

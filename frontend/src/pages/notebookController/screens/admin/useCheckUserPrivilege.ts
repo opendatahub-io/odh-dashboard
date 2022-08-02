@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { getPrivileges } from '../../../../redux/actions/actions';
+import { useDeepCompareMemoize } from '../../../../utilities/useDeepCompareMemoize';
 
 const useCheckUserPrivilege = (
-  usernames: string[],
+  userList: string[],
 ): [{ [username: string]: 'Admin' | 'User' }, boolean, Error | undefined] => {
   const [privileges, setPrivileges] = React.useState<{ [username: string]: 'Admin' | 'User' }>();
   const [loadError, setLoadError] = React.useState<Error | undefined>();
+  const usernames = useDeepCompareMemoize(userList);
 
   React.useEffect(() => {
     let cancelled = false;

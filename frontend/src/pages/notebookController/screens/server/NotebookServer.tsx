@@ -13,9 +13,9 @@ import { Redirect, useHistory } from 'react-router-dom';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
 import { useUser } from '../../../../redux/selectors';
+import useNamespaces from '../../useNamespaces';
 
 import '../../NotebookController.scss';
-import useNamespaces from '../../useNamespaces';
 
 export const NotebookServer: React.FC = React.memo(() => {
   const history = useHistory();

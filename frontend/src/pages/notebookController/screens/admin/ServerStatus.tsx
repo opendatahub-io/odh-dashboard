@@ -20,6 +20,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
   const { setImpersonatingUsername, setCurrentAdminTab } =
     React.useContext(NotebookControllerContext);
   const { username: stateUser } = useUser();
+  const [deleting, setDeleting] = React.useState(false);
 
   if (!data.notebook) {
     return (
@@ -43,20 +44,23 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
   return (
     <Button
       variant="link"
+      isDisabled={deleting}
       isDanger
       isInline
       onClick={() => {
         const notebookName = data.notebook?.metadata.name;
         if (notebookName) {
+          setDeleting(true);
           deleteNotebook(notebookNamespace, notebookName)
             .then(() => data.forceRefresh())
             .catch((e) => {
               notification.error(`Error delete notebook ${notebookName}`, e.message);
+              setDeleting(false);
             });
         }
       }}
     >
-      Stop server
+      {deleting ? 'Stopping server...' : 'Stop server'}
     </Button>
   );
 };

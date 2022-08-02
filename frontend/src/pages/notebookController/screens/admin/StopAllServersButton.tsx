@@ -3,21 +3,28 @@ import { Button } from '@patternfly/react-core';
 import { User } from './types';
 import { deleteNotebook } from '../../../../services/notebookService';
 import useNamespaces from '../../useNamespaces';
+import { allSettledPromises } from '../../../../utilities/allSettledPromises';
+import { Notebook } from '../../../../types';
 
 type StopAllServersButtonProps = {
   users: User[];
 };
 
-const stopServers = async (projectName: string, serverList: User['serverStatus'][]) => {
-  const notebookNames: string[] = serverList
-    .map((serverStatus) => serverStatus.notebook?.metadata.name || '')
-    .filter((notebookName) => !!notebookName);
-
-  return Promise.all(
-    notebookNames.map((notebookName) => {
+const stopServers = async (
+  projectName: string,
+  serverList: User['serverStatus'][],
+): Promise<void> => {
+  return allSettledPromises<Notebook | void>(
+    serverList.map((serverStatus) => {
+      const notebookName = serverStatus.notebook?.metadata.name || '';
+      if (!notebookName) return Promise.resolve();
       return deleteNotebook(projectName, notebookName);
     }),
-  );
+  ).then(() => {
+    serverList.forEach((serverStatus) => {
+      serverStatus.forceRefresh();
+    });
+  });
 };
 
 const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) => {

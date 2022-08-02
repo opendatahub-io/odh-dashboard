@@ -61,6 +61,11 @@ export const NotebookControllerContextProvider: React.FC = ({ children }) => {
         return;
       }
 
+      if (oldUserState === EMPTY_USER_STATE) {
+        // we do not have an old user state, exit
+        return;
+      }
+
       // Undo impersonation, bring back old state
       setImpersonatingUser(false);
       setCurrentUserState(oldUserState);

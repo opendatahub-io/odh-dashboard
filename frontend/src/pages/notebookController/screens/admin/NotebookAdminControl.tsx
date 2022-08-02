@@ -22,7 +22,7 @@ const NotebookAdminControl: React.FC = () => {
   const [unsortedUsers, loaded, loadError] = useAdminUsers();
   const [pageIndex, setPageIndex] = React.useState(0);
   const [perPage, setPerPage] = React.useState(INITIAL_PAGE_LIMIT);
-  const { transformData, getColumnSort } = useTableColumnSort<User>(columns);
+  const { transformData, getColumnSort } = useTableColumnSort<User>(columns, 0);
 
   const users = transformData(unsortedUsers);
 
