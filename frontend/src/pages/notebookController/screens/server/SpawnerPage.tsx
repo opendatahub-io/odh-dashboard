@@ -48,7 +48,8 @@ import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage
 import useNotification from '../../../../utilities/useNotification';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
-import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
+import { useUser } from '../../../../redux/selectors';
+import useNamespaces from '../../useNamespaces';
 
 import '../../NotebookController.scss';
 
@@ -61,9 +62,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     React.useContext(NotebookControllerContext);
   const { username: stateUsername } = useUser();
   const username = currentUserState.user || stateUsername;
-  const { dashboardNamespace } = useDashboardNamespace();
-  const projectName =
-    dashboardConfig.spec.notebookController?.notebookNamespace || dashboardNamespace;
+  const { notebookNamespace: projectName } = useNamespaces();
   const [startShown, setStartShown] = React.useState<boolean>(false);
   const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
     startShown,

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { User } from './types';
 import { deleteNotebook } from '../../../../services/notebookService';
-import { useDashboardNamespace } from '../../../../redux/selectors';
+import useNamespaces from '../../useNamespaces';
 
 type StopAllServersButtonProps = {
   users: User[];
@@ -21,7 +21,7 @@ const stopServers = async (projectName: string, serverList: User['serverStatus']
 };
 
 const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) => {
-  const { dashboardNamespace } = useDashboardNamespace();
+  const { notebookNamespace } = useNamespaces();
   const activeNotebooks = users
     .filter((user) => user.serverStatus.notebook)
     .map((user) => user.serverStatus);
@@ -35,7 +35,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
       isDisabled={serverCount === 0 || isDeleting}
       onClick={() => {
         setIsDeleting(true);
-        stopServers(dashboardNamespace, activeNotebooks)
+        stopServers(notebookNamespace, activeNotebooks)
           .then(() => {
             setIsDeleting(false);
           })

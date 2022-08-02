@@ -1,14 +1,14 @@
 import * as React from 'react';
 import AppContext from '../../../../app/AppContext';
-import { useDashboardNamespace } from '../../../../redux/selectors';
 import useWatchNotebooksForUsers from '../../../../utilities/useWatchNotebooksForUsers';
 import { Notebook } from '../../../../types';
 import { User } from './types';
 import useCheckUserPrivilege from './useCheckUserPrivilege';
+import useNamespaces from '../../useNamespaces';
 
 const useAdminUsers = (): [User[], boolean, Error | undefined] => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const { dashboardNamespace } = useDashboardNamespace();
+  const { notebookNamespace } = useNamespaces();
 
   const userStates = dashboardConfig.status?.notebookControllerState || [];
   const usernames = userStates.map(({ user }) => user);
@@ -19,7 +19,7 @@ const useAdminUsers = (): [User[], boolean, Error | undefined] => {
     loaded: notebookLoaded,
     loadError: notebookError,
     forceRefresh,
-  } = useWatchNotebooksForUsers(dashboardNamespace, usernames);
+  } = useWatchNotebooksForUsers(notebookNamespace, usernames);
 
   const users: User[] = userStates.map<User>((state) => {
     const notebook: Notebook = notebooks[state.user];

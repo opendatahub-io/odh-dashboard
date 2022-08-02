@@ -8,40 +8,23 @@ import { deleteNotebook } from '../../../../services/notebookService';
 import {
   checkNotebookRunning,
   generateNotebookNameFromUsername,
-  validateNotebookNamespaceRoleBinding,
 } from '../../../../utilities/notebookControllerUtils';
 import { Redirect, useHistory } from 'react-router-dom';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
-import useNotification from '../../../../utilities/useNotification';
-import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
-import AppContext from '../../../../app/AppContext';
+import { useUser } from '../../../../redux/selectors';
 
 import '../../NotebookController.scss';
+import useNamespaces from '../../useNamespaces';
 
 export const NotebookServer: React.FC = React.memo(() => {
   const history = useHistory();
-  const notification = useNotification();
-  const { dashboardConfig } = React.useContext(AppContext);
   const { images } = useWatchImages();
   const { currentUserState, impersonatingUser } = React.useContext(NotebookControllerContext);
   const { username: stateUsername } = useUser();
   const username = currentUserState.user || stateUsername;
-  const { dashboardNamespace } = useDashboardNamespace();
-  const notebookNamespace = dashboardConfig.spec.notebookController?.notebookNamespace;
-  const projectName = notebookNamespace || dashboardNamespace;
+  const { notebookNamespace: projectName } = useNamespaces();
   const { notebook, loaded, loadError } = useWatchNotebook(projectName, username);
-
-  React.useEffect(() => {
-    if (notebookNamespace && dashboardNamespace) {
-      validateNotebookNamespaceRoleBinding(notebookNamespace, dashboardNamespace).catch((e) =>
-        notification.error(
-          'Error validating the role binding of your notebookNamespace',
-          `${e.response.data.message}. You might not be able to create the notebook in this namespace.`,
-        ),
-      );
-    }
-  }, [notebookNamespace, dashboardNamespace, notification]);
 
   return (
     <>
