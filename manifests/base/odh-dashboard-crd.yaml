@@ -39,6 +39,13 @@ spec:
                       type: boolean
                     disableUserManagement:
                       type: boolean
+                groupsConfig:
+                  type: object
+                  properties:
+                    adminGroups:
+                      type: string
+                    allowedGroups:
+                      type: string
                 notebookSizes:
                   type: array
                   items:

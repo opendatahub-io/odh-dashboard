@@ -1,15 +1,15 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
-import { CoreV1Api, CustomObjectsApi } from '@kubernetes/client-node';
+import { CustomObjectsApi } from '@kubernetes/client-node';
 import { getUserName } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
 
 type groupObjResponse = {
   users: string[] | null;
 };
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
-const GROUPS_CONFIGMAP_NAME = 'groups-config';
 
 export const status = async (
   fastify: KubeFastifyInstance,
@@ -18,14 +18,13 @@ export const status = async (
   const kubeContext = fastify.kube.currentContext;
   const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
   const customObjectsApi = fastify.kube.customObjectsApi;
-  const coreV1Api = fastify.kube.coreV1Api;
   let isAdmin = false;
 
   const userName = await getUserName(fastify, request, customObjectsApi);
 
   try {
-    const groupConfig = await getGroupsConfig(coreV1Api, namespace);
-    const adminGroup = await getGroupsAdminConfig(coreV1Api, namespace, groupConfig);
+    const dashCR = getDashboardConfig().spec;
+    const adminGroup = dashCR.groupsConfig.adminGroups;
 
     if (adminGroup === SYSTEM_AUTHENTICATED || adminGroup === '') {
       throw new Error(
@@ -58,34 +57,6 @@ export const status = async (
         isAdmin,
       },
     };
-  }
-};
-
-export const getGroupsConfig = async (coreV1Api: CoreV1Api, namespace: string): Promise<string> => {
-  try {
-    return (await coreV1Api.readNamespacedConfigMap(GROUPS_CONFIGMAP_NAME, namespace)).body.data[
-      'groups-config'
-    ];
-  } catch (e) {
-    throw new Error(
-      `Failed to retrieve ConfigMap ${GROUPS_CONFIGMAP_NAME}, might be malformed or doesn't exist.`,
-    );
-  }
-};
-
-export const getGroupsAdminConfig = async (
-  coreV1Api: CoreV1Api,
-  namespace: string,
-  groupsConfigName: string,
-): Promise<string> => {
-  try {
-    return (await coreV1Api.readNamespacedConfigMap(groupsConfigName, namespace)).body.data[
-      'admin_groups'
-    ];
-  } catch (e) {
-    throw new Error(
-      `Failed to retrieve ConfigMap ${groupsConfigName}, might be malformed or doesn't exist.`,
-    );
   }
 };
 

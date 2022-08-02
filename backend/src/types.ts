@@ -15,6 +15,10 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
     };
+    groupsConfig: {
+      adminGroups: string;
+      allowedGroups: string;
+    };
     notebookSizes?: NotebookSize[];
     notebookController?: {
       enabled: boolean;
