@@ -24,7 +24,7 @@ const useWatchNotebooksForUsers = (
 
   const getNotebooks = React.useCallback(
     (usernameList: string[]) => {
-      allSettledPromises<{ name: string; data: Notebook }>(
+      allSettledPromises<{ name: string; data: Notebook }, Error>(
         usernameList.map((username) => {
           const notebookName = generateNotebookNameFromUsername(username);
           return getNotebook(projectName, notebookName).then((data) => ({ name: username, data }));
@@ -35,7 +35,7 @@ const useWatchNotebooksForUsers = (
             setLoadError(
               new Error(
                 `Failed to fetch ${fails.length} notebooks. ${fails.map(
-                  ({ reason }) => `\n  - ${reason}`,
+                  ({ reason }) => `\n  - ${reason.message}`,
                 )}`,
               ),
             );
