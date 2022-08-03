@@ -44,7 +44,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
   const { lastNotebookCreationTime } = React.useContext(NotebookControllerContext);
   const { notebookNamespace } = useNamespaces();
   const [spawnInProgress, setSpawnInProgress] = React.useState<boolean>(false);
-  const [logsExpaned, setLogsExpaned] = React.useState<boolean>(false);
+  const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
 
@@ -91,9 +91,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
       }, 6000);
     }
     return () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
+      clearTimeout(timer);
     };
   }, [isNotebookRunning, notebookLink, onUnload]);
 
@@ -101,7 +99,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
     setSpawnInProgress(startShown);
     setSpawnStatus(null);
     setSpawnPercentile(0);
-    setLogsExpaned(false);
+    setLogsExpanded(false);
     // Notify user if they are trying to refresh the page when spawning is in progress
     if (startShown) {
       window.addEventListener('beforeunload', onUnload);
@@ -176,14 +174,14 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
 
   const renderLogs = () => (
     <ExpandableSection
-      toggleText={`${logsExpaned ? 'Collapse' : 'Expand'} event log`}
-      onToggle={(isExpanded) => setLogsExpaned(isExpanded)}
-      isExpanded={logsExpaned}
+      toggleText={`${logsExpanded ? 'Collapse' : 'Expand'} event log`}
+      onToggle={(isExpanded) => setLogsExpanded(isExpanded)}
+      isExpanded={logsExpanded}
       isIndented
     >
       <List isPlain isBordered>
         {notebookStatus?.events.reverse().map((event, index) => (
-          <ListItem key={`notebook-event-${index}`}>
+          <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
             {`${event.lastTimestamp} [${event.type}] ${event.message}`}
           </ListItem>
         ))}
