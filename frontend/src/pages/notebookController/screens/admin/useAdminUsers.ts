@@ -1,7 +1,7 @@
 import * as React from 'react';
 import AppContext from '../../../../app/AppContext';
 import useWatchNotebooksForUsers from '../../../../utilities/useWatchNotebooksForUsers';
-import { Notebook } from '../../../../types';
+import { Notebook, NotebookControllerUserState } from '../../../../types';
 import { User } from './types';
 import useCheckUserPrivilege from './useCheckUserPrivilege';
 import useNamespaces from '../../useNamespaces';
@@ -10,9 +10,17 @@ const useAdminUsers = (): [User[], boolean, Error | undefined] => {
   const { dashboardConfig } = React.useContext(AppContext);
   const { notebookNamespace } = useNamespaces();
 
-  const userStates = (dashboardConfig.status?.notebookControllerState || []).filter(
-    ({ user }) => !!user,
+  // Data in the notebook controller state is impure and can have duplicates and more importantly empty states; trim them
+  const unstableUserStates = dashboardConfig.status?.notebookControllerState || [];
+  const userStates: NotebookControllerUserState[] = Object.values(
+    unstableUserStates
+      .filter(({ user }) => !!user)
+      .reduce<{ [key: string]: NotebookControllerUserState }>(
+        (acc, state) => ({ ...acc, [state.user]: state }),
+        {},
+      ),
   );
+
   const usernames = userStates.map(({ user }) => user);
 
   const [privileges, privilegesLoaded, privilegesLoadError] = useCheckUserPrivilege(usernames);
