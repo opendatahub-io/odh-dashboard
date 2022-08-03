@@ -23,7 +23,7 @@ import {
 import { useSelector } from 'react-redux';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH } from './const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH, DEFAULT_PVC_SIZE } from './const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useHistory } from 'react-router-dom';
 import { createNotebook, deleteNotebook } from '../../services/notebookService';
@@ -325,7 +325,8 @@ const SpawnerPage: React.FC = React.memo(() => {
       (ns) => ns.name === selectedSize,
     );
     const pvcName = generatePvcNameFromUsername(username);
-    const pvcBody = generatePvc(pvcName, projectName, '20Gi');
+    const requestedPvcSize = dashboardConfig?.spec?.notebookController?.pvcSize;
+    const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
     await verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody).catch((e) =>
       console.error(`Something wrong with PVC ${pvcName}: ${e}`),
     );
