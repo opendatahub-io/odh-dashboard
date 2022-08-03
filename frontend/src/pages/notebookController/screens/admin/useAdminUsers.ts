@@ -10,7 +10,9 @@ const useAdminUsers = (): [User[], boolean, Error | undefined] => {
   const { dashboardConfig } = React.useContext(AppContext);
   const { notebookNamespace } = useNamespaces();
 
-  const userStates = dashboardConfig.status?.notebookControllerState || [];
+  const userStates = (dashboardConfig.status?.notebookControllerState || []).filter(
+    ({ user }) => !!user,
+  );
   const usernames = userStates.map(({ user }) => user);
 
   const [privileges, privilegesLoaded, privilegesLoadError] = useCheckUserPrivilege(usernames);
