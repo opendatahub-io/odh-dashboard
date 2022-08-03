@@ -1,8 +1,10 @@
 # This overlay is a HACK to prevent someone from accidentally commiting DEV changes in the base manifests
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+bases:
+  - ../authentication
 resources:
-- ../authentication
+  - ./nvidia-dcgm-mock-exporter
 images:
   # Since kustomize will transform the image in the base resource(s), we need to search from that post-transform name
   #   Each "name" property should match the image "newName" defined in the base resource(s)

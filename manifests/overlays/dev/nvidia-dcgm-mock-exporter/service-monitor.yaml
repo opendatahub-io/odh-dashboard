@@ -1,11 +1,9 @@
-# This service monitor belongs to the mock-server.yaml
----
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: prometheus-mock-gpu-monitor
+  name: nvidia-dcgm-mock-exporter
   labels:
-    app: prometheus-mock-gpu-monitor
+    app: nvidia-dcgm-exporter
 spec:
   endpoints:
     - interval: 30s
@@ -15,15 +13,11 @@ spec:
   selector:
     matchLabels:
       app: nvidia-dcgm-exporter
-  namespaceSelector:
-    matchNames:
-      - opendatahub
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: prometheus-mock-gpu-monitor
+  name: prometheus-view-nvidia-dcgm-mock-exporter
 rules:
   - apiGroups:
       - ""
@@ -40,11 +34,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: prometheus-mock-gpu-monitor
+  name: prometheus-view-nvidia-dcgm-mock-exporter
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: prometheus-mock-gpu-monitor
+  name: prometheus-view-nvidia-dcgm-mock-exporter
 subjects:
   - kind: ServiceAccount
     name: prometheus-k8s

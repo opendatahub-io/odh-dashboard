@@ -4,6 +4,7 @@ printf "\n\n######## undeploy ########\n"
 KUSTOMIZE_MANIFEST_DIR_OVERLAY_DEV="${KUSTOMIZE_MANIFEST_DIR}/overlays/dev"
 
 oc project ${OC_PROJECT} 2> /dev/null
+oc label namespace ${OC_PROJECT} openshift.io/cluster-monitoring-
 oc project
 
 pushd ${KUSTOMIZE_MANIFEST_DIR_OVERLAY_DEV}

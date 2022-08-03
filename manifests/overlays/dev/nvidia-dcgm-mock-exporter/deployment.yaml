@@ -1,9 +1,7 @@
-# This YAML adds a mock server of gpu metrics for gpu testing
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nvidia-dcgm-exporter
+  name: nvidia-dcgm-mock-exporter
   labels:
     app: nvidia-dcgm-exporter
 spec:
@@ -48,58 +46,40 @@ spec:
                           'UUID',
                           'device',
                           'gpu',
-                          'instance',
-                          'endpoint',
-                          'namespace',
                           'modelName',
+                          'pod',
                       ],
                       registers: [registry],
                   },
               );
 
-              ` DCGM_FI_PROF_GR_ENGINE_ACTIVE
-              {
-                  Hostname="ip-10-0-150-8",
-                  UUID="GPU-cd248e1c-1c37-7bd5-076c-25d95eca8e2b", 
-                  container="nvidia-dcgm-exporter", 
-                  device="nvidia0", 
-                  endpoint="gpu-metrics", 
-                  gpu="0", 
-                  instance="10.0.150.8:9400", 
-                  job="nvidia-dcgm-exporter", 
-                  modelName="Tesla T4", 
-                  namespace="nvidia-gpu-operator", 
-                  pod="nvidia-dcgm-exporter-b4f8j", 
-                  service="nvidia-dcgm-exporter"
-              }
-
-              `
-
               mockGPU.labels(
                   {
-                      modelName: "Tesla T4",
+                      Hostname: "node1.opendatahub.io",
                       UUID: "GPU-cd248e1c-1c37-7bd5-076c-25d95eca8e2b",
                       device: "nvidia0",
-                      gpu: "1",
-                      instance: "10.0.150.8:9400",
-                      endpoint: "gpu-metrics",
-                      namespace: "nvidia-gpu-operator",
-                      Hostname: "ip-10-0-150-8"
-
-                  }).set(1)
+                      modelName: "Tesla T4",
+                      gpu: "0",
+                  }).set(0)
 
               mockGPU.labels(
                   {
-                      modelName: "Tesla T5",
-                      UUID: "GPU-di032ks3-3124-dsa3-1asf-41nk2ojdoi21n",
+                      Hostname: "node1.opendatahub.io",
+                      UUID: "GPU-691bd394-0924-4ec9-9baa-c79d97f26a30",
                       device: "nvidia1",
-                      gpu: "2",
-                      instance: "10.0.150.10:9400",
-                      endpoint: "gpu-metrics",
-                      namespace: "nvidia-gpu-operator",
-                      Hostname: "ip-10-0-150-10"
+                      modelName: "Tesla T4",
+                      gpu: "1",
+                  }).set(0)
 
-                  }).set(2)
+              mockGPU.labels(
+                  {
+                      Hostname: "node1.opendatahub.io",
+                      UUID: "GPU-d0c6cbdf-719e-44d6-9810-7bb62e565997",
+                      device: "nvidia2",
+                      modelName: "Tesla T4",
+                      gpu: "2",
+                      pod: "this-gpu-is-busy",
+                  }).set(0)
 
               const server = http.createServer();
               server.on('request', async (req, res) => {
@@ -117,22 +97,3 @@ spec:
               node mock-server.js
           ports:
             - containerPort: 9400
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: nvidia-dcgm-exporter
-  labels:
-    app: nvidia-dcgm-exporter
-    opendatahub.io/component: "true"
-spec:
-  type: ClusterIP
-  sessionAffinity: None
-  selector:
-    app: nvidia-dcgm-exporter
-  ports:
-    - name: gpu-metrics
-      port: 9400
-      protocol: TCP
-      targetPort: 9400

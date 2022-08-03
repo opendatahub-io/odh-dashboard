@@ -1,13 +1,13 @@
 import { KubeFastifyInstance, PrometheusResponse } from '../../../types';
 import { V1PodList, V1Secret, V1ServiceAccount } from '@kubernetes/client-node';
 import https from 'https';
+import * as fs from 'fs';
+import { resolve } from 'path';
 
 export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number> => {
   let maxGpuNumber = 0;
   const gpuPodList = await fastify.kube.coreV1Api
-    .listNamespacedPod(
-      fastify.kube.namespace,
-      undefined,
+    .listPodForAllNamespaces(
       undefined,
       undefined,
       undefined,
@@ -24,6 +24,18 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
     const dashboardSA = await fastify.kube.coreV1Api
       .readNamespacedServiceAccount('odh-dashboard', fastify.kube.namespace)
       .then((res) => res.body as V1ServiceAccount);
+    const token = await new Promise((resolve,reject) => {
+      fs.readFile("/var/run/secrets/kubernetes.io/serviceaccount/token", (err, data) => {
+        try {
+          resolve(String(data))
+        }
+        catch {
+          reject("")
+          fastify.log.error(err)
+        }
+      })
+    })
+    console.log(`TOKEN: ${token}`)
     let dashboardTokenName = '';
     for (let i = 0; i < dashboardSA.secrets.length; i++) {
       if (dashboardSA.secrets[i].name.includes('token')) {
