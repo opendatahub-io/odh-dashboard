@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, Flex, Select, SelectOption } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from './const';
-import { EnvVarCategoryType, EnvVarType, VariableRow } from '../../types';
+import { CUSTOM_VARIABLE, EMPTY_KEY } from '../../const';
+import { EnvVarCategoryType, EnvVarType, VariableRow } from '../../../../types';
 import EnvironmentVariablesField from './EnvironmentVariablesField';
 
 type EnvironmentVariablesRowProps = {

@@ -9,14 +9,14 @@ import {
   Text,
   TextVariants,
 } from '@patternfly/react-core';
-import { ImageInfo, Notebook, NotebookContainer } from '../../types';
+import { ImageInfo, Notebook, NotebookContainer } from '../../../../types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
   getNumGpus,
-} from '../../utilities/imageUtils';
-import AppContext from '../../app/AppContext';
+} from '../../../../utilities/imageUtils';
+import AppContext from '../../../../app/AppContext';
 
 type NotebookServerDetailsProps = {
   notebook?: Notebook;

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ImageTagInfo } from '../../types';
-import { getNameVersionString } from '../../utilities/imageUtils';
-import './NotebookController.scss';
+import { ImageTagInfo } from '../../../../types';
+import { getNameVersionString } from '../../../../utilities/imageUtils';
+import '../../NotebookController.scss';
 
 type ImageTagPopoverProps = {
   tag?: ImageTagInfo;

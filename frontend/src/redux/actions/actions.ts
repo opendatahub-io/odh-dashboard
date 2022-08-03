@@ -41,11 +41,19 @@ export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string
     try {
       const response = await axios.get(url, {});
       dispatch(getUserFulfilled(response.data));
-      // eslint-disable-next-line
-    } catch (e: any) {
-      dispatch(getUserRejected(e.response.data));
+    } catch (e: unknown) {
+      if (axios.isAxiosError(e)) {
+        dispatch(getUserRejected(e.response?.data));
+      }
     }
   };
+};
+
+export const getPrivileges = (
+  users: string[],
+): Promise<{ [username: string]: 'Admin' | 'User' }> => {
+  const url = '/api/status/privilege';
+  return axios.post(url, { users }).then((response) => response.data);
 };
 
 let notificationCount = 0;
