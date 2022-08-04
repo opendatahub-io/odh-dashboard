@@ -555,3 +555,15 @@ export type PersistentVolumeClaimListKind = {
   metadata: Record<string, unknown>;
   items: PersistentVolumeClaimKind[];
 };
+
+export type PrometheusResponse = {
+  data: {
+    result: [
+      {
+        value: [number, string];
+      },
+    ];
+    resultType: string;
+  };
+  status: string;
+};

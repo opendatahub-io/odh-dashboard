@@ -252,6 +252,12 @@ export type NotebookPort = {
   protocol: string;
 };
 
+export type NotebookToleration = {
+  effect: string;
+  key: string;
+  operator: string;
+};
+
 export type NotebookContainer = {
   name: string;
   image: string;

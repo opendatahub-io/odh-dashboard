@@ -10,6 +10,7 @@ resources:
 - service-account.yaml
 - role-binding.yaml
 - cluster-role-binding.yaml
+- cluster-monitoring-role-binding.yaml
 - deployment.yaml
 - routes.yaml
 - service.yaml
