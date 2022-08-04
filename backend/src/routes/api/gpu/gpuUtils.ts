@@ -69,7 +69,7 @@ export const getGPUData = async (
     const options = {
       hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
       port: 9091,
-      path: `/api/v1/query?query=count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400"})+or+vector(0))+-+count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400",exported_pod=~".+"})+or+vector(0))`,
+      path: `/api/v1/query?query=count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400"})+or+vector(0))-count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400",exported_pod=~".%2b"})+or+vector(0))`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -84,7 +84,9 @@ export const getGPUData = async (
       });
       res.on('end', () => {
         try {
+          console.log("Raw Data: " + JSON.stringify(rawData, null, 2));
           const parsedData: PrometheusResponse = JSON.parse(rawData);
+          console.log('Parsed data: ' + JSON.stringify(parsedData, null, 2));
           resolve({ code: 200, response: Number(parsedData['data']['result'][0]['value'][1]) });
         } catch (e) {
           reject({ code: 500, response: rawData });
