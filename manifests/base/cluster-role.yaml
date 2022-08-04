@@ -108,6 +108,15 @@ rules:
       - rolebindings
       - roles
   - apiGroups:
+      - ''
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - kubeflow.org
     verbs:
       - get
