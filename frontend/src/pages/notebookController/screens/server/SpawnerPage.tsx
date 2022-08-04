@@ -58,7 +58,7 @@ const SpawnerPage: React.FC = React.memo(() => {
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses, dashboardConfig } = React.useContext(AppContext);
-  const { currentUserState, setCurrentUserState, impersonatingUser } =
+  const { currentUserState, setCurrentUserState, impersonatingUser, setLastNotebookCreationTime } =
     React.useContext(NotebookControllerContext);
   const { username: stateUsername } = useUser();
   const username = currentUserState.user || stateUsername;
@@ -96,13 +96,16 @@ const SpawnerPage: React.FC = React.memo(() => {
     if (shouldRedirect) {
       if (notebookLoaded && notebook) {
         if (!isNotebookRunning) {
-          setStartShown(true);
+          // We already notify the user when they are trying to close/refresh the page
+          // when they are spawning a notebook
+          // so we can safely delete it if the notebook is still there
+          deleteNotebook(projectName, notebook.metadata.name);
         } else {
           history.replace('/notebookController');
         }
       }
     }
-  }, [notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
+  }, [projectName, notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -328,6 +331,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     const notebookName = generateNotebookNameFromUsername(username);
     const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
     setCreateInProgress(true);
+    setLastNotebookCreationTime(new Date());
     const envVars = await checkEnvVarFile(username, projectName, variableRows);
     await createNotebook(
       projectName,

@@ -11,6 +11,8 @@ type NotebookControllerContextProps = {
   impersonatingUser: boolean;
   setCurrentAdminTab: (newTab: NotebookControllerTabTypes) => void;
   currentTab: NotebookControllerTabTypes;
+  lastNotebookCreationTime: Date;
+  setLastNotebookCreationTime: (date: Date) => void;
 };
 
 const defaultNotebookControllerContext: NotebookControllerContextProps = {
@@ -20,6 +22,8 @@ const defaultNotebookControllerContext: NotebookControllerContextProps = {
   impersonatingUser: false,
   setCurrentAdminTab: () => undefined,
   currentTab: NotebookControllerTabTypes.SERVER,
+  lastNotebookCreationTime: new Date(),
+  setLastNotebookCreationTime: () => undefined,
 };
 
 export const NotebookControllerContext = React.createContext(defaultNotebookControllerContext);
@@ -31,6 +35,7 @@ export const NotebookControllerContextProvider: React.FC = ({ children }) => {
     React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
   const [impersonatingUser, setImpersonatingUser] = React.useState<boolean>(false);
   const [currentTab, setCurrentTab] = React.useState(NotebookControllerTabTypes.SERVER);
+  const [lastNotebookCreationTime, setLastNotebookCreationTime] = React.useState(new Date());
   const { isAdmin } = useUser();
 
   const getNewStateFromUser = useGetUserStateFromDashboardConfig();
@@ -91,6 +96,8 @@ export const NotebookControllerContextProvider: React.FC = ({ children }) => {
         setImpersonatingUsername,
         currentTab,
         setCurrentAdminTab,
+        lastNotebookCreationTime,
+        setLastNotebookCreationTime,
       }}
     >
       {children}
