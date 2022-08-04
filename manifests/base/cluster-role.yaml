@@ -23,6 +23,13 @@ rules:
       - subscriptions
   - apiGroups:
       - ''
+      - image.openshift.io
+    resources:
+      - imagestreams/layers
+    verbs:
+      - get
+  - apiGroups:
+      - ''
     verbs:
       - create
       - delete
@@ -100,6 +107,15 @@ rules:
     resources:
       - rolebindings
       - roles
+  - apiGroups:
+      - ''
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups:
       - kubeflow.org
     verbs:

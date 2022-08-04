@@ -3,6 +3,7 @@ import { rolloutDeploymentConfig, rolloutDeployment } from '../../../utils/deplo
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { V1ConfigMap } from '@kubernetes/client-node';
+import { setDashboardConfig } from '../config/configUtils';
 const jupyterhubCfg = 'jupyterhub-cfg';
 const nbcCfg = 'notebook-controller-culler-config';
 const segmentKeyCfg = 'odh-segment-key-config';
@@ -32,6 +33,15 @@ export const updateClusterSettings = async (
     }
     if (query.pvcSize && query.cullerTimeout) {
       if (dashConfig.spec?.notebookController?.enabled) {
+        await setDashboardConfig(fastify, {
+          spec: {
+            dashboardConfig: dashConfig.spec.dashboardConfig,
+            notebookController: {
+              enabled: dashConfig.spec.notebookController.enabled,
+              pvcSize: `${query.pvcSize}Gi`,
+            },
+          },
+        });
         let isEnabled = true;
         const cullingTimeMin = Number(query.cullerTimeout) / 60; // Seconds to minutes
         if (Number(query.cullerTimeout) === DEFAULT_CULLER_TIMEOUT) {
@@ -107,7 +117,12 @@ export const getClusterSettings = async (
     fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
   }
   if (dashConfig.spec?.notebookController?.enabled) {
-    clusterSettings.pvcSize = 20; //PLACEHOLDER
+    clusterSettings.pvcSize = DEFAULT_PVC_SIZE;
+    if (dashConfig.spec.notebookController.pvcSize) {
+      clusterSettings.pvcSize = Number(
+        dashConfig.spec.notebookController.pvcSize.replace('Gi', ''),
+      );
+    }
     clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT; // For backwards compatibility with jupyterhub and less changes to UI
     await fastify.kube.coreV1Api
       .readNamespacedConfigMap(nbcCfg, fastify.kube.namespace)

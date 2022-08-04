@@ -18,6 +18,7 @@ export type DashboardConfig = K8sResourceCommon & {
       envVarConfig?: {
         enabled: boolean;
       };
+      pvcSize?: string;
       notebookNamespace?: string;
     };
   };
@@ -42,6 +43,7 @@ export type NotebookControllerUserState = {
   user: string;
   lastSelectedImage: string;
   lastSelectedSize: string;
+  lastActivity: number;
 };
 
 export type NotebookResources = {
@@ -579,3 +581,24 @@ export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Prom
 export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
 
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
+
+export type K8sEvent = {
+  lastTimestamp: string;
+  message: string;
+  reason: string;
+  type: string;
+} & K8sResourceCommon;
+
+export type NotebookStatus = {
+  percentile: number;
+  currentStatus: EventStatus;
+  currentEvent: string;
+  currentEventReason: string;
+  currentEventDescription: string;
+  events: K8sEvent[];
+};
+
+export enum EventStatus {
+  IN_PROGRESS = 'In Progress',
+  ERROR = 'Error',
+}

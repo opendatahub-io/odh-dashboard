@@ -10,7 +10,7 @@ import {
   Select,
   SelectOption,
 } from '@patternfly/react-core';
-import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../utilities/imageUtils';
+import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../../../utilities/imageUtils';
 import {
   ImageInfo,
   ImageTag,
@@ -19,16 +19,14 @@ import {
   ConfigMap,
   Secret,
   EnvVarResourceType,
-} from '../../types';
-import { useSelector } from 'react-redux';
+} from '../../../../types';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH } from './const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH, DEFAULT_PVC_SIZE } from '../../const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useHistory } from 'react-router-dom';
-import { createNotebook, deleteNotebook } from '../../services/notebookService';
-import { createPvc, getPvc } from '../../services/pvcService';
-import { State } from '../../redux/types';
+import { createNotebook, deleteNotebook } from '../../../../services/notebookService';
+import { createPvc, getPvc } from '../../../../services/pvcService';
 import {
   generateNotebookNameFromUsername,
   generatePvcNameFromUsername,
@@ -37,34 +35,34 @@ import {
   checkEnvVarFile,
   generatePvc,
   checkNotebookRunning,
-} from '../../utilities/notebookControllerUtils';
-import AppContext from '../../app/AppContext';
-import { getGPU } from '../../services/gpuService';
-import { patchDashboardConfig } from '../../services/dashboardConfigService';
-import { getSecret } from '../../services/secretsService';
-import { getConfigMap } from '../../services/configMapService';
-import { useWatchImages } from '../../utilities/useWatchImages';
-import ApplicationsPage from '../../pages/ApplicationsPage';
+} from '../../../../utilities/notebookControllerUtils';
+import AppContext from '../../../../app/AppContext';
+import { getGPU } from '../../../../services/gpuService';
+import { patchDashboardConfig } from '../../../../services/dashboardConfigService';
+import { getSecret } from '../../../../services/secretsService';
+import { getConfigMap } from '../../../../services/configMapService';
+import { useWatchImages } from '../../../../utilities/useWatchImages';
+import ApplicationsPage from '../../../ApplicationsPage';
 import StartServerModal from './StartServerModal';
 import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage';
-import useNotification from '../../utilities/useNotification';
-import NotebookControllerContext from './NotebookControllerContext';
+import useNotification from '../../../../utilities/useNotification';
+import { NotebookControllerContext } from '../../NotebookControllerContext';
+import ImpersonateAlert from '../admin/ImpersonateAlert';
+import { useUser } from '../../../../redux/selectors';
+import useNamespaces from '../../useNamespaces';
 
-import './NotebookController.scss';
+import '../../NotebookController.scss';
 
 const SpawnerPage: React.FC = React.memo(() => {
   const history = useHistory();
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
-  const { currentUserState, setCurrentUserState } = React.useContext(NotebookControllerContext);
-  const { buildStatuses, dashboardConfig, setIsNavOpen } = React.useContext(AppContext);
-  const stateUsername = useSelector<State, string>((state) => state.appState.user || '');
+  const { buildStatuses, dashboardConfig } = React.useContext(AppContext);
+  const { currentUserState, setCurrentUserState, impersonatingUser, setLastNotebookCreationTime } =
+    React.useContext(NotebookControllerContext);
+  const { username: stateUsername } = useUser();
   const username = currentUserState.user || stateUsername;
-  const dashboardNamespace = useSelector<State, string>(
-    (state) => state.appState.dashboardNamespace || '',
-  );
-  const projectName =
-    dashboardConfig.spec.notebookController?.notebookNamespace || dashboardNamespace;
+  const { notebookNamespace: projectName } = useNamespaces();
   const [startShown, setStartShown] = React.useState<boolean>(false);
   const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
     startShown,
@@ -72,7 +70,6 @@ const SpawnerPage: React.FC = React.memo(() => {
     username,
   );
   const isNotebookRunning = checkNotebookRunning(notebook);
-
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
@@ -96,20 +93,19 @@ const SpawnerPage: React.FC = React.memo(() => {
   };
 
   React.useEffect(() => {
-    setIsNavOpen(false);
-  }, [setIsNavOpen]);
-
-  React.useEffect(() => {
     if (shouldRedirect) {
       if (notebookLoaded && notebook) {
         if (!isNotebookRunning) {
-          setStartShown(true);
+          // We already notify the user when they are trying to close/refresh the page
+          // when they are spawning a notebook
+          // so we can safely delete it if the notebook is still there
+          deleteNotebook(projectName, notebook.metadata.name);
         } else {
           history.replace('/notebookController');
         }
       }
     }
-  }, [notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
+  }, [projectName, notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -325,7 +321,8 @@ const SpawnerPage: React.FC = React.memo(() => {
       (ns) => ns.name === selectedSize,
     );
     const pvcName = generatePvcNameFromUsername(username);
-    const pvcBody = generatePvc(pvcName, projectName, '20Gi');
+    const requestedPvcSize = dashboardConfig?.spec?.notebookController?.pvcSize;
+    const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
     await verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody).catch((e) =>
       console.error(`Something wrong with PVC ${pvcName}: ${e}`),
     );
@@ -334,6 +331,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     const notebookName = generateNotebookNameFromUsername(username);
     const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
     setCreateInProgress(true);
+    setLastNotebookCreationTime(new Date());
     const envVars = await checkEnvVarFile(username, projectName, variableRows);
     await createNotebook(
       projectName,
@@ -349,8 +347,18 @@ const SpawnerPage: React.FC = React.memo(() => {
     setCreateInProgress(false);
     setShouldRedirect(false);
     setStartShown(true);
+
+    if (!currentUserState.user) {
+      notification.error(
+        'Unable to update user settings',
+        `Invalid username: "${currentUserState.user}"`,
+      );
+      return;
+    }
+
     const updatedUserState = {
       ...currentUserState,
+      ...(impersonatingUser ? {} : { lastActivity: Date.now() }),
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
       lastSelectedSize: selectedSize,
     };
@@ -369,98 +377,101 @@ const SpawnerPage: React.FC = React.memo(() => {
   };
 
   return (
-    <ApplicationsPage
-      title="Start a Notebook server"
-      description="Select options for your Notebook server."
-      loaded={loaded}
-      loadError={loadError}
-      empty={!images || images.length === 0}
-    >
-      <Form className="odh-notebook-controller__page odh-notebook-controller__page-form">
-        <FormSection title="Notebook image">
-          <FormGroup fieldId="modal-notebook-image">
-            <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-              {images.sort(checkOrder).map((image) => (
-                <GridItem key={image.name}>
-                  <ImageSelector
-                    image={image}
-                    selectedImage={selectedImageTag.image}
-                    selectedTag={selectedImageTag.tag}
-                    handleSelection={handleImageTagSelection}
-                  />
-                </GridItem>
-              ))}
-            </Grid>
-          </FormGroup>
-        </FormSection>
-        <FormSection title="Deployment size">
-          {sizeOptions && (
-            <FormGroup label="Container size" fieldId="modal-notebook-container-size">
-              <Select
-                isOpen={sizeDropdownOpen}
-                onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
-                aria-labelledby="container-size"
-                selections={selectedSize}
-                onSelect={handleSizeSelection}
-                menuAppendTo="parent"
-              >
-                {sizeOptions}
-              </Select>
+    <>
+      {impersonatingUser && <ImpersonateAlert />}
+      <ApplicationsPage
+        title="Start a Notebook server"
+        description="Select options for your Notebook server."
+        loaded={loaded}
+        loadError={loadError}
+        empty={!images || images.length === 0}
+      >
+        <Form className="odh-notebook-controller__page odh-notebook-controller__page-content">
+          <FormSection title="Notebook image">
+            <FormGroup fieldId="modal-notebook-image">
+              <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
+                {images.sort(checkOrder).map((image) => (
+                  <GridItem key={image.name}>
+                    <ImageSelector
+                      image={image}
+                      selectedImage={selectedImageTag.image}
+                      selectedTag={selectedImageTag.tag}
+                      handleSelection={handleImageTagSelection}
+                    />
+                  </GridItem>
+                ))}
+              </Grid>
             </FormGroup>
-          )}
-          {gpuOptions && (
-            <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
-              <Select
-                isOpen={gpuDropdownOpen}
-                onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
-                aria-labelledby="gpu-numbers"
-                selections={selectedGpu}
-                onSelect={handleGpuSelection}
-                menuAppendTo="parent"
-              >
-                {gpuOptions}
-              </Select>
-            </FormGroup>
-          )}
-        </FormSection>
-        <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
-          {renderEnvironmentVariableRows()}
-          <Button
-            className="odh-notebook-controller__env-var-add-button"
-            isInline
-            variant="link"
-            onClick={addEnvironmentVariableRow}
-          >
-            <PlusCircleIcon />
-            {` Add more variables`}
-          </Button>
-        </FormSection>
-        <ActionGroup>
-          <Button
-            variant="primary"
-            onClick={() => {
-              handleNotebookAction().catch((e) => {
-                setCreateInProgress(false);
-                setStartShown(false);
-                console.error(e);
-              });
-            }}
-            isDisabled={createInProgress}
-          >
-            Start server
-          </Button>
-          <Button variant="secondary" onClick={() => history.push('/')}>
-            Cancel
-          </Button>
-        </ActionGroup>
-      </Form>
-      <StartServerModal
-        notebook={notebook}
-        startShown={startShown}
-        setStartModalShown={setStartShown}
-        onClose={onModalClose}
-      />
-    </ApplicationsPage>
+          </FormSection>
+          <FormSection title="Deployment size">
+            {sizeOptions && (
+              <FormGroup label="Container size" fieldId="modal-notebook-container-size">
+                <Select
+                  isOpen={sizeDropdownOpen}
+                  onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
+                  aria-labelledby="container-size"
+                  selections={selectedSize}
+                  onSelect={handleSizeSelection}
+                  menuAppendTo="parent"
+                >
+                  {sizeOptions}
+                </Select>
+              </FormGroup>
+            )}
+            {gpuOptions && (
+              <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
+                <Select
+                  isOpen={gpuDropdownOpen}
+                  onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
+                  aria-labelledby="gpu-numbers"
+                  selections={selectedGpu}
+                  onSelect={handleGpuSelection}
+                  menuAppendTo="parent"
+                >
+                  {gpuOptions}
+                </Select>
+              </FormGroup>
+            )}
+          </FormSection>
+          <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
+            {renderEnvironmentVariableRows()}
+            <Button
+              className="odh-notebook-controller__env-var-add-button"
+              isInline
+              variant="link"
+              onClick={addEnvironmentVariableRow}
+            >
+              <PlusCircleIcon />
+              {` Add more variables`}
+            </Button>
+          </FormSection>
+          <ActionGroup>
+            <Button
+              variant="primary"
+              onClick={() => {
+                handleNotebookAction().catch((e) => {
+                  setCreateInProgress(false);
+                  setStartShown(false);
+                  console.error(e);
+                });
+              }}
+              isDisabled={createInProgress}
+            >
+              Start server
+            </Button>
+            <Button variant="secondary" onClick={() => history.push('/')}>
+              Cancel
+            </Button>
+          </ActionGroup>
+        </Form>
+        <StartServerModal
+          notebook={notebook}
+          startShown={startShown}
+          setStartModalShown={setStartShown}
+          onClose={onModalClose}
+        />
+      </ApplicationsPage>
+    </>
   );
 });
 
