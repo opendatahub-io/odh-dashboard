@@ -32,13 +32,17 @@ const useWatchNotebooksForUsers = (
       )
         .then(([successes, fails]) => {
           if (fails.length > 0) {
-            setLoadError(
-              new Error(
-                `Failed to fetch ${fails.length} notebooks. ${fails.map(
-                  ({ reason }) => `\n  - ${reason.message}`,
-                )}`,
-              ),
-            );
+            if (fails.length === 1) {
+              setLoadError(new Error(`Failed to fetch notebook. ${fails[0].reason.toString()}`));
+            } else {
+              setLoadError(
+                new Error(
+                  `Failed to fetch ${fails.length} notebooks. ${fails.map(
+                    ({ reason }) => `\n  - ${reason.message}`,
+                  )}`,
+                ),
+              );
+            }
           } else {
             setLoadError(undefined);
           }
