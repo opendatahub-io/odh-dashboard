@@ -27,7 +27,7 @@ const NotebookControllerTabs: React.FC = () => {
         </Tab>
         <Tab
           eventKey={NotebookControllerTabTypes.ADMIN}
-          title={<TabTitleText>Administrative</TabTitleText>}
+          title={<TabTitleText>Administration</TabTitleText>}
         >
           <NotebookAdmin />
         </Tab>
