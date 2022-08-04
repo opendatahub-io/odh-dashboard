@@ -33,9 +33,7 @@ const SetupCurrentUserState: React.FC = ({ children }) => {
           };
           const patch = {
             status: {
-              notebookControllerState: notebookControllerState
-                ? [...notebookControllerState, currentUserState]
-                : [currentUserState],
+              notebookControllerState: [...notebookControllerState, fetchedUserState],
             },
           };
           patchDashboardConfig(patch).catch((e) => console.error(e));
