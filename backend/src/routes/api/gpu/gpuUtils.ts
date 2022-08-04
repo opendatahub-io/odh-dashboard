@@ -55,21 +55,25 @@ export const getGPUData = async (
       protocol: 'https:',
       rejectUnauthorized: false,
     };
-    const httpsRequest = https.get(options, (res) => {
-      res.setEncoding('utf8');
-      let rawData = '';
-      res.on('data', (chunk: any) => {
-        rawData += chunk;
+    const httpsRequest = https
+      .get(options, (res) => {
+        res.setEncoding('utf8');
+        let rawData = '';
+        res.on('data', (chunk: any) => {
+          rawData += chunk;
+        });
+        res.on('end', () => {
+          try {
+            const parsedData: PrometheusResponse = JSON.parse(rawData);
+            resolve({ code: 200, response: Number(parsedData['data']['result'][0]['value'][1]) });
+          } catch (e) {
+            reject({ code: 500, response: rawData });
+          }
+        });
+      })
+      .on('error', () => {
+        reject({ code: 500, response: 'Cannot fetch GPU data' });
       });
-      res.on('end', () => {
-        try {
-          const parsedData: PrometheusResponse = JSON.parse(rawData);
-          resolve({ code: 200, response: Number(parsedData['data']['result'][0]['value'][1]) });
-        } catch (e) {
-          reject({ code: 500, response: rawData });
-        }
-      });
-    });
     httpsRequest.end();
   });
 };
