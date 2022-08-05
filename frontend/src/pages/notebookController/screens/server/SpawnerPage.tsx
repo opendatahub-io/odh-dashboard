@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   ActionGroup,
+  Alert,
   Button,
   Form,
   FormGroup,
@@ -85,6 +86,7 @@ const SpawnerPage: React.FC = React.memo(() => {
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const [shouldRedirect, setShouldRedirect] = React.useState<boolean>(true);
+  const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
   const onModalClose = () => {
     setStartShown(false);
@@ -292,6 +294,7 @@ const SpawnerPage: React.FC = React.memo(() => {
   };
 
   const handleNotebookAction = async () => {
+    setSubmitError(null);
     const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
       (ns) => ns.name === selectedSize,
     );
@@ -308,7 +311,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     setCreateInProgress(true);
     setLastNotebookCreationTime(new Date());
     const envVars = await checkEnvVarFile(username, projectName, variableRows);
-    await createNotebook(
+    const canContinue = await createNotebook(
       projectName,
       notebookName,
       username,
@@ -318,8 +321,15 @@ const SpawnerPage: React.FC = React.memo(() => {
       envVars,
       volumes,
       volumeMounts,
-    );
+    )
+      .then(() => true)
+      .catch((e) => {
+        setSubmitError(e);
+        return false;
+      });
     setCreateInProgress(false);
+
+    if (!canContinue) return;
     setShouldRedirect(false);
     setStartShown(true);
 
@@ -407,33 +417,44 @@ const SpawnerPage: React.FC = React.memo(() => {
               {` Add more variables`}
             </Button>
           </FormSection>
-          <ActionGroup>
-            <Button
-              variant="primary"
-              onClick={() => {
-                handleNotebookAction().catch((e) => {
-                  setCreateInProgress(false);
-                  setStartShown(false);
-                  console.error(e);
-                });
-              }}
-              isDisabled={createInProgress}
-            >
-              Start server
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (impersonatingUser) {
-                  setImpersonatingUsername(null);
-                } else {
-                  history.push('/');
-                }
-              }}
-            >
-              Cancel
-            </Button>
-          </ActionGroup>
+          <div>
+            {submitError && (
+              <Alert
+                variant="danger"
+                isInline
+                title="Failed to create the Notebook, please try again later"
+              >
+                {submitError.message}
+              </Alert>
+            )}
+            <ActionGroup>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  handleNotebookAction().catch((e) => {
+                    setCreateInProgress(false);
+                    setStartShown(false);
+                    console.error(e);
+                  });
+                }}
+                isDisabled={createInProgress}
+              >
+                Start server
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (impersonatingUser) {
+                    setImpersonatingUsername(null);
+                  } else {
+                    history.push('/');
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+            </ActionGroup>
+          </div>
         </Form>
         <StartServerModal
           notebook={notebook}
