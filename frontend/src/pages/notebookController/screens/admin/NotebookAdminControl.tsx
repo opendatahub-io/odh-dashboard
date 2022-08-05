@@ -16,6 +16,9 @@ import useAdminUsers from './useAdminUsers';
 import ExternalLink from '../../../../components/ExternalLink';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { User } from './types';
+import StopServerModal from '../server/StopServerModal';
+import { NotebookAdminContext } from './NotebookAdminContext';
+import { Notebook } from '../../../../types';
 
 const INITIAL_PAGE_LIMIT = 10;
 const NotebookAdminControl: React.FC = () => {
@@ -23,8 +26,29 @@ const NotebookAdminControl: React.FC = () => {
   const [pageIndex, setPageIndex] = React.useState(0);
   const [perPage, setPerPage] = React.useState(INITIAL_PAGE_LIMIT);
   const { transformData, getColumnSort } = useTableColumnSort<User>(columns, 0);
+  const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
 
   const users = transformData(unsortedUsers);
+
+  const onNotebooksStop = React.useCallback(
+    (didStop: boolean) => {
+      if (didStop) {
+        serverStatuses.forEach((serverStatus) => {
+          serverStatus.forceRefresh();
+        });
+      }
+      setServerStatuses([]);
+    },
+    [serverStatuses, setServerStatuses],
+  );
+
+  const notebooksToStop = React.useMemo(
+    () =>
+      serverStatuses
+        .map((serverStatus) => serverStatus.notebook)
+        .filter((notebook): notebook is Notebook => !!notebook),
+    [serverStatuses],
+  );
 
   return (
     <div className="odh-notebook-controller__page-content">
@@ -87,6 +111,7 @@ const NotebookAdminControl: React.FC = () => {
             </StackItem>
           </Stack>
         </div>
+        <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
       </ApplicationsPage>
     </div>
   );

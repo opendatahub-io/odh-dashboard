@@ -48,7 +48,7 @@ import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage
 import useNotification from '../../../../utilities/useNotification';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
-import { useUser } from '../../../../redux/selectors';
+import useCurrentUser from '../../useCurrentUser';
 import useNamespaces from '../../useNamespaces';
 import GPUSelectField from './GPUSelectField';
 
@@ -66,8 +66,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     setImpersonatingUsername,
     setLastNotebookCreationTime,
   } = React.useContext(NotebookControllerContext);
-  const { username: stateUsername } = useUser();
-  const username = currentUserState.user || stateUsername;
+  const username = useCurrentUser();
   const { notebookNamespace: projectName } = useNamespaces();
   const [startShown, setStartShown] = React.useState<boolean>(false);
   const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(

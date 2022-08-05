@@ -1,54 +1,26 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { User } from './types';
-import { deleteNotebook } from '../../../../services/notebookService';
-import useNamespaces from '../../useNamespaces';
-import { allSettledPromises } from '../../../../utilities/allSettledPromises';
-import { Notebook } from '../../../../types';
+import { NotebookAdminContext } from './NotebookAdminContext';
 
 type StopAllServersButtonProps = {
   users: User[];
 };
 
-const stopServers = async (
-  projectName: string,
-  serverList: User['serverStatus'][],
-): Promise<void> => {
-  return allSettledPromises<Notebook | void>(
-    serverList.map((serverStatus) => {
-      const notebookName = serverStatus.notebook?.metadata.name || '';
-      if (!notebookName) return Promise.resolve();
-      return deleteNotebook(projectName, notebookName);
-    }),
-  ).then(() => {
-    serverList.forEach((serverStatus) => {
-      serverStatus.forceRefresh();
-    });
-  });
-};
-
 const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) => {
-  const { notebookNamespace } = useNamespaces();
-  const activeNotebooks = users
+  const activeServers = users
     .filter((user) => user.serverStatus.notebook)
     .map((user) => user.serverStatus);
-  const serverCount = activeNotebooks.length;
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const serverCount = activeServers.length;
+  const { setServerStatuses } = React.useContext(NotebookAdminContext);
 
   return (
     <Button
       variant="secondary"
       isDanger
-      isDisabled={serverCount === 0 || isDeleting}
+      isDisabled={serverCount === 0}
       onClick={() => {
-        setIsDeleting(true);
-        stopServers(notebookNamespace, activeNotebooks)
-          .then(() => {
-            setIsDeleting(false);
-          })
-          .catch(() => {
-            setIsDeleting(false);
-          });
+        setServerStatuses(activeServers);
       }}
     >
       Stop all servers ({serverCount})

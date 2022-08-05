@@ -3,28 +3,37 @@ import { Button, ActionList, ActionListItem } from '@patternfly/react-core';
 import ApplicationsPage from '../../../ApplicationsPage';
 import NotebookServerDetails from './NotebookServerDetails';
 import { useWatchImages } from '../../../../utilities/useWatchImages';
-import { useWatchNotebook } from 'utilities/useWatchNotebook';
-import { deleteNotebook } from '../../../../services/notebookService';
-import {
-  checkNotebookRunning,
-  generateNotebookNameFromUsername,
-} from '../../../../utilities/notebookControllerUtils';
+import { useWatchNotebook } from '../../../../utilities/useWatchNotebook';
+import { checkNotebookRunning } from '../../../../utilities/notebookControllerUtils';
 import { Redirect, useHistory } from 'react-router-dom';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
-import { useUser } from '../../../../redux/selectors';
 import useNamespaces from '../../useNamespaces';
+import StopServerModal from './StopServerModal';
+import useCurrentUser from '../../useCurrentUser';
+import { Notebook } from '../../../../types';
 
 import '../../NotebookController.scss';
 
-export const NotebookServer: React.FC = React.memo(() => {
+export const NotebookServer: React.FC = () => {
   const history = useHistory();
   const { images } = useWatchImages();
-  const { currentUserState, impersonatingUser } = React.useContext(NotebookControllerContext);
-  const { username: stateUsername } = useUser();
-  const username = currentUserState.user || stateUsername;
+  const { impersonatingUser } = React.useContext(NotebookControllerContext);
+  const username = useCurrentUser();
   const { notebookNamespace: projectName } = useNamespaces();
   const { notebook, loaded, loadError } = useWatchNotebook(projectName, username);
+
+  const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
+
+  const onNotebooksStop = React.useCallback(
+    (didStop: boolean) => {
+      setNotebooksToStop([]);
+      if (didStop) {
+        history.push(`/notebookController/spawner`);
+      }
+    },
+    [setNotebooksToStop, history],
+  );
 
   return (
     <>
@@ -40,20 +49,12 @@ export const NotebookServer: React.FC = React.memo(() => {
         {notebook && (
           <div className="odh-notebook-controller__page">
             <ActionList>
-              <ActionListItem
-                onClick={() => {
-                  deleteNotebook(projectName, generateNotebookNameFromUsername(username))
-                    .then(() => {
-                      history.push(`/notebookController/spawner`);
-                    })
-                    .catch((e) => console.error(e));
-                }}
-              >
+              <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
                 <Button variant="primary">Stop notebook server</Button>
               </ActionListItem>
               <ActionListItem
                 onClick={() => {
-                  if (notebook?.metadata.annotations?.['opendatahub.io/link']) {
+                  if (notebook.metadata.annotations?.['opendatahub.io/link']) {
                     window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
                   }
                 }}
@@ -62,12 +63,13 @@ export const NotebookServer: React.FC = React.memo(() => {
               </ActionListItem>
             </ActionList>
             <NotebookServerDetails notebook={notebook} images={images} />
+            <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
           </div>
         )}
       </ApplicationsPage>
     </>
   );
-});
+};
 
 NotebookServer.displayName = 'NotebookController';
 
