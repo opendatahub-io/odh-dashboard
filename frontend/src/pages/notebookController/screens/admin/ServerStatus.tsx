@@ -21,6 +21,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
     React.useContext(NotebookControllerContext);
   const { username: stateUser } = useUser();
   const [deleting, setDeleting] = React.useState(false);
+  const forStateUser = stateUser === username;
 
   if (!data.notebook) {
     return (
@@ -28,7 +29,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
         variant="link"
         isInline
         onClick={() => {
-          if (stateUser === username) {
+          if (forStateUser) {
             // Starting your own server, no need to impersonate
             setCurrentAdminTab(NotebookControllerTabTypes.SERVER);
             return;
@@ -36,7 +37,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
           setImpersonatingUsername(usernameTranslate(username));
         }}
       >
-        Start server
+        {forStateUser ? 'Start your server' : 'Start server'}
       </Button>
     );
   }

@@ -58,8 +58,13 @@ const SpawnerPage: React.FC = React.memo(() => {
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses, dashboardConfig } = React.useContext(AppContext);
-  const { currentUserState, setCurrentUserState, impersonatingUser, setLastNotebookCreationTime } =
-    React.useContext(NotebookControllerContext);
+  const {
+    currentUserState,
+    setCurrentUserState,
+    impersonatingUser,
+    setImpersonatingUsername,
+    setLastNotebookCreationTime,
+  } = React.useContext(NotebookControllerContext);
   const { username: stateUsername } = useUser();
   const username = currentUserState.user || stateUsername;
   const { notebookNamespace: projectName } = useNamespaces();
@@ -459,7 +464,16 @@ const SpawnerPage: React.FC = React.memo(() => {
             >
               Start server
             </Button>
-            <Button variant="secondary" onClick={() => history.push('/')}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (impersonatingUser) {
+                  setImpersonatingUsername(null);
+                } else {
+                  history.push('/');
+                }
+              }}
+            >
               Cancel
             </Button>
           </ActionGroup>
