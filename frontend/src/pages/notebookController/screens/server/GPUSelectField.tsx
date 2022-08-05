@@ -30,6 +30,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
     const errorCatch = (e: Error) => {
       if (cancelled) return;
       setFetching(false);
+      setGpuSize(0);
       console.error(e);
       notification.error('Failed to fetch GPU', e.message);
     };
