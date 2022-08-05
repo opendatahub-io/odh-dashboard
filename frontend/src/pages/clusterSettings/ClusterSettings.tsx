@@ -52,7 +52,7 @@ const ClusterSettings: React.FC = () => {
   const [loadError, setLoadError] = React.useState<Error>();
   const [clusterSettings, setClusterSettings] = React.useState(DEFAULT_CONFIG);
   const [pvcSize, setPvcSize] = React.useState<number | string>(DEFAULT_PVC_SIZE);
-  const [userTrackingEnabled, setUserTrackingEnabled] = React.useState<boolean | null>(null);
+  const [userTrackingEnabled, setUserTrackingEnabled] = React.useState<boolean>(false);
   const [cullerTimeoutChecked, setCullerTimeoutChecked] =
     React.useState<string>(CULLER_TIMEOUT_UNLIMITED);
   const [cullerTimeout, setCullerTimeout] = React.useState<number>(DEFAULT_CULLER_TIMEOUT);

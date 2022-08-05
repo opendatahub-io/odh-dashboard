@@ -14,7 +14,7 @@ const DEFAULT_IDLENESS_CHECK_PERIOD = '1'; // 1 minute
 const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
-  userTrackingEnabled: null,
+  userTrackingEnabled: false,
 };
 
 export const updateClusterSettings = async (
@@ -26,10 +26,13 @@ export const updateClusterSettings = async (
   const query = request.query as { [key: string]: string };
   const dashConfig = getDashboardConfig();
   try {
-    if (query.userTrackingEnabled !== 'null') {
+    try {
       await patchCM(fastify, segmentKeyCfg, {
         data: { segmentKeyEnabled: query.userTrackingEnabled },
       });
+    } catch (e) {
+      fastify.log.error('Failed to update segment key enabled: ' + e.message);
+      throw e;
     }
     if (query.pvcSize && query.cullerTimeout) {
       if (dashConfig.spec?.notebookController?.enabled) {
@@ -81,7 +84,7 @@ export const updateClusterSettings = async (
         });
       }
     }
-    if (dashConfig.spec.notebookController.enabled) {
+    if (dashConfig.spec?.notebookController?.enabled) {
       await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     } else {
       const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(jupyterhubCfg, namespace);
@@ -95,7 +98,9 @@ export const updateClusterSettings = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Setting cluster settings error: ' + e.toString() + e.respose.body.message);
+      fastify.log.error(
+        'Setting cluster settings error: ' + e.toString() + e.response?.body?.message,
+      );
       return { success: false, error: 'Unable to update cluster settings. ' + e.message };
     }
   }
