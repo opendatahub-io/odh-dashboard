@@ -40,21 +40,6 @@ export type DashboardConfig = K8sResourceCommon & {
   };
 };
 
-export type NotebookStatus = {
-  percentile: number;
-  currentStatus: EventStatus;
-  currentEvent: string;
-  currentEventDescription: string;
-  events: V1Event[];
-};
-
-export enum EventStatus {
-  IN_PROGRESS = 'In Progress',
-  WARNING = 'Warning',
-  ERROR = 'Error',
-  SUCCESS = 'Success',
-}
-
 export type NotebookResources = {
   requests?: {
     cpu?: string;
@@ -569,4 +554,16 @@ export type PersistentVolumeClaimListKind = {
   kind?: string;
   metadata: Record<string, unknown>;
   items: PersistentVolumeClaimKind[];
+};
+
+export type PrometheusResponse = {
+  data: {
+    result: [
+      {
+        value: [number, string];
+      },
+    ];
+    resultType: string;
+  };
+  status: string;
 };

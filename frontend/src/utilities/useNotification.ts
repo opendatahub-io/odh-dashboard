@@ -5,12 +5,13 @@ import { addNotification } from '../redux/actions/actions';
 type SuccessProps = (title: string) => void;
 type ErrorProps = (title: string, message?: React.ReactNode) => void;
 
-const useNotification = (): {
+type NotificationFunc = {
   success: SuccessProps;
   error: ErrorProps;
-} => {
-  const dispatch = useDispatch();
+};
 
+const useNotification = (): NotificationFunc => {
+  const dispatch = useDispatch();
   const success: SuccessProps = React.useCallback(
     (title) => {
       dispatch(
@@ -38,7 +39,9 @@ const useNotification = (): {
     [dispatch],
   );
 
-  return { success, error };
+  const notification = React.useMemo(() => ({ success, error }), [success, error]);
+
+  return notification;
 };
 
 export default useNotification;

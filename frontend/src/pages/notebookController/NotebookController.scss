@@ -99,18 +99,20 @@
     .pf-c-list {
       font-size: var(--pf-global--FontSize--sm);
     }
-    .pf-c-spinner {
-      display: block;
-      margin-bottom: var(--pf-global--spacer--md);
-    }
     .pf-c-expandable-section {
       width: 100%;
       padding-right: var(--pf-global--spacer--lg);
+      margin-top: var(--pf-global--spacer--sm);
       &__content {
         margin-top: 0;
+        max-height: 250px;
+        overflow: auto;
       }
     }
-    &-text {
+    .pf-c-progress {
+      margin-bottom: var(--pf-global--spacer--md);
+    }
+    .pf-c-alert {
       margin-bottom: var(--pf-global--spacer--md);
     }
   }

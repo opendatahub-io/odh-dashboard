@@ -1,5 +1,12 @@
 import axios from 'axios';
-import { EnvVarReducedType, Notebook, NotebookSize, Volume, VolumeMount } from '../types';
+import {
+  EnvVarReducedType,
+  Notebook,
+  NotebookSize,
+  Volume,
+  VolumeMount,
+  NotebookToleration,
+} from '../types';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
 import { usernameTranslate } from 'utilities/notebookControllerUtils';
@@ -29,11 +36,21 @@ export const createNotebook = (
 ): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}`;
   const resources = { ...notebookSize?.resources };
+  const tolerations: NotebookToleration[] = [];
   if (gpus > 0) {
     if (!resources.limits) {
       resources.limits = {};
     }
+    if (!resources.requests) {
+      resources.requests = {};
+    }
     resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
+    resources.requests[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
+    tolerations.push({
+      effect: 'NoSchedule',
+      key: LIMIT_NOTEBOOK_IMAGE_GPU,
+      operator: 'Exists',
+    });
   }
   const translatedUsername = usernameTranslate(username);
 
@@ -136,6 +153,7 @@ export const createNotebook = (
             },
           ],
           volumes,
+          tolerations: tolerations,
         },
       },
     },

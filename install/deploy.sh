@@ -9,6 +9,7 @@ if [[ -z "${OC_PROJECT}" ]]; then
 fi
 
 oc project ${OC_PROJECT} 2> /dev/null || oc new-project ${PROJECT}
+oc label namespace ${OC_PROJECT} openshift.io/cluster-monitoring='true'
 oc project
 
 pushd ${KUSTOMIZE_MANIFEST_DIR_OVERLAY_DEV}
