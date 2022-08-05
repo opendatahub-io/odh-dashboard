@@ -37,7 +37,6 @@ import {
   checkNotebookRunning,
 } from '../../../../utilities/notebookControllerUtils';
 import AppContext from '../../../../app/AppContext';
-import { getGPU } from '../../../../services/gpuService';
 import { patchDashboardConfig } from '../../../../services/dashboardConfigService';
 import { getSecret } from '../../../../services/secretsService';
 import { getConfigMap } from '../../../../services/configMapService';
@@ -50,6 +49,7 @@ import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
 import { useUser } from '../../../../redux/selectors';
 import useNamespaces from '../../useNamespaces';
+import GPUSelectField from './GPUSelectField';
 
 import '../../NotebookController.scss';
 
@@ -81,9 +81,7 @@ const SpawnerPage: React.FC = React.memo(() => {
   });
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
   const [selectedSize, setSelectedSize] = React.useState<string>('');
-  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
-  const [gpuSize, setGpuSize] = React.useState<number>(0);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const [shouldRedirect, setShouldRedirect] = React.useState<boolean>(true);
@@ -111,20 +109,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       }
     }
   }, [projectName, notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const setGpu = async () => {
-      const size = await getGPU();
-      if (!cancelled) {
-        setGpuSize(size);
-      }
-    };
-    setGpu().catch((e) => console.error(e));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   React.useEffect(() => {
     const setFirstValidImage = () => {
@@ -237,11 +221,6 @@ const SpawnerPage: React.FC = React.memo(() => {
     setSizeDropdownOpen(false);
   };
 
-  const handleGpuSelection = (e, selection) => {
-    setSelectedGpu(selection);
-    setGpuDropdownOpen(false);
-  };
-
   const sizeOptions = React.useMemo(() => {
     const sizes = dashboardConfig?.spec?.notebookSizes;
     if (!sizes?.length) {
@@ -258,15 +237,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       return <SelectOption key={name} value={name} description={desc} />;
     });
   }, [dashboardConfig]);
-
-  const gpuOptions = React.useMemo(() => {
-    const values: number[] = [];
-    const start = 0;
-    for (let i = start; i <= gpuSize; i++) {
-      values.push(i);
-    }
-    return values?.map((size) => <SelectOption key={size} value={`${size}`} />);
-  }, [gpuSize]);
 
   const renderEnvironmentVariableRows = () => {
     if (!variableRows?.length) {
@@ -423,20 +393,7 @@ const SpawnerPage: React.FC = React.memo(() => {
                 </Select>
               </FormGroup>
             )}
-            {gpuOptions && (
-              <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
-                <Select
-                  isOpen={gpuDropdownOpen}
-                  onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
-                  aria-labelledby="gpu-numbers"
-                  selections={selectedGpu}
-                  onSelect={handleGpuSelection}
-                  menuAppendTo="parent"
-                >
-                  {gpuOptions}
-                </Select>
-              </FormGroup>
-            )}
+            <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
             {renderEnvironmentVariableRows()}
