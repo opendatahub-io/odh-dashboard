@@ -10,9 +10,32 @@ Once you have completed both steps you will see a section called `Notebook Image
 
 ## Minimum requirements for BYON
 
-For image to be spawneable via JupyterHub Spawner, it is required to meet the following criteria:
-* It needs to include Python runtime,  >= 3.8.
-* Python packages `jupyterhub` and `jupyterlab` need to be installed.
-* Environment variable `HOME` is set and points to a writable directory for every user.
-* A script `start-singleuser.sh` is present in `PATH`.
-* The `start-singleuser.sh` calls jupyter executable with `labhub` argument. Additionally it either passes extra command line arguments to the jupyter call or manually sets `--ip=0.0.0.0 --port=8080`.
+For image to be spawnable via the launcher, it is required to meet the following criteria:
+
+* It needs to have a default launching command (CMD in its Dockerfile).
+* It needs to listen on port 8888.
+* Currently, 3 types of images are supported by the launcher: JupyterLab (default), RStudio and Code-Server.
+* For JupyterLab-based images, you simply have to import them. The standard configuration for Env variables, probes,... will be applied.
+* For RStudio based images you must:
+  * Edit the corresponding ImageStream and add the following annotations:
+
+```YAML
+metadata:
+  annotations:
+    ...
+    opendatahub.io/notebook-type: rstudio
+    ...
+```
+
+* For Code-Server based images you must:
+  * Edit the corresponding ImageStream and add the following annotations:
+
+```YAML
+metadata:
+  annotations:
+    ...
+    opendatahub.io/notebook-type: code-server
+    opendatahub.io/notebook-liveness-endpoint: healthz
+    opendatahub.io/notebook-readiness-endpoint: healthz
+    ...
+```

@@ -32,6 +32,8 @@ export const getNotebook = (projectName: string, notebookName: string): Promise<
 export const getNotebookAndStatus = (
   projectName: string,
   notebookName: string,
+  volumeMounts?: VolumeMount[];
+  
   notebook: Notebook | null,
 ): Promise<{ notebook: Notebook | null; isRunning: boolean }> => {
   const url = `/api/notebooks/${projectName}/${notebookName}/status`;
@@ -67,6 +69,9 @@ type StartNotebookData = {
   tolerationSettings?: NotebookTolerationSettings;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
+  notebookType?: string;
+  readinessEndpoint?: string;
+  livenessEndpoint?: string;
 };
 
 const assembleNotebook = (data: StartNotebookData): Notebook => {
@@ -82,6 +87,9 @@ const assembleNotebook = (data: StartNotebookData): Notebook => {
     tolerationSettings,
     volumes,
     volumeMounts,
+    notebookType,
+    readinessEndpoint,
+    livenessEndpoint,
   } = data;
   const resources: NotebookResources = { ...notebookSize.resources };
   const tolerations: NotebookToleration[] = [];
@@ -152,6 +160,77 @@ const assembleNotebook = (data: StartNotebookData): Notebook => {
   const location = new URL(window.location.href);
   const origin = location.origin;
 
+  // Override readiness and liveness path only if prescribed,
+  // otherwise use the standard Jupyter path
+  const readinessPath = (readinessEndpoint != '') ? `/${readinessEndpoint}` : `/notebook/${projectName}/${notebookName}/api`;
+  const livenessPath = (livenessEndpoint != '') ? `/${livenessEndpoint}` : `/notebook/${projectName}/${notebookName}/api`;
+
+  let readinessContent = {}
+  let livenessContent = {}
+
+  // RStudio Server does not support health endpoint (only Pro version)
+  if (notebookType != 'rstudio') {
+    readinessContent = {
+      readinessProbe: {
+        initialDelaySeconds: 10,
+        periodSeconds: 5,
+        timeoutSeconds: 1,
+        successThreshold: 1,
+        failureThreshold: 3,
+        httpGet: {
+          scheme: 'HTTP',
+          path: `${readinessPath}`,
+          port: 'notebook-port',
+        },
+      }
+    };
+    livenessContent = {
+      livenessProbe: {
+        initialDelaySeconds: 10,
+        periodSeconds: 5,
+        timeoutSeconds: 1,
+        successThreshold: 1,
+        failureThreshold: 3,
+        httpGet: {
+          scheme: 'HTTP',
+          path: `${livenessPath}`,
+          port: 'notebook-port',
+        },
+      }
+    };
+  } else {
+    readinessContent = {
+      readinessProbe: {
+        initialDelaySeconds: 10,
+        periodSeconds: 5,
+        timeoutSeconds: 1,
+        successThreshold: 1,
+        failureThreshold: 3,
+        exec: {
+          command: [
+            "sh",
+            "-c",
+            "ps -aux | grep server | grep rsession"]
+        },
+      }
+    }
+    livenessContent = {
+      livenessProbe: {
+        initialDelaySeconds: 10,
+        periodSeconds: 5,
+        timeoutSeconds: 1,
+        successThreshold: 1,
+        failureThreshold: 3,
+        exec: {
+          command: [
+            "sh",
+            "-c",
+            "ps -aux | grep server | grep rsession"]
+        },
+      }
+    }
+  }
+
   return {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -166,6 +245,7 @@ const assembleNotebook = (data: StartNotebookData): Notebook => {
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
+        'opendatahub.io/notebook-type': notebookType,
       },
       name: notebookName,
       namespace: projectName,
@@ -195,6 +275,10 @@ const assembleNotebook = (data: StartNotebookData): Notebook => {
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                {
+                  name: 'NOTEBOOK_BASE_URL',
+                  value: `/notebook/${projectName}/${notebookName}`,
+                },
                 ...configMapEnvs,
                 ...secretEnvs,
               ],
@@ -207,30 +291,8 @@ const assembleNotebook = (data: StartNotebookData): Notebook => {
                   protocol: 'TCP',
                 },
               ],
-              livenessProbe: {
-                initialDelaySeconds: 10,
-                periodSeconds: 5,
-                timeoutSeconds: 1,
-                successThreshold: 1,
-                failureThreshold: 3,
-                httpGet: {
-                  scheme: 'HTTP',
-                  path: `/notebook/${projectName}/${notebookName}/api`,
-                  port: 'notebook-port',
-                },
-              },
-              readinessProbe: {
-                initialDelaySeconds: 10,
-                periodSeconds: 5,
-                timeoutSeconds: 1,
-                successThreshold: 1,
-                failureThreshold: 3,
-                httpGet: {
-                  scheme: 'HTTP',
-                  path: `/notebook/${projectName}/${notebookName}/api`,
-                  port: 'notebook-port',
-                },
-              },
+              ...livenessContent,
+              ...readinessContent,
             },
           ],
           volumes,

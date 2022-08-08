@@ -524,6 +524,9 @@ export type ImageInfo = {
   default?: boolean;
   order?: number;
   dockerImageRepo?: string;
+  notebookType?: string;
+  readinessEndpoint?: string;
+  livenessEndpoint?: string;
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';

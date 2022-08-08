@@ -79,6 +79,9 @@ const processImageInfo = (imageStream: ImageStream): ImageInfo => {
     tags: getTagInfo(imageStream),
     order: +annotations[IMAGE_ANNOTATIONS.IMAGE_ORDER] || 100,
     dockerImageRepo: imageStream.status?.dockerImageRepository || '',
+    notebookType: annotations[IMAGE_ANNOTATIONS.NOTEBOOK_TYPE] || 'jupyter',
+    readinessEndpoint: annotations[IMAGE_ANNOTATIONS.READINESS_ENDPOINT],
+    livenessEndpoint: annotations[IMAGE_ANNOTATIONS.LIVENESS_ENDPOINT],
   };
 
   return imageInfo;

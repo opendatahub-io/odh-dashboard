@@ -52,11 +52,13 @@ export const usernameTranslate = (username: string): string => {
 };
 
 export const generateNotebookNameFromUsername = (username: string): string =>
-  `jupyter-nb-${usernameTranslate(username)}`;
+  `notebook-${usernameTranslate(username)}`;
 
+// TODO: Do we want to keep references to JupyterHub?
 export const generatePvcNameFromUsername = (username: string): string =>
   `jupyterhub-nb-${usernameTranslate(username)}-pvc`;
 
+// TODO: Do we want to keep references to JupyterHub?
 export const generateEnvVarFileNameFromUsername = (username: string): string =>
   `jupyterhub-singleuser-profile-${usernameTranslate(username)}-envs`;
 

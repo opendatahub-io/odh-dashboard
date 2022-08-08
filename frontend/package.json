@@ -37,13 +37,13 @@
     "test:type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@patternfly/quickstarts": "2.0.1",
     "@patternfly/patternfly": "4.179.1",
+    "@patternfly/quickstarts": "2.0.1",
     "@patternfly/react-catalog-view-extension": "^4.49.5",
     "@patternfly/react-core": "4.198.5",
     "@patternfly/react-icons": "4.49.5",
-    "@patternfly/react-table": "4.75.2",
     "@patternfly/react-styles": "4.48.5",
+    "@patternfly/react-table": "4.75.2",
     "@types/classnames": "^2.3.1",
     "axios": "^0.21.1",
     "classnames": "^2.2.6",
@@ -51,7 +51,6 @@
     "dompurify": "^2.2.6",
     "lodash-es": "^4.17.15",
     "node-gyp": "^7.1.2",
-    "node-sass": "^4.14.1",
     "react": "^16.13.1",
     "react-cool-dimensions": "^2.0.5",
     "react-dom": "^16.13.1",
@@ -61,6 +60,7 @@
     "react-scripts": "^4.0.1",
     "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
+    "sass": "^1.54.3",
     "showdown": "^1.9.1"
   },
   "devDependencies": {

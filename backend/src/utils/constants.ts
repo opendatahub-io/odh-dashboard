@@ -19,6 +19,9 @@ export const IMAGE_ANNOTATIONS = {
   DEPENDENCIES: 'opendatahub.io/notebook-python-dependencies',
   IMAGE_ORDER: 'opendatahub.io/notebook-image-order',
   RECOMMENDED: 'opendatahub.io/notebook-image-recommended',
+  NOTEBOOK_TYPE: 'opendatahub.io/notebook-type',
+  READINESS_ENDPOINT: 'opendatahub.io/notebook-readiness-endpoint',
+  LIVENESS_ENDPOINT: 'opendatahub.io/notebook-liveness-endpoint',
 };
 export const blankDashboardCR: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',

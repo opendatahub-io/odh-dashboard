@@ -54,6 +54,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
   }, [spawnInProgress, spawnPercentile, spawnStatus]);
 
   const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
+  const notebookType = notebook?.metadata.annotations?.['opendatahub.io/notebook-type']?notebook.metadata.annotations['opendatahub.io/notebook-type']:'jupyter';
 
   const spawnFailed =
     spawnStatus?.status === AlertVariant.danger || spawnStatus?.status === AlertVariant.warning;
@@ -68,8 +69,13 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
         description: 'The notebook server is up and running. This page will update momentarily.',
       });
       timer = setTimeout(() => {
-        if (notebookLink) {
+        if (notebookLink && notebookType=='jupyter') {
           window.location.href = notebookLink;
+        } else if (notebookLink) {
+          // windowObjectReference necessary for Firefox which waits for a return
+          let windowObjectReference;
+          windowObjectReference = window.open(notebookLink,'_blank');
+          window.location.href = '/notebookController';
         } else {
           setSpawnStatus({
             status: AlertVariant.danger,

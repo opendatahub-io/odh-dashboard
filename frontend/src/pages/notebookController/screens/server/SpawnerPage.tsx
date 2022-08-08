@@ -250,8 +250,11 @@ const SpawnerPage: React.FC = React.memo(() => {
     );
     const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
     const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
+    const notebookType = `${selectedImageTag.image?.notebookType}`;
     const notebookName = generateNotebookNameFromUsername(username);
     const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
+    const readinessEndpoint = `${selectedImageTag.image?.readinessEndpoint?selectedImageTag.image.readinessEndpoint:''}`;
+    const livenessEndpoint = `${selectedImageTag.image?.livenessEndpoint?selectedImageTag.image.livenessEndpoint:''}`;
     setCreateInProgress(true);
     const envVars = await checkEnvVarFile(username, projectName, variableRows);
     await startNotebook({
@@ -266,6 +269,9 @@ const SpawnerPage: React.FC = React.memo(() => {
       tolerationSettings: dashboardConfig.spec.notebookController?.notebookTolerationSettings,
       volumes,
       volumeMounts,
+      notebookType,
+      readinessEndpoint,
+      livenessEndpoint,
     })
       .then(() => {
         fireStartServerEvent();

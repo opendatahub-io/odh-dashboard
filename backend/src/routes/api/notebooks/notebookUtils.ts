@@ -142,10 +142,18 @@ export const createNotebook = async (
       throw error;
     });
 
+  let notebookLink:String = '';
+
+  if ((notebookData?.metadata?.annotations['opendatahub.io/notebook-type']=='code-server')||(notebookData?.metadata?.annotations['opendatahub.io/notebook-type']=='rstudio')) {
+    notebookLink = `https://${route.spec.host}/`
+  } else {
+    notebookLink = `https://${route.spec.host}/notebook/${namespace}/${notebookName}`
+  }
+
   const patch: RecursivePartial<Notebook> = {
     metadata: {
       annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
+        'opendatahub.io/link': notebookLink,
       },
     },
   };
