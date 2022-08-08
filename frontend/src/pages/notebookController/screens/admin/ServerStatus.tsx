@@ -1,13 +1,11 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { useUser } from '../../../../redux/selectors';
-import { deleteNotebook } from '../../../../services/notebookService';
 import { User } from './types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { usernameTranslate } from '../../../../utilities/notebookControllerUtils';
-import useNotification from '../../../../utilities/useNotification';
 import { NotebookControllerTabTypes } from '../../const';
-import useNamespaces from '../../useNamespaces';
+import { NotebookAdminContext } from './NotebookAdminContext';
 
 type ServerStatusProps = {
   data: User['serverStatus'];
@@ -15,12 +13,11 @@ type ServerStatusProps = {
 };
 
 const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
-  const { notebookNamespace } = useNamespaces();
-  const notification = useNotification();
   const { setImpersonatingUsername, setCurrentAdminTab } =
     React.useContext(NotebookControllerContext);
   const { username: stateUser } = useUser();
-  const [deleting, setDeleting] = React.useState(false);
+  const forStateUser = stateUser === username;
+  const { setServerStatuses } = React.useContext(NotebookAdminContext);
 
   if (!data.notebook) {
     return (
@@ -28,7 +25,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
         variant="link"
         isInline
         onClick={() => {
-          if (stateUser === username) {
+          if (forStateUser) {
             // Starting your own server, no need to impersonate
             setCurrentAdminTab(NotebookControllerTabTypes.SERVER);
             return;
@@ -36,7 +33,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
           setImpersonatingUsername(usernameTranslate(username));
         }}
       >
-        Start server
+        {forStateUser ? 'Start your server' : 'Start server'}
       </Button>
     );
   }
@@ -44,23 +41,13 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
   return (
     <Button
       variant="link"
-      isDisabled={deleting}
       isDanger
       isInline
       onClick={() => {
-        const notebookName = data.notebook?.metadata.name;
-        if (notebookName) {
-          setDeleting(true);
-          deleteNotebook(notebookNamespace, notebookName)
-            .then(() => data.forceRefresh())
-            .catch((e) => {
-              notification.error(`Error delete notebook ${notebookName}`, e.message);
-              setDeleting(false);
-            });
-        }
+        setServerStatuses([data]);
       }}
     >
-      {deleting ? 'Stopping server...' : 'Stop server'}
+      Stop server
     </Button>
   );
 };

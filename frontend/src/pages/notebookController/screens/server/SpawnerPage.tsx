@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   ActionGroup,
+  Alert,
   Button,
   Form,
   FormGroup,
@@ -37,7 +38,6 @@ import {
   checkNotebookRunning,
 } from '../../../../utilities/notebookControllerUtils';
 import AppContext from '../../../../app/AppContext';
-import { getGPU } from '../../../../services/gpuService';
 import { patchDashboardConfig } from '../../../../services/dashboardConfigService';
 import { getSecret } from '../../../../services/secretsService';
 import { getConfigMap } from '../../../../services/configMapService';
@@ -48,8 +48,9 @@ import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage
 import useNotification from '../../../../utilities/useNotification';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
-import { useUser } from '../../../../redux/selectors';
+import useCurrentUser from '../../useCurrentUser';
 import useNamespaces from '../../useNamespaces';
+import GPUSelectField from './GPUSelectField';
 
 import '../../NotebookController.scss';
 
@@ -58,10 +59,14 @@ const SpawnerPage: React.FC = React.memo(() => {
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses, dashboardConfig } = React.useContext(AppContext);
-  const { currentUserState, setCurrentUserState, impersonatingUser, setLastNotebookCreationTime } =
-    React.useContext(NotebookControllerContext);
-  const { username: stateUsername } = useUser();
-  const username = currentUserState.user || stateUsername;
+  const {
+    currentUserState,
+    setCurrentUserState,
+    impersonatingUser,
+    setImpersonatingUsername,
+    setLastNotebookCreationTime,
+  } = React.useContext(NotebookControllerContext);
+  const username = useCurrentUser();
   const { notebookNamespace: projectName } = useNamespaces();
   const [startShown, setStartShown] = React.useState<boolean>(false);
   const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
@@ -76,12 +81,11 @@ const SpawnerPage: React.FC = React.memo(() => {
   });
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
   const [selectedSize, setSelectedSize] = React.useState<string>('');
-  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
-  const [gpuSize, setGpuSize] = React.useState<number>(0);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const [shouldRedirect, setShouldRedirect] = React.useState<boolean>(true);
+  const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
   const onModalClose = () => {
     setStartShown(false);
@@ -106,20 +110,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       }
     }
   }, [projectName, notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const setGpu = async () => {
-      const size = await getGPU();
-      if (!cancelled) {
-        setGpuSize(size);
-      }
-    };
-    setGpu().catch((e) => console.error(e));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   React.useEffect(() => {
     const setFirstValidImage = () => {
@@ -232,11 +222,6 @@ const SpawnerPage: React.FC = React.memo(() => {
     setSizeDropdownOpen(false);
   };
 
-  const handleGpuSelection = (e, selection) => {
-    setSelectedGpu(selection);
-    setGpuDropdownOpen(false);
-  };
-
   const sizeOptions = React.useMemo(() => {
     const sizes = dashboardConfig?.spec?.notebookSizes;
     if (!sizes?.length) {
@@ -253,15 +238,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       return <SelectOption key={name} value={name} description={desc} />;
     });
   }, [dashboardConfig]);
-
-  const gpuOptions = React.useMemo(() => {
-    const values: number[] = [];
-    const start = 0;
-    for (let i = start; i <= gpuSize; i++) {
-      values.push(i);
-    }
-    return values?.map((size) => <SelectOption key={size} value={`${size}`} />);
-  }, [gpuSize]);
 
   const renderEnvironmentVariableRows = () => {
     if (!variableRows?.length) {
@@ -317,6 +293,7 @@ const SpawnerPage: React.FC = React.memo(() => {
   };
 
   const handleNotebookAction = async () => {
+    setSubmitError(null);
     const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
       (ns) => ns.name === selectedSize,
     );
@@ -333,7 +310,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     setCreateInProgress(true);
     setLastNotebookCreationTime(new Date());
     const envVars = await checkEnvVarFile(username, projectName, variableRows);
-    await createNotebook(
+    const canContinue = await createNotebook(
       projectName,
       notebookName,
       username,
@@ -343,8 +320,15 @@ const SpawnerPage: React.FC = React.memo(() => {
       envVars,
       volumes,
       volumeMounts,
-    );
+    )
+      .then(() => true)
+      .catch((e) => {
+        setSubmitError(e);
+        return false;
+      });
     setCreateInProgress(false);
+
+    if (!canContinue) return;
     setShouldRedirect(false);
     setStartShown(true);
 
@@ -418,20 +402,7 @@ const SpawnerPage: React.FC = React.memo(() => {
                 </Select>
               </FormGroup>
             )}
-            {gpuOptions && (
-              <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
-                <Select
-                  isOpen={gpuDropdownOpen}
-                  onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
-                  aria-labelledby="gpu-numbers"
-                  selections={selectedGpu}
-                  onSelect={handleGpuSelection}
-                  menuAppendTo="parent"
-                >
-                  {gpuOptions}
-                </Select>
-              </FormGroup>
-            )}
+            <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
             {renderEnvironmentVariableRows()}
@@ -445,24 +416,44 @@ const SpawnerPage: React.FC = React.memo(() => {
               {` Add more variables`}
             </Button>
           </FormSection>
-          <ActionGroup>
-            <Button
-              variant="primary"
-              onClick={() => {
-                handleNotebookAction().catch((e) => {
-                  setCreateInProgress(false);
-                  setStartShown(false);
-                  console.error(e);
-                });
-              }}
-              isDisabled={createInProgress}
-            >
-              Start server
-            </Button>
-            <Button variant="secondary" onClick={() => history.push('/')}>
-              Cancel
-            </Button>
-          </ActionGroup>
+          <div>
+            {submitError && (
+              <Alert
+                variant="danger"
+                isInline
+                title="Failed to create the Notebook, please try again later"
+              >
+                {submitError.message}
+              </Alert>
+            )}
+            <ActionGroup>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  handleNotebookAction().catch((e) => {
+                    setCreateInProgress(false);
+                    setStartShown(false);
+                    console.error(e);
+                  });
+                }}
+                isDisabled={createInProgress}
+              >
+                Start server
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (impersonatingUser) {
+                    setImpersonatingUsername(null);
+                  } else {
+                    history.push('/');
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+            </ActionGroup>
+          </div>
         </Form>
         <StartServerModal
           notebook={notebook}

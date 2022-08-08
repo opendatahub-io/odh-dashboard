@@ -14,7 +14,7 @@ const ImpersonateAlert: React.FC = () => {
       isInline
     >
       <Button variant="link" onClick={() => setImpersonatingUsername(null)}>
-        Return to administrative view
+        Return to administration view
       </Button>
     </Alert>
   );
