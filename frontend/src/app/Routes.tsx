@@ -1,9 +1,7 @@
 import React from 'react';
 import { Route, Switch } from 'react-router-dom';
 import ApplicationsPage from '../pages/ApplicationsPage';
-import { State } from '../redux/types';
-import { useSelector } from 'react-redux';
-import NotebookControllerRoutes from '../pages/notebookController/NotebookControllerRoutes';
+import { useUser } from '../redux/selectors';
 
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
@@ -14,6 +12,9 @@ const ExploreApplications = React.lazy(
 const NotebookLogoutRedirectPage = React.lazy(
   () => import('../pages/notebookController/NotebookLogoutRedirect'),
 );
+const NotebookController = React.lazy(
+  () => import('../pages/notebookController/NotebookController'),
+);
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
@@ -21,10 +22,7 @@ const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages')
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const Routes: React.FC = () => {
-  const [isAdmin, isAllowed] = useSelector<State, [boolean, boolean]>((state) => [
-    state.appState.isAdmin || false,
-    state.appState.isAllowed || false,
-  ]);
+  const { isAdmin } = useUser();
 
   return (
     <React.Suspense

@@ -28,6 +28,7 @@ export type DashboardConfig = K8sResourceCommon & {
       envVarConfig?: {
         enabled: boolean;
       };
+      pvcSize?: string;
       notebookNamespace?: string;
     };
   };
@@ -37,25 +38,11 @@ export type DashboardConfig = K8sResourceCommon & {
         user: string;
         lastSelectedImage: string;
         lastSelectedSize: string;
+        lastActivity: number;
       },
     ];
   };
 };
-
-export type NotebookStatus = {
-  percentile: number;
-  currentStatus: EventStatus;
-  currentEvent: string;
-  currentEventDescription: string;
-  events: V1Event[];
-};
-
-export enum EventStatus {
-  IN_PROGRESS = 'In Progress',
-  WARNING = 'Warning',
-  ERROR = 'Error',
-  SUCCESS = 'Success',
-}
 
 export type NotebookResources = {
   requests?: {
@@ -572,4 +559,16 @@ export type PersistentVolumeClaimListKind = {
   kind?: string;
   metadata: Record<string, unknown>;
   items: PersistentVolumeClaimKind[];
+};
+
+export type PrometheusResponse = {
+  data: {
+    result: [
+      {
+        value: [number, string];
+      },
+    ];
+    resultType: string;
+  };
+  status: string;
 };

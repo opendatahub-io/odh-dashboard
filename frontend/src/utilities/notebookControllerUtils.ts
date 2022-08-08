@@ -1,3 +1,4 @@
+import * as React from 'react';
 import * as _ from 'lodash';
 import { AxiosError } from 'axios';
 import {
@@ -7,14 +8,18 @@ import {
   replaceConfigMap,
 } from '../services/configMapService';
 import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
+import { createRoleBinding, getRoleBinding } from '../services/roleBindingService';
 import {
   EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
   EnvVarResourceType,
+  EventStatus,
+  K8sEvent,
   K8sResourceCommon,
   Notebook,
   NotebookControllerUserState,
+  NotebookStatus,
   PersistentVolumeClaim,
   ResourceCreator,
   ResourceDeleter,
@@ -23,7 +28,7 @@ import {
   RoleBinding,
   VariableRow,
 } from '../types';
-import { createRoleBinding, getRoleBinding } from 'services/roleBindingService';
+import AppContext from '../app/AppContext';
 
 export const usernameTranslate = (username: string): string =>
   username
@@ -206,6 +211,21 @@ export const getUserStateFromDashboardConfig = (
 ): NotebookControllerUserState | undefined =>
   notebookControllerState.find((state) => usernameTranslate(state.user) === translatedUsername);
 
+export const useGetUserStateFromDashboardConfig = (): ((
+  username: string,
+) => NotebookControllerUserState | undefined) => {
+  const { dashboardConfig } = React.useContext(AppContext);
+
+  return React.useCallback(
+    (username: string) =>
+      getUserStateFromDashboardConfig(
+        username,
+        dashboardConfig.status?.notebookControllerState || [],
+      ),
+    [dashboardConfig],
+  );
+};
+
 /** Check whether the namespace of the notebooks has the access to image streams
  * If not, create the rolebinding
  */
@@ -241,4 +261,98 @@ export const validateNotebookNamespaceRoleBinding = async (
     createRoleBinding,
     roleBindingObject,
   );
+};
+
+export const getNotebookStatus = (events: K8sEvent[], time: Date): NotebookStatus | null => {
+  const filteredEvents = events.filter((event) => new Date(event.lastTimestamp) > time);
+  if (filteredEvents.length === 0) {
+    return null;
+  }
+  let percentile = 0;
+  let status: EventStatus = EventStatus.IN_PROGRESS;
+  const lastItem = filteredEvents[filteredEvents.length - 1];
+  let currentEvent = '';
+  if (lastItem.message.includes('oauth-proxy')) {
+    switch (lastItem.reason) {
+      case 'Pulling': {
+        currentEvent = 'Pulling oauth proxy';
+        percentile = 72;
+        break;
+      }
+      case 'Pulled': {
+        currentEvent = 'Oauth proxy pulled';
+        percentile = 80;
+        break;
+      }
+      case 'Created': {
+        currentEvent = 'Oauth proxy container created';
+        percentile = 88;
+        break;
+      }
+      case 'Started': {
+        currentEvent = 'Oauth proxy container started';
+        percentile = 96;
+        break;
+      }
+      default: {
+        currentEvent = 'Error creating oauth proxy container';
+        status = EventStatus.ERROR;
+      }
+    }
+  } else {
+    switch (lastItem.reason) {
+      case 'SuccessfulCreate': {
+        currentEvent = 'Pod created';
+        percentile = 8;
+        break;
+      }
+      case 'Scheduled': {
+        currentEvent = 'Pod assigned';
+        percentile = 16;
+        break;
+      }
+      case 'SuccessfulAttachVolume': {
+        currentEvent = 'PVC attached';
+        percentile = 24;
+        break;
+      }
+      case 'AddedInterface': {
+        currentEvent = 'Interface added';
+        percentile = 32;
+        break;
+      }
+      case 'Pulling': {
+        currentEvent = 'Pulling notebook image';
+        percentile = 40;
+        break;
+      }
+      case 'Pulled': {
+        currentEvent = 'Notebook image pulled';
+        percentile = 48;
+        break;
+      }
+      case 'Created': {
+        currentEvent = 'Notebook container created';
+        percentile = 56;
+        break;
+      }
+      case 'Started': {
+        currentEvent = 'Notebook container started';
+        percentile = 64;
+        break;
+      }
+      default: {
+        currentEvent = 'Error creating notebook container';
+        status = EventStatus.ERROR;
+      }
+    }
+  }
+  return {
+    percentile,
+    currentEvent,
+    currentEventReason: lastItem.reason,
+    currentEventDescription: lastItem.message,
+    currentStatus: status,
+    events: filteredEvents,
+  };
 };

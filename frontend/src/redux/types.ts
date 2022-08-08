@@ -39,18 +39,20 @@ export interface GetUserAction {
   };
 }
 
-export interface AppState {
+export type AppState = {
+  // user state
+  isAdmin?: boolean;
   user?: string;
   userLoading: boolean;
   userError?: Error | null;
+
   clusterID?: string;
   clusterBranding?: string;
-  isAdmin?: boolean;
   isAllowed?: boolean;
   dashboardNamespace?: string;
   notifications: AppNotification[];
   forceComponentsUpdate: number;
-}
+};
 
 export interface State {
   appState: AppState;
