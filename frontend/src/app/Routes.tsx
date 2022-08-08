@@ -22,7 +22,7 @@ const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages')
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const Routes: React.FC = () => {
-  const { isAdmin } = useUser();
+  const { isAdmin, isAllowed } = useUser();
 
   return (
     <React.Suspense
@@ -34,7 +34,7 @@ const Routes: React.FC = () => {
         <Route path="/resources" exact component={LearningCenterPage} />
         {isAllowed && (
           <Route path="/notebookController">
-            <NotebookControllerRoutes />
+            <NotebookController />
           </Route>
         )}
         {isAllowed && (

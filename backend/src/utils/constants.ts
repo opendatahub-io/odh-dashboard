@@ -39,7 +39,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableUserManagement: false,
     },
     groupsConfig: {
-      adminGroups: 'dedicated_admins',
+      adminGroups: 'odh-admins',
       allowedGroups: 'system:authenticated',
     },
   },

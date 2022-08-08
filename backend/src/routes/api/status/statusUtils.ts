@@ -9,40 +9,30 @@ type groupObjResponse = {
   users: string[] | null;
 };
 
-const SYSTEM_AUTHENTICATED = 'system:authenticated';
+const ADMIN_GROUP = 'adminGroups';
+const ALLOWED_GROUP = 'allowedGroups';
 
-const getAdminUsers = async (fastify: KubeFastifyInstance): Promise<string[]> => {
-  let adminUsers: string[] = [];
+const getUserList = async (fastify: KubeFastifyInstance, groupName: string): Promise<string[]> => {
+  let userList: string[] = [];
 
-  try {
-    const dashCR = getDashboardConfig().spec;
-    const adminGroup = dashCR.groupsConfig.adminGroups;
-    const allowedGroup = dashCR.groupsConfig.allowedGroups;
-
-    if (adminGroup === SYSTEM_AUTHENTICATED || adminGroup === '') {
-      throw new Error(
-        'It is not allowed to set system:authenticated or an empty string as admin group.',
-      );
-    } else {
-      adminUsers = await getGroup(fastify.kube.customObjectsApi, adminGroup);
+  if (groupName) {
+    try {
+      const dashCR = getDashboardConfig().spec;
+      if (groupName === 'adminGroups' || groupName === 'allowedGroups') {
+        const userGroup = dashCR.groupsConfig?.[groupName];
+        userList = await getGroup(fastify.kube.customObjectsApi, userGroup);
+      }
+    } catch (e) {
+      fastify.log.error(e.toString());
     }
 
-    if (allowedGroup === '') {
-      throw new Error('It is not allowed to set an empty string as allowed group.');
-    } else {
-      const allowedUsers = await getGroup(customObjectsApi, allowedGroup);
-      isAllowed = allowedUsers?.includes(userName) ?? false;
-    }
-  } catch (e) {
-    fastify.log.error(e.toString());
+    return userList || [];
   }
-
-  return adminUsers || [];
 };
 
-const isUserAdmin = (userName: string, adminUsers: string[]) => {
+const groupIncludes = (userName: string, groupUsers: string[]) => {
   // Usernames with invalid characters can start with `b64:` to keep their unwanted characters
-  return adminUsers.includes(userName) || adminUsers.includes(`b64:${userName}`);
+  return groupUsers.includes(userName) || groupUsers.includes(`b64:${userName}`);
 };
 
 export const status = async (
@@ -54,8 +44,14 @@ export const status = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
 
   const userName = await getUserName(fastify, request, customObjectsApi);
-  const adminUsers = await getAdminUsers(fastify);
-  const isAdmin = isUserAdmin(userName, adminUsers);
+  const adminUsers = await getUserList(fastify, ADMIN_GROUP);
+  const isAdmin = groupIncludes(userName, adminUsers);
+  let isAllowed = false;
+  if (isAdmin) {
+    isAllowed = true;
+  } else {
+    isAllowed = groupIncludes(userName, await getUserList(fastify, ALLOWED_GROUP));
+  }
 
   if (!kubeContext && !kubeContext.trim()) {
     const error = createCustomError(
@@ -101,8 +97,8 @@ export const mapUserPrivilege = async (
   fastify: KubeFastifyInstance,
   users: string[],
 ): Promise<{ [username: string]: 'User' | 'Admin' }> => {
-  const adminUsers = await getAdminUsers(fastify);
+  const adminUsers = await getUserList(fastify, ADMIN_GROUP);
   return users.reduce((acc, username) => {
-    return { ...acc, [username]: isUserAdmin(username, adminUsers) ? 'Admin' : 'User' };
+    return { ...acc, [username]: groupIncludes(username, adminUsers) ? 'Admin' : 'User' };
   }, {});
 };

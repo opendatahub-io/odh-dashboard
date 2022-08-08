@@ -45,7 +45,7 @@ The `groupsConfig` field controls access to Dashboard features, such as the spaw
 
 ```yaml
 groupsConfig:
-  adminGroups: dedicated_admins
+  adminGroups: odh-admins
   allowedGroups: system:authenticated
 ```
 
@@ -112,7 +112,7 @@ spec:
     disableAppLauncher: false
     enablement: true
   groupsConfig:
-    adminGroups: dedicated_admins
+    adminGroups: odh-admins
     allowedGroups: system:authenticated
   notebookController:
     enabled: false
