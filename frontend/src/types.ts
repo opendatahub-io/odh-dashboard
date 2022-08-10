@@ -1,5 +1,5 @@
 // TODO: Once we move away from the existing legacy type we should rename this back to K8sResourceCommon
-// import { K8sResourceCommon as K8sResourceCommonSDK } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon as K8sResourceCommonSDK } from '@openshift/dynamic-plugin-sdk-utils';
 /*
  * Common types, should be kept up to date with backend types
  */
@@ -91,11 +91,11 @@ export type Secret = {
   data?: Record<string, string>;
   stringData?: Record<string, string>;
   type?: string;
-} & K8sResourceCommon;
+} & K8sResourceCommonSDK;
 
 export type ConfigMap = {
   data?: Record<string, string>;
-} & K8sResourceCommon;
+} & K8sResourceCommonSDK;
 
 export type EnvVarResource = Secret | ConfigMap;
 
@@ -543,14 +543,7 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
-export type PersistentVolumeClaim = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    annotations?: { [key: string]: string };
-  };
+export type PersistentVolumeClaim = K8sResourceCommonSDK & {
   spec: {
     accessModes: string[];
     resources: {
@@ -600,16 +593,16 @@ export type RoleBindingSubject = {
 export type RoleBinding = {
   subjects: RoleBindingSubject[];
   roleRef: RoleBindingSubject;
-} & K8sResourceCommon;
+} & K8sResourceCommonSDK;
 
-export type ResourceGetter<T extends K8sResourceCommon> = (
+export type ResourceGetter<T extends K8sResourceCommonSDK> = (
   projectName: string,
   resourceName: string,
 ) => Promise<T>;
 
-export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+export type ResourceCreator<T extends K8sResourceCommonSDK> = (resource: T) => Promise<T>;
 
-export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+export type ResourceReplacer<T extends K8sResourceCommonSDK> = (resource: T) => Promise<T>;
 
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 

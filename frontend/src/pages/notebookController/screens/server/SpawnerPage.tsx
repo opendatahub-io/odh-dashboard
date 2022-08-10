@@ -18,6 +18,7 @@ import {
   ConfigMap,
   Secret,
   EnvVarResourceType,
+  PersistentVolumeClaim,
 } from '../../../../types';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -115,7 +116,11 @@ const SpawnerPage: React.FC = React.memo(() => {
       }
       let fetchedVariableRows: VariableRow[] = [];
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
-      const response = await verifyResource(envVarFileName, projectName, fetchFunc);
+      const response = await verifyResource<ConfigMap | Secret>(
+        envVarFileName,
+        projectName,
+        fetchFunc,
+      );
       if (response && response.data) {
         const isSecret = response.kind === EnvVarResourceType.Secret;
         fetchedVariableRows = Object.entries(response.data).map(([key, value]) => {
@@ -245,9 +250,13 @@ const SpawnerPage: React.FC = React.memo(() => {
     const pvcName = generatePvcNameFromUsername(username);
     const requestedPvcSize = dashboardConfig?.spec?.notebookController?.pvcSize;
     const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
-    await verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody).catch((e) =>
-      console.error(`Something wrong with PVC ${pvcName}: ${e}`),
-    );
+    await verifyResource<PersistentVolumeClaim>(
+      pvcName,
+      projectName,
+      getPvc,
+      createPvc,
+      pvcBody,
+    ).catch((e) => console.error(`Something wrong with PVC ${pvcName}: ${e}`));
     const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
     const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
     const notebookName = generateNotebookNameFromUsername(username);

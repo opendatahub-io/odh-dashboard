@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import {
   createConfigMap,
@@ -16,7 +17,6 @@ import {
   EnvVarResourceType,
   EventStatus,
   K8sEvent,
-  K8sResourceCommon,
   Notebook,
   NotebookControllerUserState,
   NotebookStatus,
