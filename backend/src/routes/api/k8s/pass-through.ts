@@ -15,7 +15,6 @@ export const passThrough = async (
 ): Promise<{ response: K8sResourceCommon }> => {
   const kc = fastify.kube.config;
   const { method, requestData, url } = data;
-  console.debug('-----method', method);
 
   // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
   let safeURL = url;
@@ -26,7 +25,6 @@ export const passThrough = async (
     urlParts.pop();
     safeURL = urlParts.join('/');
   }
-  console.debug('-----', safeURL);
 
   return new Promise((resolve, reject) => {
     const kubeOptions: Parameters<typeof kc.applyToRequest>[0] = { url: safeURL };
@@ -73,7 +71,6 @@ export const passThrough = async (
                 return;
               }
 
-              console.debug('-----', parsedData);
               resolve({ response: parsedData });
             })
             .on('error', (error) => {
