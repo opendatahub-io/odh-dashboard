@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { AxiosError } from 'axios';
 import {
   createConfigMap,
   deleteConfigMap,
@@ -72,15 +71,19 @@ export const verifyResource = async <T extends K8sResourceCommon>(
   createFunc?: ResourceCreator<T>,
   createBody?: T,
 ): Promise<T | undefined> => {
-  return await fetchFunc(namespace, name).catch(async (e: AxiosError) => {
-    if (e.response?.status === 404) {
-      if (createFunc && createBody) {
-        return await createFunc(createBody);
-      } else {
-        return undefined;
-      }
-    }
-    throw e;
+  return new Promise((resolve, reject) => {
+    fetchFunc(namespace, name)
+      .then((data) => {
+        if (data === null) {
+          if (createFunc && createBody) {
+            createFunc(createBody).then(resolve).catch(reject);
+          } else {
+            resolve(undefined);
+          }
+        }
+        resolve(data);
+      })
+      .catch(reject);
   });
 };
 
@@ -150,7 +153,7 @@ export const verifyEnvVars = async (
     createFunc,
     newResource,
   );
-  if (!_.isEqual(response?.data, envVars)) {
+  if (response && !_.isEqual(response.data, envVars)) {
     await replaceFunc(newResource);
   }
 };

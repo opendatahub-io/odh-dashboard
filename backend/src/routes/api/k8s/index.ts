@@ -1,4 +1,4 @@
-import { FastifyRequest } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
 import { passThrough } from './pass-through';
 
@@ -15,13 +15,18 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         Params: { '*': string; [key: string]: string };
         Body: { [key: string]: unknown };
       }>,
+      reply: FastifyReply,
     ) => {
       const data = JSON.stringify(req.body);
       const kubeUri = req.params['*'];
       const url = `${cluster.server}/${kubeUri}`;
-      console.debug('-----', url);
 
-      return passThrough({ url, method: req.method, requestData: data }, fastify);
+      return passThrough({ url, method: req.method, requestData: data }, fastify).catch(
+        ({ code, response }) => {
+          reply.code(code);
+          reply.send(response);
+        },
+      );
     },
   });
 };
