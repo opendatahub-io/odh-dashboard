@@ -22,6 +22,10 @@ export const blankDashboardCR: DashboardConfig = {
       disableAppLauncher: false,
       disableUserManagement: false,
     },
+    groupsConfig: {
+      adminGroups: 'odh-admins',
+      allowedGroups: 'system:authenticated',
+    },
   },
 };
 

@@ -22,7 +22,7 @@ const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages')
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const Routes: React.FC = () => {
-  const { isAdmin } = useUser();
+  const { isAdmin, isAllowed } = useUser();
 
   return (
     <React.Suspense
@@ -32,12 +32,18 @@ const Routes: React.FC = () => {
         <Route path="/" exact component={InstalledApplications} />
         <Route path="/explore" exact component={ExploreApplications} />
         <Route path="/resources" exact component={LearningCenterPage} />
-        <Route path="/notebookController" component={NotebookController} />
-        <Route
-          path="/notebook/:namespace/:notebookName/logout"
-          exact
-          component={NotebookLogoutRedirectPage}
-        />
+        {isAllowed && (
+          <Route path="/notebookController">
+            <NotebookController />
+          </Route>
+        )}
+        {isAllowed && (
+          <Route
+            path="/notebook/:namespace/:notebookName/logout"
+            exact
+            component={NotebookLogoutRedirectPage}
+          />
+        )}
         {isAdmin && <Route path="/notebookImages" exact component={BYONImagesPage} />}
         {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}
         <Route component={NotFound} />

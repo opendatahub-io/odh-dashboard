@@ -38,6 +38,17 @@ spec:
 
 The Dashboard config enables adding additional configuration
 
+
+### Groups
+
+The `groupsConfig` field controls access to Dashboard features, such as the spawner for allowed users and the cluster settings UI for admins.
+
+```yaml
+groupsConfig:
+  adminGroups: odh-admins
+  allowedGroups: system:authenticated
+```
+
 ### Sizes
 
 The `notebookSizes` field of the config lists kubernetes style size descriptions. These are added to the dropdown shown when spawning notebooks with the notebook controller.
@@ -100,6 +111,9 @@ spec:
     disableTracking: false
     disableAppLauncher: false
     enablement: true
+  groupsConfig:
+    adminGroups: odh-admins
+    allowedGroups: system:authenticated
   notebookController:
     enabled: false
   notebookSizes:

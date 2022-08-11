@@ -14,6 +14,7 @@ export const getUserFulfilled = (response: {
     clusterID: string;
     clusterBranding: string;
     isAdmin: boolean;
+    isAllowed: boolean;
     namespace: string;
   };
 }): GetUserAction => ({
@@ -23,6 +24,7 @@ export const getUserFulfilled = (response: {
     clusterID: response.kube.clusterID,
     clusterBranding: response.kube.clusterBranding,
     isAdmin: response.kube.isAdmin,
+    isAllowed: response.kube.isAllowed,
     dashboardNamespace: response.kube.namespace,
   },
 });

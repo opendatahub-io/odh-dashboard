@@ -9,6 +9,10 @@ export type RecursivePartial<T> = {
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
+    groupsConfig: {
+      adminGroups: string;
+      allowedGroups: string;
+    };
     notebookSizes?: NotebookSize[];
     notebookController?: {
       enabled: boolean;

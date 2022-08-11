@@ -1,44 +1,38 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
-import { CoreV1Api, CustomObjectsApi } from '@kubernetes/client-node';
+import { CustomObjectsApi } from '@kubernetes/client-node';
 import { getUserName } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
 
 type groupObjResponse = {
   users: string[] | null;
 };
 
-const SYSTEM_AUTHENTICATED = 'system:authenticated';
-const GROUPS_CONFIGMAP_NAME = 'groups-config';
+const ADMIN_GROUP = 'adminGroups';
+const ALLOWED_GROUP = 'allowedGroups';
 
-const getAdminUsers = async (fastify: KubeFastifyInstance): Promise<string[]> => {
-  let adminUsers: string[] = [];
+const getUserList = async (fastify: KubeFastifyInstance, groupName: string): Promise<string[]> => {
+  let userList: string[] = [];
 
-  try {
-    const groupConfig = await getGroupsConfig(fastify.kube.coreV1Api, fastify.kube.namespace);
-    const adminGroup = await getGroupsAdminConfig(
-      fastify.kube.coreV1Api,
-      fastify.kube.namespace,
-      groupConfig,
-    );
-
-    if (adminGroup === SYSTEM_AUTHENTICATED || adminGroup === '') {
-      throw new Error(
-        'It is not allowed to set system:authenticated or an empty string as admin group.',
-      );
-    } else {
-      adminUsers = await getGroup(fastify.kube.customObjectsApi, adminGroup);
+  if (groupName) {
+    try {
+      const dashCR = getDashboardConfig().spec;
+      if (groupName === 'adminGroups' || groupName === 'allowedGroups') {
+        const userGroup = dashCR.groupsConfig?.[groupName];
+        userList = await getGroup(fastify.kube.customObjectsApi, userGroup);
+      }
+    } catch (e) {
+      fastify.log.error(e.toString());
     }
-  } catch (e) {
-    fastify.log.error(e.toString());
-  }
 
-  return adminUsers || [];
+    return userList || [];
+  }
 };
 
-const isUserAdmin = (userName: string, adminUsers: string[]) => {
+const groupIncludes = (userName: string, groupUsers: string[]) => {
   // Usernames with invalid characters can start with `b64:` to keep their unwanted characters
-  return adminUsers.includes(userName) || adminUsers.includes(`b64:${userName}`);
+  return groupUsers.includes(userName) || groupUsers.includes(`b64:${userName}`);
 };
 
 export const status = async (
@@ -50,8 +44,14 @@ export const status = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
 
   const userName = await getUserName(fastify, request, customObjectsApi);
-  const adminUsers = await getAdminUsers(fastify);
-  const isAdmin = isUserAdmin(userName, adminUsers);
+  const adminUsers = await getUserList(fastify, ADMIN_GROUP);
+  const isAdmin = groupIncludes(userName, adminUsers);
+  let isAllowed = false;
+  if (isAdmin) {
+    isAllowed = true;
+  } else {
+    isAllowed = groupIncludes(userName, await getUserList(fastify, ALLOWED_GROUP));
+  }
 
   if (!kubeContext && !kubeContext.trim()) {
     const error = createCustomError(
@@ -70,36 +70,9 @@ export const status = async (
         clusterID,
         clusterBranding,
         isAdmin,
+        isAllowed,
       },
     };
-  }
-};
-
-export const getGroupsConfig = async (coreV1Api: CoreV1Api, namespace: string): Promise<string> => {
-  try {
-    return (await coreV1Api.readNamespacedConfigMap(GROUPS_CONFIGMAP_NAME, namespace)).body.data[
-      'groups-config'
-    ];
-  } catch (e) {
-    throw new Error(
-      `Failed to retrieve ConfigMap ${GROUPS_CONFIGMAP_NAME}, might be malformed or doesn't exist.`,
-    );
-  }
-};
-
-export const getGroupsAdminConfig = async (
-  coreV1Api: CoreV1Api,
-  namespace: string,
-  groupsConfigName: string,
-): Promise<string> => {
-  try {
-    return (await coreV1Api.readNamespacedConfigMap(groupsConfigName, namespace)).body.data[
-      'admin_groups'
-    ];
-  } catch (e) {
-    throw new Error(
-      `Failed to retrieve ConfigMap ${groupsConfigName}, might be malformed or doesn't exist.`,
-    );
   }
 };
 
@@ -124,8 +97,8 @@ export const mapUserPrivilege = async (
   fastify: KubeFastifyInstance,
   users: string[],
 ): Promise<{ [username: string]: 'User' | 'Admin' }> => {
-  const adminUsers = await getAdminUsers(fastify);
+  const adminUsers = await getUserList(fastify, ADMIN_GROUP);
   return users.reduce((acc, username) => {
-    return { ...acc, [username]: isUserAdmin(username, adminUsers) ? 'Admin' : 'User' };
+    return { ...acc, [username]: groupIncludes(username, adminUsers) ? 'Admin' : 'User' };
   }, {});
 };
