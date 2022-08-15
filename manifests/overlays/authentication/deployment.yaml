@@ -11,7 +11,7 @@
       - --tls-key=/etc/tls/private/tls.key
       - --cookie-secret-file=/etc/oauth/config/cookie_secret
       - --pass-access-token
-      - '--openshift-delegate-urls={"/": {"resource": "route", "verb": "get", "name": "odh-dashboard"}}'
+      - '--openshift-delegate-urls={"/": {"resource": "services", "verb": "get", "name": "odh-dashboard"}}'
       - --skip-auth-regex=^/metrics
     image: oauth-proxy
     ports:
