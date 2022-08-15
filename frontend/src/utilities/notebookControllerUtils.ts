@@ -28,7 +28,12 @@ import {
   RoleBinding,
   VariableRow,
 } from '../types';
-import AppContext from '../app/AppContext';
+import { NotebookControllerContext } from '../pages/notebookController/NotebookControllerContext';
+import { useUser } from '../redux/selectors';
+import { EMPTY_USER_STATE } from '../pages/notebookController/const';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
+import { useWatchNotebookEvents } from './useWatchNotebookEvents';
+import useNamespaces from '../pages/notebookController/useNamespaces';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -206,32 +211,59 @@ export const generatePvc = (
   },
 });
 
-export const checkNotebookRunning = (notebook?: Notebook): boolean =>
-  !!(
-    notebook?.status?.readyReplicas &&
-    notebook?.status?.readyReplicas >= 1 &&
-    notebook?.metadata.annotations?.['opendatahub.io/link']
-  );
+export const getNotebookControllerUserState = (
+  notebook: Notebook | null,
+  loggedInUser: string,
+): NotebookControllerUserState | null => {
+  if (!notebook?.metadata?.annotations || !notebook?.metadata?.labels) return null;
 
-export const getUserStateFromDashboardConfig = (
-  translatedUsername: string,
-  notebookControllerState: NotebookControllerUserState[],
-): NotebookControllerUserState | undefined =>
-  notebookControllerState.find((state) => usernameTranslate(state.user) === translatedUsername);
+  const {
+    'notebooks.kubeflow.org/last-activity': lastActivity,
+    'notebooks.opendatahub.io/last-image-selection': lastSelectedImage = '',
+    'notebooks.opendatahub.io/last-size-selection': lastSelectedSize = '',
+    'opendatahub.io/username': annotationUser = '',
+  } = notebook.metadata.annotations;
 
-export const useGetUserStateFromDashboardConfig = (): ((
-  username: string,
-) => NotebookControllerUserState | undefined) => {
-  const { dashboardConfig } = React.useContext(AppContext);
+  let user = annotationUser;
+  if (!annotationUser) {
+    // Need to always have user -- if we don't, check if the current user is viable to translate to it
+    const notebookLabelUser = notebook.metadata.labels['opendatahub.io/user'];
+    if (usernameTranslate(loggedInUser) === notebookLabelUser) {
+      user = loggedInUser;
+    } else {
+      console.error('Could not get full user data');
+      return null;
+    }
+  }
 
-  return React.useCallback(
-    (username: string) =>
-      getUserStateFromDashboardConfig(
-        username,
-        dashboardConfig.status?.notebookControllerState || [],
-      ),
-    [dashboardConfig],
-  );
+  return {
+    lastActivity: lastActivity ? new Date(lastActivity).getTime() : undefined,
+    lastSelectedImage,
+    lastSelectedSize,
+    user,
+  };
+};
+
+export const useSpecificNotebookUserState = (
+  notebook: Notebook | null,
+): NotebookControllerUserState => {
+  const { impersonatedUsername } = React.useContext(NotebookControllerContext);
+  const { username: stateUsername } = useUser();
+  const username = impersonatedUsername || stateUsername;
+
+  const userState = getNotebookControllerUserState(notebook, username);
+
+  const state = userState ?? {
+    ...EMPTY_USER_STATE,
+    user: username,
+  };
+
+  return useDeepCompareMemoize(state);
+};
+
+export const useNotebookUserState = (): NotebookControllerUserState => {
+  const { currentUserNotebook } = React.useContext(NotebookControllerContext);
+  return useSpecificNotebookUserState(currentUserNotebook);
 };
 
 /** Check whether the namespace of the notebooks has the access to image streams
@@ -271,11 +303,47 @@ export const validateNotebookNamespaceRoleBinding = async (
   );
 };
 
-export const getNotebookStatus = (events: K8sEvent[], time: Date): NotebookStatus | null => {
-  const filteredEvents = events.filter((event) => new Date(event.lastTimestamp) > time);
-  if (filteredEvents.length === 0) {
-    return null;
+const useLastOpenTime = (open: boolean): Date | null => {
+  // TODO: This is a hack until we get a cleaner way of using values that are immutable
+  // We may be able to use kube stop annotation and/or the last activity -- but stability is important atm
+  const ref = React.useRef<Date | null>(null);
+  if (ref.current && !open) {
+    // Modal closing, clean up
+    ref.current = null;
+  } else if (!ref.current && open) {
+    // Modal is opening, hold date
+    ref.current = new Date();
   }
+
+  return ref.current;
+};
+
+export const useNotebookStatus = (
+  spawnInProgress: boolean,
+): [status: NotebookStatus | null, events: K8sEvent[]] => {
+  const { notebookNamespace } = useNamespaces();
+  const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
+
+  const events = useWatchNotebookEvents(
+    notebookNamespace,
+    notebook?.metadata.name || '',
+    spawnInProgress,
+  );
+
+  // TODO: Use last activity to fetch latest events
+  // const lastActivity = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+  const startOfOpen = useLastOpenTime(spawnInProgress);
+  if (!startOfOpen) {
+    // Modal is closed, we don't have a filter time, ignore
+    return [null, []];
+  }
+
+  const filteredEvents = events.filter((event) => new Date(event.lastTimestamp) > startOfOpen);
+  if (filteredEvents.length === 0) {
+    // We filter out all the events, nothing to show
+    return [null, []];
+  }
+
   let percentile = 0;
   let status: EventStatus = EventStatus.IN_PROGRESS;
   const lastItem = filteredEvents[filteredEvents.length - 1];
@@ -355,12 +423,15 @@ export const getNotebookStatus = (events: K8sEvent[], time: Date): NotebookStatu
       }
     }
   }
-  return {
-    percentile,
-    currentEvent,
-    currentEventReason: lastItem.reason,
-    currentEventDescription: lastItem.message,
-    currentStatus: status,
-    events: filteredEvents,
-  };
+
+  return [
+    {
+      percentile,
+      currentEvent,
+      currentEventReason: lastItem.reason,
+      currentEventDescription: lastItem.message,
+      currentStatus: status,
+    },
+    filteredEvents,
+  ];
 };

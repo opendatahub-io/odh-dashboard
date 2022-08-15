@@ -8,7 +8,6 @@ export const EMPTY_USER_STATE: NotebookControllerUserState = {
   user: '',
   lastSelectedImage: '',
   lastSelectedSize: '',
-  lastActivity: Date.now(),
 };
 
 export enum NotebookControllerTabTypes {

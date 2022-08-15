@@ -1,106 +1,54 @@
 import * as React from 'react';
-import { NotebookControllerUserState } from '../../types';
-import { EMPTY_USER_STATE, NotebookControllerTabTypes } from './const';
-import { useGetUserStateFromDashboardConfig } from '../../utilities/notebookControllerUtils';
-import { useUser } from '../../redux/selectors';
-
-type NotebookControllerContextProps = {
-  setCurrentUserState: (userState: NotebookControllerUserState) => void;
-  currentUserState: NotebookControllerUserState;
-  setImpersonatingUsername: (translatedUsername: string | null) => void;
-  impersonatingUser: boolean;
-  setCurrentAdminTab: (newTab: NotebookControllerTabTypes) => void;
-  currentTab: NotebookControllerTabTypes;
-  lastNotebookCreationTime: Date;
-  setLastNotebookCreationTime: (date: Date) => void;
-};
+import { NotebookControllerTabTypes } from './const';
+import SetupCurrentNotebook from './SetupCurrentNotebook';
+import useImpersonationForContext from './useImpersonationForContext';
+import {
+  NotebookContextStorage,
+  NotebookControllerContextProps,
+} from './notebookControllerContextTypes';
+import useAdminTabState from './useAdminTabState';
 
 const defaultNotebookControllerContext: NotebookControllerContextProps = {
-  setCurrentUserState: () => undefined,
-  currentUserState: EMPTY_USER_STATE,
-  setImpersonatingUsername: () => undefined,
-  impersonatingUser: false,
+  currentUserNotebook: null,
+  requestNotebookRefresh: () => undefined,
+  currentUserNotebookIsRunning: false,
+  setImpersonating: () => undefined,
+  impersonatedUsername: null,
   setCurrentAdminTab: () => undefined,
   currentTab: NotebookControllerTabTypes.SERVER,
-  lastNotebookCreationTime: new Date(),
-  setLastNotebookCreationTime: () => undefined,
 };
 
 export const NotebookControllerContext = React.createContext(defaultNotebookControllerContext);
 
 export const NotebookControllerContextProvider: React.FC = ({ children }) => {
-  const [currentUserState, setCurrentUserState] =
-    React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
-  const [oldUserState, setOldUserState] =
-    React.useState<NotebookControllerUserState>(EMPTY_USER_STATE);
-  const [impersonatingUser, setImpersonatingUser] = React.useState<boolean>(false);
-  const [currentTab, setCurrentTab] = React.useState(NotebookControllerTabTypes.SERVER);
-  const [lastNotebookCreationTime, setLastNotebookCreationTime] = React.useState(new Date());
-  const { isAdmin } = useUser();
-
-  const getNewStateFromUser = useGetUserStateFromDashboardConfig();
-
-  const setImpersonatingUsername = React.useCallback<
-    NotebookControllerContextProps['setImpersonatingUsername']
-  >(
-    (impersonateUsername) => {
-      if (!isAdmin) return; // cannot impersonate as a non-admin
-
-      if (impersonateUsername) {
-        // Impersonating as admin
-        let newState = getNewStateFromUser(impersonateUsername);
-        if (!newState) {
-          newState = { ...EMPTY_USER_STATE, user: impersonateUsername };
-        }
-
-        if (impersonatingUser) {
-          // Already impersonating, drop current state
-          setCurrentUserState(newState);
-          return;
-        }
-
-        // Starting impersonation, keep current state for when we reset
-        setOldUserState(currentUserState);
-        setCurrentUserState(newState);
-        setImpersonatingUser(true);
-        return;
-      }
-
-      // Undo impersonation, bring back old state
-      setImpersonatingUser(false);
-      if (oldUserState !== EMPTY_USER_STATE) {
-        // We have an old user state, reset
-        setCurrentUserState(oldUserState);
-        setOldUserState(EMPTY_USER_STATE);
-        return;
-      }
-    },
-    [isAdmin, oldUserState, getNewStateFromUser, impersonatingUser, currentUserState],
-  );
-
-  const setCurrentAdminTab = React.useCallback(
-    (newTab: NotebookControllerTabTypes) => {
-      if (!isAdmin) return; // cannot change tab as a non-admin
-
-      setCurrentTab(newTab);
-    },
-    [isAdmin],
-  );
+  const [notebookState, setNotebookState] = React.useState<NotebookContextStorage>({
+    current: undefined,
+    currentIsRunning: false,
+    former: null,
+    requestRefresh: () => undefined,
+  });
+  const [impersonatedUsername, setImpersonating] = useImpersonationForContext(setNotebookState);
+  const [currentTab, setCurrentAdminTab] = useAdminTabState();
 
   return (
     <NotebookControllerContext.Provider
       value={{
-        setCurrentUserState,
-        currentUserState,
-        impersonatingUser,
-        setImpersonatingUsername,
+        impersonatedUsername,
+        setImpersonating,
         currentTab,
         setCurrentAdminTab,
-        lastNotebookCreationTime,
-        setLastNotebookCreationTime,
+        requestNotebookRefresh: notebookState.requestRefresh,
+        // Don't return undefined -- that's for the loading
+        currentUserNotebook: notebookState.current ?? null,
+        currentUserNotebookIsRunning: notebookState.currentIsRunning,
       }}
     >
-      {children}
+      <SetupCurrentNotebook
+        currentNotebook={notebookState.current}
+        setNotebookState={setNotebookState}
+      >
+        {children}
+      </SetupCurrentNotebook>
     </NotebookControllerContext.Provider>
   );
 };

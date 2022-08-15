@@ -10,6 +10,10 @@ export default async (fastify: FastifyInstance): Promise<void> => {
           namespace: string;
           notebookName: string;
         };
+        Querystring: {
+          // TODO: Support server side filtering
+          from?: string;
+        };
       }>,
     ) => {
       const params = request.params;

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { getNotebookEvents } from '../services/notebookEventsService';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import useNotification from './useNotification';
 import { K8sEvent } from '../types';
 
@@ -44,7 +43,5 @@ export const useWatchNotebookEvents = (
     return clear;
   }, [projectName, notebookName, notification, watch]);
 
-  const retNotebookEvents = useDeepCompareMemoize<K8sEvent[]>(notebookEvents);
-
-  return retNotebookEvents;
+  return notebookEvents;
 };

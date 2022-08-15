@@ -15,7 +15,7 @@ import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
 import ExternalLink from '../../../../components/ExternalLink';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
-import { User } from './types';
+import { AdminViewUserData } from './types';
 import StopServerModal from '../server/StopServerModal';
 import { NotebookAdminContext } from './NotebookAdminContext';
 import { Notebook } from '../../../../types';
@@ -25,7 +25,7 @@ const NotebookAdminControl: React.FC = () => {
   const [unsortedUsers, loaded, loadError] = useAdminUsers();
   const [pageIndex, setPageIndex] = React.useState(0);
   const [perPage, setPerPage] = React.useState(INITIAL_PAGE_LIMIT);
-  const { transformData, getColumnSort } = useTableColumnSort<User>(columns, 0);
+  const { transformData, getColumnSort } = useTableColumnSort<AdminViewUserData>(columns, 0);
   const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
 
   const users = transformData(unsortedUsers);

@@ -1,16 +1,17 @@
 import * as React from 'react';
 import AppContext from '../../../../app/AppContext';
-import { NotebookControllerContext } from '../../NotebookControllerContext';
+import { useNotebookUserState } from '../../../../utilities/notebookControllerUtils';
 
 export const usePreferredNotebookSize = (): [
   selectedSize: string,
   setSelectedSize: (size: string) => void,
 ] => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const { currentUserState } = React.useContext(NotebookControllerContext);
+  const currentUserState = useNotebookUserState();
+
   let defaultSize = '';
   if (dashboardConfig?.spec.notebookSizes) {
-    if (currentUserState?.lastSelectedSize) {
+    if (currentUserState.lastSelectedSize) {
       const size = dashboardConfig.spec.notebookSizes.find(
         (notebookSize) => notebookSize.name === currentUserState.lastSelectedSize,
       );

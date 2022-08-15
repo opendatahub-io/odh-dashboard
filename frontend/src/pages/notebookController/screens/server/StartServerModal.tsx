@@ -11,21 +11,15 @@ import {
   Progress,
   ProgressVariant,
 } from '@patternfly/react-core';
-import {
-  checkNotebookRunning,
-  getNotebookStatus,
-} from '../../../../utilities/notebookControllerUtils';
-import { useWatchNotebookEvents } from '../../../../utilities/useWatchNotebookEvents';
+import { useDeepCompareMemoize } from '../../../../utilities/useDeepCompareMemoize';
+import { useNotebookStatus } from '../../../../utilities/notebookControllerUtils';
+import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
-import { EventStatus, Notebook } from '../../../../types';
-import useNamespaces from '../../../../pages/notebookController/useNamespaces';
 
 import '../../NotebookController.scss';
 
 type StartServerModalProps = {
-  notebook?: Notebook;
-  startShown: boolean;
-  setStartModalShown: (shown: boolean) => void;
+  open: boolean;
   onClose: () => void;
 };
 
@@ -35,42 +29,38 @@ type SpawnStatus = {
   description: React.ReactNode;
 };
 
-const StartServerModal: React.FC<StartServerModalProps> = ({
-  notebook,
-  startShown,
-  setStartModalShown,
-  onClose,
-}) => {
-  const { lastNotebookCreationTime } = React.useContext(NotebookControllerContext);
-  const { notebookNamespace } = useNamespaces();
-  const [spawnInProgress, setSpawnInProgress] = React.useState<boolean>(false);
+const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) => {
+  const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
+    React.useContext(NotebookControllerContext);
+  const spawnInProgress = open;
   const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
+  const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
+  const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
 
-  const isNotebookRunning = checkNotebookRunning(notebook);
+  const onBeforeClose = () => {
+    // Notify
+    onClose();
+  };
+  React.useEffect(() => {
+    // TODO: Improve this, hack to just not update the modal while it is open
+    if (!spawnInProgress && (spawnPercentile || spawnStatus)) {
+      // Reset the modal
+      setLogsExpanded(false);
+      setSpawnPercentile(0);
+      setSpawnStatus(null);
+    }
+  }, [spawnInProgress, spawnPercentile, spawnStatus]);
+
   const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
 
-  const notebookEvents = useWatchNotebookEvents(
-    notebookNamespace,
-    notebook?.metadata.name || '',
-    spawnInProgress,
-  );
   const spawnFailed =
     spawnStatus?.status === AlertVariant.danger || spawnStatus?.status === AlertVariant.warning;
-
-  const notebookStatus = getNotebookStatus(notebookEvents, lastNotebookCreationTime);
-
-  const onUnload = React.useCallback((e: BeforeUnloadEvent) => {
-    e.preventDefault();
-    return (e.returnValue = '');
-  }, []);
 
   React.useEffect(() => {
     let timer;
     if (isNotebookRunning) {
-      window.removeEventListener('beforeunload', onUnload);
-      setSpawnInProgress(false);
       setSpawnPercentile(100);
       setSpawnStatus({
         status: AlertVariant.success,
@@ -93,19 +83,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
     return () => {
       clearTimeout(timer);
     };
-  }, [isNotebookRunning, notebookLink, onUnload]);
-
-  React.useEffect(() => {
-    setSpawnInProgress(startShown);
-    setSpawnStatus(null);
-    setSpawnPercentile(0);
-    setLogsExpanded(false);
-    // Notify user if they are trying to refresh the page when spawning is in progress
-    if (startShown) {
-      window.addEventListener('beforeunload', onUnload);
-    }
-    return () => window.removeEventListener('beforeunload', onUnload);
-  }, [startShown, onUnload]);
+  }, [isNotebookRunning, notebookLink]);
 
   React.useEffect(() => {
     if (spawnInProgress && !isNotebookRunning) {
@@ -114,8 +92,8 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
       }
       if (notebookStatus.currentStatus === EventStatus.IN_PROGRESS) {
         setSpawnPercentile(notebookStatus.percentile);
+        setSpawnStatus(null);
       } else if (notebookStatus.currentStatus === EventStatus.ERROR) {
-        setSpawnInProgress(false);
         setSpawnStatus({
           status: AlertVariant.danger,
           title: notebookStatus.currentEventReason,
@@ -140,13 +118,15 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
       default:
         variant = undefined;
     }
+
+    const currentEvent = notebookStatus?.currentEvent;
     return (
       <Progress
         id="progress-bar"
         value={spawnPercentile}
         title={
-          notebookStatus?.events.length
-            ? notebookStatus.currentEvent
+          events.length > 0 && currentEvent
+            ? currentEvent
             : 'Waiting for server request to start...'
         }
         variant={variant}
@@ -167,7 +147,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
 
   const renderButtons = () =>
     !isNotebookRunning ? (
-      <Button key="cancel" variant="secondary" onClick={onClose}>
+      <Button key="cancel" variant={spawnFailed ? 'primary' : 'secondary'} onClick={onBeforeClose}>
         {spawnFailed ? 'Close' : 'Cancel'}
       </Button>
     ) : null;
@@ -180,7 +160,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
       isIndented
     >
       <List isPlain isBordered>
-        {notebookStatus?.events.reverse().map((event, index) => (
+        {events.reverse().map((event, index) => (
           <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
             {`${event.lastTimestamp} [${event.type}] ${event.message}`}
           </ListItem>
@@ -198,9 +178,9 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
       appendTo={document.body}
       variant={ModalVariant.small}
       title="Starting server"
-      isOpen={startShown}
+      isOpen={open}
       showClose={spawnFailed}
-      onClose={() => (isNotebookRunning ? setStartModalShown(false) : onClose())}
+      onClose={onBeforeClose}
     >
       {renderProgress()}
       {renderStatus()}

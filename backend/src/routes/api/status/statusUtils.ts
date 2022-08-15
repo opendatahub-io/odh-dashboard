@@ -2,8 +2,7 @@ import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
 import { getUserName } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
-import { isUserAdmin, isUserAllowed, mapUserRoles } from '../../../utils/adminUtils';
-import { getAdminGroups } from '../../../utils/groupsUtils';
+import { isUserAdmin, isUserAllowed } from '../../../utils/adminUtils';
 
 export const status = async (
   fastify: KubeFastifyInstance,
@@ -38,14 +37,4 @@ export const status = async (
       },
     };
   }
-};
-
-export const mapUserPrivilege = async (
-  fastify: KubeFastifyInstance,
-  users: string[],
-): Promise<{ [username: string]: 'User' | 'Admin' }> => {
-  const adminGroups = getAdminGroups();
-  const adminGroupsList = adminGroups.split(',');
-
-  return mapUserRoles(fastify, fastify.kube.customObjectsApi, adminGroupsList, users);
 };

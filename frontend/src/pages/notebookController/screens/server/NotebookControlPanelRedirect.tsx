@@ -1,10 +1,7 @@
 import * as React from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import ApplicationsPage from 'pages/ApplicationsPage';
-import {
-  useGetUserStateFromDashboardConfig,
-  usernameTranslate,
-} from 'utilities/notebookControllerUtils';
+import { usernameTranslate } from 'utilities/notebookControllerUtils';
 import AppContext from '../../../../app/AppContext';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { useUser } from '../../../../redux/selectors';
@@ -16,9 +13,7 @@ const NotebookControlPanelRedirect: React.FC = () => {
   const { username: loggedInUser, isAdmin } = useUser();
   const translatedLoggedInUsername = usernameTranslate(loggedInUser);
   const { dashboardConfig } = React.useContext(AppContext);
-  const getUserStateFromDashboardConfig = useGetUserStateFromDashboardConfig();
-  const { setCurrentUserState, setImpersonatingUsername, setCurrentAdminTab } =
-    React.useContext(NotebookControllerContext);
+  const { setImpersonating, setCurrentAdminTab } = React.useContext(NotebookControllerContext);
 
   React.useEffect(() => {
     if (
@@ -29,7 +24,8 @@ const NotebookControlPanelRedirect: React.FC = () => {
       const notActiveUser = translatedLoggedInUsername !== translatedUsername;
       if (notActiveUser) {
         if (isAdmin) {
-          setImpersonatingUsername(translatedUsername);
+          // TODO: we need to worry about this case -- how to manage it?
+          // setImpersonating(undefined, translatedUsername);
           setCurrentAdminTab(NotebookControllerTabTypes.ADMIN);
           history.replace('/notebookController');
           return;
@@ -40,25 +36,16 @@ const NotebookControlPanelRedirect: React.FC = () => {
         return;
       }
 
-      // Logged in user
-      const userState = getUserStateFromDashboardConfig(translatedUsername);
-      if (!userState) {
-        history.push('/not-found');
-        return;
-      }
-
-      setCurrentUserState(userState);
+      // Logged in user -- just redirect and it will load the state normally
       history.replace('/notebookController');
     }
   }, [
     translatedUsername,
     dashboardConfig,
     history,
-    setCurrentUserState,
-    getUserStateFromDashboardConfig,
     translatedLoggedInUsername,
     isAdmin,
-    setImpersonatingUsername,
+    setImpersonating,
     setCurrentAdminTab,
   ]);
   return (
