@@ -26,14 +26,11 @@ export const updateClusterSettings = async (
   const query = request.query as { [key: string]: string };
   const dashConfig = getDashboardConfig();
   try {
-    try {
-      await patchCM(fastify, segmentKeyCfg, {
-        data: { segmentKeyEnabled: query.userTrackingEnabled },
-      });
-    } catch (e) {
+    await patchCM(fastify, segmentKeyCfg, {
+      data: { segmentKeyEnabled: query.userTrackingEnabled },
+    }).catch((e) => {
       fastify.log.error('Failed to update segment key enabled: ' + e.message);
-      throw e;
-    }
+    });
     if (query.pvcSize && query.cullerTimeout) {
       if (dashConfig.spec?.notebookController?.enabled) {
         await setDashboardConfig(fastify, {
@@ -51,13 +48,13 @@ export const updateClusterSettings = async (
           isEnabled = false;
         }
         if (!isEnabled) {
-          await coreV1Api.deleteNamespacedConfigMap(nbcCfg, fastify.kube.namespace);
+          await coreV1Api.deleteNamespacedConfigMap(nbcCfg, fastify.kube.namespace).catch((e) => {
+            fastify.log.error('Failed to delete culler config: ') + e.message;
+          });
         } else {
-          try {
-            await patchCM(fastify, nbcCfg, {
-              data: { ENABLE_CULLING: String(isEnabled), CULL_IDLE_TIME: String(cullingTimeMin) },
-            });
-          } catch (e) {
+          await patchCM(fastify, nbcCfg, {
+            data: { ENABLE_CULLING: String(isEnabled), CULL_IDLE_TIME: String(cullingTimeMin) },
+          }).catch(async (e) => {
             if (e.statusCode === 404) {
               const cm: V1ConfigMap = {
                 apiVersion: 'v1',
@@ -72,8 +69,10 @@ export const updateClusterSettings = async (
                 },
               };
               await fastify.kube.coreV1Api.createNamespacedConfigMap(fastify.kube.namespace, cm);
+            } else {
+              fastify.log.error('Failed to patch culler config: ' + e.message);
             }
-          }
+          });
         }
       } else {
         patchCM(fastify, jupyterhubCfg, {
@@ -81,10 +80,12 @@ export const updateClusterSettings = async (
             singleuser_pvc_size: `${query.pvcSize}Gi`,
             culler_timeout: query.cullerTimeout,
           },
+        }).catch((e) => {
+          fastify.log.error('Unable to patch JupyterHub config' + e.message);
         });
       }
     }
-    if (dashConfig.spec?.notebookController?.enabled) {
+    if (dashConfig.spec.notebookController?.enabled) {
       await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     } else {
       const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(jupyterhubCfg, namespace);
@@ -97,12 +98,13 @@ export const updateClusterSettings = async (
     }
     return { success: true, error: null };
   } catch (e) {
+    fastify.log.error(
+      'Setting cluster settings error: ' + e.toString() + e.response?.body?.message,
+    );
     if (e.response?.statusCode !== 404) {
-      fastify.log.error(
-        'Setting cluster settings error: ' + e.toString() + e.response?.body?.message,
-      );
       return { success: false, error: 'Unable to update cluster settings. ' + e.message };
     }
+    throw e;
   }
 };
 
