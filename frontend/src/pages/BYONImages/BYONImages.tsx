@@ -28,7 +28,7 @@ const BYONImages: React.FC = () => {
 
   const noImagesPageSection = (
     <PageSection isFilled>
-      <EmptyState variant={EmptyStateVariant.full} data-test-id="empty-empty-state">
+      <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state">
         <EmptyStateIcon icon={PlusCircleIcon} />
         <Title headingLevel="h5" size="lg">
           No custom notebook images found.

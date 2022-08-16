@@ -59,7 +59,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (loadError) {
       return (
         <PageSection>
-          <EmptyState variant={EmptyStateVariant.full} data-testid="error-empty-state">
+          <EmptyState variant={EmptyStateVariant.full} data-id="error-empty-state">
             <EmptyStateIcon icon={WarningTriangleIcon} />
             <Title headingLevel="h5" size="lg">
               {errorMessage !== undefined ? errorMessage : 'Error loading components'}
@@ -77,7 +77,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (!loaded) {
       return (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.full} data-test-id="loading-empty-state">
+          <EmptyState variant={EmptyStateVariant.full} data-id="loading-empty-state">
             <Spinner size="xl" />
             <Title headingLevel="h5" size="lg">
               Loading
@@ -90,7 +90,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (empty) {
       return !emptyStatePage ? (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.full} data-testid="empty-empty-state">
+          <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state">
             <EmptyStateIcon icon={QuestionCircleIcon} />
             <Title headingLevel="h5" size="lg">
               {emptyMessage !== undefined ? emptyMessage : 'No Components Found'}

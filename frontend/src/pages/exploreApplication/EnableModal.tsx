@@ -93,7 +93,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     <Modal
       aria-label={`Enable ${enable.title}`}
       className="odh-enable-modal"
-      data-testid="enable-modal"
+      data-id="enable-modal"
       variant={ModalVariant.small}
       title={enable.title}
       isOpen

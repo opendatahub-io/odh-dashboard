@@ -170,7 +170,7 @@ const ClusterSettings: React.FC = () => {
                 <TextInput
                   className="odh-number-input"
                   name="pvc"
-                  id="pvc-size-input"
+                  data-id="pvc-size-input"
                   type="text"
                   aria-label="PVC Size Input"
                   value={pvcSize}
@@ -240,7 +240,7 @@ const ClusterSettings: React.FC = () => {
                 <TextInput
                   className="odh-number-input__hour"
                   name="hour"
-                  id="hour-input"
+                  data-id="hour-input"
                   type="text"
                   aria-label="Culler Timeout Hour Input"
                   value={hour}
@@ -263,7 +263,7 @@ const ClusterSettings: React.FC = () => {
                 <TextInput
                   className="odh-number-input"
                   name="minute"
-                  id="minute-input"
+                  data-id="minute-input"
                   type="text"
                   aria-label="Culler Timeout Minute Input"
                   value={minute}
@@ -329,6 +329,7 @@ const ClusterSettings: React.FC = () => {
             ) : null}
             <ActionGroup>
               <Button
+                data-id="submit-cluster-settings"
                 isDisabled={!isSettingsChanged}
                 variant="primary"
                 onClick={handleSaveButtonClicked}
