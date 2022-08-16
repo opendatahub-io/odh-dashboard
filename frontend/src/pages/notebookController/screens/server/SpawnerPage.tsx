@@ -8,8 +8,6 @@ import {
   FormSection,
   Grid,
   GridItem,
-  Select,
-  SelectOption,
 } from '@patternfly/react-core';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../../../utilities/imageUtils';
 import {
@@ -53,6 +51,7 @@ import useNamespaces from '../../useNamespaces';
 import GPUSelectField from './GPUSelectField';
 
 import '../../NotebookController.scss';
+import SizeSelectField from './SizeSelectField';
 
 const SpawnerPage: React.FC = React.memo(() => {
   const history = useHistory();
@@ -79,8 +78,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     image: undefined,
     tag: undefined,
   });
-  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
-  const [selectedSize, setSelectedSize] = React.useState<string>('');
+  const [selectedSize, setSelectedSize] = React.useState<string>('Default');
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -146,6 +144,15 @@ const SpawnerPage: React.FC = React.memo(() => {
   }, [currentUserState, images, buildStatuses]);
 
   React.useEffect(() => {
+    const setDefaultSize = () => {
+      if (dashboardConfig?.spec.notebookSizes?.find((size) => size.name === 'Default')) {
+        setSelectedSize('Default');
+      } else {
+        if (dashboardConfig.spec.notebookSizes) {
+          setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
+        }
+      }
+    };
     if (dashboardConfig?.spec.notebookSizes) {
       if (currentUserState?.lastSelectedSize) {
         const size = dashboardConfig.spec.notebookSizes.find(
@@ -154,10 +161,10 @@ const SpawnerPage: React.FC = React.memo(() => {
         if (size) {
           setSelectedSize(size.name);
         } else {
-          setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
+          setDefaultSize();
         }
       } else {
-        setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
+        setDefaultSize();
       }
     }
   }, [dashboardConfig, currentUserState]);
@@ -216,28 +223,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       setSelectedImageTag({ image, tag });
     }
   };
-
-  const handleSizeSelection = (e, selection) => {
-    setSelectedSize(selection);
-    setSizeDropdownOpen(false);
-  };
-
-  const sizeOptions = React.useMemo(() => {
-    const sizes = dashboardConfig?.spec?.notebookSizes;
-    if (!sizes?.length) {
-      return [<SelectOption key="Default" value="Default" description="No Size Limits" />];
-    }
-
-    return sizes.map((size) => {
-      const name = size.name;
-      const desc =
-        `Limits: ${size?.resources?.limits?.cpu || '??'} CPU, ` +
-        `${size?.resources?.limits?.memory || '??'} Memory ` +
-        `Requests: ${size?.resources?.requests?.cpu || '??'} CPU, ` +
-        `${size?.resources?.requests?.memory || '??'} Memory`;
-      return <SelectOption key={name} value={name} description={desc} />;
-    });
-  }, [dashboardConfig]);
 
   const renderEnvironmentVariableRows = () => {
     if (!variableRows?.length) {
@@ -388,20 +373,7 @@ const SpawnerPage: React.FC = React.memo(() => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            {sizeOptions && (
-              <FormGroup label="Container size" fieldId="modal-notebook-container-size">
-                <Select
-                  isOpen={sizeDropdownOpen}
-                  onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
-                  aria-labelledby="container-size"
-                  selections={selectedSize}
-                  onSelect={handleSizeSelection}
-                  menuAppendTo="parent"
-                >
-                  {sizeOptions}
-                </Select>
-              </FormGroup>
-            )}
+            <SizeSelectField value={selectedSize} setValue={(size) => setSelectedSize(size)} />
             <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
