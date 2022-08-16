@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
-import AppContext from 'app/AppContext';
+import AppContext from '../../../../app/AppContext';
 
 type SizeSelectFieldProps = {
   value: string;

@@ -49,9 +49,9 @@ import ImpersonateAlert from '../admin/ImpersonateAlert';
 import useCurrentUser from '../../useCurrentUser';
 import useNamespaces from '../../useNamespaces';
 import GPUSelectField from './GPUSelectField';
+import SizeSelectField from './SizeSelectField';
 
 import '../../NotebookController.scss';
-import SizeSelectField from './SizeSelectField';
 
 const SpawnerPage: React.FC = React.memo(() => {
   const history = useHistory();
