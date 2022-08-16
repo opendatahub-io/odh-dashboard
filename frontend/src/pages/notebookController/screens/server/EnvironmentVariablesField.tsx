@@ -73,13 +73,18 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
               }
             />
             {variable.type === 'password' ? (
-              <Button variant="control" onClick={() => setShowPassword(!showPassword)}>
+              <Button
+                data-id="show-password-button"
+                variant="control"
+                onClick={() => setShowPassword(!showPassword)}
+              >
                 {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
               </Button>
             ) : null}
           </InputGroup>
           {variableRow.variableType === CUSTOM_VARIABLE ? (
             <Checkbox
+              data-id="is-secret-checkbox"
               className={variableType === 'password' ? ' m-is-secret' : ''}
               label="Secret"
               isChecked={variableType === 'password'}

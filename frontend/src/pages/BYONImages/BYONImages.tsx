@@ -35,6 +35,7 @@ const BYONImages: React.FC = () => {
         </Title>
         <EmptyStateBody>To get started import a custom notebook image.</EmptyStateBody>
         <Button
+          data-id="display-image-modal-button"
           variant={ButtonVariant.primary}
           onClick={() => {
             setImportImageModalVisible(true);

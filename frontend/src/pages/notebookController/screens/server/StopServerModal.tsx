@@ -46,10 +46,16 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
   };
 
   const modalActions = [
-    <Button isDisabled={isDeleting} key="confirm" variant="primary" onClick={handleStopServer}>
+    <Button
+      data-id="stop-nb-button"
+      isDisabled={isDeleting}
+      key="confirm"
+      variant="primary"
+      onClick={handleStopServer}
+    >
       Stop {textToShow}
     </Button>,
-    <Button key="cancel" variant="secondary" onClick={onClose}>
+    <Button data-id="cancel-button" key="cancel" variant="secondary" onClick={onClose}>
       Cancel
     </Button>,
   ];

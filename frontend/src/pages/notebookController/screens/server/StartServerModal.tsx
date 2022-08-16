@@ -167,13 +167,14 @@ const StartServerModal: React.FC<StartServerModalProps> = ({
 
   const renderButtons = () =>
     !isNotebookRunning ? (
-      <Button key="cancel" variant="secondary" onClick={onClose}>
+      <Button data-id="close-spawn" key="cancel" variant="secondary" onClick={onClose}>
         {spawnFailed ? 'Close' : 'Cancel'}
       </Button>
     ) : null;
 
   const renderLogs = () => (
     <ExpandableSection
+      data-id="expand-logs"
       toggleText={`${logsExpanded ? 'Collapse' : 'Expand'} event log`}
       onToggle={(isExpanded) => setLogsExpanded(isExpanded)}
       isExpanded={logsExpanded}

@@ -50,7 +50,9 @@ export const NotebookServer: React.FC = () => {
           <div className="odh-notebook-controller__page">
             <ActionList>
               <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                <Button variant="primary">Stop notebook server</Button>
+                <Button data-id="stop-nb-button" variant="primary">
+                  Stop notebook server
+                </Button>
               </ActionListItem>
               <ActionListItem
                 onClick={() => {
@@ -59,7 +61,9 @@ export const NotebookServer: React.FC = () => {
                   }
                 }}
               >
-                <Button variant="secondary">Return to server</Button>
+                <Button data-id="return-button" variant="secondary">
+                  Return to server
+                </Button>
               </ActionListItem>
             </ActionList>
             <NotebookServerDetails notebook={notebook} images={images} />

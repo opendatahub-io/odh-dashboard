@@ -377,6 +377,7 @@ const SpawnerPage: React.FC = React.memo(() => {
                 {images.sort(checkOrder).map((image) => (
                   <GridItem key={image.name}>
                     <ImageSelector
+                      data-id="image-selector"
                       image={image}
                       selectedImage={selectedImageTag.image}
                       selectedTag={selectedImageTag.tag}
@@ -391,6 +392,7 @@ const SpawnerPage: React.FC = React.memo(() => {
             {sizeOptions && (
               <FormGroup label="Container size" fieldId="modal-notebook-container-size">
                 <Select
+                  data-id="container-size"
                   isOpen={sizeDropdownOpen}
                   onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
                   aria-labelledby="container-size"
