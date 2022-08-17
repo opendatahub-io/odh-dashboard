@@ -37,6 +37,7 @@ export const createNotebook = (
   const url = `/api/notebooks/${projectName}`;
   const resources = { ...notebookSize?.resources };
   const tolerations: NotebookToleration[] = [];
+  let affinity = {};
   if (gpus > 0) {
     if (!resources.limits) {
       resources.limits = {};
@@ -51,6 +52,25 @@ export const createNotebook = (
       key: LIMIT_NOTEBOOK_IMAGE_GPU,
       operator: 'Exists',
     });
+  } else {
+    affinity = {
+      nodeAffinity: {
+        preferredDuringSchedulingIgnoredDuringExecution: [
+          {
+            preference: {
+              matchExpressions: [
+                {
+                  key: 'nvidia.com/gpu.present',
+                  operator: 'NotIn',
+                  values: ['true'],
+                },
+              ],
+            },
+            weight: 1,
+          },
+        ],
+      },
+    };
   }
   const translatedUsername = usernameTranslate(username);
 
@@ -93,6 +113,7 @@ export const createNotebook = (
     spec: {
       template: {
         spec: {
+          affinity: affinity,
           enableServiceLinks: false,
           containers: [
             {
