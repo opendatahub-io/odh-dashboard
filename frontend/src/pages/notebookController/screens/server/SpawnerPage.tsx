@@ -143,32 +143,6 @@ const SpawnerPage: React.FC = React.memo(() => {
     }
   }, [currentUserState, images, buildStatuses]);
 
-  React.useEffect(() => {
-    const setDefaultSize = () => {
-      if (dashboardConfig?.spec.notebookSizes?.find((size) => size.name === 'Default')) {
-        setSelectedSize('Default');
-      } else {
-        if (dashboardConfig.spec.notebookSizes) {
-          setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
-        }
-      }
-    };
-    if (dashboardConfig?.spec.notebookSizes) {
-      if (currentUserState?.lastSelectedSize) {
-        const size = dashboardConfig.spec.notebookSizes.find(
-          (notebookSize) => notebookSize.name === currentUserState.lastSelectedSize,
-        );
-        if (size) {
-          setSelectedSize(size.name);
-        } else {
-          setDefaultSize();
-        }
-      } else {
-        setDefaultSize();
-      }
-    }
-  }, [dashboardConfig, currentUserState]);
-
   const mapRows = React.useCallback(
     async (fetchFunc: (namespace: string, name: string) => Promise<ConfigMap | Secret>) => {
       if (!username) {
