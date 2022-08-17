@@ -43,6 +43,7 @@ import { useWatchImages } from '../../../../utilities/useWatchImages';
 import ApplicationsPage from '../../../ApplicationsPage';
 import StartServerModal from './StartServerModal';
 import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage';
+import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import useNotification from '../../../../utilities/useNotification';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
@@ -78,7 +79,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     image: undefined,
     tag: undefined,
   });
-  const [selectedSize, setSelectedSize] = React.useState<string>('Default');
+  const { selectedSize } = usePreferredNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -347,7 +348,7 @@ const SpawnerPage: React.FC = React.memo(() => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            <SizeSelectField value={selectedSize} setValue={(size) => setSelectedSize(size)} />
+            <SizeSelectField />
             <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
