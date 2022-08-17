@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import AppContext from '../../../../app/AppContext';
 
 type SizeSelectFieldProps = {
@@ -33,6 +34,7 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue }) =>
       label="Container Size"
       fieldId="modal-notebook-container-size"
       helperTextInvalid="No notebook sizes configured"
+      helperTextInvalidIcon={<ExclamationCircleIcon />}
       validated={sizes.length === 0 ? 'error' : undefined}
     >
       <Select
