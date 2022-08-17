@@ -1,17 +1,20 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
 import AppContext from '../../../../app/AppContext';
-import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 
-const SizeSelectField: React.FC = () => {
-  const { selectedSize, setSelectedSize } = usePreferredNotebookSize();
+type SizeSelectFieldProps = {
+  value: string;
+  setValue: (newValue: string) => void;
+};
+
+const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
   const { dashboardConfig } = React.useContext(AppContext);
+  const sizes = dashboardConfig?.spec?.notebookSizes || [];
 
   const sizeOptions = () => {
-    const sizes = dashboardConfig?.spec?.notebookSizes;
-    if (!sizes?.length) {
-      return [<SelectOption key="Default" value="Default" description="No Size Limits" />];
+    if (sizes.length === 0) {
+      return [<SelectOption key="Default" value="No sizes" />];
     }
 
     return sizes.map((size) => {
@@ -26,19 +29,25 @@ const SizeSelectField: React.FC = () => {
   };
 
   return (
-    <FormGroup label="Container Size" fieldId="modal-notebook-container-size">
+    <FormGroup
+      label="Container Size"
+      fieldId="modal-notebook-container-size"
+      helperTextInvalid="No notebook sizes configured"
+      validated={sizes.length === 0 ? 'error' : undefined}
+    >
       <Select
         isOpen={sizeDropdownOpen}
         onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
         aria-labelledby="container-size"
-        selections={selectedSize}
+        selections={value}
         onSelect={(event, selection) => {
           // We know we are setting values as a string
           if (typeof selection === 'string') {
-            setSelectedSize(selection);
+            setValue(selection);
             setSizeDropdownOpen(false);
           }
         }}
+        isDisabled={sizes.length === 0}
         menuAppendTo="parent"
       >
         {sizeOptions()}

@@ -79,7 +79,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     image: undefined,
     tag: undefined,
   });
-  const { selectedSize } = usePreferredNotebookSize();
+  const [selectedSize, setSelectedSize] = usePreferredNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -348,7 +348,7 @@ const SpawnerPage: React.FC = React.memo(() => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            <SizeSelectField />
+            <SizeSelectField value={selectedSize} setValue={setSelectedSize} />
             <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
