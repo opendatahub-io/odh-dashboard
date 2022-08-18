@@ -56,8 +56,10 @@ const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig
       const dashboardCR = res?.body as DashboardConfig;
       return [dashboardCR];
     })
-    .catch(() => {
-      fastify.log.warn('Received error fetching OdhDashboardConfig, creating new.');
+    .catch((e) => {
+      fastify.log.warn(
+        `Received error (${e.body.message}) fetching OdhDashboardConfig, creating new.`,
+      );
       return createDashboardCR(fastify);
     });
   return crResponse;
