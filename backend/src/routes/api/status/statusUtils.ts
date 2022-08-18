@@ -1,6 +1,5 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
-import { CustomObjectsApi } from '@kubernetes/client-node';
 import { getUserName } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
@@ -8,11 +7,15 @@ import { getDashboardConfig } from '../../../utils/resourceUtils';
 type groupObjResponse = {
   users: string[] | null;
 };
+type UserGroupList = string[] | true; // the user list or "always in"; eg. any authed user
 
 const ADMIN_GROUP = 'adminGroups';
 const ALLOWED_GROUP = 'allowedGroups';
 
-const getUserList = async (fastify: KubeFastifyInstance, groupName: string): Promise<string[]> => {
+const getUserList = async (
+  fastify: KubeFastifyInstance,
+  groupName: string,
+): Promise<UserGroupList> => {
   let userList: string[] = [];
 
   if (groupName) {
@@ -20,17 +23,25 @@ const getUserList = async (fastify: KubeFastifyInstance, groupName: string): Pro
       const dashCR = getDashboardConfig().spec;
       if (groupName === 'adminGroups' || groupName === 'allowedGroups') {
         const userGroup = dashCR.groupsConfig?.[groupName];
-        userList = await getGroup(fastify.kube.customObjectsApi, userGroup);
+        if (userGroup === 'system:authenticated') {
+          // Any user that is authenticated
+          return true;
+        }
+        userList = await getGroup(fastify, userGroup);
       }
     } catch (e) {
       fastify.log.error(e.toString());
     }
-
-    return userList || [];
   }
+
+  return userList || [];
 };
 
-const groupIncludes = (userName: string, groupUsers: string[]) => {
+const groupIncludes = (userName: string, groupUsers: UserGroupList): boolean => {
+  if (groupUsers === true) {
+    return true;
+  }
+
   // Usernames with invalid characters can start with `b64:` to keep their unwanted characters
   return groupUsers.includes(userName) || groupUsers.includes(`b64:${userName}`);
 };
@@ -46,12 +57,9 @@ export const status = async (
   const userName = await getUserName(fastify, request, customObjectsApi);
   const adminUsers = await getUserList(fastify, ADMIN_GROUP);
   const isAdmin = groupIncludes(userName, adminUsers);
-  let isAllowed = false;
-  if (isAdmin) {
-    isAllowed = true;
-  } else {
-    isAllowed = groupIncludes(userName, await getUserList(fastify, ALLOWED_GROUP));
-  }
+  const isAllowed = isAdmin
+    ? true
+    : groupIncludes(userName, await getUserList(fastify, ALLOWED_GROUP));
 
   if (!kubeContext && !kubeContext.trim()) {
     const error = createCustomError(
@@ -77,19 +85,20 @@ export const status = async (
 };
 
 export const getGroup = async (
-  customObjectsApi: CustomObjectsApi,
-  adminGroup: string,
+  fastify: KubeFastifyInstance,
+  groupName: string,
 ): Promise<string[]> => {
   try {
-    const adminGroupResponse = await customObjectsApi.getClusterCustomObject(
+    const adminGroupResponse = await fastify.kube.customObjectsApi.getClusterCustomObject(
       'user.openshift.io',
       'v1',
       'groups',
-      adminGroup,
+      groupName,
     );
     return (adminGroupResponse.body as groupObjResponse).users;
   } catch (e) {
-    throw new Error(`Failed to retrieve Group ${adminGroup}, might not exist.`);
+    fastify.log.error(`Failed to retrieve Group ${groupName}, might not exist. ${e.body?.message}`);
+    throw new Error(`Failed to retrieve Group ${groupName}, might not exist.`);
   }
 };
 
