@@ -55,12 +55,12 @@ const BYONImages: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="BYON image settings"
+      title="Notebook image settings"
       description={description}
       loaded={loaded}
       empty={isEmpty}
       loadError={loadError}
-      errorMessage="Unable to load BYON images."
+      errorMessage="Unable to load notebook images."
       emptyStatePage={noImagesPageSection}
     >
       {!isEmpty ? (

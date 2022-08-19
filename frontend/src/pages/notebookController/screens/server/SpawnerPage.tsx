@@ -324,8 +324,8 @@ const SpawnerPage: React.FC = React.memo(() => {
     <>
       {impersonatingUser && <ImpersonateAlert />}
       <ApplicationsPage
-        title="Start a Notebook server"
-        description="Select options for your Notebook server."
+        title="Start a notebook server"
+        description="Select options for your notebook server."
         loaded={loaded}
         loadError={loadError}
         empty={!images || images.length === 0}
@@ -368,7 +368,7 @@ const SpawnerPage: React.FC = React.memo(() => {
               <Alert
                 variant="danger"
                 isInline
-                title="Failed to create the Notebook, please try again later"
+                title="Failed to create the notebook, please try again later"
               >
                 {submitError.message}
               </Alert>

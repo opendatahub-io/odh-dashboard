@@ -17,7 +17,7 @@ export const DeleteImageModal: React.FC<ImportImageModalProps> = ({
   return (
     <Modal
       variant={ModalVariant.medium}
-      title="Delete Notebook image"
+      title="Delete notebook image"
       titleIconVariant="warning"
       isOpen={isOpen}
       onClose={onCloseHandler}
