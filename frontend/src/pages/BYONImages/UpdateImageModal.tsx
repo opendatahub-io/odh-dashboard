@@ -155,8 +155,8 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                 <>
                   <TableComposable aria-label="Simple table" variant="compact">
                     <Caption>
-                      Change the advertised software shown with this BYON image. Modifying the
-                      software here does not effect the contents of the BYON image.
+                      Change the advertised software shown with this notebook image. Modifying the
+                      software here does not effect the contents of the notebook image.
                     </Caption>
                     <Thead>
                       <Tr>
@@ -207,8 +207,8 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     No software added
                   </Title>
                   <EmptyStateBody>
-                    Add software to be advertised with your BYON image. Making changes here won’t
-                    affect the contents of the image.{' '}
+                    Add software to be advertised with your notebook image. Making changes here
+                    won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
                     id="add-software-button"
@@ -235,8 +235,8 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                 <>
                   <TableComposable aria-label="Simple table" variant="compact" isStickyHeader>
                     <Caption>
-                      Change the advertised packages shown with this BYON image. Modifying the
-                      packages here does not effect the contents of the BYON image.
+                      Change the advertised packages shown with this notebook image. Modifying the
+                      packages here does not effect the contents of the notebook image.
                     </Caption>
                     <Thead>
                       <Tr>
@@ -287,8 +287,8 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     No packages added
                   </Title>
                   <EmptyStateBody>
-                    Add packages to be advertised with your BYON image. Making changes here won’t
-                    affect the contents of the image.{' '}
+                    Add packages to be advertised with your notebook image. Making changes here
+                    won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
                     id="add-package-button"
