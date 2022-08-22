@@ -22,12 +22,6 @@ export type DashboardConfig = K8sResourceCommon & {
     notebookSizes?: NotebookSize[];
     notebookController?: {
       enabled: boolean;
-      gpuConfig?: {
-        enabled: boolean;
-      };
-      envVarConfig?: {
-        enabled: boolean;
-      };
       pvcSize?: string;
       notebookNamespace?: string;
     };
