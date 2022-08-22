@@ -51,6 +51,7 @@ import useCurrentUser from '../../useCurrentUser';
 import useNamespaces from '../../useNamespaces';
 import GPUSelectField from './GPUSelectField';
 import SizeSelectField from './SizeSelectField';
+import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 
 import '../../NotebookController.scss';
 
@@ -252,6 +253,14 @@ const SpawnerPage: React.FC = React.memo(() => {
     setVariableRows([...variableRows, newRow]);
   };
 
+  const fireStartServerEvent = () => {
+    fireTrackingEvent('Notebook Server Started', {
+      GPU: parseInt(selectedGpu),
+      lastSelectedSize: selectedSize,
+      lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+    });
+  };
+
   const handleNotebookAction = async () => {
     setSubmitError(null);
     const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
@@ -281,7 +290,10 @@ const SpawnerPage: React.FC = React.memo(() => {
       volumes,
       volumeMounts,
     )
-      .then(() => true)
+      .then(() => {
+        fireStartServerEvent();
+        return true;
+      })
       .catch((e) => {
         setSubmitError(e);
         return false;
