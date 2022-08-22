@@ -14,4 +14,4 @@ spec:
   docsLink: https://jupyter.org
   internalRoute: notebookController
   quickStart: create-jupyter-notebook
-  hiddenOnExplorePage: true
+  getStartedLink: https://jupyterlab.readthedocs.io/en/stable/getting_started/overview.html

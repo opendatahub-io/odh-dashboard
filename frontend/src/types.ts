@@ -141,7 +141,6 @@ export type OdhApplication = {
     };
     featureFlag?: string;
     internalRoute?: string;
-    hiddenOnExplorePage?: boolean | null;
   };
 };
 

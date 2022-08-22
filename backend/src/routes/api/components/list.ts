@@ -1,13 +1,20 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getRouteForApplication } from '../../../utils/componentUtils';
-import { getApplicationDefs, updateApplicationDefs } from '../../../utils/resourceUtils';
+import {
+  getApplicationDefs,
+  getDashboardConfig,
+  updateApplicationDefs,
+} from '../../../utils/resourceUtils';
 
 export const listComponents = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OdhApplication[]> => {
-  const applicationDefs = getApplicationDefs();
+  const isJupyterEnabled = getDashboardConfig().spec.notebookController.enabled;
+  const applicationDefs = getApplicationDefs().filter(
+    (component) => component.metadata.name !== (isJupyterEnabled ? 'jupyterhub' : 'jupyter'),
+  );
   const installedComponents = [];
   const query = request.query as { [key: string]: string };
 
