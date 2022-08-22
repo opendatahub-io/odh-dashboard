@@ -75,7 +75,7 @@ export type NotebookSize = {
 };
 
 export type ClusterSettings = {
-  userTrackingEnabled: boolean | null;
+  userTrackingEnabled: boolean;
   pvcSize: number | string;
   cullerTimeout: number;
 };
