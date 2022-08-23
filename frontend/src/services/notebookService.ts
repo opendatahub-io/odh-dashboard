@@ -6,6 +6,7 @@ import {
   Volume,
   VolumeMount,
   NotebookToleration,
+  NotebookTolerationSettings,
 } from '../types';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
@@ -33,6 +34,7 @@ export const createNotebook = (
   envVars: EnvVarReducedType,
   volumes?: Volume[],
   volumeMounts?: VolumeMount[],
+  tolerationSettings?: NotebookTolerationSettings,
 ): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}`;
   const resources = { ...notebookSize?.resources };
@@ -71,6 +73,14 @@ export const createNotebook = (
         ],
       },
     };
+  }
+
+  if (tolerationSettings?.enabled) {
+    tolerations.push({
+      effect: 'NoSchedule',
+      key: tolerationSettings.key,
+      operator: 'Exists',
+    });
   }
   const translatedUsername = usernameTranslate(username);
 

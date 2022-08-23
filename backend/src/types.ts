@@ -24,6 +24,10 @@ export type DashboardConfig = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
+      notebookTolerationSettings?: {
+        enabled: boolean,
+        key: string
+      }
     };
   };
   status?: {
@@ -59,10 +63,16 @@ export type NotebookSize = {
   resources: NotebookResources;
 };
 
+export type NotebookTolerationSettings = {
+  enabled: boolean;
+  key: string;
+}
+
 export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
   userTrackingEnabled: boolean;
+  notebookTolerationSettings: NotebookTolerationSettings | null;
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
