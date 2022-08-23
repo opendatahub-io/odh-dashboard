@@ -15,12 +15,14 @@ import { EnvVarType, VariableRow } from '../../../../types';
 import '../../NotebookController.scss';
 
 type EnvironmentVariablesFieldProps = {
+  fieldIndex: string;
   variable: EnvVarType;
   variableRow: VariableRow;
   onUpdateVariable: (updatedVariable: EnvVarType) => void;
 };
 
 const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
+  fieldIndex,
   variable,
   onUpdateVariable,
   variableRow,
@@ -41,14 +43,14 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   return (
     <div className="odh-notebook-controller__env-var-field">
       <FormGroup
-        fieldId={variable.name}
+        fieldId={`${fieldIndex}-${variable.name}`}
         label="Variable name"
         helperTextInvalid={variableRow.errors[variable.name]}
         helperTextInvalidIcon={<ExclamationCircleIcon />}
         validated={validated}
       >
         <TextInput
-          id={variable.name}
+          id={`${fieldIndex}-${variable.name}`}
           type={TextInputTypes.text}
           onChange={(newKey) =>
             onUpdateVariable({ name: newKey, type: variable.type, value: variable.value })
@@ -57,11 +59,11 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
           validated={validated}
         />
       </FormGroup>
-      <FormGroup fieldId={`${variable.name}-value`} label="Variable value">
+      <FormGroup fieldId={`${fieldIndex}-${variable.name}-value`} label="Variable value">
         <Flex>
           <InputGroup>
             <TextInput
-              id={`${variable.name}-value`}
+              id={`${fieldIndex}-${variable.name}-value`}
               type={
                 showPassword && variableType === 'password'
                   ? TextInputTypes.text
@@ -85,7 +87,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
               isChecked={variableType === 'password'}
               onChange={handleSecretChange}
               aria-label="secret"
-              id={`${variable.name}-secret`}
+              id={`${fieldIndex}-${variable.name}-secret`}
               name="secret"
             />
           ) : null}
