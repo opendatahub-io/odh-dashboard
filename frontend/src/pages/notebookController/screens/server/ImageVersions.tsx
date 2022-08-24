@@ -37,7 +37,7 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
       isExpanded={isExpanded}
       className="odh-notebook-controller__notebook-image-tags"
     >
-      {tags.sort(compareTagVersions).map((tag: ImageTagInfo) => {
+      {[...tags].sort(compareTagVersions).map((tag: ImageTagInfo) => {
         const disabled = !isImageTagBuildValid(buildStatuses, image, tag);
         return (
           <Radio
