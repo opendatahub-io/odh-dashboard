@@ -111,7 +111,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
   };
 
   if (activeSortIndex !== undefined) {
-    images.sort((a, b) => {
+    [...images].sort((a, b) => {
       const aValue = getSortableRowValues(a)[activeSortIndex];
       const bValue = getSortableRowValues(b)[activeSortIndex];
 
