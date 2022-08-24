@@ -21,7 +21,7 @@ import {
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
 import { fetchClusterSettings, updateClusterSettings } from '../../services/clusterSettingsService';
-import { ClusterSettings } from '../../types';
+import { ClusterSettings, NotebookTolerationSettings } from '../../types';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../redux/actions/actions';
 import {
@@ -58,9 +58,16 @@ const ClusterSettings: React.FC = () => {
   const [cullerTimeout, setCullerTimeout] = React.useState<number>(DEFAULT_CULLER_TIMEOUT);
   const [hour, setHour] = React.useState<number>(DEFAULT_HOUR);
   const [minute, setMinute] = React.useState<number>(0);
-  const [isSettingsChanged, setSettingsChanged] = React.useState<boolean>(false);
   const pvcDefaultBtnRef = React.useRef<HTMLButtonElement>();
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+  const { dashboardConfig } = useWatchDashboardConfig();
+  const dfltNotebookTolerationSettings = dashboardConfig.spec.notebookController?.enabled
+    ? {
+        enabled: false,
+        key: 'NotebooksOnly',
+      }
+    : null;
+  const [notebookTolerationSettings, setNotebookTolerationSettings] =
+    React.useState<NotebookTolerationSettings | null>(dfltNotebookTolerationSettings);
   const dispatch = useDispatch();
 
   React.useEffect(() => {
@@ -70,6 +77,7 @@ const ClusterSettings: React.FC = () => {
         setLoadError(undefined);
         setClusterSettings(clusterSettings);
         setPvcSize(clusterSettings.pvcSize);
+        setNotebookTolerationSettings(clusterSettings.notebookTolerationSettings);
         if (clusterSettings.cullerTimeout !== DEFAULT_CULLER_TIMEOUT) {
           setCullerTimeoutChecked(CULLER_TIMEOUT_LIMITED);
           setHour(getHourAndMinuteByTimeout(clusterSettings.cullerTimeout).hour);
@@ -92,11 +100,16 @@ const ClusterSettings: React.FC = () => {
     }
   }, [hour, minute, cullerTimeoutChecked]);
 
-  React.useEffect(() => {
-    setSettingsChanged(
-      !_.isEqual(clusterSettings, { pvcSize, cullerTimeout, userTrackingEnabled }),
-    );
-  }, [pvcSize, cullerTimeout, userTrackingEnabled, clusterSettings]);
+  const isSettingsChanged = React.useMemo(
+    () =>
+      !_.isEqual(clusterSettings, {
+        pvcSize,
+        cullerTimeout,
+        userTrackingEnabled,
+        notebookTolerationSettings,
+      }),
+    [pvcSize, cullerTimeout, userTrackingEnabled, clusterSettings, notebookTolerationSettings],
+  );
 
   const radioCheckedChange = (_, event) => {
     const { value } = event.currentTarget;
@@ -104,7 +117,12 @@ const ClusterSettings: React.FC = () => {
   };
 
   const handleSaveButtonClicked = () => {
-    const newClusterSettings = { pvcSize, cullerTimeout, userTrackingEnabled };
+    const newClusterSettings = {
+      pvcSize,
+      cullerTimeout,
+      userTrackingEnabled,
+      notebookTolerationSettings,
+    };
     if (!_.isEqual(clusterSettings, newClusterSettings)) {
       if (
         Number(newClusterSettings?.pvcSize) !== 0 &&
@@ -297,7 +315,7 @@ const ClusterSettings: React.FC = () => {
                 </HelperTextItem>
               </HelperText>
             </FormGroup>
-            {!dashboardConfig.disableTracking ? (
+            {!dashboardConfig.spec.dashboardConfig.disableTracking ? (
               <FormGroup
                 fieldId="usage-data"
                 label="Usage Data Collection"
@@ -325,6 +343,59 @@ const ClusterSettings: React.FC = () => {
                   id="usage-data-checkbox"
                   name="usageDataCheckbox"
                 />
+              </FormGroup>
+            ) : null}
+            {dashboardConfig.spec.notebookController?.enabled ? (
+              <FormGroup fieldId="notebook-toleration" label="Notebook pod tolerations">
+                <Checkbox
+                  label="Add a toleration to notebook pods to allow them to be scheduled to tainted nodes"
+                  isChecked={notebookTolerationSettings?.enabled}
+                  onChange={() => {
+                    const newNotebookTolerationSettings = {
+                      ...notebookTolerationSettings,
+                      enabled: !notebookTolerationSettings?.enabled,
+                    };
+                    setNotebookTolerationSettings(
+                      newNotebookTolerationSettings as NotebookTolerationSettings,
+                    );
+                  }}
+                  aria-label="tolerationsEnabled"
+                  id="tolerations-enabled-checkbox"
+                  name="tolerationsEnabledCheckbox"
+                />
+                <InputGroup>
+                  <InputGroupText variant={InputGroupTextVariant.plain}>
+                    Toleration key for notebook pods:{' '}
+                  </InputGroupText>
+                  <TextInput
+                    isDisabled={!notebookTolerationSettings?.enabled}
+                    className="odh-number-input"
+                    name="tolerationKey"
+                    id="toleration-key-input"
+                    type="text"
+                    aria-label="Toleration key"
+                    value={notebookTolerationSettings?.key ? notebookTolerationSettings?.key : ''}
+                    onChange={async (value: string) => {
+                      const newNotebookTolerationSettings = {
+                        ...notebookTolerationSettings,
+                        key: value,
+                      };
+                      setNotebookTolerationSettings(
+                        newNotebookTolerationSettings as NotebookTolerationSettings,
+                      );
+                    }}
+                  />
+                </InputGroup>
+                <HelperText>
+                  <HelperTextItem
+                    variant={pvcSize === '' ? 'error' : 'indeterminate'}
+                    hasIcon={pvcSize === ''}
+                  >
+                    The toleration key above will be applied to all notebook pods when they are
+                    created. Add a matching taint key to any nodes on which you want ONLY notebook
+                    pods to be scheduled.
+                  </HelperTextItem>
+                </HelperText>
               </FormGroup>
             ) : null}
             <ActionGroup>

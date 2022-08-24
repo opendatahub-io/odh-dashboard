@@ -16,16 +16,9 @@ export const fetchClusterSettings = (): Promise<ClusterSettings> => {
 export const updateClusterSettings = (
   settings: ClusterSettings,
 ): Promise<{ success: boolean; error: string }> => {
-  const url = '/api/cluster-settings/update';
-  const updateParams = new URLSearchParams();
-
-  updateParams.set('userTrackingEnabled', JSON.stringify(settings.userTrackingEnabled));
-  updateParams.set('cullerTimeout', `${settings.cullerTimeout}`);
-  updateParams.set('pvcSize', `${settings.pvcSize}`);
-
-  const options = { params: updateParams };
+  const url = '/api/cluster-settings';
   return axios
-    .get(url, options)
+    .put(url, settings)
     .then((response) => {
       return response.data;
     })

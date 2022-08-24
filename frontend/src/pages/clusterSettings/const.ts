@@ -16,4 +16,5 @@ export const DEFAULT_CONFIG: ClusterSettings = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
+  notebookTolerationSettings: null,
 };

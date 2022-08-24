@@ -15,36 +15,43 @@ const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
   pvcSize: DEFAULT_PVC_SIZE,
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
+  notebookTolerationSettings: { enabled: false, key: 'NotebooksOnly' },
 };
 
 export const updateClusterSettings = async (
   fastify: KubeFastifyInstance,
-  request: FastifyRequest,
+  request: FastifyRequest<{
+    Body: ClusterSettings;
+  }>,
 ): Promise<{ success: boolean; error: string }> => {
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
-  const query = request.query as { [key: string]: string };
+  const { pvcSize, cullerTimeout, userTrackingEnabled, notebookTolerationSettings } = request.body;
   const dashConfig = getDashboardConfig();
   try {
     await patchCM(fastify, segmentKeyCfg, {
-      data: { segmentKeyEnabled: query.userTrackingEnabled },
+      data: { segmentKeyEnabled: String(userTrackingEnabled) },
     }).catch((e) => {
       fastify.log.error('Failed to update segment key enabled: ' + e.message);
     });
-    if (query.pvcSize && query.cullerTimeout) {
+    if (pvcSize && cullerTimeout) {
       if (dashConfig.spec?.notebookController?.enabled) {
         await setDashboardConfig(fastify, {
           spec: {
             dashboardConfig: dashConfig.spec.dashboardConfig,
             notebookController: {
               enabled: dashConfig.spec.notebookController.enabled,
-              pvcSize: `${query.pvcSize}Gi`,
+              pvcSize: `${pvcSize}Gi`,
+              notebookTolerationSettings: {
+                enabled: notebookTolerationSettings.enabled,
+                key: notebookTolerationSettings.key,
+              },
             },
           },
         });
         let isEnabled = true;
-        const cullingTimeMin = Number(query.cullerTimeout) / 60; // Seconds to minutes
-        if (Number(query.cullerTimeout) === DEFAULT_CULLER_TIMEOUT) {
+        const cullingTimeMin = Number(cullerTimeout) / 60; // Seconds to minutes
+        if (Number(cullerTimeout) === DEFAULT_CULLER_TIMEOUT) {
           isEnabled = false;
         }
         if (!isEnabled) {
@@ -77,8 +84,8 @@ export const updateClusterSettings = async (
       } else {
         patchCM(fastify, jupyterhubCfg, {
           data: {
-            singleuser_pvc_size: `${query.pvcSize}Gi`,
-            culler_timeout: query.cullerTimeout,
+            singleuser_pvc_size: `${pvcSize}Gi`,
+            culler_timeout: String(cullerTimeout),
           },
         }).catch((e) => {
           fastify.log.error('Unable to patch JupyterHub config' + e.message);
@@ -89,10 +96,10 @@ export const updateClusterSettings = async (
       await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     } else {
       const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(jupyterhubCfg, namespace);
-      if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== query.pvcSize) {
+      if (jupyterhubCM.body.data.singleuser_pvc_size.replace('Gi', '') !== String(pvcSize)) {
         await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub');
       }
-      if (jupyterhubCM.body.data['culler_timeout'] !== query.cullerTimeout) {
+      if (jupyterhubCM.body.data['culler_timeout'] !== String(cullerTimeout)) {
         await rolloutDeploymentConfig(fastify, namespace, 'jupyterhub-idle-culler');
       }
     }
@@ -130,6 +137,8 @@ export const getClusterSettings = async (
         dashConfig.spec.notebookController.pvcSize.replace('Gi', ''),
       );
     }
+    clusterSettings.notebookTolerationSettings =
+      dashConfig.spec.notebookController.notebookTolerationSettings;
     clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT; // For backwards compatibility with jupyterhub and less changes to UI
     await fastify.kube.coreV1Api
       .readNamespacedConfigMap(nbcCfg, fastify.kube.namespace)

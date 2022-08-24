@@ -18,6 +18,7 @@ export type DashboardConfig = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
+      notebookTolerationSettings?: NotebookTolerationSettings;
     };
   };
   status?: {
@@ -74,10 +75,16 @@ export type NotebookSize = {
   resources: NotebookResources;
 };
 
+export type NotebookTolerationSettings = {
+  enabled: boolean;
+  key: string;
+};
+
 export type ClusterSettings = {
   userTrackingEnabled: boolean;
   pvcSize: number | string;
   cullerTimeout: number;
+  notebookTolerationSettings: NotebookTolerationSettings | null;
 };
 
 export type Secret = {

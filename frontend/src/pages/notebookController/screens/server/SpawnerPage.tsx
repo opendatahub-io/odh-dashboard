@@ -280,6 +280,7 @@ const SpawnerPage: React.FC = React.memo(() => {
       envVars,
       volumes,
       volumeMounts,
+      dashboardConfig.spec.notebookController?.notebookTolerationSettings,
     )
       .then(() => true)
       .catch((e) => {
