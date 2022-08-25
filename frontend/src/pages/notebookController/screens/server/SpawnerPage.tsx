@@ -206,6 +206,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     return variableRows.map((row, index) => (
       <EnvironmentVariablesRow
         key={`environment-variable-row-${index}`}
+        rowIndex={`environment-variable-row-${index}`}
         categories={[]}
         variableRow={row}
         onUpdate={(updatedRow) => onUpdateRow(index, updatedRow)}
