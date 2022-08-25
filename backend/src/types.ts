@@ -84,6 +84,7 @@ export declare type QuickStart = {
     annotations?: { [key: string]: string };
   };
   spec: {
+    appName?: string;
     version?: number;
     displayName: string;
     durationMinutes: number;
