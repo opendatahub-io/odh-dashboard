@@ -1,70 +1,73 @@
 import * as React from 'react';
-import { Button, ActionList, ActionListItem } from '@patternfly/react-core';
-import ApplicationsPage from '../../../ApplicationsPage';
-import NotebookServerDetails from './NotebookServerDetails';
-import { useWatchImages } from '../../../../utilities/useWatchImages';
-import { useWatchNotebook } from '../../../../utilities/useWatchNotebook';
-import { checkNotebookRunning } from '../../../../utilities/notebookControllerUtils';
 import { Redirect, useHistory } from 'react-router-dom';
+import { Button, ActionList, ActionListItem, Stack, StackItem } from '@patternfly/react-core';
+import { Notebook } from '../../../../types';
+import ApplicationsPage from '../../../ApplicationsPage';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
-import useNamespaces from '../../useNamespaces';
+import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
-import useCurrentUser from '../../useCurrentUser';
-import { Notebook } from '../../../../types';
 
 import '../../NotebookController.scss';
 
 export const NotebookServer: React.FC = () => {
   const history = useHistory();
-  const { images } = useWatchImages();
-  const { impersonatingUser } = React.useContext(NotebookControllerContext);
-  const username = useCurrentUser();
-  const { notebookNamespace: projectName } = useNamespaces();
-  const { notebook, loaded, loadError } = useWatchNotebook(projectName, username);
-
+  const {
+    currentUserNotebook: notebook,
+    currentUserNotebookIsRunning,
+    requestNotebookRefresh,
+  } = React.useContext(NotebookControllerContext);
   const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
 
   const onNotebooksStop = React.useCallback(
     (didStop: boolean) => {
-      setNotebooksToStop([]);
       if (didStop) {
+        // Refresh the context so the spawner page knows the full state
+        requestNotebookRefresh();
         history.push(`/notebookController/spawner`);
+      } else {
+        setNotebooksToStop([]);
       }
     },
-    [setNotebooksToStop, history],
+    [requestNotebookRefresh, history],
   );
 
   return (
     <>
-      {impersonatingUser && <ImpersonateAlert />}
+      <ImpersonateAlert />
       <ApplicationsPage
         title="Notebook server control panel"
         description={null}
-        loaded={loaded}
-        loadError={loadError}
-        empty={loaded && !checkNotebookRunning(notebook)}
+        loaded
+        empty={!currentUserNotebookIsRunning}
         emptyStatePage={<Redirect to={`/notebookController/spawner`} />}
       >
         {notebook && (
-          <div className="odh-notebook-controller__page">
-            <ActionList>
-              <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                <Button variant="primary">Stop notebook server</Button>
-              </ActionListItem>
-              <ActionListItem
-                onClick={() => {
-                  if (notebook.metadata.annotations?.['opendatahub.io/link']) {
-                    window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
-                  }
-                }}
-              >
-                <Button variant="secondary">Return to server</Button>
-              </ActionListItem>
-            </ActionList>
-            <NotebookServerDetails notebook={notebook} images={images} />
-            <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
-          </div>
+          <Stack hasGutter className="odh-notebook-controller__page">
+            <StackItem>
+              <StopServerModal
+                notebooksToStop={notebooksToStop}
+                onNotebooksStop={onNotebooksStop}
+              />
+              <ActionList>
+                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
+                  <Button variant="primary">Stop notebook server</Button>
+                </ActionListItem>
+                <ActionListItem
+                  onClick={() => {
+                    if (notebook.metadata.annotations?.['opendatahub.io/link']) {
+                      window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
+                    }
+                  }}
+                >
+                  <Button variant="secondary">Return to server</Button>
+                </ActionListItem>
+              </ActionList>
+            </StackItem>
+            <StackItem>
+              <NotebookServerDetails />
+            </StackItem>
+          </Stack>
         )}
       </ApplicationsPage>
     </>

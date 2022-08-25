@@ -6,7 +6,7 @@ import NotebookServerRoutes from '../server/NotebookServerRoutes';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 
 const NotebookControllerTabs: React.FC = () => {
-  const { setImpersonatingUsername, currentTab, setCurrentAdminTab } =
+  const { setImpersonating, currentTab, setCurrentAdminTab } =
     React.useContext(NotebookControllerContext);
 
   return (
@@ -15,7 +15,7 @@ const NotebookControllerTabs: React.FC = () => {
         activeKey={currentTab}
         unmountOnExit
         onSelect={(e, eventKey) => {
-          setImpersonatingUsername(null);
+          setImpersonating();
           setCurrentAdminTab(eventKey as NotebookControllerTabTypes);
         }}
       >

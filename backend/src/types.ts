@@ -30,16 +30,6 @@ export type DashboardConfig = K8sResourceCommon & {
       }
     };
   };
-  status?: {
-    notebookControllerState?: [
-      {
-        user: string;
-        lastSelectedImage: string;
-        lastSelectedSize: string;
-        lastActivity: number;
-      },
-    ];
-  };
 };
 
 export type NotebookResources = {

@@ -1,50 +1,55 @@
 import * as React from 'react';
-import AppContext from '../../../../app/AppContext';
+import { useUser } from '../../../../redux/selectors';
 import useWatchNotebooksForUsers from '../../../../utilities/useWatchNotebooksForUsers';
-import { Notebook, NotebookControllerUserState } from '../../../../types';
-import { User } from './types';
-import useCheckUserPrivilege from './useCheckUserPrivilege';
+import { NotebookRunningState } from '../../../../types';
+import { NotebookControllerContext } from '../../NotebookControllerContext';
 import useNamespaces from '../../useNamespaces';
+import { AdminViewUserData } from './types';
+import useCheckForAllowedUsers from './useCheckForAllowedUsers';
 
-const useAdminUsers = (): [User[], boolean, Error | undefined] => {
-  const { dashboardConfig } = React.useContext(AppContext);
+const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
+  const { requestNotebookRefresh } = React.useContext(NotebookControllerContext);
+  const { username: loggedInUser } = useUser();
+
   const { notebookNamespace } = useNamespaces();
+  const [allowedUsers, allowedUsersLoaded, allowedUsersError] = useCheckForAllowedUsers();
 
-  // Data in the notebook controller state is impure and can have duplicates and more importantly empty states; trim them
-  const unstableUserStates = dashboardConfig.status?.notebookControllerState || [];
-  const userStates: NotebookControllerUserState[] = Object.values(
-    unstableUserStates
-      .filter(({ user }) => !!user)
-      .reduce<{ [key: string]: NotebookControllerUserState }>(
-        (acc, state) => ({ ...acc, [state.user]: state }),
-        {},
-      ),
-  );
-
-  const usernames = userStates.map(({ user }) => user);
-
-  const [privileges, privilegesLoaded, privilegesLoadError] = useCheckUserPrivilege(usernames);
   const {
     notebooks,
     loaded: notebookLoaded,
     loadError: notebookError,
     forceRefresh,
-  } = useWatchNotebooksForUsers(notebookNamespace, usernames);
+  } = useWatchNotebooksForUsers(
+    notebookNamespace,
+    allowedUsers.map(({ username }) => username),
+  );
 
-  const users: User[] = userStates.map<User>((state) => {
-    const notebook: Notebook = notebooks[state.user];
+  const users: AdminViewUserData[] = allowedUsers.map<AdminViewUserData>((allowedUser) => {
+    const notebookRunningState: NotebookRunningState = notebooks[allowedUser.username] || null;
+    const notebook = notebookRunningState?.notebook ?? null;
+    const isNotebookRunning = notebookRunningState?.isRunning ?? false;
+
     return {
-      name: state.user,
-      privilege: privileges[state.user],
-      lastActivity: state.lastActivity,
+      name: allowedUser.username,
+      privilege: allowedUser.privilege,
+      lastActivity: allowedUser.lastActivity,
       serverStatus: {
         notebook,
-        forceRefresh: () => forceRefresh([state.user]),
+        isNotebookRunning,
+        forceRefresh: () => {
+          forceRefresh([allowedUser.username]);
+          if (allowedUser.username === loggedInUser) {
+            // Refresh your own state too -- so you can live updates if you navigate or restart your server
+            requestNotebookRefresh();
+          }
+        },
       },
     };
   });
 
-  return [users, notebookLoaded && privilegesLoaded, notebookError || privilegesLoadError];
+  const isLoaded = notebookLoaded && allowedUsersLoaded;
+  const loadError = notebookError || allowedUsersError;
+  return [users, isLoaded, loadError];
 };
 
 export default useAdminUsers;

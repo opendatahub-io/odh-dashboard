@@ -1,12 +1,13 @@
 import { KubeFastifyInstance, Notebook } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import {
-  deleteNotebook,
   getNotebook,
   getNotebooks,
   patchNotebook,
-  postNotebook,
+  createNotebook,
+  getNotebookStatus,
 } from './notebookUtils';
+import { RecursivePartial } from '../../../typeHelpers';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get('/:projectName', async (request: FastifyRequest) => {
@@ -29,6 +30,28 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     return await getNotebook(fastify, params.projectName, params.notebookName);
   });
 
+  fastify.get(
+    '/:projectName/:notebookName/status',
+    async (
+      request: FastifyRequest<{
+        Params: {
+          projectName: string;
+          notebookName: string;
+        };
+      }>,
+    ) => {
+      const { projectName, notebookName } = request.params;
+
+      const notebook = await getNotebook(fastify, projectName, notebookName);
+      const hasStopAnnotation = !!notebook?.metadata.annotations?.['kubeflow-resource-stopped'];
+      const isRunning = hasStopAnnotation
+        ? false
+        : await getNotebookStatus(fastify, projectName, notebookName);
+
+      return { notebook, isRunning };
+    },
+  );
+
   fastify.post(
     '/:projectName',
     async (
@@ -39,31 +62,25 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         Body: Notebook;
       }>,
     ) => {
-      return postNotebook(fastify, request);
+      return createNotebook(fastify, request);
     },
   );
 
-  fastify.delete(
+  fastify.patch(
     '/:projectName/:notebookName',
     async (
       request: FastifyRequest<{
+        Body: RecursivePartial<Notebook>;
         Params: {
           projectName: string;
           notebookName: string;
         };
       }>,
     ) => {
-      return deleteNotebook(fastify, request);
+      const params = request.params;
+      const data = request.body;
+
+      return await patchNotebook(fastify, data, params.projectName, params.notebookName);
     },
   );
-
-  fastify.patch('/:projectName/:notebookName', async (request: FastifyRequest) => {
-    const params = request.params as {
-      projectName: string;
-      notebookName: string;
-    };
-    const requestBody = request.body as { stopped: boolean } | any;
-
-    return await patchNotebook(fastify, requestBody, params.projectName, params.notebookName);
-  });
 };

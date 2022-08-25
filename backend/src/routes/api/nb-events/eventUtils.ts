@@ -6,17 +6,12 @@ export const getNotebookEvents = async (
   namespace: string,
   nbName: string,
 ): Promise<V1Event[]> => {
-  const response = await fastify.kube.coreV1Api
-    .listNamespacedEvent(
-      namespace,
-      undefined,
-      undefined,
-      undefined,
-      `involvedObject.kind=Notebook,involvedObject.name=${nbName}`,
-    )
+  const eventList = await fastify.kube.coreV1Api
+    .listNamespacedEvent(namespace, undefined, undefined, undefined, 'involvedObject.kind=Pod')
     .then((res) => {
       return res.body as V1EventList;
     });
 
-  return response.items;
+  // Filter the events by pods that have the same name as the notebook
+  return eventList.items.filter((event) => event.involvedObject.name.startsWith(nbName));
 };

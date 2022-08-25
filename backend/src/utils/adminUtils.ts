@@ -5,8 +5,39 @@ import {
 } from '@kubernetes/client-node';
 import { KubeFastifyInstance } from '../types';
 import { getAdminGroups, getAllowedGroups, getGroup } from './groupsUtils';
+import { flatten, uniq } from 'lodash';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
+/** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
+export const KUBE_SAFE_PREFIX = 'b64:';
+
+const getGroupUserList = async (
+  fastify: KubeFastifyInstance,
+  groupListNames: string[],
+): Promise<string[]> => {
+  const customObjectApi = fastify.kube.customObjectsApi;
+  return Promise.all(groupListNames.map((group) => getGroup(customObjectApi, group))).then(
+    (usersPerGroup: string[][]) => uniq(flatten(usersPerGroup)),
+  );
+};
+
+export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
+  const adminGroups = getAdminGroups();
+  const adminGroupsList = adminGroups
+    .split(',')
+    .filter((groupName) => !groupName.startsWith('system:')); // do not include k8s defaults
+
+  return getGroupUserList(fastify, adminGroupsList);
+};
+
+export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
+  const allowedGroups = getAllowedGroups();
+  const allowedGroupList = allowedGroups
+    .split(',')
+    .filter((groupName) => !groupName.startsWith('system:')); // do not include k8s defaults
+
+  return getGroupUserList(fastify, allowedGroupList);
+};
 
 export const getGroupsConfig = async (
   fastify: KubeFastifyInstance,
@@ -79,8 +110,6 @@ export const isUserClusterRole = async (
   try {
     const clusterrolebinding = await fastify.kube.rbac.listClusterRoleBinding();
     const rolebinding = await fastify.kube.rbac.listNamespacedRoleBinding(namespace);
-    console.log(clusterrolebinding);
-    console.log(rolebinding);
     const isAdminClusterRoleBinding = checkRoleBindings(clusterrolebinding.body, username);
     const isAdminRoleBinding = checkRoleBindings(rolebinding.body, username);
     return isAdminClusterRoleBinding || isAdminRoleBinding;
@@ -99,8 +128,10 @@ const checkUserInGroups = async (
   try {
     for (const group of groupList) {
       const groupUsers = await getGroup(customObjectApi, group);
-      // Usernames with invalid characters can start with `b64:` to keep their unwanted characters
-      if (groupUsers?.includes(userName) || groupUsers?.includes(`b64:${userName}`)) {
+      if (
+        groupUsers?.includes(userName) ||
+        groupUsers?.includes(`${KUBE_SAFE_PREFIX}${userName}`)
+      ) {
         return true;
       }
     }
@@ -108,42 +139,4 @@ const checkUserInGroups = async (
     fastify.log.error(e.toString());
   }
   return false;
-};
-
-const checkUserRetrievedGroups = async (
-  fastify: KubeFastifyInstance,
-  groupList: string[],
-  username: string,
-): Promise<boolean> => {
-  try {
-    if (groupList?.includes(username) || groupList?.includes(`b64:${username}`)) {
-      return true;
-    }
-  } catch (e) {
-    fastify.log.error(e.toString());
-  }
-  return false;
-};
-
-export const mapUserRoles = async (
-  fastify: KubeFastifyInstance,
-  customObjectApi: CustomObjectsApi,
-  groupList: string[],
-  users: string[],
-): Promise<{ [username: string]: 'User' | 'Admin' }> => {
-  try {
-    const listGroup = await Promise.all(groupList.map((group) => getGroup(customObjectApi, group)));
-    const listGroupFlattened = listGroup.reduce((acc, value) => acc.concat(value), []);
-    return users.reduce((acc, username) => {
-      return {
-        ...acc,
-        [username]: checkUserRetrievedGroups(fastify, listGroupFlattened, username)
-          ? 'Admin'
-          : 'User',
-      };
-    }, {});
-  } catch (e) {
-    fastify.log.error(e.toString());
-  }
-  return {};
 };

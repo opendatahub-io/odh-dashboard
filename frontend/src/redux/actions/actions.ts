@@ -2,6 +2,7 @@ import axios from 'axios';
 import { ThunkAction } from 'redux-thunk';
 import { Actions, AppNotification, AppState, GetUserAction } from '../types';
 import { Action } from 'redux';
+import { AllowedUser } from '../../pages/notebookController/screens/admin/types';
 
 export const getUserPending = (): GetUserAction => ({
   type: Actions.GET_USER_PENDING,
@@ -51,11 +52,9 @@ export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string
   };
 };
 
-export const getPrivileges = (
-  users: string[],
-): Promise<{ [username: string]: 'Admin' | 'User' }> => {
-  const url = '/api/status/privilege';
-  return axios.post(url, { users }).then((response) => response.data);
+export const getAllowedUsers = (notebookNamespace: string): Promise<AllowedUser[]> => {
+  const url = `/api/status/${notebookNamespace}/allowedUsers`;
+  return axios.post(url).then((response) => response.data);
 };
 
 let notificationCount = 0;

@@ -5,15 +5,16 @@ import {
   NotebookResources,
   Route,
 } from '../../../types';
-import { PatchUtils, V1Role, V1RoleBinding } from '@kubernetes/client-node';
+import { PatchUtils, V1PodList, V1Role, V1RoleBinding } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
+import { RecursivePartial } from '../../../typeHelpers';
 
 export const getNotebooks = async (
   fastify: KubeFastifyInstance,
   namespace: string,
-  labels: string,
+  labels?: string,
 ): Promise<NotebookList> => {
   const kubeResponse = await fastify.kube.customObjectsApi.listNamespacedCustomObject(
     'kubeflow.org',
@@ -50,6 +51,26 @@ export const getNotebook = async (
   }
 };
 
+export const getNotebookStatus = async (
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  notebookName: string,
+): Promise<boolean> => {
+  return fastify.kube.coreV1Api
+    .listNamespacedPod(
+      namespace,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      `notebook-name=${notebookName}`,
+    )
+    .then((response) => {
+      const pods = (response.body as V1PodList).items;
+      return !!pods.find((pod) => pod.status.phase === 'Running');
+    });
+};
+
 export const verifyResources = (resources: NotebookResources): NotebookResources => {
   if (resources.requests && !resources.limits) {
     resources.limits = resources.requests;
@@ -60,7 +81,7 @@ export const verifyResources = (resources: NotebookResources): NotebookResources
   return resources;
 };
 
-export const postNotebook = async (
+export const createNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{
     Params: {
@@ -121,7 +142,7 @@ export const postNotebook = async (
       throw error;
     });
 
-  const patch = {
+  const patch: RecursivePartial<Notebook> = {
     metadata: {
       annotations: {
         'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
@@ -139,74 +160,26 @@ export const postNotebook = async (
 
 export const patchNotebook = async (
   fastify: KubeFastifyInstance,
-  request: { stopped: boolean } | any,
+  patchData: RecursivePartial<Notebook>,
   namespace: string,
   notebookName: string,
 ): Promise<Notebook> => {
-  let patch;
-  const options = {
-    headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-  };
-  if (request.stopped) {
-    const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
-    patch = { metadata: { annotations: { 'kubeflow-resource-stopped': dateStr } } };
-  } else if (request.stopped === false) {
-    patch = { metadata: { annotations: { 'kubeflow-resource-stopped': null } } };
-  } else {
-    patch = request;
-  }
-
-  const kubeResponse = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-    'kubeflow.org',
-    'v1',
-    namespace,
-    'notebooks',
-    notebookName,
-    patch,
-    undefined,
-    undefined,
-    undefined,
-    options,
-  );
-  return kubeResponse.body as Notebook;
-};
-
-export const deleteNotebook = async (
-  fastify: KubeFastifyInstance,
-  request: FastifyRequest<{
-    Params: {
-      projectName: string;
-      notebookName: string;
-    };
-  }>,
-): Promise<Record<string, unknown>> => {
-  const namespace = request.params.projectName;
-  const notebookName = request.params.notebookName;
-
-  try {
-    await fastify.kube.rbac.deleteNamespacedRole(`${notebookName}-notebook-view`, namespace);
-    await fastify.kube.rbac.deleteNamespacedRoleBinding(`${notebookName}-notebook-view`, namespace);
-  } catch (res) {
-    const e = res.body;
-    const error = createCustomError('Error deleting Notebook RBAC', e.message, e.code);
-    fastify.log.error(error);
-    throw error;
-  }
-
-  try {
-    return await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
+  return fastify.kube.customObjectsApi
+    .patchNamespacedCustomObject(
       'kubeflow.org',
       'v1',
-      request.params.projectName,
+      namespace,
       'notebooks',
-      request.params.notebookName,
-    );
-  } catch (res) {
-    const e = res.body;
-    const error = createCustomError('Error deleting Notebook Custom Resource', e.message, e.code);
-    fastify.log.error(error);
-    throw error;
-  }
+      notebookName,
+      patchData,
+      undefined,
+      undefined,
+      undefined,
+      {
+        headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+      },
+    )
+    .then((response) => response.body as Notebook);
 };
 
 export const createRBAC = async (

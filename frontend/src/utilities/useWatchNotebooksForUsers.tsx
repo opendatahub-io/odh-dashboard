@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Notebook } from '../types';
+import { NotebookRunningState, UsernameMap } from '../types';
 import { POLL_INTERVAL } from './const';
-import { getNotebook } from 'services/notebookService';
+import { getNotebookAndStatus } from 'services/notebookService';
 import { generateNotebookNameFromUsername } from './notebookControllerUtils';
 import { allSettledPromises } from './allSettledPromises';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
@@ -10,7 +10,7 @@ const useWatchNotebooksForUsers = (
   projectName: string,
   listOfUsers: string[],
 ): {
-  notebooks: { [username: string]: Notebook };
+  notebooks: UsernameMap<NotebookRunningState>;
   loaded: boolean;
   loadError: Error | undefined;
   forceRefresh: (usernames?: string[]) => void;
@@ -19,15 +19,20 @@ const useWatchNotebooksForUsers = (
   const usernames = useDeepCompareMemoize(listOfUsers);
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [notebooks, setNotebooks] = React.useState<{ [username: string]: Notebook }>({});
+  const [notebooks, setNotebooks] = React.useState<UsernameMap<NotebookRunningState>>({});
   const [pollInterval, setPollInterval] = React.useState<number>(POLL_INTERVAL);
 
   const getNotebooks = React.useCallback(
     (usernameList: string[]) => {
-      allSettledPromises<{ name: string; data: Notebook }, Error>(
+      if (!usernameList || usernameList.length === 0) return;
+
+      allSettledPromises<{ name: string; data: NotebookRunningState }, Error>(
         usernameList.map((username) => {
           const notebookName = generateNotebookNameFromUsername(username);
-          return getNotebook(projectName, notebookName).then((data) => ({ name: username, data }));
+          return getNotebookAndStatus(projectName, notebookName, null).then((data) => ({
+            name: username,
+            data,
+          }));
         }),
       )
         .then(([successes, fails]) => {
