@@ -577,3 +577,52 @@ export type PrometheusResponse = {
   };
   status: string;
 };
+
+export type GroupsConfig = {
+  adminGroups: GroupStatus[];
+  allowedGroups: GroupStatus[];
+  errorAdmin?: string;
+  errorUser?: string;
+};
+
+export type GroupStatus = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};
+
+export type GroupsConfigBodyList = {
+  adminGroups: string[];
+  allowedGroups: string[];
+};
+
+export type GroupsConfigBody = {
+  adminGroups: string;
+  allowedGroups: string;
+};
+
+export type groupObjResponse = {
+  users: string[] | null;
+};
+
+export type GroupCustomObject = {
+  kind: string;
+  apiVersion: string;
+  items: GroupCustomObjectItem[];
+};
+
+export type GroupCustomObjectItem = {
+  metadata: GroupCustomObjectItemMetadata;
+  users: string[];
+};
+
+type GroupCustomObjectItemMetadata = {
+  name: string;
+  uid: string;
+  resourceVersion: string;
+  creationTimestamp: string;
+};
+
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
+};

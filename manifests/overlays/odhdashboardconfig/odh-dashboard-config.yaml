@@ -40,3 +40,6 @@ spec:
       requests:
         cpu: "4"
         memory: 4Gi
+  groupsConfig:
+    adminGroups: 'odh-admins'
+    allowedGroups: 'system:authenticated'

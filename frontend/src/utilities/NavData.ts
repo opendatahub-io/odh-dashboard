@@ -44,6 +44,13 @@ export const getNavBarData = (
       href: '/clusterSettings',
     });
 
+  if (!dashboardConfig.spec.dashboardConfig.disableUserManagement)
+    enabledFeatures.push({
+      id: 'settings-group-settings',
+      label: 'User management',
+      href: '/groupSettings',
+    });
+
   if (enabledFeatures.length > 0) {
     return [
       {
