@@ -223,7 +223,7 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
         const doc: OdhDocument = jsYaml.load(
           fs.readFileSync(path.join(normalizedPath, file), 'utf8'),
         );
-        const isJupyterEnabled = getDashboardConfig().spec.notebookController.enabled;
+        const isJupyterEnabled = getDashboardConfig().spec.notebookController?.enabled;
         if (doc.spec.appName === 'jupyterhub' && isJupyterEnabled) {
           doc.spec.appName = 'jupyter';
         }
