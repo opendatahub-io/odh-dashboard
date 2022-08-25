@@ -23,14 +23,18 @@ const getGroupUserList = async (
 
 export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   const adminGroups = getAdminGroups();
-  const adminGroupsList = adminGroups.split(',');
+  const adminGroupsList = adminGroups
+    .split(',')
+    .filter((groupName) => !groupName.startsWith('system:')); // do not include k8s defaults
 
   return getGroupUserList(fastify, adminGroupsList);
 };
 
 export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   const allowedGroups = getAllowedGroups();
-  const allowedGroupList = allowedGroups.split(',');
+  const allowedGroupList = allowedGroups
+    .split(',')
+    .filter((groupName) => !groupName.startsWith('system:')); // do not include k8s defaults
 
   return getGroupUserList(fastify, allowedGroupList);
 };
@@ -106,8 +110,6 @@ export const isUserClusterRole = async (
   try {
     const clusterrolebinding = await fastify.kube.rbac.listClusterRoleBinding();
     const rolebinding = await fastify.kube.rbac.listNamespacedRoleBinding(namespace);
-    console.log(clusterrolebinding);
-    console.log(rolebinding);
     const isAdminClusterRoleBinding = checkRoleBindings(clusterrolebinding.body, username);
     const isAdminRoleBinding = checkRoleBindings(rolebinding.body, username);
     return isAdminClusterRoleBinding || isAdminRoleBinding;

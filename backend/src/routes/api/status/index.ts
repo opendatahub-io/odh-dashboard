@@ -15,8 +15,10 @@ export default async (fastify: FastifyInstance): Promise<void> => {
 
   fastify.post(
     '/:namespace/allowedUsers',
-    async (request: FastifyRequest<{ Params: { namespace: string } }>) => {
-      return getAllowedUsers(fastify, request);
+    async (request: FastifyRequest<{ Params: { namespace: string } }>, reply) => {
+      return getAllowedUsers(fastify, request).catch((e) => {
+        reply.status(500).send({ message: e.message });
+      });
     },
   );
 };

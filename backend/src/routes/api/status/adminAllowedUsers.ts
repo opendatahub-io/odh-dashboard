@@ -68,10 +68,12 @@ export const getAllowedUsers = async (
     fastify.kube.customObjectsApi,
     fastify.kube.currentUser,
   );
-  const isAdmin = await isUserAdmin(fastify, namespace, currentUser);
+  const isAdmin = await isUserAdmin(fastify, currentUser, namespace);
   if (!isAdmin) {
     // Privileged call -- return nothing
-    fastify.log.warn('A request for all allowed users & their status was made as a non Admin');
+    fastify.log.warn(
+      `A request for all allowed users & their status was made as a non Admin (by ${currentUser})`,
+    );
     return [];
   }
 
