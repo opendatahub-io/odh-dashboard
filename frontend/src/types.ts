@@ -249,6 +249,9 @@ export type TrackingEventProperties = {
   anonymousID?: string;
   type?: string;
   term?: string;
+  GPU?: number;
+  lastSelectedSize?: string;
+  lastSelectedImage?: string;
 };
 
 export type NotebookPort = {
