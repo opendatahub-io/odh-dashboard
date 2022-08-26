@@ -2,7 +2,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
-import { Page } from '@patternfly/react-core';
+import { Alert, Bullseye, Page, PageSection, Spinner } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import { useTrackHistory } from '../utilities/useTrackHistory';
@@ -17,11 +17,13 @@ import AppContext from './AppContext';
 
 import './App.scss';
 import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
+import { useUser } from '../redux/selectors';
 
 const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+  const { username, userError } = useUser();
   const dispatch = useDispatch();
   useSegmentTracking();
   useTrackHistory();
@@ -40,6 +42,30 @@ const App: React.FC = () => {
   const onNavToggle = () => {
     setIsNavOpen(!isNavOpen);
   };
+
+  if (!username) {
+    // We do not have the data yet for who they are, we can't show the app. If we allow anything
+    // to render right now, the username is going to be blank and we won't know permissions
+    if (userError) {
+      // We likely don't have a username still so just show the error
+      return (
+        <Page>
+          <PageSection>
+            <Alert variant="danger" isInline title="General loading error">
+              {userError.message}
+            </Alert>
+          </PageSection>
+        </Page>
+      );
+    }
+
+    // Assume we are still waiting on the API to finish
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
 
   return (
     <AppContext.Provider
