@@ -137,8 +137,10 @@ export const getClusterSettings = async (
         dashConfig.spec.notebookController.pvcSize.replace('Gi', ''),
       );
     }
-    clusterSettings.notebookTolerationSettings =
-      dashConfig.spec.notebookController.notebookTolerationSettings;
+    if (dashConfig.spec.notebookController.notebookTolerationSettings) {
+      clusterSettings.notebookTolerationSettings =
+        dashConfig.spec.notebookController.notebookTolerationSettings;
+    }
     clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT; // For backwards compatibility with jupyterhub and less changes to UI
     await fastify.kube.coreV1Api
       .readNamespacedConfigMap(nbcCfg, fastify.kube.namespace)
