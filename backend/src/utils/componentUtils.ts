@@ -7,7 +7,12 @@ import {
   KfDefApplication,
   CSVKind,
 } from '../types';
-import { getConsoleLinks, getInstalledKfdefs, getSubscriptions } from './resourceUtils';
+import {
+  getConsoleLinks,
+  getDashboardConfig,
+  getInstalledKfdefs,
+  getSubscriptions,
+} from './resourceUtils';
 
 type RoutesResponse = {
   body: {
@@ -278,3 +283,6 @@ export const convertLabelsToString = (labels: { [key: string]: string }): string
   }
   return outputString;
 };
+
+export const getIsJupyterEnabled = (): boolean =>
+  !!getDashboardConfig().spec.notebookController?.enabled;

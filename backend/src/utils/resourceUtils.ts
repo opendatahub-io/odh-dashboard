@@ -26,7 +26,7 @@ import {
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
 import { yamlRegExp, blankDashboardCR } from './constants';
-import { getIsAppEnabled, getRouteForClusterId } from './componentUtils';
+import { getIsAppEnabled, getIsJupyterEnabled, getRouteForClusterId } from './componentUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -223,8 +223,7 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
         const doc: OdhDocument = jsYaml.load(
           fs.readFileSync(path.join(normalizedPath, file), 'utf8'),
         );
-        const isJupyterEnabled = getDashboardConfig().spec.notebookController?.enabled;
-        if (doc.spec.appName === 'jupyterhub' && isJupyterEnabled) {
+        if (doc.spec.appName === 'jupyterhub' && getIsJupyterEnabled()) {
           doc.spec.appName = 'jupyter';
         }
         if (doc.spec.featureFlag) {
