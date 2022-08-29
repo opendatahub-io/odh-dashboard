@@ -5,9 +5,9 @@ import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { NotebookAdminContextProvider } from './NotebookAdminContext';
 
 const NotebookAdmin: React.FC = () => {
-  const { impersonatingUser } = React.useContext(NotebookControllerContext);
+  const { impersonatedUsername } = React.useContext(NotebookControllerContext);
 
-  return impersonatingUser ? (
+  return impersonatedUsername ? (
     <NotebookServerRoutes />
   ) : (
     <NotebookAdminContextProvider>

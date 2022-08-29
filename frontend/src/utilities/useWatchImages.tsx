@@ -48,5 +48,5 @@ export const useWatchImages = (): {
 
   const retImages = useDeepCompareMemoize<ImageInfo[]>(images);
 
-  return { images: retImages || [], loaded, loadError };
+  return { images: retImages, loaded, loadError };
 };

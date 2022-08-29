@@ -8,8 +8,6 @@ import {
   FormSection,
   Grid,
   GridItem,
-  Select,
-  SelectOption,
 } from '@patternfly/react-core';
 import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../../../utilities/imageUtils';
 import {
@@ -26,7 +24,7 @@ import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH, DEFAULT_PVC_SIZE } from '../../const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useHistory } from 'react-router-dom';
-import { createNotebook, deleteNotebook } from '../../../../services/notebookService';
+import { startNotebook, stopNotebook } from '../../../../services/notebookService';
 import { createPvc, getPvc } from '../../../../services/pvcService';
 import {
   generateNotebookNameFromUsername,
@@ -35,22 +33,23 @@ import {
   verifyResource,
   checkEnvVarFile,
   generatePvc,
-  checkNotebookRunning,
+  useNotebookUserState,
 } from '../../../../utilities/notebookControllerUtils';
 import AppContext from '../../../../app/AppContext';
-import { patchDashboardConfig } from '../../../../services/dashboardConfigService';
 import { getSecret } from '../../../../services/secretsService';
 import { getConfigMap } from '../../../../services/configMapService';
 import { useWatchImages } from '../../../../utilities/useWatchImages';
 import ApplicationsPage from '../../../ApplicationsPage';
 import StartServerModal from './StartServerModal';
-import { useWatchNotebookForSpawnerPage } from './useWatchNotebookForSpawnerPage';
+import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import useNotification from '../../../../utilities/useNotification';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
-import useCurrentUser from '../../useCurrentUser';
 import useNamespaces from '../../useNamespaces';
 import GPUSelectField from './GPUSelectField';
+import SizeSelectField from './SizeSelectField';
+import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
+import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 
 import '../../NotebookController.scss';
 
@@ -59,57 +58,21 @@ const SpawnerPage: React.FC = React.memo(() => {
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses, dashboardConfig } = React.useContext(AppContext);
-  const {
-    currentUserState,
-    setCurrentUserState,
-    impersonatingUser,
-    setImpersonatingUsername,
-    setLastNotebookCreationTime,
-  } = React.useContext(NotebookControllerContext);
-  const username = useCurrentUser();
+  const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
+    React.useContext(NotebookControllerContext);
   const { notebookNamespace: projectName } = useNamespaces();
-  const [startShown, setStartShown] = React.useState<boolean>(false);
-  const { notebook, notebookLoaded } = useWatchNotebookForSpawnerPage(
-    startShown,
-    projectName,
-    username,
-  );
-  const isNotebookRunning = checkNotebookRunning(notebook);
+  const currentUserState = useNotebookUserState();
+  const username = currentUserState.user;
+  const [startShown, setStartShown] = useSpawnerNotebookModalState();
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
   });
-  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
-  const [selectedSize, setSelectedSize] = React.useState<string>('');
+  const [selectedSize, setSelectedSize] = usePreferredNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
-  const [shouldRedirect, setShouldRedirect] = React.useState<boolean>(true);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
-
-  const onModalClose = () => {
-    setStartShown(false);
-    if (notebook) {
-      deleteNotebook(projectName, notebook.metadata.name).catch((e) =>
-        notification.error(`Error delete notebook ${notebook.metadata.name}`, e.message),
-      );
-    }
-  };
-
-  React.useEffect(() => {
-    if (shouldRedirect) {
-      if (notebookLoaded && notebook) {
-        if (!isNotebookRunning) {
-          // We already notify the user when they are trying to close/refresh the page
-          // when they are spawning a notebook
-          // so we can safely delete it if the notebook is still there
-          deleteNotebook(projectName, notebook.metadata.name);
-        } else {
-          history.replace('/notebookController');
-        }
-      }
-    }
-  }, [projectName, notebookLoaded, notebook, isNotebookRunning, history, shouldRedirect]);
 
   React.useEffect(() => {
     const setFirstValidImage = () => {
@@ -144,23 +107,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       setFirstValidImage();
     }
   }, [currentUserState, images, buildStatuses]);
-
-  React.useEffect(() => {
-    if (dashboardConfig?.spec.notebookSizes) {
-      if (currentUserState?.lastSelectedSize) {
-        const size = dashboardConfig.spec.notebookSizes.find(
-          (notebookSize) => notebookSize.name === currentUserState.lastSelectedSize,
-        );
-        if (size) {
-          setSelectedSize(size.name);
-        } else {
-          setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
-        }
-      } else {
-        setSelectedSize(dashboardConfig.spec.notebookSizes[0].name);
-      }
-    }
-  }, [dashboardConfig, currentUserState]);
 
   const mapRows = React.useCallback(
     async (fetchFunc: (namespace: string, name: string) => Promise<ConfigMap | Secret>) => {
@@ -217,28 +163,6 @@ const SpawnerPage: React.FC = React.memo(() => {
     }
   };
 
-  const handleSizeSelection = (e, selection) => {
-    setSelectedSize(selection);
-    setSizeDropdownOpen(false);
-  };
-
-  const sizeOptions = React.useMemo(() => {
-    const sizes = dashboardConfig?.spec?.notebookSizes;
-    if (!sizes?.length) {
-      return [<SelectOption key="Default" value="Default" description="No Size Limits" />];
-    }
-
-    return sizes.map((size) => {
-      const name = size.name;
-      const desc =
-        `Limits: ${size?.resources?.limits?.cpu || '??'} CPU, ` +
-        `${size?.resources?.limits?.memory || '??'} Memory ` +
-        `Requests: ${size?.resources?.requests?.cpu || '??'} CPU, ` +
-        `${size?.resources?.requests?.memory || '??'} Memory`;
-      return <SelectOption key={name} value={name} description={desc} />;
-    });
-  }, [dashboardConfig]);
-
   const renderEnvironmentVariableRows = () => {
     if (!variableRows?.length) {
       return null;
@@ -246,6 +170,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     return variableRows.map((row, index) => (
       <EnvironmentVariablesRow
         key={`environment-variable-row-${index}`}
+        rowIndex={`environment-variable-row-${index}`}
         categories={[]}
         variableRow={row}
         onUpdate={(updatedRow) => onUpdateRow(index, updatedRow)}
@@ -292,11 +217,31 @@ const SpawnerPage: React.FC = React.memo(() => {
     setVariableRows([...variableRows, newRow]);
   };
 
+  const fireStartServerEvent = () => {
+    fireTrackingEvent('Notebook Server Started', {
+      GPU: parseInt(selectedGpu),
+      lastSelectedSize: selectedSize,
+      lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+    });
+  };
+
   const handleNotebookAction = async () => {
     setSubmitError(null);
     const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
       (ns) => ns.name === selectedSize,
     );
+    if (!notebookSize) {
+      setSubmitError(
+        new Error(
+          'There was an unknown issue selecting your notebook size -- refresh and try again',
+        ),
+      );
+      console.error(
+        `Failed to associate selected notebook size (${selectedSize}) with list of notebook sizes`,
+        dashboardConfig?.spec?.notebookSizes,
+      );
+      return;
+    }
     const pvcName = generatePvcNameFromUsername(username);
     const requestedPvcSize = dashboardConfig?.spec?.notebookController?.pvcSize;
     const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
@@ -308,64 +253,37 @@ const SpawnerPage: React.FC = React.memo(() => {
     const notebookName = generateNotebookNameFromUsername(username);
     const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
     setCreateInProgress(true);
-    setLastNotebookCreationTime(new Date());
     const envVars = await checkEnvVarFile(username, projectName, variableRows);
-    const canContinue = await createNotebook(
+    await startNotebook({
       projectName,
       notebookName,
       username,
       imageUrl,
       notebookSize,
-      parseInt(selectedGpu),
+      imageSelection: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+      gpus: parseInt(selectedGpu),
       envVars,
+      tolerationSettings: dashboardConfig.spec.notebookController?.notebookTolerationSettings,
       volumes,
       volumeMounts,
-    )
-      .then(() => true)
+    })
+      .then(() => {
+        fireStartServerEvent();
+        return true;
+      })
       .catch((e) => {
         setSubmitError(e);
         return false;
       });
-    setCreateInProgress(false);
-
-    if (!canContinue) return;
-    setShouldRedirect(false);
-    setStartShown(true);
-
-    if (!currentUserState.user) {
-      notification.error(
-        'Unable to update user settings',
-        `Invalid username: "${currentUserState.user}"`,
-      );
-      return;
-    }
-
-    const updatedUserState = {
-      ...currentUserState,
-      ...(impersonatingUser ? {} : { lastActivity: Date.now() }),
-      lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
-      lastSelectedSize: selectedSize,
-    };
-    setCurrentUserState(updatedUserState);
-    const otherUsersStates = dashboardConfig?.status?.notebookControllerState?.filter(
-      (state) => state.user !== username,
-    );
-    const dashboardConfigPatch = {
-      status: {
-        notebookControllerState: otherUsersStates
-          ? [...otherUsersStates, updatedUserState]
-          : [updatedUserState],
-      },
-    };
-    await patchDashboardConfig(dashboardConfigPatch);
+    requestNotebookRefresh();
   };
 
   return (
     <>
-      {impersonatingUser && <ImpersonateAlert />}
+      <ImpersonateAlert />
       <ApplicationsPage
-        title="Start a Notebook server"
-        description="Select options for your Notebook server."
+        title="Start a notebook server"
+        description="Select options for your notebook server."
         loaded={loaded}
         loadError={loadError}
         empty={!images || images.length === 0}
@@ -374,7 +292,7 @@ const SpawnerPage: React.FC = React.memo(() => {
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-                {images.sort(checkOrder).map((image) => (
+                {[...images].sort(checkOrder).map((image) => (
                   <GridItem key={image.name}>
                     <ImageSelector
                       data-id="image-selector"
@@ -389,21 +307,7 @@ const SpawnerPage: React.FC = React.memo(() => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            {sizeOptions && (
-              <FormGroup label="Container size" fieldId="modal-notebook-container-size">
-                <Select
-                  data-id="container-size"
-                  isOpen={sizeDropdownOpen}
-                  onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
-                  aria-labelledby="container-size"
-                  selections={selectedSize}
-                  onSelect={handleSizeSelection}
-                  menuAppendTo="parent"
-                >
-                  {sizeOptions}
-                </Select>
-              </FormGroup>
-            )}
+            <SizeSelectField data-id="container-size" value={selectedSize} setValue={setSelectedSize} />
             <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
@@ -423,7 +327,7 @@ const SpawnerPage: React.FC = React.memo(() => {
               <Alert
                 variant="danger"
                 isInline
-                title="Failed to create the Notebook, please try again later"
+                title="Failed to create the notebook, please try again later"
               >
                 {submitError.message}
               </Alert>
@@ -445,8 +349,8 @@ const SpawnerPage: React.FC = React.memo(() => {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  if (impersonatingUser) {
-                    setImpersonatingUsername(null);
+                  if (impersonatedUsername) {
+                    setImpersonating();
                   } else {
                     history.push('/');
                   }
@@ -458,10 +362,19 @@ const SpawnerPage: React.FC = React.memo(() => {
           </div>
         </Form>
         <StartServerModal
-          notebook={notebook}
-          startShown={startShown}
-          setStartModalShown={setStartShown}
-          onClose={onModalClose}
+          open={startShown}
+          onClose={() => {
+            if (currentUserNotebook) {
+              const notebookName = currentUserNotebook.metadata.name;
+              stopNotebook(projectName, notebookName)
+                .then(() => requestNotebookRefresh())
+                .catch((e) => notification.error(`Error stop notebook ${notebookName}`, e.message));
+            } else {
+              // Shouldn't happen, but if we don't have a notebook, there is nothing to stop
+              setStartShown(false);
+            }
+            setCreateInProgress(false);
+          }}
         />
       </ApplicationsPage>
     </>

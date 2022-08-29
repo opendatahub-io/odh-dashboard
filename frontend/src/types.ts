@@ -2,28 +2,22 @@
  * Common types, should be kept up to date with backend types
  */
 
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
+import { EitherNotBoth } from './typeHelpers';
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
+    groupsConfig?: {
+      adminGroups: string;
+      allowedGroups: string;
+    };
     notebookSizes?: NotebookSize[];
     notebookController?: {
       enabled: boolean;
-      gpuConfig?: {
-        enabled: boolean;
-      };
-      envVarConfig?: {
-        enabled: boolean;
-      };
       pvcSize?: string;
       notebookNamespace?: string;
+      notebookTolerationSettings?: NotebookTolerationSettings;
     };
-  };
-  status?: {
-    notebookControllerState?: NotebookControllerUserState[];
   };
 };
 
@@ -43,7 +37,8 @@ export type NotebookControllerUserState = {
   user: string;
   lastSelectedImage: string;
   lastSelectedSize: string;
-  lastActivity: number;
+  /** Omission denotes no history */
+  lastActivity?: number;
 };
 
 export type NotebookResources = {
@@ -51,15 +46,17 @@ export type NotebookResources = {
     cpu?: string;
     memory?: string;
   };
-  limits: {
+  limits?: {
     cpu?: string;
     memory?: string;
   };
 };
 
-export type EnvironmentVariable = {
+export type EnvironmentVariable = EitherNotBoth<
+  { value: string | number },
+  { valueFrom: Record<string, unknown> }
+> & {
   name: string;
-  value: string | number;
 };
 
 export type EnvVarReducedType = {
@@ -76,10 +73,16 @@ export type NotebookSize = {
   resources: NotebookResources;
 };
 
+export type NotebookTolerationSettings = {
+  enabled: boolean;
+  key: string;
+};
+
 export type ClusterSettings = {
-  userTrackingEnabled: boolean | null;
+  userTrackingEnabled: boolean;
   pvcSize: number | string;
   cullerTimeout: number;
+  notebookTolerationSettings: NotebookTolerationSettings | null;
 };
 
 export type Secret = {
@@ -143,7 +146,6 @@ export type OdhApplication = {
     };
     featureFlag?: string;
     internalRoute?: string;
-    hiddenOnExplorePage?: boolean | null;
   };
 };
 
@@ -244,6 +246,9 @@ export type TrackingEventProperties = {
   anonymousID?: string;
   type?: string;
   term?: string;
+  GPU?: number;
+  lastSelectedSize?: string;
+  lastSelectedImage?: string;
 };
 
 export type NotebookPort = {
@@ -267,29 +272,50 @@ export type NotebookContainer = {
   ports?: NotebookPort[];
   resources?: NotebookResources;
   livenessProbe?: Record<string, unknown>;
+  readinessProbe?: Record<string, unknown>;
+  volumeMounts?: VolumeMount[];
 };
 
-export type Notebook = {
-  apiVersion?: string;
-  kind?: string;
+export type NotebookAffinity = {
+  nodeAffinity?: { [key: string]: unknown };
+};
+
+export type Notebook = K8sResourceCommon & {
   metadata: {
-    name: string;
-    namespace?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
+    annotations: Partial<{
+      'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
+      'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+      'opendatahub.io/link': string; // redirect notebook url
+      'opendatahub.io/username': string; // the untranslated username behind the notebook
+
+      // TODO: Can we get this from the data in the Notebook??
+      'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
+      'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+    }>;
+    labels: Partial<{
+      'opendatahub.io/user': string; // translated username -- see translateUsername
+    }>;
   };
   spec: {
     template: {
       spec: {
+        affinity?: NotebookAffinity;
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
+        volumes?: Volume[];
+        tolerations?: NotebookToleration[];
       };
     };
   };
   status?: {
     readyReplicas: number;
   } & Record<string, unknown>;
-} & K8sResourceCommon;
+};
+
+export type NotebookRunningState = {
+  notebook: Notebook | null;
+  isRunning: boolean;
+};
 
 export type NotebookList = {
   apiVersion?: string;
@@ -595,10 +621,11 @@ export type NotebookStatus = {
   currentEvent: string;
   currentEventReason: string;
   currentEventDescription: string;
-  events: K8sEvent[];
 };
 
 export enum EventStatus {
   IN_PROGRESS = 'In Progress',
   ERROR = 'Error',
 }
+
+export type UsernameMap<V> = { [username: string]: V };

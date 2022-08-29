@@ -111,7 +111,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
   };
 
   if (activeSortIndex !== undefined) {
-    images.sort((a, b) => {
+    [...images].sort((a, b) => {
       const aValue = getSortableRowValues(a)[activeSortIndex];
       const bValue = getSortableRowValues(b)[activeSortIndex];
 
@@ -295,7 +295,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       </Toolbar>
       <TableComposable
         className={tableFilter.count === 0 ? 'empty-table' : ''}
-        aria-label="BYON Images table"
+        aria-label="Notebook images table"
         variant="compact"
       >
         <Thead>

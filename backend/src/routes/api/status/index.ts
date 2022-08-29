@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest } from 'fastify';
-import { mapUserPrivilege, status } from './statusUtils';
+import { status } from './statusUtils';
+import { getAllowedUsers } from './adminAllowedUsers';
 
 export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get('/', async (request, reply) => {
@@ -12,7 +13,12 @@ export default async (fastify: FastifyInstance): Promise<void> => {
       });
   });
 
-  fastify.post('/privilege', async (request: FastifyRequest<{ Body: { users: string[] } }>) => {
-    return mapUserPrivilege(fastify, request.body.users);
-  });
+  fastify.post(
+    '/:namespace/allowedUsers',
+    async (request: FastifyRequest<{ Params: { namespace: string } }>, reply) => {
+      return getAllowedUsers(fastify, request).catch((e) => {
+        reply.status(500).send({ message: e.message });
+      });
+    },
+  );
 };

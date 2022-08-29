@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { User } from './types';
+import { AdminViewUserData } from './types';
 
 type NotebookAdminContextProps = {
-  setServerStatuses: (serverStatuses: User['serverStatus'][]) => void;
-  serverStatuses: User['serverStatus'][];
+  setServerStatuses: (serverStatuses: AdminViewUserData['serverStatus'][]) => void;
+  serverStatuses: AdminViewUserData['serverStatus'][];
 };
 
 const defaultNotebookAdminContext: NotebookAdminContextProps = {
@@ -14,7 +14,9 @@ const defaultNotebookAdminContext: NotebookAdminContextProps = {
 export const NotebookAdminContext = React.createContext(defaultNotebookAdminContext);
 
 export const NotebookAdminContextProvider: React.FC = ({ children }) => {
-  const [serverStatuses, setServerStatuses] = React.useState<User['serverStatus'][]>([]);
+  const [serverStatuses, setServerStatuses] = React.useState<AdminViewUserData['serverStatus'][]>(
+    [],
+  );
 
   return (
     <NotebookAdminContext.Provider

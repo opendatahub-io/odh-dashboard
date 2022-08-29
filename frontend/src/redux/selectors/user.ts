@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux';
 const getUser = (state: State): UserState => ({
   username: state.appState.user ?? '', // TODO: alternative?
   isAdmin: !!state.appState.isAdmin,
+  isAllowed: !!state.appState.isAllowed,
   userLoading: state.appState.userLoading,
   userError: state.appState.userError ?? null,
 });

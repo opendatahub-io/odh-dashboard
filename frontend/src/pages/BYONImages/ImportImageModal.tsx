@@ -62,7 +62,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
   return (
     <Modal
       variant={ModalVariant.medium}
-      title="Import BYON images"
+      title="Import notebook images"
       isOpen={isOpen}
       onClose={onCloseHandler}
       actions={[
@@ -84,7 +84,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     addNotification({
                       status: 'danger',
                       title: 'Error',
-                      message: `Unable to add BYON image ${name}`,
+                      message: `Unable to add notebook image ${name}`,
                       timestamp: new Date(),
                     }),
                   );
@@ -114,7 +114,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
           label="Repository"
           isRequired
           fieldId="byon-image-repository-label"
-          helperText="Repo where byon images are stored."
+          helperText="Repo where notebook images are stored."
           helperTextInvalid="This field is required."
           helperTextInvalidIcon={<ExclamationCircleIcon />}
           validated={validRepo ? undefined : 'error'}
@@ -226,8 +226,8 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     No software added
                   </Title>
                   <EmptyStateBody>
-                    Add software to be advertised with your BYON image. Making changes here won’t
-                    affect the contents of the image.{' '}
+                    Add software to be advertised with your notebook image. Making changes here
+                    won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
                     className="empty-button"
@@ -253,8 +253,8 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                 <>
                   <TableComposable aria-label="Simple table" variant="compact" isStickyHeader>
                     <Caption>
-                      Add the advertised packages shown with this BYON image. Modifying the packages
-                      here does not effect the contents of the BYON image.
+                      Add the advertised packages shown with this notebook image. Modifying the
+                      packages here does not effect the contents of the notebook image.
                     </Caption>
                     <Thead>
                       <Tr>
@@ -304,8 +304,8 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     No packages added
                   </Title>
                   <EmptyStateBody>
-                    Add packages to be advertised with your BYON image. Making changes here won’t
-                    affect the contents of the image.{' '}
+                    Add packages to be advertised with your notebook image. Making changes here
+                    won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
                     className="empty-button"

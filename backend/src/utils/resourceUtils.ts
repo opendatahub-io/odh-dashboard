@@ -56,8 +56,10 @@ const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig
       const dashboardCR = res?.body as DashboardConfig;
       return [dashboardCR];
     })
-    .catch(() => {
-      fastify.log.warn('Received error fetching OdhDashboardConfig, creating new.');
+    .catch((e) => {
+      fastify.log.warn(
+        `Received error (${e.body.message}) fetching OdhDashboardConfig, creating new.`,
+      );
       return createDashboardCR(fastify);
     });
   return crResponse;
@@ -74,7 +76,7 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
     )
     .then((result) => [result.body])
     .catch((e) => {
-      fastify.log.error(e);
+      fastify.log.error('Error creating Dashboard CR: ', e);
       return null;
     });
 
@@ -221,6 +223,10 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
         const doc: OdhDocument = jsYaml.load(
           fs.readFileSync(path.join(normalizedPath, file), 'utf8'),
         );
+        const isJupyterEnabled = getDashboardConfig().spec.notebookController?.enabled;
+        if (doc.spec.appName === 'jupyterhub' && isJupyterEnabled) {
+          doc.spec.appName = 'jupyter';
+        }
         if (doc.spec.featureFlag) {
           if (featureFlags[doc.spec.featureFlag]) {
             docs.push(doc);
@@ -295,7 +301,7 @@ const getBuildConfigStatus = (
       };
     })
     .catch((e) => {
-      fastify.log.error(e.response?.body?.message || e.message);
+      fastify.log.error(e.response?.body?.message || e.message, 'failed to get build configs');
       return {
         name: notebookName,
         status: BUILD_PHASE.pending,

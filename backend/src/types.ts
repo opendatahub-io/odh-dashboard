@@ -15,28 +15,20 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
     };
+    groupsConfig?: {
+      adminGroups: string;
+      allowedGroups: string;
+    };
     notebookSizes?: NotebookSize[];
     notebookController?: {
       enabled: boolean;
-      gpuConfig?: {
-        enabled: boolean;
-      };
-      envVarConfig?: {
-        enabled: boolean;
-      };
       pvcSize?: string;
       notebookNamespace?: string;
+      notebookTolerationSettings?: {
+        enabled: boolean,
+        key: string
+      }
     };
-  };
-  status?: {
-    notebookControllerState?: [
-      {
-        user: string;
-        lastSelectedImage: string;
-        lastSelectedSize: string;
-        lastActivity: number;
-      },
-    ];
   };
 };
 
@@ -61,10 +53,16 @@ export type NotebookSize = {
   resources: NotebookResources;
 };
 
+export type NotebookTolerationSettings = {
+  enabled: boolean;
+  key: string;
+}
+
 export type ClusterSettings = {
   pvcSize: number;
   cullerTimeout: number;
-  userTrackingEnabled: boolean | null;
+  userTrackingEnabled: boolean;
+  notebookTolerationSettings: NotebookTolerationSettings | null;
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
@@ -76,6 +74,7 @@ export declare type QuickStart = {
     annotations?: { [key: string]: string };
   };
   spec: {
+    appName?: string;
     version?: number;
     displayName: string;
     durationMinutes: number;
@@ -187,6 +186,7 @@ export type KubeStatus = {
   clusterID: string;
   clusterBranding: string;
   isAdmin: boolean;
+  isAllowed: boolean;
 };
 
 export type KubeDecorator = KubeStatus & {
@@ -566,4 +566,53 @@ export type PrometheusResponse = {
     resultType: string;
   };
   status: string;
+};
+
+export type GroupsConfig = {
+  adminGroups: GroupStatus[];
+  allowedGroups: GroupStatus[];
+  errorAdmin?: string;
+  errorUser?: string;
+};
+
+export type GroupStatus = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};
+
+export type GroupsConfigBodyList = {
+  adminGroups: string[];
+  allowedGroups: string[];
+};
+
+export type GroupsConfigBody = {
+  adminGroups: string;
+  allowedGroups: string;
+};
+
+export type groupObjResponse = {
+  users: string[] | null;
+};
+
+export type GroupCustomObject = {
+  kind: string;
+  apiVersion: string;
+  items: GroupCustomObjectItem[];
+};
+
+export type GroupCustomObjectItem = {
+  metadata: GroupCustomObjectItemMetadata;
+  users: string[];
+};
+
+type GroupCustomObjectItemMetadata = {
+  name: string;
+  uid: string;
+  resourceVersion: string;
+  creationTimestamp: string;
+};
+
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
 };

@@ -40,7 +40,7 @@ spec:
             memory: 2Gi
         livenessProbe:
           httpGet:
-            path: /api/status
+            path: /api/config
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 30
@@ -50,7 +50,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /api/status
+            path: /api/config
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 30

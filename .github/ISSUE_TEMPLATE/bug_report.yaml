@@ -46,8 +46,8 @@ body:
   - type: dropdown
     id: openshift-version
     attributes:
-      label: OpenShift Version
-      description: What version of OpenShift are you running?
+      label: OpenShift Infrastructure Version
+      description: On what infrastructure is OpenShift deployed?
       options:
         - Baremetal
         - OpenStack

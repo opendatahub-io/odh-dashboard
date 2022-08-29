@@ -95,7 +95,7 @@ export const getDefaultTag = (
   }
 
   // Return the most recent version
-  return tags.sort(compareTagVersions)[0];
+  return [...tags].sort(compareTagVersions)[0];
 };
 
 export const getTagForImage = (

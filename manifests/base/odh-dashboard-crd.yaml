@@ -16,6 +16,8 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
+          required:
+            - spec
           properties:
             spec:
               type: object
@@ -39,6 +41,16 @@ spec:
                       type: boolean
                     disableUserManagement:
                       type: boolean
+                groupsConfig:
+                  type: object
+                  required:
+                    - adminGroups
+                    - allowedGroups
+                  properties:
+                    adminGroups:
+                      type: string
+                    allowedGroups:
+                      type: string
                 notebookSizes:
                   type: array
                   items:
@@ -68,23 +80,22 @@ spec:
                                 type: string
                 notebookController:
                   type: object
+                  required:
+                    - enabled
                   properties:
                     enabled:
                       type: boolean
                     notebookNamespace:
                       type: string
-                    gpuConfig:
-                      type: object
-                      properties:
-                        enabled:
-                          type: boolean
-                    envVarConfig:
-                      type: object
-                      properties:
-                        enabled:
-                          type: boolean
                     pvcSize:
                       type: string
+                    notebookTolerationSettings:
+                      type: object
+                      properties:
+                          enabled: 
+                            type: boolean
+                          key: 
+                            type: string
             status:
               type: object
               properties:

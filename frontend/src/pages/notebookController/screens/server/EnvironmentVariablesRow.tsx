@@ -6,12 +6,14 @@ import { EnvVarCategoryType, EnvVarType, VariableRow } from '../../../../types';
 import EnvironmentVariablesField from './EnvironmentVariablesField';
 
 type EnvironmentVariablesRowProps = {
+  rowIndex: string;
   variableRow: VariableRow;
   categories: EnvVarCategoryType[];
   onUpdate: (updatedRow?: VariableRow) => void;
 };
 
 const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
+  rowIndex,
   variableRow,
   categories,
   onUpdate,
@@ -91,7 +93,8 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
       </Flex>
       {variableRow.variables.map((variable, index) => (
         <EnvironmentVariablesField
-          key={index}
+          key={`${rowIndex}-${index}`}
+          fieldIndex={`${rowIndex}-${index}`}
           variable={variable}
           variableRow={variableRow}
           onUpdateVariable={(updatedVariable) => updateVariable(updatedVariable, variable.name)}

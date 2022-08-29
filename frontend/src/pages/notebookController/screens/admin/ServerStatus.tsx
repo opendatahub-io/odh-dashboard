@@ -1,25 +1,23 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { useUser } from '../../../../redux/selectors';
-import { User } from './types';
+import { AdminViewUserData } from './types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
-import { usernameTranslate } from '../../../../utilities/notebookControllerUtils';
 import { NotebookControllerTabTypes } from '../../const';
 import { NotebookAdminContext } from './NotebookAdminContext';
 
 type ServerStatusProps = {
-  data: User['serverStatus'];
-  username: User['name'];
+  data: AdminViewUserData['serverStatus'];
+  username: AdminViewUserData['name'];
 };
 
 const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
-  const { setImpersonatingUsername, setCurrentAdminTab } =
-    React.useContext(NotebookControllerContext);
+  const { setImpersonating, setCurrentAdminTab } = React.useContext(NotebookControllerContext);
   const { username: stateUser } = useUser();
   const forStateUser = stateUser === username;
   const { setServerStatuses } = React.useContext(NotebookAdminContext);
 
-  if (!data.notebook) {
+  if (!data.isNotebookRunning) {
     return (
       <Button
         variant="link"
@@ -30,7 +28,10 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
             setCurrentAdminTab(NotebookControllerTabTypes.SERVER);
             return;
           }
-          setImpersonatingUsername(usernameTranslate(username));
+          setImpersonating(
+            { notebook: data.notebook, isRunning: data.isNotebookRunning },
+            username,
+          );
         }}
       >
         {forStateUser ? 'Start your server' : 'Start server'}

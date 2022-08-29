@@ -1,7 +1,6 @@
 import { CustomObjectsApi } from '@kubernetes/client-node';
+import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyRequest } from 'fastify';
-import { KubeFastifyInstance } from '../types';
-
 import * as _ from 'lodash';
 
 const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
@@ -45,21 +44,15 @@ export const getUser = async (
 };
 
 export const getUserName = async (
-  fastify: KubeFastifyInstance,
   request: FastifyRequest,
   customObjectApi: CustomObjectsApi,
+  currentUser: User,
 ): Promise<string> => {
-  const { currentUser } = fastify.kube;
-  let userName = '';
-
   try {
     const userOauth = await getUser(request, customObjectApi);
-    userName = userOauth.metadata.name;
+    return userOauth.metadata.name;
   } catch (e) {
-    fastify.log.error(`${e}. Getting the cluster info.`);
     const userCluster = (currentUser.username || currentUser.name)?.split('/')[0];
-    userName = !userCluster || userCluster === 'inClusterUser' ? DEFAULT_USERNAME : userCluster;
+    return !userCluster || userCluster === 'inClusterUser' ? DEFAULT_USERNAME : userCluster;
   }
-
-  return userName;
 };

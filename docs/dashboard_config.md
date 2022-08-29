@@ -16,6 +16,7 @@ The following are a list of features that are supported, along with there defaul
 |  disableBYONImageStream| false | Disables custom notebook images that are created via image streams
 |  disableISVBadges | false | Removes the badge that indicate if a product is ISV or not.
 |  disableAppLauncher | false | Removes the application launcher that is used in OKD environments
+|  disableUserManagement | false | Removes the User Management panel in Settings.
 
 ## Defaults
 
@@ -31,12 +32,24 @@ spec:
     disableSupport: false
     disableTracking: false
     disableAppLauncher: false
+    disableUserManagement: false
     enablement: true
 ```
 
 ## Additional fields
 
 The Dashboard config enables adding additional configuration
+
+
+### Groups
+
+The `groupsConfig` field controls access to Dashboard features, such as the spawner for allowed users and the cluster settings UI for admins.
+
+```yaml
+groupsConfig:
+  adminGroups: odh-admins
+  allowedGroups: system:authenticated
+```
 
 ### Sizes
 
@@ -99,7 +112,11 @@ spec:
     disableSupport: false
     disableTracking: false
     disableAppLauncher: false
+    disableUserManagement: false
     enablement: true
+  groupsConfig:
+    adminGroups: odh-admins
+    allowedGroups: system:authenticated
   notebookController:
     enabled: false
   notebookSizes:
