@@ -7,6 +7,8 @@ export const LOG_LEVEL = process.env.FASTIFY_LOG_LEVEL || process.env.LOG_LEVEL 
 export const DEV_MODE = process.env.APP_ENV === 'development';
 export const APP_ENV = process.env.APP_ENV;
 
+export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
+
 export const yamlRegExp = /\.ya?ml$/;
 export const mdRegExp = /\.md$/;
 

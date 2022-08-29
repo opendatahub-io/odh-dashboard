@@ -1,5 +1,7 @@
+import { FastifyRequest } from 'fastify';
 import https, { RequestOptions } from 'https';
 import { K8sResourceCommon, K8sStatus, KubeFastifyInstance } from '../../../types';
+import { DEV_MODE, USER_ACCESS_TOKEN } from '../../../utils/constants';
 
 type PassThroughData = {
   method: string;
@@ -9,12 +11,12 @@ type PassThroughData = {
 
 const isK8sStatus = (data: Record<string, unknown>): data is K8sStatus => data.kind === 'Status';
 
-export const passThrough = async (
-  data: PassThroughData,
+const setupRequest = async (
   fastify: KubeFastifyInstance,
-): Promise<{ response: K8sResourceCommon }> => {
-  const kc = fastify.kube.config;
-  const { method, requestData, url } = data;
+  request: FastifyRequest<{ Headers: { [USER_ACCESS_TOKEN]: string } }>,
+  data: PassThroughData,
+): Promise<{ url: string; requestOptions: RequestOptions }> => {
+  const { method, url } = data;
 
   // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
   let safeURL = url;
@@ -26,16 +28,45 @@ export const passThrough = async (
     safeURL = urlParts.join('/');
   }
 
-  return new Promise((resolve, reject) => {
-    const kubeOptions: Parameters<typeof kc.applyToRequest>[0] = { url: safeURL };
-    kc.applyToRequest(kubeOptions).then(() => {
-      const { headers, ca } = kubeOptions;
-      const requestOptions: RequestOptions = {
-        ca,
-        headers,
-        method,
-      };
+  // Use our kube setup to boostrap our request
+  const kc = fastify.kube.config;
+  const kubeOptions: Parameters<typeof kc.applyToRequest>[0] = { url };
+  await kc.applyToRequest(kubeOptions);
+  const { headers: kubeHeaders, ca } = kubeOptions;
 
+  // Adjust the header auth token
+  let headers;
+  if (DEV_MODE) {
+    // In dev mode, we always are logged in fully -- no service accounts
+    headers = kubeHeaders;
+  } else {
+    // When not in dev mode, we want to switch the token from the service account to the user
+    const accessToken = request.headers[USER_ACCESS_TOKEN];
+    headers = {
+      ...kubeHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    };
+  }
+
+  return {
+    url: safeURL,
+    requestOptions: {
+      ca,
+      headers,
+      method,
+    },
+  };
+};
+
+export const passThrough = (
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest<{ Headers: { [USER_ACCESS_TOKEN]: string } }>,
+  data: PassThroughData,
+): Promise<{ response: K8sResourceCommon }> => {
+  const { method, requestData } = data;
+
+  return new Promise((resolve, reject) => {
+    setupRequest(fastify, request, data).then(({ url, requestOptions }) => {
       if (requestData) {
         requestOptions.headers = {
           ...requestOptions.headers,
@@ -47,7 +78,7 @@ export const passThrough = async (
       }
 
       const httpsRequest = https
-        .request(safeURL, requestOptions, (res) => {
+        .request(url, requestOptions, (res) => {
           let data = '';
           res
             .setEncoding('utf8')

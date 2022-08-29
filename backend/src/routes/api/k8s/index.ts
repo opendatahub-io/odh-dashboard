@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
+import { USER_ACCESS_TOKEN } from '../../../utils/constants';
 import { passThrough } from './pass-through';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
@@ -14,6 +15,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       req: FastifyRequest<{
         Params: { '*': string; [key: string]: string };
         Body: { [key: string]: unknown };
+        Headers: { [USER_ACCESS_TOKEN]: string };
       }>,
       reply: FastifyReply,
     ) => {
@@ -21,7 +23,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       const kubeUri = req.params['*'];
       const url = `${cluster.server}/${kubeUri}`;
 
-      return passThrough({ url, method: req.method, requestData: data }, fastify).catch(
+      return passThrough(fastify, req, { url, method: req.method, requestData: data }).catch(
         ({ code, response }) => {
           reply.code(code);
           reply.send(response);
