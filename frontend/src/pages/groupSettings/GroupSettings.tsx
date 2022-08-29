@@ -144,6 +144,7 @@ const GroupSettings: React.FC = () => {
 
             <ActionGroup>
               <Button
+                data-id="save-button"
                 isDisabled={
                   !isGroupSettingsChanged ||
                   isGroupEmpty(groupSettings.adminGroups) ||

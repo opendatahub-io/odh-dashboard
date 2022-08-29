@@ -68,6 +68,7 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
         .map((application) => {
           return (
             <FilterSidePanelCategoryItem
+              data-id={application}
               id={application}
               key={application}
               checked={providerFilters.includes(application)}

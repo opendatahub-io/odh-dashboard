@@ -20,6 +20,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
   if (!data.isNotebookRunning) {
     return (
       <Button
+        data-id={`start-server-${username}`}
         variant="link"
         isInline
         onClick={() => {
@@ -41,6 +42,7 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
 
   return (
     <Button
+      data-id={`stop-server-${username}`}
       variant="link"
       isDanger
       isInline

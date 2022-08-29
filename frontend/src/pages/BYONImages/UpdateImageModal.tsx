@@ -69,7 +69,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
       onClose={onCloseHandler}
       actions={[
         <Button
-          id="save-button"
+          data-id="import-confirm-button"
           key="confirm"
           variant="primary"
           onClick={() => {
@@ -101,7 +101,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
         >
           Save Changes
         </Button>,
-        <Button id="cancel-button" key="cancel" variant="link" onClick={onCloseHandler}>
+        <Button data-id="import-cancel-button" key="cancel" variant="link" onClick={onCloseHandler}>
           Cancel
         </Button>,
       ]}
@@ -150,7 +150,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
               setActiveTabKey(indexKey as number);
             }}
           >
-            <Tab eventKey={0} title={<TabTitleText>Software</TabTitleText>}>
+            <Tab data-id="software-tab" eventKey={0} title={<TabTitleText>Software</TabTitleText>}>
               {software.length > 0 ? (
                 <>
                   <TableComposable aria-label="Simple table" variant="compact">
@@ -183,7 +183,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
-                    data-id="add-software-button"
+                    data-id="add-software-secondary-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {
@@ -263,7 +263,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
-                    data-id="add-package-button"
+                    data-id="add-package-secondary-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {

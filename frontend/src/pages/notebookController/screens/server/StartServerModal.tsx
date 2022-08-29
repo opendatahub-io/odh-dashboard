@@ -122,7 +122,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
     const currentEvent = notebookStatus?.currentEvent;
     return (
       <Progress
-        id="progress-bar"
+        data-id="progress-bar"
         value={spawnPercentile}
         title={
           events.length > 0 && currentEvent

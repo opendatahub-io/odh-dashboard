@@ -338,6 +338,7 @@ const SpawnerPage: React.FC = React.memo(() => {
             )}
             <ActionGroup>
               <Button
+                data-id="start-server-button"
                 variant="primary"
                 onClick={() => {
                   handleNotebookAction().catch((e) => {
@@ -351,6 +352,7 @@ const SpawnerPage: React.FC = React.memo(() => {
                 Start server
               </Button>
               <Button
+                data-id="cancel-button"
                 variant="secondary"
                 onClick={() => {
                   if (impersonatedUsername) {

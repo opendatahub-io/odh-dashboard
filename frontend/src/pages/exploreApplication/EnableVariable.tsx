@@ -25,7 +25,7 @@ const EnableVariable = React.forwardRef<HTMLInputElement, EnableVariableProps>(
       <FormGroup fieldId={label} label={label} helperText={helperText}>
         <TextInput
           className="odh-enable-modal__variable-input"
-          id={label}
+          data-id={label}
           ref={ref}
           isDisabled={validationInProgress}
           type={

@@ -51,6 +51,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
       >
         <TextInput
           id={`${fieldIndex}-${variable.name}`}
+          data-id={`${fieldIndex}-${variable.name}`}
           type={TextInputTypes.text}
           onChange={(newKey) =>
             onUpdateVariable({ name: newKey, type: variable.type, value: variable.value })
@@ -64,6 +65,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
           <InputGroup>
             <TextInput
               id={`${fieldIndex}-${variable.name}-value`}
+              data-id={`${fieldIndex}-${variable.name}-value`}
               type={
                 showPassword && variableType === 'password'
                   ? TextInputTypes.text
@@ -86,7 +88,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
           </InputGroup>
           {variableRow.variableType === CUSTOM_VARIABLE ? (
             <Checkbox
-              data-id="is-secret-checkbox"
+              data-id={`${fieldIndex}-${variable.name}-secret`}
               className={variableType === 'password' ? ' m-is-secret' : ''}
               label="Secret"
               isChecked={variableType === 'password'}
