@@ -287,8 +287,6 @@ export type Notebook = K8sResourceCommon & {
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook
-
-      // TODO: Can we get this from the data in the Notebook??
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
     }>;
