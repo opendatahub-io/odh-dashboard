@@ -284,5 +284,5 @@ export const convertLabelsToString = (labels: { [key: string]: string }): string
   return outputString;
 };
 
-export const getIsJupyterEnabled = (): boolean | undefined =>
-  getDashboardConfig().spec.notebookController?.enabled;
+export const getIsJupyterEnabled = (): boolean =>
+  !!getDashboardConfig().spec.notebookController?.enabled;
