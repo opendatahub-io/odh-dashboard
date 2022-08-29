@@ -307,7 +307,11 @@ const SpawnerPage: React.FC = React.memo(() => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            <SizeSelectField data-id="container-size" value={selectedSize} setValue={setSelectedSize} />
+            <SizeSelectField
+              data-id="container-size"
+              value={selectedSize}
+              setValue={setSelectedSize}
+            />
             <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

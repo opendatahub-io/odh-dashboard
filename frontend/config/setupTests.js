@@ -1,6 +1,6 @@
 import path from 'path';
 import dotenv from 'dotenv';
-import configure from '@testing-library/react';
+import { configure } from '@testing-library/react';
 
 dotenv.config({ path: './.env.test.local' });
 dotenv.config({ path: './.env.test' });

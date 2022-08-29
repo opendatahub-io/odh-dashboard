@@ -147,7 +147,12 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
 
   const renderButtons = () =>
     !isNotebookRunning ? (
-      <Button data-id="close-spawn" key="cancel" variant={spawnFailed ? 'primary' : 'secondary'} onClick={onBeforeClose}>
+      <Button
+        data-id="close-spawn"
+        key="cancel"
+        variant={spawnFailed ? 'primary' : 'secondary'}
+        onClick={onBeforeClose}
+      >
         {spawnFailed ? 'Close' : 'Cancel'}
       </Button>
     ) : null;

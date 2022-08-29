@@ -51,7 +51,9 @@ export const NotebookServer: React.FC = () => {
               />
               <ActionList>
                 <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button data-id="stop-nb-button" variant="primary">Stop notebook server</Button>
+                  <Button data-id="stop-nb-button" variant="primary">
+                    Stop notebook server
+                  </Button>
                 </ActionListItem>
                 <ActionListItem
                   onClick={() => {
@@ -60,7 +62,9 @@ export const NotebookServer: React.FC = () => {
                     }
                   }}
                 >
-                  <Button data-id="return-nb-button" variant="secondary">Return to server</Button>
+                  <Button data-id="return-nb-button" variant="secondary">
+                    Return to server
+                  </Button>
                 </ActionListItem>
               </ActionList>
             </StackItem>
