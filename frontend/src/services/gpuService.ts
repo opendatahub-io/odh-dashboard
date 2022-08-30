@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const getGPU = (): Promise<number> => {
+export const getGPU = (): Promise<[boolean, number]> => {
   const url = '/api/gpu';
   return axios
     .get(url)
