@@ -40,7 +40,7 @@ This is the default context for running a local UI.  Make sure you build the pro
   $ npm run start
   ```
 
-For in-depth local run guidance review the [contribution guidelines](./docs/CONTRIBUTING.md#Serving%20Content)
+For in-depth local run guidance review the [contribution guidelines](./CONTRIBUTING.md#Serving%20Content)
 
 
 ### Testing
@@ -50,7 +50,7 @@ Run the tests.
   $ npm run test
   ```
 
-For in-depth testing guidance review the [contribution guidelines](./docs/CONTRIBUTING.md#Testing)
+For in-depth testing guidance review the [contribution guidelines](./CONTRIBUTING.md#Testing)
 
 ## Deploying the ODH Dashbard
 ## Deploying the ODH Dashbard using kustomize
@@ -60,7 +60,7 @@ The [manifests](./manifests) folder contains a [kustomize](https://kustomize.io)
 The [manifests/kfdef](./manifests/kfdef) folder contains an example kfdef to deploy ODH Dashboard with the Notebook Controller backend is located in [odh-dashboard-kfnbc-test.yaml](manifests/kfdef/odh-dashboard-kfnbc-test.yaml).
 
 ## Contributing
-Contributing encompasses [repository specific requirements](./docs/CONTRIBUTING.md)
+Contributing encompasses [repository specific requirements](./CONTRIBUTING.md)
 
 ## Documentation
 
