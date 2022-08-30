@@ -21,9 +21,9 @@ import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import EnableModal from '../pages/exploreApplication/EnableModal';
 import { removeComponent } from '../services/componentsServices';
 import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
-import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
 import { useHistory } from 'react-router-dom';
+import { useAppContext } from '../app/AppContext';
 
 import './OdhCard.scss';
 
@@ -39,7 +39,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.metadata.name,
   );
   const disabled = !odhApp.spec.isEnabled;
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+  const { dashboardConfig } = useAppContext();
   const history = useHistory();
   const dispatch = useDispatch();
 
@@ -210,7 +210,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
-        {!dashboardConfig.disableISVBadges &&
+        {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
         odhApp.spec.category &&
         odhApp.spec.category !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">

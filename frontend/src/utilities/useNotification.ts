@@ -2,17 +2,22 @@ import * as React from 'react';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../redux/actions/actions';
 
-type SuccessProps = (title: string) => void;
-type ErrorProps = (title: string, message?: React.ReactNode) => void;
+type NotificationProps = (title: string, message?: React.ReactNode) => void;
 
 type NotificationFunc = {
-  success: SuccessProps;
-  error: ErrorProps;
+  [key in NotificationTypes]: NotificationProps;
 };
+
+enum NotificationTypes {
+  SUCCESS = 'success',
+  ERROR = 'error',
+  INFO = 'info',
+  WARNING = 'warning',
+}
 
 const useNotification = (): NotificationFunc => {
   const dispatch = useDispatch();
-  const success: SuccessProps = React.useCallback(
+  const success: NotificationProps = React.useCallback(
     (title) => {
       dispatch(
         addNotification({
@@ -25,7 +30,7 @@ const useNotification = (): NotificationFunc => {
     [dispatch],
   );
 
-  const error: ErrorProps = React.useCallback(
+  const error: NotificationProps = React.useCallback(
     (title, message?) => {
       dispatch(
         addNotification({
@@ -39,7 +44,38 @@ const useNotification = (): NotificationFunc => {
     [dispatch],
   );
 
-  const notification = React.useMemo(() => ({ success, error }), [success, error]);
+  const info: NotificationProps = React.useCallback(
+    (title, message?) => {
+      dispatch(
+        addNotification({
+          status: 'info',
+          title,
+          message,
+          timestamp: new Date(),
+        }),
+      );
+    },
+    [dispatch],
+  );
+
+  const warning: NotificationProps = React.useCallback(
+    (title, message?) => {
+      dispatch(
+        addNotification({
+          status: 'warning',
+          title,
+          message,
+          timestamp: new Date(),
+        }),
+      );
+    },
+    [dispatch],
+  );
+
+  const notification = React.useMemo(
+    () => ({ success, error, info, warning }),
+    [success, error, info, warning],
+  );
 
   return notification;
 };

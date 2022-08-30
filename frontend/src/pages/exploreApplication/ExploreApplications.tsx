@@ -10,7 +10,6 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
-import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
 import OdhExploreCard from '../../components/OdhExploreCard';
 import ApplicationsPage from '../ApplicationsPage';
 import { OdhApplication } from '../../types';
@@ -18,9 +17,10 @@ import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
 import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
+import { ODH_PRODUCT_NAME } from '../../utilities/const';
+import { useAppContext } from '../../app/AppContext';
 
 import './ExploreApplications.scss';
-import { ODH_PRODUCT_NAME } from 'utilities/const';
 
 const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
 const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
@@ -36,7 +36,8 @@ type ExploreApplicationsInnerProps = {
 
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
-    const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+    const { dashboardConfig } = useAppContext();
+    const disableInfo = dashboardConfig.spec.dashboardConfig.disableInfo;
     const bodyClasses = classNames('odh-explore-apps__body', {
       'm-side-panel-open': !!selectedComponent,
     });
@@ -45,7 +46,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
     return (
       <Drawer
         data-testid="explore-applications"
-        isExpanded={!dashboardConfig.disableInfo && !!selectedComponent}
+        isExpanded={!disableInfo && !!selectedComponent}
         isInline
       >
         <DrawerContent
@@ -60,7 +61,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
           <DrawerContentBody className={bodyClasses}>
             <ApplicationsPage
               title="Explore"
-              description={dashboardConfig.disableInfo ? disabledDescription : description}
+              description={disableInfo ? disabledDescription : description}
               loaded={loaded}
               empty={isEmpty}
               loadError={loadError}
@@ -80,7 +81,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
                               name: c.metadata.name,
                             });
                           }}
-                          disableInfo={dashboardConfig.disableInfo}
+                          disableInfo={disableInfo}
                           enableOpen={c.metadata.name === enableApp?.metadata.name}
                           onEnableClose={() => setEnableApp(undefined)}
                         />

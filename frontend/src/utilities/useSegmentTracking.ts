@@ -1,20 +1,24 @@
 import React from 'react';
+import { useAppContext } from '../app/AppContext';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/types';
 import { initSegment } from '../utilities/segmentIOUtils';
 import { useWatchSegmentKey } from './useWatchSegmentKey';
-import { useWatchDashboardConfig } from './useWatchDashboardConfig';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+  const { dashboardConfig } = useAppContext();
   const username = useSelector((state: RootState) => state.appState.user);
   const clusterID = useSelector((state: RootState) => state.appState.clusterID);
 
   React.useEffect(() => {
     if (segmentKey && loaded && !loadError && username && clusterID) {
       window.clusterID = clusterID;
-      initSegment({ segmentKey, username, enabled: !dashboardConfig.disableTracking });
+      initSegment({
+        segmentKey,
+        username,
+        enabled: !dashboardConfig.spec.dashboardConfig.disableTracking,
+      });
     }
   }, [clusterID, loadError, loaded, segmentKey, username, dashboardConfig]);
 };

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { blankDashboardCR } from '../utilities/useWatchDashboardConfig';
 import { BuildStatus, DashboardConfig } from '../types';
 
 type AppContextProps = {
@@ -15,9 +14,14 @@ const defaultAppContext: AppContextProps = {
   setIsNavOpen: () => undefined,
   onNavToggle: () => undefined,
   buildStatuses: [],
-  dashboardConfig: blankDashboardCR,
+  /* DO NOT DO THIS!!!!!!!!!!! :( */
+  // dashboardConfig will never be null during runtime
+  // tests will just mock this
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  dashboardConfig: null,
 };
 
-const AppContext = React.createContext(defaultAppContext);
+export const AppContext = React.createContext(defaultAppContext);
 
-export default AppContext;
+export const useAppContext = (): AppContextProps => React.useContext(AppContext);

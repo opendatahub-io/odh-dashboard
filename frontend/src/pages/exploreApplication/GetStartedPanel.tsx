@@ -18,11 +18,11 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, WarningTriangleIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../../types';
-import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
 import { useGettingStarted } from '../../utilities/useGettingStarted';
 import MarkdownView from '../../components/MarkdownView';
 import { markdownConverter } from '../../utilities/markdown';
 import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
+import { useAppContext } from '../../app/AppContext';
 
 import './GetStartedPanel.scss';
 
@@ -40,7 +40,8 @@ type GetStartedPanelProps = {
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const appName = selectedApp?.metadata.name;
   const { odhGettingStarted, loaded, loadError } = useGettingStarted(appName);
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+  const { dashboardConfig } = useAppContext();
+  const enablement = dashboardConfig.spec.dashboardConfig.enablement;
   if (!selectedApp) {
     return null;
   }
@@ -81,15 +82,11 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       return null;
     }
     const button = (
-      <Button
-        variant={ButtonVariant.secondary}
-        onClick={onEnable}
-        isDisabled={!dashboardConfig.enablement}
-      >
+      <Button variant={ButtonVariant.secondary} onClick={onEnable} isDisabled={!enablement}>
         Enable
       </Button>
     );
-    if (dashboardConfig.enablement) {
+    if (enablement) {
       return button;
     }
     return (
