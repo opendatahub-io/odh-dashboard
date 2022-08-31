@@ -372,8 +372,8 @@ const SpawnerPage: React.FC = React.memo(() => {
         <StartServerModal
           open={startShown}
           onClose={() => {
-            if (currentUserNotebook) {
-              const notebookName = currentUserNotebook.metadata.name;
+            const notebookName = currentUserNotebook?.metadata.name;
+            if (notebookName) {
               stopNotebook(projectName, notebookName)
                 .then(() => requestNotebookRefresh())
                 .catch((e) => notification.error(`Error stop notebook ${notebookName}`, e.message));
