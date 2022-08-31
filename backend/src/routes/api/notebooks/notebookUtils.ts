@@ -158,7 +158,8 @@ export const createNotebook = async (
   });
 };
 
-export const patchNotebook = async (
+/** @deprecated -- client no longer uses */
+const patchNotebook = async (
   fastify: KubeFastifyInstance,
   patchData: RecursivePartial<Notebook>,
   namespace: string,

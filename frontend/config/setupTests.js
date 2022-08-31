@@ -10,3 +10,5 @@ if (process.env.ODH_IS_PROJECT_ROOT_DIR === 'false') {
   dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.test') });
   dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 }
+
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({}));

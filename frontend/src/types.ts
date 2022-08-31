@@ -287,10 +287,10 @@ export type NotebookAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };
 
-export type Notebook = K8sResourceCommon & {
+export type Notebook = K8sResourceCommonSDK & {
   metadata: {
     annotations: Partial<{
-      'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
+      'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook

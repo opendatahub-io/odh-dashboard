@@ -16,8 +16,8 @@ module.exports = {
       branches: 0,
       functions: 0,
       lines: 0,
-      statements: 0
-    }
+      statements: 0,
+    },
   },
 
   collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
@@ -30,7 +30,7 @@ module.exports = {
     '\\.(css|less|sass|scss)$': '<rootDir>/config/transform.style.js',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/config/transform.file.js',
-    '@app/(.*)': '<rootDir>/src/app/$1'
+    '@app/(.*)': '<rootDir>/src/app/$1',
   },
 
   // A preset that is used as a base for Jest's configuration
@@ -42,6 +42,10 @@ module.exports = {
   // The test environment that will be used for testing.
   testEnvironment: 'jsdom',
 
+  transform: {
+    'node_modules/.+\\.(j|t)sx?$': 'ts-jest',
+  },
+
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing
-  snapshotSerializers: []
+  snapshotSerializers: [],
 };

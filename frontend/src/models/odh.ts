@@ -6,3 +6,10 @@ export const ODHDashboardConfigModel: K8sModelCommon = {
   kind: 'ODHDashboardConfig',
   plural: 'odhdashboardconfigs',
 };
+
+export const NotebookModel: K8sModelCommon = {
+  apiVersion: 'v1alpha',
+  apiGroup: 'opendatahub.io',
+  kind: 'Notebook',
+  plural: 'notebooks',
+};
