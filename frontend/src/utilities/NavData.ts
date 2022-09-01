@@ -19,6 +19,7 @@ const baseNavData: NavDataItem[] = [
       { id: 'apps-explore', label: 'Explore', href: '/explore' },
     ],
   },
+  { id: 'dsg', label: 'Data Science Projects', href: '/projects' },
   { id: 'resources', label: 'Resources', href: '/resources' },
 ];
 
@@ -53,15 +54,7 @@ export const getNavBarData = (
 
   if (enabledFeatures.length > 0) {
     return [
-      {
-        id: 'applications',
-        group: { id: 'apps', title: 'Applications' },
-        children: [
-          { id: 'apps-installed', label: 'Enabled', href: '/' },
-          { id: 'apps-explore', label: 'Explore', href: '/explore' },
-        ],
-      },
-      { id: 'resources', label: 'Resources', href: '/resources' },
+      ...baseNavData,
       {
         id: 'settings',
         group: { id: 'settings', title: 'Settings' },
