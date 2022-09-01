@@ -4,7 +4,7 @@ import * as jsYaml from 'js-yaml';
 import { yamlRegExp } from '../../../utils/constants';
 import { KubeFastifyInstance, QuickStart } from '../../../types';
 import { getComponentFeatureFlags } from '../../../utils/features';
-import { getIsJupyterEnabled } from '../../../utils/componentUtils';
+import { checkJupyterEnabled } from '../../../utils/componentUtils';
 
 const quickStartsGroup = 'console.openshift.io';
 const quickStartsVersion = 'apiextensions.k8s.io/v1';
@@ -34,7 +34,7 @@ export const getInstalledQuickStarts = async (
         const doc: QuickStart = jsYaml.load(
           fs.readFileSync(path.join(normalizedPath, file), 'utf8'),
         );
-        if (doc.spec.appName === 'jupyterhub' && getIsJupyterEnabled()) {
+        if (doc.spec.appName === 'jupyterhub' && checkJupyterEnabled()) {
           doc.spec.appName = 'jupyter';
         }
         if (!doc.spec.featureFlag || featureFlags[doc.spec.featureFlag]) {

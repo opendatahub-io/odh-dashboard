@@ -7,6 +7,18 @@ import { mockEnabledApplications } from '../../__mocks__/mockEnabledApplications
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+const dashboardConfig = {
+  spec: {
+    dashboardConfig: {
+      disableISVBadges: false,
+    },
+  },
+};
+
+jest.mock('../app/AppContext.ts', () => ({
+  useAppContext: () => ({ dashboardConfig }),
+}));
+
 describe('EnabledApplications', () => {
   it('should display a message when there are no enabled applications', () => {
     render(

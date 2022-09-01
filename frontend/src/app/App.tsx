@@ -5,19 +5,18 @@ import '@patternfly/patternfly/patternfly-addons.css';
 import { Alert, Bullseye, Page, PageSection, Spinner } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
-import { useTrackHistory } from '../utilities/useTrackHistory';
-import { useSegmentTracking } from '../utilities/useSegmentTracking';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
 import ToastNotifications from '../components/ToastNotifications';
 import AppNotificationDrawer from './AppNotificationDrawer';
 import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
-import AppContext from './AppContext';
+import { AppContext } from './AppContext';
+import { useApplicationSettings } from './useApplicationSettings';
+import { useUser } from '../redux/selectors';
+import TelemetrySetup from './TelemetrySetup';
 
 import './App.scss';
-import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
-import { useUser } from '../redux/selectors';
 
 const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
@@ -25,11 +24,13 @@ const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError } = useUser();
   const dispatch = useDispatch();
-  useSegmentTracking();
-  useTrackHistory();
 
   const buildStatuses = useWatchBuildStatus();
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const {
+    dashboardConfig,
+    loaded: configLoaded,
+    loadError: fetchConfigError,
+  } = useApplicationSettings();
 
   React.useEffect(() => {
     dispatch(detectUser());
@@ -43,16 +44,18 @@ const App: React.FC = () => {
     setIsNavOpen(!isNavOpen);
   };
 
-  if (!username) {
+  if (!username || !configLoaded || !dashboardConfig) {
     // We do not have the data yet for who they are, we can't show the app. If we allow anything
     // to render right now, the username is going to be blank and we won't know permissions
-    if (userError) {
+    // If we don't get the config we cannot show the pages, either
+    if (userError || fetchConfigError) {
       // We likely don't have a username still so just show the error
+      // or we likely meet something wrong when fetching the dashboard config, we also show the error
       return (
         <Page>
           <PageSection>
             <Alert variant="danger" isInline title="General loading error">
-              {userError.message}
+              {userError ? userError.message : fetchConfigError?.message}
             </Alert>
           </PageSection>
         </Page>
@@ -86,6 +89,7 @@ const App: React.FC = () => {
       >
         <Routes />
         <ToastNotifications />
+        <TelemetrySetup />
       </Page>
     </AppContext.Provider>
   );

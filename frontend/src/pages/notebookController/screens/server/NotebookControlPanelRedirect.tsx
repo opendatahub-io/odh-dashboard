@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { useHistory, useParams } from 'react-router-dom';
-import ApplicationsPage from 'pages/ApplicationsPage';
-import { usernameTranslate } from 'utilities/notebookControllerUtils';
-import AppContext from '../../../../app/AppContext';
+import ApplicationsPage from '../../../../pages/ApplicationsPage';
+import {
+  useCheckJupyterEnabled,
+  usernameTranslate,
+} from '../../../../utilities/notebookControllerUtils';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { useUser } from '../../../../redux/selectors';
 import { NotebookControllerTabTypes } from '../../const';
@@ -12,15 +14,11 @@ const NotebookControlPanelRedirect: React.FC = () => {
   const { username: translatedUsername } = useParams<{ username: string }>();
   const { username: loggedInUser, isAdmin } = useUser();
   const translatedLoggedInUsername = usernameTranslate(loggedInUser);
-  const { dashboardConfig } = React.useContext(AppContext);
   const { setImpersonating, setCurrentAdminTab } = React.useContext(NotebookControllerContext);
+  const isJupyterEnabled = useCheckJupyterEnabled();
 
   React.useEffect(() => {
-    if (
-      translatedLoggedInUsername &&
-      translatedUsername &&
-      dashboardConfig.spec.notebookController?.enabled
-    ) {
+    if (translatedLoggedInUsername && translatedUsername && isJupyterEnabled) {
       const notActiveUser = translatedLoggedInUsername !== translatedUsername;
       if (notActiveUser) {
         if (isAdmin) {
@@ -41,7 +39,7 @@ const NotebookControlPanelRedirect: React.FC = () => {
     }
   }, [
     translatedUsername,
-    dashboardConfig,
+    isJupyterEnabled,
     history,
     translatedLoggedInUsername,
     isAdmin,

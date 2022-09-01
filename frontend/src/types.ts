@@ -71,6 +71,7 @@ export type EnvVarReducedTypeKeyValues = {
 export type NotebookSize = {
   name: string;
   resources: NotebookResources;
+  notUserDefined?: boolean;
 };
 
 export type NotebookTolerationSettings = {

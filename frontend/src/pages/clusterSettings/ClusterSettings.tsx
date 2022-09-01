@@ -20,6 +20,7 @@ import {
   Radio,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
+import { useAppContext } from '../../app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '../../services/clusterSettingsService';
 import { ClusterSettings, NotebookTolerationSettings } from '../../types';
 import { useDispatch } from 'react-redux';
@@ -40,7 +41,7 @@ import {
   MIN_CULLER_TIMEOUT,
 } from './const';
 import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '../../utilities/utils';
-import { useWatchDashboardConfig } from '../../utilities/useWatchDashboardConfig';
+import { useCheckJupyterEnabled } from '../../utilities/notebookControllerUtils';
 
 import './ClusterSettings.scss';
 
@@ -59,8 +60,9 @@ const ClusterSettings: React.FC = () => {
   const [hour, setHour] = React.useState<number>(DEFAULT_HOUR);
   const [minute, setMinute] = React.useState<number>(0);
   const pvcDefaultBtnRef = React.useRef<HTMLButtonElement>();
-  const { dashboardConfig } = useWatchDashboardConfig();
-  const dfltNotebookTolerationSettings = dashboardConfig.spec.notebookController?.enabled
+  const { dashboardConfig } = useAppContext();
+  const isJupyterEnabled = useCheckJupyterEnabled();
+  const dfltNotebookTolerationSettings = isJupyterEnabled
     ? {
         enabled: false,
         key: 'NotebooksOnly',
@@ -345,7 +347,7 @@ const ClusterSettings: React.FC = () => {
                 />
               </FormGroup>
             ) : null}
-            {dashboardConfig.spec.notebookController?.enabled ? (
+            {isJupyterEnabled ? (
               <FormGroup fieldId="notebook-toleration" label="Notebook pod tolerations">
                 <Checkbox
                   label="Add a toleration to notebook pods to allow them to be scheduled to tainted nodes"

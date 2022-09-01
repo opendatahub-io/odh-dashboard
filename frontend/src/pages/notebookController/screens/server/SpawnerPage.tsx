@@ -35,7 +35,7 @@ import {
   generatePvc,
   useNotebookUserState,
 } from '../../../../utilities/notebookControllerUtils';
-import AppContext from '../../../../app/AppContext';
+import { useAppContext } from '../../../../app/AppContext';
 import { getSecret } from '../../../../services/secretsService';
 import { getConfigMap } from '../../../../services/configMapService';
 import { useWatchImages } from '../../../../utilities/useWatchImages';
@@ -53,11 +53,11 @@ import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 
 import '../../NotebookController.scss';
 
-const SpawnerPage: React.FC = React.memo(() => {
+const SpawnerPage: React.FC = () => {
   const history = useHistory();
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
-  const { buildStatuses, dashboardConfig } = React.useContext(AppContext);
+  const { buildStatuses, dashboardConfig } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
   const { notebookNamespace: projectName } = useNamespaces();
@@ -68,7 +68,7 @@ const SpawnerPage: React.FC = React.memo(() => {
     image: undefined,
     tag: undefined,
   });
-  const [selectedSize, setSelectedSize] = usePreferredNotebookSize();
+  const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -220,30 +220,15 @@ const SpawnerPage: React.FC = React.memo(() => {
   const fireStartServerEvent = () => {
     fireTrackingEvent('Notebook Server Started', {
       GPU: parseInt(selectedGpu),
-      lastSelectedSize: selectedSize,
+      lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
   };
 
   const handleNotebookAction = async () => {
     setSubmitError(null);
-    const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
-      (ns) => ns.name === selectedSize,
-    );
-    if (!notebookSize) {
-      setSubmitError(
-        new Error(
-          'There was an unknown issue selecting your notebook size -- refresh and try again',
-        ),
-      );
-      console.error(
-        `Failed to associate selected notebook size (${selectedSize}) with list of notebook sizes`,
-        dashboardConfig?.spec?.notebookSizes,
-      );
-      return;
-    }
     const pvcName = generatePvcNameFromUsername(username);
-    const requestedPvcSize = dashboardConfig?.spec?.notebookController?.pvcSize;
+    const requestedPvcSize = dashboardConfig.spec.notebookController?.pvcSize;
     const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
     await verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody).catch((e) =>
       console.error(`Something wrong with PVC ${pvcName}: ${e}`),
@@ -259,7 +244,7 @@ const SpawnerPage: React.FC = React.memo(() => {
       notebookName,
       username,
       imageUrl,
-      notebookSize,
+      notebookSize: selectedSize,
       imageSelection: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
       gpus: parseInt(selectedGpu),
       envVars,
@@ -306,7 +291,11 @@ const SpawnerPage: React.FC = React.memo(() => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            <SizeSelectField value={selectedSize} setValue={setSelectedSize} />
+            <SizeSelectField
+              value={selectedSize}
+              setValue={(size) => setSelectedSize(size)}
+              sizes={sizes}
+            />
             <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
@@ -378,8 +367,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       </ApplicationsPage>
     </>
   );
-});
-
-SpawnerPage.displayName = 'SpawnerPage';
+};
 
 export default SpawnerPage;

@@ -74,6 +74,4 @@ export const NotebookServer: React.FC = () => {
   );
 };
 
-NotebookServer.displayName = 'NotebookController';
-
 export default NotebookServer;

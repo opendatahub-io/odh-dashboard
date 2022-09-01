@@ -1,47 +1,53 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import AppContext from '../../../../app/AppContext';
+import {
+  FormGroup,
+  HelperText,
+  HelperTextItem,
+  Select,
+  SelectOption,
+} from '@patternfly/react-core';
+import { NotebookSize } from '../../../../types';
 
 type SizeSelectFieldProps = {
-  value: string;
+  value: NotebookSize;
   setValue: (newValue: string) => void;
+  sizes: NotebookSize[];
 };
 
-const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue }) => {
+const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, sizes }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
-  const { dashboardConfig } = React.useContext(AppContext);
-  const sizes = dashboardConfig?.spec?.notebookSizes || [];
 
-  const sizeOptions = () => {
-    if (sizes.length === 0) {
-      return [<SelectOption key="Default" value="No sizes" />];
-    }
-
-    return sizes.map((size) => {
+  const sizeOptions = () =>
+    sizes.map((size) => {
       const name = size.name;
       const desc =
-        `Limits: ${size?.resources?.limits?.cpu || '??'} CPU, ` +
-        `${size?.resources?.limits?.memory || '??'} Memory ` +
-        `Requests: ${size?.resources?.requests?.cpu || '??'} CPU, ` +
-        `${size?.resources?.requests?.memory || '??'} Memory`;
+        `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
+        `${size.resources.limits?.memory || '??'} Memory ` +
+        `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
+        `${size.resources.requests?.memory || '??'} Memory`;
       return <SelectOption key={name} value={name} description={desc} />;
     });
-  };
 
   return (
     <FormGroup
       label="Container Size"
       fieldId="modal-notebook-container-size"
-      helperTextInvalid="No notebook sizes configured"
-      helperTextInvalidIcon={<ExclamationCircleIcon />}
-      validated={sizes.length === 0 ? 'error' : undefined}
+      helperText={
+        value.notUserDefined ? (
+          <HelperText>
+            <HelperTextItem variant="warning" hasIcon>
+              Your last selected size was no longer available, we have set the size to the default
+              one.
+            </HelperTextItem>
+          </HelperText>
+        ) : undefined
+      }
     >
       <Select
         isOpen={sizeDropdownOpen}
         onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
         aria-labelledby="container-size"
-        selections={value}
+        selections={value.name}
         onSelect={(event, selection) => {
           // We know we are setting values as a string
           if (typeof selection === 'string') {
@@ -49,7 +55,6 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue }) =>
             setSizeDropdownOpen(false);
           }
         }}
-        isDisabled={sizes.length === 0}
         menuAppendTo="parent"
       >
         {sizeOptions()}

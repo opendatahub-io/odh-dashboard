@@ -9,7 +9,7 @@ import {
 } from '../../../../utilities/imageUtils';
 import ImageTagPopover from './ImageTagPopover';
 import ImageVersions from './ImageVersions';
-import AppContext from '../../../../app/AppContext';
+import { useAppContext } from '../../../../app/AppContext';
 
 import '../../NotebookController.scss';
 
@@ -26,7 +26,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   selectedTag,
   handleSelection,
 }) => {
-  const { buildStatuses } = React.useContext(AppContext);
+  const { buildStatuses } = useAppContext();
   const currentTag = getTagForImage(buildStatuses, image, selectedImage?.name, selectedTag?.name);
   const tags = image.tags || [];
   const getImagePopover = (image: ImageInfo) => {

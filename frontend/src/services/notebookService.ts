@@ -15,7 +15,7 @@ import {
 import { RecursivePartial } from '../typeHelpers';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
-import { usernameTranslate } from 'utilities/notebookControllerUtils';
+import { usernameTranslate } from '../utilities/notebookControllerUtils';
 
 export const getNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
