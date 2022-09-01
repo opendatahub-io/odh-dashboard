@@ -14,6 +14,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableISVBadges: boolean;
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
+      disableProjects: boolean;
     };
     groupsConfig?: {
       adminGroups: string;

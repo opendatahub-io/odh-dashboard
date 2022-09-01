@@ -1,74 +1,91 @@
 import { DashboardConfig } from '../types';
-export type NavDataItem = {
-  id?: string;
-  label?: string;
-  href?: string;
-  group?: {
+
+type NavDataCommon = {
+  id: string;
+};
+
+export type NavDataHref = NavDataCommon & {
+  label: string;
+  href: string;
+};
+
+export type NavDataGroup = NavDataCommon & {
+  group: {
     id: string;
     title: string;
   };
-  children?: NavDataItem[];
+  children: NavDataHref[];
 };
 
-const baseNavData: NavDataItem[] = [
-  {
-    id: 'applications',
-    group: { id: 'apps', title: 'Applications' },
-    children: [
-      { id: 'apps-installed', label: 'Enabled', href: '/' },
-      { id: 'apps-explore', label: 'Explore', href: '/explore' },
-    ],
-  },
-  { id: 'resources', label: 'Resources', href: '/resources' },
-];
+export type NavDataItem = NavDataHref | NavDataGroup;
 
-export const getNavBarData = (
+export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref =>
+  !!(navData as NavDataHref)?.href;
+export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
+  !!(navData as NavDataGroup)?.children;
+
+const getSettingsNav = (
   isAdmin: boolean,
   dashboardConfig: DashboardConfig,
-): NavDataItem[] => {
-  if (!isAdmin) return baseNavData;
+): NavDataGroup | null => {
+  if (!isAdmin) return null;
 
-  const enabledFeatures: NavDataItem[] = [];
-
+  const settingsNavs: NavDataHref[] = [];
   if (!dashboardConfig.spec.dashboardConfig.disableBYONImageStream)
-    enabledFeatures.push({
+    settingsNavs.push({
       id: 'settings-notebook-images',
       label: 'Notebook Images',
       href: '/notebookImages',
     });
 
   if (!dashboardConfig.spec.dashboardConfig.disableClusterManager)
-    enabledFeatures.push({
+    settingsNavs.push({
       id: 'settings-cluster-settings',
       label: 'Cluster settings',
       href: '/clusterSettings',
     });
 
   if (!dashboardConfig.spec.dashboardConfig.disableUserManagement)
-    enabledFeatures.push({
+    settingsNavs.push({
       id: 'settings-group-settings',
       label: 'User management',
       href: '/groupSettings',
     });
 
-  if (enabledFeatures.length > 0) {
-    return [
-      {
-        id: 'applications',
-        group: { id: 'apps', title: 'Applications' },
-        children: [
-          { id: 'apps-installed', label: 'Enabled', href: '/' },
-          { id: 'apps-explore', label: 'Explore', href: '/explore' },
-        ],
-      },
-      { id: 'resources', label: 'Resources', href: '/resources' },
-      {
-        id: 'settings',
-        group: { id: 'settings', title: 'Settings' },
-        children: enabledFeatures,
-      },
-    ];
+  if (settingsNavs.length === 0) return null;
+
+  return {
+    id: 'settings',
+    group: { id: 'settings', title: 'Settings' },
+    children: settingsNavs,
+  };
+};
+
+export const getNavBarData = (
+  isAdmin: boolean,
+  dashboardConfig: DashboardConfig,
+): NavDataItem[] => {
+  const navItems: NavDataItem[] = [];
+
+  navItems.push({
+    id: 'applications',
+    group: { id: 'apps', title: 'Applications' },
+    children: [
+      { id: 'apps-installed', label: 'Enabled', href: '/' },
+      { id: 'apps-explore', label: 'Explore', href: '/explore' },
+    ],
+  });
+
+  if (!dashboardConfig.spec.dashboardConfig.disableProjects) {
+    navItems.push({ id: 'dsg', label: 'Data Science Projects', href: '/projects' });
   }
 
-  return baseNavData;
+  navItems.push({ id: 'resources', label: 'Resources', href: '/resources' });
+
+  const settingsNav = getSettingsNav(isAdmin, dashboardConfig);
+  if (settingsNav) {
+    navItems.push(settingsNav);
+  }
+
+  return navItems;
 };
