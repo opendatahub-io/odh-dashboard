@@ -264,12 +264,22 @@ const enableNotebook = async (notebook: Notebook): Promise<Notebook> => {
     return Promise.reject('Notebook is not assigned to a namespace -- cannot start it');
   }
 
+  // TODO: Is there a cleaner way to remove the annotation in the SDK?
   return k8sUpdateResource<Notebook>({
     model: NotebookModel,
-    resource: _.merge({}, notebook, {
-      metadata: { annotations: { 'kubeflow-resource-stopped': null } },
+    resource: notebook,
+  }).then(() =>
+    k8sPatchResource({
+      model: NotebookModel,
+      queryOptions: { name: notebook.metadata.name, ns: notebook.metadata.namespace },
+      patches: [
+        {
+          path: '/metadata/annotations/kubeflow-resource-stopped',
+          op: 'remove',
+        },
+      ],
     }),
-  });
+  );
 };
 
 export const startNotebook = (data: StartNotebookData): Promise<Notebook> => {
@@ -286,7 +296,7 @@ export const startNotebook = (data: StartNotebookData): Promise<Notebook> => {
         }
 
         // We have a notebook, patch it
-        enableNotebook(notebook).then(resolve).catch(reject);
+        enableNotebook(_.merge({}, responseData, notebook)).then(resolve).catch(reject);
       })
       .catch(reject);
   });
