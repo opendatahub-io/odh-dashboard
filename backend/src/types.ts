@@ -639,7 +639,7 @@ export type GroupsConfigBody = {
   allowedGroups: string;
 };
 
-export type groupObjResponse = {
+export type GroupObjResponse = {
   users: string[] | null;
 };
 

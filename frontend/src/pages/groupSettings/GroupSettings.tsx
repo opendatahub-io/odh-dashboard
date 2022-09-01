@@ -3,24 +3,15 @@ import {
   ActionGroup,
   Button,
   Form,
-  FormGroup,
   PageSection,
   PageSectionVariants,
-  Text,
-  HelperText,
-  HelperTextItem,
-  Alert,
-  AlertActionCloseButton,
-  Hint,
-  HintBody,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
-import './GroupSettings.scss';
-import { GroupsConfigField, MenuItemStatus } from './GroupTypes';
-import { MenuOptionMultiSelect } from 'components/MultiSelection';
+import { GroupsConfigField, MenuItemStatus } from './groupTypes';
 import { useWatchGroups } from 'utilities/useWatchGroups';
-
-const CARD_FOOTER = `View, edit, or create groups in OpenShift under User Management`;
+import { FormGroupSettings } from 'components/FormGroupSettings';
+import './GroupSettings.scss';
+import { isGroupEmpty } from 'utilities/utils';
 
 const GroupSettings: React.FC = () => {
   const {
@@ -51,10 +42,6 @@ const GroupSettings: React.FC = () => {
     setIsGroupSettingsChanged(true);
   };
 
-  const isGroupEmpty = (groupList: MenuItemStatus[]): boolean => {
-    return groupList.filter((element) => element.enabled).length === 0;
-  };
-
   return (
     <ApplicationsPage
       title={`User and group settings`}
@@ -62,7 +49,7 @@ const GroupSettings: React.FC = () => {
       loaded={loaded}
       empty={false}
       loadError={loadError}
-      errorMessage={`Unable to load User and group settings`}
+      errorMessage={`Unable to load user and group settings`}
       emptyMessage={`No user and group settings found`}
     >
       {loaded && (
@@ -77,70 +64,29 @@ const GroupSettings: React.FC = () => {
               e.preventDefault();
             }}
           >
-            <FormGroup fieldId="admin-groups" label={`Data Science administrator groups`}>
-              <Text>{`Select the OpenShift groups that contain all Data Science administrators.`}</Text>
-              <MenuOptionMultiSelect
-                initialState={groupSettings.adminGroups}
-                onChange={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
-              />
-              {!groupSettings.errorAdmin && (
-                <>
-                  <HelperText>
-                    <HelperTextItem variant="indeterminate">{CARD_FOOTER}</HelperTextItem>
-                  </HelperText>
-                  <Hint>
-                    <HintBody>
-                      All cluster admins are automatically assigned as Data Science administrators.
-                    </HintBody>
-                  </Hint>
-                </>
-              )}
-              {groupSettings.errorAdmin && (
-                <Alert
-                  isInline
-                  variant="warning"
-                  title={`Group no longer exists`}
-                  actionClose={
-                    <AlertActionCloseButton
-                      onClose={() => {
-                        setGroupSettings({ ...groupSettings, errorAdmin: undefined });
-                      }}
-                    />
-                  }
-                >
-                  <p>{groupSettings.errorAdmin}</p>
-                </Alert>
-              )}
-            </FormGroup>
+            <FormGroupSettings
+              title="Data Science administrator groups"
+              body="Select the OpenShift groups that contain all Data Science administrators."
+              groupsField={GroupsConfigField.ADMIN}
+              items={groupSettings.adminGroups}
+              error={groupSettings.errorAdmin}
+              handleMenuItemSelection={handleMenuItemSelection}
+              handleClose={() => {
+                setGroupSettings({ ...groupSettings, errorAdmin: undefined });
+              }}
+            />
 
-            <FormGroup fieldId="user-groups" label={`Data Science user groups`}>
-              <Text>{`Select the OpenShift groups that contain all Data Science users.`}</Text>
-              <MenuOptionMultiSelect
-                initialState={groupSettings.allowedGroups}
-                onChange={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
-              />
-              {!groupSettings.errorUser && (
-                <HelperText>
-                  <HelperTextItem variant="indeterminate">{CARD_FOOTER}</HelperTextItem>
-                </HelperText>
-              )}
-              {groupSettings.errorUser && (
-                <Alert
-                  isInline
-                  variant="warning"
-                  title={`Group no longer exists`}
-                  actionClose={
-                    <AlertActionCloseButton
-                      onClose={() => {
-                        setGroupSettings({ ...groupSettings, errorUser: undefined });
-                      }}
-                    />
-                  }
-                >
-                  <p>{groupSettings.errorUser}</p>
-                </Alert>
-              )}
-            </FormGroup>
+            <FormGroupSettings
+              title="Data Science user groups"
+              body="Select the OpenShift groups that contain all Data Science users."
+              groupsField={GroupsConfigField.USER}
+              items={groupSettings.allowedGroups}
+              error={groupSettings.errorUser}
+              handleMenuItemSelection={handleMenuItemSelection}
+              handleClose={() => {
+                setGroupSettings({ ...groupSettings, errorUser: undefined });
+              }}
+            />
 
             <ActionGroup>
               <Button
