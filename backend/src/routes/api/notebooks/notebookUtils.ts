@@ -153,7 +153,7 @@ export const createNotebook = async (
   const patch: RecursivePartial<Notebook> = {
     metadata: {
       annotations: {
-        'opendatahub.io/link': notebookLink,
+        'opendatahub.io/link': `notebookLink`,
       },
     },
   };
