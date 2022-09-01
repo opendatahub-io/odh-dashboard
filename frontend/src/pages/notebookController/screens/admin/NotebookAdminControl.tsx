@@ -18,6 +18,7 @@ import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { AdminViewUserData } from './types';
 import StopServerModal from '../server/StopServerModal';
 import { NotebookAdminContext } from './NotebookAdminContext';
+import NotebookActions from './NotebookActions';
 import { Notebook } from '../../../../types';
 
 const INITIAL_PAGE_LIMIT = 10;
@@ -89,11 +90,17 @@ const NotebookAdminControl: React.FC = () => {
                 <Tbody>
                   {users.slice(perPage * pageIndex, perPage * pageIndex + perPage).map((user) => (
                     <Tr key={user.name}>
-                      {columns.map((column) => (
-                        <Td key={column.field} dataLabel={column.field}>
-                          <UserTableCellTransform user={user} userProperty={column.field} />
-                        </Td>
-                      ))}
+                      {columns.map((column) =>
+                        column.field === 'actions' ? (
+                          <Td key={column.field} isActionCell>
+                            <NotebookActions data={user[column.field]} />
+                          </Td>
+                        ) : (
+                          <Td key={column.field} dataLabel={column.field}>
+                            <UserTableCellTransform user={user} userProperty={column.field} />
+                          </Td>
+                        ),
+                      )}
                     </Tr>
                   ))}
                 </Tbody>

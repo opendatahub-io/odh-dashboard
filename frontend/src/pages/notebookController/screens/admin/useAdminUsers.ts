@@ -29,21 +29,24 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
     const notebook = notebookRunningState?.notebook ?? null;
     const isNotebookRunning = notebookRunningState?.isRunning ?? false;
 
+    const serverStatusObject = {
+      notebook,
+      isNotebookRunning,
+      forceRefresh: () => {
+        forceRefresh([allowedUser.username]);
+        if (allowedUser.username === loggedInUser) {
+          // Refresh your own state too -- so you can live updates if you navigate or restart your server
+          requestNotebookRefresh();
+        }
+      },
+    };
+
     return {
       name: allowedUser.username,
       privilege: allowedUser.privilege,
       lastActivity: allowedUser.lastActivity,
-      serverStatus: {
-        notebook,
-        isNotebookRunning,
-        forceRefresh: () => {
-          forceRefresh([allowedUser.username]);
-          if (allowedUser.username === loggedInUser) {
-            // Refresh your own state too -- so you can live updates if you navigate or restart your server
-            requestNotebookRefresh();
-          }
-        },
-      },
+      serverStatus: serverStatusObject,
+      actions: serverStatusObject,
     };
   });
 
