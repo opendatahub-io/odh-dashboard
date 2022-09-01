@@ -31,6 +31,7 @@ export type DashboardCommonConfig = {
   disableISVBadges: boolean;
   disableAppLauncher: boolean;
   disableUserManagement: boolean;
+  disableProjects: boolean;
 };
 
 export type NotebookControllerUserState = {

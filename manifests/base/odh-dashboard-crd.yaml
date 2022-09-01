@@ -41,6 +41,8 @@ spec:
                       type: boolean
                     disableUserManagement:
                       type: boolean
+                    disableProjects:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

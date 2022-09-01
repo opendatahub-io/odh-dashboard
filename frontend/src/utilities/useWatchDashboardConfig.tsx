@@ -21,6 +21,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableISVBadges: false,
       disableAppLauncher: false,
       disableUserManagement: false,
+      disableProjects: false,
     },
     groupsConfig: {
       adminGroups: 'odh-admins',
