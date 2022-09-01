@@ -118,14 +118,21 @@ export const createNotebook = async (
   await fastify.kube.customObjectsApi
     .createNamespacedCustomObject('kubeflow.org', 'v1', namespace, 'notebooks', notebookData)
     .catch((res) => {
-      const e = res.body;
+      const e = res.response.body;
       const error = createCustomError('Error creating Notebook Custom Resource', e.message, e.code);
       fastify.log.error(error);
       throw error;
     });
 
   await createRBAC(fastify, request, namespace, notebookData).catch((res) => {
-    const e = res.body;
+    if (res.statusCode === 409) {
+      // Conflict, we likely have one already -- just continue
+      fastify.log.warn(
+        'Requested to recreate RBAC piece of create Notebook. Got a conflict, assuming it is already there and letting the flow continue.',
+      );
+      return;
+    }
+    const e = res.response.body;
     const error = createCustomError('Error creating Notebook RBAC', e.message, e.code);
     fastify.log.error(error);
     throw error;
@@ -136,7 +143,7 @@ export const createNotebook = async (
     .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', notebookName)
     .then((response) => response.body as Route)
     .catch((res) => {
-      const e = res.body;
+      const e = res.response.body;
       const error = createCustomError('Error fetching Notebook Route', e.message, e.code);
       fastify.log.error(error);
       throw error;
@@ -151,7 +158,7 @@ export const createNotebook = async (
   };
 
   return await patchNotebook(fastify, patch, namespace, notebookName).catch((res) => {
-    const e = res.body;
+    const e = res.response.body;
     const error = createCustomError('Error adding route data to Notebook', e.message, e.code);
     fastify.log.error(error);
     throw error;
