@@ -4,7 +4,7 @@ import useWatchNotebooksForUsers from '../../../../utilities/useWatchNotebooksFo
 import { NotebookRunningState } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import useNamespaces from '../../useNamespaces';
-import { AdminViewUserData } from './types';
+import { AdminViewUserData, ServerStatus } from './types';
 import useCheckForAllowedUsers from './useCheckForAllowedUsers';
 
 const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
@@ -29,7 +29,7 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
     const notebook = notebookRunningState?.notebook ?? null;
     const isNotebookRunning = notebookRunningState?.isRunning ?? false;
 
-    const serverStatusObject = {
+    const serverStatusObject: ServerStatus = {
       notebook,
       isNotebookRunning,
       forceRefresh: () => {
