@@ -50,9 +50,6 @@ export const NotebookServer: React.FC = () => {
                 onNotebooksStop={onNotebooksStop}
               />
               <ActionList>
-                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button variant="primary">Stop notebook server</Button>
-                </ActionListItem>
                 <ActionListItem
                   onClick={() => {
                     if (notebook.metadata.annotations?.['opendatahub.io/link']) {
@@ -60,7 +57,10 @@ export const NotebookServer: React.FC = () => {
                     }
                   }}
                 >
-                  <Button variant="secondary">Return to server</Button>
+                  <Button variant="primary">Access notebook server</Button>
+                </ActionListItem>
+                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
+                  <Button variant="secondary">Stop notebook server</Button>
                 </ActionListItem>
               </ActionList>
             </StackItem>
