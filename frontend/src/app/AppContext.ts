@@ -14,12 +14,8 @@ const defaultAppContext: AppContextProps = {
   setIsNavOpen: () => undefined,
   onNavToggle: () => undefined,
   buildStatuses: [],
-  /* DO NOT DO THIS!!!!!!!!!!! :( */
-  // dashboardConfig will never be null during runtime
-  // tests will just mock this
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  dashboardConfig: null,
+  // At runtime dashboardConfig is never null -- DO NOT DO THIS usually
+  dashboardConfig: null as unknown as DashboardConfig,
 };
 
 export const AppContext = React.createContext(defaultAppContext);

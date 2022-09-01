@@ -362,12 +362,7 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 };
 
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
-  dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(
-    fastify,
-    fetchDashboardCR,
-    undefined,
-    2000,
-  );
+  dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
   subscriptionWatcher = new ResourceWatcher<SubscriptionKind>(fastify, fetchSubscriptions);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplicationDefs);

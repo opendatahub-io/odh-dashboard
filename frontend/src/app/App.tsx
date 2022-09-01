@@ -14,6 +14,7 @@ import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
 import { AppContext } from './AppContext';
 import { useApplicationSettings } from './useApplicationSettings';
 import { useUser } from '../redux/selectors';
+import TelemetrySetup from './TelemetrySetup';
 
 import './App.scss';
 
@@ -88,6 +89,7 @@ const App: React.FC = () => {
       >
         <Routes />
         <ToastNotifications />
+        <TelemetrySetup />
       </Page>
     </AppContext.Provider>
   );

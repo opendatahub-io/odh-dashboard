@@ -21,10 +21,10 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
     sizes.map((size) => {
       const name = size.name;
       const desc =
-        `Limits: ${size.resources?.limits?.cpu || '??'} CPU, ` +
-        `${size.resources?.limits?.memory || '??'} Memory ` +
-        `Requests: ${size.resources?.requests?.cpu || '??'} CPU, ` +
-        `${size.resources?.requests?.memory || '??'} Memory`;
+        `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
+        `${size.resources.limits?.memory || '??'} Memory ` +
+        `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
+        `${size.resources.requests?.memory || '??'} Memory`;
       return <SelectOption key={name} value={name} description={desc} />;
     });
 
