@@ -2,8 +2,8 @@ import { CustomObjectsApi } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
+import { USER_ACCESS_TOKEN } from './constants';
 
-const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 const DEFAULT_USERNAME = 'kube:admin';
 
 export type OpenShiftUser = {

@@ -103,6 +103,18 @@ export type K8sResourceCommon = {
   };
 } & K8sResourceBase;
 
+/**
+ * A status object when Kube backend can't handle a request.
+ */
+export type K8sStatus = {
+  kind: string;
+  apiVersion: string;
+  code: number;
+  message: string;
+  reason: string;
+  status: string;
+};
+
 export enum BUILD_PHASE {
   none = 'Not started',
   new = 'New',

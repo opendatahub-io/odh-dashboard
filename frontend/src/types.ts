@@ -1,3 +1,5 @@
+// TODO: Once we move away from the existing legacy type we should rename this back to K8sResourceCommon
+import { K8sResourceCommon as K8sResourceCommonSDK } from '@openshift/dynamic-plugin-sdk-utils';
 /*
  * Common types, should be kept up to date with backend types
  */
@@ -90,11 +92,11 @@ export type Secret = {
   data?: Record<string, string>;
   stringData?: Record<string, string>;
   type?: string;
-} & K8sResourceCommon;
+} & K8sResourceCommonSDK;
 
 export type ConfigMap = {
   data?: Record<string, string>;
-} & K8sResourceCommon;
+} & K8sResourceCommonSDK;
 
 export type EnvVarResource = Secret | ConfigMap;
 
@@ -202,6 +204,11 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+/**
+ * @deprecated -- use the SDK version
+ * All references that use this are un-vetted data against existing types, should be converted over
+ * to the new K8sResourceCommon from the SDK to keep everythung unified on one front.
+ */
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
@@ -281,10 +288,10 @@ export type NotebookAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };
 
-export type Notebook = K8sResourceCommon & {
+export type Notebook = K8sResourceCommonSDK & {
   metadata: {
     annotations: Partial<{
-      'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
+      'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook
@@ -537,14 +544,7 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
-export type PersistentVolumeClaim = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    annotations?: { [key: string]: string };
-  };
+export type PersistentVolumeClaim = K8sResourceCommonSDK & {
   spec: {
     accessModes: string[];
     resources: {
@@ -594,16 +594,16 @@ export type RoleBindingSubject = {
 export type RoleBinding = {
   subjects: RoleBindingSubject[];
   roleRef: RoleBindingSubject;
-} & K8sResourceCommon;
+} & K8sResourceCommonSDK;
 
-export type ResourceGetter<T extends K8sResourceCommon> = (
+export type ResourceGetter<T extends K8sResourceCommonSDK> = (
   projectName: string,
   resourceName: string,
 ) => Promise<T>;
 
-export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+export type ResourceCreator<T extends K8sResourceCommonSDK> = (resource: T) => Promise<T>;
 
-export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
+export type ResourceReplacer<T extends K8sResourceCommonSDK> = (resource: T) => Promise<T>;
 
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
