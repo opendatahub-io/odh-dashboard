@@ -4,7 +4,7 @@ import useWatchNotebooksForUsers from '../../../../utilities/useWatchNotebooksFo
 import { NotebookRunningState } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import useNamespaces from '../../useNamespaces';
-import { AdminViewUserData } from './types';
+import { AdminViewUserData, ServerStatus } from './types';
 import useCheckForAllowedUsers from './useCheckForAllowedUsers';
 
 const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
@@ -29,21 +29,24 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
     const notebook = notebookRunningState?.notebook ?? null;
     const isNotebookRunning = notebookRunningState?.isRunning ?? false;
 
+    const serverStatusObject: ServerStatus = {
+      notebook,
+      isNotebookRunning,
+      forceRefresh: () => {
+        forceRefresh([allowedUser.username]);
+        if (allowedUser.username === loggedInUser) {
+          // Refresh your own state too -- so you can live updates if you navigate or restart your server
+          requestNotebookRefresh();
+        }
+      },
+    };
+
     return {
       name: allowedUser.username,
       privilege: allowedUser.privilege,
       lastActivity: allowedUser.lastActivity,
-      serverStatus: {
-        notebook,
-        isNotebookRunning,
-        forceRefresh: () => {
-          forceRefresh([allowedUser.username]);
-          if (allowedUser.username === loggedInUser) {
-            // Refresh your own state too -- so you can live updates if you navigate or restart your server
-            requestNotebookRefresh();
-          }
-        },
-      },
+      serverStatus: serverStatusObject,
+      actions: serverStatusObject,
     };
   });
 

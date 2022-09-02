@@ -90,7 +90,11 @@ const NotebookAdminControl: React.FC = () => {
                   {users.slice(perPage * pageIndex, perPage * pageIndex + perPage).map((user) => (
                     <Tr key={user.name}>
                       {columns.map((column) => (
-                        <Td key={column.field} dataLabel={column.field}>
+                        <Td
+                          key={column.field}
+                          dataLabel={column.field}
+                          isActionCell={column.field === 'actions'}
+                        >
                           <UserTableCellTransform user={user} userProperty={column.field} />
                         </Td>
                       ))}

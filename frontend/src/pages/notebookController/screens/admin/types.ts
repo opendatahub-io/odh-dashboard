@@ -17,11 +17,14 @@ export type AdminViewUserData = {
   name: string;
   privilege: PrivilegeState;
   lastActivity?: string;
-  serverStatus: {
-    notebook: Notebook | null;
-    isNotebookRunning: boolean;
-    forceRefresh: () => void;
-  };
+  serverStatus: ServerStatus;
+  actions: ServerStatus;
+};
+
+export type ServerStatus = {
+  notebook: Notebook | null;
+  isNotebookRunning: boolean;
+  forceRefresh: () => void;
 };
 
 /**
