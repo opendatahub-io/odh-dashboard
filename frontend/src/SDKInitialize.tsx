@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { AppInitSDK, isUtilsConfigSet } from '@openshift/dynamic-plugin-sdk-utils';
 import { PluginLoader, PluginStore } from '@openshift/dynamic-plugin-sdk';
+import { Bullseye, Spinner } from '@patternfly/react-core';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   appFetch: (url, options) => {
@@ -36,7 +37,17 @@ const SDKInitialize: React.FC = ({ children }) => {
     }, 1000);
   }, []);
 
-  return <AppInitSDK configurations={config}>{ready ? children : null}</AppInitSDK>;
+  return (
+    <AppInitSDK configurations={config}>
+      {ready ? (
+        children
+      ) : (
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      )}
+    </AppInitSDK>
+  );
 };
 
 export default SDKInitialize;

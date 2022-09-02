@@ -48,9 +48,9 @@ const NavSidebar: React.FC = () => {
       <NavList>
         {userNavData.map((item) =>
           isNavDataGroup(item) ? (
-            <NavGroup item={item} pathname={routerLocation.pathname} />
+            <NavGroup key={item.id} item={item} pathname={routerLocation.pathname} />
           ) : (
-            <NavHref item={item} pathname={routerLocation.pathname} />
+            <NavHref key={item.id} item={item} pathname={routerLocation.pathname} />
           ),
         )}
       </NavList>
