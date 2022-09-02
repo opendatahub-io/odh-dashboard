@@ -38,7 +38,7 @@ See the [k8s pass through API](../backend/src/routes/api/k8s/pass-through.ts) he
 
 ## Patches
 
-Patches are unique, so let's do a quick breakdown on how they work. When making a `k8sPatchResource` call, it will ask for `Patches[]`. A `Patch` is just simply a straight forward operation on the existing resource.
+Patches are based on [jsonpatch](https://jsonpatch.com/). For those who are unaware of the details let's do a quick breakdown on how they work. When making a `k8sPatchResource` call, it will ask for `Patches[]`. A `Patch` is just simply a straight forward operation on the existing resource.
 
 Say you wanted to update a `ConfigMap` to have a new property:
 
@@ -56,6 +56,7 @@ k8sPatchResource({
   - 'add' -- adds a new item
   - 'replace' -- updates an existing item
   - 'remove' -- removes the item (you'd omit `value` naturally as there is no value for removing)
+  - There are other operations you can do as well ([see the docs](https://jsonpatch.com/#operations))
 - `path` is the path from the root of the k8s object using `/` as a deliminator, include the key you want to modify
   - Unless it is a complex object you're adding, you'll likely specify `value` as a string/number
 

@@ -42,6 +42,12 @@ const setupRequest = async (
   } else {
     // When not in dev mode, we want to switch the token from the service account to the user
     const accessToken = request.headers[USER_ACCESS_TOKEN];
+    if (!accessToken) {
+      fastify.log.error(
+        `No ${USER_ACCESS_TOKEN} header. Cannot make a pass through call as this user.`,
+      );
+      throw new Error('No access token provided by oauth. Cannot make any API calls to kube.');
+    }
     headers = {
       ...kubeHeaders,
       Authorization: `Bearer ${accessToken}`,
@@ -77,6 +83,8 @@ export const passThrough = (
         };
       }
 
+      fastify.log.info(`Making API ${method} request to ${url}`);
+
       const httpsRequest = https
         .request(url, requestOptions, (res) => {
           let data = '';
@@ -102,6 +110,7 @@ export const passThrough = (
                 return;
               }
 
+              fastify.log.info('Successful request, returning data to caller.');
               resolve({ response: parsedData });
             })
             .on('error', (error) => {
