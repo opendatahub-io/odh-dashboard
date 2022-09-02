@@ -10,7 +10,7 @@ A dashboard for Open Data Hub components.
 ## Requirements
 Before developing for ODH, the basic requirements:
 * Your system needs to be running [NodeJS version 14 and NPM](https://nodejs.org/)
-  
+
 ### Additional tooling requirements
 * [OpenShift CLI, the "oc" command](https://docs.openshift.com/enterprise/3.2/cli_reference/get_started_cli.html#installing-the-cli)
 * [podman](https://github.com/containers/podman)
@@ -32,7 +32,7 @@ Before developing for ODH, the basic requirements:
   ```
   $ npm run build
   ```
-  
+
 ### Serve development content
 This is the default context for running a local UI.  Make sure you build the project using the instructions above prior to running the command below.
 
@@ -53,10 +53,18 @@ Run the tests.
 For in-depth testing guidance review the [contribution guidelines](./CONTRIBUTING.md#Testing)
 
 ## Deploying the ODH Dashbard
-## Deploying the ODH Dashbard using kustomize
+
+### Official Image Builds
+odh-dashboard images are automatically built and pushed to [quay.io](https://quay.io/repository/opendatahub/odh-dashboard) after every commit to the `main` branch. The image tag name format for each image is `main-<COMMIT SHORT HASH>`.
+
+Example: The `main` branch is updated with commit `f76e3952834f453b1d085e8627f9c17297c2f64c`.  The CI system will automatically build an odh-dashboard image based on that code and push the new image to `odh-dashboard:main-f76e395`
+
+The [latest](https://quay.io/opendatahub/odh-dashboard:latest) tag is a floating tag that is updated nightly and points to the most recent `main-<HASH>` commit from the previous day.
+
+### Deploy using kustomize
 The [manifests](./manifests) folder contains a [kustomize](https://kustomize.io) manifest that can be used with `kustomize build`.
 
-## Deploying the ODH Dashbard using a kfdef
+### Deploy using a kfdef
 The [manifests/kfdef](./manifests/kfdef) folder contains an example kfdef to deploy ODH Dashboard with the Notebook Controller backend is located in [odh-dashboard-kfnbc-test.yaml](manifests/kfdef/odh-dashboard-kfnbc-test.yaml).
 
 ## Contributing
