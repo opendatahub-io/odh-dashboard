@@ -12,6 +12,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
   const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
   const [gpuSize, setGpuSize] = React.useState<number>();
   const [isFetching, setFetching] = React.useState(true);
+  const [areGpusAvailable, setAreGpusAvailable] = React.useState<boolean>(false);
   const notification = useNotification();
 
   React.useEffect(() => {
@@ -20,8 +21,9 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
     const fetchGPU = () => {
       setFetching(true);
       lastCall = Date.now();
-      return getGPU().then((size) => {
+      return getGPU().then(([areGpusAvailable, size]) => {
         if (cancelled) return;
+        setAreGpusAvailable(areGpusAvailable);
         setGpuSize(size || 0);
         setFetching(false);
       });
@@ -30,6 +32,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
     const errorCatch = (e: Error) => {
       if (cancelled) return;
       setFetching(false);
+      setAreGpusAvailable(false);
       setGpuSize(0);
       console.error(e);
       notification.error('Failed to fetch GPU', e.message);
@@ -44,13 +47,19 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
         fetchGPU().catch(errorCatch);
       }
     };
-    window.addEventListener('click', onUserClick);
+    if (areGpusAvailable) {
+      window.addEventListener('click', onUserClick);
+    }
 
     return () => {
       cancelled = true;
       window.removeEventListener('click', onUserClick);
     };
-  }, [notification]);
+  }, [notification, areGpusAvailable]);
+
+  if (!areGpusAvailable) {
+    return null;
+  }
 
   const gpuOptions = gpuSize === undefined ? [] : Array.from(Array(gpuSize + 1).keys());
   const noAvailableGPUs = gpuOptions.length === 1;
