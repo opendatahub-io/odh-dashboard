@@ -193,11 +193,7 @@ export const createRBAC = async (
   namespace: string,
   notebookData: Notebook,
 ): Promise<void> => {
-  const userName = await getUserName(
-    request,
-    fastify.kube.customObjectsApi,
-    fastify.kube.currentUser,
-  );
+  const userName = await getUserName(fastify, request);
 
   const notebookRole: V1Role = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
