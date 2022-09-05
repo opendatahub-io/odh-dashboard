@@ -10,9 +10,8 @@ export const status = async (
 ): Promise<{ kube: KubeStatus }> => {
   const kubeContext = fastify.kube.currentContext;
   const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
-  const customObjectsApi = fastify.kube.customObjectsApi;
 
-  const userName = await getUserName(request, customObjectsApi, currentUser);
+  const userName = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, userName, namespace);
   const isAllowed = isAdmin ? true : await isUserAllowed(fastify, userName);
 
