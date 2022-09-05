@@ -63,11 +63,7 @@ export const getAllowedUsers = async (
   request: FastifyRequest<{ Params: { namespace: string } }>,
 ): Promise<AllowedUser[]> => {
   const { namespace } = request.params;
-  const currentUser = await getUserName(
-    request,
-    fastify.kube.customObjectsApi,
-    fastify.kube.currentUser,
-  );
+  const currentUser = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, currentUser, namespace);
   if (!isAdmin) {
     // Privileged call -- return nothing
