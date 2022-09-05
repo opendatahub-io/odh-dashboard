@@ -616,3 +616,35 @@ type GroupCustomObjectItemMetadata = {
 export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
+
+export type GPUScaleType = {
+  type: "nvidia.com/gpu" | "amd.com/gpu";
+  min: number;
+  max: number;
+}
+
+export type ClusterAutoscaler = {
+  spec: {
+    resourceLimits: {
+      maxNodesTotal: number;
+      cores: {
+        min: number;
+        max: number;
+      }
+      memory: {
+        min: number;
+        max: number;
+      }
+      gpus: GPUScaleType[]
+    }
+  }
+} & K8sResourceCommon
+
+export type ClusterAutoscalerList = {
+  items: ClusterAutoscaler[]
+} & K8sResourceCommon
+
+export type GPUInfo = {
+  available: number;
+  scaleMax: number;
+}

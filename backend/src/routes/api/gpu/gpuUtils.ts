@@ -1,9 +1,9 @@
-import { KubeFastifyInstance, PrometheusResponse } from '../../../types';
+import { ClusterAutoscalerList, GPUInfo, KubeFastifyInstance, PrometheusResponse } from '../../../types';
 import { V1PodList } from '@kubernetes/client-node';
 import https from 'https';
 import * as fs from 'fs';
 
-export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number> => {
+export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInfo> => {
   let maxGpuNumber = 0;
   const gpuPodList = await fastify.kube.coreV1Api
     .listPodForAllNamespaces(undefined, undefined, undefined, 'app=nvidia-dcgm-exporter')
@@ -37,7 +37,8 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
       }
     }
   }
-  return maxGpuNumber;
+  const scalingLimit = await getGPUScaling(fastify);
+  return {available: maxGpuNumber, scaleMax: scalingLimit};
 };
 
 export const getGPUData = async (
@@ -77,3 +78,25 @@ export const getGPUData = async (
     httpsRequest.end();
   });
 };
+
+const getGPUScaling = async(fastify: KubeFastifyInstance): Promise<number> => { 
+  const autoscalers = await fastify.kube.customObjectsApi.listClusterCustomObject(
+    "autoscaling.openshift.io",
+    "v1",
+    "clusterautoscalers"
+  ).then((res) => { 
+    return res.body as ClusterAutoscalerList;
+  });
+  let scaleLimit = 0;
+  for(let i = 0; i < autoscalers.items.length; i++) {
+    const gpuLimits = autoscalers.items[i].spec.resourceLimits.gpus;
+    gpuLimits.forEach(limit => {
+      if (limit.type === "nvidia.com/gpu") {
+        if (scaleLimit < limit.max) {
+          scaleLimit = limit.max
+        }
+      }
+    });
+  }
+  return scaleLimit;
+}
