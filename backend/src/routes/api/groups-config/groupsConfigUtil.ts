@@ -40,9 +40,9 @@ export const updateGroupsConfig = async (
   request: FastifyRequest<{ Body: GroupsConfig }>,
 ): Promise<{ success: GroupsConfig | null; error: string | null }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
-  const { namespace, currentUser } = fastify.kube;
+  const { namespace } = fastify.kube;
 
-  const username = await getUserName(request, customObjectsApi, currentUser);
+  const username = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, username, namespace);
 
   if (!isAdmin) {

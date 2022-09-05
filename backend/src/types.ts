@@ -1,6 +1,7 @@
 import k8s, { V1Event } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest } from 'fastify';
+import { RouteGenericInterface } from 'fastify/types/route';
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
@@ -201,6 +202,10 @@ export type KubeDecorator = KubeStatus & {
 export type KubeFastifyInstance = FastifyInstance & {
   kube?: KubeDecorator;
 };
+
+// TODO: constant-ize the x-forwarded header
+export type OauthFastifyRequest<Data extends RouteGenericInterface = RouteGenericInterface> =
+  FastifyRequest<{ Headers: { 'x-forwarded-access-token': string } & Data['Headers'] } & Data>;
 
 /*
  * Common types, should be kept up to date with frontend types
