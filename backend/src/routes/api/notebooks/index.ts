@@ -3,9 +3,9 @@ import { FastifyRequest } from 'fastify';
 import {
   getNotebook,
   getNotebooks,
-  patchNotebook,
   createNotebook,
   getNotebookStatus,
+  replaceNotebook,
 } from './notebookUtils';
 import { RecursivePartial } from '../../../typeHelpers';
 
@@ -70,7 +70,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     '/:projectName/:notebookName',
     async (
       request: FastifyRequest<{
-        Body: RecursivePartial<Notebook>;
+        Body: Notebook;
         Params: {
           projectName: string;
           notebookName: string;
@@ -80,7 +80,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       const params = request.params;
       const data = request.body;
 
-      return await patchNotebook(fastify, data, params.projectName, params.notebookName);
+      return await replaceNotebook(fastify, data, params.projectName, params.notebookName);
     },
   );
 };

@@ -189,6 +189,26 @@ export const patchNotebook = async (
     .then((response) => response.body as Notebook);
 };
 
+export const replaceNotebook = async (
+  fastify: KubeFastifyInstance,
+  body: Notebook,
+  namespace: string,
+  notebookName: string,
+): Promise<Notebook> => {
+  return fastify.kube.customObjectsApi
+    .replaceNamespacedCustomObject(
+      'kubeflow.org',
+      'v1',
+      namespace,
+      'notebooks',
+      notebookName,
+      body,
+      undefined,
+      undefined,
+      undefined,
+    )
+    .then((response) => response.body as Notebook);
+};
 export const createRBAC = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{

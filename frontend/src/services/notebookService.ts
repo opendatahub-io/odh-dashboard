@@ -263,11 +263,8 @@ const enableNotebook = async (notebook: Notebook): Promise<Notebook> => {
     return Promise.reject('Notebook is not assigned to a namespace -- cannot start it');
   }
 
-  return patchNotebook(
-    namespace,
-    name,
-    _.merge({}, notebook, { metadata: { annotations: { 'kubeflow-resource-stopped': null } } }),
-  );
+  notebook.metadata.annotations['kubeflow-resource-stopped'] = undefined;
+  return replaceNotebook(namespace, name, notebook);
 };
 
 export const startNotebook = (data: StartNotebookData): Promise<Notebook> => {
@@ -290,24 +287,31 @@ export const startNotebook = (data: StartNotebookData): Promise<Notebook> => {
   });
 };
 
-export const stopNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
-  const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
-  const patch: RecursivePartial<Notebook> = {
-    metadata: { annotations: { 'kubeflow-resource-stopped': dateStr } },
-  };
-
-  return patchNotebook(projectName, notebookName, patch);
-};
-
-export const patchNotebook = (
+export const stopNotebook = async (
   projectName: string,
   notebookName: string,
-  updateData: RecursivePartial<Notebook>,
+): Promise<Notebook> => {
+  const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
+  const notebook = await getNotebook(projectName, notebookName);
+  const patch: Notebook = _.merge({}, notebook, {
+    metadata: { annotations: { 'kubeflow-resource-stopped': dateStr } },
+  });
+  return replaceNotebook(projectName, notebookName, patch);
+};
+
+export const replaceNotebook = async (
+  projectName: string,
+  notebookName: string,
+  data: Notebook,
 ): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
+  const notebook = await getNotebook(projectName, notebookName);
+  notebook.spec = data.spec;
+  notebook.metadata.annotations['kubeflow-resource-stopped'] =
+    data.metadata.annotations['kubeflow-resource-stopped'];
 
   return axios
-    .patch(url, updateData)
+    .patch(url, _.merge(notebook, data))
     .then((response) => {
       return response.data;
     })
