@@ -7,7 +7,6 @@ import {
   getNotebookStatus,
   replaceNotebook,
 } from './notebookUtils';
-import { RecursivePartial } from '../../../typeHelpers';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get('/:projectName', async (request: FastifyRequest) => {

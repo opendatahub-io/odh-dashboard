@@ -12,7 +12,6 @@ import {
   NotebookResources,
   NotebookAffinity,
 } from '../types';
-import { RecursivePartial } from '../typeHelpers';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
 import { usernameTranslate } from '../utilities/notebookControllerUtils';
