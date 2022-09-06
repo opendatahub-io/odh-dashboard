@@ -85,12 +85,12 @@ export const createNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{
     Params: {
-      projectName: string;
+      namespace: string;
     };
     Body: Notebook;
   }>,
 ): Promise<Notebook> => {
-  const namespace = request.params.projectName;
+  const namespace = request.params.namespace;
   const notebookData = request.body;
   const notebookName = notebookData.metadata.name;
   notebookData.metadata.namespace = namespace;
@@ -193,7 +193,7 @@ export const createRBAC = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{
     Params: {
-      projectName: string;
+      namespace: string;
     };
     Body: Notebook;
   }>,

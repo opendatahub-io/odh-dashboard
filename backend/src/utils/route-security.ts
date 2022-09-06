@@ -20,17 +20,12 @@ const usernameTranslate = (username: string): string => {
     .toLowerCase();
 };
 
-const getNamespaces = (
-  fastify: KubeFastifyInstance,
-): { dashboardNamespace: string; notebookNamespace: string } => {
+const getNamespaces = (fastify: KubeFastifyInstance): string => {
   const config = getDashboardConfig();
   const notebookNamespace = config.spec.notebookController?.notebookNamespace;
   const fallbackNamespace = config.metadata.namespace || fastify.kube.namespace;
 
-  return {
-    notebookNamespace: notebookNamespace || fallbackNamespace,
-    dashboardNamespace: fallbackNamespace,
-  };
+  return notebookNamespace || fallbackNamespace;
 };
 
 const requestSecurityGuard = async (
@@ -39,45 +34,52 @@ const requestSecurityGuard = async (
   name: string,
   namespace: string,
 ): Promise<void> => {
-  const { notebookNamespace, dashboardNamespace } = getNamespaces(fastify);
+  const notebookNamespace = getNamespaces(fastify);
   const username = await getUserName(fastify, request);
   const translatedUsername = usernameTranslate(username);
 
-  if (dashboardNamespace === notebookNamespace || namespace === dashboardNamespace) {
-    // Requesting something from the exclusive dashboard namespace -- can't validate cleanly
+  // Api with no name object
+  if (!name && namespace === notebookNamespace) {
     return;
   }
 
-  if (namespace !== notebookNamespace) {
-    fastify.log.error(
-      `Tried to interact with a resource outside (${namespace}) of the notebook namespace (${dashboardNamespace})`,
-    );
-    throw createCustomError(
-      'Wrong namespace',
-      'Cannot request a resource outside of the notebook namespace',
-      403,
-    );
+  // Notebook api endpoint
+  if (namespace === notebookNamespace && name === `jupyter-nb-${translatedUsername}`) {
+    return;
   }
-  if (!name.includes(translatedUsername)) {
-    fastify.log.error(`User requested a resource that was not theirs. Resource: ${name}`);
-    throw createCustomError(
-      'Wrong resource',
-      'Cannot request a resource that does not belong to you',
-      401,
-    );
+
+  // PVC api endpoint
+  if (namespace === notebookNamespace && name === `jupyterhub-nb-${translatedUsername}-pvc`) {
+    return;
   }
+
+  // ConfigMap and Secret endpoint (for env variables)
+  if (
+    namespace === notebookNamespace &&
+    name === `jupyterhub-singleuser-profile-${translatedUsername}-envs`
+  ) {
+    return;
+  }
+
+  fastify.log.error(`User requested a resource that was not theirs. Resource: ${name}`);
+  throw createCustomError(
+    'Wrong resource',
+    'Cannot request a resource that does not belong to you',
+    401,
+  );
 };
+
+type K8sTargetParams = { name?: string; namespace: string };
+
+const isRequestParams = (
+  request: FastifyRequest,
+): request is OauthFastifyRequest<{ Params: K8sTargetParams }> =>
+  !!(request.params as K8sTargetParams)?.namespace;
 
 const isRequestBody = (
   request: FastifyRequest,
 ): request is OauthFastifyRequest<{ Body: K8sResourceCommon }> =>
-  !!(request?.body as K8sResourceCommon)?.metadata;
-
-type K8sTargetParams = { name: string; namespace: string };
-const isRequestParams = (
-  request: FastifyRequest,
-): request is OauthFastifyRequest<{ Params: K8sTargetParams }> =>
-  !!((request.params as K8sTargetParams)?.name && (request.params as K8sTargetParams)?.namespace);
+  !!(request?.body as K8sResourceCommon)?.metadata?.namespace;
 
 /** Determine which type of call it is -- request body data or request params. */
 const handleSecurityOnRouteData = async (
@@ -92,6 +94,7 @@ const handleSecurityOnRouteData = async (
       request.body.metadata.namespace,
     );
   }
+
   if (isRequestParams(request)) {
     await requestSecurityGuard(fastify, request, request.params.name, request.params.namespace);
   }
