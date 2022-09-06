@@ -10,7 +10,7 @@ import openshiftLogo from '../images/openshift.svg';
 import { RootState } from '../redux/types';
 import { useWatchConsoleLinks } from '../utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
-import { DashboardCommonConfig } from '../types';
+import { useAppContext } from './AppContext';
 
 type ApplicationAction = {
   label: string;
@@ -68,17 +68,16 @@ const sectionSortValue = (section: Section): number => {
   }
 };
 
-type AppLauncherProps = {
-  dashboardConfig: DashboardCommonConfig; // Changed to avoid creating new types.
-};
-
-const AppLauncher: React.FC<AppLauncherProps> = ({ dashboardConfig }) => {
+const AppLauncher: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState<boolean>(false);
   const [clusterID, clusterBranding] = useSelector((state: RootState) => [
     state.appState.clusterID,
     state.appState.clusterBranding,
   ]);
   const { consoleLinks } = useWatchConsoleLinks();
+  const { dashboardConfig } = useAppContext();
+
+  const disableClusterManager = dashboardConfig.spec.dashboardConfig.disableClusterManager;
 
   const applicationSections = React.useMemo<Section[]>(() => {
     const applicationLinks = consoleLinks
@@ -90,9 +89,7 @@ const AppLauncher: React.FC<AppLauncherProps> = ({ dashboardConfig }) => {
 
     const getODHApplications = (): Section[] => {
       const osConsoleAction = getOpenShiftConsoleAction();
-      const ocmAction = dashboardConfig.disableClusterManager
-        ? null
-        : getOCMAction(clusterID, clusterBranding);
+      const ocmAction = disableClusterManager ? null : getOCMAction(clusterID, clusterBranding);
 
       if (!osConsoleAction && !ocmAction) {
         return [];
@@ -128,7 +125,7 @@ const AppLauncher: React.FC<AppLauncherProps> = ({ dashboardConfig }) => {
     sections.sort((a, b) => sectionSortValue(a) - sectionSortValue(b));
 
     return sections;
-  }, [clusterBranding, clusterID, consoleLinks, dashboardConfig.disableClusterManager]);
+  }, [clusterBranding, clusterID, consoleLinks, disableClusterManager]);
 
   const onToggle = () => {
     setIsOpen((prev) => !prev);

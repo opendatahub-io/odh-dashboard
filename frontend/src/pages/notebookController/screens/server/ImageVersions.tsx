@@ -9,7 +9,7 @@ import {
   getVersion,
   isImageTagBuildValid,
 } from '../../../../utilities/imageUtils';
-import AppContext from 'app/AppContext';
+import { useAppContext } from 'app/AppContext';
 
 import '../../NotebookController.scss';
 
@@ -21,7 +21,7 @@ type ImageVersionsProps = {
 };
 
 const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag, onSelect }) => {
-  const { buildStatuses } = React.useContext(AppContext);
+  const { buildStatuses } = useAppContext();
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
   if (!image.tags || image.tags.length < 2) {
     return null;

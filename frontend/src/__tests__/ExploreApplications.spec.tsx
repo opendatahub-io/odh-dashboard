@@ -33,6 +33,9 @@ jest.mock('react', () => {
     lazy: (factory) => factory(),
   };
 });
+jest.mock('../app/AppContext.ts', () => ({
+  useAppContext: () => ({ dashboardConfig }),
+}));
 jest.mock('../utilities/useWatchComponents', () => ({
   useWatchComponents: () => ({
     loaded: true,
@@ -54,13 +57,6 @@ jest.mock('../utilities/router', () => ({
   removeQueryArgument: () => {
     return;
   },
-}));
-jest.mock('../utilities/useWatchDashboardConfig', () => ({
-  useWatchDashboardConfig: () => ({
-    dashboardConfig,
-    loaded: true,
-    loadError: null,
-  }),
 }));
 
 // scrollIntoView is not implemented in jsdom

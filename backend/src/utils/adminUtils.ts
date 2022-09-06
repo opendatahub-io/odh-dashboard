@@ -4,7 +4,7 @@ import {
   V1ClusterRoleBindingList,
 } from '@kubernetes/client-node';
 import { KubeFastifyInstance } from '../types';
-import { getAdminGroups, getAllowedGroups, getGroup } from './groupsUtils';
+import { getAdminGroups, getAllGroupsByUser, getAllowedGroups, getGroup } from './groupsUtils';
 import { flatten, uniq } from 'lodash';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
@@ -91,11 +91,17 @@ export const isUserAllowed = async (
   }
 };
 
-const checkRoleBindings = (roleBindings: V1ClusterRoleBindingList, username: string): boolean => {
+const checkRoleBindings = (
+  roleBindings: V1ClusterRoleBindingList,
+  username: string,
+  groups: string[],
+): boolean => {
   return (
     roleBindings.items.filter(
       (role: V1ClusterRoleBinding): boolean =>
-        role.subjects?.some((subject) => subject.name === username) &&
+        role.subjects?.some(
+          (subject) => subject.name === username || groups.includes(subject.name),
+        ) &&
         role.roleRef.kind === 'ClusterRole' &&
         role.roleRef.name === 'cluster-admin',
     ).length !== 0
@@ -110,8 +116,9 @@ export const isUserClusterRole = async (
   try {
     const clusterrolebinding = await fastify.kube.rbac.listClusterRoleBinding();
     const rolebinding = await fastify.kube.rbac.listNamespacedRoleBinding(namespace);
-    const isAdminClusterRoleBinding = checkRoleBindings(clusterrolebinding.body, username);
-    const isAdminRoleBinding = checkRoleBindings(rolebinding.body, username);
+    const groups = await getAllGroupsByUser(fastify.kube.customObjectsApi, username);
+    const isAdminClusterRoleBinding = checkRoleBindings(clusterrolebinding.body, username, groups);
+    const isAdminRoleBinding = checkRoleBindings(rolebinding.body, username, groups);
     return isAdminClusterRoleBinding || isAdminRoleBinding;
   } catch (e) {
     fastify.log.error(`Failed to list rolebindings for user, ${e}`);

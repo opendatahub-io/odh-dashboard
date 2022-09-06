@@ -4,6 +4,8 @@ import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { V1ConfigMap } from '@kubernetes/client-node';
 import { setDashboardConfig } from '../config/configUtils';
+import { checkJupyterEnabled } from '../../../utils/componentUtils';
+
 const jupyterhubCfg = 'jupyterhub-cfg';
 const nbcCfg = 'notebook-controller-culler-config';
 const segmentKeyCfg = 'odh-segment-key-config';
@@ -28,6 +30,7 @@ export const updateClusterSettings = async (
   const namespace = fastify.kube.namespace;
   const { pvcSize, cullerTimeout, userTrackingEnabled, notebookTolerationSettings } = request.body;
   const dashConfig = getDashboardConfig();
+  const isJupyterEnabled = checkJupyterEnabled();
   try {
     await patchCM(fastify, segmentKeyCfg, {
       data: { segmentKeyEnabled: String(userTrackingEnabled) },
@@ -35,12 +38,12 @@ export const updateClusterSettings = async (
       fastify.log.error('Failed to update segment key enabled: ' + e.message);
     });
     if (pvcSize && cullerTimeout) {
-      if (dashConfig.spec?.notebookController?.enabled) {
+      if (isJupyterEnabled) {
         await setDashboardConfig(fastify, {
           spec: {
             dashboardConfig: dashConfig.spec.dashboardConfig,
             notebookController: {
-              enabled: dashConfig.spec.notebookController.enabled,
+              enabled: isJupyterEnabled,
               pvcSize: `${pvcSize}Gi`,
               notebookTolerationSettings: {
                 enabled: notebookTolerationSettings.enabled,
@@ -92,7 +95,7 @@ export const updateClusterSettings = async (
         });
       }
     }
-    if (dashConfig.spec.notebookController?.enabled) {
+    if (isJupyterEnabled) {
       await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     } else {
       const jupyterhubCM = await coreV1Api.readNamespacedConfigMap(jupyterhubCfg, namespace);
@@ -124,22 +127,23 @@ export const getClusterSettings = async (
     ...DEFAULT_CLUSTER_SETTINGS,
   };
   const dashConfig = getDashboardConfig();
+  const isJupyterEnabled = checkJupyterEnabled();
   try {
     const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
     clusterSettings.userTrackingEnabled = segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
   } catch (e) {
     fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
   }
-  if (dashConfig.spec?.notebookController?.enabled) {
+  if (isJupyterEnabled) {
     clusterSettings.pvcSize = DEFAULT_PVC_SIZE;
-    if (dashConfig.spec.notebookController.pvcSize) {
+    if (dashConfig.spec.notebookController?.pvcSize) {
       clusterSettings.pvcSize = Number(
-        dashConfig.spec.notebookController.pvcSize.replace('Gi', ''),
+        dashConfig.spec.notebookController?.pvcSize.replace('Gi', ''),
       );
     }
-    if (dashConfig.spec.notebookController.notebookTolerationSettings) {
+    if (dashConfig.spec.notebookController?.notebookTolerationSettings) {
       clusterSettings.notebookTolerationSettings =
-        dashConfig.spec.notebookController.notebookTolerationSettings;
+        dashConfig.spec.notebookController?.notebookTolerationSettings;
     }
     clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT; // For backwards compatibility with jupyterhub and less changes to UI
     await fastify.kube.coreV1Api

@@ -34,6 +34,7 @@ import { EMPTY_USER_STATE } from '../pages/notebookController/const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 import useNamespaces from '../pages/notebookController/useNamespaces';
+import { useAppContext } from '../app/AppContext';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -434,4 +435,9 @@ export const useNotebookStatus = (
     },
     filteredEvents,
   ];
+};
+
+export const useCheckJupyterEnabled = (): boolean => {
+  const { dashboardConfig } = useAppContext();
+  return dashboardConfig.spec.notebookController?.enabled !== false;
 };

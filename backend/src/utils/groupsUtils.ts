@@ -85,3 +85,20 @@ export const getAllGroups = async (customObjectsApi: CustomObjectsApi): Promise<
     throw new Error(`Failed to list groups.`);
   }
 };
+
+export const getAllGroupsByUser = async (
+  customObjectsApi: CustomObjectsApi,
+  username: string,
+): Promise<string[]> => {
+  try {
+    const adminGroupResponse = await customObjectsApi.listClusterCustomObject(
+      'user.openshift.io',
+      'v1',
+      'groups',
+    );
+    const groups = adminGroupResponse.body as GroupCustomObject;
+    return groups.items.filter((x) => x.users.includes(username)).map((x) => x.metadata.name);
+  } catch (e) {
+    throw new Error(`Failed to list groups filtered by username.`);
+  }
+};

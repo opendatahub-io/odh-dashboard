@@ -92,23 +92,7 @@ spec:
                     notebookTolerationSettings:
                       type: object
                       properties:
-                          enabled: 
+                          enabled:
                             type: boolean
-                          key: 
+                          key:
                             type: string
-            status:
-              type: object
-              properties:
-                notebookControllerState:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      user:
-                        type: string
-                      lastSelectedImage:
-                        type: string
-                      lastSelectedSize:
-                        type: string
-                      lastActivity:
-                        type: number

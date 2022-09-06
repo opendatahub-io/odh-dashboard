@@ -50,11 +50,6 @@ export const NotebookServer: React.FC = () => {
                 onNotebooksStop={onNotebooksStop}
               />
               <ActionList>
-                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button data-id="stop-nb-button" variant="primary">
-                    Stop notebook server
-                  </Button>
-                </ActionListItem>
                 <ActionListItem
                   onClick={() => {
                     if (notebook.metadata.annotations?.['opendatahub.io/link']) {
@@ -62,9 +57,10 @@ export const NotebookServer: React.FC = () => {
                     }
                   }}
                 >
-                  <Button data-id="return-nb-button" variant="secondary">
-                    Return to server
-                  </Button>
+                  <Button data-id="return-nb-button" variant="primary">Access notebook server</Button>
+                </ActionListItem>
+                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
+                  <Button data-id="stop-nb-button" variant="secondary">Stop notebook server</Button>
                 </ActionListItem>
               </ActionList>
             </StackItem>
@@ -77,7 +73,5 @@ export const NotebookServer: React.FC = () => {
     </>
   );
 };
-
-NotebookServer.displayName = 'NotebookController';
 
 export default NotebookServer;
