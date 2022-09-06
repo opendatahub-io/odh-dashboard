@@ -57,10 +57,14 @@ export const NotebookServer: React.FC = () => {
                     }
                   }}
                 >
-                  <Button data-id="return-nb-button" variant="primary">Access notebook server</Button>
+                  <Button data-id="return-nb-button" variant="primary">
+                    Access notebook server
+                  </Button>
                 </ActionListItem>
                 <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button data-id="stop-nb-button" variant="secondary">Stop notebook server</Button>
+                  <Button data-id="stop-nb-button" variant="secondary">
+                    Stop notebook server
+                  </Button>
                 </ActionListItem>
               </ActionList>
             </StackItem>
