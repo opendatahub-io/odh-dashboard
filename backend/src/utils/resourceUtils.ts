@@ -30,6 +30,8 @@ import {
   getRouteForApplication,
   getRouteForClusterId,
 } from './componentUtils';
+import { SYSTEM_AUTHENTICATED } from './adminUtils';
+import { getGroup } from './groupsUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -492,8 +494,35 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
   consoleLinksWatcher = new ResourceWatcher<ConsoleLinkKind>(fastify, fetchConsoleLinks);
 };
 
+const validateDashboardConfig = (config: DashboardConfig): void => {
+  if (!config) {
+    dashboardConfigWatcher.fastify.log.warn(`Failed to retrieve dashboard config`);
+    return;
+  }
+  if (!config.spec.groupsConfig) {
+    dashboardConfigWatcher.fastify.log.warn(`No groups config provided`);
+    return;
+  }
+  if (config.spec.groupsConfig.adminGroups === '') {
+    dashboardConfigWatcher.fastify.log.warn(`No admin groups configured`);
+  } else {
+    const configuredAdminGroups = config.spec.groupsConfig.adminGroups.split(',');
+    if (configuredAdminGroups.includes(SYSTEM_AUTHENTICATED)) {
+      dashboardConfigWatcher.fastify.log.warn(`'${SYSTEM_AUTHENTICATED}' assigned as admin group`);
+    }
+    for (const adminGroup of configuredAdminGroups) {
+      getGroup(dashboardConfigWatcher.fastify.kube.customObjectsApi, adminGroup).catch(() => {
+        dashboardConfigWatcher.fastify.log.warn(
+          `The admin group '${adminGroup}' provided in the config could not be retrieved from the cluster group list`,
+        );
+      });
+    }
+  }
+};
+
 export const getDashboardConfig = (): DashboardConfig => {
   const config = dashboardConfigWatcher.getResources()?.[0];
+  validateDashboardConfig(config);
   return _.merge({}, blankDashboardCR, config); // merge with blank CR to prevent any missing values
 };
 

@@ -7,7 +7,7 @@ import { KubeFastifyInstance } from '../types';
 import { getAdminGroups, getAllGroupsByUser, getAllowedGroups, getGroup } from './groupsUtils';
 import { flatten, uniq } from 'lodash';
 
-const SYSTEM_AUTHENTICATED = 'system:authenticated';
+export const SYSTEM_AUTHENTICATED = 'system:authenticated';
 /** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
 export const KUBE_SAFE_PREFIX = 'b64:';
 
