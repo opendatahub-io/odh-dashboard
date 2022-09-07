@@ -18,6 +18,7 @@ import {
   ConfigMap,
   Secret,
   EnvVarResourceType,
+  VolumeMount,
 } from '../../../../types';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -249,7 +250,7 @@ const SpawnerPage: React.FC = React.memo(() => {
       console.error(`Something wrong with PVC ${pvcName}: ${e}`),
     );
     const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-    const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
+    const volumeMounts: VolumeMount[] = [{ mountPath: MOUNT_PATH, name: pvcName }];
     const notebookName = generateNotebookNameFromUsername(username);
     const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
     setCreateInProgress(true);
