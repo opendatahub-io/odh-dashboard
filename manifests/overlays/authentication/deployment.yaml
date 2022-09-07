@@ -5,12 +5,14 @@
     args:
       - --https-address=:8443
       - --provider=openshift
-      - --openshift-service-account=odh-dashboard
+      - --client-id=odh-dashboard
+      - --client-secret=zPI1OE6GuN2o_PfmjhN0itZk7VWLdmHEsh6LMRrOw1Q
       - --upstream=http://localhost:8080
       - --tls-cert=/etc/tls/private/tls.crt
       - --tls-key=/etc/tls/private/tls.key
       - --cookie-secret-file=/etc/oauth/config/cookie_secret
       - --pass-access-token
+      - --scope=user:full
       - '--openshift-delegate-urls={"/": {"resource": "services", "verb": "get", "name": "odh-dashboard"}}'
       - --skip-auth-regex=^/metrics
     image: oauth-proxy

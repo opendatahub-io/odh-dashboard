@@ -18,3 +18,14 @@ images:
 - name: odh-dashboard
   newName: quay.io/opendatahub/odh-dashboard
   newTag: latest
+vars:
+- name: namespace
+  objref:
+    kind: Deployment
+    name: odh-dashboard
+    group: apps
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.namespace
+configurations:
+- params.yaml
