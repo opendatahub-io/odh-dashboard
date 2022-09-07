@@ -39,19 +39,12 @@ const requestSecurityGuard = async (
   request: OauthFastifyRequest,
   name: string,
   namespace: string,
-  needsAdmin: boolean,
 ): Promise<void> => {
   const { notebookNamespace, dashboardNamespace } = getNamespaces(fastify);
   const username = await getUserName(fastify, request);
-  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
   const translatedUsername = usernameTranslate(username);
 
   const isReadRequest = request.method.toLowerCase() === 'get';
-
-  // User is an admin, trust
-  if (needsAdmin && isAdmin) {
-    return;
-  }
 
   // Getting a dashboard resource
   if (isReadRequest && namespace === dashboardNamespace) {
@@ -113,22 +106,33 @@ const handleSecurityOnRouteData = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<void> => {
+  const username = await getUserName(fastify, request);
+  const { dashboardNamespace } = getNamespaces(fastify);
+  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+  if (isAdmin) {
+    // User is an admin, trust
+    return;
+  } else if (needsAdmin && !isAdmin) {
+    // Not an admin, route needs one -- reject
+    fastify.log.error(
+      `A Non-Admin User (${username}) make a request against an endpoint that requires an admin.`,
+    );
+    throw createCustomError(
+      'Not Admin',
+      'You lack the sufficient permissions to make this request.',
+      401,
+    );
+  }
+
   if (isRequestBody(request)) {
     await requestSecurityGuard(
       fastify,
       request,
       request.body.metadata.name,
       request.body.metadata.namespace,
-      needsAdmin,
     );
   } else if (isRequestParams(request)) {
-    await requestSecurityGuard(
-      fastify,
-      request,
-      request.params.name,
-      request.params.namespace,
-      needsAdmin,
-    );
+    await requestSecurityGuard(fastify, request, request.params.name, request.params.namespace);
   } else {
     // Route is un-parameterized
     if (request.method.toLowerCase() === 'get') {
@@ -137,9 +141,6 @@ const handleSecurityOnRouteData = async (
     }
 
     // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
-    const username = await getUserName(fastify, request);
-    const { dashboardNamespace } = getNamespaces(fastify);
-    const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
     fastify.log.warn(
       `${isAdmin ? 'Admin ' : ''}User ${username} interacted with a resource that was not secure.`,
     );
