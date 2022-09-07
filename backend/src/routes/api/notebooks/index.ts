@@ -8,7 +8,7 @@ import {
   getNotebookStatus,
 } from './notebookUtils';
 import { RecursivePartial } from '../../../typeHelpers';
-import { secureRoute } from '../../../utils/route-security';
+import { sanitizeNotebookForSecurity, secureRoute } from '../../../utils/route-security';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get(
@@ -83,7 +83,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         }>,
       ) => {
         const { namespace, name } = request.params;
-        const data = request.body;
+        const data = await sanitizeNotebookForSecurity(fastify, request, request.body);
 
         return await patchNotebook(fastify, data, namespace, name);
       },

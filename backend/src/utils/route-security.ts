@@ -1,9 +1,11 @@
+import { cloneDeep } from 'lodash';
 import { getDashboardConfig } from './resourceUtils';
-import { K8sResourceCommon, KubeFastifyInstance, OauthFastifyRequest } from '../types';
+import { K8sResourceCommon, KubeFastifyInstance, Notebook, OauthFastifyRequest } from '../types';
 import { getUserName } from './userUtils';
 import { createCustomError } from './requestUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { isUserAdmin } from './adminUtils';
+import { RecursivePartial } from '../typeHelpers';
 
 const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -169,3 +171,84 @@ export const secureRoute =
  */
 export const secureAdminRoute = (fastify: KubeFastifyInstance): ReturnType<typeof secureRoute> =>
   secureRoute(fastify, true);
+
+/**
+ * Sanitizes the properties of a Notebook against what we expect.
+ * No sharing of secrets, configmaps, etc between users.
+ */
+export const sanitizeNotebookForSecurity = async <
+  T extends RecursivePartial<Notebook> = RecursivePartial<Notebook>,
+>(
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest,
+  notebook: T,
+): Promise<T> => {
+  const secureNotebook = cloneDeep(notebook);
+  const username = await getUserName(fastify, request);
+  const translatedUsername = usernameTranslate(username);
+
+  // PVCs
+  secureNotebook?.spec?.template?.spec?.volumes?.forEach((volume) => {
+    if (volume.name.startsWith('jupyterhub-nb-')) {
+      // PVC we generated
+      const allowedValue = `jupyterhub-nb-${translatedUsername}-pvc`;
+      if (volume.name !== allowedValue) {
+        // Was not targeted at their user
+        fastify.log.warn(
+          `${username} submitted a Notebook that contained a pvc (${volume.name}) that was not for them. Reset back to them.`,
+        );
+        fastify.log.warn(`PVC structure: ${JSON.stringify(volume)}`);
+
+        volume.name = allowedValue;
+        if (volume.persistentVolumeClaim) {
+          volume.persistentVolumeClaim.claimName = allowedValue;
+        }
+      }
+    }
+  });
+
+  // Container based items
+  secureNotebook?.spec?.template?.spec?.containers?.forEach((container) => {
+    // Secrets & ConfigMaps
+    container.env?.forEach((env) => {
+      if (env.name.startsWith('jupyterhub-singleuser-profile-')) {
+        // Env var for a configmap or secret we generated
+        const allowedValue = `jupyterhub-singleuser-profile-${translatedUsername}-env`;
+        if (env.name !== allowedValue) {
+          // Was not targeted at their user
+          fastify.log.warn(
+            `${username} submitted a Notebook that contained an env (${env.name}) that was not for them. Reset back to them.`,
+          );
+          fastify.log.warn(`Env structure: ${JSON.stringify(env)}`);
+
+          env.name = allowedValue;
+          if (env.valueFrom.configMapKeyRef) {
+            env.valueFrom.configMapKeyRef.key = allowedValue;
+          }
+          if (env.valueFrom.secretKeyRef) {
+            env.valueFrom.secretKeyRef.key = allowedValue;
+          }
+        }
+      }
+    });
+
+    // Volume mounts
+    container.volumeMounts?.forEach((volumeMount) => {
+      if (volumeMount.name.startsWith('jupyterhub-nb-')) {
+        // The volume mount's PVC we generated
+        const allowedValue = `jupyterhub-nb-${translatedUsername}-pvc`;
+        if (volumeMount.name !== allowedValue) {
+          // Was not targeted at their user
+          fastify.log.warn(
+            `${username} submitted a Notebook that contained a volumeMount (${volumeMount.name}) that was not for them. Reset back to them.`,
+          );
+          fastify.log.warn(`volumeMount structure: ${JSON.stringify(volumeMount)}`);
+
+          volumeMount.name = allowedValue;
+        }
+      }
+    });
+  });
+
+  return secureNotebook;
+};
