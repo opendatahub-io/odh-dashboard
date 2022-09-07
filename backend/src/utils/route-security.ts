@@ -117,7 +117,7 @@ const handleSecurityOnRouteData = async (
   } else if (needsAdmin && !isAdmin) {
     // Not an admin, route needs one -- reject
     fastify.log.error(
-      `A Non-Admin User (${username}) make a request against an endpoint that requires an admin.`,
+      `A Non-Admin User (${username}) made a request against an endpoint that requires an admin.`,
     );
     throw createCustomError(
       'Not Admin',
