@@ -5,7 +5,6 @@ import {
   KubeFastifyInstance,
   RouteKind,
   KfDefApplication,
-  OdhDocument,
   CSVKind,
 } from '../types';
 import {
@@ -14,8 +13,6 @@ import {
   getInstalledKfdefs,
   getSubscriptions,
 } from './resourceUtils';
-
-export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
 
 type RoutesResponse = {
   body: {
