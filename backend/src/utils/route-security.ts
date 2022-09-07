@@ -3,6 +3,7 @@ import { K8sResourceCommon, KubeFastifyInstance, OauthFastifyRequest } from '../
 import { getUserName } from './userUtils';
 import { createCustomError } from './requestUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { isUserAdmin } from './adminUtils';
 
 const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -20,12 +21,17 @@ const usernameTranslate = (username: string): string => {
     .toLowerCase();
 };
 
-const getNamespaces = (fastify: KubeFastifyInstance): string => {
+const getNamespaces = (
+  fastify: KubeFastifyInstance,
+): { dashboardNamespace: string; notebookNamespace: string } => {
   const config = getDashboardConfig();
   const notebookNamespace = config.spec.notebookController?.notebookNamespace;
   const fallbackNamespace = config.metadata.namespace || fastify.kube.namespace;
 
-  return notebookNamespace || fallbackNamespace;
+  return {
+    notebookNamespace: notebookNamespace || fallbackNamespace,
+    dashboardNamespace: fallbackNamespace,
+  };
 };
 
 const requestSecurityGuard = async (
@@ -33,13 +39,33 @@ const requestSecurityGuard = async (
   request: OauthFastifyRequest,
   name: string,
   namespace: string,
+  needsAdmin: boolean,
 ): Promise<void> => {
-  const notebookNamespace = getNamespaces(fastify);
+  const { notebookNamespace, dashboardNamespace } = getNamespaces(fastify);
   const username = await getUserName(fastify, request);
+  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
   const translatedUsername = usernameTranslate(username);
 
+  const isReadRequest = request.method.toLowerCase() === 'get';
+
+  // User is an admin, trust
+  if (needsAdmin && isAdmin) {
+    return;
+  }
+
+  // Getting a dashboard resource
+  if (isReadRequest && namespace === dashboardNamespace) {
+    // The application resources are fine to read in all cases
+    return;
+  }
+
   // Api with no name object
-  if (!name && namespace === notebookNamespace) {
+  if (!name && namespace === notebookNamespace && isReadRequest) {
+    return;
+  }
+
+  // RoleBinding -- first users to access the dash
+  if (namespace === dashboardNamespace && name === `${notebookNamespace}-image-pullers`) {
     return;
   }
 
@@ -64,8 +90,8 @@ const requestSecurityGuard = async (
   fastify.log.error(`User requested a resource that was not theirs. Resource: ${name}`);
   throw createCustomError(
     'Wrong resource',
-    'Cannot request a resource that does not belong to you',
-    401,
+    'Request invalid against a resource that does not belong to you',
+    403,
   );
 };
 
@@ -85,6 +111,7 @@ const isRequestBody = (
 const handleSecurityOnRouteData = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
+  needsAdmin: boolean,
 ): Promise<void> => {
   if (isRequestBody(request)) {
     await requestSecurityGuard(
@@ -92,11 +119,30 @@ const handleSecurityOnRouteData = async (
       request,
       request.body.metadata.name,
       request.body.metadata.namespace,
+      needsAdmin,
     );
-  }
+  } else if (isRequestParams(request)) {
+    await requestSecurityGuard(
+      fastify,
+      request,
+      request.params.name,
+      request.params.namespace,
+      needsAdmin,
+    );
+  } else {
+    // Route is un-parameterized
+    if (request.method.toLowerCase() === 'get') {
+      // Get calls are fine
+      return;
+    }
 
-  if (isRequestParams(request)) {
-    await requestSecurityGuard(fastify, request, request.params.name, request.params.namespace);
+    // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
+    const username = await getUserName(fastify, request);
+    const { dashboardNamespace } = getNamespaces(fastify);
+    const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+    fastify.log.warn(
+      `${isAdmin ? 'Admin ' : ''}User ${username} interacted with a resource that was not secure.`,
+    );
   }
 };
 
@@ -109,9 +155,16 @@ const handleSecurityOnRouteData = async (
  * eg secureRoute(fastify)(the standard route function)
  */
 export const secureRoute =
-  <T>(fastify: KubeFastifyInstance) =>
+  <T>(fastify: KubeFastifyInstance, needsAdmin = false) =>
   (requestCall: (request: FastifyRequest, reply: FastifyReply) => Promise<T>) =>
   async (request: OauthFastifyRequest, reply: FastifyReply): Promise<T> => {
-    await handleSecurityOnRouteData(fastify, request);
+    await handleSecurityOnRouteData(fastify, request, needsAdmin);
     return requestCall(request, reply);
   };
+
+/**
+ * Same as secure route -- just makes sure you're an admin as well. Useful to lock down routes
+ * that should only be visible to a logged in admin user.
+ */
+export const secureAdminRoute = (fastify: KubeFastifyInstance): ReturnType<typeof secureRoute> =>
+  secureRoute(fastify, true);
