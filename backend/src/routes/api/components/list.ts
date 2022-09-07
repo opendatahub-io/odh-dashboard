@@ -7,7 +7,7 @@ export const listComponents = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OdhApplication[]> => {
-  const applications = await getApplications().filter(
+  const applications = getApplications().filter(
     (component) => component.metadata.name !== (checkJupyterEnabled() ? 'jupyterhub' : 'jupyter'),
   );
   const query = request.query as { [key: string]: string };
