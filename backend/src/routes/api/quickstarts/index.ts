@@ -1,4 +1,3 @@
-
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
 import { listQuickStarts } from './list';
