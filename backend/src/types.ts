@@ -2,6 +2,12 @@ import k8s, { V1Event } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { RouteGenericInterface } from 'fastify/types/route';
+import {
+  NotebookAffinity,
+  NotebookToleration,
+  Volume,
+  VolumeMount,
+} from '../../frontend/src/types';
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
@@ -44,9 +50,18 @@ export type NotebookResources = {
   };
 };
 
+type EnvValue = {
+  key: string;
+  name: string;
+};
+
 export type EnvironmentVariable = {
   name: string;
-  value: string;
+  value?: string;
+  valueFrom?: {
+    configMapKeyRef?: EnvValue;
+    secretKeyRef?: EnvValue;
+  };
 };
 
 export type NotebookSize = {
@@ -319,6 +334,7 @@ export type NotebookContainer = {
   ports?: NotebookPort[];
   resources?: NotebookResources;
   livenessProbe?: Record<string, unknown>;
+  volumeMounts?: VolumeMount[];
 };
 
 export type Notebook = {
@@ -333,8 +349,11 @@ export type Notebook = {
   spec: {
     template: {
       spec: {
+        affinity?: NotebookAffinity;
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
+        volumes?: Volume[];
+        tolerations?: NotebookToleration[];
       };
     };
   };
