@@ -57,17 +57,9 @@ const checkPodContainersReady = (pod: V1Pod): boolean => {
   if (containerStatuses.length === 0) {
     return false;
   }
-  let containersReady = true;
-  for (const containerStatus of containerStatuses) {
-    const {
-      state: { running },
-      ready,
-    } = containerStatus;
-    if (!running || !ready) {
-      containersReady = false;
-    }
-  }
-  return containersReady;
+  return containerStatuses.every(
+    (containerStatus) => containerStatus.ready && containerStatus.state?.running,
+  );
 };
 
 export const getNotebookStatus = async (
@@ -86,7 +78,7 @@ export const getNotebookStatus = async (
     )
     .then((response) => {
       const pods = (response.body as V1PodList).items;
-      return !!pods.find((pod) => checkPodContainersReady(pod));
+      return pods.some((pod) => checkPodContainersReady(pod));
     });
 };
 
