@@ -4,13 +4,13 @@ import { secureRoute } from '../../../utils/route-security';
 
 export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get(
-    '/:namespace/:notebookName',
+    '/:namespace/:name',
     secureRoute(fastify)(
       async (
         request: FastifyRequest<{
           Params: {
             namespace: string;
-            notebookName: string;
+            name: string;
           };
           Querystring: {
             // TODO: Support server side filtering
@@ -18,8 +18,8 @@ export default async (fastify: FastifyInstance): Promise<void> => {
           };
         }>,
       ) => {
-        const params = request.params;
-        return getNotebookEvents(fastify, params.namespace, params.notebookName);
+        const { namespace, name } = request.params;
+        return getNotebookEvents(fastify, namespace, name);
       },
     ),
   );
