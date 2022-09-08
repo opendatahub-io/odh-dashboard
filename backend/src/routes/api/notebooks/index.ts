@@ -1,28 +1,10 @@
 import { KubeFastifyInstance, Notebook } from '../../../types';
 import { FastifyRequest } from 'fastify';
-import {
-  getNotebook,
-  getNotebooks,
-  patchNotebook,
-  createNotebook,
-  getNotebookStatus,
-} from './notebookUtils';
+import { getNotebook, patchNotebook, createNotebook, getNotebookStatus } from './notebookUtils';
 import { RecursivePartial } from '../../../typeHelpers';
 import { sanitizeNotebookForSecurity, secureRoute } from '../../../utils/route-security';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
-  fastify.get(
-    '/:namespace',
-    secureRoute(fastify)(
-      async (
-        request: FastifyRequest<{ Params: { namespace: string }; Querystring: { labels: string } }>,
-      ) => {
-        const { namespace } = request.params;
-        return await getNotebooks(fastify, namespace, request.query.labels);
-      },
-    ),
-  );
-
   fastify.get(
     '/:namespace/:name',
     secureRoute(fastify)(
