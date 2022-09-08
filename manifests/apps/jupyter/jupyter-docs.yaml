@@ -3,7 +3,7 @@ kind: OdhDocument
 metadata:
   name: jupyterhub-install-python-packages
   annotations:
-    opendatahub.io/categories: 'AI/Machine learning,Jupyter notebook,Python'
+    opendatahub.io/categories: 'Package management,Notebook environments,Getting started'
 spec:
   displayName: How to install Python packages on your notebook server
   appName: jupyter
@@ -18,7 +18,7 @@ kind: OdhDocument
 metadata:
   name: jupyterhub-update-server-settings
   annotations:
-    opendatahub.io/categories: 'AI/Machine learning,Jupyter notebook,Python'
+    opendatahub.io/categories: 'Notebook environments,Getting started'
 spec:
   displayName: How to update notebook server settings
   type: how-to
@@ -33,7 +33,7 @@ kind: OdhDocument
 metadata:
   name: jupyterhub-use-s3-bucket-data
   annotations:
-    opendatahub.io/categories: 'AI/Machine learning,Data management,Jupyter notebook,Python'
+    opendatahub.io/categories: 'Data management,Notebook environments'
 spec:
   displayName: How to use data from Amazon S3 buckets
   appName: jupyter
@@ -48,7 +48,7 @@ kind: OdhDocument
 metadata:
   name: jupyterhub-view-installed-packages
   annotations:
-    opendatahub.io/categories: 'AI/Machine learning,Jupyter notebook,Python'
+    opendatahub.io/categories: 'Package management,Notebook environments,Getting started'
 spec:
   displayName: How to view installed packages on your notebook server
   appName: jupyter
