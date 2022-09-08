@@ -1,8 +1,11 @@
+import { cloneDeep } from 'lodash';
 import { getDashboardConfig } from './resourceUtils';
-import { K8sResourceCommon, KubeFastifyInstance, OauthFastifyRequest } from '../types';
+import { K8sResourceCommon, KubeFastifyInstance, Notebook, OauthFastifyRequest } from '../types';
 import { getUserName } from './userUtils';
 import { createCustomError } from './requestUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { isUserAdmin } from './adminUtils';
+import { RecursivePartial } from '../typeHelpers';
 
 const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -43,47 +46,86 @@ const requestSecurityGuard = async (
   const username = await getUserName(fastify, request);
   const translatedUsername = usernameTranslate(username);
 
-  if (dashboardNamespace === notebookNamespace || namespace === dashboardNamespace) {
-    // Requesting something from the exclusive dashboard namespace -- can't validate cleanly
+  const isReadRequest = request.method.toLowerCase() === 'get';
+
+  // Getting a dashboard resource
+  if (isReadRequest && namespace === dashboardNamespace) {
+    // The application resources are fine to read in all cases
     return;
   }
 
-  if (namespace !== notebookNamespace) {
-    fastify.log.error(
-      `Tried to interact with a resource outside (${namespace}) of the notebook namespace (${dashboardNamespace})`,
-    );
-    throw createCustomError(
-      'Wrong namespace',
-      'Cannot request a resource outside of the notebook namespace',
-      403,
-    );
+  // Api with no name object
+  if (!name && namespace === notebookNamespace && isReadRequest) {
+    return;
   }
-  if (!name.includes(translatedUsername)) {
-    fastify.log.error(`User requested a resource that was not theirs. Resource: ${name}`);
-    throw createCustomError(
-      'Wrong resource',
-      'Cannot request a resource that does not belong to you',
-      401,
-    );
+
+  // RoleBinding -- first users to access the dash
+  if (namespace === dashboardNamespace && name === `${notebookNamespace}-image-pullers`) {
+    return;
   }
+
+  // Notebook api endpoint
+  if (namespace === notebookNamespace && name === `jupyter-nb-${translatedUsername}`) {
+    return;
+  }
+
+  // PVC api endpoint
+  if (namespace === notebookNamespace && name === `jupyterhub-nb-${translatedUsername}-pvc`) {
+    return;
+  }
+
+  // ConfigMap and Secret endpoint (for env variables)
+  if (
+    namespace === notebookNamespace &&
+    name === `jupyterhub-singleuser-profile-${translatedUsername}-envs`
+  ) {
+    return;
+  }
+
+  fastify.log.error(`User requested a resource that was not theirs. Resource: ${name}`);
+  throw createCustomError(
+    'Wrong resource',
+    'Request invalid against a resource that does not belong to you',
+    403,
+  );
 };
+
+type K8sTargetParams = { name?: string; namespace: string };
+
+const isRequestParams = (
+  request: FastifyRequest,
+): request is OauthFastifyRequest<{ Params: K8sTargetParams }> =>
+  !!(request.params as K8sTargetParams)?.namespace;
 
 const isRequestBody = (
   request: FastifyRequest,
 ): request is OauthFastifyRequest<{ Body: K8sResourceCommon }> =>
-  !!(request?.body as K8sResourceCommon)?.metadata;
-
-type K8sTargetParams = { name: string; namespace: string };
-const isRequestParams = (
-  request: FastifyRequest,
-): request is OauthFastifyRequest<{ Params: K8sTargetParams }> =>
-  !!((request.params as K8sTargetParams)?.name && (request.params as K8sTargetParams)?.namespace);
+  !!(request?.body as K8sResourceCommon)?.metadata?.namespace;
 
 /** Determine which type of call it is -- request body data or request params. */
 const handleSecurityOnRouteData = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
+  needsAdmin: boolean,
 ): Promise<void> => {
+  const username = await getUserName(fastify, request);
+  const { dashboardNamespace } = getNamespaces(fastify);
+  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+  if (isAdmin) {
+    // User is an admin, trust
+    return;
+  } else if (needsAdmin && !isAdmin) {
+    // Not an admin, route needs one -- reject
+    fastify.log.error(
+      `A Non-Admin User (${username}) made a request against an endpoint that requires an admin.`,
+    );
+    throw createCustomError(
+      'Not Admin',
+      'You lack the sufficient permissions to make this request.',
+      401,
+    );
+  }
+
   if (isRequestBody(request)) {
     await requestSecurityGuard(
       fastify,
@@ -91,9 +133,19 @@ const handleSecurityOnRouteData = async (
       request.body.metadata.name,
       request.body.metadata.namespace,
     );
-  }
-  if (isRequestParams(request)) {
+  } else if (isRequestParams(request)) {
     await requestSecurityGuard(fastify, request, request.params.name, request.params.namespace);
+  } else {
+    // Route is un-parameterized
+    if (request.method.toLowerCase() === 'get') {
+      // Get calls are fine
+      return;
+    }
+
+    // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
+    fastify.log.warn(
+      `${isAdmin ? 'Admin ' : ''}User ${username} interacted with a resource that was not secure.`,
+    );
   }
 };
 
@@ -106,9 +158,97 @@ const handleSecurityOnRouteData = async (
  * eg secureRoute(fastify)(the standard route function)
  */
 export const secureRoute =
-  <T>(fastify: KubeFastifyInstance) =>
+  <T>(fastify: KubeFastifyInstance, needsAdmin = false) =>
   (requestCall: (request: FastifyRequest, reply: FastifyReply) => Promise<T>) =>
   async (request: OauthFastifyRequest, reply: FastifyReply): Promise<T> => {
-    await handleSecurityOnRouteData(fastify, request);
+    await handleSecurityOnRouteData(fastify, request, needsAdmin);
     return requestCall(request, reply);
   };
+
+/**
+ * Same as secure route -- just makes sure you're an admin as well. Useful to lock down routes
+ * that should only be visible to a logged in admin user.
+ */
+export const secureAdminRoute = (fastify: KubeFastifyInstance): ReturnType<typeof secureRoute> =>
+  secureRoute(fastify, true);
+
+/**
+ * Sanitizes the properties of a Notebook against what we expect.
+ * No sharing of secrets, configmaps, etc between users.
+ */
+export const sanitizeNotebookForSecurity = async <
+  T extends RecursivePartial<Notebook> = RecursivePartial<Notebook>,
+>(
+  fastify: KubeFastifyInstance,
+  request: FastifyRequest,
+  notebook: T,
+): Promise<T> => {
+  const secureNotebook = cloneDeep(notebook);
+  const username = await getUserName(fastify, request);
+  const translatedUsername = usernameTranslate(username);
+
+  // PVCs
+  secureNotebook?.spec?.template?.spec?.volumes?.forEach((volume) => {
+    if (volume.name.startsWith('jupyterhub-nb-')) {
+      // PVC we generated
+      const allowedValue = `jupyterhub-nb-${translatedUsername}-pvc`;
+      if (volume.name !== allowedValue) {
+        // Was not targeted at their user
+        fastify.log.warn(
+          `${username} submitted a Notebook that contained a pvc (${volume.name}) that was not for them. Reset back to them.`,
+        );
+        fastify.log.warn(`PVC structure: ${JSON.stringify(volume)}`);
+
+        volume.name = allowedValue;
+        if (volume.persistentVolumeClaim) {
+          volume.persistentVolumeClaim.claimName = allowedValue;
+        }
+      }
+    }
+  });
+
+  // Container based items
+  secureNotebook?.spec?.template?.spec?.containers?.forEach((container) => {
+    // Secrets & ConfigMaps
+    container.env?.forEach((env) => {
+      if (env.name.startsWith('jupyterhub-singleuser-profile-')) {
+        // Env var for a configmap or secret we generated
+        const allowedValue = `jupyterhub-singleuser-profile-${translatedUsername}-env`;
+        if (env.name !== allowedValue) {
+          // Was not targeted at their user
+          fastify.log.warn(
+            `${username} submitted a Notebook that contained an env (${env.name}) that was not for them. Reset back to them.`,
+          );
+          fastify.log.warn(`Env structure: ${JSON.stringify(env)}`);
+
+          env.name = allowedValue;
+          if (env.valueFrom.configMapKeyRef) {
+            env.valueFrom.configMapKeyRef.key = allowedValue;
+          }
+          if (env.valueFrom.secretKeyRef) {
+            env.valueFrom.secretKeyRef.key = allowedValue;
+          }
+        }
+      }
+    });
+
+    // Volume mounts
+    container.volumeMounts?.forEach((volumeMount) => {
+      if (volumeMount.name.startsWith('jupyterhub-nb-')) {
+        // The volume mount's PVC we generated
+        const allowedValue = `jupyterhub-nb-${translatedUsername}-pvc`;
+        if (volumeMount.name !== allowedValue) {
+          // Was not targeted at their user
+          fastify.log.warn(
+            `${username} submitted a Notebook that contained a volumeMount (${volumeMount.name}) that was not for them. Reset back to them.`,
+          );
+          fastify.log.warn(`volumeMount structure: ${JSON.stringify(volumeMount)}`);
+
+          volumeMount.name = allowedValue;
+        }
+      }
+    });
+  });
+
+  return secureNotebook;
+};

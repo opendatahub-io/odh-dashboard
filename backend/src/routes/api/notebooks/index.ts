@@ -8,79 +8,85 @@ import {
   getNotebookStatus,
 } from './notebookUtils';
 import { RecursivePartial } from '../../../typeHelpers';
+import { sanitizeNotebookForSecurity, secureRoute } from '../../../utils/route-security';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
-  fastify.get('/:projectName', async (request: FastifyRequest) => {
-    const params = request.params as {
-      projectName: string;
-    };
-    const query = request.query as {
-      labels: string;
-    };
-
-    return await getNotebooks(fastify, params.projectName, query.labels);
-  });
-
-  fastify.get('/:projectName/:notebookName', async (request: FastifyRequest) => {
-    const params = request.params as {
-      projectName: string;
-      notebookName: string;
-    };
-
-    return await getNotebook(fastify, params.projectName, params.notebookName);
-  });
+  fastify.get(
+    '/:namespace',
+    secureRoute(fastify)(
+      async (
+        request: FastifyRequest<{ Params: { namespace: string }; Querystring: { labels: string } }>,
+      ) => {
+        const { namespace } = request.params;
+        return await getNotebooks(fastify, namespace, request.query.labels);
+      },
+    ),
+  );
 
   fastify.get(
-    '/:projectName/:notebookName/status',
-    async (
-      request: FastifyRequest<{
-        Params: {
-          projectName: string;
-          notebookName: string;
-        };
-      }>,
-    ) => {
-      const { projectName, notebookName } = request.params;
+    '/:namespace/:name',
+    secureRoute(fastify)(
+      async (request: FastifyRequest<{ Params: { namespace: string; name: string } }>) => {
+        const { namespace, name } = request.params;
+        return await getNotebook(fastify, namespace, name);
+      },
+    ),
+  );
 
-      const notebook = await getNotebook(fastify, projectName, notebookName);
-      const hasStopAnnotation = !!notebook?.metadata.annotations?.['kubeflow-resource-stopped'];
-      const isRunning = hasStopAnnotation
-        ? false
-        : await getNotebookStatus(fastify, projectName, notebookName);
+  fastify.get(
+    '/:namespace/:name/status',
+    secureRoute(fastify)(
+      async (
+        request: FastifyRequest<{
+          Params: { namespace: string; name: string };
+        }>,
+      ) => {
+        const { namespace, name } = request.params;
 
-      return { notebook, isRunning };
-    },
+        const notebook = await getNotebook(fastify, namespace, name);
+        const hasStopAnnotation = !!notebook?.metadata.annotations?.['kubeflow-resource-stopped'];
+        const isRunning = hasStopAnnotation
+          ? false
+          : await getNotebookStatus(fastify, namespace, name);
+
+        return { notebook, isRunning };
+      },
+    ),
   );
 
   fastify.post(
-    '/:projectName',
-    async (
-      request: FastifyRequest<{
-        Params: {
-          projectName: string;
-        };
-        Body: Notebook;
-      }>,
-    ) => {
-      return createNotebook(fastify, request);
-    },
+    '/:namespace',
+    secureRoute(fastify)(
+      async (
+        request: FastifyRequest<{
+          Params: {
+            namespace: string;
+          };
+          Body: Notebook;
+        }>,
+      ) => {
+        return createNotebook(fastify, request);
+      },
+    ),
   );
 
   fastify.patch(
-    '/:projectName/:notebookName',
-    async (
-      request: FastifyRequest<{
-        Body: RecursivePartial<Notebook>;
-        Params: {
-          projectName: string;
-          notebookName: string;
-        };
-      }>,
-    ) => {
-      const params = request.params;
-      const data = request.body;
+    '/:namespace/:name',
+    secureRoute(fastify)(
+      async (
+        request: FastifyRequest<{
+          Body: RecursivePartial<Notebook>;
+          Params: {
+            namespace: string;
+            name: string;
+          };
+        }>,
+      ) => {
+        const { namespace, name } = request.params;
+        const data = await sanitizeNotebookForSecurity(fastify, request, request.body);
 
-      return await patchNotebook(fastify, data, params.projectName, params.notebookName);
-    },
+        return await patchNotebook(fastify, data, namespace, name);
+      },
+    ),
   );
 };
