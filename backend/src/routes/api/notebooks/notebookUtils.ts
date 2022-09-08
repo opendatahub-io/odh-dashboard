@@ -5,7 +5,7 @@ import {
   NotebookResources,
   Route,
 } from '../../../types';
-import { PatchUtils, V1PodList, V1Role, V1RoleBinding } from '@kubernetes/client-node';
+import { PatchUtils, V1Pod, V1PodList, V1Role, V1RoleBinding } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
@@ -52,6 +52,24 @@ export const getNotebook = async (
   }
 };
 
+const checkPodContainersReady = (pod: V1Pod): boolean => {
+  const containerStatuses = pod.status?.containerStatuses || [];
+  if (containerStatuses.length === 0) {
+    return false;
+  }
+  let containersReady = true;
+  for (const containerStatus of containerStatuses) {
+    const {
+      state: { running },
+      ready,
+    } = containerStatus;
+    if (!running || !ready) {
+      containersReady = false;
+    }
+  }
+  return containersReady;
+};
+
 export const getNotebookStatus = async (
   fastify: KubeFastifyInstance,
   namespace: string,
@@ -68,7 +86,7 @@ export const getNotebookStatus = async (
     )
     .then((response) => {
       const pods = (response.body as V1PodList).items;
-      return !!pods.find((pod) => pod.status.phase === 'Running');
+      return !!pods.find((pod) => checkPodContainersReady(pod));
     });
 };
 
