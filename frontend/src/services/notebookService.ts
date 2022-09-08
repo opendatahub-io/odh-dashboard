@@ -261,9 +261,13 @@ const enableNotebook = async (notebook: Notebook): Promise<Notebook> => {
   if (!namespace) {
     return Promise.reject('Notebook is not assigned to a namespace -- cannot start it');
   }
-
-  notebook.metadata.annotations['kubeflow-resource-stopped'] = undefined;
-  return replaceNotebook(namespace, name, notebook);
+  return replaceNotebook(
+    namespace,
+    name,
+    _.merge({}, notebook, {
+      metadata: { annotations: { 'kubeflow-resource-stopped': undefined } },
+    }),
+  );
 };
 
 export const startNotebook = (data: StartNotebookData): Promise<Notebook> => {
@@ -304,13 +308,14 @@ export const replaceNotebook = async (
   data: Notebook,
 ): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
-  const notebook = await getNotebook(projectName, notebookName);
+  const notebook = _.cloneDeep(await getNotebook(projectName, notebookName));
+  
   notebook.spec = data.spec;
   notebook.metadata.annotations['kubeflow-resource-stopped'] =
     data.metadata.annotations['kubeflow-resource-stopped'];
 
   return axios
-    .patch(url, _.merge(notebook, data))
+    .put(url, _.merge(notebook, data))
     .then((response) => {
       return response.data;
     })

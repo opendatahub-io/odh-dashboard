@@ -70,7 +70,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     ),
   );
 
-  fastify.patch(
+  fastify.put(
     '/:namespace/:name',
     secureRoute(fastify)(
       async (
@@ -83,9 +83,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         }>,
       ) => {
         const { namespace, name } = request.params;
-        const data = await sanitizeNotebookForSecurity(fastify, request, request.body);
+        const data = (await sanitizeNotebookForSecurity(
+          fastify,
+          request,
+          request.body,
+        )) as Notebook;
 
-      return await replaceNotebook(fastify, data, namespace, name);
-    },
+        return await replaceNotebook(fastify, data, namespace, name);
+      },
+    ),
   );
 };
