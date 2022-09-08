@@ -114,7 +114,9 @@ export const isUserClusterRole = async (
     const isAdminRoleBinding = checkRoleBindings(rolebinding.body, username);
     return isAdminClusterRoleBinding || isAdminRoleBinding;
   } catch (e) {
-    fastify.log.error(`Failed to list rolebindings for user, ${e}`);
+    fastify.log.error(
+      `Failed to list rolebindings for user, ${e.response?.body?.message || e.message}`,
+    );
     return false;
   }
 };

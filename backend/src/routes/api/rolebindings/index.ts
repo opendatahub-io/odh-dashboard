@@ -23,7 +23,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           );
           return rbResponse.body;
         } catch (e) {
-          fastify.log.error(`rolebinding ${rbName} could not be read, ${e}`);
+          fastify.log.error(
+            `rolebinding ${rbName} could not be read, ${e.response?.body?.message || e.message}`,
+          );
           reply.send(e);
         }
       },
@@ -45,7 +47,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           );
           return rbResponse.body;
         } catch (e) {
-          fastify.log.error(`rolebinding could not be created: ${e}`);
+          fastify.log.error(
+            `rolebinding could not be created: ${e.response?.body?.message || e.message}`,
+          );
           reply.send(e);
         }
       },
