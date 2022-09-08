@@ -1,11 +1,34 @@
 import * as React from 'react';
 import { useHistory } from 'react-router-dom';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
+import { FAST_POLL_INTERVAL } from '../../../../utilities/const';
+import { NotebookControllerContextProps } from '../../notebookControllerContextTypes';
 
-const useSpawnerNotebookModalState = (): [
-  startShown: boolean,
-  setStartShown: (newState: boolean) => void,
-] => {
+const useRefreshNotebookAndCleanup = (startShown: boolean) => {
+  const { requestNotebookRefresh } = React.useContext(NotebookControllerContext);
+
+  const methodRef =
+    React.useRef<NotebookControllerContextProps['requestNotebookRefresh']>(requestNotebookRefresh);
+  methodRef.current = requestNotebookRefresh; // we don't care about the ref, we just want the last one
+
+  React.useEffect(() => {
+    if (startShown) {
+      // Start modal is open, we are relying on events now, dial back the Notebook requests back to normal
+      methodRef.current();
+    }
+  }, [startShown]);
+
+  return React.useCallback(() => {
+    // We are about to spawn, get notebook more frequently in case it was slow updating
+    methodRef.current(FAST_POLL_INTERVAL);
+  }, []);
+};
+
+const useSpawnerNotebookModalState = (): {
+  startShown: boolean;
+  hideStartShown: () => void;
+  refreshNotebookForStart: () => void;
+} => {
   const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
   const history = useHistory();
@@ -31,7 +54,10 @@ const useSpawnerNotebookModalState = (): [
     }
   }, [notebook, history, startShown, isNotebookRunning]);
 
-  return [startShown, setStartShown];
+  const refreshNotebookForStart = useRefreshNotebookAndCleanup(startShown);
+  const hideStartShown = React.useCallback(() => setStartShown(false), []);
+
+  return { startShown, hideStartShown, refreshNotebookForStart };
 };
 
 export default useSpawnerNotebookModalState;
