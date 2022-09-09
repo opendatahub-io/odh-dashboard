@@ -2,9 +2,9 @@ import { CustomObjectsApi } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
 import { KubeFastifyInstance } from '../types';
+import { DEV_MODE } from './constants';
 
 const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
-const DEFAULT_USERNAME = 'kube:admin';
 
 export type OpenShiftUser = {
   kind: string;
@@ -39,7 +39,7 @@ export const getUser = async (
     );
     return userResponse.body as OpenShiftUser;
   } catch (e) {
-    throw new Error(`Error getting Oauth Info for user, ${e.toString()}`);
+    throw new Error(`Error getting Oauth Info for user, ${e.response?.data?.message || e.message}`);
   }
 };
 
@@ -53,7 +53,10 @@ export const getUserName = async (
     const userOauth = await getUser(request, customObjectsApi);
     return userOauth.metadata.name;
   } catch (e) {
-    const userCluster = (currentUser.username || currentUser.name)?.split('/')[0];
-    return !userCluster || userCluster === 'inClusterUser' ? DEFAULT_USERNAME : userCluster;
+    if (DEV_MODE) {
+      return (currentUser.username || currentUser.name)?.split('/')[0];
+    }
+    fastify.log.error(`Error retrieving username: ${e.response?.data?.message || e.message}`);
+    throw new Error(`Failed to retrieve username: ${e.response?.data?.message || e.message}`);
   }
 };
