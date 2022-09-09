@@ -102,7 +102,13 @@ const handleSecurityOnRouteData = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<void> => {
-  const username = await getUserName(fastify, request);
+  const username = await getUserName(fastify, request).catch((error) => {
+    throw createCustomError(
+      'Error retrieving username',
+      error.response?.data?.message || error.message,
+      500,
+    );
+  });
   const { dashboardNamespace } = getNamespaces(fastify);
   const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
   if (isAdmin && !request.url.includes('secrets')) {
