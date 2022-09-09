@@ -5,7 +5,14 @@ import {
   NotebookResources,
   Route,
 } from '../../../types';
-import { PatchUtils, V1Pod, V1PodList, V1Role, V1RoleBinding } from '@kubernetes/client-node';
+import {
+  PatchUtils,
+  V1ContainerStatus,
+  V1Pod,
+  V1PodList,
+  V1Role,
+  V1RoleBinding,
+} from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
@@ -53,7 +60,7 @@ export const getNotebook = async (
 };
 
 const checkPodContainersReady = (pod: V1Pod): boolean => {
-  const containerStatuses = pod.status?.containerStatuses || [];
+  const containerStatuses: V1ContainerStatus[] = pod.status?.containerStatuses || [];
   if (containerStatuses.length === 0) {
     return false;
   }
