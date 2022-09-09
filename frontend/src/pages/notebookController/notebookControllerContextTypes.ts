@@ -6,8 +6,11 @@ import { SetCurrentAdminTab } from './useAdminTabState';
 export type NotebookControllerContextProps = {
   /** Current user's notebook -- set internally */
   currentUserNotebook: Notebook | null;
-  /** Requests the notebook be re-fetched now instead of waiting for polling intervals */
-  requestNotebookRefresh: () => void;
+  /**
+   * Requests the notebook be re-fetched now instead of waiting for polling intervals.
+   * The provided speed will change the cadence future fetches are done at. Omit to reset.
+   */
+  requestNotebookRefresh: (changeSpeed?: number) => void;
   /** Status on if the current notebook is in a state we can consider it running */
   currentUserNotebookIsRunning: boolean;
 

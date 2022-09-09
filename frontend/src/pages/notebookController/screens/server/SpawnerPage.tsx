@@ -64,7 +64,7 @@ const SpawnerPage: React.FC = React.memo(() => {
   const { notebookNamespace: projectName } = useNamespaces();
   const currentUserState = useNotebookUserState();
   const username = currentUserState.user;
-  const [startShown, setStartShown] = useSpawnerNotebookModalState();
+  const { startShown, hideStartShown, refreshNotebookForStart } = useSpawnerNotebookModalState();
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
@@ -270,13 +270,11 @@ const SpawnerPage: React.FC = React.memo(() => {
     })
       .then(() => {
         fireStartServerEvent();
-        return true;
       })
       .catch((e) => {
         setSubmitError(e);
-        return false;
       });
-    requestNotebookRefresh();
+    refreshNotebookForStart();
   };
 
   return (
@@ -338,7 +336,7 @@ const SpawnerPage: React.FC = React.memo(() => {
                 onClick={() => {
                   handleNotebookAction().catch((e) => {
                     setCreateInProgress(false);
-                    setStartShown(false);
+                    hideStartShown();
                     console.error(e);
                   });
                 }}
@@ -371,7 +369,7 @@ const SpawnerPage: React.FC = React.memo(() => {
                 .catch((e) => notification.error(`Error stop notebook ${notebookName}`, e.message));
             } else {
               // Shouldn't happen, but if we don't have a notebook, there is nothing to stop
-              setStartShown(false);
+              hideStartShown();
             }
             setCreateInProgress(false);
           }}
