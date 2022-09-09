@@ -34,7 +34,7 @@ export const getNotebook = async (
   fastify: KubeFastifyInstance,
   namespace: string,
   notebookName: string,
-): Promise<Notebook> => {
+): Promise<Notebook | null> => {
   try {
     const kubeResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
       'kubeflow.org',
@@ -82,6 +82,28 @@ export const verifyResources = (resources: NotebookResources): NotebookResources
   return resources;
 };
 
+export const patchNotebookRoute = async (
+  fastify: KubeFastifyInstance,
+  route: Route,
+  namespace: string,
+  notebookName: string,
+): Promise<Notebook> => {
+  const patch: RecursivePartial<Notebook> = {
+    metadata: {
+      annotations: {
+        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
+      },
+    },
+  };
+
+  return await patchNotebook(fastify, patch, namespace, notebookName).catch((res) => {
+    const e = res.response.body;
+    const error = createCustomError('Error adding route data to Notebook', e.message, e.code);
+    fastify.log.error(error);
+    throw error;
+  });
+};
+
 export const createNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{
@@ -116,8 +138,9 @@ export const createNotebook = async (
   notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
   notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
 
-  await fastify.kube.customObjectsApi
+  const notebook = await fastify.kube.customObjectsApi
     .createNamespacedCustomObject('kubeflow.org', 'v1', namespace, 'notebooks', notebookData)
+    .then((res) => res.body as Notebook)
     .catch((res) => {
       const e = res.body;
       const error = createCustomError('Error creating Notebook Custom Resource', e.message, e.code);
@@ -132,30 +155,30 @@ export const createNotebook = async (
     throw error;
   });
 
-  await new Promise((r) => setTimeout(r, 500));
-  const route = await fastify.kube.customObjectsApi
-    .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', notebookName)
-    .then((response) => response.body as Route)
-    .catch((res) => {
-      const e = res.body;
-      const error = createCustomError('Error fetching Notebook Route', e.message, e.code);
-      fastify.log.error(error);
-      throw error;
+  let route: Route | undefined;
+  let fetchTime = 10;
+  while (fetchTime > 0) {
+    route = await getRoute(fastify, namespace, notebookName).catch(async (e) => {
+      // if the route is not created yet
+      // wait for 1 sec and fetch time minus 1
+      if (e.code === 404) {
+        await new Promise((r) => setTimeout(r, 1000));
+        fetchTime -= 1;
+        if (fetchTime <= 0) {
+          fastify.log.warn(
+            'Wait for 10 seconds and route is still missing, skipping patching for now.',
+          );
+        }
+        return undefined;
+      }
+      throw e;
     });
-
-  const patch: RecursivePartial<Notebook> = {
-    metadata: {
-      annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
-      },
-    },
-  };
-
-  return await patchNotebook(fastify, patch, namespace, notebookName).catch((res) => {
-    const e = res.body;
-    const error = createCustomError('Error adding route data to Notebook', e.message, e.code);
-    fastify.log.error(error);
-    throw error;
+  }
+  return await patchNotebookRoute(fastify, route, namespace, notebookName).catch((e) => {
+    fastify.log.error(
+      `Failed to patch Notebook Route at the end of notebook creation: ${e.message}`,
+    );
+    return notebook;
   });
 };
 
@@ -234,4 +257,20 @@ export const createRBAC = async (
 
   await fastify.kube.rbac.createNamespacedRole(namespace, notebookRole);
   await fastify.kube.rbac.createNamespacedRoleBinding(namespace, notebookRoleBinding);
+};
+
+export const getRoute = async (
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  routeName: string,
+): Promise<Route> => {
+  const kubeResponse = await fastify.kube.customObjectsApi
+    .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', routeName)
+    .catch((res) => {
+      const e = res.response.body;
+      const error = createCustomError('Error getting Route', e.message, e.code);
+      fastify.log.error(error);
+      throw error;
+    });
+  return kubeResponse.body as Route;
 };
