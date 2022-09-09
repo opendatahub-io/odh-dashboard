@@ -36,19 +36,65 @@ const getNamespaces = (
   };
 };
 
+const testAdmin = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  needsAdmin: boolean,
+): Promise<boolean> => {
+  const username = await getUserName(fastify, request);
+  const { dashboardNamespace } = getNamespaces(fastify);
+  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+  if (isAdmin) {
+    // User is an admin, pass to caller that we can bypass some logic
+    return true;
+  }
+
+  if (needsAdmin && !isAdmin) {
+    // Not an admin, route needs one -- reject
+    fastify.log.error(
+      `A Non-Admin User (${username}) made a request against an endpoint that requires an admin.`,
+    );
+    throw createCustomError(
+      'Not Admin',
+      'You lack the sufficient permissions to make this request.',
+      401,
+    );
+  }
+
+  return false; // Not admin, no bypassing
+};
+
 const requestSecurityGuard = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   name: string,
   namespace: string,
+  needsAdmin: boolean,
 ): Promise<void> => {
   const { notebookNamespace, dashboardNamespace } = getNamespaces(fastify);
   const username = await getUserName(fastify, request);
   const translatedUsername = usernameTranslate(username);
-
   const isReadRequest = request.method.toLowerCase() === 'get';
 
-  // Api with no name object
+  // Check to see if a request was made against one of our namespaces
+  if (![notebookNamespace, dashboardNamespace].includes(namespace)) {
+    // Not a valid namespace -- cannot make direct calls to just any namespace no matter who you are
+    fastify.log.error(
+      `User requested a resource that was not in our namespaces. Namespace: ${namespace}`,
+    );
+    throw createCustomError(
+      'Wrong namespace',
+      'Request invalid against a resource from a non dashboard namespace.',
+      403,
+    );
+  }
+
+  // Admins have the ability to interact with other resources that is not theirs
+  if (await testAdmin(fastify, request, needsAdmin)) {
+    return;
+  }
+
+  // Api with no name object, allow reads
   if (!name && namespace === notebookNamespace && isReadRequest) {
     return;
   }
@@ -102,41 +148,38 @@ const handleSecurityOnRouteData = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<void> => {
-  const username = await getUserName(fastify, request);
-  const { dashboardNamespace } = getNamespaces(fastify);
-  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
-  if (isAdmin && !request.url.includes('secrets')) {
-    // User is an admin, trust for all but secrets
-    return;
-  } else if (needsAdmin && !isAdmin) {
-    // Not an admin, route needs one -- reject
-    fastify.log.error(
-      `A Non-Admin User (${username}) made a request against an endpoint that requires an admin.`,
-    );
-    throw createCustomError(
-      'Not Admin',
-      'You lack the sufficient permissions to make this request.',
-      401,
-    );
-  }
-
   if (isRequestBody(request)) {
     await requestSecurityGuard(
       fastify,
       request,
       request.body.metadata.name,
       request.body.metadata.namespace,
+      needsAdmin,
     );
   } else if (isRequestParams(request)) {
-    await requestSecurityGuard(fastify, request, request.params.name, request.params.namespace);
+    await requestSecurityGuard(
+      fastify,
+      request,
+      request.params.name,
+      request.params.namespace,
+      needsAdmin,
+    );
   } else {
     // Route is un-parameterized
+    if (await testAdmin(fastify, request, needsAdmin)) {
+      // Admins have wider access, allow anything un-parameterized
+      return;
+    }
+
     if (request.method.toLowerCase() === 'get') {
       // Get calls are fine
       return;
     }
 
     // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
+    const username = await getUserName(fastify, request);
+    const { dashboardNamespace } = getNamespaces(fastify);
+    const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
     fastify.log.warn(
       `${isAdmin ? 'Admin ' : ''}User ${username} interacted with a resource that was not secure.`,
     );
