@@ -12,6 +12,13 @@ export const PVCModel: K8sModelCommon = {
   plural: 'persistentvolumeclaims',
 };
 
+export const RoleBindingModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'rbac.authorization.k8s.io',
+  kind: 'RoleBinding',
+  plural: 'rolebindings',
+};
+
 export const SecretModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'Secret',
