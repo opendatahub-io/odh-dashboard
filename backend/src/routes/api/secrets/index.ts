@@ -21,7 +21,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           return secretResponse.body;
         } catch (e) {
           fastify.log.error(
-            `Secret ${secretName} could not be read, ${e.response?.body || e.message || e}`,
+            `Secret ${secretName} could not be read, ${
+              e.response?.body?.message || e.message || e
+            }`,
           );
           reply.send(e);
         }
@@ -41,7 +43,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           );
           return secretResponse.body;
         } catch (e) {
-          fastify.log.error(`Secret could not be created: ${e.response?.body || e.message || e}`);
+          fastify.log.error(
+            `Secret could not be created: ${e.response?.body?.message || e.message || e}`,
+          );
           reply.send(e);
         }
       },
@@ -63,7 +67,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         } catch (e) {
           fastify.log.error(
             `Secret ${secretRequest.metadata.name} could not be replaced: ${
-              e.response?.body || e.message || e
+              e.response?.body?.message || e.message || e
             }`,
           );
           reply.send(e);
@@ -89,7 +93,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           return secretResponse.body;
         } catch (e) {
           fastify.log.error(
-            `Secret ${secretName} could not be deleted, ${e.response?.body || e.message || e}`,
+            `Secret ${secretName} could not be deleted, ${
+              e.response?.body?.message || e.message || e
+            }`,
           );
           reply.send(e);
         }
