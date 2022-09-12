@@ -626,6 +626,7 @@ export enum EventStatus {
   IN_PROGRESS = 'In Progress',
   ERROR = 'Error',
   INFO = 'Info',
+  WARNING = 'Warning',
 }
 
 export type UsernameMap<V> = { [username: string]: V };

@@ -55,8 +55,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
 
   const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
 
-  const spawnFailed =
-    spawnStatus?.status === AlertVariant.danger || spawnStatus?.status === AlertVariant.warning;
+  const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
     let timer;
@@ -102,6 +101,12 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
       } else if (notebookStatus.currentStatus === EventStatus.INFO) {
         setSpawnStatus({
           status: AlertVariant.info,
+          title: notebookStatus.currentEventReason,
+          description: notebookStatus.currentEventDescription,
+        });
+      } else if (notebookStatus.currentStatus === EventStatus.WARNING) {
+        setSpawnStatus({
+          status: AlertVariant.warning,
           title: notebookStatus.currentEventReason,
           description: notebookStatus.currentEventDescription,
         });

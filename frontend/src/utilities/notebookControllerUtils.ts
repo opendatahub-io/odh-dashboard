@@ -371,6 +371,11 @@ export const useNotebookStatus = (
         percentile = 96;
         break;
       }
+      case 'Killing': {
+        currentEvent = 'Stopping container oauth-proxy';
+        status = EventStatus.WARNING;
+        break;
+      }
       default: {
         currentEvent = 'Error creating oauth proxy container';
         status = EventStatus.ERROR;
