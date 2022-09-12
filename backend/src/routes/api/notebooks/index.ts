@@ -6,6 +6,7 @@ import {
   createNotebook,
   getNotebookStatus,
   replaceNotebook,
+  patchNotebook,
 } from './notebookUtils';
 import { RecursivePartial } from '../../../typeHelpers';
 import { sanitizeNotebookForSecurity, secureRoute } from '../../../utils/route-security';
@@ -70,7 +71,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     ),
   );
 
-  fastify.put(
+  fastify.patch(
     '/:namespace/:name',
     secureRoute(fastify)(
       async (
@@ -83,11 +84,26 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         }>,
       ) => {
         const { namespace, name } = request.params;
-        const data = (await sanitizeNotebookForSecurity(
-          fastify,
-          request,
-          request.body,
-        )) as Notebook;
+        const data = await sanitizeNotebookForSecurity(fastify, request, request.body);
+        return await patchNotebook(fastify, data, namespace, name);
+      },
+    ),
+  );
+
+  fastify.put(
+    '/:namespace/:name',
+    secureRoute(fastify)(
+      async (
+        request: FastifyRequest<{
+          Body: Notebook;
+          Params: {
+            namespace: string;
+            name: string;
+          };
+        }>,
+      ) => {
+        const { namespace, name } = request.params;
+        const data = await sanitizeNotebookForSecurity<Notebook>(fastify, request, request.body);
 
         return await replaceNotebook(fastify, data, namespace, name);
       },

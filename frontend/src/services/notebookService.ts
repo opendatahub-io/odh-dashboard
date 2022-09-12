@@ -12,6 +12,7 @@ import {
   NotebookResources,
   NotebookAffinity,
 } from '../types';
+import { RecursivePartial } from 'typeHelpers';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
 import { usernameTranslate } from '../utilities/notebookControllerUtils';
@@ -296,10 +297,13 @@ export const stopNotebook = async (
 ): Promise<Notebook> => {
   const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
   const notebook = await getNotebook(projectName, notebookName);
-  const patch: Notebook = _.merge({}, notebook, {
+  const patch: RecursivePartial<Notebook> = _.merge({}, notebook, {
     metadata: { annotations: { 'kubeflow-resource-stopped': dateStr } },
   });
-  return replaceNotebook(projectName, notebookName, patch);
+  const url = `/api/notebooks/${projectName}/${notebookName}`;
+  return axios.patch(url, patch).then((response) => {
+    return response.data;
+  });
 };
 
 export const replaceNotebook = async (
@@ -309,10 +313,10 @@ export const replaceNotebook = async (
 ): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
   const notebook = _.cloneDeep(await getNotebook(projectName, notebookName));
-  
+
   notebook.spec = data.spec;
-  notebook.metadata.annotations['kubeflow-resource-stopped'] =
-    data.metadata.annotations['kubeflow-resource-stopped'];
+  notebook.metadata.annotations = data.metadata.annotations;
+  notebook.metadata.labels = data.metadata.labels;
 
   return axios
     .put(url, _.merge(notebook, data))
