@@ -202,16 +202,18 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+type K8sMetadata = {
+  name: string;
+  namespace?: string;
+  uid?: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+};
+
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    uid?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
-  };
+  metadata: K8sMetadata;
 };
 
 // Minimal type for ConsoleLinks
@@ -608,11 +610,13 @@ export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Pro
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
-  lastTimestamp: string;
+  metadata: K8sMetadata;
+  eventTime: string;
+  lastTimestamp: string | null; // if it never starts, the value is null
   message: string;
   reason: string;
   type: string;
-} & K8sResourceCommon;
+};
 
 export type NotebookStatus = {
   percentile: number;
