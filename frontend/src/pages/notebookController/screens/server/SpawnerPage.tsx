@@ -304,7 +304,13 @@ const SpawnerPage: React.FC = () => {
         })
         .catch((e) => {
           setSubmitError(e);
-          refreshNotebookForStart();
+          // We had issues spawning the notebook -- try to stop it
+          stopNotebook(projectName, notebookName).catch(() =>
+            notification.error(
+              'Error creating notebook',
+              'Error spawning notebook and unable to properly stop it',
+            ),
+          );
         });
     });
   };
@@ -373,7 +379,8 @@ const SpawnerPage: React.FC = () => {
                   handleNotebookAction().catch((e) => {
                     setCreateInProgress(false);
                     hideStartShown();
-                    console.error(e);
+                    console.error('Error submitting resources around starting a notebook', e);
+                    setSubmitError(e);
                   });
                 }}
                 isDisabled={createInProgress}
@@ -396,7 +403,8 @@ const SpawnerPage: React.FC = () => {
           </div>
         </Form>
         <StartServerModal
-          open={startShown}
+          spawnInProgress={startShown}
+          open={createInProgress}
           onClose={() => {
             if (currentUserNotebook) {
               const notebookName = currentUserNotebook.metadata.name;
