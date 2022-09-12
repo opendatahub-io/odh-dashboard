@@ -378,6 +378,10 @@ export const useNotebookStatus = (
     }
   } else {
     switch (lastItem.reason) {
+      case 'TriggeredScaleUp':
+        currentEvent = 'Scaling up';
+        percentile = 4;
+        break;
       case 'SuccessfulCreate': {
         currentEvent = 'Pod created';
         percentile = 8;
