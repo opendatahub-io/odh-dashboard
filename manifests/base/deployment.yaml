@@ -39,10 +39,8 @@ spec:
             cpu: 1000m
             memory: 2Gi
         livenessProbe:
-          httpGet:
-            path: /api/config
+          tcpSocket:
             port: 8080
-            scheme: HTTP
           initialDelaySeconds: 30
           timeoutSeconds: 15
           periodSeconds: 30
@@ -50,7 +48,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /api/config
+            path: /api/health
             port: 8080
             scheme: HTTP
           initialDelaySeconds: 30
