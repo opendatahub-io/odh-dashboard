@@ -315,8 +315,8 @@ export const replaceNotebook = async (
   const notebook = _.cloneDeep(await getNotebook(projectName, notebookName));
 
   notebook.spec = data.spec;
-  notebook.metadata.annotations = data.metadata.annotations;
-  notebook.metadata.labels = data.metadata.labels;
+  notebook.metadata.annotations['kubeflow-resource-stopped'] =
+    data.metadata.annotations['kubeflow-resource-stopped'];
 
   return axios
     .put(url, _.merge(notebook, data))
