@@ -99,12 +99,18 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
           title: notebookStatus.currentEventReason,
           description: notebookStatus.currentEventDescription,
         });
+      } else if (notebookStatus.currentStatus === EventStatus.INFO) {
+        setSpawnStatus({
+          status: AlertVariant.info,
+          title: notebookStatus.currentEventReason,
+          description: notebookStatus.currentEventDescription,
+        });
       }
     }
   }, [notebookStatus, spawnInProgress, isNotebookRunning]);
 
   const renderProgress = () => {
-    let variant;
+    let variant: ProgressVariant | undefined;
     switch (spawnStatus?.status) {
       case AlertVariant.danger:
         variant = ProgressVariant.danger;

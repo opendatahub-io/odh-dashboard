@@ -418,6 +418,11 @@ export const useNotebookStatus = (
         percentile = 64;
         break;
       }
+      case 'TriggeredScaleUp': {
+        currentEvent = 'Pod triggered scale-up';
+        status = EventStatus.INFO;
+        break;
+      }
       default: {
         currentEvent = 'Error creating notebook container';
         status = EventStatus.ERROR;
