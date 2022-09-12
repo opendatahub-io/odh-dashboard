@@ -48,12 +48,6 @@ const requestSecurityGuard = async (
 
   const isReadRequest = request.method.toLowerCase() === 'get';
 
-  // Getting a dashboard resource
-  if (isReadRequest && namespace === dashboardNamespace) {
-    // The application resources are fine to read in all cases
-    return;
-  }
-
   // Api with no name object
   if (!name && namespace === notebookNamespace && isReadRequest) {
     return;
@@ -108,11 +102,17 @@ const handleSecurityOnRouteData = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<void> => {
-  const username = await getUserName(fastify, request);
+  const username = await getUserName(fastify, request).catch((error) => {
+    throw createCustomError(
+      'Error retrieving username',
+      error.response?.data?.message || error.message,
+      500,
+    );
+  });
   const { dashboardNamespace } = getNamespaces(fastify);
   const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
-  if (isAdmin) {
-    // User is an admin, trust
+  if (isAdmin && !request.url.includes('secrets')) {
+    // User is an admin, trust for all but secrets
     return;
   } else if (needsAdmin && !isAdmin) {
     // Not an admin, route needs one -- reject

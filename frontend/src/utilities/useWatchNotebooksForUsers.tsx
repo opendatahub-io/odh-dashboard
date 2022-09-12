@@ -14,7 +14,7 @@ const useWatchNotebooksForUsers = (
   loaded: boolean;
   loadError: Error | undefined;
   forceRefresh: (usernames?: string[]) => void;
-  setPollInterval: (interval: number) => void;
+  setPollInterval: (interval?: number) => void;
 } => {
   const usernames = useDeepCompareMemoize(listOfUsers);
   const [loaded, setLoaded] = React.useState<boolean>(false);
@@ -75,6 +75,10 @@ const useWatchNotebooksForUsers = (
     [getNotebooks, usernames],
   );
 
+  const setPollIntervalSafe = React.useCallback((newPollInterval?: number) => {
+    setPollInterval(newPollInterval ?? POLL_INTERVAL);
+  }, []);
+
   React.useEffect(() => {
     getNotebooks(usernames);
     const watchHandle = setInterval(() => getNotebooks(usernames), pollInterval);
@@ -86,7 +90,7 @@ const useWatchNotebooksForUsers = (
     };
   }, [pollInterval, getNotebooks, usernames]);
 
-  return { notebooks, loaded, loadError, forceRefresh, setPollInterval };
+  return { notebooks, loaded, loadError, forceRefresh, setPollInterval: setPollIntervalSafe };
 };
 
 export default useWatchNotebooksForUsers;
