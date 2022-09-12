@@ -78,6 +78,9 @@ export type NotebookTolerationSettings = {
   enabled: boolean;
   key: string;
 };
+export type NotebookTolerationFormSettings = NotebookTolerationSettings & {
+  error?: string;
+};
 
 export type ClusterSettings = {
   userTrackingEnabled: boolean;
