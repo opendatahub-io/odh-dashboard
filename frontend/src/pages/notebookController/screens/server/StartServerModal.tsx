@@ -19,6 +19,7 @@ import { NotebookControllerContext } from '../../NotebookControllerContext';
 import '../../NotebookController.scss';
 
 type StartServerModalProps = {
+  spawnInProgress: boolean;
   open: boolean;
   onClose: () => void;
 };
@@ -29,29 +30,23 @@ type SpawnStatus = {
   description: React.ReactNode;
 };
 
-const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) => {
+const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgress, onClose }) => {
   const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
-  const spawnInProgress = open;
   const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
 
-  const onBeforeClose = () => {
-    // Notify
-    onClose();
-  };
   React.useEffect(() => {
-    // TODO: Improve this, hack to just not update the modal while it is open
-    if (!spawnInProgress && (spawnPercentile || spawnStatus)) {
+    if (!open) {
       // Reset the modal
       setLogsExpanded(false);
       setSpawnPercentile(0);
       setSpawnStatus(null);
     }
-  }, [spawnInProgress, spawnPercentile, spawnStatus]);
+  }, [open]);
 
   const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
 
@@ -120,18 +115,15 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
     }
 
     const currentEvent = notebookStatus?.currentEvent;
-    return (
-      <Progress
-        id="progress-bar"
-        value={spawnPercentile}
-        title={
-          events.length > 0 && currentEvent
-            ? currentEvent
-            : 'Waiting for server request to start...'
-        }
-        variant={variant}
-      />
-    );
+    let title: string;
+    if (events.length > 0 && currentEvent) {
+      title = currentEvent;
+    } else if (open && !spawnInProgress) {
+      title = 'Creating resources...';
+    } else {
+      title = 'Waiting for server request to start...';
+    }
+    return <Progress id="progress-bar" value={spawnPercentile} title={title} variant={variant} />;
   };
 
   const renderStatus = () => {
@@ -147,7 +139,12 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
 
   const renderButtons = () =>
     !isNotebookRunning ? (
-      <Button key="cancel" variant={spawnFailed ? 'primary' : 'secondary'} onClick={onBeforeClose}>
+      <Button
+        key="cancel"
+        variant={spawnFailed ? 'primary' : 'secondary'}
+        onClick={onClose}
+        isDisabled={!open}
+      >
         {spawnFailed ? 'Close' : 'Cancel'}
       </Button>
     ) : null;
@@ -180,7 +177,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
       title="Starting server"
       isOpen={open}
       showClose={spawnFailed}
-      onClose={onBeforeClose}
+      onClose={onClose}
     >
       {renderProgress()}
       {renderStatus()}

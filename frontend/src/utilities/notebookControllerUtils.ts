@@ -1,16 +1,8 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { AxiosError } from 'axios';
-import {
-  createConfigMap,
-  deleteConfigMap,
-  getConfigMap,
-  replaceConfigMap,
-} from '../services/configMapService';
-import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
 import { createRoleBinding, getRoleBinding } from '../services/roleBindingService';
 import {
-  EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
   EnvVarResourceType,
@@ -153,37 +145,6 @@ export const verifyEnvVars = async (
   if (!_.isEqual(response?.data, envVars)) {
     await replaceFunc(newResource);
   }
-};
-
-/** Update the config map and secret file on the cluster */
-export const checkEnvVarFile = async (
-  username: string,
-  namespace: string,
-  variableRows: VariableRow[],
-): Promise<EnvVarReducedType> => {
-  const envVarFileName = generateEnvVarFileNameFromUsername(username);
-  const envVars = classifyEnvVars(variableRows);
-  await verifyEnvVars(
-    envVarFileName,
-    namespace,
-    EnvVarResourceType.Secret,
-    envVars.secrets,
-    getSecret,
-    createSecret,
-    replaceSecret,
-    deleteSecret,
-  );
-  await verifyEnvVars(
-    envVarFileName,
-    namespace,
-    EnvVarResourceType.ConfigMap,
-    envVars.configMap,
-    getConfigMap,
-    createConfigMap,
-    replaceConfigMap,
-    deleteConfigMap,
-  );
-  return { envVarFileName, ...envVars };
 };
 
 export const generatePvc = (
