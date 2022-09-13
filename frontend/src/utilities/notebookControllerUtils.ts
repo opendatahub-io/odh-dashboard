@@ -265,20 +265,8 @@ export const validateNotebookNamespaceRoleBinding = async (
   );
 };
 
-const useLastOpenTime = (open: boolean): Date | null => {
-  // TODO: This is a hack until we get a cleaner way of using values that are immutable
-  // We may be able to use kube stop annotation and/or the last activity -- but stability is important atm
-  const ref = React.useRef<Date | null>(null);
-  if (ref.current && !open) {
-    // Modal closing, clean up
-    ref.current = null;
-  } else if (!ref.current && open) {
-    // Modal is opening, hold date
-    ref.current = new Date();
-  }
-
-  return ref.current;
-};
+export const getEventTimestamp = (event: K8sEvent): string =>
+  event.lastTimestamp || event.eventTime;
 
 export const useNotebookStatus = (
   spawnInProgress: boolean,
@@ -292,15 +280,16 @@ export const useNotebookStatus = (
     spawnInProgress,
   );
 
-  // TODO: Use last activity to fetch latest events
-  // const lastActivity = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
-  const startOfOpen = useLastOpenTime(spawnInProgress);
-  if (!startOfOpen) {
+  const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+  const lastActivity = annotationTime ? new Date(annotationTime) : null;
+  if (!lastActivity) {
     // Modal is closed, we don't have a filter time, ignore
     return [null, []];
   }
 
-  const filteredEvents = events.filter((event) => new Date(event.lastTimestamp) > startOfOpen);
+  const filteredEvents = events.filter(
+    (event) => new Date(getEventTimestamp(event)) >= lastActivity,
+  );
   if (filteredEvents.length === 0) {
     // We filter out all the events, nothing to show
     return [null, []];
