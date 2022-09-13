@@ -312,6 +312,7 @@ const SpawnerPage: React.FC = React.memo(() => {
         })
         .catch((e) => {
           setSubmitError(e);
+          setCreateInProgress(false);
           // We had issues spawning the notebook -- try to stop it
           stopNotebook(projectName, notebookName).catch(() =>
             notification.error(
