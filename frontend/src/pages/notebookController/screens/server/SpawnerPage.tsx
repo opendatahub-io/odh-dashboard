@@ -252,19 +252,18 @@ const SpawnerPage: React.FC = React.memo(() => {
     const envVarFileName = generateEnvVarFileNameFromUsername(username);
     const envVars = classifyEnvVars(variableRows);
     await Promise.all([
-      () =>
-        new Promise((resolve, reject) => {
-          const requestedPvcSize = dashboardConfig.spec.notebookController?.pvcSize;
-          const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
-          verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody)
-            .then(() => {
-              resolve([]);
-            })
-            .catch((e) => {
-              console.error(`Something wrong with PVC ${pvcName}: ${e}`);
-              reject();
-            });
-        }),
+      new Promise<void>((resolve, reject) => {
+        const requestedPvcSize = dashboardConfig.spec.notebookController?.pvcSize;
+        const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
+        verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody)
+          .then(() => {
+            resolve();
+          })
+          .catch((e) => {
+            console.error(`Something wrong with PVC ${pvcName}: ${e}`);
+            reject();
+          });
+      }),
       verifyEnvVars(
         envVarFileName,
         projectName,
