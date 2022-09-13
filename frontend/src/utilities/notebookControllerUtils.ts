@@ -265,6 +265,9 @@ export const validateNotebookNamespaceRoleBinding = async (
   );
 };
 
+export const getEventTimestamp = (event: K8sEvent): string =>
+  event.lastTimestamp || event.eventTime;
+
 export const useNotebookStatus = (
   spawnInProgress: boolean,
 ): [status: NotebookStatus | null, events: K8sEvent[]] => {
@@ -285,7 +288,7 @@ export const useNotebookStatus = (
   }
 
   const filteredEvents = events.filter(
-    (event) => new Date(event.lastTimestamp || event.eventTime) >= lastActivity,
+    (event) => new Date(getEventTimestamp(event)) >= lastActivity,
   );
   if (filteredEvents.length === 0) {
     // We filter out all the events, nothing to show

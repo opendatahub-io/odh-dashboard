@@ -12,7 +12,10 @@ import {
   ProgressVariant,
 } from '@patternfly/react-core';
 import { useDeepCompareMemoize } from '../../../../utilities/useDeepCompareMemoize';
-import { useNotebookStatus } from '../../../../utilities/notebookControllerUtils';
+import {
+  getEventTimestamp,
+  useNotebookStatus,
+} from '../../../../utilities/notebookControllerUtils';
 import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 
@@ -159,7 +162,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       <List isPlain isBordered>
         {events.reverse().map((event, index) => (
           <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
-            {`${event.lastTimestamp} [${event.type}] ${event.message}`}
+            {`${getEventTimestamp(event)} [${event.type}] ${event.message}`}
           </ListItem>
         ))}
         <ListItem>Server requested</ListItem>
