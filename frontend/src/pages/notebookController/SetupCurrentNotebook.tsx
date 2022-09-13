@@ -18,7 +18,7 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
 }) => {
   const { notebookNamespace } = useNamespaces();
   const { user: username } = useSpecificNotebookUserState(currentNotebook ?? null);
-  const { notebooks, loaded, loadError, forceRefresh } = useWatchNotebooksForUsers(
+  const { notebooks, loaded, loadError, forceRefresh, setPollInterval } = useWatchNotebooksForUsers(
     notebookNamespace,
     [username],
   );
@@ -34,10 +34,20 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
         ...prevState,
         current: notebook,
         currentIsRunning: isCurrentlyRunning,
-        requestRefresh: forceRefresh,
+        requestRefresh: (speed?: number) => {
+          forceRefresh();
+          setPollInterval(speed);
+        },
       }));
     }
-  }, [notebook, currentNotebook, forceRefresh, setNotebookState, isCurrentlyRunning]);
+  }, [
+    notebook,
+    currentNotebook,
+    forceRefresh,
+    setNotebookState,
+    isCurrentlyRunning,
+    setPollInterval,
+  ]);
 
   if (currentNotebook === undefined || loadError) {
     return (

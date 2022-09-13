@@ -1,4 +1,4 @@
-import k8s, { V1Event } from '@kubernetes/client-node';
+import k8s from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { RouteGenericInterface } from 'fastify/types/route';
@@ -44,9 +44,18 @@ export type NotebookResources = {
   };
 };
 
+type EnvValue = {
+  key: string;
+  name: string;
+};
+
 export type EnvironmentVariable = {
   name: string;
-  value: string;
+  value?: string;
+  valueFrom?: {
+    configMapKeyRef?: EnvValue;
+    secretKeyRef?: EnvValue;
+  };
 };
 
 export type NotebookSize = {
@@ -310,6 +319,14 @@ export type NotebookPort = {
   protocol: string;
 };
 
+export type NotebookToleration = {
+  effect: string;
+  key: string;
+  operator: string;
+};
+
+export type VolumeMount = { mountPath: string; name: string };
+
 export type NotebookContainer = {
   name: string;
   image: string;
@@ -319,27 +336,53 @@ export type NotebookContainer = {
   ports?: NotebookPort[];
   resources?: NotebookResources;
   livenessProbe?: Record<string, unknown>;
+  readinessProbe?: Record<string, unknown>;
+  volumeMounts?: VolumeMount[];
 };
 
-export type Notebook = {
-  apiVersion?: string;
-  kind?: string;
+export type NotebookAffinity = {
+  nodeAffinity?: { [key: string]: unknown };
+};
+
+export type Volume = {
+  name: string;
+  emptyDir?: Record<string, any>; // eslint-disable-line
+  persistentVolumeClaim?: {
+    claimName: string;
+  };
+};
+
+export type Notebook = K8sResourceCommon & {
   metadata: {
-    name: string;
-    namespace?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
+    annotations: Partial<{
+      'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
+      'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+      'opendatahub.io/link': string; // redirect notebook url
+      'opendatahub.io/username': string; // the untranslated username behind the notebook
+
+      // TODO: Can we get this from the data in the Notebook??
+      'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
+      'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+    }>;
+    labels: Partial<{
+      'opendatahub.io/user': string; // translated username -- see translateUsername
+    }>;
   };
   spec: {
     template: {
       spec: {
+        affinity?: NotebookAffinity;
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
+        volumes?: Volume[];
+        tolerations?: NotebookToleration[];
       };
     };
   };
-  status?: Record<string, unknown>;
-} & K8sResourceCommon;
+  status?: {
+    readyReplicas: number;
+  } & Record<string, unknown>;
+};
 
 export type NotebookList = {
   apiVersion?: string;
