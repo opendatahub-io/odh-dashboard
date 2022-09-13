@@ -86,15 +86,15 @@ const assembleNotebook = (data: StartNotebookData): Notebook => {
   const resources: NotebookResources = { ...notebookSize.resources };
   const tolerations: NotebookToleration[] = [];
   let affinity: NotebookAffinity = {};
+  if (!resources.limits) {
+    resources.limits = {};
+  }
+  if (!resources.requests) {
+    resources.requests = {};
+  }
+  resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
+  resources.requests[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
   if (gpus > 0) {
-    if (!resources.limits) {
-      resources.limits = {};
-    }
-    if (!resources.requests) {
-      resources.requests = {};
-    }
-    resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
-    resources.requests[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
     tolerations.push({
       effect: 'NoSchedule',
       key: LIMIT_NOTEBOOK_IMAGE_GPU,
