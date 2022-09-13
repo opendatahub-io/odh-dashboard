@@ -332,6 +332,11 @@ export const useNotebookStatus = (
         percentile = 96;
         break;
       }
+      case 'Killing': {
+        currentEvent = 'Stopping container oauth-proxy';
+        status = EventStatus.WARNING;
+        break;
+      }
       default: {
         currentEvent = 'Error creating oauth proxy container';
         status = EventStatus.ERROR;
@@ -377,6 +382,11 @@ export const useNotebookStatus = (
       case 'Started': {
         currentEvent = 'Notebook container started';
         percentile = 64;
+        break;
+      }
+      case 'TriggeredScaleUp': {
+        currentEvent = 'Pod triggered scale-up';
+        status = EventStatus.INFO;
         break;
       }
       default: {
