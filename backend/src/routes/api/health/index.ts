@@ -1,9 +1,9 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { health } from './healthUtils';
+import { KubeFastifyInstance } from '../../../types';
 
-export default async (fastify: FastifyInstance): Promise<void> => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   // Unsecured route for health check
-  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/', async () => {
     return health(fastify);
   });
 };
