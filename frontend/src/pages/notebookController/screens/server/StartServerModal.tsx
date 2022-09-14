@@ -53,8 +53,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
     }
   }, [open]);
 
-  const spawnFailed =
-    spawnStatus?.status === AlertVariant.danger || spawnStatus?.status === AlertVariant.warning;
+  const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
     let timer;
