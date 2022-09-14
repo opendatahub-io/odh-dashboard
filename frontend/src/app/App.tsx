@@ -2,7 +2,16 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
-import { Alert, Bullseye, Page, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Alert,
+  Bullseye,
+  Button,
+  Page,
+  PageSection,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import Header from './Header';
@@ -15,6 +24,7 @@ import { AppContext } from './AppContext';
 import { useApplicationSettings } from './useApplicationSettings';
 import { useUser } from '../redux/selectors';
 import TelemetrySetup from './TelemetrySetup';
+import { logout } from './appUtils';
 
 import './App.scss';
 
@@ -45,18 +55,31 @@ const App: React.FC = () => {
   };
 
   if (!username || !configLoaded || !dashboardConfig) {
-    // We do not have the data yet for who they are, we can't show the app. If we allow anything
-    // to render right now, the username is going to be blank and we won't know permissions
-    // If we don't get the config we cannot show the pages, either
+    // We lack the critical data to startup the app
     if (userError || fetchConfigError) {
-      // We likely don't have a username still so just show the error
-      // or we likely meet something wrong when fetching the dashboard config, we also show the error
+      // There was an error fetching critical data
       return (
         <Page>
           <PageSection>
-            <Alert variant="danger" isInline title="General loading error">
-              {userError ? userError.message : fetchConfigError?.message}
-            </Alert>
+            <Stack hasGutter>
+              <StackItem>
+                <Alert variant="danger" isInline title="General loading error">
+                  <p>
+                    {(userError ? userError.message : fetchConfigError?.message) ||
+                      'Unknown error occurred during startup.'}
+                  </p>
+                  <p>Logging out and logging back in may solve the issue.</p>
+                </Alert>
+              </StackItem>
+              <StackItem>
+                <Button
+                  variant="secondary"
+                  onClick={() => logout().then(() => window.location.reload())}
+                >
+                  Logout
+                </Button>
+              </StackItem>
+            </Stack>
           </PageSection>
         </Page>
       );

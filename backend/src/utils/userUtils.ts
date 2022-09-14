@@ -39,7 +39,9 @@ export const getUser = async (
     );
     return userResponse.body as OpenShiftUser;
   } catch (e) {
-    throw new Error(`Error getting Oauth Info for user, ${e.response?.data?.message || e.message}`);
+    throw new Error(
+      `Error getting Oauth Info for user, ${e.code} - ${e.response?.data?.message || e.message}`,
+    );
   }
 };
 
