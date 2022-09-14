@@ -40,5 +40,5 @@ export const useWatchQuickStarts = (): {
 
   const retQuickStarts = useDeepCompareMemoize<QuickStart[]>(quickStarts);
 
-  return { quickStarts: retQuickStarts || [], loaded, loadError };
+  return { quickStarts: retQuickStarts, loaded, loadError };
 };

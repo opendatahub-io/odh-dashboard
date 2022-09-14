@@ -17,7 +17,7 @@ export const useWatchDocs = (
 
   React.useEffect(() => {
     let watchHandle;
-    const watchQuickStarts = () => {
+    const watchDocs = () => {
       fetchDocs(docType)
         .then((updatedDocs: OdhDocument[]) => {
           setLoaded(true);
@@ -27,9 +27,9 @@ export const useWatchDocs = (
         .catch((e) => {
           setLoadError(e);
         });
-      watchHandle = setTimeout(watchQuickStarts, POLL_INTERVAL);
+      watchHandle = setTimeout(watchDocs, POLL_INTERVAL);
     };
-    watchQuickStarts();
+    watchDocs();
 
     return () => {
       if (watchHandle) {
@@ -42,5 +42,5 @@ export const useWatchDocs = (
 
   const retDocs = useDeepCompareMemoize<OdhDocument[]>(docs);
 
-  return { docs: retDocs || [], loaded, loadError };
+  return { docs: retDocs, loaded, loadError };
 };

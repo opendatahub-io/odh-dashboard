@@ -226,53 +226,54 @@ export type OdhApplication = {
     annotations?: { [key: string]: string };
   };
   spec: {
-    displayName: string;
-    provider: string;
+    beta?: boolean | null;
+    betaText?: string | null;
+    betaTitle?: string | null;
+    category: string;
+    comingSoon: boolean | null;
+    consoleLink: string | null;
+    csvName: string | null;
     description: string;
+    displayName: string;
+    docsLink: string;
+    enable?: {
+      actionLabel: string;
+      description?: string;
+      link?: string;
+      linkPreface?: string;
+      title: string;
+      validationConfigMap?: string;
+      validationJob: string;
+      validationSecret: string;
+      variableDisplayText?: { [key: string]: string };
+      variableHelpText?: { [key: string]: string };
+      variables?: { [key: string]: string };
+    };
+    enableCR: {
+      field?: string;
+      group: string;
+      name: string;
+      namespace?: string;
+      plural: string;
+      value?: string;
+      version: string;
+    };
+    endpoint: string | null;
+    featureFlag?: string;
+    getStartedLink: string;
+    getStartedMarkDown: string;
+    img: string;
+    shownOnEnabledPage: boolean | null;
+    isEnabled: boolean | null;
+    kfdefApplications: string[];
+    link: string | null;
+    provider: string;
+    quickStart: string | null;
     route: string | null;
     routeNamespace: string | null;
     routeSuffix: string | null;
     serviceName: string | null;
-    consoleLink: string | null;
-    endpoint: string | null;
-    link: string | null;
-    img: string;
-    docsLink: string;
-    getStartedLink: string;
-    category: string;
     support: string;
-    quickStart: string | null;
-    comingSoon: boolean | null;
-    beta?: boolean | null;
-    betaTitle?: string | null;
-    betaText?: string | null;
-    shownOnEnabledPage: boolean | null;
-    isEnabled: boolean | null;
-    kfdefApplications: string[];
-    csvName: string;
-    enable?: {
-      title: string;
-      actionLabel: string;
-      linkPreface?: string;
-      link?: string;
-      description?: string;
-      variables?: { [key: string]: string };
-      variableDisplayText?: { [key: string]: string };
-      variableHelpText?: { [key: string]: string };
-      validationSecret: string;
-      validationJob: string;
-      validationConfigMap?: string;
-    };
-    enableCR: {
-      group: string;
-      version: string;
-      plural: string;
-      name: string;
-      namespace?: string;
-      field?: string;
-      value?: string;
-    };
-    featureFlag?: string;
   };
 };
 
@@ -286,12 +287,12 @@ export enum OdhDocumentType {
 export type OdhDocument = {
   metadata: {
     name: string;
-    type: string;
     annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
     appName?: string;
+    type: string;
     provider?: string;
     description: string;
     url: string;
@@ -300,11 +301,6 @@ export type OdhDocument = {
     durationMinutes?: number;
     featureFlag?: string;
   };
-};
-
-export type OdhGettingStarted = {
-  appName: string;
-  markdown: string;
 };
 
 export type BuildStatus = {
