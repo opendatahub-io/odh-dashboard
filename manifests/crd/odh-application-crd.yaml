@@ -103,7 +103,7 @@ spec:
                     version:
                       type: string
                   type: object
-                endPoint:
+                endpoint:
                   type: string
                 featureFlag:
                   type: string
@@ -124,6 +124,8 @@ spec:
                 provider:
                   type: string
                 quickStart:
+                  type: string
+                internalRoute:
                   type: string
                 route:
                   type: string

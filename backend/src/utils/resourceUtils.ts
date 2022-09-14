@@ -262,20 +262,17 @@ export const fetchApplications = async (
   const applications = [];
   let changed = false;
   const enabledAppsCMData: { [key: string]: string } = {};
-
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   const enabledAppsCM: V1ConfigMap = await coreV1Api
     .readNamespacedConfigMap(enabledAppsConfigMapName, namespace)
     .then((result) => result.body)
     .catch(() => null);
-
   for (const appDef of applicationDefs) {
-    const shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
-    const isEnabled = await getIsAppEnabled(fastify, appDef);
-
-    if (isEnabled) {
-      if (!shownOnEnabledPage) {
+    appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
+    appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef);
+    if (appDef.spec.isEnabled) {
+      if (!appDef.spec.shownOnEnabledPage) {
         changed = true;
         enabledAppsCMData[appDef.metadata.name] = 'true';
         appDef.spec.shownOnEnabledPage = true;
@@ -286,13 +283,10 @@ export const fetchApplications = async (
       spec: {
         ...appDef.spec,
         getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
-        isEnabled,
-        link: isEnabled ? await getRouteForApplication(fastify, appDef) : undefined,
-        shownOnEnabledPage,
+        link: appDef.spec.isEnabled ? await getRouteForApplication(fastify, appDef) : undefined,
       },
     });
   }
-
   if (changed) {
     // write enabled apps configmap
     const cmBody: V1ConfigMap = {
@@ -309,7 +303,6 @@ export const fetchApplications = async (
       await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName, namespace, cmBody);
     }
   }
-
   return Promise.resolve(applications);
 };
 
