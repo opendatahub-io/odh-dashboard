@@ -2,7 +2,16 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
-import { Alert, Bullseye, Page, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Alert,
+  Bullseye,
+  Button,
+  Page,
+  PageSection,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import { useTrackHistory } from '../utilities/useTrackHistory';
@@ -18,6 +27,7 @@ import AppContext from './AppContext';
 import './App.scss';
 import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
 import { useUser } from '../redux/selectors';
+import { logout } from './appUtils';
 
 const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
@@ -44,16 +54,28 @@ const App: React.FC = () => {
   };
 
   if (!username) {
-    // We do not have the data yet for who they are, we can't show the app. If we allow anything
-    // to render right now, the username is going to be blank and we won't know permissions
+    // We lack the critical data to startup the app
     if (userError) {
-      // We likely don't have a username still so just show the error
+      // There was an error fetching critical data
       return (
         <Page>
           <PageSection>
-            <Alert variant="danger" isInline title="General loading error">
-              {userError.message}
-            </Alert>
+            <Stack hasGutter>
+              <StackItem>
+                <Alert variant="danger" isInline title="General loading error">
+                  <p>{userError.message || 'Unknown error occurred during startup.'}</p>
+                  <p>Logging out and logging back in may solve the issue.</p>
+                </Alert>
+              </StackItem>
+              <StackItem>
+                <Button
+                  variant="secondary"
+                  onClick={() => logout().then(() => window.location.reload())}
+                >
+                  Logout
+                </Button>
+              </StackItem>
+            </Stack>
           </PageSection>
         </Page>
       );

@@ -3,6 +3,7 @@ import { DashboardConfig } from '../types';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchDashboardConfig } from '../services/dashboardConfigService';
+import { logout } from './appUtils';
 
 export const blankDashboardCR: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
@@ -52,6 +53,17 @@ export const useWatchDashboardConfig = (): {
           setDashboardConfig(config);
         })
         .catch((e) => {
+          if (e?.message?.includes('Error getting Oauth Info for user')) {
+            // NOTE: this endpoint only requests ouath because of the security layer, this is not an ironclad use-case
+            // Something went wrong on the server with the Oauth, let us just log them out and refresh for them
+            console.error(
+              'Something went wrong with the oauth token, logging out...',
+              e.message,
+              e,
+            );
+            logout().then(() => window.location.reload()); // note this is a bad side-effect, never do this
+            return;
+          }
           setLoadError(e);
         });
       watchHandle = setTimeout(watchDashboardConfig, POLL_INTERVAL);
