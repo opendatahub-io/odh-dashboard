@@ -3,7 +3,7 @@ import { DashboardConfig } from '../types';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchDashboardConfig } from '../services/dashboardConfigService';
-import { logout } from './appUtils';
+import { logout } from '../app/appUtils';
 
 export const blankDashboardCR: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
