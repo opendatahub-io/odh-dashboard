@@ -12,7 +12,10 @@ import {
   ProgressVariant,
 } from '@patternfly/react-core';
 import { useDeepCompareMemoize } from '../../../../utilities/useDeepCompareMemoize';
-import { useNotebookStatus } from '../../../../utilities/notebookControllerUtils';
+import {
+  useNotebookRedirectLink,
+  useNotebookStatus,
+} from '../../../../utilities/notebookControllerUtils';
 import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 
@@ -31,13 +34,14 @@ type SpawnStatus = {
 };
 
 const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgress, onClose }) => {
-  const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
+  const { currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
   const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
+  const getNotebookLink = useNotebookRedirectLink();
 
   React.useEffect(() => {
     if (!open) {
@@ -47,8 +51,6 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       setSpawnStatus(null);
     }
   }, [open]);
-
-  const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
 
   const spawnFailed =
     spawnStatus?.status === AlertVariant.danger || spawnStatus?.status === AlertVariant.warning;
@@ -63,22 +65,24 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
         description: 'The notebook server is up and running. This page will update momentarily.',
       });
       timer = setTimeout(() => {
-        if (notebookLink) {
-          window.location.href = notebookLink;
-        } else {
-          setSpawnStatus({
-            status: AlertVariant.danger,
-            title: 'Failed to redirect',
-            description:
-              'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+        getNotebookLink()
+          .then((notebookLink) => {
+            window.location.href = notebookLink;
+          })
+          .catch(() => {
+            setSpawnStatus({
+              status: AlertVariant.danger,
+              title: 'Failed to redirect',
+              description:
+                'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+            });
           });
-        }
       }, 6000);
     }
     return () => {
       clearTimeout(timer);
     };
-  }, [isNotebookRunning, notebookLink]);
+  }, [isNotebookRunning, getNotebookLink]);
 
   React.useEffect(() => {
     if (spawnInProgress && !isNotebookRunning) {

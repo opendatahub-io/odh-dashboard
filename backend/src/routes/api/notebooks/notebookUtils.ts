@@ -132,7 +132,6 @@ export const createNotebook = async (
 ): Promise<Notebook> => {
   const namespace = request.params.namespace;
   const notebookData = await sanitizeNotebookForSecurity<Notebook>(fastify, request, request.body);
-  const notebookName = notebookData.metadata.name;
   notebookData.metadata.namespace = namespace;
 
   if (!notebookData?.metadata?.annotations) {
@@ -159,44 +158,24 @@ export const createNotebook = async (
     .createNamespacedCustomObject('kubeflow.org', 'v1', namespace, 'notebooks', notebookData)
     .then((res) => res.body as Notebook)
     .catch((res) => {
-      const e = res.body;
+      const e = res.response.body;
       const error = createCustomError('Error creating Notebook Custom Resource', e.message, e.code);
       fastify.log.error(error);
       throw error;
     });
 
   await createRBAC(fastify, request, namespace, notebookData).catch((res) => {
-    const e = res.body;
+    const e = res.response.body;
+    if (e.code === 409) {
+      // Conflict on a deterministic resource does not matter
+      return;
+    }
     const error = createCustomError('Error creating Notebook RBAC', e.message, e.code);
     fastify.log.error(error);
     throw error;
   });
 
-  let route: Route | undefined;
-  let fetchTime = 10;
-  while (fetchTime > 0) {
-    route = await getRoute(fastify, namespace, notebookName).catch(async (e) => {
-      // if the route is not created yet
-      // wait for 1 sec and fetch time minus 1
-      if (e.code === 404) {
-        await new Promise((r) => setTimeout(r, 1000));
-        fetchTime -= 1;
-        if (fetchTime <= 0) {
-          fastify.log.warn(
-            'Wait for 10 seconds and route is still missing, skipping patching for now.',
-          );
-        }
-        return undefined;
-      }
-      throw e;
-    });
-  }
-  return await patchNotebookRoute(fastify, route, namespace, notebookName).catch((e) => {
-    fastify.log.error(
-      `Failed to patch Notebook Route at the end of notebook creation: ${e.message}`,
-    );
-    return notebook;
-  });
+  return notebook;
 };
 
 export const patchNotebook = async (
