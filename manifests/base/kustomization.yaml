@@ -17,4 +17,4 @@ resources:
 images:
 - name: odh-dashboard
   newName: quay.io/opendatahub/odh-dashboard
-  newTag: latest
+  newTag: main
