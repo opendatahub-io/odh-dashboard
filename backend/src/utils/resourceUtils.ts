@@ -262,6 +262,7 @@ export const fetchApplications = async (
   const applications = [];
   let changed = false;
   const enabledAppsCMData: { [key: string]: string } = {};
+
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   const enabledAppsCM: V1ConfigMap = await coreV1Api

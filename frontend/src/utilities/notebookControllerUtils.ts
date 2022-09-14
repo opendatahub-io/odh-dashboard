@@ -1,16 +1,8 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { AxiosError } from 'axios';
-import {
-  createConfigMap,
-  deleteConfigMap,
-  getConfigMap,
-  replaceConfigMap,
-} from '../services/configMapService';
-import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
 import { createRoleBinding, getRoleBinding } from '../services/roleBindingService';
 import {
-  EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
   EnvVarResourceType,
@@ -156,37 +148,6 @@ export const verifyEnvVars = async (
   }
 };
 
-/** Update the config map and secret file on the cluster */
-export const checkEnvVarFile = async (
-  username: string,
-  namespace: string,
-  variableRows: VariableRow[],
-): Promise<EnvVarReducedType> => {
-  const envVarFileName = generateEnvVarFileNameFromUsername(username);
-  const envVars = classifyEnvVars(variableRows);
-  await verifyEnvVars(
-    envVarFileName,
-    namespace,
-    EnvVarResourceType.Secret,
-    envVars.secrets,
-    getSecret,
-    createSecret,
-    replaceSecret,
-    deleteSecret,
-  );
-  await verifyEnvVars(
-    envVarFileName,
-    namespace,
-    EnvVarResourceType.ConfigMap,
-    envVars.configMap,
-    getConfigMap,
-    createConfigMap,
-    replaceConfigMap,
-    deleteConfigMap,
-  );
-  return { envVarFileName, ...envVars };
-};
-
 export const generatePvc = (
   pvcName: string,
   namespace: string,
@@ -304,20 +265,8 @@ export const validateNotebookNamespaceRoleBinding = async (
   );
 };
 
-const useLastOpenTime = (open: boolean): Date | null => {
-  // TODO: This is a hack until we get a cleaner way of using values that are immutable
-  // We may be able to use kube stop annotation and/or the last activity -- but stability is important atm
-  const ref = React.useRef<Date | null>(null);
-  if (ref.current && !open) {
-    // Modal closing, clean up
-    ref.current = null;
-  } else if (!ref.current && open) {
-    // Modal is opening, hold date
-    ref.current = new Date();
-  }
-
-  return ref.current;
-};
+export const getEventTimestamp = (event: K8sEvent): string =>
+  event.lastTimestamp || event.eventTime;
 
 export const useNotebookStatus = (
   spawnInProgress: boolean,
@@ -331,15 +280,16 @@ export const useNotebookStatus = (
     spawnInProgress,
   );
 
-  // TODO: Use last activity to fetch latest events
-  // const lastActivity = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
-  const startOfOpen = useLastOpenTime(spawnInProgress);
-  if (!startOfOpen) {
+  const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+  const lastActivity = annotationTime ? new Date(annotationTime) : null;
+  if (!lastActivity) {
     // Modal is closed, we don't have a filter time, ignore
     return [null, []];
   }
 
-  const filteredEvents = events.filter((event) => new Date(event.lastTimestamp) > startOfOpen);
+  const filteredEvents = events.filter(
+    (event) => new Date(getEventTimestamp(event)) >= lastActivity,
+  );
   if (filteredEvents.length === 0) {
     // We filter out all the events, nothing to show
     return [null, []];
@@ -369,6 +319,11 @@ export const useNotebookStatus = (
       case 'Started': {
         currentEvent = 'Oauth proxy container started';
         percentile = 96;
+        break;
+      }
+      case 'Killing': {
+        currentEvent = 'Stopping container oauth-proxy';
+        status = EventStatus.WARNING;
         break;
       }
       default: {
@@ -416,6 +371,11 @@ export const useNotebookStatus = (
       case 'Started': {
         currentEvent = 'Notebook container started';
         percentile = 64;
+        break;
+      }
+      case 'TriggeredScaleUp': {
+        currentEvent = 'Pod triggered scale-up';
+        status = EventStatus.INFO;
         break;
       }
       default: {

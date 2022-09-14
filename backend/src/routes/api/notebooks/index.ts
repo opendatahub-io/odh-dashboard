@@ -2,27 +2,16 @@ import { KubeFastifyInstance, Notebook } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import {
   getNotebook,
-  getNotebooks,
   patchNotebook,
   createNotebook,
   getNotebookStatus,
+  getRoute,
+  patchNotebookRoute,
 } from './notebookUtils';
 import { RecursivePartial } from '../../../typeHelpers';
 import { sanitizeNotebookForSecurity, secureRoute } from '../../../utils/route-security';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
-  fastify.get(
-    '/:namespace',
-    secureRoute(fastify)(
-      async (
-        request: FastifyRequest<{ Params: { namespace: string }; Querystring: { labels: string } }>,
-      ) => {
-        const { namespace } = request.params;
-        return await getNotebooks(fastify, namespace, request.query.labels);
-      },
-    ),
-  );
-
   fastify.get(
     '/:namespace/:name',
     secureRoute(fastify)(
@@ -49,7 +38,24 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           ? false
           : await getNotebookStatus(fastify, namespace, name);
 
-        return { notebook, isRunning };
+        const notebookName = notebook?.metadata.name;
+        let newNotebook: Notebook;
+        if (isRunning && !notebook?.metadata.annotations?.['opendatahub.io/link']) {
+          const route = await getRoute(fastify, namespace, notebookName).catch((e) => {
+            fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
+            return undefined;
+          });
+          if (route) {
+            newNotebook = await patchNotebookRoute(fastify, route, namespace, notebookName).catch(
+              (e) => {
+                fastify.log.warn(`Failed patching route to notebook ${notebookName}: ${e.message}`);
+                return notebook;
+              },
+            );
+          }
+        }
+
+        return { notebook: newNotebook || notebook, isRunning };
       },
     ),
   );
