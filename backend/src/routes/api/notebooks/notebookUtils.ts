@@ -132,7 +132,6 @@ export const createNotebook = async (
 ): Promise<Notebook> => {
   const namespace = request.params.namespace;
   const notebookData = await sanitizeNotebookForSecurity<Notebook>(fastify, request, request.body);
-  const notebookName = notebookData.metadata.name;
   notebookData.metadata.namespace = namespace;
 
   if (!notebookData?.metadata?.annotations) {
@@ -179,31 +178,7 @@ export const createNotebook = async (
     throw error;
   });
 
-  let route: Route | undefined;
-  let fetchTime = 10;
-  while (fetchTime > 0) {
-    route = await getRoute(fastify, namespace, notebookName).catch(async (e) => {
-      // if the route is not created yet
-      // wait for 1 sec and fetch time minus 1
-      if (e.code === 404) {
-        await new Promise((r) => setTimeout(r, 1000));
-        fetchTime -= 1;
-        if (fetchTime <= 0) {
-          fastify.log.warn(
-            'Wait for 10 seconds and route is still missing, skipping patching for now.',
-          );
-        }
-        return undefined;
-      }
-      throw e;
-    });
-  }
-  return await patchNotebookRoute(fastify, route, namespace, notebookName).catch((e) => {
-    fastify.log.error(
-      `Failed to patch Notebook Route at the end of notebook creation: ${e.message}`,
-    );
-    return notebook;
-  });
+  return notebook;
 };
 
 export const patchNotebook = async (
