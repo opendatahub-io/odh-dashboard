@@ -416,7 +416,7 @@ const ClusterSettings: React.FC = () => {
             ) : null}
             <ActionGroup>
               <Button
-                isDisabled={!isSettingsChanged}
+                isDisabled={!isSettingsChanged || !!notebookTolerationSettings.error}
                 variant="primary"
                 onClick={handleSaveButtonClicked}
               >
