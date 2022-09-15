@@ -2,7 +2,16 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
-import { Page } from '@patternfly/react-core';
+import {
+  Alert,
+  Bullseye,
+  Button,
+  Page,
+  PageSection,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import { useTrackHistory } from '../utilities/useTrackHistory';
@@ -17,11 +26,14 @@ import AppContext from './AppContext';
 
 import './App.scss';
 import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
+import { useUser } from '../redux/selectors';
+import { logout } from './appUtils';
 
 const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+  const { username, userError } = useUser();
   const dispatch = useDispatch();
   useSegmentTracking();
   useTrackHistory();
@@ -40,6 +52,42 @@ const App: React.FC = () => {
   const onNavToggle = () => {
     setIsNavOpen(!isNavOpen);
   };
+
+  if (!username) {
+    // We lack the critical data to startup the app
+    if (userError) {
+      // There was an error fetching critical data
+      return (
+        <Page>
+          <PageSection>
+            <Stack hasGutter>
+              <StackItem>
+                <Alert variant="danger" isInline title="General loading error">
+                  <p>{userError.message || 'Unknown error occurred during startup.'}</p>
+                  <p>Logging out and logging back in may solve the issue.</p>
+                </Alert>
+              </StackItem>
+              <StackItem>
+                <Button
+                  variant="secondary"
+                  onClick={() => logout().then(() => window.location.reload())}
+                >
+                  Logout
+                </Button>
+              </StackItem>
+            </Stack>
+          </PageSection>
+        </Page>
+      );
+    }
+
+    // Assume we are still waiting on the API to finish
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
 
   return (
     <AppContext.Provider

@@ -5,7 +5,14 @@ import {
   NotebookResources,
   Route,
 } from '../../../types';
-import { PatchUtils, V1PodList, V1Role, V1RoleBinding } from '@kubernetes/client-node';
+import {
+  PatchUtils,
+  V1ContainerStatus,
+  V1Pod,
+  V1PodList,
+  V1Role,
+  V1RoleBinding,
+} from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
@@ -34,7 +41,7 @@ export const getNotebook = async (
   fastify: KubeFastifyInstance,
   namespace: string,
   notebookName: string,
-): Promise<Notebook> => {
+): Promise<Notebook | null> => {
   try {
     const kubeResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
       'kubeflow.org',
@@ -50,6 +57,16 @@ export const getNotebook = async (
     }
     throw e;
   }
+};
+
+const checkPodContainersReady = (pod: V1Pod): boolean => {
+  const containerStatuses: V1ContainerStatus[] = pod.status?.containerStatuses || [];
+  if (containerStatuses.length === 0) {
+    return false;
+  }
+  return containerStatuses.every(
+    (containerStatus) => containerStatus.ready && containerStatus.state?.running,
+  );
 };
 
 export const getNotebookStatus = async (
@@ -68,7 +85,7 @@ export const getNotebookStatus = async (
     )
     .then((response) => {
       const pods = (response.body as V1PodList).items;
-      return !!pods.find((pod) => pod.status.phase === 'Running');
+      return pods.some((pod) => checkPodContainersReady(pod));
     });
 };
 
@@ -82,6 +99,28 @@ export const verifyResources = (resources: NotebookResources): NotebookResources
   return resources;
 };
 
+export const patchNotebookRoute = async (
+  fastify: KubeFastifyInstance,
+  route: Route,
+  namespace: string,
+  notebookName: string,
+): Promise<Notebook> => {
+  const patch: RecursivePartial<Notebook> = {
+    metadata: {
+      annotations: {
+        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
+      },
+    },
+  };
+
+  return await patchNotebook(fastify, patch, namespace, notebookName).catch((res) => {
+    const e = res.response.body;
+    const error = createCustomError('Error adding route data to Notebook', e.message, e.code);
+    fastify.log.error(error);
+    throw error;
+  });
+};
+
 export const createNotebook = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{
@@ -93,7 +132,6 @@ export const createNotebook = async (
 ): Promise<Notebook> => {
   const namespace = request.params.namespace;
   const notebookData = await sanitizeNotebookForSecurity<Notebook>(fastify, request, request.body);
-  const notebookName = notebookData.metadata.name;
   notebookData.metadata.namespace = namespace;
 
   if (!notebookData?.metadata?.annotations) {
@@ -116,47 +154,28 @@ export const createNotebook = async (
   notebookContainers[0].env.push({ name: 'JUPYTER_NOTEBOOK_PORT', value: '8888' });
   notebookContainers[0].resources = verifyResources(notebookContainers[0].resources);
 
-  await fastify.kube.customObjectsApi
+  const notebook = await fastify.kube.customObjectsApi
     .createNamespacedCustomObject('kubeflow.org', 'v1', namespace, 'notebooks', notebookData)
+    .then((res) => res.body as Notebook)
     .catch((res) => {
-      const e = res.body;
+      const e = res.response.body;
       const error = createCustomError('Error creating Notebook Custom Resource', e.message, e.code);
       fastify.log.error(error);
       throw error;
     });
 
   await createRBAC(fastify, request, namespace, notebookData).catch((res) => {
-    const e = res.body;
+    const e = res.response.body;
+    if (e.code === 409) {
+      // Conflict on a deterministic resource does not matter
+      return;
+    }
     const error = createCustomError('Error creating Notebook RBAC', e.message, e.code);
     fastify.log.error(error);
     throw error;
   });
 
-  await new Promise((r) => setTimeout(r, 500));
-  const route = await fastify.kube.customObjectsApi
-    .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', notebookName)
-    .then((response) => response.body as Route)
-    .catch((res) => {
-      const e = res.body;
-      const error = createCustomError('Error fetching Notebook Route', e.message, e.code);
-      fastify.log.error(error);
-      throw error;
-    });
-
-  const patch: RecursivePartial<Notebook> = {
-    metadata: {
-      annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${notebookName}`,
-      },
-    },
-  };
-
-  return await patchNotebook(fastify, patch, namespace, notebookName).catch((res) => {
-    const e = res.body;
-    const error = createCustomError('Error adding route data to Notebook', e.message, e.code);
-    fastify.log.error(error);
-    throw error;
-  });
+  return notebook;
 };
 
 export const patchNotebook = async (
@@ -234,4 +253,20 @@ export const createRBAC = async (
 
   await fastify.kube.rbac.createNamespacedRole(namespace, notebookRole);
   await fastify.kube.rbac.createNamespacedRoleBinding(namespace, notebookRoleBinding);
+};
+
+export const getRoute = async (
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  routeName: string,
+): Promise<Route> => {
+  const kubeResponse = await fastify.kube.customObjectsApi
+    .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', routeName)
+    .catch((res) => {
+      const e = res.response.body;
+      const error = createCustomError('Error getting Route', e.message, e.code);
+      fastify.log.error(error);
+      throw error;
+    });
+  return kubeResponse.body as Route;
 };

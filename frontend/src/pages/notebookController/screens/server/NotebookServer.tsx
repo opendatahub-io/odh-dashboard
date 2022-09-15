@@ -7,11 +7,13 @@ import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
+import useNotification from '../../../../utilities/useNotification';
 
 import '../../NotebookController.scss';
 
 export const NotebookServer: React.FC = () => {
   const history = useHistory();
+  const notification = useNotification();
   const {
     currentUserNotebook: notebook,
     currentUserNotebookIsRunning,
@@ -57,6 +59,11 @@ export const NotebookServer: React.FC = () => {
                   onClick={() => {
                     if (notebook.metadata.annotations?.['opendatahub.io/link']) {
                       window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
+                    } else {
+                      notification.error(
+                        'Error accessing notebook server',
+                        'Failed to redirect page due to missing notebook URL, please try to refresh the page and try it again.',
+                      );
                     }
                   }}
                 >

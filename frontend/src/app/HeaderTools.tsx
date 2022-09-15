@@ -15,6 +15,7 @@ import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
 import { AppNotification, State } from '../redux/types';
 import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
 import AppLauncher from './AppLauncher';
+import { logout } from './appUtils';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -35,10 +36,10 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
 
   const handleLogout = () => {
     setUserMenuOpen(false);
-    fetch('/oauth/sign_out')
-      .then(() => console.log('logged out'))
-      .catch((err) => console.error(err))
-      .finally(() => window.location.reload());
+    logout().then(() => {
+      console.log('logged out');
+      window.location.reload();
+    });
   };
 
   const userMenuItems = [

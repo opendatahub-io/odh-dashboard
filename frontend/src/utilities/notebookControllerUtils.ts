@@ -1,16 +1,8 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { AxiosError } from 'axios';
-import {
-  createConfigMap,
-  deleteConfigMap,
-  getConfigMap,
-  replaceConfigMap,
-} from '../services/configMapService';
-import { createSecret, deleteSecret, getSecret, replaceSecret } from '../services/secretsService';
 import { createRoleBinding, getRoleBinding } from '../services/roleBindingService';
 import {
-  EnvVarReducedType,
   EnvVarReducedTypeKeyValues,
   EnvVarResource,
   EnvVarResourceType,
@@ -34,6 +26,7 @@ import { EMPTY_USER_STATE } from '../pages/notebookController/const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 import useNamespaces from '../pages/notebookController/useNamespaces';
+import { getRoute } from '../services/routeService';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -153,37 +146,6 @@ export const verifyEnvVars = async (
   if (!_.isEqual(response?.data, envVars)) {
     await replaceFunc(newResource);
   }
-};
-
-/** Update the config map and secret file on the cluster */
-export const checkEnvVarFile = async (
-  username: string,
-  namespace: string,
-  variableRows: VariableRow[],
-): Promise<EnvVarReducedType> => {
-  const envVarFileName = generateEnvVarFileNameFromUsername(username);
-  const envVars = classifyEnvVars(variableRows);
-  await verifyEnvVars(
-    envVarFileName,
-    namespace,
-    EnvVarResourceType.Secret,
-    envVars.secrets,
-    getSecret,
-    createSecret,
-    replaceSecret,
-    deleteSecret,
-  );
-  await verifyEnvVars(
-    envVarFileName,
-    namespace,
-    EnvVarResourceType.ConfigMap,
-    envVars.configMap,
-    getConfigMap,
-    createConfigMap,
-    replaceConfigMap,
-    deleteConfigMap,
-  );
-  return { envVarFileName, ...envVars };
 };
 
 export const generatePvc = (
@@ -316,6 +278,59 @@ const useLastOpenTime = (open: boolean): Date | null => {
   }
 
   return ref.current;
+};
+
+export const useNotebookRedirectLink = (): (() => Promise<string>) => {
+  const { currentUserNotebook } = React.useContext(NotebookControllerContext);
+  const { notebookNamespace } = useNamespaces();
+  const fetchCountRef = React.useRef(5); // how many tries to get the Route
+
+  const routeName = currentUserNotebook?.metadata.name;
+  const backupRoute = currentUserNotebook?.metadata.annotations?.['opendatahub.io/link'];
+
+  return React.useCallback((): Promise<string> => {
+    if (backupRoute) {
+      // TODO: look to remove this in the future to stop relying on backend annotation
+      // We already have our backup code's route, use it
+      return Promise.resolve(backupRoute);
+    }
+
+    if (!routeName) {
+      // At time of call, if we do not have a route name, we are too late
+      // This should *never* happen, somehow the modal got here before the Notebook had a name!?
+      console.error('Unable to determine why there was no route -- notebook did not have a name');
+      return Promise.reject();
+    }
+
+    return new Promise<string>((resolve, reject) => {
+      const call = (resolve, reject) => {
+        getRoute(notebookNamespace, routeName)
+          .then((route) => {
+            resolve(`https://${route.spec.host}/notebook/${notebookNamespace}/${routeName}`);
+          })
+          .catch((e) => {
+            if (backupRoute) {
+              resolve(backupRoute);
+              return;
+            }
+            console.warn('Unable to get the route. Re-polling.', e);
+            if (fetchCountRef.current <= 0) {
+              fetchCountRef.current--;
+              setTimeout(() => call(resolve, reject), 1000);
+            } else {
+              reject();
+            }
+          });
+      };
+
+      call(resolve, () => {
+        console.error(
+          'Could not fetch route over several tries, See previous warnings for a history of why each failed call.',
+        );
+        reject();
+      });
+    });
+  }, [backupRoute, notebookNamespace, routeName]);
 };
 
 export const useNotebookStatus = (

@@ -12,13 +12,17 @@ import {
   ProgressVariant,
 } from '@patternfly/react-core';
 import { useDeepCompareMemoize } from '../../../../utilities/useDeepCompareMemoize';
-import { useNotebookStatus } from '../../../../utilities/notebookControllerUtils';
+import {
+  useNotebookRedirectLink,
+  useNotebookStatus,
+} from '../../../../utilities/notebookControllerUtils';
 import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 
 import '../../NotebookController.scss';
 
 type StartServerModalProps = {
+  spawnInProgress: boolean;
   open: boolean;
   onClose: () => void;
 };
@@ -29,31 +33,24 @@ type SpawnStatus = {
   description: React.ReactNode;
 };
 
-const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) => {
-  const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
+const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgress, onClose }) => {
+  const { currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
-  const spawnInProgress = open;
   const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
+  const getNotebookLink = useNotebookRedirectLink();
 
-  const onBeforeClose = () => {
-    // Notify
-    onClose();
-  };
   React.useEffect(() => {
-    // TODO: Improve this, hack to just not update the modal while it is open
-    if (!spawnInProgress && (spawnPercentile || spawnStatus)) {
+    if (!open) {
       // Reset the modal
       setLogsExpanded(false);
       setSpawnPercentile(0);
       setSpawnStatus(null);
     }
-  }, [spawnInProgress, spawnPercentile, spawnStatus]);
-
-  const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
+  }, [open]);
 
   const spawnFailed =
     spawnStatus?.status === AlertVariant.danger || spawnStatus?.status === AlertVariant.warning;
@@ -68,22 +65,24 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
         description: 'The notebook server is up and running. This page will update momentarily.',
       });
       timer = setTimeout(() => {
-        if (notebookLink) {
-          window.location.href = notebookLink;
-        } else {
-          setSpawnStatus({
-            status: AlertVariant.danger,
-            title: 'Failed to redirect',
-            description:
-              'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+        getNotebookLink()
+          .then((notebookLink) => {
+            window.location.href = notebookLink;
+          })
+          .catch(() => {
+            setSpawnStatus({
+              status: AlertVariant.danger,
+              title: 'Failed to redirect',
+              description:
+                'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+            });
           });
-        }
       }, 6000);
     }
     return () => {
       clearTimeout(timer);
     };
-  }, [isNotebookRunning, notebookLink]);
+  }, [isNotebookRunning, getNotebookLink]);
 
   React.useEffect(() => {
     if (spawnInProgress && !isNotebookRunning) {
@@ -120,18 +119,15 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
     }
 
     const currentEvent = notebookStatus?.currentEvent;
-    return (
-      <Progress
-        id="progress-bar"
-        value={spawnPercentile}
-        title={
-          events.length > 0 && currentEvent
-            ? currentEvent
-            : 'Waiting for server request to start...'
-        }
-        variant={variant}
-      />
-    );
+    let title: string;
+    if (events.length > 0 && currentEvent) {
+      title = currentEvent;
+    } else if (open && !spawnInProgress) {
+      title = 'Creating resources...';
+    } else {
+      title = 'Waiting for server request to start...';
+    }
+    return <Progress id="progress-bar" value={spawnPercentile} title={title} variant={variant} />;
   };
 
   const renderStatus = () => {
@@ -147,7 +143,12 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
 
   const renderButtons = () =>
     !isNotebookRunning ? (
-      <Button key="cancel" variant={spawnFailed ? 'primary' : 'secondary'} onClick={onBeforeClose}>
+      <Button
+        key="cancel"
+        variant={spawnFailed ? 'primary' : 'secondary'}
+        onClick={onClose}
+        isDisabled={!open}
+      >
         {spawnFailed ? 'Close' : 'Cancel'}
       </Button>
     ) : null;
@@ -180,7 +181,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
       title="Starting server"
       isOpen={open}
       showClose={spawnFailed}
-      onClose={onBeforeClose}
+      onClose={onClose}
     >
       {renderProgress()}
       {renderStatus()}
