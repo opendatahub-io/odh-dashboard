@@ -18,11 +18,12 @@ import {
   HelperText,
   HelperTextItem,
   Radio,
+  ValidatedOptions,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../ApplicationsPage';
 import { useAppContext } from '../../app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '../../services/clusterSettingsService';
-import { ClusterSettings, NotebookTolerationSettings } from '../../types';
+import { ClusterSettings, NotebookTolerationFormSettings } from '../../types';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../redux/actions/actions';
 import {
@@ -47,6 +48,11 @@ import './ClusterSettings.scss';
 
 const description = `Update global settings for all users.`;
 
+const DEFAULT_TOLERATION_VALUE = 'NotebooksOnly';
+const TOLERATION_FORMAT = /^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$/;
+const TOLERATION_FORMAT_ERROR =
+  "Toleration key must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character.";
+
 const ClusterSettings: React.FC = () => {
   const isEmpty = false;
   const [loaded, setLoaded] = React.useState<boolean>(false);
@@ -62,14 +68,11 @@ const ClusterSettings: React.FC = () => {
   const pvcDefaultBtnRef = React.useRef<HTMLButtonElement>();
   const { dashboardConfig } = useAppContext();
   const isJupyterEnabled = useCheckJupyterEnabled();
-  const dfltNotebookTolerationSettings = isJupyterEnabled
-    ? {
-        enabled: false,
-        key: 'NotebooksOnly',
-      }
-    : null;
   const [notebookTolerationSettings, setNotebookTolerationSettings] =
-    React.useState<NotebookTolerationSettings | null>(dfltNotebookTolerationSettings);
+    React.useState<NotebookTolerationFormSettings>({
+      enabled: false,
+      key: isJupyterEnabled ? DEFAULT_TOLERATION_VALUE : '',
+    });
   const dispatch = useDispatch();
 
   React.useEffect(() => {
@@ -79,7 +82,9 @@ const ClusterSettings: React.FC = () => {
         setLoadError(undefined);
         setClusterSettings(clusterSettings);
         setPvcSize(clusterSettings.pvcSize);
-        setNotebookTolerationSettings(clusterSettings.notebookTolerationSettings);
+        if (clusterSettings.notebookTolerationSettings) {
+          setNotebookTolerationSettings(clusterSettings.notebookTolerationSettings);
+        }
         if (clusterSettings.cullerTimeout !== DEFAULT_CULLER_TIMEOUT) {
           setCullerTimeoutChecked(CULLER_TIMEOUT_LIMITED);
           setHour(getHourAndMinuteByTimeout(clusterSettings.cullerTimeout).hour);
@@ -119,11 +124,14 @@ const ClusterSettings: React.FC = () => {
   };
 
   const handleSaveButtonClicked = () => {
-    const newClusterSettings = {
+    const newClusterSettings: ClusterSettings = {
       pvcSize,
       cullerTimeout,
       userTrackingEnabled,
-      notebookTolerationSettings,
+      notebookTolerationSettings: {
+        enabled: notebookTolerationSettings.enabled,
+        key: notebookTolerationSettings.key,
+      },
     };
     if (!_.isEqual(clusterSettings, newClusterSettings)) {
       if (
@@ -351,15 +359,13 @@ const ClusterSettings: React.FC = () => {
               <FormGroup fieldId="notebook-toleration" label="Notebook pod tolerations">
                 <Checkbox
                   label="Add a toleration to notebook pods to allow them to be scheduled to tainted nodes"
-                  isChecked={notebookTolerationSettings?.enabled}
-                  onChange={() => {
-                    const newNotebookTolerationSettings = {
+                  isChecked={notebookTolerationSettings.enabled}
+                  onChange={(enabled) => {
+                    const newNotebookTolerationSettings: NotebookTolerationFormSettings = {
                       ...notebookTolerationSettings,
-                      enabled: !notebookTolerationSettings?.enabled,
+                      enabled,
                     };
-                    setNotebookTolerationSettings(
-                      newNotebookTolerationSettings as NotebookTolerationSettings,
-                    );
+                    setNotebookTolerationSettings(newNotebookTolerationSettings);
                   }}
                   aria-label="tolerationsEnabled"
                   id="tolerations-enabled-checkbox"
@@ -370,25 +376,33 @@ const ClusterSettings: React.FC = () => {
                     Toleration key for notebook pods:{' '}
                   </InputGroupText>
                   <TextInput
-                    isDisabled={!notebookTolerationSettings?.enabled}
+                    isDisabled={!notebookTolerationSettings.enabled}
                     className="odh-number-input"
                     name="tolerationKey"
                     id="toleration-key-input"
                     type="text"
                     aria-label="Toleration key"
-                    value={notebookTolerationSettings?.key ? notebookTolerationSettings?.key : ''}
-                    onChange={async (value: string) => {
-                      const newNotebookTolerationSettings = {
+                    value={notebookTolerationSettings.key}
+                    placeholder={DEFAULT_TOLERATION_VALUE}
+                    validated={
+                      notebookTolerationSettings.error ? ValidatedOptions.error : undefined
+                    }
+                    onChange={(value: string) => {
+                      const newNotebookTolerationSettings: NotebookTolerationFormSettings = {
                         ...notebookTolerationSettings,
                         key: value,
+                        error: TOLERATION_FORMAT.test(value) ? undefined : TOLERATION_FORMAT_ERROR,
                       };
-                      setNotebookTolerationSettings(
-                        newNotebookTolerationSettings as NotebookTolerationSettings,
-                      );
+                      setNotebookTolerationSettings(newNotebookTolerationSettings);
                     }}
                   />
                 </InputGroup>
                 <HelperText>
+                  {notebookTolerationSettings.error && (
+                    <HelperTextItem hasIcon variant="error">
+                      {notebookTolerationSettings.error}
+                    </HelperTextItem>
+                  )}
                   <HelperTextItem
                     variant={pvcSize === '' ? 'error' : 'indeterminate'}
                     hasIcon={pvcSize === ''}
@@ -402,7 +416,7 @@ const ClusterSettings: React.FC = () => {
             ) : null}
             <ActionGroup>
               <Button
-                isDisabled={!isSettingsChanged}
+                isDisabled={!isSettingsChanged || !!notebookTolerationSettings.error}
                 variant="primary"
                 onClick={handleSaveButtonClicked}
               >
