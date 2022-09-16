@@ -23,6 +23,7 @@ import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
 import { AppContext } from './AppContext';
 import { useApplicationSettings } from './useApplicationSettings';
 import { useUser } from '../redux/selectors';
+import { LocalStorageContextProvider } from '../components/localStorage/LocalStorageContext';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
 
@@ -94,27 +95,29 @@ const App: React.FC = () => {
   }
 
   return (
-    <AppContext.Provider
-      value={{
-        isNavOpen,
-        setIsNavOpen,
-        onNavToggle,
-        buildStatuses,
-        dashboardConfig,
-      }}
-    >
-      <Page
-        className="odh-dashboard"
-        header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
-        sidebar={<NavSidebar />}
-        notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
-        isNotificationDrawerExpanded={notificationsOpen}
+    <LocalStorageContextProvider>
+      <AppContext.Provider
+        value={{
+          isNavOpen,
+          setIsNavOpen,
+          onNavToggle,
+          buildStatuses,
+          dashboardConfig,
+        }}
       >
-        <Routes />
-        <ToastNotifications />
-        <TelemetrySetup />
-      </Page>
-    </AppContext.Provider>
+        <Page
+          className="odh-dashboard"
+          header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
+          sidebar={<NavSidebar />}
+          notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
+          isNotificationDrawerExpanded={notificationsOpen}
+        >
+          <Routes />
+          <ToastNotifications />
+          <TelemetrySetup />
+        </Page>
+      </AppContext.Provider>
+    </LocalStorageContextProvider>
   );
 };
 

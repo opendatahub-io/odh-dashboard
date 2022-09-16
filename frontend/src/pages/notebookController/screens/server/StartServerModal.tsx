@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  ActionList,
+  ActionListItem,
   Alert,
   AlertVariant,
   Button,
@@ -19,6 +21,8 @@ import {
 } from '../../../../utilities/notebookControllerUtils';
 import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
+import { useHistory } from 'react-router';
+import useBrowserTabPreference from './useBrowserTabPreference';
 
 import '../../NotebookController.scss';
 
@@ -41,8 +45,10 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
+  const [isUsingCurrentTab] = useBrowserTabPreference();
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
   const getNotebookLink = useNotebookRedirectLink();
+  const history = useHistory();
 
   React.useEffect(() => {
     if (!open) {
@@ -55,6 +61,29 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
 
   const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
+  const navigateToNotebook = React.useCallback(
+    (useCurrentTab: boolean): void => {
+      getNotebookLink()
+        .then((notebookLink) => {
+          if (useCurrentTab) {
+            window.location.href = notebookLink;
+          } else {
+            window.open(notebookLink, '_blank');
+            history.push('/notebookController');
+          }
+        })
+        .catch(() => {
+          setSpawnStatus({
+            status: AlertVariant.danger,
+            title: 'Failed to redirect',
+            description:
+              'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+          });
+        });
+    },
+    [getNotebookLink, history],
+  );
+
   React.useEffect(() => {
     let timer;
     if (isNotebookRunning) {
@@ -62,27 +91,18 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       setSpawnStatus({
         status: AlertVariant.success,
         title: 'Success',
-        description: 'The notebook server is up and running. This page will update momentarily.',
+        description: `The notebook server is up and running.${
+          isUsingCurrentTab ? ' This page will update momentarily.' : ''
+        }`,
       });
-      timer = setTimeout(() => {
-        getNotebookLink()
-          .then((notebookLink) => {
-            window.location.href = notebookLink;
-          })
-          .catch(() => {
-            setSpawnStatus({
-              status: AlertVariant.danger,
-              title: 'Failed to redirect',
-              description:
-                'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
-            });
-          });
-      }, 6000);
+      if (isUsingCurrentTab) {
+        timer = setTimeout(() => navigateToNotebook(true), 6000);
+      }
     }
     return () => {
       clearTimeout(timer);
     };
-  }, [isNotebookRunning, getNotebookLink]);
+  }, [isNotebookRunning, navigateToNotebook, isUsingCurrentTab]);
 
   React.useEffect(() => {
     if (spawnInProgress && !isNotebookRunning) {
@@ -163,7 +183,28 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       >
         {spawnFailed ? 'Close' : 'Cancel'}
       </Button>
-    ) : null;
+    ) : isUsingCurrentTab ? null : (
+      <ActionList>
+        <ActionListItem>
+          <Button
+            variant="primary"
+            key="open-new-tab-button"
+            onClick={() => navigateToNotebook(false)}
+          >
+            Open in new tab
+          </Button>
+        </ActionListItem>
+        <ActionListItem>
+          <Button
+            variant="secondary"
+            key="open-new-tab-button"
+            onClick={() => navigateToNotebook(true)}
+          >
+            Open in current tab
+          </Button>
+        </ActionListItem>
+      </ActionList>
+    );
 
   const renderLogs = () => (
     <ExpandableSection
@@ -202,7 +243,5 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
     </Modal>
   );
 };
-
-StartServerModal.displayName = 'StartServerModal';
 
 export default StartServerModal;

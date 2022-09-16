@@ -62,6 +62,7 @@ import GPUSelectField from './GPUSelectField';
 import SizeSelectField from './SizeSelectField';
 import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
+import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 
 import '../../NotebookController.scss';
 
@@ -401,6 +402,7 @@ const SpawnerPage: React.FC = () => {
               </Button>
             </ActionGroup>
           </div>
+          <BrowserTabPreferenceCheckbox />
         </Form>
         <StartServerModal
           spawnInProgress={startShown}
