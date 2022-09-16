@@ -325,7 +325,7 @@ export const getEventTimestamp = (event: K8sEvent): string =>
 const filterEvents = (
   allEvents: K8sEvent[],
   lastActivity: Date,
-): [filterEvents: K8sEvent[], allEvents: K8sEvent[], gracePeroid: boolean] => {
+): [filterEvents: K8sEvent[], thisInstanceEvents: K8sEvent[], gracePeroid: boolean] => {
   const thisInstanceEvents = allEvents.filter(
     (event) => new Date(getEventTimestamp(event)) >= lastActivity,
   );
@@ -343,7 +343,7 @@ const filterEvents = (
   const maxCap = new Date(lastActivity).setMinutes(lastActivity.getMinutes() + 20);
   if (now <= maxCap) {
     // Haven't hit the cap yet, filter events for accepted scenarios
-    const infoEvents = filteredEvents.filter((event) => event.type !== 'Warning');
+    const infoEvents = filteredEvents.filter((event) => event.type === 'Normal');
     const idleTime = new Date(lastActivity).setSeconds(lastActivity.getSeconds() + 30);
     gracePeriod = idleTime - now > 0;
 
