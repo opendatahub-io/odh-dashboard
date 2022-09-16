@@ -45,7 +45,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
-  const { isUsingCurrentTab } = useBrowserTabPreference();
+  const [isUsingCurrentTab] = useBrowserTabPreference();
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
   const getNotebookLink = useNotebookRedirectLink();
   const history = useHistory();
@@ -91,7 +91,9 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       setSpawnStatus({
         status: AlertVariant.success,
         title: 'Success',
-        description: 'The notebook server is up and running. This page will update momentarily.',
+        description: `The notebook server is up and running.${
+          isUsingCurrentTab ? ' This page will update momentarily.' : ''
+        }`,
       });
       if (isUsingCurrentTab) {
         timer = setTimeout(() => navigateToNotebook(true), 6000);

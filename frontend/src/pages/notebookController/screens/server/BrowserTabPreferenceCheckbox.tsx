@@ -3,7 +3,7 @@ import { Checkbox, FormGroup } from '@patternfly/react-core';
 import useBrowserTabPreference from './useBrowserTabPreference';
 
 const BrowserTabPreferenceCheckbox: React.FC = () => {
-  const { isUsingCurrentTab, setUsingCurrentTab } = useBrowserTabPreference();
+  const [isUsingCurrentTab, setUsingCurrentTab] = useBrowserTabPreference();
 
   const handleChange = (checked: boolean) => {
     setUsingCurrentTab(checked);

@@ -6,7 +6,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import { useWatchDocs } from '../../utilities/useWatchDocs';
-import { useLocalStorage } from '../../utilities/useLocalStorage';
+import { useLocalStorage } from '../../components/localStorage';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import ApplicationsPage from '../ApplicationsPage';
 import QuickStarts from '../../app/QuickStarts';
@@ -28,6 +28,7 @@ import LearningCenterFilters from './LearningCenterFilters';
 import { useDocFilterer } from './useDocFilterer';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '../../utilities/const';
 import { combineCategoryAnnotations } from '../../utilities/utils';
+import { useDeepCompareMemoize } from '../../utilities/useDeepCompareMemoize';
 import LearningCenterDataView from './LearningCenterDataView';
 
 import './LearningCenter.scss';
@@ -44,10 +45,10 @@ export const LearningCenter: React.FC = () => {
   const queryParams = useQueryParams();
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
   const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
-  const [favorites, setFavorites] = useLocalStorage(FAVORITE_RESOURCES);
-  const favoriteResources = React.useMemo(() => JSON.parse(favorites || '[]'), [favorites]);
+  const [favourites, setFavorites] = useLocalStorage<string[]>(FAVORITE_RESOURCES, []);
+  const favoriteResources = useDeepCompareMemoize(favourites);
   const docFilterer = useDocFilterer(favoriteResources);
-  const [viewType, setViewType] = useLocalStorage(VIEW_TYPE);
+  const [viewType, setViewType] = useLocalStorage<string>(VIEW_TYPE, '', false);
   const [filtersCollapsed, setFiltersCollapsed] = React.useState<boolean>(false);
   const [filtersCollapsible, setFiltersCollapsible] = React.useState<boolean>(false);
   const { observe } = useDimensions({
@@ -173,7 +174,7 @@ export const LearningCenter: React.FC = () => {
           updatedFavorites.splice(index, 1);
         }
       }
-      setFavorites(JSON.stringify(updatedFavorites));
+      setFavorites(updatedFavorites);
     },
     [favoriteResources, setFavorites],
   );
