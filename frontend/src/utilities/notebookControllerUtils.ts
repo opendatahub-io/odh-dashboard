@@ -429,8 +429,10 @@ export const useNotebookStatus = (
         break;
       }
       default: {
-        currentEvent = 'Issue creating oauth proxy container';
-        status = EventStatus.WARNING;
+        if (lastItem.type === 'Warning') {
+          currentEvent = 'Issue creating oauth proxy container';
+          status = EventStatus.WARNING;
+        }
       }
     }
   } else {
@@ -488,7 +490,7 @@ export const useNotebookStatus = (
         if (!gracePeriod && lastItem.reason === 'FailedScheduling') {
           currentEvent = 'Insufficient resources to start';
           status = EventStatus.ERROR;
-        } else {
+        } else if (lastItem.type === 'Warning') {
           currentEvent = 'Issue creating notebook container';
           status = EventStatus.WARNING;
         }
