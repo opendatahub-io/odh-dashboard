@@ -614,7 +614,7 @@ export type K8sEvent = {
   lastTimestamp: string | null; // if it never starts, the value is null
   message: string;
   reason: string;
-  type: string;
+  type: 'Warning' | 'Normal';
 };
 
 export type NotebookStatus = {
