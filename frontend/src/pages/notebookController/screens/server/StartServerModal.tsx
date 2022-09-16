@@ -49,6 +49,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
   const getNotebookLink = useNotebookRedirectLink();
   const history = useHistory();
+  const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
     if (!open) {
@@ -58,8 +59,6 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       setSpawnStatus(null);
     }
   }, [open]);
-
-  const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   const navigateToNotebook = React.useCallback(
     (useCurrentTab: boolean): void => {
@@ -86,7 +85,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
 
   React.useEffect(() => {
     let timer;
-    if (isNotebookRunning) {
+    if (isNotebookRunning && open) {
       setSpawnPercentile(100);
       setSpawnStatus({
         status: AlertVariant.success,
@@ -102,10 +101,10 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
     return () => {
       clearTimeout(timer);
     };
-  }, [isNotebookRunning, navigateToNotebook, isUsingCurrentTab]);
+  }, [isNotebookRunning, open, isUsingCurrentTab, navigateToNotebook]);
 
   React.useEffect(() => {
-    if (spawnInProgress && !isNotebookRunning) {
+    if (spawnInProgress && !isNotebookRunning && open) {
       if (!notebookStatus) {
         return;
       }
@@ -132,7 +131,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
         });
       }
     }
-  }, [notebookStatus, spawnInProgress, isNotebookRunning]);
+  }, [notebookStatus, spawnInProgress, isNotebookRunning, open]);
 
   const renderProgress = () => {
     let variant: ProgressVariant | undefined;
@@ -181,7 +180,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
         onClick={onClose}
         isDisabled={!open}
       >
-        {spawnFailed ? 'Close' : 'Cancel'}
+        Cancel
       </Button>
     ) : isUsingCurrentTab ? null : (
       <ActionList>

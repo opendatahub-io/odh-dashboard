@@ -266,9 +266,6 @@ export const validateNotebookNamespaceRoleBinding = async (
   );
 };
 
-export const getEventTimestamp = (event: K8sEvent): string =>
-  event.lastTimestamp || event.eventTime;
-
 export const useNotebookRedirectLink = (): (() => Promise<string>) => {
   const { currentUserNotebook } = React.useContext(NotebookControllerContext);
   const { notebookNamespace } = useNamespaces();
@@ -322,6 +319,59 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
   }, [backupRoute, notebookNamespace, routeName]);
 };
 
+export const getEventTimestamp = (event: K8sEvent): string =>
+  event.lastTimestamp || event.eventTime;
+
+const filterEvents = (
+  allEvents: K8sEvent[],
+  lastActivity: Date,
+): [filterEvents: K8sEvent[], thisInstanceEvents: K8sEvent[], gracePeroid: boolean] => {
+  const thisInstanceEvents = allEvents.filter(
+    (event) => new Date(getEventTimestamp(event)) >= lastActivity,
+  );
+  if (thisInstanceEvents.length === 0) {
+    // Filtered out all of the events, exit early
+    return [[], [], false];
+  }
+
+  let filteredEvents = thisInstanceEvents;
+
+  const now = Date.now();
+  let gracePeriod = false;
+
+  // Ignore the rest of the filter logic if we pass 20 minutes
+  const maxCap = new Date(lastActivity).setMinutes(lastActivity.getMinutes() + 20);
+  if (now <= maxCap) {
+    // Haven't hit the cap yet, filter events for accepted scenarios
+    const infoEvents = filteredEvents.filter((event) => event.type === 'Normal');
+    const idleTime = new Date(lastActivity).setSeconds(lastActivity.getSeconds() + 30);
+    gracePeriod = idleTime - now > 0;
+
+    // Suppress the warnings when we are idling
+    if (gracePeriod) {
+      filteredEvents = infoEvents;
+    }
+
+    // If we are scaling up, we want to focus on that
+    const hasScaleUp = infoEvents.some((event) => event.reason === 'TriggeredScaleUp');
+    if (hasScaleUp) {
+      // Scaling up event is present -- look for issues with it
+      const hasScaleUpIssueIndex = thisInstanceEvents.findIndex(
+        (event) => event.reason === 'NotTriggerScaleUp',
+      );
+      if (hasScaleUpIssueIndex >= 0) {
+        // Has scale up issue, show that
+        filteredEvents = [thisInstanceEvents[hasScaleUpIssueIndex]];
+      } else {
+        // Haven't hit a failure in scale up, show just infos
+        filteredEvents = infoEvents;
+      }
+    }
+  }
+
+  return [filteredEvents, thisInstanceEvents, gracePeriod];
+};
+
 export const useNotebookStatus = (
   spawnInProgress: boolean,
 ): [status: NotebookStatus | null, events: K8sEvent[]] => {
@@ -337,18 +387,16 @@ export const useNotebookStatus = (
   const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime ? new Date(annotationTime) : null;
   if (!lastActivity) {
-    // Modal is closed, we don't have a filter time, ignore
+    // Notebook not started, we don't have a filter time, ignore
     return [null, []];
   }
 
-  const filteredEvents = events.filter(
-    (event) => new Date(getEventTimestamp(event)) >= lastActivity,
-  );
+  const [filteredEvents, thisInstanceEvents, gracePeriod] = filterEvents(events, lastActivity);
   if (filteredEvents.length === 0) {
-    // We filter out all the events, nothing to show
-    return [null, []];
+    return [null, thisInstanceEvents];
   }
 
+  // Parse the last event
   let percentile = 0;
   let status: EventStatus = EventStatus.IN_PROGRESS;
   const lastItem = filteredEvents[filteredEvents.length - 1];
@@ -381,8 +429,10 @@ export const useNotebookStatus = (
         break;
       }
       default: {
-        currentEvent = 'Error creating oauth proxy container';
-        status = EventStatus.ERROR;
+        if (lastItem.type === 'Warning') {
+          currentEvent = 'Issue creating oauth proxy container';
+          status = EventStatus.WARNING;
+        }
       }
     }
   } else {
@@ -427,14 +477,23 @@ export const useNotebookStatus = (
         percentile = 64;
         break;
       }
+      case 'NotTriggerScaleUp':
+        currentEvent = 'Failed to scale-up';
+        status = EventStatus.ERROR;
+        break;
       case 'TriggeredScaleUp': {
         currentEvent = 'Pod triggered scale-up';
         status = EventStatus.INFO;
         break;
       }
       default: {
-        currentEvent = 'Error creating notebook container';
-        status = EventStatus.ERROR;
+        if (!gracePeriod && lastItem.reason === 'FailedScheduling') {
+          currentEvent = 'Insufficient resources to start';
+          status = EventStatus.ERROR;
+        } else if (lastItem.type === 'Warning') {
+          currentEvent = 'Issue creating notebook container';
+          status = EventStatus.WARNING;
+        }
       }
     }
   }
@@ -447,7 +506,7 @@ export const useNotebookStatus = (
       currentEventDescription: lastItem.message,
       currentStatus: status,
     },
-    filteredEvents,
+    thisInstanceEvents,
   ];
 };
 
