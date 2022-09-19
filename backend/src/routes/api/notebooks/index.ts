@@ -87,11 +87,15 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             name: string;
           };
         }>,
+        reply,
       ) => {
         const { namespace, name } = request.params;
         const data = await sanitizeNotebookForSecurity(fastify, request, request.body);
 
-        return await patchNotebook(fastify, data, namespace, name);
+        return patchNotebook(fastify, data, namespace, name).catch((e) => {
+          fastify.log.error(`Failed to patch notebook, ${e.response?.data?.message || e.message}}`);
+          reply.status(400).send(e.response?.data?.message || e.message);
+        });
       },
     ),
   );

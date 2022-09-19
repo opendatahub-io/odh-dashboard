@@ -255,28 +255,37 @@ export const sanitizeNotebookForSecurity = async <
     }
   });
 
-  // Container based items
+  // Configmaps & secrets
+  const envAllowedValue = `jupyterhub-singleuser-profile-${translatedUsername}-envs`;
   secureNotebook?.spec?.template?.spec?.containers?.forEach((container) => {
-    // Secrets & ConfigMaps
+    if (container.name === 'oauth-proxy') {
+      return;
+    }
     container.env?.forEach((env) => {
-      if (env.name.startsWith('jupyterhub-singleuser-profile-')) {
-        // Env var for a configmap or secret we generated
-        const allowedValue = `jupyterhub-singleuser-profile-${translatedUsername}-env`;
-        if (env.name !== allowedValue) {
-          // Was not targeted at their user
-          fastify.log.warn(
-            `${username} submitted a Notebook that contained an env (${env.name}) that was not for them. Reset back to them.`,
-          );
-          fastify.log.warn(`Env structure: ${JSON.stringify(env)}`);
+      if (
+        env.valueFrom?.configMapKeyRef?.name &&
+        env.valueFrom?.configMapKeyRef?.name !== envAllowedValue
+      ) {
+        // Was not targeted at their user
+        fastify.log.warn(
+          `${username} submitted a Notebook that contained an env configmap (${env.valueFrom.configMapKeyRef.name}) that was not for them. Reset back to them.`,
+        );
+        fastify.log.warn(`Env structure: ${JSON.stringify(env)}`);
 
-          env.name = allowedValue;
-          if (env.valueFrom.configMapKeyRef) {
-            env.valueFrom.configMapKeyRef.key = allowedValue;
-          }
-          if (env.valueFrom.secretKeyRef) {
-            env.valueFrom.secretKeyRef.key = allowedValue;
-          }
-        }
+        env.valueFrom.configMapKeyRef.name = envAllowedValue;
+      }
+
+      if (
+        env.valueFrom?.secretKeyRef?.name &&
+        env.valueFrom?.secretKeyRef?.name !== envAllowedValue
+      ) {
+        // Was not targeted at their user
+        fastify.log.warn(
+          `${username} submitted a Notebook that contained an env secret (${env.valueFrom.secretKeyRef.name}) that was not for them. Reset back to them.`,
+        );
+        fastify.log.warn(`Env structure: ${JSON.stringify(env)}`);
+
+        env.valueFrom.secretKeyRef.name = envAllowedValue;
       }
     });
 
