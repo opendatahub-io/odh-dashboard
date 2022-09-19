@@ -408,8 +408,8 @@ const ClusterSettings: React.FC = () => {
                     hasIcon={pvcSize === ''}
                   >
                     The toleration key above will be applied to all notebook pods when they are
-                    created. Add a matching taint key to any nodes on which you want ONLY notebook
-                    pods to be scheduled.
+                    created. Add a matching taint key (with any value) to the Machine Pool(s) that
+                    you want to dedicate to Notebooks.
                   </HelperTextItem>
                 </HelperText>
               </FormGroup>
