@@ -6,8 +6,8 @@ import { makeCardVisible } from '../utilities/utils';
 import EnableModal from '../pages/exploreApplication/EnableModal';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
-import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
+import { useAppContext } from '../app/AppContext';
 
 import './OdhCard.scss';
 
@@ -28,7 +28,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   enableOpen,
   onEnableClose,
 }) => {
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+  const { dashboardConfig } = useAppContext();
   React.useEffect(() => {
     if (isSelected) {
       makeCardVisible(odhApp.metadata.name);
@@ -57,7 +57,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           src={odhApp.spec.img}
           alt={odhApp.spec.displayName}
         />
-        {!dashboardConfig.disableISVBadges ? (
+        {!dashboardConfig.spec.dashboardConfig.disableISVBadges ? (
           <div className="odh-card__explore-badges">
             {odhApp.spec.comingSoon ? (
               <span className="odh-card__coming-soon">Coming soon</span>

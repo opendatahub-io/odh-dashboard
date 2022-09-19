@@ -18,15 +18,16 @@ import {
   getNameVersionString,
   getNumGpus,
 } from '../../../../utilities/imageUtils';
-import AppContext from '../../../../app/AppContext';
+import { useAppContext } from '../../../../app/AppContext';
 import { useWatchImages } from '../../../../utilities/useWatchImages';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
+import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
   const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
   const { images, loaded } = useWatchImages();
   const [isExpanded, setExpanded] = React.useState(false);
-  const { dashboardConfig } = React.useContext(AppContext);
+  const { dashboardConfig } = useAppContext();
 
   const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
@@ -45,9 +46,8 @@ const NotebookServerDetails: React.FC = () => {
   const tagSoftware = getDescriptionForTag(tag);
   const tagDependencies = tag?.content.dependencies ?? [];
   const numGpus = getNumGpus(container);
-  const size = dashboardConfig?.spec.notebookSizes?.find((size) =>
-    _.isEqual(size.resources.limits, container.resources?.limits),
-  );
+  const sizes = getNotebookSizes(dashboardConfig);
+  const size = sizes.find((size) => _.isEqual(size.resources.limits, container.resources?.limits));
 
   const onToggle = (expanded: boolean) => setExpanded(expanded);
 

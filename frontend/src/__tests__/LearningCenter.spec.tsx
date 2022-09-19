@@ -95,34 +95,6 @@ describe('Resources page', () => {
     expect(activeCategories[0].textContent).toBe('All Items');
   });
 
-  it('should show the list view when selected', async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <Provider store={store}>
-        <Router>
-          <LearningCenter />
-        </Router>
-      </Provider>,
-    );
-
-    expect(container.querySelector('section.odh-learning-paths__view-panel__list-view')).toBeNull();
-    expect(
-      container.querySelector('section.odh-learning-paths__view-panel__card-view'),
-    ).toBeInTheDocument();
-
-    expect(container.querySelector('.odh-learning-paths__toolbar__view-filter')).toBeInTheDocument;
-
-    const viewButtons = container.querySelectorAll('.pf-c-toggle-group__button');
-    expect(viewButtons.length).toBe(2);
-
-    await user.click(viewButtons[1]);
-
-    expect(
-      container.querySelector('section.odh-learning-paths__view-panel__list-view'),
-    ).toBeInTheDocument();
-    expect(container.querySelector('section.odh-learning-paths__view-panel__card-view')).toBeNull();
-  });
-
   it('should not collapse the filter panel at higher resolutions', () => {
     const { container } = render(
       <Provider store={store}>

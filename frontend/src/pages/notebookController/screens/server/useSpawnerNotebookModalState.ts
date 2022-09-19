@@ -1,13 +1,41 @@
 import * as React from 'react';
 import { useHistory } from 'react-router-dom';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
+import { FAST_POLL_INTERVAL } from '../../../../utilities/const';
+import { NotebookControllerContextProps } from '../../notebookControllerContextTypes';
+import { stopNotebook } from '../../../../services/notebookService';
+import useNamespaces from '../../useNamespaces';
 
-const useSpawnerNotebookModalState = (): [
-  startShown: boolean,
-  setStartShown: (newState: boolean) => void,
-] => {
+const useRefreshNotebookAndCleanup = (startShown: boolean) => {
+  const { requestNotebookRefresh } = React.useContext(NotebookControllerContext);
+
+  const methodRef =
+    React.useRef<NotebookControllerContextProps['requestNotebookRefresh']>(requestNotebookRefresh);
+  methodRef.current = requestNotebookRefresh; // we don't care about the ref, we just want the last one
+
+  React.useEffect(() => {
+    if (startShown) {
+      // Start modal is open, we are relying on events now, dial back the Notebook requests back to normal
+      methodRef.current();
+    }
+  }, [startShown]);
+
+  return React.useCallback(() => {
+    // We are about to spawn, get notebook more frequently in case it was slow updating
+    methodRef.current(FAST_POLL_INTERVAL);
+  }, []);
+};
+
+const useSpawnerNotebookModalState = (
+  createInProgress: boolean,
+): {
+  startShown: boolean;
+  hideStartShown: () => void;
+  refreshNotebookForStart: () => void;
+} => {
   const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
+  const { notebookNamespace } = useNamespaces();
   const history = useHistory();
   const [startShown, setStartShown] = React.useState<boolean>(false);
 
@@ -18,7 +46,14 @@ const useSpawnerNotebookModalState = (): [
         const notStopped = !notebook.metadata.annotations?.['kubeflow-resource-stopped'];
         if (notStopped) {
           // Not stopped means we are spawning (as it is not running)
-          setStartShown(true);
+          if (!createInProgress) {
+            // We are not creating, make sure the Notebook is stopped
+            stopNotebook(notebookNamespace, notebook.metadata.name).catch(() => {
+              console.error('Failed to stop notebook on refresh');
+            });
+          } else {
+            setStartShown(true);
+          }
         } else {
           // Stopped, no need for a modal (if it is open)
           setStartShown(false);
@@ -29,9 +64,12 @@ const useSpawnerNotebookModalState = (): [
         history.replace('/notebookController');
       }
     }
-  }, [notebook, history, startShown, isNotebookRunning]);
+  }, [notebook, history, startShown, isNotebookRunning, createInProgress, notebookNamespace]);
 
-  return [startShown, setStartShown];
+  const refreshNotebookForStart = useRefreshNotebookAndCleanup(startShown);
+  const hideStartShown = React.useCallback(() => setStartShown(false), []);
+
+  return { startShown, hideStartShown, refreshNotebookForStart };
 };
 
 export default useSpawnerNotebookModalState;

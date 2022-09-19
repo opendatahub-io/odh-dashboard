@@ -9,8 +9,8 @@
     }
   }
 
-  .odh-number-input { 
-    max-width: 100px;
+  .odh-number-input {
+    max-width: 200px;
   }
 
   .pf-c-input-group {
@@ -38,7 +38,7 @@
     &.pf-c-input-group {
       padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--lg) 0;
     }
-    .odh-number-input { 
+    .odh-number-input {
       max-width: 40px;
       &__hour {
         max-width: 60px;

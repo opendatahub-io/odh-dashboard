@@ -18,6 +18,7 @@ import {
   ConfigMap,
   Secret,
   EnvVarResourceType,
+  VolumeMount,
 } from '../../../../types';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -31,13 +32,24 @@ import {
   generatePvcNameFromUsername,
   generateEnvVarFileNameFromUsername,
   verifyResource,
-  checkEnvVarFile,
   generatePvc,
   useNotebookUserState,
+  classifyEnvVars,
+  verifyEnvVars,
 } from '../../../../utilities/notebookControllerUtils';
-import AppContext from '../../../../app/AppContext';
-import { getSecret } from '../../../../services/secretsService';
-import { getConfigMap } from '../../../../services/configMapService';
+import { useAppContext } from '../../../../app/AppContext';
+import {
+  createSecret,
+  deleteSecret,
+  getSecret,
+  replaceSecret,
+} from '../../../../services/secretsService';
+import {
+  createConfigMap,
+  deleteConfigMap,
+  getConfigMap,
+  replaceConfigMap,
+} from '../../../../services/configMapService';
 import { useWatchImages } from '../../../../utilities/useWatchImages';
 import ApplicationsPage from '../../../ApplicationsPage';
 import StartServerModal from './StartServerModal';
@@ -50,28 +62,30 @@ import GPUSelectField from './GPUSelectField';
 import SizeSelectField from './SizeSelectField';
 import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
+import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 
 import '../../NotebookController.scss';
 
-const SpawnerPage: React.FC = React.memo(() => {
+const SpawnerPage: React.FC = () => {
   const history = useHistory();
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
-  const { buildStatuses, dashboardConfig } = React.useContext(AppContext);
+  const { buildStatuses, dashboardConfig } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
   const { notebookNamespace: projectName } = useNamespaces();
   const currentUserState = useNotebookUserState();
   const username = currentUserState.user;
-  const [startShown, setStartShown] = useSpawnerNotebookModalState();
+  const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
+  const { startShown, hideStartShown, refreshNotebookForStart } =
+    useSpawnerNotebookModalState(createInProgress);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
   });
-  const [selectedSize, setSelectedSize] = usePreferredNotebookSize();
+  const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
-  const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
   React.useEffect(() => {
@@ -220,62 +234,87 @@ const SpawnerPage: React.FC = React.memo(() => {
   const fireStartServerEvent = () => {
     fireTrackingEvent('Notebook Server Started', {
       GPU: parseInt(selectedGpu),
-      lastSelectedSize: selectedSize,
+      lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
   };
 
   const handleNotebookAction = async () => {
     setSubmitError(null);
-    const notebookSize = dashboardConfig?.spec?.notebookSizes?.find(
-      (ns) => ns.name === selectedSize,
-    );
-    if (!notebookSize) {
-      setSubmitError(
-        new Error(
-          'There was an unknown issue selecting your notebook size -- refresh and try again',
-        ),
-      );
-      console.error(
-        `Failed to associate selected notebook size (${selectedSize}) with list of notebook sizes`,
-        dashboardConfig?.spec?.notebookSizes,
-      );
-      return;
-    }
-    const pvcName = generatePvcNameFromUsername(username);
-    const requestedPvcSize = dashboardConfig?.spec?.notebookController?.pvcSize;
-    const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
-    await verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody).catch((e) =>
-      console.error(`Something wrong with PVC ${pvcName}: ${e}`),
-    );
-    const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-    const volumeMounts = [{ mountPath: MOUNT_PATH, name: pvcName }];
-    const notebookName = generateNotebookNameFromUsername(username);
-    const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
     setCreateInProgress(true);
-    const envVars = await checkEnvVarFile(username, projectName, variableRows);
-    await startNotebook({
-      projectName,
-      notebookName,
-      username,
-      imageUrl,
-      notebookSize,
-      imageSelection: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
-      gpus: parseInt(selectedGpu),
-      envVars,
-      tolerationSettings: dashboardConfig.spec.notebookController?.notebookTolerationSettings,
-      volumes,
-      volumeMounts,
-    })
-      .then(() => {
-        fireStartServerEvent();
-        return true;
+    const pvcName = generatePvcNameFromUsername(username);
+    const envVarFileName = generateEnvVarFileNameFromUsername(username);
+    const envVars = classifyEnvVars(variableRows);
+    await Promise.all([
+      new Promise<void>((resolve, reject) => {
+        const requestedPvcSize = dashboardConfig.spec.notebookController?.pvcSize;
+        const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
+        verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody)
+          .then(() => {
+            resolve();
+          })
+          .catch((e) => {
+            console.error(`Something wrong with PVC ${pvcName}: ${e}`);
+            reject();
+          });
+      }),
+      verifyEnvVars(
+        envVarFileName,
+        projectName,
+        EnvVarResourceType.Secret,
+        envVars.secrets,
+        getSecret,
+        createSecret,
+        replaceSecret,
+        deleteSecret,
+      ),
+      verifyEnvVars(
+        envVarFileName,
+        projectName,
+        EnvVarResourceType.ConfigMap,
+        envVars.configMap,
+        getConfigMap,
+        createConfigMap,
+        replaceConfigMap,
+        deleteConfigMap,
+      ),
+    ]).then(() => {
+      const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
+      const volumeMounts: VolumeMount[] = [{ mountPath: MOUNT_PATH, name: pvcName }];
+      const notebookName = generateNotebookNameFromUsername(username);
+      const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
+      startNotebook({
+        projectName,
+        notebookName,
+        username,
+        imageUrl,
+        notebookSize: selectedSize,
+        imageSelection: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+        gpus: parseInt(selectedGpu),
+        envVars: {
+          envVarFileName,
+          ...envVars,
+        },
+        tolerationSettings: dashboardConfig.spec.notebookController?.notebookTolerationSettings,
+        volumes,
+        volumeMounts,
       })
-      .catch((e) => {
-        setSubmitError(e);
-        return false;
-      });
-    requestNotebookRefresh();
+        .then(() => {
+          fireStartServerEvent();
+          refreshNotebookForStart();
+        })
+        .catch((e) => {
+          setSubmitError(e);
+          setCreateInProgress(false);
+          // We had issues spawning the notebook -- try to stop it
+          stopNotebook(projectName, notebookName).catch(() =>
+            notification.error(
+              'Error creating notebook',
+              'Error spawning notebook and unable to properly stop it',
+            ),
+          );
+        });
+    });
   };
 
   return (
@@ -306,7 +345,11 @@ const SpawnerPage: React.FC = React.memo(() => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            <SizeSelectField value={selectedSize} setValue={setSelectedSize} />
+            <SizeSelectField
+              value={selectedSize}
+              setValue={(size) => setSelectedSize(size)}
+              sizes={sizes}
+            />
             <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
@@ -337,8 +380,9 @@ const SpawnerPage: React.FC = React.memo(() => {
                 onClick={() => {
                   handleNotebookAction().catch((e) => {
                     setCreateInProgress(false);
-                    setStartShown(false);
-                    console.error(e);
+                    hideStartShown();
+                    console.error('Error submitting resources around starting a notebook', e);
+                    setSubmitError(e);
                   });
                 }}
                 isDisabled={createInProgress}
@@ -359,9 +403,11 @@ const SpawnerPage: React.FC = React.memo(() => {
               </Button>
             </ActionGroup>
           </div>
+          <BrowserTabPreferenceCheckbox />
         </Form>
         <StartServerModal
-          open={startShown}
+          spawnInProgress={startShown}
+          open={createInProgress}
           onClose={() => {
             if (currentUserNotebook) {
               const notebookName = currentUserNotebook.metadata.name;
@@ -370,7 +416,7 @@ const SpawnerPage: React.FC = React.memo(() => {
                 .catch((e) => notification.error(`Error stop notebook ${notebookName}`, e.message));
             } else {
               // Shouldn't happen, but if we don't have a notebook, there is nothing to stop
-              setStartShown(false);
+              hideStartShown();
             }
             setCreateInProgress(false);
           }}
@@ -378,8 +424,6 @@ const SpawnerPage: React.FC = React.memo(() => {
       </ApplicationsPage>
     </>
   );
-});
-
-SpawnerPage.displayName = 'SpawnerPage';
+};
 
 export default SpawnerPage;

@@ -4,7 +4,6 @@ import { useUser } from '../../../../redux/selectors';
 import { AdminViewUserData } from './types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { NotebookControllerTabTypes } from '../../const';
-import { NotebookAdminContext } from './NotebookAdminContext';
 
 type ServerStatusProps = {
   data: AdminViewUserData['serverStatus'];
@@ -15,40 +14,26 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
   const { setImpersonating, setCurrentAdminTab } = React.useContext(NotebookControllerContext);
   const { username: stateUser } = useUser();
   const forStateUser = stateUser === username;
-  const { setServerStatuses } = React.useContext(NotebookAdminContext);
 
+  const onClickServerAction = () => {
+    if (forStateUser) {
+      // Starting your own server, no need to impersonate
+      setCurrentAdminTab(NotebookControllerTabTypes.SERVER);
+      return;
+    }
+    setImpersonating({ notebook: data.notebook, isRunning: data.isNotebookRunning }, username);
+  };
+
+  let buttonText = '';
   if (!data.isNotebookRunning) {
-    return (
-      <Button
-        variant="link"
-        isInline
-        onClick={() => {
-          if (forStateUser) {
-            // Starting your own server, no need to impersonate
-            setCurrentAdminTab(NotebookControllerTabTypes.SERVER);
-            return;
-          }
-          setImpersonating(
-            { notebook: data.notebook, isRunning: data.isNotebookRunning },
-            username,
-          );
-        }}
-      >
-        {forStateUser ? 'Start your server' : 'Start server'}
-      </Button>
-    );
+    buttonText = forStateUser ? 'Start your server' : 'Start server';
+  } else {
+    buttonText = forStateUser ? 'View your server' : 'View server';
   }
 
   return (
-    <Button
-      variant="link"
-      isDanger
-      isInline
-      onClick={() => {
-        setServerStatuses([data]);
-      }}
-    >
-      Stop server
+    <Button variant="link" isInline onClick={onClickServerAction}>
+      {buttonText}
     </Button>
   );
 };

@@ -9,9 +9,14 @@ export const columns: SortableData<AdminViewUserData>[] = [
     label: 'Server status',
     field: 'serverStatus',
     sortable: (a: AdminViewUserData, b: AdminViewUserData): number => {
-      const first = a.serverStatus.notebook ? 1 : -1;
-      const second = b.serverStatus.notebook ? 1 : -1;
+      const first = a.serverStatus.isNotebookRunning ? 1 : -1;
+      const second = b.serverStatus.isNotebookRunning ? 1 : -1;
       return first - second;
     },
+  },
+  {
+    label: '',
+    field: 'actions',
+    sortable: false,
   },
 ];

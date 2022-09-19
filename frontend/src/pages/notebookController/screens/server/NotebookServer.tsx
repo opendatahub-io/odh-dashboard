@@ -7,11 +7,13 @@ import { NotebookControllerContext } from '../../NotebookControllerContext';
 import ImpersonateAlert from '../admin/ImpersonateAlert';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
+import useNotification from '../../../../utilities/useNotification';
 
 import '../../NotebookController.scss';
 
 export const NotebookServer: React.FC = () => {
   const history = useHistory();
+  const notification = useNotification();
   const {
     currentUserNotebook: notebook,
     currentUserNotebookIsRunning,
@@ -50,17 +52,22 @@ export const NotebookServer: React.FC = () => {
                 onNotebooksStop={onNotebooksStop}
               />
               <ActionList>
-                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button variant="primary">Stop notebook server</Button>
-                </ActionListItem>
                 <ActionListItem
                   onClick={() => {
                     if (notebook.metadata.annotations?.['opendatahub.io/link']) {
                       window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
+                    } else {
+                      notification.error(
+                        'Error accessing notebook server',
+                        'Failed to redirect page due to missing notebook URL, please try to refresh the page and try it again.',
+                      );
                     }
                   }}
                 >
-                  <Button variant="secondary">Return to server</Button>
+                  <Button variant="primary">Access notebook server</Button>
+                </ActionListItem>
+                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
+                  <Button variant="secondary">Stop notebook server</Button>
                 </ActionListItem>
               </ActionList>
             </StackItem>
@@ -73,7 +80,5 @@ export const NotebookServer: React.FC = () => {
     </>
   );
 };
-
-NotebookServer.displayName = 'NotebookController';
 
 export default NotebookServer;

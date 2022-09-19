@@ -2,22 +2,32 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
-import { Alert, Bullseye, Page, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Alert,
+  Bullseye,
+  Button,
+  Page,
+  PageSection,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
-import { useTrackHistory } from '../utilities/useTrackHistory';
-import { useSegmentTracking } from '../utilities/useSegmentTracking';
 import Header from './Header';
 import Routes from './Routes';
 import NavSidebar from './NavSidebar';
 import ToastNotifications from '../components/ToastNotifications';
 import AppNotificationDrawer from './AppNotificationDrawer';
 import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
-import AppContext from './AppContext';
+import { AppContext } from './AppContext';
+import { useApplicationSettings } from './useApplicationSettings';
+import { useUser } from '../redux/selectors';
+import { LocalStorageContextProvider } from '../components/localStorage/LocalStorageContext';
+import TelemetrySetup from './TelemetrySetup';
+import { logout } from './appUtils';
 
 import './App.scss';
-import { useWatchDashboardConfig } from 'utilities/useWatchDashboardConfig';
-import { useUser } from '../redux/selectors';
 
 const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
@@ -25,11 +35,13 @@ const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError } = useUser();
   const dispatch = useDispatch();
-  useSegmentTracking();
-  useTrackHistory();
 
   const buildStatuses = useWatchBuildStatus();
-  const { dashboardConfig } = useWatchDashboardConfig();
+  const {
+    dashboardConfig,
+    loaded: configLoaded,
+    loadError: fetchConfigError,
+  } = useApplicationSettings();
 
   React.useEffect(() => {
     dispatch(detectUser());
@@ -43,17 +55,32 @@ const App: React.FC = () => {
     setIsNavOpen(!isNavOpen);
   };
 
-  if (!username) {
-    // We do not have the data yet for who they are, we can't show the app. If we allow anything
-    // to render right now, the username is going to be blank and we won't know permissions
-    if (userError) {
-      // We likely don't have a username still so just show the error
+  if (!username || !configLoaded || !dashboardConfig) {
+    // We lack the critical data to startup the app
+    if (userError || fetchConfigError) {
+      // There was an error fetching critical data
       return (
         <Page>
           <PageSection>
-            <Alert variant="danger" isInline title="General loading error">
-              {userError.message}
-            </Alert>
+            <Stack hasGutter>
+              <StackItem>
+                <Alert variant="danger" isInline title="General loading error">
+                  <p>
+                    {(userError ? userError.message : fetchConfigError?.message) ||
+                      'Unknown error occurred during startup.'}
+                  </p>
+                  <p>Logging out and logging back in may solve the issue.</p>
+                </Alert>
+              </StackItem>
+              <StackItem>
+                <Button
+                  variant="secondary"
+                  onClick={() => logout().then(() => window.location.reload())}
+                >
+                  Logout
+                </Button>
+              </StackItem>
+            </Stack>
           </PageSection>
         </Page>
       );
@@ -68,26 +95,29 @@ const App: React.FC = () => {
   }
 
   return (
-    <AppContext.Provider
-      value={{
-        isNavOpen,
-        setIsNavOpen,
-        onNavToggle,
-        buildStatuses,
-        dashboardConfig,
-      }}
-    >
-      <Page
-        className="odh-dashboard"
-        header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
-        sidebar={<NavSidebar />}
-        notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
-        isNotificationDrawerExpanded={notificationsOpen}
+    <LocalStorageContextProvider>
+      <AppContext.Provider
+        value={{
+          isNavOpen,
+          setIsNavOpen,
+          onNavToggle,
+          buildStatuses,
+          dashboardConfig,
+        }}
       >
-        <Routes />
-        <ToastNotifications />
-      </Page>
-    </AppContext.Provider>
+        <Page
+          className="odh-dashboard"
+          header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
+          sidebar={<NavSidebar />}
+          notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
+          isNotificationDrawerExpanded={notificationsOpen}
+        >
+          <Routes />
+          <ToastNotifications />
+          <TelemetrySetup />
+        </Page>
+      </AppContext.Provider>
+    </LocalStorageContextProvider>
   );
 };
 

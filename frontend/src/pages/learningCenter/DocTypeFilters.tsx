@@ -19,8 +19,8 @@ const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
     () =>
       categoryApps.reduce(
         (acc, docApp) => {
-          if (acc[docApp.metadata.type] !== undefined) {
-            acc[docApp.metadata.type]++;
+          if (acc[docApp.spec.type] !== undefined) {
+            acc[docApp.spec.type]++;
           }
           return acc;
         },

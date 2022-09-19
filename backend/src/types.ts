@@ -1,6 +1,7 @@
-import k8s, { V1Event } from '@kubernetes/client-node';
+import k8s from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest } from 'fastify';
+import { RouteGenericInterface } from 'fastify/types/route';
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
@@ -25,9 +26,9 @@ export type DashboardConfig = K8sResourceCommon & {
       pvcSize?: string;
       notebookNamespace?: string;
       notebookTolerationSettings?: {
-        enabled: boolean,
-        key: string
-      }
+        enabled: boolean;
+        key: string;
+      };
     };
   };
 };
@@ -43,9 +44,18 @@ export type NotebookResources = {
   };
 };
 
+type EnvValue = {
+  key: string;
+  name: string;
+};
+
 export type EnvironmentVariable = {
   name: string;
-  value: string;
+  value?: string;
+  valueFrom?: {
+    configMapKeyRef?: EnvValue;
+    secretKeyRef?: EnvValue;
+  };
 };
 
 export type NotebookSize = {
@@ -56,7 +66,7 @@ export type NotebookSize = {
 export type NotebookTolerationSettings = {
   enabled: boolean;
   key: string;
-}
+};
 
 export type ClusterSettings = {
   pvcSize: number;
@@ -202,6 +212,10 @@ export type KubeFastifyInstance = FastifyInstance & {
   kube?: KubeDecorator;
 };
 
+// TODO: constant-ize the x-forwarded header
+export type OauthFastifyRequest<Data extends RouteGenericInterface = RouteGenericInterface> =
+  FastifyRequest<{ Headers: { 'x-forwarded-access-token': string } & Data['Headers'] } & Data>;
+
 /*
  * Common types, should be kept up to date with frontend types
  */
@@ -212,53 +226,54 @@ export type OdhApplication = {
     annotations?: { [key: string]: string };
   };
   spec: {
-    displayName: string;
-    provider: string;
+    beta?: boolean | null;
+    betaText?: string | null;
+    betaTitle?: string | null;
+    category: string;
+    comingSoon: boolean | null;
+    consoleLink: string | null;
+    csvName: string | null;
     description: string;
+    displayName: string;
+    docsLink: string;
+    enable?: {
+      actionLabel: string;
+      description?: string;
+      link?: string;
+      linkPreface?: string;
+      title: string;
+      validationConfigMap?: string;
+      validationJob: string;
+      validationSecret: string;
+      variableDisplayText?: { [key: string]: string };
+      variableHelpText?: { [key: string]: string };
+      variables?: { [key: string]: string };
+    };
+    enableCR: {
+      field?: string;
+      group: string;
+      name: string;
+      namespace?: string;
+      plural: string;
+      value?: string;
+      version: string;
+    };
+    endpoint: string | null;
+    featureFlag?: string;
+    getStartedLink: string;
+    getStartedMarkDown: string;
+    img: string;
+    shownOnEnabledPage: boolean | null;
+    isEnabled: boolean | null;
+    kfdefApplications: string[];
+    link: string | null;
+    provider: string;
+    quickStart: string | null;
     route: string | null;
     routeNamespace: string | null;
     routeSuffix: string | null;
     serviceName: string | null;
-    consoleLink: string | null;
-    endpoint: string | null;
-    link: string | null;
-    img: string;
-    docsLink: string;
-    getStartedLink: string;
-    category: string;
     support: string;
-    quickStart: string | null;
-    comingSoon: boolean | null;
-    beta?: boolean | null;
-    betaTitle?: string | null;
-    betaText?: string | null;
-    shownOnEnabledPage: boolean | null;
-    isEnabled: boolean | null;
-    kfdefApplications: string[];
-    csvName: string;
-    enable?: {
-      title: string;
-      actionLabel: string;
-      linkPreface?: string;
-      link?: string;
-      description?: string;
-      variables?: { [key: string]: string };
-      variableDisplayText?: { [key: string]: string };
-      variableHelpText?: { [key: string]: string };
-      validationSecret: string;
-      validationJob: string;
-      validationConfigMap?: string;
-    };
-    enableCR: {
-      group: string;
-      version: string;
-      plural: string;
-      name: string;
-      namespace?: string;
-      field?: string;
-      value?: string;
-    };
-    featureFlag?: string;
   };
 };
 
@@ -272,12 +287,12 @@ export enum OdhDocumentType {
 export type OdhDocument = {
   metadata: {
     name: string;
-    type: string;
     annotations?: { [key: string]: string };
   };
   spec: {
     displayName: string;
     appName?: string;
+    type: string;
     provider?: string;
     description: string;
     url: string;
@@ -286,11 +301,6 @@ export type OdhDocument = {
     durationMinutes?: number;
     featureFlag?: string;
   };
-};
-
-export type OdhGettingStarted = {
-  appName: string;
-  markdown: string;
 };
 
 export type BuildStatus = {
@@ -305,6 +315,14 @@ export type NotebookPort = {
   protocol: string;
 };
 
+export type NotebookToleration = {
+  effect: string;
+  key: string;
+  operator: string;
+};
+
+export type VolumeMount = { mountPath: string; name: string };
+
 export type NotebookContainer = {
   name: string;
   image: string;
@@ -314,27 +332,53 @@ export type NotebookContainer = {
   ports?: NotebookPort[];
   resources?: NotebookResources;
   livenessProbe?: Record<string, unknown>;
+  readinessProbe?: Record<string, unknown>;
+  volumeMounts?: VolumeMount[];
 };
 
-export type Notebook = {
-  apiVersion?: string;
-  kind?: string;
+export type NotebookAffinity = {
+  nodeAffinity?: { [key: string]: unknown };
+};
+
+export type Volume = {
+  name: string;
+  emptyDir?: Record<string, any>; // eslint-disable-line
+  persistentVolumeClaim?: {
+    claimName: string;
+  };
+};
+
+export type Notebook = K8sResourceCommon & {
   metadata: {
-    name: string;
-    namespace?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
+    annotations: Partial<{
+      'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
+      'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+      'opendatahub.io/link': string; // redirect notebook url
+      'opendatahub.io/username': string; // the untranslated username behind the notebook
+
+      // TODO: Can we get this from the data in the Notebook??
+      'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
+      'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+    }>;
+    labels: Partial<{
+      'opendatahub.io/user': string; // translated username -- see translateUsername
+    }>;
   };
   spec: {
     template: {
       spec: {
+        affinity?: NotebookAffinity;
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
+        volumes?: Volume[];
+        tolerations?: NotebookToleration[];
       };
     };
   };
-  status?: Record<string, unknown>;
-} & K8sResourceCommon;
+  status?: {
+    readyReplicas: number;
+  } & Record<string, unknown>;
+};
 
 export type NotebookList = {
   apiVersion?: string;

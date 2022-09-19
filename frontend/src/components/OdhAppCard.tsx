@@ -1,6 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
 import {
   Button,
   Card,
@@ -21,9 +22,8 @@ import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import EnableModal from '../pages/exploreApplication/EnableModal';
 import { removeComponent } from '../services/componentsServices';
 import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
-import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
-import { useHistory } from 'react-router-dom';
+import { useAppContext } from '../app/AppContext';
 
 import './OdhCard.scss';
 
@@ -39,8 +39,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.metadata.name,
   );
   const disabled = !odhApp.spec.isEnabled;
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
-  const history = useHistory();
+  const { dashboardConfig } = useAppContext();
   const dispatch = useDispatch();
 
   const onToggle = (value) => {
@@ -123,12 +122,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const cardFooter = (
     <CardFooter className="odh-card__footer">
       {odhApp.metadata.name === 'jupyter' ? (
-        <a
-          className="odh-card__footer__link"
-          onClick={() => history.push(odhApp.spec.internalRoute)}
-        >
+        <Link to={odhApp.spec.internalRoute} className="odh-card__footer__link">
           Launch application
-        </a>
+        </Link>
       ) : (
         <a
           className={launchClasses}
@@ -210,7 +206,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
-        {!dashboardConfig.disableISVBadges &&
+        {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
         odhApp.spec.category &&
         odhApp.spec.category !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
