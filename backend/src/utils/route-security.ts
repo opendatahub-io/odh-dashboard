@@ -95,13 +95,18 @@ const requestSecurityGuard = async (
     );
   }
 
+  // Requested a resource with an explicit empty name, doesn't matter who you are, bad API request
+  if (name === '' || name?.trim() === '') {
+    throw createCustomError('404 Endpoint Not Found', 'Not Found', 404);
+  }
+
   // Admins have the ability to interact with other resources that is not theirs
   if (await testAdmin(fastify, request, needsAdmin)) {
     return;
   }
 
   // Api with no name object, allow reads
-  if (!name && namespace === notebookNamespace && isReadRequest) {
+  if (name == null && namespace === notebookNamespace && isReadRequest) {
     return;
   }
 

@@ -1,36 +1,34 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
+import { getApplications, updateApplications } from '../../../utils/resourceUtils';
 import { checkJupyterEnabled, getRouteForApplication } from '../../../utils/componentUtils';
-import { getApplicationDefs, updateApplicationDefs } from '../../../utils/resourceUtils';
 
 export const listComponents = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OdhApplication[]> => {
-  const applicationDefs = getApplicationDefs().filter(
+  const applications = getApplications().filter(
     (component) => component.metadata.name !== (checkJupyterEnabled() ? 'jupyterhub' : 'jupyter'),
   );
-  const installedComponents = [];
   const query = request.query as { [key: string]: string };
+  const installedComponents = [];
 
   if (!query.installed) {
-    return await Promise.all(applicationDefs);
+    return Promise.resolve(applications);
   }
-
-  for (const appDef of applicationDefs) {
-    if (appDef.spec.shownOnEnabledPage) {
-      const app = {
-        ...appDef,
+  for (const app of applications) {
+    if (app.spec.shownOnEnabledPage) {
+      const newApp = {
+        ...app,
         spec: {
-          ...appDef.spec,
-          link: await getRouteForApplication(fastify, appDef),
+          ...app.spec,
+          link: await getRouteForApplication(fastify, app),
         },
       };
-      installedComponents.push(app);
+      installedComponents.push(newApp);
     }
   }
-
-  return installedComponents;
+  return Promise.resolve(installedComponents);
 };
 
 export const removeComponent = async (
@@ -58,7 +56,7 @@ export const removeComponent = async (
       data: enabledAppsCMData,
     };
     await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName, namespace, cmBody);
-    await updateApplicationDefs();
+    await updateApplications();
     return { success: true, error: null };
   } catch (e) {
     fastify.log.error(e.message);

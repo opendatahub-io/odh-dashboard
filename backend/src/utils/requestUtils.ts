@@ -6,6 +6,7 @@ export const createCustomError = (
   code = 500,
 ): createError.HttpError => {
   const error = createError(code, title);
+  error.code = code;
   error.explicitInternalServerError = code >= 500;
   error.error = title;
   error.message = message;

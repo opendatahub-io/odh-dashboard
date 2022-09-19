@@ -78,6 +78,9 @@ export type NotebookTolerationSettings = {
   enabled: boolean;
   key: string;
 };
+export type NotebookTolerationFormSettings = NotebookTolerationSettings & {
+  error?: string;
+};
 
 export type ClusterSettings = {
   userTrackingEnabled: boolean;
@@ -121,6 +124,7 @@ export type OdhApplication = {
     img: string;
     docsLink: string;
     getStartedLink: string;
+    getStartedMarkDown: string;
     category?: string;
     support?: string;
     quickStart: string | null;
@@ -160,10 +164,10 @@ export enum OdhDocumentType {
 export type OdhDocument = {
   metadata: {
     name: string;
-    type: string;
     annotations?: { [key: string]: string };
   };
   spec: {
+    type: string;
     displayName: string;
     appName?: string;
     appDisplayName?: string; // Only set on UI side in resources section
@@ -177,11 +181,6 @@ export type OdhDocument = {
     durationMinutes?: number;
     featureFlag?: string;
   };
-};
-
-export type OdhGettingStarted = {
-  appName: string;
-  markdown: string;
 };
 
 export enum BUILD_PHASE {
@@ -202,16 +201,18 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+type K8sMetadata = {
+  name: string;
+  namespace?: string;
+  uid?: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+};
+
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    uid?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
-  };
+  metadata: K8sMetadata;
 };
 
 // Minimal type for ConsoleLinks
@@ -608,11 +609,13 @@ export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Pro
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
-  lastTimestamp: string;
+  metadata: K8sMetadata;
+  eventTime: string;
+  lastTimestamp: string | null; // if it never starts, the value is null
   message: string;
   reason: string;
-  type: string;
-} & K8sResourceCommon;
+  type: 'Warning' | 'Normal';
+};
 
 export type NotebookStatus = {
   percentile: number;
@@ -625,6 +628,8 @@ export type NotebookStatus = {
 export enum EventStatus {
   IN_PROGRESS = 'In Progress',
   ERROR = 'Error',
+  INFO = 'Info',
+  WARNING = 'Warning',
 }
 
 export type UsernameMap<V> = { [username: string]: V };

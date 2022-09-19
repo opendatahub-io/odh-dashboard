@@ -62,6 +62,7 @@ import GPUSelectField from './GPUSelectField';
 import SizeSelectField from './SizeSelectField';
 import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
+import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 
 import '../../NotebookController.scss';
 
@@ -75,7 +76,9 @@ const SpawnerPage: React.FC = () => {
   const { notebookNamespace: projectName } = useNamespaces();
   const currentUserState = useNotebookUserState();
   const username = currentUserState.user;
-  const { startShown, hideStartShown, refreshNotebookForStart } = useSpawnerNotebookModalState();
+  const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
+  const { startShown, hideStartShown, refreshNotebookForStart } =
+    useSpawnerNotebookModalState(createInProgress);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
     image: undefined,
     tag: undefined,
@@ -83,7 +86,6 @@ const SpawnerPage: React.FC = () => {
   const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
-  const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
   React.useEffect(() => {
@@ -244,19 +246,18 @@ const SpawnerPage: React.FC = () => {
     const envVarFileName = generateEnvVarFileNameFromUsername(username);
     const envVars = classifyEnvVars(variableRows);
     await Promise.all([
-      () =>
-        new Promise((resolve, reject) => {
-          const requestedPvcSize = dashboardConfig.spec.notebookController?.pvcSize;
-          const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
-          verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody)
-            .then(() => {
-              resolve([]);
-            })
-            .catch((e) => {
-              console.error(`Something wrong with PVC ${pvcName}: ${e}`);
-              reject();
-            });
-        }),
+      new Promise<void>((resolve, reject) => {
+        const requestedPvcSize = dashboardConfig.spec.notebookController?.pvcSize;
+        const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
+        verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody)
+          .then(() => {
+            resolve();
+          })
+          .catch((e) => {
+            console.error(`Something wrong with PVC ${pvcName}: ${e}`);
+            reject();
+          });
+      }),
       verifyEnvVars(
         envVarFileName,
         projectName,
@@ -304,6 +305,7 @@ const SpawnerPage: React.FC = () => {
         })
         .catch((e) => {
           setSubmitError(e);
+          setCreateInProgress(false);
           // We had issues spawning the notebook -- try to stop it
           stopNotebook(projectName, notebookName).catch(() =>
             notification.error(
@@ -405,6 +407,7 @@ const SpawnerPage: React.FC = () => {
               </Button>
             </ActionGroup>
           </div>
+          <BrowserTabPreferenceCheckbox />
         </Form>
         <StartServerModal
           spawnInProgress={startShown}

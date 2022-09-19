@@ -25,7 +25,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
   };
 
   const renderTypeBadge = () => {
-    const docType = odhDoc?.metadata.type as OdhDocumentType;
+    const docType = odhDoc?.spec.type as OdhDocumentType;
     const typeBadgeClasses = classNames('odh-list-item__partner-badge odh-m-doc', {
       'odh-m-documentation': docType === OdhDocumentType.Documentation,
       'odh-m-tutorial': docType === OdhDocumentType.Tutorial,
@@ -34,7 +34,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
     });
     return (
       <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
-        <div className={typeBadgeClasses}>{odhDoc.metadata.type}</div>
+        <div className={typeBadgeClasses}>{odhDoc.spec.type}</div>
       </Tooltip>
     );
   };
@@ -45,7 +45,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
     let external = true;
     let onClick;
 
-    switch (odhDoc.metadata.type) {
+    switch (odhDoc.spec.type) {
       case OdhDocumentType.Documentation:
         title = 'View documentation';
         break;
