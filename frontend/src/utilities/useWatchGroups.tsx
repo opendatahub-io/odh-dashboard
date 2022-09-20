@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GroupsConfig } from 'pages/groupSettings/GroupTypes';
+import { GroupsConfig } from 'pages/groupSettings/groupTypes';
 import { fetchGroupsSettings, updateGroupsSettings } from 'services/groupSettingsService';
 import useNotification from './useNotification';
 
@@ -22,6 +22,7 @@ export const useWatchGroups = (): {
     adminGroups: [],
     allowedGroups: [],
   });
+  const { errorAdmin, errorUser } = groupSettings;
 
   React.useEffect(() => {
     const fetchGroups = () => {
@@ -29,7 +30,6 @@ export const useWatchGroups = (): {
       fetchGroupsSettings()
         .then((groupsResponse) => {
           setGroupSettings(groupsResponse);
-          createMissingGroupAlert(groupsResponse);
           setLoadError(undefined);
           setLoaded(true);
         })
@@ -44,8 +44,16 @@ export const useWatchGroups = (): {
         });
     };
     fetchGroups();
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [notification]);
+
+  React.useEffect(() => {
+    if (errorAdmin) {
+      notification.error(`Group no longer exists`, errorAdmin);
+    }
+    if (errorUser) {
+      notification.error(`Group no longer exists`, errorUser);
+    }
+  }, [errorAdmin, errorUser, notification]);
 
   const updateGroups = (group: GroupsConfig) => {
     setIsLoading(true);
@@ -53,7 +61,6 @@ export const useWatchGroups = (): {
       .then((response) => {
         if (response.success) {
           setGroupSettings(response.success);
-          createMissingGroupAlert(response.success);
           notification.success('Group settings changes saved');
         }
       })
@@ -65,15 +72,6 @@ export const useWatchGroups = (): {
         setIsLoading(false);
         setIsGroupSettingsChanged(false);
       });
-  };
-
-  const createMissingGroupAlert = (groupsConfig: GroupsConfig) => {
-    if (groupsConfig.errorAdmin) {
-      notification.error(`Group no longer exists`, groupsConfig.errorAdmin);
-    }
-    if (groupsConfig.errorUser) {
-      notification.error(`Group no longer exists`, groupsConfig.errorUser);
-    }
   };
 
   return {

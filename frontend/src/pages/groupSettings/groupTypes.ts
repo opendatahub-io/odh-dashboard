@@ -6,8 +6,8 @@ export type GroupsConfig = {
 };
 
 export enum GroupsConfigField {
-  ADMIN,
-  USER,
+  ADMIN = 'admin',
+  USER = 'user',
 }
 
 export type GroupStatus = {

@@ -4,6 +4,5 @@ kind: Kustomization
 bases:
 - ../authentication
 resources:
-- groups-config.configmap.yaml
 - odh-dashboard-config.yaml
 - odh-enabled-applications-config.configmap.yaml
