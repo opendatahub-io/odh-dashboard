@@ -662,10 +662,10 @@ export type RecursivePartial<T> = {
 };
 
 export type GPUScaleType = {
-  type: "nvidia.com/gpu" | "amd.com/gpu";
+  type: 'nvidia.com/gpu' | 'amd.com/gpu';
   min: number;
   max: number;
-}
+};
 
 export type ClusterAutoscaler = {
   spec: {
@@ -674,21 +674,22 @@ export type ClusterAutoscaler = {
       cores: {
         min: number;
         max: number;
-      }
+      };
       memory: {
         min: number;
         max: number;
-      }
-      gpus: GPUScaleType[]
-    }
-  }
-} & K8sResourceCommon
+      };
+      gpus: GPUScaleType[];
+    };
+  };
+} & K8sResourceCommon;
 
 export type ClusterAutoscalerList = {
-  items: ClusterAutoscaler[]
-} & K8sResourceCommon
+  items: ClusterAutoscaler[];
+} & K8sResourceCommon;
 
 export type GPUInfo = {
+  configured: boolean;
   available: number;
   scaleMax: number;
-}
+};
