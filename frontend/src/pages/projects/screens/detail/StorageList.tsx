@@ -1,29 +1,25 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import EmptyDetailsList from './EmptyDetailsList';
+import DetailsSection from './DetailsSection';
+import { ProjectSectionID, ProjectSectionTitle } from './types';
 
 const StorageList: React.FC = () => {
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <Flex>
-          <FlexItem>
-            <Title id="storage" headingLevel="h4" size="xl">
-              Storage
-            </Title>
-          </FlexItem>
-          <FlexItem>
-            <Button variant="secondary">Add storage</Button>
-          </FlexItem>
-        </Flex>
-      </StackItem>
-      <StackItem>
-        <EmptyDetailsList
-          title="No storage"
-          description="Choose existing, or add new on cluster storage."
-        />
-      </StackItem>
-    </Stack>
+    <DetailsSection
+      id={ProjectSectionID.STORAGE}
+      title={ProjectSectionTitle.STORAGE}
+      actions={[
+        <Button key={`action-${ProjectSectionID.STORAGE}`} variant="secondary">
+          Add storage
+        </Button>,
+      ]}
+    >
+      <EmptyDetailsList
+        title="No storage"
+        description="Choose existing, or add new on cluster storage."
+      />
+    </DetailsSection>
   );
 };
 

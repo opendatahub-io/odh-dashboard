@@ -1,29 +1,25 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import EmptyDetailsList from './EmptyDetailsList';
+import { ProjectSectionID, ProjectSectionTitle } from './types';
+import DetailsSection from './DetailsSection';
 
 const DataConnectionsList: React.FC = () => {
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <Flex>
-          <FlexItem>
-            <Title id="data-connections" headingLevel="h4" size="xl">
-              Data connections
-            </Title>
-          </FlexItem>
-          <FlexItem>
-            <Button variant="secondary">Add data connection</Button>
-          </FlexItem>
-        </Flex>
-      </StackItem>
-      <StackItem>
-        <EmptyDetailsList
-          title="No data connections"
-          description="To get started, add data to your project."
-        />
-      </StackItem>
-    </Stack>
+    <DetailsSection
+      id={ProjectSectionID.DATA_CONNECTIONS}
+      title={ProjectSectionTitle.DATA_CONNECTIONS}
+      actions={[
+        <Button key={`action-${ProjectSectionID.DATA_CONNECTIONS}`} variant="secondary">
+          Add data connection
+        </Button>,
+      ]}
+    >
+      <EmptyDetailsList
+        title="No data connections"
+        description="To get started, add data to your project."
+      />
+    </DetailsSection>
   );
 };
 

@@ -6,16 +6,22 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
+import { ProjectSectionID, ProjectSectionTitle } from './types';
 
-const ProjectDetailsSidebarWrapper: React.FC = ({ children }) => {
+const ProjectDetailsSidebar: React.FC = ({ children }) => {
   return (
     <Sidebar hasGutter>
       <SidebarPanel variant="sticky">
         <JumpLinks isVertical label="Jump to section" scrollableSelector="#project-details-list">
-          <JumpLinksItem href="#data-science-workspaces">Data science workspaces</JumpLinksItem>
-          <JumpLinksItem href="#storage">Storage</JumpLinksItem>
-          <JumpLinksItem href="#data-connections">Data connections</JumpLinksItem>
-          <JumpLinksItem href="#model-serving">Model serving</JumpLinksItem>
+          <JumpLinksItem href={`#${ProjectSectionID.WORKSPACE}`}>
+            {ProjectSectionTitle.WORKSPACE}
+          </JumpLinksItem>
+          <JumpLinksItem href={`#${ProjectSectionID.STORAGE}`}>
+            {ProjectSectionTitle.STORAGE}
+          </JumpLinksItem>
+          <JumpLinksItem href={`#${ProjectSectionID.DATA_CONNECTIONS}`}>
+            {ProjectSectionTitle.DATA_CONNECTIONS}
+          </JumpLinksItem>
         </JumpLinks>
       </SidebarPanel>
       <SidebarContent>{children}</SidebarContent>
@@ -23,4 +29,4 @@ const ProjectDetailsSidebarWrapper: React.FC = ({ children }) => {
   );
 };
 
-export default ProjectDetailsSidebarWrapper;
+export default ProjectDetailsSidebar;

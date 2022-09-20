@@ -1,29 +1,25 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import EmptyDetailsList from './EmptyDetailsList';
+import { ProjectSectionID, ProjectSectionTitle } from './types';
+import DetailsSection from './DetailsSection';
 
 const WorkspacesList: React.FC = () => {
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <Flex>
-          <FlexItem>
-            <Title id="data-science-workspaces" headingLevel="h4" size="xl">
-              Data science workspaces
-            </Title>
-          </FlexItem>
-          <FlexItem>
-            <Button variant="secondary">Create data science workspace</Button>
-          </FlexItem>
-        </Flex>
-      </StackItem>
-      <StackItem>
-        <EmptyDetailsList
-          title="No data science workspaces"
-          description="To get started, create a data science workspace."
-        />
-      </StackItem>
-    </Stack>
+    <DetailsSection
+      id={ProjectSectionID.WORKSPACE}
+      title={ProjectSectionTitle.WORKSPACE}
+      actions={[
+        <Button key={`action-${ProjectSectionID.WORKSPACE}`} variant="secondary">
+          Create data science workspace
+        </Button>,
+      ]}
+    >
+      <EmptyDetailsList
+        title="No data science workspaces"
+        description="To get started, create a data science workspace."
+      />
+    </DetailsSection>
   );
 };
 

@@ -4,13 +4,36 @@ import { useParams } from 'react-router';
 import ApplicationsPage from '../../../ApplicationsPage';
 import EmptyProjects from '../../EmptyProjects';
 import DataConnectionsList from './DataConnectionsList';
-import ModelServingList from './ModelServingList';
-import ProjectDetailsSidebarWrapper from './ProjectDetailsSidebar';
+import ProjectDetailsSidebar from './ProjectDetailsSidebar';
 import StorageList from './StorageList';
+import { ProjectSectionID } from './types';
 import WorkspacesList from './WorkspacesList';
+
+type SectionType = {
+  id: ProjectSectionID;
+  component: React.ReactNode;
+};
 
 const ProjectDetails: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
+
+  const sections: SectionType[] = [
+    { id: ProjectSectionID.WORKSPACE, component: <WorkspacesList /> },
+    { id: ProjectSectionID.STORAGE, component: <StorageList /> },
+    { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
+  ];
+
+  const mapSections = (
+    id: ProjectSectionID,
+    component: React.ReactNode,
+    index: number,
+    array: SectionType[],
+  ) => (
+    <React.Fragment key={id}>
+      <StackItem>{component}</StackItem>
+      {index !== array.length - 1 && <Divider />}
+    </React.Fragment>
+  );
 
   return (
     <ApplicationsPage
@@ -21,25 +44,13 @@ const ProjectDetails: React.FC = () => {
       emptyStatePage={<EmptyProjects />}
     >
       <PageSection id="project-details-list" hasOverflowScroll variant="light">
-        <ProjectDetailsSidebarWrapper>
+        <ProjectDetailsSidebar>
           <Stack hasGutter>
-            <StackItem>
-              <WorkspacesList />
-            </StackItem>
-            <Divider />
-            <StackItem>
-              <StorageList />
-            </StackItem>
-            <Divider />
-            <StackItem>
-              <DataConnectionsList />
-            </StackItem>
-            <Divider />
-            <StackItem>
-              <ModelServingList />
-            </StackItem>
+            {sections.map(({ id, component }, index, array) =>
+              mapSections(id, component, index, array),
+            )}
           </Stack>
-        </ProjectDetailsSidebarWrapper>
+        </ProjectDetailsSidebar>
       </PageSection>
     </ApplicationsPage>
   );
