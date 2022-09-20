@@ -6,20 +6,24 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
-import { ProjectSectionID, ProjectSectionTitle } from './types';
+import { ProjectSectionID } from './types';
+import { ProjectSectionTitles } from './const';
 
 const ProjectDetailsSidebar: React.FC = ({ children }) => {
-  const navItems = [
-    { id: ProjectSectionID.WORKSPACE, title: ProjectSectionTitle.WORKSPACE },
-    { id: ProjectSectionID.STORAGE, title: ProjectSectionTitle.STORAGE },
-    { id: ProjectSectionID.DATA_CONNECTIONS, title: ProjectSectionTitle.DATA_CONNECTIONS },
+  const jumpLinkItems = [
+    { id: ProjectSectionID.WORKSPACE, title: ProjectSectionTitles[ProjectSectionID.WORKSPACE] },
+    { id: ProjectSectionID.STORAGE, title: ProjectSectionTitles[ProjectSectionID.STORAGE] },
+    {
+      id: ProjectSectionID.DATA_CONNECTIONS,
+      title: ProjectSectionTitles[ProjectSectionID.DATA_CONNECTIONS],
+    },
   ];
 
   return (
     <Sidebar hasGutter>
       <SidebarPanel variant="sticky">
         <JumpLinks isVertical label="Jump to section" scrollableSelector="#project-details-list">
-          {navItems.map(({ id, title }) => (
+          {jumpLinkItems.map(({ id, title }) => (
             <JumpLinksItem key={`link-${id}`} href={`#${id}`}>
               {title}
             </JumpLinksItem>

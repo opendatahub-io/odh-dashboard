@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import EmptyDetailsList from './EmptyDetailsList';
-import { ProjectSectionID, ProjectSectionTitle } from './types';
+import { ProjectSectionID } from './types';
 import DetailsSection from './DetailsSection';
+import { ProjectSectionTitles } from './const';
 
 const WorkspacesList: React.FC = () => {
   return (
     <DetailsSection
       id={ProjectSectionID.WORKSPACE}
-      title={ProjectSectionTitle.WORKSPACE}
+      title={ProjectSectionTitles[ProjectSectionID.WORKSPACE]}
       actions={[
         <Button key={`action-${ProjectSectionID.WORKSPACE}`} variant="secondary">
           Create data science workspace

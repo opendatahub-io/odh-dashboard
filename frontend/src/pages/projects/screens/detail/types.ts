@@ -5,9 +5,6 @@ export enum ProjectSectionID {
   MODEL_SERVING = 'model-serving',
 }
 
-export enum ProjectSectionTitle {
-  WORKSPACE = 'Data science workspaces',
-  STORAGE = 'Storage',
-  DATA_CONNECTIONS = 'Data connections',
-  MODEL_SERVING = 'Model serving',
-}
+export type ProjectSectionTitlesType = {
+  [key in ProjectSectionID]: string;
+};

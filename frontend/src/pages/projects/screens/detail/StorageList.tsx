@@ -2,13 +2,14 @@ import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import EmptyDetailsList from './EmptyDetailsList';
 import DetailsSection from './DetailsSection';
-import { ProjectSectionID, ProjectSectionTitle } from './types';
+import { ProjectSectionID } from './types';
+import { ProjectSectionTitles } from './const';
 
 const StorageList: React.FC = () => {
   return (
     <DetailsSection
       id={ProjectSectionID.STORAGE}
-      title={ProjectSectionTitle.STORAGE}
+      title={ProjectSectionTitles[ProjectSectionID.STORAGE]}
       actions={[
         <Button key={`action-${ProjectSectionID.STORAGE}`} variant="secondary">
           Add storage
