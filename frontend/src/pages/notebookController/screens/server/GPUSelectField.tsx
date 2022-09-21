@@ -64,7 +64,11 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
     return null;
   }
 
-  const gpuOptions = gpuSize === undefined ? [] : Array.from(Array(gpuSize + 1).keys());
+  //TODO: We need to get the amount of gpus already scaled so as to not lie to the user about the avaiable gpus.
+  const gpuOptions =
+    gpuSize === undefined
+      ? []
+      : Array.from(Array(gpuSize + (gpuScale === undefined ? 0 : gpuScale) + 1).keys());
   const noAvailableGPUs = gpuOptions.length === 1;
 
   return (
