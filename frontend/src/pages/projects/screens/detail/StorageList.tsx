@@ -4,7 +4,7 @@ import EmptyDetailsList from './EmptyDetailsList';
 import DetailsSection from './DetailsSection';
 import { ProjectSectionID } from './types';
 import { ProjectSectionTitles } from './const';
-import AddStorageModal from 'pages/projects/modals/addStorageModal/AddStorageModal';
+import AddStorageModal from '../../modals/addStorageModal/AddStorageModal';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);

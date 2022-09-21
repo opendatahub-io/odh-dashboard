@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { Flex, FlexItem, Radio, Select } from '@patternfly/react-core';
 
 type ConnectWorkbenchOptionsProps = {

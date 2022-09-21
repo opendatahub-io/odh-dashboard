@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Modal, Radio, Stack, StackItem } from '@patternfly/react-core';
-import { DEFAULT_PVC_SIZE } from '../../const';
+import { DEFAULT_PVC_SIZE } from './const';
 import CreateNewStorageForm from './CreateNewStorageForm';
 import ConnectWorkbenchOptions from './ConnectWorkbenchOptions';
 import AddExistingStorageForm from './AddExistingStorageForm';
