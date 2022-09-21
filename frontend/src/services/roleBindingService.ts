@@ -1,14 +1,16 @@
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import axios from 'axios';
 import { RoleBinding } from '../types';
-import { RoleBindingModel } from '../models';
 
 export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBinding> => {
-  return k8sGetResource({
-    model: RoleBindingModel,
-    queryOptions: { name: rbName, ns: projectName },
+  const url = `/api/rolebindings/${projectName}/${rbName}`;
+  return axios.get(url).then((response) => {
+    return response.data;
   });
 };
 
 export const createRoleBinding = (data: RoleBinding): Promise<RoleBinding> => {
-  return k8sCreateResource({ model: RoleBindingModel, resource: data });
+  const url = `/api/rolebindings`;
+  return axios.post(url, data).then((response) => {
+    return response.data;
+  });
 };

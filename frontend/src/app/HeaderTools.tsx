@@ -13,8 +13,9 @@ import {
 import { CaretDownIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
 import { AppNotification, State } from '../redux/types';
-import { useWatchDashboardConfig } from '../utilities/useWatchDashboardConfig';
 import AppLauncher from './AppLauncher';
+import { useAppContext } from './AppContext';
+import { logout } from './appUtils';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -27,7 +28,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
     (state) => state.appState.notifications,
   );
   const userName: string = useSelector<State, string>((state) => state.appState.user || '');
-  const { dashboardConfig } = useWatchDashboardConfig().dashboardConfig.spec;
+  const { dashboardConfig } = useAppContext();
 
   const newNotifications = React.useMemo(() => {
     return notifications.filter((notification) => !notification.read).length;
@@ -35,10 +36,10 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
 
   const handleLogout = () => {
     setUserMenuOpen(false);
-    fetch('/oauth/sign_out')
-      .then(() => console.log('logged out'))
-      .catch((err) => console.error(err))
-      .finally(() => window.location.reload());
+    logout().then(() => {
+      console.log('logged out');
+      window.location.reload();
+    });
   };
 
   const userMenuItems = [
@@ -67,7 +68,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       </DropdownItem>,
     );
   }
-  if (SUPPORT_LINK && !dashboardConfig.disableSupport) {
+  if (SUPPORT_LINK && !dashboardConfig.spec.dashboardConfig.disableSupport) {
     helpMenuItems.push(
       <DropdownItem
         key="support"
@@ -101,9 +102,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   return (
     <PageHeaderTools>
       <PageHeaderToolsGroup className="hidden-xs">
-        {!dashboardConfig.disableAppLauncher ? (
-          <AppLauncher dashboardConfig={dashboardConfig} />
-        ) : null}
+        {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? <AppLauncher /> : null}
         <PageHeaderToolsItem>
           <NotificationBadge isRead count={newNotifications} onClick={onNotificationsClick} />
         </PageHeaderToolsItem>

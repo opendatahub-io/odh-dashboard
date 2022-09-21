@@ -1,30 +1,30 @@
-import {
-  k8sCreateResource,
-  k8sDeleteResource,
-  k8sGetResource,
-  k8sUpdateResource,
-} from '@openshift/dynamic-plugin-sdk-utils';
-import { SecretModel } from '../models';
+import axios from 'axios';
 import { DeleteStatus, Secret } from '../types';
 
 export const getSecret = (projectName: string, secretName: string): Promise<Secret> => {
-  return k8sGetResource<Secret>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: projectName },
+  const url = `/api/secrets/${projectName}/${secretName}`;
+  return axios.get(url).then((response) => {
+    return response.data;
   });
 };
 
 export const createSecret = (data: Secret): Promise<Secret> => {
-  return k8sCreateResource<Secret>({ model: SecretModel, resource: data });
+  const url = `/api/secrets`;
+  return axios.post(url, data).then((response) => {
+    return response.data;
+  });
 };
 
 export const replaceSecret = (data: Secret): Promise<Secret> => {
-  return k8sUpdateResource<Secret>({ model: SecretModel, resource: data });
+  const url = `/api/secrets`;
+  return axios.put(url, data).then((response) => {
+    return response.data;
+  });
 };
 
 export const deleteSecret = (projectName: string, secretName: string): Promise<DeleteStatus> => {
-  return k8sDeleteResource<Secret, DeleteStatus>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: projectName },
+  const url = `/api/secrets/${projectName}/${secretName}`;
+  return axios.delete(url).then((response) => {
+    return response.data;
   });
 };

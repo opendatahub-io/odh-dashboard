@@ -1,5 +1,3 @@
-// TODO: Once we move away from the existing legacy type we should rename this back to K8sResourceCommon
-import { K8sResourceCommon as K8sResourceCommonSDK } from '@openshift/dynamic-plugin-sdk-utils';
 /*
  * Common types, should be kept up to date with backend types
  */
@@ -74,11 +72,15 @@ export type EnvVarReducedTypeKeyValues = {
 export type NotebookSize = {
   name: string;
   resources: NotebookResources;
+  notUserDefined?: boolean;
 };
 
 export type NotebookTolerationSettings = {
   enabled: boolean;
   key: string;
+};
+export type NotebookTolerationFormSettings = NotebookTolerationSettings & {
+  error?: string;
 };
 
 export type ClusterSettings = {
@@ -88,15 +90,17 @@ export type ClusterSettings = {
   notebookTolerationSettings: NotebookTolerationSettings | null;
 };
 
+/** @deprecated -- use SDK type */
 export type Secret = {
   data?: Record<string, string>;
   stringData?: Record<string, string>;
   type?: string;
-} & K8sResourceCommonSDK;
+} & K8sResourceCommon;
 
+/** @deprecated -- use SDK type */
 export type ConfigMap = {
   data?: Record<string, string>;
-} & K8sResourceCommonSDK;
+} & K8sResourceCommon;
 
 export type EnvVarResource = Secret | ConfigMap;
 
@@ -123,6 +127,7 @@ export type OdhApplication = {
     img: string;
     docsLink: string;
     getStartedLink: string;
+    getStartedMarkDown: string;
     category?: string;
     support?: string;
     quickStart: string | null;
@@ -162,10 +167,10 @@ export enum OdhDocumentType {
 export type OdhDocument = {
   metadata: {
     name: string;
-    type: string;
     annotations?: { [key: string]: string };
   };
   spec: {
+    type: string;
     displayName: string;
     appName?: string;
     appDisplayName?: string; // Only set on UI side in resources section
@@ -179,11 +184,6 @@ export type OdhDocument = {
     durationMinutes?: number;
     featureFlag?: string;
   };
-};
-
-export type OdhGettingStarted = {
-  appName: string;
-  markdown: string;
 };
 
 export enum BUILD_PHASE {
@@ -204,21 +204,23 @@ export type BuildStatus = {
   timestamp: string;
 };
 
+type K8sMetadata = {
+  name: string;
+  namespace?: string;
+  uid?: string;
+  labels?: { [key: string]: string };
+  annotations?: { [key: string]: string };
+};
+
 /**
- * @deprecated -- use the SDK version
+ * @deprecated -- use the SDK version -- see k8sTypes.ts
  * All references that use this are un-vetted data against existing types, should be converted over
  * to the new K8sResourceCommon from the SDK to keep everythung unified on one front.
  */
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    uid?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
-  };
+  metadata: K8sMetadata;
 };
 
 // Minimal type for ConsoleLinks
@@ -288,7 +290,7 @@ export type NotebookAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };
 
-export type Notebook = K8sResourceCommonSDK & {
+export type Notebook = K8sResourceCommon & {
   metadata: {
     annotations: Partial<{
       'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
@@ -544,7 +546,7 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
-export type PersistentVolumeClaim = K8sResourceCommonSDK & {
+export type PersistentVolumeClaim = K8sResourceCommon & {
   spec: {
     accessModes: string[];
     resources: {
@@ -575,7 +577,10 @@ export type Volume = {
 
 export type VolumeMount = { mountPath: string; name: string };
 
-/** Copy from partial of V1Status that will returned by the delete CoreV1Api */
+/**
+ * @deprecated -- use K8sStatus
+ * Copy from partial of V1Status that will returned by the delete CoreV1Api
+ */
 export type DeleteStatus = {
   apiVersion?: string;
   code?: number;
@@ -594,25 +599,27 @@ export type RoleBindingSubject = {
 export type RoleBinding = {
   subjects: RoleBindingSubject[];
   roleRef: RoleBindingSubject;
-} & K8sResourceCommonSDK;
+} & K8sResourceCommon;
 
-export type ResourceGetter<T extends K8sResourceCommonSDK> = (
+export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,
   resourceName: string,
 ) => Promise<T>;
 
-export type ResourceCreator<T extends K8sResourceCommonSDK> = (resource: T) => Promise<T>;
+export type ResourceCreator<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
 
-export type ResourceReplacer<T extends K8sResourceCommonSDK> = (resource: T) => Promise<T>;
+export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Promise<T>;
 
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
-  lastTimestamp: string;
+  metadata: K8sMetadata;
+  eventTime: string;
+  lastTimestamp: string | null; // if it never starts, the value is null
   message: string;
   reason: string;
-  type: string;
-} & K8sResourceCommon;
+  type: 'Warning' | 'Normal';
+};
 
 export type NotebookStatus = {
   percentile: number;
@@ -625,6 +632,8 @@ export type NotebookStatus = {
 export enum EventStatus {
   IN_PROGRESS = 'In Progress',
   ERROR = 'Error',
+  INFO = 'Info',
+  WARNING = 'Warning',
 }
 
 export type UsernameMap<V> = { [username: string]: V };

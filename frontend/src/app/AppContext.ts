@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { blankDashboardCR } from '../utilities/useWatchDashboardConfig';
 import { BuildStatus, DashboardConfig } from '../types';
 
 type AppContextProps = {
@@ -15,9 +14,10 @@ const defaultAppContext: AppContextProps = {
   setIsNavOpen: () => undefined,
   onNavToggle: () => undefined,
   buildStatuses: [],
-  dashboardConfig: blankDashboardCR,
+  // At runtime dashboardConfig is never null -- DO NOT DO THIS usually
+  dashboardConfig: null as unknown as DashboardConfig,
 };
 
-const AppContext = React.createContext(defaultAppContext);
+export const AppContext = React.createContext(defaultAppContext);
 
-export default AppContext;
+export const useAppContext = (): AppContextProps => React.useContext(AppContext);

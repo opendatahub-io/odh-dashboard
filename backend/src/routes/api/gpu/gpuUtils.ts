@@ -3,8 +3,9 @@ import { V1PodList } from '@kubernetes/client-node';
 import https from 'https';
 import * as fs from 'fs';
 
-export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number> => {
+export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<[boolean, number]> => {
   let maxGpuNumber = 0;
+  let areGpusConfigured = false;
   const gpuPodList = await fastify.kube.coreV1Api
     .listPodForAllNamespaces(undefined, undefined, undefined, 'app=nvidia-dcgm-exporter')
     .then((res) => {
@@ -15,6 +16,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
       return { items: [] } as V1PodList;
     });
   if (gpuPodList.items.length != 0) {
+    areGpusConfigured = true;
     const token = await new Promise<string>((resolve, reject) => {
       fs.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token', (err, data) => {
         try {
@@ -37,7 +39,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<number
       }
     }
   }
-  return maxGpuNumber;
+  return [areGpusConfigured, maxGpuNumber];
 };
 
 export const getGPUData = async (

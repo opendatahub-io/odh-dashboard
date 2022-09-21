@@ -12,11 +12,10 @@ import {
   NotebookResources,
   NotebookAffinity,
 } from '../types';
+import { RecursivePartial } from '../typeHelpers';
 import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../utilities/const';
 import { MOUNT_PATH } from '../pages/notebookController/const';
-import { usernameTranslate } from 'utilities/notebookControllerUtils';
-import { k8sPatchResource, k8sUpdateResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { NotebookModel } from '../models';
+import { usernameTranslate } from '../utilities/notebookControllerUtils';
 
 export const getNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
   const url = `/api/notebooks/${projectName}/${notebookName}`;
@@ -258,26 +257,17 @@ const createNotebook = async (notebook: Notebook): Promise<Notebook> => {
 
 /** We have a notebook, start it back up */
 const enableNotebook = async (notebook: Notebook): Promise<Notebook> => {
-  const { namespace } = notebook.metadata;
+  const { name, namespace } = notebook.metadata;
 
-  if (!namespace) {
+  if (!namespace || !name) {
     return Promise.reject('Notebook is not assigned to a namespace -- cannot start it');
   }
 
-  // TODO: Is there a cleaner way to remove the annotation in the SDK?
-  return k8sUpdateResource<Notebook>({
-    model: NotebookModel,
-    resource: notebook,
-  }).then(() =>
-    k8sPatchResource({
-      model: NotebookModel,
-      queryOptions: { name: notebook.metadata.name, ns: notebook.metadata.namespace },
-      patches: [
-        {
-          path: '/metadata/annotations/kubeflow-resource-stopped',
-          op: 'remove',
-        },
-      ],
+  return patchNotebook(
+    namespace,
+    name,
+    _.merge<RecursivePartial<Notebook>, Notebook, RecursivePartial<Notebook>>({}, notebook, {
+      metadata: { annotations: { 'kubeflow-resource-stopped': undefined } },
     }),
   );
 };
@@ -296,7 +286,7 @@ export const startNotebook = (data: StartNotebookData): Promise<Notebook> => {
         }
 
         // We have a notebook, patch it
-        enableNotebook(_.merge({}, responseData, notebook)).then(resolve).catch(reject);
+        enableNotebook(notebook).then(resolve).catch(reject);
       })
       .catch(reject);
   });
@@ -304,16 +294,26 @@ export const startNotebook = (data: StartNotebookData): Promise<Notebook> => {
 
 export const stopNotebook = (projectName: string, notebookName: string): Promise<Notebook> => {
   const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
+  const patch: RecursivePartial<Notebook> = {
+    metadata: { annotations: { 'kubeflow-resource-stopped': dateStr } },
+  };
 
-  return k8sPatchResource({
-    model: NotebookModel,
-    queryOptions: { name: notebookName, ns: projectName },
-    patches: [
-      {
-        path: '/metadata/annotations/kubeflow-resource-stopped',
-        value: dateStr,
-        op: 'add',
-      },
-    ],
-  });
+  return patchNotebook(projectName, notebookName, patch);
+};
+
+export const patchNotebook = (
+  projectName: string,
+  notebookName: string,
+  updateData: RecursivePartial<Notebook>,
+): Promise<Notebook> => {
+  const url = `/api/notebooks/${projectName}/${notebookName}`;
+
+  return axios
+    .patch(url, updateData)
+    .then((response) => {
+      return response.data;
+    })
+    .catch((e) => {
+      throw new Error(e.response.data.message);
+    });
 };

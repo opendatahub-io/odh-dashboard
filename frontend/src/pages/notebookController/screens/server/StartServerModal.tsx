@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  ActionList,
+  ActionListItem,
   Alert,
   AlertVariant,
   Button,
@@ -12,13 +14,20 @@ import {
   ProgressVariant,
 } from '@patternfly/react-core';
 import { useDeepCompareMemoize } from '../../../../utilities/useDeepCompareMemoize';
-import { useNotebookStatus } from '../../../../utilities/notebookControllerUtils';
+import {
+  getEventTimestamp,
+  useNotebookRedirectLink,
+  useNotebookStatus,
+} from '../../../../utilities/notebookControllerUtils';
 import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
+import { useHistory } from 'react-router';
+import useBrowserTabPreference from './useBrowserTabPreference';
 
 import '../../NotebookController.scss';
 
 type StartServerModalProps = {
+  spawnInProgress: boolean;
   open: boolean;
   onClose: () => void;
 };
@@ -29,64 +38,73 @@ type SpawnStatus = {
   description: React.ReactNode;
 };
 
-const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) => {
-  const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
+const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgress, onClose }) => {
+  const { currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
-  const spawnInProgress = open;
   const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
+  const [isUsingCurrentTab] = useBrowserTabPreference();
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
+  const getNotebookLink = useNotebookRedirectLink();
+  const history = useHistory();
+  const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
-  const onBeforeClose = () => {
-    // Notify
-    onClose();
-  };
   React.useEffect(() => {
-    // TODO: Improve this, hack to just not update the modal while it is open
-    if (!spawnInProgress && (spawnPercentile || spawnStatus)) {
+    if (!open) {
       // Reset the modal
       setLogsExpanded(false);
       setSpawnPercentile(0);
       setSpawnStatus(null);
     }
-  }, [spawnInProgress, spawnPercentile, spawnStatus]);
+  }, [open]);
 
-  const notebookLink = notebook?.metadata.annotations?.['opendatahub.io/link'];
-
-  const spawnFailed =
-    spawnStatus?.status === AlertVariant.danger || spawnStatus?.status === AlertVariant.warning;
-
-  React.useEffect(() => {
-    let timer;
-    if (isNotebookRunning) {
-      setSpawnPercentile(100);
-      setSpawnStatus({
-        status: AlertVariant.success,
-        title: 'Success',
-        description: 'The notebook server is up and running. This page will update momentarily.',
-      });
-      timer = setTimeout(() => {
-        if (notebookLink) {
-          window.location.href = notebookLink;
-        } else {
+  const navigateToNotebook = React.useCallback(
+    (useCurrentTab: boolean): void => {
+      getNotebookLink()
+        .then((notebookLink) => {
+          if (useCurrentTab) {
+            window.location.href = notebookLink;
+          } else {
+            window.open(notebookLink, '_blank');
+            history.push('/notebookController');
+          }
+        })
+        .catch(() => {
           setSpawnStatus({
             status: AlertVariant.danger,
             title: 'Failed to redirect',
             description:
               'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
           });
-        }
-      }, 6000);
+        });
+    },
+    [getNotebookLink, history],
+  );
+
+  React.useEffect(() => {
+    let timer;
+    if (isNotebookRunning && open) {
+      setSpawnPercentile(100);
+      setSpawnStatus({
+        status: AlertVariant.success,
+        title: 'Success',
+        description: `The notebook server is up and running.${
+          isUsingCurrentTab ? ' This page will update momentarily.' : ''
+        }`,
+      });
+      if (isUsingCurrentTab) {
+        timer = setTimeout(() => navigateToNotebook(true), 6000);
+      }
     }
     return () => {
       clearTimeout(timer);
     };
-  }, [isNotebookRunning, notebookLink]);
+  }, [isNotebookRunning, open, isUsingCurrentTab, navigateToNotebook]);
 
   React.useEffect(() => {
-    if (spawnInProgress && !isNotebookRunning) {
+    if (spawnInProgress && !isNotebookRunning && open) {
       if (!notebookStatus) {
         return;
       }
@@ -99,12 +117,24 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
           title: notebookStatus.currentEventReason,
           description: notebookStatus.currentEventDescription,
         });
+      } else if (notebookStatus.currentStatus === EventStatus.INFO) {
+        setSpawnStatus({
+          status: AlertVariant.info,
+          title: notebookStatus.currentEventReason,
+          description: notebookStatus.currentEventDescription,
+        });
+      } else if (notebookStatus.currentStatus === EventStatus.WARNING) {
+        setSpawnStatus({
+          status: AlertVariant.warning,
+          title: notebookStatus.currentEventReason,
+          description: notebookStatus.currentEventDescription,
+        });
       }
     }
-  }, [notebookStatus, spawnInProgress, isNotebookRunning]);
+  }, [notebookStatus, spawnInProgress, isNotebookRunning, open]);
 
   const renderProgress = () => {
-    let variant;
+    let variant: ProgressVariant | undefined;
     switch (spawnStatus?.status) {
       case AlertVariant.danger:
         variant = ProgressVariant.danger;
@@ -120,18 +150,15 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
     }
 
     const currentEvent = notebookStatus?.currentEvent;
-    return (
-      <Progress
-        id="progress-bar"
-        value={spawnPercentile}
-        title={
-          events.length > 0 && currentEvent
-            ? currentEvent
-            : 'Waiting for server request to start...'
-        }
-        variant={variant}
-      />
-    );
+    let title: string;
+    if (events.length > 0 && currentEvent) {
+      title = currentEvent;
+    } else if (open && !spawnInProgress) {
+      title = 'Creating resources...';
+    } else {
+      title = 'Waiting for server request to start...';
+    }
+    return <Progress id="progress-bar" value={spawnPercentile} title={title} variant={variant} />;
   };
 
   const renderStatus = () => {
@@ -147,10 +174,36 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
 
   const renderButtons = () =>
     !isNotebookRunning ? (
-      <Button key="cancel" variant={spawnFailed ? 'primary' : 'secondary'} onClick={onBeforeClose}>
-        {spawnFailed ? 'Close' : 'Cancel'}
+      <Button
+        key="cancel"
+        variant={spawnFailed ? 'primary' : 'secondary'}
+        onClick={onClose}
+        isDisabled={!open}
+      >
+        Cancel
       </Button>
-    ) : null;
+    ) : isUsingCurrentTab ? null : (
+      <ActionList>
+        <ActionListItem>
+          <Button
+            variant="primary"
+            key="open-new-tab-button"
+            onClick={() => navigateToNotebook(false)}
+          >
+            Open in new tab
+          </Button>
+        </ActionListItem>
+        <ActionListItem>
+          <Button
+            variant="secondary"
+            key="open-new-tab-button"
+            onClick={() => navigateToNotebook(true)}
+          >
+            Open in current tab
+          </Button>
+        </ActionListItem>
+      </ActionList>
+    );
 
   const renderLogs = () => (
     <ExpandableSection
@@ -162,7 +215,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
       <List isPlain isBordered>
         {events.reverse().map((event, index) => (
           <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
-            {`${event.lastTimestamp} [${event.type}] ${event.message}`}
+            {`${getEventTimestamp(event)} [${event.type}] ${event.message}`}
           </ListItem>
         ))}
         <ListItem>Server requested</ListItem>
@@ -180,7 +233,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
       title="Starting server"
       isOpen={open}
       showClose={spawnFailed}
-      onClose={onBeforeClose}
+      onClose={onClose}
     >
       {renderProgress()}
       {renderStatus()}
@@ -189,7 +242,5 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, onClose }) =>
     </Modal>
   );
 };
-
-StartServerModal.displayName = 'StartServerModal';
 
 export default StartServerModal;

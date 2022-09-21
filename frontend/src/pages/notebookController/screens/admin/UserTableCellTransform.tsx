@@ -2,6 +2,7 @@ import * as React from 'react';
 import { relativeTime } from '../../../../utilities/time';
 import { isField, AdminViewUserData } from './types';
 import ServerStatus from './ServerStatus';
+import NotebookActions from './NotebookActions';
 
 type TableDataRendererProps = {
   user: AdminViewUserData;
@@ -13,6 +14,10 @@ const UserTableCellTransform: React.FC<TableDataRendererProps> = ({ user, userPr
 
   if (isField<AdminViewUserData['serverStatus']>(content, userProperty === 'serverStatus')) {
     return <ServerStatus username={user.name} data={content} />;
+  }
+
+  if (isField<AdminViewUserData['actions']>(content, userProperty === 'actions')) {
+    return <NotebookActions data={content} />;
   }
 
   if (isField<AdminViewUserData['lastActivity']>(content, userProperty === 'lastActivity')) {

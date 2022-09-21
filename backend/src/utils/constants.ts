@@ -41,6 +41,9 @@ export const blankDashboardCR: DashboardConfig = {
       disableUserManagement: false,
       disableProjects: false,
     },
+    notebookController: {
+      enabled: true,
+    },
     groupsConfig: {
       adminGroups: 'odh-admins',
       allowedGroups: 'system:authenticated',

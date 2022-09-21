@@ -1,14 +1,16 @@
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { PVCModel } from '../models';
+import axios from 'axios';
 import { PersistentVolumeClaim } from '../types';
 
 export const getPvc = (projectName: string, pvcName: string): Promise<PersistentVolumeClaim> => {
-  return k8sGetResource<PersistentVolumeClaim>({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: projectName },
+  const url = `/api/pvc/${projectName}/${pvcName}`;
+  return axios.get(url).then((response) => {
+    return response.data;
   });
 };
 
 export const createPvc = (data: PersistentVolumeClaim): Promise<PersistentVolumeClaim> => {
-  return k8sCreateResource<PersistentVolumeClaim>({ model: PVCModel, resource: data });
+  const url = `/api/pvc`;
+  return axios.post(url, data).then((response) => {
+    return response.data;
+  });
 };

@@ -4,7 +4,6 @@ import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
 import ExploreApplications from '../pages/exploreApplication/ExploreApplications';
 import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
-import { mockGettingStartedDoc } from '../../__mocks__/mockGettingStartedDoc';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
@@ -33,18 +32,14 @@ jest.mock('react', () => {
     lazy: (factory) => factory(),
   };
 });
+jest.mock('../app/AppContext.ts', () => ({
+  useAppContext: () => ({ dashboardConfig }),
+}));
 jest.mock('../utilities/useWatchComponents', () => ({
   useWatchComponents: () => ({
     loaded: true,
     loadError: null,
     components: mockExploreApplications,
-  }),
-}));
-jest.mock('../utilities/useGettingStarted', () => ({
-  useGettingStarted: () => ({
-    odhGettingStarted: mockGettingStartedDoc,
-    loaded: true,
-    loadError: null,
   }),
 }));
 jest.mock('../utilities/router', () => ({
@@ -54,13 +49,6 @@ jest.mock('../utilities/router', () => ({
   removeQueryArgument: () => {
     return;
   },
-}));
-jest.mock('../utilities/useWatchDashboardConfig', () => ({
-  useWatchDashboardConfig: () => ({
-    dashboardConfig,
-    loaded: true,
-    loadError: null,
-  }),
 }));
 
 // scrollIntoView is not implemented in jsdom
