@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Stack, StackItem, Select, Form, FormGroup } from '@patternfly/react-core';
+import { Select, Form, FormGroup, FlexItem, Flex } from '@patternfly/react-core';
 
 type AddExistingStorageFormProps = {
   projectSelection: string | null;
@@ -35,8 +35,8 @@ const AddExistingStorageForm: React.FC<AddExistingStorageFormProps> = ({
 
   return (
     <Form>
-      <Stack>
-        <StackItem>
+      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+        <FlexItem>
           <FormGroup
             label="Project where the PV resides"
             fieldId="add-existing-storage-project-selection"
@@ -51,8 +51,8 @@ const AddExistingStorageForm: React.FC<AddExistingStorageFormProps> = ({
               menuAppendTo="parent"
             ></Select>
           </FormGroup>
-        </StackItem>
-        <StackItem>
+        </FlexItem>
+        <FlexItem>
           <FormGroup label="PV" fieldId="add-existing-storage-pv-selection">
             <Select
               variant="typeahead"
@@ -64,8 +64,8 @@ const AddExistingStorageForm: React.FC<AddExistingStorageFormProps> = ({
               menuAppendTo="parent"
             ></Select>
           </FormGroup>
-        </StackItem>
-      </Stack>
+        </FlexItem>
+      </Flex>
     </Form>
   );
 };
