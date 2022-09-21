@@ -161,16 +161,16 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
   );
 
   const selectOptions = [
-    <SelectOption id="search-filter-name" key={1} value="name">
+    <SelectOption data-id="search-filter-name" key={1} value="name">
       Name
     </SelectOption>,
-    <SelectOption id="search-filter-desc" key={2} value="description">
+    <SelectOption data-id="search-filter-desc" key={2} value="description">
       Description
     </SelectOption>,
-    <SelectOption id="search-filter-user" key={4} value="user">
+    <SelectOption data-id="search-filter-user" key={4} value="user">
       User
     </SelectOption>,
-    <SelectOption id="search-filter-uploaded" key={5} value="uploaded">
+    <SelectOption data-id="search-filter-uploaded" key={5} value="uploaded">
       Uploaded
     </SelectOption>,
   ];
@@ -186,7 +186,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
     <React.Fragment>
       <ToolbarItem variant="search-filter" className="filter-select">
         <Select
-          id="search-filter-select"
+          data-id="search-filter-select"
           variant={SelectVariant.single}
           aria-label="Select for image images table"
           onToggle={(isExpanded) => {
@@ -209,7 +209,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       </ToolbarItem>
       <ToolbarItem variant="search-filter">
         <SearchInput
-          id="search-filter-input"
+          data-id="search-filter-input"
           className="filter-search"
           aria-label="search input for image images table"
           value={tableFilter.filter}
@@ -232,7 +232,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       </ToolbarItem>
       <ToolbarItem>
         <Button
-          id="import-new-image"
+          data-id="import-new-image"
           onClick={() => {
             setImportImageModalVisible(true);
           }}
@@ -290,7 +290,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
           setUpdateImageModalVisible(false);
         }}
       />
-      <Toolbar id="toolbar-items">
+      <Toolbar data-id="toolbar-items">
         <ToolbarContent>{items}</ToolbarContent>
       </Toolbar>
       <TableComposable
@@ -334,7 +334,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
                     <Switch
                       className="enable-switch"
                       aria-label={`Enable Switch ${image.name}`}
-                      id={`enabled-disable-${image.id}`}
+                      data-id={`enabled-disable-${image.id}`}
                       isChecked={
                         BYONImageVisible.find((value) => {
                           return image.id === value.id;

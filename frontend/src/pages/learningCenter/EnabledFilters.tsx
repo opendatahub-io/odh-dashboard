@@ -44,6 +44,7 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
   return (
     <FilterSidePanelCategory key="enabled-filter" title="Enabled state">
       <FilterSidePanelCategoryItem
+        data-id="enabled-filter-checkbox"
         id="enabled-filter-checkbox"
         checked={enabledFilters.includes('true')}
         onClick={(e) =>
@@ -57,6 +58,7 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
         {`Enabled (${enabledCount})`}
       </FilterSidePanelCategoryItem>
       <FilterSidePanelCategoryItem
+        data-id="not-enabled-filter-checkbox"
         id="not-enabled-filter-checkbox"
         checked={enabledFilters.includes('false')}
         onClick={(e) =>

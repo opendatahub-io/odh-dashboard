@@ -158,7 +158,9 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
     } else {
       title = 'Waiting for server request to start...';
     }
-    return <Progress id="progress-bar" value={spawnPercentile} title={title} variant={variant} />;
+    return (
+      <Progress data-id="progress-bar" value={spawnPercentile} title={title} variant={variant} />
+    );
   };
 
   const renderStatus = () => {
@@ -175,6 +177,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   const renderButtons = () =>
     !isNotebookRunning ? (
       <Button
+        data-id="close-spawn"
         key="cancel"
         variant={spawnFailed ? 'primary' : 'secondary'}
         onClick={onClose}
@@ -207,6 +210,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
 
   const renderLogs = () => (
     <ExpandableSection
+      data-id="expand-logs"
       toggleText={`${logsExpanded ? 'Collapse' : 'Expand'} event log`}
       onToggle={(isExpanded) => setLogsExpanded(isExpanded)}
       isExpanded={logsExpanded}

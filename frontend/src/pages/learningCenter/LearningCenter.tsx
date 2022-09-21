@@ -207,7 +207,7 @@ export const LearningCenter: React.FC = () => {
       loadError={loadError || docsLoadError}
       empty={false}
     >
-      <div className="odh-dashboard__page-content" data-testid="page-content" ref={observe}>
+      <div className="odh-dashboard__page-content" data-id="page-content" ref={observe}>
         <LearningCenterFilters
           docApps={docApps}
           collapsible={filtersCollapsible}

@@ -87,7 +87,7 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
         >
           {selectOptions}
         </Select>
-        <Button variant="plain" onClick={removeVariables}>
+        <Button data-id="remove-env-var-button" variant="plain" onClick={removeVariables}>
           <MinusCircleIcon />
         </Button>
       </Flex>

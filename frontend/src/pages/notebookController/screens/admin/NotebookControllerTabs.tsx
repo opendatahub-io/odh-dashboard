@@ -20,12 +20,14 @@ const NotebookControllerTabs: React.FC = () => {
         }}
       >
         <Tab
+          data-id="spawner-tab"
           eventKey={NotebookControllerTabTypes.SERVER}
           title={<TabTitleText>Notebook Server</TabTitleText>}
         >
           <NotebookServerRoutes />
         </Tab>
         <Tab
+          data-id="admin-tab"
           eventKey={NotebookControllerTabTypes.ADMIN}
           title={<TabTitleText>Administration</TabTitleText>}
         >

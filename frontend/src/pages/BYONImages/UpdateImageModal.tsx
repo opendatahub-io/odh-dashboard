@@ -69,7 +69,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
       onClose={onCloseHandler}
       actions={[
         <Button
-          id="save-button"
+          data-id="import-confirm-button"
           key="confirm"
           variant="primary"
           onClick={() => {
@@ -101,7 +101,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
         >
           Save Changes
         </Button>,
-        <Button id="cancel-button" key="cancel" variant="link" onClick={onCloseHandler}>
+        <Button data-id="import-cancel-button" key="cancel" variant="link" onClick={onCloseHandler}>
           Cancel
         </Button>,
       ]}
@@ -122,7 +122,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
           <TextInput
             isRequired
             type="text"
-            id="byon-image-name-input"
+            data-id="byon-image-name-input"
             name="byon-image-name-input"
             value={name}
             onChange={(value) => {
@@ -134,7 +134,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
           <TextInput
             isRequired
             type="text"
-            id="byon-image-description-input"
+            data-id="byon-image-description-input"
             name="byon-image-description-input"
             aria-describedby="byon-image-description-input"
             value={description}
@@ -150,7 +150,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
               setActiveTabKey(indexKey as number);
             }}
           >
-            <Tab eventKey={0} title={<TabTitleText>Software</TabTitleText>}>
+            <Tab data-id="software-tab" eventKey={0} title={<TabTitleText>Software</TabTitleText>}>
               {software.length > 0 ? (
                 <>
                   <TableComposable aria-label="Simple table" variant="compact">
@@ -160,8 +160,8 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     </Caption>
                     <Thead>
                       <Tr>
-                        <Th id="software-column">Software</Th>
-                        <Th id="version-column">Version</Th>
+                        <Th data-id="software-column">Software</Th>
+                        <Th data-id="version-column">Version</Th>
                         <Th />
                       </Tr>
                     </Thead>
@@ -183,7 +183,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
-                    id="add-software-button"
+                    data-id="add-software-secondary-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {
@@ -211,7 +211,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
-                    id="add-software-button"
+                    data-id="add-software-button"
                     className="empty-button"
                     variant="secondary"
                     onClick={() => {
@@ -240,8 +240,8 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     </Caption>
                     <Thead>
                       <Tr>
-                        <Th id="package-column">Package</Th>
-                        <Th id="version-column">Version</Th>
+                        <Th data-id="package-column">Package</Th>
+                        <Th data-id="version-column">Version</Th>
                         <Th />
                       </Tr>
                     </Thead>
@@ -263,7 +263,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
-                    id="add-package-button"
+                    data-id="add-package-secondary-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {
@@ -291,7 +291,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                     won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
-                    id="add-package-button"
+                    data-id="add-package-button"
                     className="empty-button"
                     variant="secondary"
                     onClick={() => {

@@ -45,7 +45,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
 
     return (
       <Drawer
-        data-testid="explore-applications"
+        data-id="explore-applications"
         isExpanded={!disableInfo && !!selectedComponent}
         isInline
       >
@@ -67,7 +67,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               loadError={loadError}
             >
               {!isEmpty ? (
-                <div className="odh-dashboard__page-content" data-testid="page-content">
+                <div className="odh-dashboard__page-content" data-id="page-content">
                   <PageSection>
                     <Gallery role="list" className="odh-explore-apps__gallery" hasGutter>
                       {exploreComponents.map((c) => (
