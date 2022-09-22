@@ -2,26 +2,18 @@ import * as React from 'react';
 import { Flex, FlexItem, Radio, Select } from '@patternfly/react-core';
 
 type ConnectWorkbenchOptionsProps = {
-  isConnectToAll: boolean;
-  setConnectToAll: (connectToAll: boolean) => void;
-  workbenchSelection: string | null;
-  setWorkbenchSelection: (selection: string | null) => void;
-  workbenchSelectOpen: boolean;
-  setWorkbenchSelectOpen: (open: boolean) => void;
+  allWorkbenches: string[]; // maybe workbench type in the future, take string now
+  workbenchSelection: string | string[] | null;
+  onUpdate: (workbench: string | string[] | null) => void;
 };
 
 const ConnectWorkbenchOptions: React.FC<ConnectWorkbenchOptionsProps> = ({
-  isConnectToAll,
-  setConnectToAll,
+  allWorkbenches,
   workbenchSelection,
-  setWorkbenchSelection,
-  workbenchSelectOpen,
-  setWorkbenchSelectOpen,
+  onUpdate,
 }) => {
-  const clearWorkbenchSelection = () => {
-    setWorkbenchSelectOpen(false);
-    setWorkbenchSelection(null);
-  };
+  const [workbenchSelectOpen, setWorkbenchSelectOpen] = React.useState<boolean>(false);
+  const isConnectToAll = Array.isArray(workbenchSelection);
   return (
     <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
       <FlexItem>
@@ -30,7 +22,7 @@ const ConnectWorkbenchOptions: React.FC<ConnectWorkbenchOptionsProps> = ({
           name="connect-to-all-workbenches-radio"
           label="Connect to all workbenches"
           isChecked={isConnectToAll}
-          onChange={() => setConnectToAll(true)}
+          onChange={() => onUpdate(allWorkbenches)}
         />
       </FlexItem>
       <FlexItem>
@@ -40,14 +32,21 @@ const ConnectWorkbenchOptions: React.FC<ConnectWorkbenchOptionsProps> = ({
           name="connect-to-specific-workbench-radio"
           label="Connect to a specific workbench"
           isChecked={!isConnectToAll}
-          onChange={() => setConnectToAll(false)}
+          onChange={() => onUpdate(null)}
           body={
             !isConnectToAll && (
               <Select
                 variant="typeahead"
                 selections={workbenchSelection as string}
                 isOpen={workbenchSelectOpen}
-                onClear={clearWorkbenchSelection}
+                onClear={() => {
+                  onUpdate(null);
+                  setWorkbenchSelectOpen(false);
+                }}
+                onSelect={(e, selection) => {
+                  onUpdate(selection as string);
+                  setWorkbenchSelectOpen(false);
+                }}
                 onToggle={(isOpen) => setWorkbenchSelectOpen(isOpen)}
                 placeholderText="Choose an existing workbench"
                 menuAppendTo="parent"

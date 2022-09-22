@@ -4,6 +4,7 @@ import { DEFAULT_PVC_SIZE } from './const';
 import CreateNewStorageForm from './CreateNewStorageForm';
 import ConnectWorkbenchOptions from './ConnectWorkbenchOptions';
 import AddExistingStorageForm from './AddExistingStorageForm';
+import { ExistingStorage } from './types';
 
 import './addStorageModal.scss';
 
@@ -19,15 +20,35 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
   const [name, setName] = React.useState<string>('');
   const [description, setDescription] = React.useState<string>('');
   const [size, setSize] = React.useState<string>(DEFAULT_PVC_SIZE);
-  const [isConnectToAll, setConnectToAll] = React.useState<boolean>(true);
-  const [workbenchSelection, setWorkbenchSelection] = React.useState<string | null>(null);
-  const [workbenchSelectOpen, setWorkbenchSelectOpen] = React.useState<boolean>(false);
+  const [workbenchSelection, setWorkbenchSelection] = React.useState<string | string[] | null>([]);
 
   // states for adding existing PV
   const [projectSelection, setProjectSelection] = React.useState<string | null>(null);
-  const [projectSelectOpen, setProjectSelectOpen] = React.useState<boolean>(false);
   const [storageSelection, setStorageSelection] = React.useState<string | null>(null);
-  const [storageSelectOpen, setStorageSelectOpen] = React.useState<boolean>(false);
+  const existingSelections: ExistingStorage = React.useMemo(
+    () => ({ project: projectSelection, storage: storageSelection }),
+    [projectSelection, storageSelection],
+  );
+
+  const updateWorkbench = (workbench: string | string[] | null) => {
+    setWorkbenchSelection(workbench);
+  };
+
+  const updateExistingStorage = (selection: string, storageOnly: boolean) => {
+    if (!storageOnly) {
+      setProjectSelection(selection);
+      setStorageSelection(null);
+    } else {
+      setStorageSelection(selection);
+    }
+  };
+
+  const clearExistingStorage = (storageOnly: boolean) => {
+    if (!storageOnly) {
+      setProjectSelection(null);
+    }
+    setStorageSelection(null);
+  };
 
   return (
     <Modal
@@ -66,12 +87,9 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
                   setSize={setSize}
                   workbenchOptions={
                     <ConnectWorkbenchOptions
-                      isConnectToAll={isConnectToAll}
-                      setConnectToAll={setConnectToAll}
-                      workbenchSelectOpen={workbenchSelectOpen}
-                      setWorkbenchSelectOpen={setWorkbenchSelectOpen}
+                      allWorkbenches={[]}
                       workbenchSelection={workbenchSelection}
-                      setWorkbenchSelection={setWorkbenchSelection}
+                      onUpdate={updateWorkbench}
                     />
                   }
                 />
@@ -90,14 +108,9 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
             body={
               !isCreateNewPV && (
                 <AddExistingStorageForm
-                  projectSelection={projectSelection}
-                  setProjectSelection={setProjectSelection}
-                  projectSelectOpen={projectSelectOpen}
-                  setProjectSelectOpen={setProjectSelectOpen}
-                  storageSelection={storageSelection}
-                  setStorageSelection={setStorageSelection}
-                  storageSelectOpen={storageSelectOpen}
-                  setStorageSelectOpen={setStorageSelectOpen}
+                  selections={existingSelections}
+                  onClear={clearExistingStorage}
+                  onUpdate={updateExistingStorage}
                 />
               )
             }

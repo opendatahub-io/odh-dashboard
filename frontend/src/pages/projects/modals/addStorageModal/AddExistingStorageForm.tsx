@@ -1,37 +1,20 @@
 import * as React from 'react';
 import { Select, Form, FormGroup, FlexItem, Flex } from '@patternfly/react-core';
+import { ExistingStorage } from './types';
 
 type AddExistingStorageFormProps = {
-  projectSelection: string | null;
-  setProjectSelection: (project: string | null) => void;
-  projectSelectOpen: boolean;
-  setProjectSelectOpen: (open: boolean) => void;
-  storageSelection: string | null;
-  setStorageSelection: (storage: string | null) => void;
-  storageSelectOpen: boolean;
-  setStorageSelectOpen: (open: boolean) => void;
+  selections: ExistingStorage;
+  onClear: (storageOnly: boolean) => void;
+  onUpdate: (selection: string, storageOnly: boolean) => void;
 };
 
 const AddExistingStorageForm: React.FC<AddExistingStorageFormProps> = ({
-  projectSelection,
-  setProjectSelection,
-  projectSelectOpen,
-  setProjectSelectOpen,
-  storageSelection,
-  setStorageSelection,
-  storageSelectOpen,
-  setStorageSelectOpen,
+  selections,
+  onClear,
+  onUpdate,
 }) => {
-  const clearProjectSelection = () => {
-    setProjectSelectOpen(false);
-    setProjectSelection(null);
-    setStorageSelection(null);
-  };
-
-  const clearStorageSelection = () => {
-    setStorageSelectOpen(false);
-    setStorageSelection(null);
-  };
+  const [projectSelectOpen, setProjectSelectOpen] = React.useState<boolean>(false);
+  const [storageSelectOpen, setStorageSelectOpen] = React.useState<boolean>(false);
 
   return (
     <Form>
@@ -43,9 +26,15 @@ const AddExistingStorageForm: React.FC<AddExistingStorageFormProps> = ({
           >
             <Select
               variant="typeahead"
-              selections={projectSelection as string}
+              selections={selections.project as string}
               isOpen={projectSelectOpen}
-              onClear={clearProjectSelection}
+              onClear={() => {
+                onClear(false);
+                setProjectSelectOpen(false);
+              }}
+              onSelect={(e, selection) => {
+                onUpdate(selection as string, false);
+              }}
               onToggle={(isOpen) => setProjectSelectOpen(isOpen)}
               placeholderText="Select a project"
               menuAppendTo="parent"
@@ -56,9 +45,15 @@ const AddExistingStorageForm: React.FC<AddExistingStorageFormProps> = ({
           <FormGroup label="PV" fieldId="add-existing-storage-pv-selection">
             <Select
               variant="typeahead"
-              selections={storageSelection as string}
+              selections={selections.storage as string}
               isOpen={storageSelectOpen}
-              onClear={clearStorageSelection}
+              onClear={() => {
+                onClear(true);
+                setStorageSelectOpen(false);
+              }}
+              onSelect={(e, selection) => {
+                onUpdate(selection as string, true);
+              }}
               onToggle={(isOpen) => setStorageSelectOpen(isOpen)}
               placeholderText="Select a PV"
               menuAppendTo="parent"
