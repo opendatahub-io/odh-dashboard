@@ -120,6 +120,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
           validated={validName ? undefined : 'error'}
         >
           <TextInput
+            id="byon-image-name-input"
             isRequired
             type="text"
             data-id="byon-image-name-input"
@@ -132,6 +133,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
         </FormGroup>
         <FormGroup label="Description" fieldId="byon-image-description">
           <TextInput
+            id="byon-image-description-input"
             isRequired
             type="text"
             data-id="byon-image-description-input"

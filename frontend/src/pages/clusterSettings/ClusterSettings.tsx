@@ -197,6 +197,7 @@ const ClusterSettings: React.FC = () => {
               </Text>
               <InputGroup>
                 <TextInput
+                  id="pvc-size-input"
                   className="odh-number-input"
                   name="pvc"
                   data-id="pvc-size-input"
@@ -270,6 +271,7 @@ const ClusterSettings: React.FC = () => {
               />
               <InputGroup className="odh-cluster-settings__culler-input-group">
                 <TextInput
+                  id="hour-input"
                   className="odh-number-input__hour"
                   name="hour"
                   data-id="hour-input"
@@ -293,6 +295,7 @@ const ClusterSettings: React.FC = () => {
                 />
                 <InputGroupText variant={InputGroupTextVariant.plain}>hours</InputGroupText>
                 <TextInput
+                  id="minute-input"
                   className="odh-number-input"
                   name="minute"
                   data-id="minute-input"
@@ -382,6 +385,7 @@ const ClusterSettings: React.FC = () => {
                     Toleration key for notebook pods:{' '}
                   </InputGroupText>
                   <TextInput
+                    id="toleration-key-input"
                     isDisabled={!notebookTolerationSettings.enabled}
                     className="odh-number-input"
                     name="tolerationKey"
