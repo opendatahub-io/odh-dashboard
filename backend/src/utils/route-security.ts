@@ -261,6 +261,12 @@ export const sanitizeNotebookForSecurity = async <
     if (container.name === 'oauth-proxy') {
       return;
     }
+
+    if (container.envFrom) {
+      fastify.log.warn(`${username} submitted a Notebook that contained an envFrom`);
+      delete container.envFrom;
+    }
+
     container.env?.forEach((env) => {
       if (
         env.valueFrom?.configMapKeyRef?.name &&
