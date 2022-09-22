@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Button, Modal, ModalVariant } from '@patternfly/react-core';
 import { Notebook } from '../../../../types';
 import { stopNotebook } from '../../../../services/notebookService';
-import useNamespaces from '../../useNamespaces';
 import useNotification from '../../../../utilities/useNotification';
 import { allSettledPromises } from '../../../../utilities/allSettledPromises';
 
@@ -12,7 +11,6 @@ type StopServerModalProps = {
 };
 
 const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNotebooksStop }) => {
-  const { notebookNamespace } = useNamespaces();
   const notification = useNotification();
   const [isDeleting, setDeleting] = React.useState(false);
 
@@ -31,7 +29,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
       notebooksToStop.map((notebook) => {
         const notebookName = notebook.metadata.name || '';
         if (!notebookName) return Promise.resolve();
-        return stopNotebook(notebookNamespace, notebookName);
+        return stopNotebook();
       }),
     )
       .then(() => {

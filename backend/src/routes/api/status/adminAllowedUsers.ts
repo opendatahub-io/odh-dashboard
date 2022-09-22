@@ -1,5 +1,4 @@
 import { KubeFastifyInstance } from '../../../types';
-import { getNotebooks } from '../notebooks/notebookUtils';
 import { FastifyRequest } from 'fastify';
 import { getUserName } from '../../../utils/userUtils';
 import {
@@ -8,6 +7,7 @@ import {
   isUserAdmin,
   KUBE_SAFE_PREFIX,
 } from '../../../utils/adminUtils';
+import { getNotebooks } from '../../../utils/notebookUtils';
 
 type AllowedUser = {
   username: string;

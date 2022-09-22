@@ -1,23 +1,26 @@
-import { KubeFastifyInstance, Notebook } from '../../../types';
-import { FastifyRequest } from 'fastify';
-import {
-  getNotebook,
-  patchNotebook,
-  createNotebook,
-  getNotebookStatus,
-  getRoute,
-  patchNotebookRoute,
-} from './notebookUtils';
-import { RecursivePartial } from '../../../typeHelpers';
-import { sanitizeNotebookForSecurity, secureRoute } from '../../../utils/route-security';
+import { KubeFastifyInstance, NotebookData, NotebookState } from '../../../types';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { getNotebookStatus, enableNotebook } from './utils';
+import { secureRoute } from '../../../utils/route-security';
+import { stopNotebook, getNotebook } from '../../../utils/notebookUtils';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/:namespace/:name',
     secureRoute(fastify)(
-      async (request: FastifyRequest<{ Params: { namespace: string; name: string } }>) => {
+      async (
+        request: FastifyRequest<{ Params: { namespace: string; name: string } }>,
+        reply: FastifyReply,
+      ) => {
         const { namespace, name } = request.params;
-        return await getNotebook(fastify, namespace, name);
+        return getNotebook(fastify, namespace, name).catch((e) => {
+          if (e.statusCode !== 404) {
+            fastify.log.error(
+              `Failed get notebook status, ${e.response?.data?.message || e.message}}`,
+            );
+          }
+          reply.status(404).send(e.response?.data?.message || e.message);
+        });
       },
     ),
   );
@@ -29,71 +32,60 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         request: FastifyRequest<{
           Params: { namespace: string; name: string };
         }>,
+        reply: FastifyReply,
       ) => {
         const { namespace, name } = request.params;
 
-        const notebook = await getNotebook(fastify, namespace, name);
-        const hasStopAnnotation = !!notebook?.metadata.annotations?.['kubeflow-resource-stopped'];
-        const isRunning = hasStopAnnotation
-          ? false
-          : await getNotebookStatus(fastify, namespace, name);
-
-        const notebookName = notebook?.metadata.name;
-        let newNotebook: Notebook;
-        if (isRunning && !notebook?.metadata.annotations?.['opendatahub.io/link']) {
-          const route = await getRoute(fastify, namespace, notebookName).catch((e) => {
-            fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
-            return undefined;
-          });
-          if (route) {
-            newNotebook = await patchNotebookRoute(fastify, route, namespace, notebookName).catch(
-              (e) => {
-                fastify.log.warn(`Failed patching route to notebook ${notebookName}: ${e.message}`);
-                return notebook;
-              },
+        return getNotebookStatus(fastify, namespace, name).catch((e) => {
+          if (e.statusCode !== 404) {
+            fastify.log.error(
+              `Failed get notebook status, ${e.response?.data?.message || e.message}}`,
             );
           }
-        }
-
-        return { notebook: newNotebook || notebook, isRunning };
+          reply.status(404).send(e.response?.data?.message || e.message);
+        });
       },
     ),
   );
 
   fastify.post(
-    '/:namespace',
+    '/',
     secureRoute(fastify)(
       async (
         request: FastifyRequest<{
-          Params: {
-            namespace: string;
-          };
-          Body: Notebook;
+          Body: NotebookData;
         }>,
+        reply: FastifyReply,
       ) => {
-        return createNotebook(fastify, request);
+        if (request.body.state !== NotebookState.Started) {
+          reply.status(400).send('Failed to start the Notebook');
+        }
+
+        return enableNotebook(fastify, request).catch((e) => {
+          fastify.log.error(`${e.response?.data?.message || e.message}}`);
+          reply.status(400).send(e.response?.data?.message || e.message);
+        });
       },
     ),
   );
 
   fastify.patch(
-    '/:namespace/:name',
+    '/',
     secureRoute(fastify)(
       async (
         request: FastifyRequest<{
-          Body: RecursivePartial<Notebook>;
-          Params: {
-            namespace: string;
-            name: string;
-          };
+          Body: NotebookData;
         }>,
-        reply,
+        reply: FastifyReply,
       ) => {
-        const { namespace, name } = request.params;
-        const data = await sanitizeNotebookForSecurity(fastify, request, request.body);
+        if (request.body.state !== NotebookState.Stopped) {
+          reply.status(400).send('Failed to stop the Notebook');
+        }
 
-        return patchNotebook(fastify, data, namespace, name).catch((e) => {
-          fastify.log.error(`Failed to patch notebook, ${e.response?.data?.message || e.message}}`);
+        return stopNotebook(fastify, request).catch((e) => {
+          fastify.log.error(
+            `Failed to delete notebook, ${e.response?.data?.message || e.message}}`,
+          );
           reply.status(400).send(e.response?.data?.message || e.message);
         });
       },
