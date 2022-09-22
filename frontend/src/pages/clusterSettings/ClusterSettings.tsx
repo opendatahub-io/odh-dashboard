@@ -145,7 +145,8 @@ const ClusterSettings: React.FC = () => {
               dispatch(
                 addNotification({
                   status: 'success',
-                  title: 'Settings changes saved.',
+                  title: 'Settings changes saved',
+                  message: 'It takes a few seconds for configuration changes to be applied.',
                   timestamp: new Date(),
                 }),
               );
