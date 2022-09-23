@@ -327,7 +327,7 @@ const SpawnerPage: React.FC = () => {
         loadError={loadError}
         empty={!images || images.length === 0}
       >
-        <Form className="odh-notebook-controller__page odh-notebook-controller__page-content">
+        <Form maxWidth="1000px" className="odh-notebook-controller__page">
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>

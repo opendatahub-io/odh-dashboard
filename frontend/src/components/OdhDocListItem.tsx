@@ -75,7 +75,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
     );
   };
 
-  const favoriteClasses = classNames('odh-list-item__favorite odh-dashboard__favorite', {
+  const favoriteClasses = classNames('odh-dashboard__favorite', {
     'm-is-favorite': favorite,
   });
 

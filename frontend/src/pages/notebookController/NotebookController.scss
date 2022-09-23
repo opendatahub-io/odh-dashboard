@@ -76,15 +76,6 @@
       }
     }
     &-popover {
-      min-width: initial !important;
-      .pf-c-popover__content {
-        max-width: 300px;
-        overflow-x: hidden;
-        >.pf-c-button {
-          padding-left: 0;
-          padding-right: 0;
-        }
-      }
       &-title {
         font-weight: var(--pf-global--FontWeight--bold);
         margin-bottom: var(--pf-global--spacer--sm);

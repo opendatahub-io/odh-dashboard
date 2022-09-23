@@ -121,6 +121,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
           validated={validRepo ? undefined : 'error'}
         >
           <TextInput
+            id="byon-image-repository-input"
             isRequired
             type="text"
             data-id="byon-image-repository-input"
@@ -141,6 +142,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
           validated={validName ? undefined : 'error'}
         >
           <TextInput
+            id="byon-image-name-input"
             isRequired
             type="text"
             data-id="byon-image-name-input"
@@ -153,6 +155,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
         </FormGroup>
         <FormGroup label="Description" fieldId="byon-image-description">
           <TextInput
+            id="byon-image-description-input"
             isRequired
             type="text"
             data-id="byon-image-description-input"

@@ -23,6 +23,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
       <Td dataLabel={imagePackage.name}>
         {isEditMode ? (
           <TextInput
+            id={`${imagePackage.name}-software-package-input`}
             data-id="software-package-input"
             type="text"
             value={modifiedValue.name}
@@ -41,6 +42,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
       <Td dataLabel={imagePackage.version}>
         {isEditMode ? (
           <TextInput
+            id={`${imagePackage.name}-version-input`}
             data-id="version-input"
             type="text"
             value={modifiedValue.version}
