@@ -58,4 +58,4 @@
         secretName: dashboard-proxy-tls
     - name: oauth-config
       secret:
-        secretName: dashboard-oauth-config
+        secretName: dashboard-oauth-config-generated
