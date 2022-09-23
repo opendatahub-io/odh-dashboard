@@ -7,6 +7,6 @@ export const useTrackHistory = (): void => {
 
   // notify url change events
   React.useEffect(() => {
-    fireTrackingEvent('page'); // TODO: do we want to track WHICH page?
+    fireTrackingEvent('page');
   }, [pathname]);
 };
