@@ -74,6 +74,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
         <Skeleton height="36px" width="70%" />
       ) : (
         <Select
+          data-id="gpu-select"
           isDisabled={isFetching || noAvailableGPUs}
           isOpen={gpuDropdownOpen}
           onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}

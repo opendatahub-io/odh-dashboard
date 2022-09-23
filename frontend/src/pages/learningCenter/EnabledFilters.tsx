@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
 import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
 import { OdhDocument } from '../../types';
@@ -12,7 +12,7 @@ type EnabledFilterProps = {
 };
 
 const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const enabledFilters = useQueryFilters(ENABLED_FILTER_KEY);
 
   const enabledCount = React.useMemo(
@@ -35,15 +35,16 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
     }
 
     if (!updatedQuery.length) {
-      removeQueryArgument(history, ENABLED_FILTER_KEY);
+      removeQueryArgument(navigate, ENABLED_FILTER_KEY);
       return;
     }
-    setQueryArgument(history, ENABLED_FILTER_KEY, JSON.stringify(updatedQuery));
+    setQueryArgument(navigate, ENABLED_FILTER_KEY, JSON.stringify(updatedQuery));
   };
 
   return (
     <FilterSidePanelCategory key="enabled-filter" title="Enabled state">
       <FilterSidePanelCategoryItem
+        data-id="enabled-filter-checkbox"
         id="enabled-filter-checkbox"
         checked={enabledFilters.includes('true')}
         onClick={(e) =>
@@ -57,6 +58,7 @@ const EnabledFilter: React.FC<EnabledFilterProps> = ({ categoryApps }) => {
         {`Enabled (${enabledCount})`}
       </FilterSidePanelCategoryItem>
       <FilterSidePanelCategoryItem
+        data-id="not-enabled-filter-checkbox"
         id="not-enabled-filter-checkbox"
         checked={enabledFilters.includes('false')}
         onClick={(e) =>

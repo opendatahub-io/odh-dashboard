@@ -8,10 +8,10 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const EmptyProjects: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
 
   return (
     <EmptyState>
@@ -24,7 +24,7 @@ const EmptyProjects: React.FC = () => {
       </EmptyStateBody>
       <Button variant="primary">Create data science project</Button>
       <EmptyStateSecondaryActions>
-        <Button variant="link" onClick={() => history.push('/notebookController')}>
+        <Button variant="link" onClick={() => navigate('/notebookController')}>
           Launch notebook
         </Button>
       </EmptyStateSecondaryActions>

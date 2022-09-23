@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useHistory } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getNotebook } from '../../services/notebookService';
 import ApplicationsPage from '../../pages/ApplicationsPage';
 import useNotification from '../../utilities/useNotification';
@@ -7,7 +7,7 @@ import useNotification from '../../utilities/useNotification';
 const NotebookLogoutRedirect: React.FC = () => {
   const { namespace, notebookName } = useParams<{ namespace: string; notebookName: string }>();
   const notification = useNotification();
-  const history = useHistory();
+  const navigate = useNavigate();
   React.useEffect(() => {
     if (namespace && notebookName) {
       getNotebook(namespace, notebookName)
@@ -20,14 +20,14 @@ const NotebookLogoutRedirect: React.FC = () => {
               'Error fetching notebook URL.',
               'Please check the status of your notebook.',
             );
-            history.push('not-found');
+            navigate('not-found');
           }
         })
         .catch((e) => {
           console.error(e);
         });
     }
-  }, [namespace, notebookName, history, notification]);
+  }, [namespace, notebookName, navigate, notification]);
   return (
     <ApplicationsPage title="Logging out..." description={null} loaded={false} empty={false} />
   );

@@ -24,7 +24,7 @@ import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH, DEFAULT_PVC_SIZE } from '../../const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { startNotebook, stopNotebook } from '../../../../services/notebookService';
 import { createPvc, getPvc } from '../../../../services/pvcService';
 import {
@@ -67,7 +67,7 @@ import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import '../../NotebookController.scss';
 
 const SpawnerPage: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses, dashboardConfig } = useAppContext();
@@ -331,13 +331,14 @@ const SpawnerPage: React.FC = () => {
         loadError={loadError}
         empty={!images || images.length === 0}
       >
-        <Form className="odh-notebook-controller__page odh-notebook-controller__page-content">
+        <Form maxWidth="1000px" className="odh-notebook-controller__page">
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
                 {[...images].sort(checkOrder).map((image) => (
                   <GridItem key={image.name}>
                     <ImageSelector
+                      data-id="image-selector"
                       image={image}
                       selectedImage={selectedImageTag.image}
                       selectedTag={selectedImageTag.tag}
@@ -350,6 +351,7 @@ const SpawnerPage: React.FC = () => {
           </FormSection>
           <FormSection title="Deployment size">
             <SizeSelectField
+              data-id="container-size"
               value={selectedSize}
               setValue={(size) => setSelectedSize(size)}
               sizes={sizes}
@@ -380,6 +382,7 @@ const SpawnerPage: React.FC = () => {
             )}
             <ActionGroup>
               <Button
+                data-id="start-server-button"
                 variant="primary"
                 onClick={() => {
                   handleNotebookAction().catch((e) => {
@@ -394,12 +397,13 @@ const SpawnerPage: React.FC = () => {
                 Start server
               </Button>
               <Button
+                data-id="cancel-button"
                 variant="secondary"
                 onClick={() => {
                   if (impersonatedUsername) {
                     setImpersonating();
                   } else {
-                    history.push('/');
+                    navigate('/');
                   }
                 }}
               >

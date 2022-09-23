@@ -15,7 +15,7 @@ import {
 import { detectUser } from '../redux/actions/actions';
 import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import Header from './Header';
-import Routes from './Routes';
+import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import ToastNotifications from '../components/ToastNotifications';
 import AppNotificationDrawer from './AppNotificationDrawer';
@@ -112,7 +112,7 @@ const App: React.FC = () => {
           notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
           isNotificationDrawerExpanded={notificationsOpen}
         >
-          <Routes />
+          <AppRoutes />
           <ToastNotifications />
           <TelemetrySetup />
         </Page>

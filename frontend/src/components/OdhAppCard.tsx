@@ -122,9 +122,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const cardFooter = (
     <CardFooter className="odh-card__footer">
       {odhApp.metadata.name === 'jupyter' ? (
-        <Link to={odhApp.spec.internalRoute} className="odh-card__footer__link">
-          Launch application
-        </Link>
+        odhApp.spec.internalRoute ? (
+          <Link to={odhApp.spec.internalRoute} className="odh-card__footer__link">
+            Launch application
+          </Link>
+        ) : null
       ) : (
         <a
           className={launchClasses}
@@ -183,6 +185,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   return (
     <Card
+      data-id={odhApp.metadata.name}
       id={odhApp.metadata.name}
       role="article"
       isHoverable={!disabled}

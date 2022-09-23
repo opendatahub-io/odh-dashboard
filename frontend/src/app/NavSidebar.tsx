@@ -6,7 +6,7 @@ import { useAppContext } from './AppContext';
 import { useUser } from '../redux/selectors';
 
 const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, pathname }) => (
-  <NavItem key={item.id} itemId={item.id} isActive={pathname === item.href}>
+  <NavItem key={item.id} data-id={item.id} itemId={item.id} isActive={pathname === item.href}>
     <Link to={item.href} aria-label={item.label}>
       {item.label}
     </Link>
@@ -20,6 +20,7 @@ const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pa
 
   return (
     <NavExpandable
+      data-id={group.id}
       key={group.id}
       id={group.id}
       title={group.title}
@@ -30,7 +31,7 @@ const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pa
       aria-label={group.title}
     >
       {children.map((childItem) => (
-        <NavHref key={childItem.id} item={childItem} pathname={pathname} />
+        <NavHref key={childItem.id} data-id={childItem.id} item={childItem} pathname={pathname} />
       ))}
     </NavExpandable>
   );

@@ -45,6 +45,11 @@ export type NotebookResources = {
   };
 };
 
+type EnvFrom = {
+  configMapRef?: { name: string };
+  secretRef?: { name: string };
+};
+
 type EnvValue = {
   key: string;
   name: string;
@@ -341,6 +346,7 @@ export type NotebookContainer = {
   image: string;
   imagePullPolicy?: string;
   workingDir?: string;
+  envFrom?: EnvFrom[];
   env: EnvironmentVariable[];
   ports?: NotebookPort[];
   resources?: NotebookResources;

@@ -119,6 +119,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
   const favoriteClasses = classNames('odh-dashboard__favorite', { 'm-is-favorite': favorite });
   return (
     <Card
+      data-id={odhDoc.metadata.name}
       id={odhDoc.metadata.name}
       role="article"
       isHoverable
