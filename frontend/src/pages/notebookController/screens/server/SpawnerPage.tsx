@@ -24,7 +24,7 @@ import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH, DEFAULT_PVC_SIZE } from '../../const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { startNotebook, stopNotebook } from '../../../../services/notebookService';
 import { createPvc, getPvc } from '../../../../services/pvcService';
 import {
@@ -67,7 +67,7 @@ import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import '../../NotebookController.scss';
 
 const SpawnerPage: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses, dashboardConfig } = useAppContext();
@@ -399,7 +399,7 @@ const SpawnerPage: React.FC = () => {
                   if (impersonatedUsername) {
                     setImpersonating();
                   } else {
-                    history.push('/');
+                    navigate('/');
                   }
                 }}
               >

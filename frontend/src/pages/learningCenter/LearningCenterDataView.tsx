@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import classNames from 'classnames';
 import useDimensions from 'react-cool-dimensions';
 import {
@@ -38,7 +38,7 @@ type LearningCenterDataViewProps = {
 
 const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo(
   ({ filteredDocApps, favorites, updateFavorite, viewType }) => {
-    const history = useHistory();
+    const navigate = useNavigate();
     const [sizeClass, setSizeClass] = React.useState<string>('m-ods-size-lg');
     const { observe } = useDimensions({
       breakpoints: { sm: 0, md: 600, lg: 750 },
@@ -48,11 +48,11 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
     });
 
     const onClearFilters = () => {
-      removeQueryArgument(history, SEARCH_FILTER_KEY);
-      removeQueryArgument(history, CATEGORY_FILTER_KEY);
-      removeQueryArgument(history, ENABLED_FILTER_KEY);
-      removeQueryArgument(history, DOC_TYPE_FILTER_KEY);
-      removeQueryArgument(history, PROVIDER_FILTER_KEY);
+      removeQueryArgument(navigate, SEARCH_FILTER_KEY);
+      removeQueryArgument(navigate, CATEGORY_FILTER_KEY);
+      removeQueryArgument(navigate, ENABLED_FILTER_KEY);
+      removeQueryArgument(navigate, DOC_TYPE_FILTER_KEY);
+      removeQueryArgument(navigate, PROVIDER_FILTER_KEY);
     };
 
     const renderContent = () => {

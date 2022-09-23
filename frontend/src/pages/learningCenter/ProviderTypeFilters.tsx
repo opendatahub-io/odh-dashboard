@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { OdhDocument } from '../../types';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
 import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
@@ -14,7 +14,7 @@ type ProviderTypeFiltersProps = {
 };
 
 const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, categoryApps }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const providerTypeFilters = useQueryFilters(PROVIDER_TYPE_FILTER_KEY);
   const [showAll, setShowAll] = React.useState<boolean>(false);
 
@@ -51,10 +51,10 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
     }
 
     if (!updatedQuery.length) {
-      removeQueryArgument(history, PROVIDER_TYPE_FILTER_KEY);
+      removeQueryArgument(navigate, PROVIDER_TYPE_FILTER_KEY);
       return;
     }
-    setQueryArgument(history, PROVIDER_TYPE_FILTER_KEY, JSON.stringify(updatedQuery));
+    setQueryArgument(navigate, PROVIDER_TYPE_FILTER_KEY, JSON.stringify(updatedQuery));
   };
 
   if (!Object.keys(providerTypes).length) {

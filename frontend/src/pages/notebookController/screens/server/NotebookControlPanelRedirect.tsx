@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '../../../../pages/ApplicationsPage';
 import {
   useCheckJupyterEnabled,
@@ -10,7 +10,7 @@ import { useUser } from '../../../../redux/selectors';
 import { NotebookControllerTabTypes } from '../../const';
 
 const NotebookControlPanelRedirect: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const { username: translatedUsername } = useParams<{ username: string }>();
   const { username: loggedInUser, isAdmin } = useUser();
   const translatedLoggedInUsername = usernameTranslate(loggedInUser);
@@ -25,22 +25,22 @@ const NotebookControlPanelRedirect: React.FC = () => {
           // TODO: we need to worry about this case -- how to manage it?
           // setImpersonating(undefined, translatedUsername);
           setCurrentAdminTab(NotebookControllerTabTypes.ADMIN);
-          history.replace('/notebookController');
+          navigate('/notebookController', { replace: true });
           return;
         }
 
         // Invalid state -- cannot view others notebook as not admin
-        history.push('/not-found');
+        navigate('/not-found');
         return;
       }
 
       // Logged in user -- just redirect and it will load the state normally
-      history.replace('/notebookController');
+      navigate('/notebookController', { replace: true });
     }
   }, [
     translatedUsername,
     isJupyterEnabled,
-    history,
+    navigate,
     translatedLoggedInUsername,
     isAdmin,
     setImpersonating,

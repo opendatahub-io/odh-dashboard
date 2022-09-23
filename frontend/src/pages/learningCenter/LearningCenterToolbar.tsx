@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   ButtonVariant,
@@ -73,7 +73,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   filtersCollapsible,
   onToggleFiltersCollapsed,
 }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [isSortTypeDropdownOpen, setIsSortTypeDropdownOpen] = React.useState(false);
   const [isSortOrderDropdownOpen, setIsSortOrderDropdownOpen] = React.useState(false);
   const queryParams = useQueryParams();
@@ -109,9 +109,9 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
     (e) => {
       setIsSortTypeDropdownOpen(false);
       const selection = e.target.getAttribute('data-key');
-      setQueryArgument(history, DOC_SORT_KEY, selection);
+      setQueryArgument(navigate, DOC_SORT_KEY, selection);
     },
-    [history],
+    [navigate],
   );
 
   const sortTypeDropdownItems = Object.entries(sortTypes).map(([key, val]) => (
@@ -129,9 +129,9 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
     (e) => {
       setIsSortOrderDropdownOpen(false);
       const selection = e.target.getAttribute('data-key');
-      setQueryArgument(history, DOC_SORT_ORDER_KEY, selection);
+      setQueryArgument(navigate, DOC_SORT_ORDER_KEY, selection);
     },
-    [history],
+    [navigate],
   );
 
   const sortOrderDropdownItems = Object.entries(sortOrders).map(([key, val]) => (
@@ -152,9 +152,9 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
 
   const handleTextChange = (val: string) => {
     if (val.length > 0) {
-      setQueryArgument(history, SEARCH_FILTER_KEY, val);
+      setQueryArgument(navigate, SEARCH_FILTER_KEY, val);
     } else {
-      removeQueryArgument(history, SEARCH_FILTER_KEY);
+      removeQueryArgument(navigate, SEARCH_FILTER_KEY);
     }
     setSearchInputText(val);
   };

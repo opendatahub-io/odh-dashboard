@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Redirect, useHistory } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, ActionList, ActionListItem, Stack, StackItem } from '@patternfly/react-core';
 import { Notebook } from '../../../../types';
 import ApplicationsPage from '../../../ApplicationsPage';
@@ -12,7 +12,7 @@ import useNotification from '../../../../utilities/useNotification';
 import '../../NotebookController.scss';
 
 export const NotebookServer: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const notification = useNotification();
   const {
     currentUserNotebook: notebook,
@@ -26,12 +26,12 @@ export const NotebookServer: React.FC = () => {
       if (didStop) {
         // Refresh the context so the spawner page knows the full state
         requestNotebookRefresh();
-        history.push(`/notebookController/spawner`);
+        navigate(`/notebookController/spawner`);
       } else {
         setNotebooksToStop([]);
       }
     },
-    [requestNotebookRefresh, history],
+    [requestNotebookRefresh, navigate],
   );
 
   return (
@@ -42,7 +42,7 @@ export const NotebookServer: React.FC = () => {
         description={null}
         loaded
         empty={!currentUserNotebookIsRunning}
-        emptyStatePage={<Redirect to={`/notebookController/spawner`} />}
+        emptyStatePage={<Navigate to={`/notebookController/spawner`} />}
       >
         {notebook && (
           <Stack hasGutter className="odh-notebook-controller__page">
