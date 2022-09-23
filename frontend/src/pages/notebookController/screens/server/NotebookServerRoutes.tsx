@@ -10,7 +10,7 @@ const NotebookServerRoutes: React.FC = () => {
       <Route path="/" element={<NotebookServer />} />
       <Route path="/spawner" element={<SpawnerPage />} />
       <Route path="/:username/:type" element={<NotebookControlPanelRedirect />} />
-      <Route path="*" element={<Navigate to="/notebookController" replace />} />
+      <Route path="*" element={<Navigate to="." replace />} />
     </Routes>
   );
 };
