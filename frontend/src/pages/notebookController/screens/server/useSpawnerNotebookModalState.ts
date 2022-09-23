@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { FAST_POLL_INTERVAL } from '../../../../utilities/const';
 import { NotebookControllerContextProps } from '../../notebookControllerContextTypes';
@@ -36,7 +36,7 @@ const useSpawnerNotebookModalState = (
   const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
   const { notebookNamespace } = useNamespaces();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [startShown, setStartShown] = React.useState<boolean>(false);
 
   React.useEffect(() => {
@@ -61,10 +61,10 @@ const useSpawnerNotebookModalState = (
       } else if (!startShown) {
         // We are running -- but we want to make sure we only redirect if the modal is not open
         // Last moments of spawning a notebook & before we send them to JL
-        history.replace('/notebookController');
+        navigate('/notebookController', { replace: true });
       }
     }
-  }, [notebook, history, startShown, isNotebookRunning, createInProgress, notebookNamespace]);
+  }, [notebook, navigate, startShown, isNotebookRunning, createInProgress, notebookNamespace]);
 
   const refreshNotebookForStart = useRefreshNotebookAndCleanup(startShown);
   const hideStartShown = React.useCallback(() => setStartShown(false), []);

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { OdhDocument } from '../../types';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
 import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
@@ -13,7 +13,7 @@ type ApplicationFiltersProps = {
 };
 
 const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, categoryApps }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const providerFilters = useQueryFilters(APPLICATION_FILTER_KEY);
   const [showAll, setShowAll] = React.useState<boolean>(false);
 
@@ -46,10 +46,10 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
     }
 
     if (!updatedQuery.length) {
-      removeQueryArgument(history, APPLICATION_FILTER_KEY);
+      removeQueryArgument(navigate, APPLICATION_FILTER_KEY);
       return;
     }
-    setQueryArgument(history, APPLICATION_FILTER_KEY, JSON.stringify(updatedQuery));
+    setQueryArgument(navigate, APPLICATION_FILTER_KEY, JSON.stringify(updatedQuery));
   };
 
   if (!Object.keys(applications).length) {

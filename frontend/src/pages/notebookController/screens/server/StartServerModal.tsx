@@ -21,7 +21,7 @@ import {
 } from '../../../../utilities/notebookControllerUtils';
 import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
-import { useHistory } from 'react-router';
+import { useNavigate } from 'react-router';
 import useBrowserTabPreference from './useBrowserTabPreference';
 
 import '../../NotebookController.scss';
@@ -48,7 +48,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   const [isUsingCurrentTab] = useBrowserTabPreference();
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
   const getNotebookLink = useNotebookRedirectLink();
-  const history = useHistory();
+  const navigate = useNavigate();
   const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
@@ -68,7 +68,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
             window.location.href = notebookLink;
           } else {
             window.open(notebookLink, '_blank');
-            history.push('/notebookController');
+            navigate('/notebookController');
           }
         })
         .catch(() => {
@@ -80,7 +80,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
           });
         });
     },
-    [getNotebookLink, history],
+    [getNotebookLink, navigate],
   );
 
   React.useEffect(() => {
