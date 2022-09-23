@@ -22,7 +22,13 @@ import {
 } from '../../../../types';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, MOUNT_PATH, DEFAULT_PVC_SIZE } from '../../const';
+import {
+  CUSTOM_VARIABLE,
+  EMPTY_KEY,
+  MOUNT_PATH,
+  DEFAULT_PVC_SIZE,
+  ENV_VAR_NAME_REGEX,
+} from '../../const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { startNotebook, stopNotebook } from '../../../../services/notebookService';
@@ -213,6 +219,12 @@ const SpawnerPage: React.FC = () => {
         });
       }
     }
+    updatedRow.variables.forEach((variable) => {
+      if (!ENV_VAR_NAME_REGEX.test(variable.name)) {
+        updatedRows[index].errors[variable.name] =
+          "Invalid variable name. The name must consist of alphabetic characters, digits, '_', '-', or '.', and must not start with a digit.";
+      }
+    });
     setVariableRows(updatedRows);
   };
 
