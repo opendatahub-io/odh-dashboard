@@ -13,6 +13,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     url: '/*',
     handler: (
       req: FastifyRequest<{
+        Querystring: Record<string, string>;
         Params: { '*': string; [key: string]: string };
         Body: { [key: string]: unknown };
         Headers: { [USER_ACCESS_TOKEN]: string };
@@ -21,7 +22,15 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     ) => {
       const data = JSON.stringify(req.body);
       const kubeUri = req.params['*'];
-      const url = `${cluster.server}/${kubeUri}`;
+      let url = `${cluster.server}/${kubeUri}`;
+
+      // Apply query params
+      const query = req.query;
+      if (Object.keys(query)) {
+        url += `?${Object.keys(query)
+          .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`)
+          .join('&')}`;
+      }
 
       return passThrough(fastify, req, { url, method: req.method, requestData: data }).catch(
         ({ code, response }) => {

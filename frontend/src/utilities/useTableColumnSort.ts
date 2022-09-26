@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { ThProps } from '@patternfly/react-table';
 
+export type GetColumnSort = (columnIndex: number) => ThProps['sort'];
+
 export type SortableData<T> = {
   label: string;
   field: keyof T;
@@ -26,7 +28,7 @@ const useTableColumnSort = <T>(
   defaultSortColIndex?: number,
 ): {
   transformData: (data: T[]) => T[];
-  getColumnSort: (columnIndex: number) => ThProps['sort'];
+  getColumnSort: GetColumnSort;
 } => {
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(
     defaultSortColIndex,
@@ -41,14 +43,19 @@ const useTableColumnSort = <T>(
 
       return [...data].sort((a, b) => {
         const columnField = columns[activeSortIndex];
-        const dataValueA = a[columnField.field];
-        const dataValueB = b[columnField.field];
 
         const compute = () => {
           if (typeof columnField.sortable === 'function') {
             return columnField.sortable(a, b, columnField.field);
           }
 
+          if (!columnField.field) {
+            // If you lack the field, no auto sorting can be done
+            return 0;
+          }
+
+          const dataValueA = a[columnField.field];
+          const dataValueB = b[columnField.field];
           if (typeof dataValueA === 'string' && typeof dataValueB === 'string') {
             return dataValueA.localeCompare(dataValueB);
           }

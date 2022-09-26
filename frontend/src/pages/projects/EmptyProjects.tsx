@@ -9,6 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import NewProjectButton from './screens/projectList/NewProjectButton';
 
 const EmptyProjects: React.FC = () => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const EmptyProjects: React.FC = () => {
       <EmptyStateBody>
         To get started, create a data science project or launch a notebook with Jupyter.
       </EmptyStateBody>
-      <Button variant="primary">Create data science project</Button>
+      <NewProjectButton />
       <EmptyStateSecondaryActions>
         <Button variant="link" onClick={() => navigate('/notebookController')}>
           Launch notebook

@@ -27,6 +27,7 @@ type ApplicationsPageProps = {
   emptyMessage?: string;
   emptyStatePage?: React.ReactNode;
   headerAction?: React.ReactNode;
+  provideChildrenPadding?: boolean;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -40,6 +41,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   emptyMessage,
   emptyStatePage,
   headerAction,
+  provideChildrenPadding,
 }) => {
   const renderHeader = () => (
     <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
@@ -99,6 +101,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         </PageSection>
       ) : (
         emptyStatePage
+      );
+    }
+
+    if (provideChildrenPadding) {
+      return (
+        <PageSection variant="light" isFilled>
+          {children}
+        </PageSection>
       );
     }
 
