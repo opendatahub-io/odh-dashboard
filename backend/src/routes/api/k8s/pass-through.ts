@@ -68,7 +68,7 @@ export const passThrough = (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{ Headers: { [USER_ACCESS_TOKEN]: string } }>,
   data: PassThroughData,
-): Promise<{ response: K8sResourceCommon }> => {
+): Promise<K8sResourceCommon> => {
   const { method, requestData } = data;
 
   return new Promise((resolve, reject) => {
@@ -111,7 +111,7 @@ export const passThrough = (
               }
 
               fastify.log.info('Successful request, returning data to caller.');
-              resolve({ response: parsedData });
+              resolve(parsedData);
             })
             .on('error', (error) => {
               if (error) {

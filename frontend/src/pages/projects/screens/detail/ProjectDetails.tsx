@@ -1,8 +1,8 @@
 import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
-import { useParams } from 'react-router';
 import ApplicationsPage from '../../../ApplicationsPage';
 import EmptyProjects from '../../EmptyProjects';
+import { useCurrentProjectDisplayName } from '../../utils';
 import DataConnectionsList from './DataConnectionsList';
 import ProjectDetailsSidebar from './ProjectDetailsSidebar';
 import StorageList from './StorageList';
@@ -15,7 +15,7 @@ type SectionType = {
 };
 
 const ProjectDetails: React.FC = () => {
-  const { namespace } = useParams<{ namespace: string }>();
+  const displayName = useCurrentProjectDisplayName();
 
   const sections: SectionType[] = [
     { id: ProjectSectionID.WORKSPACE, component: <WorkspacesList /> },
@@ -37,7 +37,7 @@ const ProjectDetails: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={`${namespace} project details`}
+      title={`${displayName} project details`}
       description={null}
       loaded
       empty={false}
