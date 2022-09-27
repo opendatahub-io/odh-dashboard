@@ -28,6 +28,7 @@
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
     "test": "run-s test:lint test:jest test:type-check",
     "test:jest": "jest",
+    "test:jest:debug": "node --inspect-brk node_modules/.bin/jest --runInBand --watch",
     "test:ci": "export CI=true; jest --collectCoverage",
     "test:clearCache": "jest --clearCache",
     "test:dev": "run-s test:lint test:local",

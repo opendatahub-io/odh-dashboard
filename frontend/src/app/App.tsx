@@ -18,6 +18,7 @@ import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import ToastNotifications from '../components/ToastNotifications';
+import OdhBreadcrumb from '../components/OdhBreadcrumb';
 import AppNotificationDrawer from './AppNotificationDrawer';
 import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
 import { AppContext } from './AppContext';
@@ -107,6 +108,7 @@ const App: React.FC = () => {
       >
         <Page
           className="odh-dashboard"
+          breadcrumb={<OdhBreadcrumb />}
           header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
           sidebar={<NavSidebar />}
           notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
