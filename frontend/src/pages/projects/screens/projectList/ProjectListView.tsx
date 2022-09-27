@@ -18,10 +18,12 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ projects: unfilteredP
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
-  const { transformData, getColumnSort } = useTableColumnSort<ProjectKind>(columns, 0);
-  const projects = transformData(unfilteredProjects)
-    .filter((project) => (!search ? true : getProjectDisplayName(project).includes(search)))
-    .slice(pageSize * (page - 1));
+  const sort = useTableColumnSort<ProjectKind>(columns, 0);
+  const filteredProjects = sort
+    .transformData(unfilteredProjects)
+    .filter((project) =>
+      !search ? true : getProjectDisplayName(project).toLowerCase().includes(search.toLowerCase()),
+    );
 
   const showPagination = unfilteredProjects.length > MIN_PAGE_SIZE;
   const pagination = (pageDirection: 'up' | 'down') =>
@@ -29,18 +31,27 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ projects: unfilteredP
       <Pagination
         dropDirection={pageDirection}
         perPageComponent="button"
-        itemCount={unfilteredProjects.length}
+        itemCount={filteredProjects.length}
         perPage={pageSize}
         page={page}
         onSetPage={(e, newPage) => setPage(newPage)}
-        onPerPageSelect={(e, newSize) => setPageSize(newSize)}
+        onPerPageSelect={(e, newSize, newPage) => {
+          setPageSize(newSize);
+          setPage(newPage);
+        }}
         widgetId="table-pagination"
       />
     );
 
   return (
     <>
-      <FilterToolbar search={search} setSearch={setSearch} />
+      <FilterToolbar
+        search={search}
+        setSearch={(newSearch) => {
+          setSearch(newSearch);
+          setPage(1);
+        }}
+      />
       <Divider />
       <Toolbar>
         <ToolbarContent>
@@ -52,7 +63,10 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ projects: unfilteredP
           </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
-      <ProjectTable projects={projects} getColumnSort={getColumnSort} />
+      <ProjectTable
+        projects={filteredProjects.slice(pageSize * (page - 1))}
+        getColumnSort={sort.getColumnSort}
+      />
       {showPagination && (
         <Toolbar>
           <ToolbarContent>
