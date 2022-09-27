@@ -6,7 +6,17 @@ import { Text, TextVariants, Timestamp } from '@patternfly/react-core';
 import useProjectNotebooks from '../../notebook/useProjectNotebooks';
 import ListNotebookState from '../../notebook/ListNotebookState';
 
-const ProjectTableRow: React.FC<{ obj: ProjectKind }> = ({ obj: project }) => {
+type ProjectTableRowProps = {
+  obj: ProjectKind;
+  isRefreshing: boolean;
+  setEditData: (data: ProjectKind) => void;
+};
+
+const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
+  obj: project,
+  isRefreshing,
+  setEditData,
+}) => {
   const [notebookStates, loaded, error] = useProjectNotebooks(project.metadata.name);
   const owner = project.metadata.annotations?.['openshift.io/requester'];
 
@@ -44,9 +54,10 @@ const ProjectTableRow: React.FC<{ obj: ProjectKind }> = ({ obj: project }) => {
         <ActionsColumn
           items={[
             {
-              title: '????',
+              title: 'Edit project',
+              isDisabled: isRefreshing,
               onClick: () => {
-                console.debug('clicky');
+                setEditData(project);
               },
             },
           ]}

@@ -5,7 +5,7 @@ import useUserProjects from './useUserProjects';
 import ProjectListView from './ProjectListView';
 
 const ProjectView: React.FC = () => {
-  const [projects, loaded, loadError] = useUserProjects();
+  const [projects, loaded, loadError, refreshProjects] = useUserProjects();
 
   return (
     <ApplicationsPage
@@ -17,7 +17,7 @@ const ProjectView: React.FC = () => {
       emptyStatePage={<EmptyProjects />}
       provideChildrenPadding
     >
-      <ProjectListView projects={projects} />
+      <ProjectListView projects={projects} refreshProjects={refreshProjects} />
     </ApplicationsPage>
   );
 };

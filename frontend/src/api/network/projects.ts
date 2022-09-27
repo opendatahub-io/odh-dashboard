@@ -2,6 +2,7 @@ import {
   k8sCreateResource,
   k8sGetResource,
   k8sListResource,
+  k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind } from '../../k8sTypes';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
@@ -46,5 +47,28 @@ export const createProject = (
         },
       },
     },
+  });
+};
+
+export const updateProject = (
+  editProjectData: ProjectKind,
+  displayName: string,
+  description: string,
+): Promise<ProjectKind> => {
+  const resource: ProjectKind = {
+    ...editProjectData,
+    metadata: {
+      ...editProjectData.metadata,
+      annotations: {
+        ...editProjectData.metadata.annotations,
+        'openshift.io/display-name': displayName,
+        'openshift.io/description': description,
+      },
+    },
+  };
+
+  return k8sUpdateResource<ProjectKind>({
+    model: ProjectModel,
+    resource,
   });
 };

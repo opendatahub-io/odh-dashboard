@@ -4,9 +4,14 @@ import { ProjectDetailsContext } from './ProjectDetailsContext';
 
 const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
+const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
+  resource.metadata.annotations?.['openshift.io/description'] || '';
 
 export const getProjectDisplayName = (project: ProjectKind): string =>
   getDisplayNameFromK8sResource(project);
+
+export const getProjectDescription = (project: ProjectKind): string =>
+  getDescriptionFromK8sResource(project);
 
 export const useCurrentProjectDisplayName = (): string => {
   const { currentProject } = React.useContext(ProjectDetailsContext);

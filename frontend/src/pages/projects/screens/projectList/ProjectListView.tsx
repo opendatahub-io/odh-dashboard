@@ -12,9 +12,13 @@ const MIN_PAGE_SIZE = 10;
 
 type ProjectListViewProps = {
   projects: ProjectKind[];
+  refreshProjects: () => Promise<void>;
 };
 
-const ProjectListView: React.FC<ProjectListViewProps> = ({ projects: unfilteredProjects }) => {
+const ProjectListView: React.FC<ProjectListViewProps> = ({
+  projects: unfilteredProjects,
+  refreshProjects,
+}) => {
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
@@ -66,6 +70,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ projects: unfilteredP
       <ProjectTable
         projects={filteredProjects.slice(pageSize * (page - 1))}
         getColumnSort={sort.getColumnSort}
+        refreshProjects={refreshProjects}
       />
       {showPagination && (
         <Toolbar>
