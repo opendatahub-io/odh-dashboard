@@ -33,9 +33,9 @@ const useTableColumnSort = <T>(
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(
     defaultSortColIndex,
   );
-  const [activeSortDirection, setActiveSortDirection] = React.useState<
-    'desc' | 'asc' | undefined
-  >();
+  const [activeSortDirection, setActiveSortDirection] = React.useState<'desc' | 'asc' | undefined>(
+    'asc',
+  );
 
   return {
     transformData: (data: T[]): T[] => {

@@ -1,11 +1,12 @@
 import { SortableData } from '../../../../utilities/useTableColumnSort';
 import { ProjectKind } from '../../../../k8sTypes';
+import { getProjectDisplayName } from '../../utils';
 
 export const columns: SortableData<ProjectKind>[] = [
   {
     field: 'name',
     label: 'Name',
-    sortable: true,
+    sortable: (a, b) => getProjectDisplayName(a).localeCompare(getProjectDisplayName(b)),
   },
   {
     field: 'notebooks',
