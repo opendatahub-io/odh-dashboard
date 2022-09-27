@@ -17,7 +17,6 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
   getColumnSort,
   refreshProjects,
 }) => {
-  const [editOpen, setEditOpen] = React.useState(false);
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
   const [refreshIds, setRefreshIds] = React.useState<string[]>([]);
 
@@ -41,21 +40,18 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
               isRefreshing={refreshIds.includes(project.metadata.uid || '')}
               setEditData={(data) => {
                 setEditData(data);
-                setEditOpen(true);
               }}
             />
           ))}
         </Tbody>
       </TableComposable>
       <ManageProjectModal
-        open={editOpen}
+        open={!!editData}
         onClose={() => {
           const refreshId = editData?.metadata.uid;
           if (refreshId) {
             setRefreshIds((otherIds) => [...otherIds, refreshId]);
           }
-
-          setEditOpen(false);
           setEditData(undefined);
 
           refreshProjects().then(() =>
