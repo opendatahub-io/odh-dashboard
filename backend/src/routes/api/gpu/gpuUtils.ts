@@ -1,8 +1,11 @@
 import {
-  ClusterAutoscalerList,
+  MachineAutoscalerList,
+  MachineSetList,
   GPUInfo,
   KubeFastifyInstance,
   PrometheusResponse,
+  MachineSet,
+  gpuScale,
 } from '../../../types';
 import { V1PodList } from '@kubernetes/client-node';
 import https from 'https';
@@ -45,7 +48,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
     }
   }
   const scalingLimit = await getGPUScaling(fastify);
-  return { configured: areGpusConfigured, available: maxGpuNumber, scaleMax: scalingLimit };
+  return { configured: areGpusConfigured, available: maxGpuNumber, autoscalers: scalingLimit };
 };
 
 export const getGPUData = async (
@@ -86,22 +89,24 @@ export const getGPUData = async (
   });
 };
 
-const getGPUScaling = async (fastify: KubeFastifyInstance): Promise<number> => {
+const getGPUScaling = async (fastify: KubeFastifyInstance): Promise<gpuScale[]> => {
+  let scalingList: gpuScale[] = []
   const autoscalers = await fastify.kube.customObjectsApi
-    .listClusterCustomObject('autoscaling.openshift.io', 'v1', 'clusterautoscalers')
+    .listNamespacedCustomObject('autoscaling.openshift.io', 'v1beta1', 'openshift-machine-api', 'machineautoscalers')
     .then((res) => {
-      return res.body as ClusterAutoscalerList;
+      return res.body as MachineAutoscalerList;
     });
-  let scaleLimit = 0;
-  for (let i = 0; i < autoscalers.items.length; i++) {
-    const gpuLimits = autoscalers.items[i].spec.resourceLimits.gpus;
-    gpuLimits.forEach((limit) => {
-      if (limit.type === 'nvidia.com/gpu') {
-        if (scaleLimit < limit.max) {
-          scaleLimit = limit.max;
-        }
-      }
-    });
-  }
-  return scaleLimit;
+  autoscalers.items.forEach(async (autoscaler) => {
+    const machineSetName = autoscaler.spec.scaleTargetRef.name; //also gives info about kind and apiversion if needed in the future
+    const machineSet = await fastify.kube.customObjectsApi
+      .getNamespacedCustomObject('machine.openshift.io', 'v1beta1', 'openshift-machine-api', 'machinesets', machineSetName)
+      .then((res) => {
+        return res.body as MachineSet;
+      });
+    const gpuAmount = Number(machineSet?.metadata.annotations?.['machine.openshift.io/GPU']);
+    if (gpuAmount > 0){
+      scalingList.push({maxScale: autoscaler.spec.maxReplicas, gpuNumber: gpuAmount});
+    }
+  });
+  return scalingList;
 };

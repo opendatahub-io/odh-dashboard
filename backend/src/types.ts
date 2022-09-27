@@ -667,29 +667,35 @@ export type GPUScaleType = {
   max: number;
 };
 
-export type ClusterAutoscaler = {
+export type MachineAutoscaler = {
   spec: {
-    resourceLimits: {
-      maxNodesTotal: number;
-      cores: {
-        min: number;
-        max: number;
-      };
-      memory: {
-        min: number;
-        max: number;
-      };
-      gpus: GPUScaleType[];
+    maxReplicas: number;
+    minReplicas: number;
+    scaleTargetRef: {
+      apiversion: string;
+      kind: string;
+      name: string;
     };
   };
 } & K8sResourceCommon;
 
-export type ClusterAutoscalerList = {
-  items: ClusterAutoscaler[];
+export type MachineSet = K8sResourceCommon;
+
+export type MachineAutoscalerList = {
+  items: MachineAutoscaler[];
 } & K8sResourceCommon;
+
+export type MachineSetList = {
+  items: MachineSet[];
+} & K8sResourceCommon;
+
+export type gpuScale = {
+  maxScale: number;
+  gpuNumber: number;
+};
 
 export type GPUInfo = {
   configured: boolean;
   available: number;
-  scaleMax: number;
+  autoscalers: gpuScale[]
 };
