@@ -18,8 +18,8 @@ const useUserProjects = (): [
 
   const fetchProjects = React.useCallback(() => {
     return getProjects(translatedUsername)
-      .then((projects) => {
-        setProjects(projects);
+      .then((newProjects) => {
+        setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
       })
       .catch((e) => {
         setLoadError(e);

@@ -10,12 +10,14 @@ type ProjectTableRowProps = {
   obj: ProjectKind;
   isRefreshing: boolean;
   setEditData: (data: ProjectKind) => void;
+  setDeleteData: (data: ProjectKind) => void;
 };
 
 const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   obj: project,
   isRefreshing,
   setEditData,
+  setDeleteData,
 }) => {
   const [notebookStates, loaded, error] = useProjectNotebooks(project.metadata.name);
   const owner = project.metadata.annotations?.['openshift.io/requester'];
@@ -58,6 +60,12 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
               isDisabled: isRefreshing,
               onClick: () => {
                 setEditData(project);
+              },
+            },
+            {
+              title: 'Delete project',
+              onClick: () => {
+                setDeleteData(project);
               },
             },
           ]}

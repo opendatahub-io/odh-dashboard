@@ -1,5 +1,6 @@
 import {
   k8sCreateResource,
+  k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
   k8sUpdateResource,
@@ -70,5 +71,12 @@ export const updateProject = (
   return k8sUpdateResource<ProjectKind>({
     model: ProjectModel,
     resource,
+  });
+};
+
+export const deleteProject = (projectName: string): Promise<ProjectKind> => {
+  return k8sDeleteResource<ProjectKind>({
+    model: ProjectModel,
+    queryOptions: { name: projectName },
   });
 };

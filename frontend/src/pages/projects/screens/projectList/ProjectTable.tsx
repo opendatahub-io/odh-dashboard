@@ -5,6 +5,7 @@ import { ProjectKind } from '../../../../k8sTypes';
 import ProjectTableRow from './ProjectTableRow';
 import { columns } from './tableData';
 import ManageProjectModal from './ManageProjectModal';
+import DeleteProjectModal from './DeleteProjectModal';
 
 type ProjectTableProps = {
   projects: ProjectKind[];
@@ -17,6 +18,7 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
   getColumnSort,
   refreshProjects,
 }) => {
+  const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
   const [refreshIds, setRefreshIds] = React.useState<string[]>([]);
 
@@ -38,9 +40,8 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
               key={project.metadata.uid}
               obj={project}
               isRefreshing={refreshIds.includes(project.metadata.uid || '')}
-              setEditData={(data) => {
-                setEditData(data);
-              }}
+              setEditData={(data) => setEditData(data)}
+              setDeleteData={(data) => setDeleteData(data)}
             />
           ))}
         </Tbody>
@@ -54,11 +55,20 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
           }
           setEditData(undefined);
 
-          refreshProjects().then(() =>
-            setRefreshIds((ids) => ids.filter((id) => id !== refreshId)),
-          );
+          refreshProjects()
+            .then(() => setRefreshIds((ids) => ids.filter((id) => id !== refreshId)))
+            .catch((e) => console.error('Failed refresh', e));
         }}
         editProjectData={editData}
+      />
+      <DeleteProjectModal
+        deleteData={deleteData}
+        onClose={(deleted) => {
+          setDeleteData(undefined);
+          if (deleted) {
+            refreshProjects().catch((e) => console.error('Failed refresh', e));
+          }
+        }}
       />
     </>
   );

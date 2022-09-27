@@ -92,6 +92,9 @@ export type ProjectKind = K8sResourceCommon & {
     }>;
     name: string;
   };
+  status?: {
+    phase: 'Active' | 'Terminating';
+  };
 };
 
 type RoleBindingSubject = {
