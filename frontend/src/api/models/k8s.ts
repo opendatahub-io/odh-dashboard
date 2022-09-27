@@ -6,6 +6,12 @@ export const ConfigMapModel: K8sModelCommon = {
   plural: 'configmaps',
 };
 
+export const PodModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  kind: 'Pod',
+  plural: 'pods',
+};
+
 export const PVCModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'PersistentVolumeClaim',

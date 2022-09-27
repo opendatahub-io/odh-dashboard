@@ -1,12 +1,18 @@
 import * as React from 'react';
-import { ProjectKind } from '../../k8sTypes';
+import { K8sDSGResource, NotebookKind, ProjectKind } from '../../k8sTypes';
 import { ProjectDetailsContext } from './ProjectDetailsContext';
 
+const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
+  resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
+
 export const getProjectDisplayName = (project: ProjectKind): string =>
-  project.metadata.annotations?.['openshift.io/display-name'] || project.metadata.name;
+  getDisplayNameFromK8sResource(project);
 
 export const useCurrentProjectDisplayName = (): string => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
   return getProjectDisplayName(currentProject);
 };
+
+export const getNotebookDisplayName = (notebook: NotebookKind): string =>
+  getDisplayNameFromK8sResource(notebook);
