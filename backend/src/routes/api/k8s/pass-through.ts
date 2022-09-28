@@ -105,9 +105,15 @@ export const passThrough = (
               }
 
               if (isK8sStatus(parsedData)) {
-                fastify.log.warn(`Status Object, ${JSON.stringify(parsedData, null, 2)}`);
-                reject({ code: parsedData.code, response: parsedData });
-                return;
+                if (parsedData.status !== 'Success') {
+                  fastify.log.warn(
+                    `Unsuccessful status Object, ${
+                      DEV_MODE ? JSON.stringify(parsedData, null, 2) : JSON.stringify(parsedData)
+                    }`,
+                  );
+                  reject({ code: parsedData.code, response: parsedData });
+                  return;
+                }
               }
 
               fastify.log.info('Successful request, returning data to caller.');

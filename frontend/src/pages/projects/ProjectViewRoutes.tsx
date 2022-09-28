@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
 import ProjectDetails from './screens/detail/ProjectDetails';
-import ProjectView from './screens/projectList/ProjectView';
+import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
 
 const ProjectViewRoutes: React.FC = () => {
@@ -9,7 +9,7 @@ const ProjectViewRoutes: React.FC = () => {
     <Routes>
       <Route path="/" element={<ProjectView />} />
       <Route
-        path="/:namespace"
+        path="/:namespace/*"
         element={
           <ProjectDetailsContextProvider>
             <ProjectDetails />

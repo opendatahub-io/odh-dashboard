@@ -5,14 +5,14 @@ export type GetColumnSort = (columnIndex: number) => ThProps['sort'];
 
 export type SortableData<T> = {
   label: string;
-  field: keyof T;
+  field: string;
   /**
    * Set to false to disable sort.
    * Set to true to handle string and number fields automatically (everything else is equal).
    * Pass a function that will get the two results and what field needs to be matched.
    * Assume ASC -- the result will be inverted internally if needed.
    */
-  sortable: boolean | ((a: T, b: T, keyField: keyof T) => number);
+  sortable: boolean | ((a: T, b: T, keyField: string) => number);
 };
 
 /**
@@ -33,9 +33,9 @@ const useTableColumnSort = <T>(
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(
     defaultSortColIndex,
   );
-  const [activeSortDirection, setActiveSortDirection] = React.useState<
-    'desc' | 'asc' | undefined
-  >();
+  const [activeSortDirection, setActiveSortDirection] = React.useState<'desc' | 'asc' | undefined>(
+    'asc',
+  );
 
   return {
     transformData: (data: T[]): T[] => {

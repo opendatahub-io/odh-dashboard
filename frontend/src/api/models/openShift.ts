@@ -6,3 +6,10 @@ export const ProjectModel: K8sModelCommon = {
   kind: 'Project',
   plural: 'projects',
 };
+
+export const RouteModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'route.openshift.io',
+  kind: 'Route',
+  plural: 'routes',
+};

@@ -8,6 +8,7 @@ const useUserProjects = (): [
   projects: ProjectKind[],
   loaded: boolean,
   loadError: Error | undefined,
+  fetchProjects: () => Promise<void>,
 ] => {
   const { username } = useUser();
   const translatedUsername = usernameTranslate(username);
@@ -15,19 +16,26 @@ const useUserProjects = (): [
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
-  React.useEffect(() => {
-    getProjects(translatedUsername)
-      .then((projects) => {
-        setProjects(projects);
-        setLoaded(true);
+  const fetchProjects = React.useCallback(() => {
+    return getProjects(translatedUsername)
+      .then((newProjects) => {
+        setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
       })
       .catch((e) => {
         setLoadError(e);
-        setLoaded(true);
       });
   }, [translatedUsername]);
 
-  return [projects, loaded, loadError];
+  React.useEffect(() => {
+    if (!loaded) {
+      fetchProjects().then(() => {
+        setLoaded(true);
+      });
+    }
+    // TODO: No cleanup -- custom hook to manage that??
+  }, [loaded, fetchProjects]);
+
+  return [projects, loaded, loadError, fetchProjects];
 };
 
 export default useUserProjects;

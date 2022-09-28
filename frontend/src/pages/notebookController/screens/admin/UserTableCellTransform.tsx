@@ -6,7 +6,7 @@ import NotebookActions from './NotebookActions';
 
 type TableDataRendererProps = {
   user: AdminViewUserData;
-  userProperty: keyof AdminViewUserData;
+  userProperty: string; //keyof AdminViewUserData;
 };
 
 const UserTableCellTransform: React.FC<TableDataRendererProps> = ({ user, userProperty }) => {
