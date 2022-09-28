@@ -24,7 +24,7 @@ test('Found static route found with sub routes', () => {
 
 test('Found dynamic route found with sub routes', () => {
   const rte = pathToOdhRoute('/notebook/:testNamespace/:testNotebookName');
-  if (rte && rte[0] && rte[1]&& rte[2]) {
+  if (rte && rte[0] && rte[1] && rte[2]) {
     expect(rte[0].label).toMatch('Notebook');
     expect(rte[0].path).toMatch('/notebook');
     expect(rte[1].label).toMatch('testNamespace');

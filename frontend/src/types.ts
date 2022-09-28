@@ -262,6 +262,11 @@ export type ODHSegmentKey = {
   segmentKey: string;
 };
 
+export type OdhRoute = {
+  label: string;
+  path: string;
+};
+
 export type TrackingEventProperties = {
   name?: string;
   anonymousID?: string;

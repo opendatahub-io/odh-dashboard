@@ -32,6 +32,7 @@ const AppRoutes: React.FC = () => {
     >
       <Routes>
         <Route path="/" element={<InstalledApplications />} />
+        <Route path="/enabled" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
         {isAllowed && <Route path="/projects/*" element={<ProjectViewRoutes />} />}

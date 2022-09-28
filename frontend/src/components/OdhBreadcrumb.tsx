@@ -12,7 +12,11 @@ const OdhBreadcrumb: React.FC = () => {
   return (
     <Breadcrumb>
       {subRoutes?.map((value, index) => (
-        <BreadcrumbItem to={value?.path} isActive={subRoutes.length === index + 1}>
+        <BreadcrumbItem
+          key={`breadcrumb-${index}`}
+          to={value?.path}
+          isActive={subRoutes.length === index + 1}
+        >
           {value?.label}
         </BreadcrumbItem>
       ))}

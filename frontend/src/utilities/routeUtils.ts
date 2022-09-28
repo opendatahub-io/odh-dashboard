@@ -1,3 +1,5 @@
+import { OdhRoute } from 'types';
+
 export const routes = {
   '/': 'Enabled',
   '/clusterSettings': 'Settings',
@@ -15,13 +17,8 @@ export const routes = {
   '/resources': 'Learning',
 };
 
-export type OdhRoute = {
-  label: string;
-  path: string;
-};
-
 /**
- * Converts a route to an array of text to display to the user.
+ * Converts a URL path / route to an array of OdhRoute objects.
  * @param path Route that appears in the URL.
  * @returns Returns an array of strings that are the text for each route. If no route is found it will return null.
  */
@@ -31,17 +28,16 @@ export const pathToOdhRoute = (path: string): Array<OdhRoute | null> => {
   // Drop the empty string that's created from the split
   pths.shift();
 
-  let currentLookup: string = '';
-  let currentPath: string = '';
+  let currentLookup = '';
+  let currentPath = '';
 
-  let tempRoutes = Object.entries(routes);
+  const tempRoutes = Object.entries(routes);
 
   odhRoutes = pths.map((value: string) => {
-    currentPath = `${currentPath}/${value}`
+    currentPath = `${currentPath}/${value}`;
     currentLookup = value.charAt(0) === ':' ? `${currentLookup}/:` : `${currentLookup}/${value}`;
     let match;
     tempRoutes.find(([key]) => {
-      if(value.charAt(0) === ':') debugger;
       if (key.includes(currentLookup)) {
         match = key;
         return true;
@@ -50,16 +46,20 @@ export const pathToOdhRoute = (path: string): Array<OdhRoute | null> => {
     });
 
     if (value.charAt(0) === ':') {
-      currentLookup =  match;
+      currentLookup = match;
     }
 
-    const routeLabel = match ? value.charAt(0) === ':' ? routes[match](value) : routes[match] : null;
+    const routeLabel = match
+      ? value.charAt(0) === ':'
+        ? routes[match](value)
+        : routes[match]
+      : null;
 
     return routeLabel
       ? ({
-        label: routeLabel,
-        path: currentPath,
-      } as OdhRoute)
+          label: routeLabel,
+          path: currentPath,
+        } as OdhRoute)
       : null;
   });
 
