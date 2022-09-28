@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import NewProjectButton from './screens/projectList/NewProjectButton';
+import NewProjectButton from './NewProjectButton';
 
 const EmptyProjects: React.FC = () => {
   const navigate = useNavigate();

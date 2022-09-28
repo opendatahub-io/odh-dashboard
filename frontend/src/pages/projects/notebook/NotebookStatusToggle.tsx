@@ -21,9 +21,9 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
 
   let label = '';
   if (startingNotRunning) {
-    label = 'Starting';
+    label = 'Starting...';
   } else if (inProgress) {
-    label = isChecked ? 'Starting' : 'Stopping';
+    label = isChecked ? 'Starting...' : 'Stopping...';
   } else {
     label = isRunning ? 'Started' : 'Stopped';
   }

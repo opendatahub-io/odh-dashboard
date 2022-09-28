@@ -1,9 +1,18 @@
 import * as React from 'react';
 import { ProjectKind } from '../../k8sTypes';
 import { useParams } from 'react-router';
-import { Alert, AlertActionLink, Bullseye, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  Spinner,
+  Title,
+} from '@patternfly/react-core';
 import useProject from './useProject';
 import { useNavigate } from 'react-router-dom';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -21,18 +30,18 @@ const ProjectDetailsContextProvider: React.FC = ({ children }) => {
 
   if (error) {
     return (
-      <Alert
-        title="Problem loading project"
-        actionLinks={
-          <>
-            <AlertActionLink onClick={() => navigate('/projects')}>
-              View my projects
-            </AlertActionLink>
-          </>
-        }
-      >
-        {error.message}
-      </Alert>
+      <Bullseye>
+        <EmptyState>
+          <EmptyStateIcon icon={ExclamationCircleIcon} />
+          <Title headingLevel="h4" size="lg">
+            Problem loading project details
+          </Title>
+          <EmptyStateBody>{error.message}</EmptyStateBody>
+          <Button variant="primary" onClick={() => navigate('/projects')}>
+            View my projects
+          </Button>
+        </EmptyState>
+      </Bullseye>
     );
   }
 

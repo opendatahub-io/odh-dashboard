@@ -1,7 +1,7 @@
 import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import ApplicationsPage from '../../../ApplicationsPage';
-import EmptyProjects from '../../EmptyProjects';
+import EmptyProjects from '../projects/EmptyProjects';
 import { useCurrentProjectDisplayName } from '../../utils';
 import DataConnectionsList from './DataConnectionsList';
 import ProjectDetailsSidebar from './ProjectDetailsSidebar';

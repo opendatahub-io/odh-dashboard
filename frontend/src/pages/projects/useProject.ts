@@ -13,6 +13,9 @@ const useProject = (
     if (projectName) {
       getProject(projectName)
         .then((p) => {
+          if (p == null) {
+            throw new Error(`Project '${projectName}' not found`);
+          }
           setProject(p);
           setLoaded(true);
         })
