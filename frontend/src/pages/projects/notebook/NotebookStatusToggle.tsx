@@ -2,15 +2,16 @@ import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '../../../api';
 import { NotebookState } from './types';
+import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
 };
 
-const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
-  notebookState: { notebook, isStarting, isRunning, refresh },
-}) => {
+const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookState }) => {
+  const { notebook, isStarting, isRunning, refresh } = notebookState;
   const [inProgress, setInProgress] = React.useState(false);
+  const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState);
   const notebookName = notebook.metadata.name;
   const notebookNamespace = notebook.metadata.namespace;
   const startingNotRunning = isStarting && !isRunning;
@@ -43,6 +44,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         } else {
           startNotebook(notebookName, notebookNamespace).then(() => {
             refresh().then(() => setInProgress(false));
+            listenToNotebookStart();
           });
         }
       }}

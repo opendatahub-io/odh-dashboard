@@ -19,10 +19,15 @@ const useProjectNotebooks = (
       return new Promise((resolve, reject) => {
         getNotebook(notebookName, namespace)
           .then((notebook) => {
+            if (!notebook) {
+              resolve();
+              return;
+            }
+
+            // Have a notebook, get a proper status of it
             getNotebookStatus(notebook)
               .then((notebookStatus) => {
-                console.debug(notebookStatus);
-                // Now that we have the latest state, update
+                // Now that we have the latest status, update state
                 setNotebookState((notebookStates) =>
                   notebookStates.map((state) =>
                     state.notebook.metadata.name === notebookName
@@ -33,6 +38,7 @@ const useProjectNotebooks = (
                       : state,
                   ),
                 );
+
                 resolve();
               })
               .catch(reject);
