@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { TableComposable, Tbody, Th, Thead, Tr } from '@patternfly/react-table';
+import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { Button } from '@patternfly/react-core';
 import { GetColumnSort } from '../../../../utilities/useTableColumnSort';
 import { ProjectKind } from '../../../../k8sTypes';
 import ProjectTableRow from './ProjectTableRow';
@@ -8,12 +9,14 @@ import ManageProjectModal from './ManageProjectModal';
 import DeleteProjectModal from './DeleteProjectModal';
 
 type ProjectTableProps = {
+  clearFilters: () => void;
   projects: ProjectKind[];
   getColumnSort: GetColumnSort;
   refreshProjects: () => Promise<void>;
 };
 
 const ProjectTable: React.FC<ProjectTableProps> = ({
+  clearFilters,
   projects,
   getColumnSort,
   refreshProjects,
@@ -35,6 +38,16 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
           </Tr>
         </Thead>
         <Tbody>
+          {projects.length === 0 && (
+            <Tr>
+              <Td colSpan={columns.length} style={{ textAlign: 'center' }}>
+                No projects match your filters.{' '}
+                <Button variant="link" isInline onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              </Td>
+            </Tr>
+          )}
           {projects.map((project) => (
             <ProjectTableRow
               key={project.metadata.uid}

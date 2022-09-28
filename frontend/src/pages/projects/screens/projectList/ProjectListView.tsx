@@ -29,6 +29,10 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
       !search ? true : getProjectDisplayName(project).toLowerCase().includes(search.toLowerCase()),
     );
 
+  const resetFilters = () => {
+    setSearch('');
+  };
+
   const showPagination = unfilteredProjects.length > MIN_PAGE_SIZE;
   const pagination = (pageDirection: 'up' | 'down') =>
     showPagination && (
@@ -68,6 +72,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
         </ToolbarContent>
       </Toolbar>
       <ProjectTable
+        clearFilters={resetFilters}
         projects={filteredProjects.slice(pageSize * (page - 1))}
         getColumnSort={sort.getColumnSort}
         refreshProjects={refreshProjects}
