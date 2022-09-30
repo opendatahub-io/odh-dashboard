@@ -2,6 +2,7 @@ import * as React from 'react';
 import { FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
 import { getGPU } from '../../../../services/gpuService';
 import useNotification from '../../../../utilities/useNotification';
+import { gpuScale } from 'types';
 
 type GPUSelectFieldProps = {
   value: string;
@@ -11,7 +12,7 @@ type GPUSelectFieldProps = {
 const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
   const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
   const [gpuSize, setGpuSize] = React.useState<number>();
-  const [gpuScale, setGpuScale] = React.useState<number>();
+  const [gpuAutoscale, setGpuAutoscale] = React.useState<gpuScale[]>([]);
   const [isFetching, setFetching] = React.useState(true);
   const [areGpusAvailable, setAreGpusAvailable] = React.useState<boolean>(false);
   const notification = useNotification();
@@ -26,7 +27,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
         if (cancelled) return;
         setGpuSize(gpuInfo.available || 0);
         setAreGpusAvailable(gpuInfo.configured);
-        setGpuScale(gpuInfo.scaleMax || 0);
+        setGpuAutoscale(gpuInfo.autoscalers);
         setFetching(false);
       });
     };
@@ -36,7 +37,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
       setFetching(false);
       setAreGpusAvailable(false);
       setGpuSize(0);
-      setGpuScale(0);
+      setGpuAutoscale([]);
       console.error(e);
       notification.error('Failed to fetch GPU', e.message);
     };
@@ -60,15 +61,27 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
     };
   }, [notification, areGpusAvailable]);
 
+  React.useEffect(() => {
+    let maxScale = 0;
+    if (gpuAutoscale) {
+      for (let i = 0; i < gpuAutoscale.length; i++) {
+        const gpuNumber = gpuAutoscale[i].gpuNumber;
+        if (gpuNumber > maxScale) {
+          maxScale = gpuNumber;
+        }
+      }
+    }
+    if (gpuSize === undefined ? 0 : gpuSize < maxScale) {
+      setGpuSize(maxScale);
+    }
+  }, [gpuAutoscale, gpuSize]);
+
   if (!areGpusAvailable) {
     return null;
   }
 
-  //TODO: We need to get the amount of gpus already scaled so as to not lie to the user about the avaiable gpus.
-  const gpuOptions =
-    gpuSize === undefined
-      ? []
-      : Array.from(Array(gpuSize + (gpuScale === undefined ? 0 : gpuScale) + 1).keys());
+  //TODO: We need to get the amount of gpus already scaled so as to not lie to the user about the available gpus.
+  const gpuOptions = gpuSize === undefined ? [] : Array.from(Array(gpuSize + 1).keys());
   const noAvailableGPUs = gpuOptions.length === 1;
 
   return (

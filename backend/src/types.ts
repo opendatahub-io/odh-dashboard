@@ -697,5 +697,5 @@ export type gpuScale = {
 export type GPUInfo = {
   configured: boolean;
   available: number;
-  autoscalers: gpuScale[]
+  autoscalers: gpuScale[];
 };

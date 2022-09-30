@@ -90,23 +90,33 @@ export const getGPUData = async (
 };
 
 const getGPUScaling = async (fastify: KubeFastifyInstance): Promise<gpuScale[]> => {
-  let scalingList: gpuScale[] = []
-  const autoscalers = await fastify.kube.customObjectsApi
-    .listNamespacedCustomObject('autoscaling.openshift.io', 'v1beta1', 'openshift-machine-api', 'machineautoscalers')
-    .then((res) => {
-      return res.body as MachineAutoscalerList;
-    });
-  autoscalers.items.forEach(async (autoscaler) => {
-    const machineSetName = autoscaler.spec.scaleTargetRef.name; //also gives info about kind and apiversion if needed in the future
-    const machineSet = await fastify.kube.customObjectsApi
-      .getNamespacedCustomObject('machine.openshift.io', 'v1beta1', 'openshift-machine-api', 'machinesets', machineSetName)
-      .then((res) => {
-        return res.body as MachineSet;
-      });
+  const scalingList: gpuScale[] = [];
+  const autoscalerList = (
+    await fastify.kube.customObjectsApi.listNamespacedCustomObject(
+      'autoscaling.openshift.io',
+      'v1beta1',
+      'openshift-machine-api',
+      'machineautoscalers',
+    )
+  ).body as MachineAutoscalerList;
+  for (let i = 0; i < autoscalerList.items.length; i++) {
+    const machineSetName = autoscalerList.items[i].spec.scaleTargetRef.name; //also gives info about kind and apiversion if needed in the future
+    const machineSet = (
+      await fastify.kube.customObjectsApi.getNamespacedCustomObject(
+        'machine.openshift.io',
+        'v1beta1',
+        'openshift-machine-api',
+        'machinesets',
+        machineSetName,
+      )
+    ).body as MachineSet;
     const gpuAmount = Number(machineSet?.metadata.annotations?.['machine.openshift.io/GPU']);
-    if (gpuAmount > 0){
-      scalingList.push({maxScale: autoscaler.spec.maxReplicas, gpuNumber: gpuAmount});
+    if (gpuAmount > 0) {
+      scalingList.push({
+        maxScale: autoscalerList.items[i].spec.maxReplicas,
+        gpuNumber: gpuAmount,
+      });
     }
-  });
+  }
   return scalingList;
 };
