@@ -17,8 +17,104 @@ export type K8sDSGResource = K8sResourceCommon & {
   };
 };
 
+type ImageStreamAnnotations = Partial<{
+  'opendatahub.io/notebook-image-desc': string;
+  'opendatahub.io/notebook-image-name': string;
+  'opendatahub.io/notebook-image-url': string;
+  'opendatahub.io/notebook-image-order': string;
+}>;
+
+type ImageStreamSpecTagAnnotations = Partial<{
+  'opendatahub.io/notebook-python-dependencies': string;
+  'opendatahub.io/notebook-software': string;
+  'opendatahub.io/notebook-image-recommended': string;
+  'opendatahub.io/default-image': string;
+}>;
+
+export type BuildConfigKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    labels?: Partial<{
+      'opendatahub.io/notebook-name': string;
+    }>;
+  };
+  spec: {
+    output: {
+      to: {
+        name: string;
+      };
+    };
+  };
+};
+
+export type BuildKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'openshift.io/build.number': string;
+    }>;
+    labels?: Partial<{
+      buildconfig: string;
+      'openshift.io/build-config.name': string;
+    }>;
+  };
+  spec: {
+    output: {
+      to: {
+        name: string;
+      };
+    };
+  };
+  status: {
+    phase: BUILD_PHASE;
+    completionTimestamp?: string;
+    startTimestamp?: string;
+  };
+};
+
+/**
+ * Contains all the phases for BuildKind -> status -> phase (excluding NONE phase)
+ */
+export enum BUILD_PHASE {
+  NONE = 'Not started',
+  NEW = 'New',
+  RUNNING = 'Running',
+  PENDING = 'Pending',
+  COMPLETE = 'Complete',
+  FAILED = 'Failed',
+  ERROR = 'Error',
+  CANCELLED = 'Cancelled',
+}
+
 export type ConfigMapKind = K8sResourceCommon & {
   data?: Record<string, string>;
+};
+
+export type ImageStreamKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: ImageStreamAnnotations;
+    name: string;
+  };
+  spec: {
+    tags?: ImageStreamSpecTagType[];
+  };
+  status?: {
+    tags?: {
+      tag: string;
+    }[];
+  };
+};
+
+/**
+ * tpye of `imageStream.spec.tags[i]`
+ */
+export type ImageStreamSpecTagType = {
+  name: string;
+  annotations?: ImageStreamSpecTagAnnotations;
+  from: {
+    kind: string;
+    name: string;
+  };
 };
 
 /** A status object when Kube backend can't handle a request. */

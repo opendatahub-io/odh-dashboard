@@ -3,6 +3,7 @@ import { Navigate, Routes, Route } from 'react-router-dom';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
+import SpawnerPage from './screens/spawner/SpawnerPage';
 
 const ProjectViewRoutes: React.FC = () => {
   return (
@@ -13,6 +14,14 @@ const ProjectViewRoutes: React.FC = () => {
         element={
           <ProjectDetailsContextProvider>
             <ProjectDetails />
+          </ProjectDetailsContextProvider>
+        }
+      />
+      <Route
+        path="/:namespace/spawner"
+        element={
+          <ProjectDetailsContextProvider>
+            <SpawnerPage />
           </ProjectDetailsContextProvider>
         }
       />

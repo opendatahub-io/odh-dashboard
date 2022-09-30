@@ -6,17 +6,26 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
-import { ProjectSectionID } from './types';
-import { ProjectSectionTitles } from './const';
 
-const ProjectDetailsSidebar: React.FC = ({ children }) => {
+type GenericSidebarProps = {
+  sections: string[];
+  titles: Record<string, string>;
+  scrollableSelector: string;
+};
+
+const GenericSidebar: React.FC<GenericSidebarProps> = ({
+  children,
+  sections,
+  titles,
+  scrollableSelector,
+}) => {
   return (
     <Sidebar hasGutter>
       <SidebarPanel variant="sticky">
-        <JumpLinks isVertical label="Jump to section" scrollableSelector="#project-details-list">
-          {Object.values(ProjectSectionID).map((section) => (
+        <JumpLinks isVertical label="Jump to section" scrollableSelector={scrollableSelector}>
+          {sections.map((section) => (
             <JumpLinksItem key={section} href={`#${section}`}>
-              {ProjectSectionTitles[section]}
+              {titles[section]}
             </JumpLinksItem>
           ))}
         </JumpLinks>
@@ -26,4 +35,4 @@ const ProjectDetailsSidebar: React.FC = ({ children }) => {
   );
 };
 
-export default ProjectDetailsSidebar;
+export default GenericSidebar;
