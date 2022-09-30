@@ -1,5 +1,5 @@
 import compareVersions from 'compare-versions';
-import { NotebookSize } from '../../../../types';
+import { NotebookSize, StartNotebookData } from '../../../../types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '../../../../k8sTypes';
 import { FAILED_PHASES, PENDING_PHASES } from './const';
 import {
@@ -240,3 +240,15 @@ export const checkVersionExistence = (
  */
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
   !!imageVersion.annotations?.['opendatahub.io/notebook-image-recommended'];
+
+export const checkRequiredFieldsForNotebookStart = (startData: StartNotebookData): boolean => {
+  const { projectName, notebookName, username, notebookSize, image } = startData;
+  return !!(
+    projectName &&
+    notebookName &&
+    username &&
+    notebookSize &&
+    image?.imageStream &&
+    image?.imageVersion
+  );
+};

@@ -31,6 +31,15 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/default-image': string;
 }>;
 
+export type NotebookAnnotations = Partial<{
+  'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
+  'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+  'opendatahub.io/link': string; // redirect notebook url
+  'opendatahub.io/username': string; // the untranslated username behind the notebook
+  'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
+  'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+}>;
+
 export type BuildConfigKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -99,6 +108,8 @@ export type ImageStreamKind = K8sResourceCommon & {
     tags?: ImageStreamSpecTagType[];
   };
   status?: {
+    dockerImageRepository?: string;
+    publicDockerImageRepository?: string;
     tags?: {
       tag: string;
     }[];
@@ -143,15 +154,7 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
 
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
-    annotations: DisplayNameAnnotations &
-      Partial<{
-        'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
-        'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
-        'opendatahub.io/link': string; // redirect notebook url
-        'opendatahub.io/username': string; // the untranslated username behind the notebook
-        'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
-        'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
-      }>;
+    annotations: DisplayNameAnnotations & NotebookAnnotations;
     name: string;
     namespace: string;
     labels: Partial<{

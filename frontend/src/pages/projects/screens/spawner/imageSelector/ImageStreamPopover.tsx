@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Button, Popover, Title } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { ImageStreamAndVersion } from '../types';
 import {
   getImageStreamDescription,
   getImageVersionDependencies,
   getNameVersionString,
 } from '../spawnerUtils';
+import { ImageStreamAndVersion } from '../../../../../types';
 
 type ImageStreamPopoverProps = {
   selectedImage: ImageStreamAndVersion;

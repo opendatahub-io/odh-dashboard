@@ -2,7 +2,6 @@ import * as React from 'react';
 import { FormSection, Skeleton } from '@patternfly/react-core';
 import {
   BuildStatus,
-  ImageStreamAndVersion,
   ImageStreamSelectOptionObjectType,
   ImageVersionSelectOptionObjectType,
   SpawnerPageSectionID,
@@ -17,6 +16,7 @@ import {
 import ImageStreamSelector from './ImageStreamSelector';
 import ImageVersionSelector from './ImageVersionSelector';
 import ImageStreamPopover from './ImageStreamPopover';
+import { ImageStreamAndVersion } from '../../../../../types';
 
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;

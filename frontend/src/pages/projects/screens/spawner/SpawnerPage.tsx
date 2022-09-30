@@ -2,22 +2,23 @@ import * as React from 'react';
 import ApplicationsPage from '../../../../pages/ApplicationsPage';
 import { Divider, Form, FormSection, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import GenericSidebar from '../../components/GenericSidebar';
-import { ImageStreamAndVersion, NameDescType, SpawnerPageSectionID } from './types';
-import { SpawnerPageSectionTitles } from './const';
+import { NameDescType, SpawnerPageSectionID } from './types';
+import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import FormFooter from './FormFooter';
 import NameDescriptionField from './NameDescriptionField';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import useImageStreams from './useImageStreams';
-import { useDashboardNamespace } from '../../../../redux/selectors';
+import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
 import useBuildStatuses from './useBuildStatuses';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import { useNotebookSize } from './useNotebookSize';
+import { ImageStreamAndVersion } from '../../../../types';
 
 const SpawnerPage: React.FC = () => {
-  const scrollableSelectorID = 'workspace-spawner-page';
   const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { username } = useUser();
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({ name: '', description: '' });
   const [imageStreams, imageStreamsLoaded, imageStreamsLoadError] =
     useImageStreams(dashboardNamespace);
@@ -38,7 +39,7 @@ const SpawnerPage: React.FC = () => {
       <div id="spawner-page-wrapper">
         <PageSection
           isFilled
-          id={scrollableSelectorID}
+          id={ScrollableSelectorID}
           aria-label="spawner-page-spawner-section"
           hasOverflowScroll
           variant="light"
@@ -46,7 +47,7 @@ const SpawnerPage: React.FC = () => {
           <GenericSidebar
             sections={Object.values(SpawnerPageSectionID)}
             titles={SpawnerPageSectionTitles}
-            scrollableSelector={`#${scrollableSelectorID}`}
+            scrollableSelector={`#${ScrollableSelectorID}`}
           >
             <Form maxWidth="50%">
               <Stack hasGutter>
@@ -79,7 +80,18 @@ const SpawnerPage: React.FC = () => {
           </GenericSidebar>
         </PageSection>
         <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-          <FormFooter project={currentProject} />
+          <FormFooter
+            project={currentProject}
+            startData={{
+              notebookName: nameDesc.name,
+              description: nameDesc.description,
+              projectName: currentProject.metadata.name,
+              username,
+              image: selectedImage,
+              notebookSize: selectedSize,
+              gpus: 0,
+            }}
+          />
         </PageSection>
       </div>
     </ApplicationsPage>

@@ -9,6 +9,8 @@ export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {
   [SpawnerPageSectionID.STORAGE]: 'Storage',
 };
 
+export const ScrollableSelectorID = 'workspace-spawner-page';
+
 export const FAILED_PHASES = [BUILD_PHASE.ERROR, BUILD_PHASE.FAILED];
 export const PENDING_PHASES = [BUILD_PHASE.NEW, BUILD_PHASE.PENDING, BUILD_PHASE.CANCELLED];
 

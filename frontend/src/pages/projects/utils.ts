@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { K8sDSGResource, NotebookKind, ProjectKind } from '../../k8sTypes';
+import { K8sDSGResource, NotebookKind, ProjectKind, RoleBindingKind } from '../../k8sTypes';
 import { ProjectDetailsContext } from './ProjectDetailsContext';
 
 const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
@@ -21,3 +21,31 @@ export const useCurrentProjectDisplayName = (): string => {
 
 export const getNotebookDisplayName = (notebook: NotebookKind): string =>
   getDisplayNameFromK8sResource(notebook);
+
+export const generateRoleBindingData = (
+  dashboardNamespace: string,
+  projectName: string,
+): RoleBindingKind => {
+  const roleBindingName = `${projectName}-image-pullers`;
+  const roleBindingObject: RoleBindingKind = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'RoleBinding',
+    metadata: {
+      name: roleBindingName,
+      namespace: dashboardNamespace,
+    },
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'ClusterRole',
+      name: 'system:image-puller',
+    },
+    subjects: [
+      {
+        apiGroup: 'rbac.authorization.k8s.io',
+        kind: 'Group',
+        name: `system:serviceaccounts:${projectName}`,
+      },
+    ],
+  };
+  return roleBindingObject;
+};

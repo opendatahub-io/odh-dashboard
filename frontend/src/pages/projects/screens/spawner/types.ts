@@ -24,11 +24,6 @@ export type BuildStatus = {
   timestamp?: string;
 };
 
-export type ImageStreamAndVersion = {
-  imageStream?: ImageStreamKind;
-  imageVersion?: ImageStreamSpecTagType;
-};
-
 export type ImageVersionDependencyType = {
   name: string;
   version?: string;
