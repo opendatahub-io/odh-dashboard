@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Button, Modal, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { DEFAULT_PVC_SIZE } from './const';
 import CreateNewStorageForm from './CreateNewStorageForm';
-import ConnectWorkbenchOptions from './ConnectWorkbenchOptions';
 import AddExistingStorageForm from './AddExistingStorageForm';
 import { ExistingStorage } from './types';
 
@@ -14,47 +13,25 @@ type AddStorageModalProps = {
 };
 
 const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) => {
-  const [isCreateNewPV, setCreateNewPV] = React.useState<boolean>(true);
+  const [storageType, setStorageType] = React.useState<'create' | 'existing'>('create');
 
   // states for creating new PV
   const [name, setName] = React.useState<string>('');
   const [description, setDescription] = React.useState<string>('');
   const [size, setSize] = React.useState<string>(DEFAULT_PVC_SIZE);
-  const [workbenchSelection, setWorkbenchSelection] = React.useState<string | string[] | null>([]);
+  const [workbenchSelections, setWorkbenchSelections] = React.useState<string[]>([]);
 
   // states for adding existing PV
-  const [projectSelection, setProjectSelection] = React.useState<string | null>(null);
-  const [storageSelection, setStorageSelection] = React.useState<string | null>(null);
-  const existingSelections: ExistingStorage = React.useMemo(
-    () => ({ project: projectSelection, storage: storageSelection }),
-    [projectSelection, storageSelection],
-  );
-
-  const updateWorkbench = (workbench: string | string[] | null) => {
-    setWorkbenchSelection(workbench);
-  };
-
-  const updateExistingStorage = (selection: string, storageOnly: boolean) => {
-    if (!storageOnly) {
-      setProjectSelection(selection);
-      setStorageSelection(null);
-    } else {
-      setStorageSelection(selection);
-    }
-  };
-
-  const clearExistingStorage = (storageOnly: boolean) => {
-    if (!storageOnly) {
-      setProjectSelection(null);
-    }
-    setStorageSelection(null);
-  };
+  const [existingSelections, setExistingSelections] = React.useState<ExistingStorage>({
+    project: undefined,
+    storage: undefined,
+  });
 
   return (
     <Modal
       title="Add storage"
       description="Add and connect storage to your cluster"
-      variant="large"
+      variant="medium"
       isOpen={isOpen}
       onClose={onClose}
       showClose
@@ -74,10 +51,10 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
             id="create-new-storage-radio"
             name="create-new-storage-radio"
             label="Create new PV"
-            isChecked={isCreateNewPV}
-            onChange={() => setCreateNewPV(true)}
+            isChecked={storageType === 'create'}
+            onChange={() => setStorageType('create')}
             body={
-              isCreateNewPV && (
+              storageType === 'create' && (
                 <CreateNewStorageForm
                   name={name}
                   setName={setName}
@@ -85,13 +62,8 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
                   setDescription={setDescription}
                   size={size}
                   setSize={setSize}
-                  workbenchOptions={
-                    <ConnectWorkbenchOptions
-                      allWorkbenches={[]}
-                      workbenchSelection={workbenchSelection}
-                      onUpdate={updateWorkbench}
-                    />
-                  }
+                  selections={workbenchSelections}
+                  setSelections={setWorkbenchSelections}
                 />
               )
             }
@@ -103,14 +75,13 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
             id="add-existing-storage-radio"
             name="add-existing-storage-radio"
             label="Add exisiting PV"
-            isChecked={!isCreateNewPV}
-            onChange={() => setCreateNewPV(false)}
+            isChecked={storageType === 'existing'}
+            onChange={() => setStorageType('existing')}
             body={
-              !isCreateNewPV && (
+              storageType === 'existing' && (
                 <AddExistingStorageForm
                   selections={existingSelections}
-                  onClear={clearExistingStorage}
-                  onUpdate={updateExistingStorage}
+                  setSelections={setExistingSelections}
                 />
               )
             }

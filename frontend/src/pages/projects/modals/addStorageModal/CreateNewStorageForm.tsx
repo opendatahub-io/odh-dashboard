@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Flex, FlexItem, Form, FormGroup, TextInput } from '@patternfly/react-core';
+import ConnectWorkbenchOptions from './ConnectWorkbenchOptions';
 
 type CreateNewStorageFormProps = {
   name: string;
@@ -8,7 +9,8 @@ type CreateNewStorageFormProps = {
   setDescription: (description: string) => void;
   size: string;
   setSize: (size: string) => void;
-  workbenchOptions: React.ReactNode;
+  selections: string[];
+  setSelections: (selections: string[]) => void;
 };
 
 const CreateNewStorageForm: React.FC<CreateNewStorageFormProps> = ({
@@ -18,60 +20,55 @@ const CreateNewStorageForm: React.FC<CreateNewStorageFormProps> = ({
   setDescription,
   size,
   setSize,
-  workbenchOptions,
+  selections,
+  setSelections,
 }) => {
   return (
     <Form>
-      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-        <FlexItem>
-          <FormGroup label="Name" fieldId="create-new-storage-name">
+      <FormGroup label="Name" fieldId="create-new-storage-name">
+        <TextInput
+          type="text"
+          id="create-new-storage-name"
+          name="create-new-storage-name"
+          aria-labelledby="create-new-storage-name-helper"
+          value={name}
+          onChange={(newName) => setName(newName)}
+        />
+      </FormGroup>
+      <FormGroup label="Description" fieldId="create-new-storage-description">
+        <TextInput
+          type="text"
+          id="create-new-storage-description"
+          name="create-new-storage-description"
+          aria-labelledby="create-new-storage-description-helper"
+          value={description}
+          onChange={(newDesc) => setDescription(newDesc)}
+        />
+      </FormGroup>
+      <FormGroup role="radiogroup" fieldId="connection-options-radio-group">
+        <ConnectWorkbenchOptions
+          allWorkbenches={[]}
+          selections={selections}
+          setSelections={setSelections}
+        />
+      </FormGroup>
+      <FormGroup label="Size" fieldId="create-new-storage-size">
+        <Flex direction={{ default: 'row' }}>
+          <FlexItem>
             <TextInput
-              type="text"
-              id="create-new-storage-name"
-              name="create-new-storage-name"
-              aria-labelledby="create-new-storage-name-helper"
-              value={name}
-              onChange={(newName) => setName(newName)}
+              type="number"
+              id="create-new-storage-size"
+              name="create-new-storage-size"
+              aria-labelledby="create-new-storage-size-helper"
+              value={size}
+              onChange={(newSize) => setSize(newSize)}
             />
-          </FormGroup>
-        </FlexItem>
-        <FlexItem>
-          <FormGroup label="Description" fieldId="create-new-storage-description">
-            <TextInput
-              type="text"
-              id="create-new-storage-description"
-              name="create-new-storage-description"
-              aria-labelledby="create-new-storage-description-helper"
-              value={description}
-              onChange={(newDesc) => setDescription(newDesc)}
-            />
-          </FormGroup>
-        </FlexItem>
-        <FlexItem>
-          <FormGroup role="radiogroup" fieldId="connection-options-radio-group">
-            {workbenchOptions}
-          </FormGroup>
-        </FlexItem>
-        <FlexItem>
-          <FormGroup label="Size" fieldId="create-new-storage-size">
-            <Flex direction={{ default: 'row' }}>
-              <FlexItem>
-                <TextInput
-                  type="number"
-                  id="create-new-storage-size"
-                  name="create-new-storage-size"
-                  aria-labelledby="create-new-storage-size-helper"
-                  value={size}
-                  onChange={(newSize) => setSize(newSize)}
-                />
-              </FlexItem>
-              <FlexItem>
-                <span>GiB</span>
-              </FlexItem>
-            </Flex>
-          </FormGroup>
-        </FlexItem>
-      </Flex>
+          </FlexItem>
+          <FlexItem>
+            <span>GiB</span>
+          </FlexItem>
+        </Flex>
+      </FormGroup>
     </Form>
   );
 };
