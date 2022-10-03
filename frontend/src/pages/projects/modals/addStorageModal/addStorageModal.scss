@@ -1,0 +1,12 @@
+// temp fix until https://github.com/patternfly/patternfly-react/issues/8028 is resolved
+.radio-fix-body-width-50 {
+  .pf-c-radio__body {
+    width: 50%;
+  }
+}
+
+.radio-fix-body-width {
+  .pf-c-radio__body {
+    width: 100%;
+  }
+}

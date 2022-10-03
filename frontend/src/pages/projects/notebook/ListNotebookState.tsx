@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Flex, FlexItem, Skeleton, Switch } from '@patternfly/react-core';
+import { Flex, FlexItem, Skeleton } from '@patternfly/react-core';
 import { NotebookState } from './types';
 import NotebookRouteLink from './NotebookRouteLink';
 import NotebookStatusToggle from './NotebookStatusToggle';
