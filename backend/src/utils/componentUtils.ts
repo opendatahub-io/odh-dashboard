@@ -255,23 +255,20 @@ export const getIsAppEnabled = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
 ): Promise<boolean> => {
-  if (getKfDefForApp(appDef)) {
-    return true;
-  }
-
   const enabledCM = await getApplicationEnabledConfigMap(fastify, appDef);
   if (enabledCM) {
-    return true;
-  }
-  const crEnabled = await getCREnabledForApp(fastify, appDef);
-  if (crEnabled) {
-    return true;
-  }
+    if (getKfDefForApp(appDef)) {
+      return true;
+    }
+    const crEnabled = await getCREnabledForApp(fastify, appDef);
+    if (crEnabled) {
+      return true;
+    }
 
-  if (await getCSVForApp(fastify, appDef)) {
-    return true;
+    if (await getCSVForApp(fastify, appDef)) {
+      return true;
+    }
   }
-
   // Failed all checks
   return false;
 };
