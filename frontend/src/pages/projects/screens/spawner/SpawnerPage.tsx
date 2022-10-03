@@ -36,64 +36,62 @@ const SpawnerPage: React.FC = () => {
       loaded
       empty={false}
     >
-      <div id="spawner-page-wrapper">
-        <PageSection
-          isFilled
-          id={ScrollableSelectorID}
-          aria-label="spawner-page-spawner-section"
-          hasOverflowScroll
-          variant="light"
+      <PageSection
+        isFilled
+        id={ScrollableSelectorID}
+        aria-label="spawner-page-spawner-section"
+        hasOverflowScroll
+        variant="light"
+      >
+        <GenericSidebar
+          sections={Object.values(SpawnerPageSectionID)}
+          titles={SpawnerPageSectionTitles}
+          scrollableSelector={`#${ScrollableSelectorID}`}
         >
-          <GenericSidebar
-            sections={Object.values(SpawnerPageSectionID)}
-            titles={SpawnerPageSectionTitles}
-            scrollableSelector={`#${ScrollableSelectorID}`}
-          >
-            <Form maxWidth="50%">
-              <Stack hasGutter>
-                <StackItem>
-                  <NameDescriptionField nameDesc={nameDesc} setNameDesc={setNameDesc} />
-                </StackItem>
-                <Divider />
-                <StackItem>
-                  <ImageSelectorField
-                    selectedImage={selectedImage}
-                    setSelectedImage={setSelectedImage}
-                    imageStreams={imageStreams}
-                    loaded={imageStreamsLoaded}
-                    error={imageStreamsLoadError}
-                    buildStatuses={buildStatuses}
+          <Form maxWidth="50%">
+            <Stack hasGutter>
+              <StackItem>
+                <NameDescriptionField nameDesc={nameDesc} setNameDesc={setNameDesc} />
+              </StackItem>
+              <Divider />
+              <StackItem>
+                <ImageSelectorField
+                  selectedImage={selectedImage}
+                  setSelectedImage={setSelectedImage}
+                  imageStreams={imageStreams}
+                  loaded={imageStreamsLoaded}
+                  error={imageStreamsLoadError}
+                  buildStatuses={buildStatuses}
+                />
+              </StackItem>
+              <Divider />
+              <StackItem>
+                <FormSection title="Deployment size" id={SpawnerPageSectionID.DEPLOYMENT_SIZE}>
+                  <ContainerSizeSelector
+                    sizes={sizes}
+                    setValue={setSelectedSize}
+                    value={selectedSize}
                   />
-                </StackItem>
-                <Divider />
-                <StackItem>
-                  <FormSection title="Deployment size" id={SpawnerPageSectionID.DEPLOYMENT_SIZE}>
-                    <ContainerSizeSelector
-                      sizes={sizes}
-                      setValue={setSelectedSize}
-                      value={selectedSize}
-                    />
-                  </FormSection>
-                </StackItem>
-              </Stack>
-            </Form>
-          </GenericSidebar>
-        </PageSection>
-        <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-          <FormFooter
-            project={currentProject}
-            startData={{
-              notebookName: nameDesc.name,
-              description: nameDesc.description,
-              projectName: currentProject.metadata.name,
-              username,
-              image: selectedImage,
-              notebookSize: selectedSize,
-              gpus: 0,
-            }}
-          />
-        </PageSection>
-      </div>
+                </FormSection>
+              </StackItem>
+            </Stack>
+          </Form>
+        </GenericSidebar>
+      </PageSection>
+      <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
+        <FormFooter
+          project={currentProject}
+          startData={{
+            notebookName: nameDesc.name,
+            description: nameDesc.description,
+            projectName: currentProject.metadata.name,
+            username,
+            image: selectedImage,
+            notebookSize: selectedSize,
+            gpus: 0,
+          }}
+        />
+      </PageSection>
     </ApplicationsPage>
   );
 };

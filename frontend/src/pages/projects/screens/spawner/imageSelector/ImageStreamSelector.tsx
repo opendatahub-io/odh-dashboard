@@ -2,12 +2,13 @@ import * as React from 'react';
 import { FormGroup, Select, SelectOption, Text, Title } from '@patternfly/react-core';
 import { ImageStreamSelectDataType, ImageStreamSelectOptionObjectType } from '../types';
 import {
-  checkImageStreamAvailablity,
+  checkImageStreamAvailability,
   compareImageStreamOptionOrder,
   getExistingVersionsForImageStream,
   getImageVersionSoftwareString,
   isImageStreamSelectOptionObject,
 } from '../spawnerUtils';
+import { getDashboardMainContainer } from '../../../../../utilities/utils';
 
 type ImageStreamSelectorProps = {
   selectedImageStream?: ImageStreamSelectOptionObjectType;
@@ -34,7 +35,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
         key={imageStream.metadata.name}
         value={optionObject}
         description={description}
-        isDisabled={!checkImageStreamAvailablity(imageStream, buildStatuses)}
+        isDisabled={!checkImageStreamAvailability(imageStream, buildStatuses)}
       />
     );
   });
@@ -60,6 +61,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
         isOpen={imageSelectionOpen}
         selections={selectedImageStream}
         placeholderText="Select one"
+        menuAppendTo={getDashboardMainContainer}
       >
         {options}
       </Select>

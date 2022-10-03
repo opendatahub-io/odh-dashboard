@@ -145,7 +145,7 @@ export const getExistingVersionsForImageStream = (
 };
 
 /**
- * Get all the exsiting tags and check their build status, filter out the available ones
+ * Get all the existing tags and check their build status, filter out the available ones
  */
 export const getAvailableVersionsForImageStream = (
   imageStream: ImageStreamKind,
@@ -196,7 +196,7 @@ export const getSizeDescription = (size: NotebookSize): string =>
 /**
  * Check if there is 1 or more versions available for an image stream
  */
-export const checkImageStreamAvailablity = (
+export const checkImageStreamAvailability = (
   imageStream: ImageStreamKind,
   buildStatuses: BuildStatus[],
 ): boolean => {

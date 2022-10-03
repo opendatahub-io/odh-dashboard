@@ -10,6 +10,7 @@ import {
   isImageVersionSelectOptionObject,
 } from '../spawnerUtils';
 import ImageVersionTooltip from './ImageVersionTooltip';
+import { getDashboardMainContainer } from '../../../../../utilities/utils';
 
 type ImageVersionSelectorProps = {
   data: ImageVersionSelectDataType;
@@ -68,6 +69,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
         isOpen={versionSelectionOpen}
         selections={selectedImageVersion}
         placeholderText="Select one"
+        menuAppendTo={getDashboardMainContainer}
       >
         {options}
       </Select>
