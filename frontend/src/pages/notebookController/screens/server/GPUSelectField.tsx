@@ -26,19 +26,15 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
         setGpuSize(gpuInfo.available || 0);
         setAreGpusAvailable(gpuInfo.configured);
         setFetching(false);
-        let availableScaleableGPU = 0;
+        const availableScaleableGPU = 0;
         if (gpuInfo.autoscalers) {
-          for (let i = 0; i < gpuInfo.autoscalers.length; i++) {
-            // MachineAutoscaler must have available nodes to scale
-            if (gpuInfo.autoscalers[i].availableScale > 0) {
-              const autoscalerMaxGPU = gpuInfo.autoscalers[i].gpuNumber;
-              if (autoscalerMaxGPU > availableScaleableGPU) {
-                availableScaleableGPU = autoscalerMaxGPU;
-              }
-            }
-          }
+          gpuInfo.autoscalers.reduce(
+            (highestValue, { availableScale, gpuNumber }) =>
+              availableScale > 0 ? Math.max(highestValue, gpuNumber) : highestValue,
+            0,
+          );
         }
-        if (gpuInfo.available === undefined ? 0 : gpuInfo.available < availableScaleableGPU) {
+        if (gpuInfo.available < availableScaleableGPU) {
           setGpuSize(availableScaleableGPU);
         }
       });

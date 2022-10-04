@@ -22,6 +22,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
       fastify.log.error(`Exception when calling DCGM exporter pods: ${e}`);
       return { items: [] } as V1PodList;
     });
+  const scalingLimit = await getGPUScaling(fastify);
   if (gpuPodList.items.length != 0) {
     areGpusConfigured = true;
     const token = await new Promise<string>((resolve, reject) => {
@@ -45,8 +46,9 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
         fastify.log.warn(`Error getting GPUData ${data.response}`);
       }
     }
+  } else if (scalingLimit.length != 0) {
+    areGpusConfigured = true;
   }
-  const scalingLimit = await getGPUScaling(fastify);
   return { configured: areGpusConfigured, available: maxGpuNumber, autoscalers: scalingLimit };
 };
 
