@@ -1,10 +1,10 @@
 import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import ApplicationsPage from '../../../ApplicationsPage';
-import EmptyProjects from '../projects/EmptyProjects';
 import { useCurrentProjectDisplayName } from '../../utils';
+import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './DataConnectionsList';
-import ProjectDetailsSidebar from './ProjectDetailsSidebar';
+import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './StorageList';
 import { ProjectSectionID } from './types';
 import WorkspacesList from './WorkspacesList';
@@ -15,6 +15,7 @@ type SectionType = {
 };
 
 const ProjectDetails: React.FC = () => {
+  const scrollableSelectorID = 'project-details-list';
   const displayName = useCurrentProjectDisplayName();
 
   const sections: SectionType[] = [
@@ -41,16 +42,24 @@ const ProjectDetails: React.FC = () => {
       description={null}
       loaded
       empty={false}
-      emptyStatePage={<EmptyProjects />}
     >
-      <PageSection id="project-details-list" hasOverflowScroll variant="light">
-        <ProjectDetailsSidebar>
+      <PageSection
+        id={scrollableSelectorID}
+        hasOverflowScroll
+        aria-label="project-details-page-section"
+        variant="light"
+      >
+        <GenericSidebar
+          sections={Object.values(ProjectSectionID)}
+          titles={ProjectSectionTitles}
+          scrollableSelector={`#${scrollableSelectorID}`}
+        >
           <Stack hasGutter>
             {sections.map(({ id, component }, index, array) =>
               mapSections(id, component, index, array),
             )}
           </Stack>
-        </ProjectDetailsSidebar>
+        </GenericSidebar>
       </PageSection>
     </ApplicationsPage>
   );

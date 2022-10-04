@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button, Form, FormGroup, Modal, TextArea, TextInput } from '@patternfly/react-core';
-import { createProject, updateProject } from '../../../../api';
+import { createProject, createRoleBinding, updateProject } from '../../../../api';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../../../redux/selectors';
+import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
 import { ProjectKind } from '../../../../k8sTypes';
-import { getProjectDescription, getProjectDisplayName } from '../../utils';
+import { generateRoleBindingData, getProjectDescription, getProjectDisplayName } from '../../utils';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -23,6 +23,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   const [description, setDescription] = React.useState('');
   const nameRef = React.useRef<HTMLInputElement | null>(null);
   const { username } = useUser();
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const canSubmit = !fetching && name.length > 0;
 
@@ -63,7 +64,9 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
               updateProject(editProjectData, name, description).then(() => onBeforeClose());
             } else {
               createProject(username, name, description).then((project) => {
-                navigate(`/projects/${project.metadata.name}`);
+                const projectName = project.metadata.name;
+                const roleBindingData = generateRoleBindingData(dashboardNamespace, projectName);
+                createRoleBinding(roleBindingData).then(() => navigate(`/projects/${projectName}`));
               });
             }
           }}

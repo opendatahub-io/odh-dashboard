@@ -1,4 +1,6 @@
+export * from './network/builds';
 export * from './network/configMaps';
+export * from './network/imageStreams';
 export * from './network/notebooks';
 export * from './network/pods';
 export * from './network/projects';

@@ -111,6 +111,7 @@ const App: React.FC = () => {
           sidebar={<NavSidebar />}
           notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
           isNotificationDrawerExpanded={notificationsOpen}
+          mainContainerId="dashboard-page-main"
         >
           <AppRoutes />
           <ToastNotifications />

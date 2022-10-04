@@ -2,6 +2,7 @@
  * Common types, should be kept up to date with backend types
  */
 
+import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 
 export type DashboardConfig = K8sResourceCommon & {
@@ -637,3 +638,24 @@ export enum EventStatus {
 }
 
 export type UsernameMap<V> = { [username: string]: V };
+
+export type ImageStreamAndVersion = {
+  imageStream?: ImageStreamKind;
+  imageVersion?: ImageStreamSpecTagType;
+};
+
+export type StartNotebookData = {
+  projectName: string;
+  notebookName: string;
+  username: string;
+  notebookSize: NotebookSize;
+  gpus: number;
+  tolerationSettings?: NotebookTolerationSettings;
+  envVars?: EnvVarReducedType;
+  volumes?: Volume[];
+  volumeMounts?: VolumeMount[];
+  description?: string;
+  imageUrl?: string;
+  imageSelection?: string;
+  image?: ImageStreamAndVersion;
+};
