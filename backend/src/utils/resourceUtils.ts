@@ -201,7 +201,10 @@ const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStar
             qStart.spec.appName = 'jupyterhub';
           }
           if (qStart.spec.featureFlag) {
-            if (featureFlags[qStart.spec.featureFlag] && appDefs.find((def) => def.metadata.name === qStart.spec.appName)) {
+            if (
+              featureFlags[qStart.spec.featureFlag] &&
+              appDefs.find((def) => def.metadata.name === qStart.spec.appName)
+            ) {
               installedQuickStarts.push(qStart);
             }
             return;
@@ -349,7 +352,10 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
             doc.spec.appName = 'jupyter';
           }
           if (doc.spec.featureFlag) {
-            if (featureFlags[doc.spec.featureFlag] && appDefs.find((def) => def.metadata.name === doc.spec.appName)) {
+            if (
+              featureFlags[doc.spec.featureFlag] &&
+              appDefs.find((def) => def.metadata.name === doc.spec.appName)
+            ) {
               docs.push(doc);
             }
             return;
