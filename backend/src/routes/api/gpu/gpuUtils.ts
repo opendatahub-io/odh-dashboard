@@ -1,6 +1,5 @@
 import {
   MachineAutoscalerList,
-  MachineSetList,
   GPUInfo,
   KubeFastifyInstance,
   PrometheusResponse,
@@ -113,7 +112,8 @@ const getGPUScaling = async (fastify: KubeFastifyInstance): Promise<gpuScale[]> 
     const gpuAmount = Number(machineSet?.metadata.annotations?.['machine.openshift.io/GPU']);
     if (gpuAmount > 0) {
       scalingList.push({
-        maxScale: autoscalerList.items[i].spec.maxReplicas,
+        availableScale:
+          autoscalerList.items[i].spec.maxReplicas - machineSet.status.availableReplicas,
         gpuNumber: gpuAmount,
       });
     }
