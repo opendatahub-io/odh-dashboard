@@ -19,7 +19,6 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
     let lastCall = 0;
     let cancelled = false;
     const fetchGPU = () => {
-      setFetching(true);
       lastCall = Date.now();
       return getGPU().then((gpuInfo) => {
         if (cancelled) return;
