@@ -60,7 +60,15 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
   } else if (scalingLimit.length != 0) {
     areGpusConfigured = true;
   }
-  return { configured: areGpusConfigured, available: maxGpuNumber, autoscalers: scalingLimit };
+
+  const data: GPUInfo = {
+    configured: areGpusConfigured,
+    available: maxGpuNumber,
+    autoscalers: scalingLimit,
+  };
+  storage.lastFetch = Date.now();
+  storage.lastValue = data;
+  return data;
 };
 
 export const getGPUData = async (
