@@ -26,9 +26,9 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
         setGpuSize(gpuInfo.available || 0);
         setAreGpusAvailable(gpuInfo.configured);
         setFetching(false);
-        const availableScaleableGPU = 0;
+        let availableScaleableGPU = 0;
         if (gpuInfo.autoscalers) {
-          gpuInfo.autoscalers.reduce(
+          availableScaleableGPU = gpuInfo.autoscalers.reduce(
             (highestValue, { availableScale, gpuNumber }) =>
               availableScale > 0 ? Math.max(highestValue, gpuNumber) : highestValue,
             0,
