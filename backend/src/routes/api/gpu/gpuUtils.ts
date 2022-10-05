@@ -10,7 +10,18 @@ import { V1PodList } from '@kubernetes/client-node';
 import https from 'https';
 import * as fs from 'fs';
 
+/** Storage to prevent heavy calls from being performed for EVERY user */
+const storage: { lastFetch: number; lastValue: GPUInfo } = {
+  lastValue: { available: 0, configured: false, autoscalers: [] },
+  lastFetch: 0,
+};
+
 export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInfo> => {
+  if (storage.lastFetch >= Date.now() - 30_000) {
+    fastify.log.info(`Returning cached gpu value (${JSON.stringify(storage)})`);
+    return storage.lastValue;
+  }
+  fastify.log.info(`Computing GPU state`);
   let maxGpuNumber = 0;
   let areGpusConfigured = false;
   const gpuPodList = await fastify.kube.coreV1Api
