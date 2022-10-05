@@ -21,7 +21,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               e.message || res.message,
               e.code,
             );
-            fastify.log.error(`Configmap ${cmName} could not be read, ${error}`);
+            if (res.statusCode !== 404) {
+              fastify.log.error(`Configmap ${cmName} could not be read, ${error}`);
+            }
             throw error;
           });
       },

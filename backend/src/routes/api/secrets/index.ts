@@ -20,11 +20,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           );
           return secretResponse.body;
         } catch (e) {
-          fastify.log.error(
-            `Secret ${secretName} could not be read, ${
-              e.response?.body?.message || e.message || e
-            }`,
-          );
+          if (e.statusCode !== 404) {
+            fastify.log.error(
+              `Secret ${secretName} could not be read, ${
+                e.response?.body?.message || e.message || e
+              }`,
+            );
+          }
           reply.send(e);
         }
       },
