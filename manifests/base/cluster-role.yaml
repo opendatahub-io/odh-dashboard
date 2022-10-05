@@ -7,7 +7,6 @@ rules:
       - get
       - list
     apiGroups:
-      - ''
       - machine.openshift.io
       - autoscaling.openshift.io
     resources:

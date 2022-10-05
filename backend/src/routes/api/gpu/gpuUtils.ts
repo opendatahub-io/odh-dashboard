@@ -100,25 +100,39 @@ const getGPUScaling = async (fastify: KubeFastifyInstance): Promise<gpuScale[]> 
       'machineautoscalers',
     )
   ).body as MachineAutoscalerList;
+
+  const machineSets = [];
   for (let i = 0; i < autoscalerList.items.length; i++) {
     const machineSetName = autoscalerList.items[i].spec.scaleTargetRef.name; //also gives info about kind and apiversion if needed in the future
-    const machineSet = (
-      await fastify.kube.customObjectsApi.getNamespacedCustomObject(
-        'machine.openshift.io',
-        'v1beta1',
-        'openshift-machine-api',
-        'machinesets',
-        machineSetName,
-      )
-    ).body as MachineSet;
-    const gpuAmount = Number(machineSet?.metadata.annotations?.['machine.openshift.io/GPU']);
-    if (gpuAmount > 0) {
-      scalingList.push({
-        availableScale:
-          autoscalerList.items[i].spec.maxReplicas - machineSet.status.availableReplicas,
-        gpuNumber: gpuAmount,
-      });
-    }
+    machineSets.push(
+      fastify.kube.customObjectsApi
+        .getNamespacedCustomObject(
+          'machine.openshift.io',
+          'v1beta1',
+          'openshift-machine-api',
+          'machinesets',
+          machineSetName,
+        )
+        .catch((e) => {
+          fastify.log.warn(
+            `Autoscaler ${autoscalerList.items[i].metadata.name} did not contain MachineSet info. ${e.response.data.message}`,
+          );
+          return null;
+        }),
+    );
   }
+  await Promise.all(machineSets).then((msList) => {
+    for (let i = 0; i < msList.length; i++) {
+      const machineSet = msList[i].body as MachineSet;
+      const gpuAmount = Number(machineSet?.metadata.annotations?.['machine.openshift.io/GPU']);
+      if (gpuAmount > 0) {
+        scalingList.push({
+          availableScale:
+            autoscalerList.items[i].spec.maxReplicas - (machineSet.status.availableReplicas || 0),
+          gpuNumber: gpuAmount,
+        });
+      }
+    }
+  });
   return scalingList;
 };
