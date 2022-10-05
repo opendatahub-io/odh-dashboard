@@ -164,6 +164,7 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
 const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStart[]> => {
   const fetchAll = async (): Promise<QuickStart[]> => {
     const installedQuickStarts: QuickStart[] = [];
+    const appDefs = await fetchApplicationDefs(fastify);
     let _continue: string = undefined;
     let remainingItemCount = 1;
     const featureFlags = getComponentFeatureFlags();
@@ -199,7 +200,16 @@ const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStar
           } else if (qStart.spec.appName === 'jupyter' && !isJupyterEnabled) {
             qStart.spec.appName = 'jupyterhub';
           }
-          if (!qStart.spec.featureFlag || featureFlags[qStart.spec.featureFlag]) {
+          if (qStart.spec.featureFlag) {
+            if (
+              featureFlags[qStart.spec.featureFlag] &&
+              appDefs.find((def) => def.metadata.name === qStart.spec.appName)
+            ) {
+              installedQuickStarts.push(qStart);
+            }
+            return;
+          }
+          if (appDefs.find((def) => def.metadata.name === qStart.spec.appName)) {
             installedQuickStarts.push(qStart);
           }
         });
@@ -342,12 +352,15 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
             doc.spec.appName = 'jupyter';
           }
           if (doc.spec.featureFlag) {
-            if (featureFlags[doc.spec.featureFlag]) {
+            if (
+              featureFlags[doc.spec.featureFlag] &&
+              appDefs.find((def) => def.metadata.name === doc.spec.appName)
+            ) {
               docs.push(doc);
             }
             return;
           }
-          if (!doc.spec.appName || appDefs.find((def) => def.metadata.name === doc.spec.appName)) {
+          if (appDefs.find((def) => def.metadata.name === doc.spec.appName)) {
             docs.push(doc);
           }
         });
