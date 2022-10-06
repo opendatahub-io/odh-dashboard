@@ -34,11 +34,12 @@ export const useWatchNotebookEvents = (
             .catch((e) => {
               notification.error('Error fetching notebook events', e.response.data.message);
               clear();
+            })
+            .finally(() => {
+              watchHandle = setTimeout(watchNotebookEvents, FAST_POLL_INTERVAL);
             });
-          watchHandle = setTimeout(watchNotebookEvents, FAST_POLL_INTERVAL);
         }
       };
-
       watchNotebookEvents();
     }
     return clear;
