@@ -123,7 +123,7 @@ export type OdhApplication = {
     link?: string | null;
     img: string;
     docsLink: string;
-    getStartedLink: string;
+    getStartedLink?: string;
     getStartedMarkDown: string;
     category?: string;
     support?: string;

@@ -265,7 +265,7 @@ export type OdhApplication = {
     };
     endpoint: string | null;
     featureFlag?: string;
-    getStartedLink: string;
+    getStartedLink?: string;
     getStartedMarkDown: string;
     img: string;
     shownOnEnabledPage: boolean | null;

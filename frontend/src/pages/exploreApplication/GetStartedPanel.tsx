@@ -57,6 +57,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
     );
   };
 
+  const enabledButton = renderEnableButton();
+
   return (
     <>
       <DrawerPanelContent
@@ -82,23 +84,25 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
             <DrawerCloseButton onClick={onClose} />
           </DrawerActions>
         </DrawerHead>
-        {selectedApp.spec.getStartedLink ? (
+        {selectedApp.spec.getStartedLink || enabledButton ? (
           <DrawerPanelBody className="odh-get-started__button-panel">
-            <a
-              className="pf-c-button pf-m-primary"
-              href={selectedApp.spec.getStartedLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() =>
-                fireTrackingEvent('Explore card get started clicked', {
-                  name: selectedApp.metadata.name,
-                })
-              }
-            >
-              <span className="odh-get-started__get-started-text">Get started</span>
-              <ExternalLinkAltIcon />
-            </a>
-            {renderEnableButton()}
+            {selectedApp.spec.getStartedLink ? (
+              <a
+                className="pf-c-button pf-m-primary"
+                href={selectedApp.spec.getStartedLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() =>
+                  fireTrackingEvent('Explore card get started clicked', {
+                    name: selectedApp.metadata.name,
+                  })
+                }
+              >
+                <span className="odh-get-started__get-started-text">Get started</span>
+                <ExternalLinkAltIcon />
+              </a>
+            ) : null}
+            {enabledButton}
           </DrawerPanelBody>
         ) : null}
         <DrawerPanelBody className="odh-get-started__body">

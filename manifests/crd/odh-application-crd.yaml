@@ -141,7 +141,6 @@ spec:
                 - description
                 - displayName
                 - docsLink
-                - getStartedLink
                 - getStartedMarkDown
                 - img
                 - provider
