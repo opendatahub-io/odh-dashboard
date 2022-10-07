@@ -1,19 +1,36 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
-import { ProjectKind } from '../../../../k8sTypes';
 import { createNotebook, createNotebookWithoutStarting } from '../../../../api';
-import { StartNotebookData } from '../../../../types';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
+import { StartNotebookData, StorageData } from '../../types';
+import { patchStartNotebookDataWithPvc } from './service';
 
 type FormFooterProps = {
-  project: ProjectKind;
-  startData: StartNotebookData;
+  startNotebookData: StartNotebookData;
+  storageData: StorageData;
 };
 
-const FormFooter: React.FC<FormFooterProps> = ({ project, startData }) => {
+const FormFooter: React.FC<FormFooterProps> = ({ startNotebookData, storageData }) => {
+  const { projectName } = startNotebookData;
   const navigate = useNavigate();
-  const isButtonDisabled = !checkRequiredFieldsForNotebookStart(startData);
+  const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
+  const isButtonDisabled =
+    !checkRequiredFieldsForNotebookStart(startNotebookData, storageData) || createInProgress;
+
+  const onCreateNotebook = async (action: 'stop' | 'start') => {
+    setCreateInProgress(true);
+    const newStartData = await patchStartNotebookDataWithPvc(startNotebookData, storageData);
+    if (action === 'start') {
+      await createNotebook(newStartData);
+    } else if (action === 'stop') {
+      await createNotebookWithoutStarting(newStartData);
+    }
+    setCreateInProgress(false);
+    // TODO: navigate to `/projects/${projectName}` after Notebook List is implemented
+    navigate('/projects');
+  };
+
   return (
     <ActionList>
       <ActionListItem>
@@ -21,7 +38,7 @@ const FormFooter: React.FC<FormFooterProps> = ({ project, startData }) => {
           isDisabled={isButtonDisabled}
           variant="primary"
           id="create-button"
-          onClick={() => createNotebookWithoutStarting(startData).then(() => navigate('/projects'))}
+          onClick={() => onCreateNotebook('stop')}
         >
           Create
         </Button>
@@ -31,7 +48,7 @@ const FormFooter: React.FC<FormFooterProps> = ({ project, startData }) => {
           isDisabled={isButtonDisabled}
           variant="secondary"
           id="create-and-start-button"
-          onClick={() => createNotebook(startData).then(() => navigate('/projects'))}
+          onClick={() => onCreateNotebook('start')}
         >
           Create and start
         </Button>
@@ -40,7 +57,7 @@ const FormFooter: React.FC<FormFooterProps> = ({ project, startData }) => {
         <Button
           variant="link"
           id="cancel-button"
-          onClick={() => navigate(`/projects/${project.metadata.name}`)}
+          onClick={() => navigate(`/projects/${projectName}`)}
         >
           Cancel
         </Button>

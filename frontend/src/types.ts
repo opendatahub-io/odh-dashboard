@@ -643,19 +643,3 @@ export type ImageStreamAndVersion = {
   imageStream?: ImageStreamKind;
   imageVersion?: ImageStreamSpecTagType;
 };
-
-export type StartNotebookData = {
-  projectName: string;
-  notebookName: string;
-  username: string;
-  notebookSize: NotebookSize;
-  gpus: number;
-  tolerationSettings?: NotebookTolerationSettings;
-  envVars?: EnvVarReducedType;
-  volumes?: Volume[];
-  volumeMounts?: VolumeMount[];
-  description?: string;
-  imageUrl?: string;
-  imageSelection?: string;
-  image?: ImageStreamAndVersion;
-};

@@ -1,13 +1,13 @@
-import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { ImageStreamModel } from '../models';
 import { ImageStreamKind } from '../../k8sTypes';
 
 export const getImageStreams = (namespace: string): Promise<ImageStreamKind[]> => {
-  return k8sListResource<ImageStreamKind>({
+  return k8sListResourceItems<ImageStreamKind>({
     model: ImageStreamModel,
     queryOptions: {
       ns: namespace,
       queryParams: { labelSelector: 'opendatahub.io/notebook-image=true' },
     },
-  }).then((r) => r.items);
+  });
 };

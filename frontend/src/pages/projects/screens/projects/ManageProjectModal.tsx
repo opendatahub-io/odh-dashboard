@@ -1,10 +1,15 @@
 import * as React from 'react';
 import { Button, Form, FormGroup, Modal, TextArea, TextInput } from '@patternfly/react-core';
-import { createProject, createRoleBinding, updateProject } from '../../../../api';
+import {
+  createProject,
+  createRoleBinding,
+  generateRoleBindingData,
+  updateProject,
+} from '../../../../api';
 import { useNavigate } from 'react-router-dom';
 import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
 import { ProjectKind } from '../../../../k8sTypes';
-import { generateRoleBindingData, getProjectDescription, getProjectDisplayName } from '../../utils';
+import { getProjectDescription, getProjectDisplayName } from '../../utils';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -65,7 +70,12 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
             } else {
               createProject(username, name, description).then((project) => {
                 const projectName = project.metadata.name;
-                const roleBindingData = generateRoleBindingData(dashboardNamespace, projectName);
+                const rbName = `${projectName}-image-pullers`;
+                const roleBindingData = generateRoleBindingData(
+                  rbName,
+                  dashboardNamespace,
+                  projectName,
+                );
                 createRoleBinding(roleBindingData).then(() => navigate(`/projects/${projectName}`));
               });
             }

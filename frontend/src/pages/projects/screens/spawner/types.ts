@@ -12,11 +12,6 @@ export type SpawnerPageSectionTitlesType = {
   [key in SpawnerPageSectionID]: string;
 };
 
-export type NameDescType = {
-  name: string;
-  description: string;
-};
-
 export type BuildStatus = {
   name: string;
   status: BUILD_PHASE;

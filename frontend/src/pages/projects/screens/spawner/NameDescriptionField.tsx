@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { FormGroup, FormSection, TextInput } from '@patternfly/react-core';
-import { NameDescType, SpawnerPageSectionID } from './types';
+import { SpawnerPageSectionID } from './types';
+import { NameDescType } from '../../types';
 
 type NameDescriptionFieldProps = {
   nameDesc: NameDescType;
