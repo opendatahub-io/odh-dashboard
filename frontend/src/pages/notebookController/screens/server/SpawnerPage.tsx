@@ -18,44 +18,20 @@ import {
   ConfigMap,
   Secret,
   EnvVarResourceType,
-  VolumeMount,
 } from '../../../../types';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import {
-  CUSTOM_VARIABLE,
-  EMPTY_KEY,
-  MOUNT_PATH,
-  DEFAULT_PVC_SIZE,
-  ENV_VAR_NAME_REGEX,
-} from '../../const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '../../const';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { startNotebook, stopNotebook } from '../../../../services/notebookService';
-import { createPvc, getPvc } from '../../../../services/pvcService';
+import { enableNotebook, stopNotebook } from '../../../../services/notebookService';
 import {
-  generateNotebookNameFromUsername,
-  generatePvcNameFromUsername,
   generateEnvVarFileNameFromUsername,
   verifyResource,
-  generatePvc,
   useNotebookUserState,
   classifyEnvVars,
-  verifyEnvVars,
 } from '../../../../utilities/notebookControllerUtils';
 import { useAppContext } from '../../../../app/AppContext';
-import {
-  createSecret,
-  deleteSecret,
-  getSecret,
-  replaceSecret,
-} from '../../../../services/secretsService';
-import {
-  createConfigMap,
-  deleteConfigMap,
-  getConfigMap,
-  replaceConfigMap,
-} from '../../../../services/configMapService';
 import { useWatchImages } from '../../../../utilities/useWatchImages';
 import ApplicationsPage from '../../../ApplicationsPage';
 import StartServerModal from './StartServerModal';
@@ -71,12 +47,13 @@ import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 
 import '../../NotebookController.scss';
+import { getEnvConfigMap, getEnvSecret } from 'services/envService';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
   const { images, loaded, loadError } = useWatchImages();
-  const { buildStatuses, dashboardConfig } = useAppContext();
+  const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
   const { notebookNamespace: projectName } = useNamespaces();
@@ -168,8 +145,8 @@ const SpawnerPage: React.FC = () => {
   React.useEffect(() => {
     let cancelled = false;
     const mapEnvironmentVariableRows = async () => {
-      const fetchedVariableRowsConfigMap = await mapRows(getConfigMap);
-      const fetchedVariableRowsSecret = await mapRows(getSecret);
+      const fetchedVariableRowsConfigMap = await mapRows(getEnvConfigMap);
+      const fetchedVariableRowsSecret = await mapRows(getEnvSecret);
       if (!cancelled) {
         setVariableRows([...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret]);
       }
@@ -257,79 +234,34 @@ const SpawnerPage: React.FC = () => {
   const handleNotebookAction = async () => {
     setSubmitError(null);
     setCreateInProgress(true);
-    const pvcName = generatePvcNameFromUsername(username);
-    const envVarFileName = generateEnvVarFileNameFromUsername(username);
     const envVars = classifyEnvVars(variableRows);
-    await Promise.all([
-      new Promise<void>((resolve, reject) => {
-        const requestedPvcSize = dashboardConfig.spec.notebookController?.pvcSize;
-        const pvcBody = generatePvc(pvcName, projectName, requestedPvcSize ?? DEFAULT_PVC_SIZE);
-        verifyResource(pvcName, projectName, getPvc, createPvc, pvcBody)
-          .then(() => {
-            resolve();
-          })
-          .catch((e) => {
-            console.error(`Something wrong with PVC ${pvcName}: ${e}`);
-            reject();
-          });
-      }),
-      verifyEnvVars(
-        envVarFileName,
-        projectName,
-        EnvVarResourceType.Secret,
-        envVars.secrets,
-        getSecret,
-        createSecret,
-        replaceSecret,
-        deleteSecret,
-      ),
-      verifyEnvVars(
-        envVarFileName,
-        projectName,
-        EnvVarResourceType.ConfigMap,
-        envVars.configMap,
-        getConfigMap,
-        createConfigMap,
-        replaceConfigMap,
-        deleteConfigMap,
-      ),
-    ]).then(() => {
-      const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-      const volumeMounts: VolumeMount[] = [{ mountPath: MOUNT_PATH, name: pvcName }];
-      const notebookName = generateNotebookNameFromUsername(username);
-      const imageUrl = `${selectedImageTag.image?.dockerImageRepo}:${selectedImageTag.tag?.name}`;
-      startNotebook({
-        projectName,
-        notebookName,
-        username,
-        imageUrl,
-        notebookSize: selectedSize,
-        imageSelection: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
-        gpus: parseInt(selectedGpu),
-        envVars: {
-          envVarFileName,
-          ...envVars,
-        },
-        tolerationSettings: dashboardConfig.spec.notebookController?.notebookTolerationSettings,
-        volumes,
-        volumeMounts,
+
+    const location = new URL(window.location.href);
+    const url = location.origin;
+
+    enableNotebook({
+      notebookSizeName: selectedSize.name,
+      imageName: selectedImageTag.image?.name || '',
+      imageTagName: selectedImageTag.tag?.name || '',
+      url,
+      gpus: parseInt(selectedGpu),
+      envVars: envVars,
+    })
+      .then(() => {
+        fireStartServerEvent();
+        refreshNotebookForStart();
       })
-        .then(() => {
-          fireStartServerEvent();
-          refreshNotebookForStart();
-        })
-        .catch((e) => {
-          setSubmitError(e);
-          setCreateInProgress(false);
-          // We had issues spawning the notebook -- try to stop it
-          stopNotebook(projectName, notebookName).catch(() =>
-            notification.error(
-              'Error creating notebook',
-              'Error spawning notebook and unable to properly stop it',
-            ),
-          );
-        });
-    });
+      .catch((e) => {
+        setSubmitError(e);
+        setCreateInProgress(false);
+        // We had issues spawning the notebook -- try to stop it
+        stopNotebook().catch(() =>
+          notification.error(
+            'Error creating notebook',
+            'Error spawning notebook and unable to properly stop it',
+          ),
+        );
+      });
   };
 
   return (
@@ -430,7 +362,7 @@ const SpawnerPage: React.FC = () => {
           onClose={() => {
             if (currentUserNotebook) {
               const notebookName = currentUserNotebook.metadata.name;
-              stopNotebook(projectName, notebookName)
+              stopNotebook()
                 .then(() => requestNotebookRefresh())
                 .catch((e) => notification.error(`Error stop notebook ${notebookName}`, e.message));
             } else {

@@ -2,7 +2,6 @@ import { NotebookControllerUserState } from '../../types';
 
 export const CUSTOM_VARIABLE = 'Custom variable';
 export const EMPTY_KEY = '---NO KEY---';
-export const MOUNT_PATH = '/opt/app-root/src';
 export const DEFAULT_PVC_SIZE = '20Gi';
 export const CURRENT_BROWSER_TAB_PREFERENCE = 'odh.dashboard.kfnbc.tab.preference';
 export const ENV_VAR_NAME_REGEX = new RegExp('^[-._a-zA-Z][-._a-zA-Z0-9]*$');

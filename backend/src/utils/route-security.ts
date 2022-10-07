@@ -1,40 +1,15 @@
-import { cloneDeep } from 'lodash';
-import { getDashboardConfig } from './resourceUtils';
-import { K8sResourceCommon, KubeFastifyInstance, Notebook, OauthFastifyRequest } from '../types';
-import { getUserName } from './userUtils';
+import {
+  K8sResourceCommon,
+  KubeFastifyInstance,
+  NotebookData,
+  NotebookState,
+  OauthFastifyRequest,
+} from '../types';
+import { getOpenshiftUser, getUserName, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { isUserAdmin } from './adminUtils';
-import { RecursivePartial } from '../typeHelpers';
-
-const usernameTranslate = (username: string): string => {
-  const encodedUsername = encodeURIComponent(username);
-  return encodedUsername
-    .replace(/!/g, '%21')
-    .replace(/'/g, '%27')
-    .replace(/\(/g, '%28')
-    .replace(/\)/g, '%29')
-    .replace(/\*/g, '%2a')
-    .replace(/-/g, '%2d')
-    .replace(/\./g, '%2e')
-    .replace(/_/g, '%5f')
-    .replace(/~/g, '%7f')
-    .replace(/%/g, '-')
-    .toLowerCase();
-};
-
-const getNamespaces = (
-  fastify: KubeFastifyInstance,
-): { dashboardNamespace: string; notebookNamespace: string } => {
-  const config = getDashboardConfig();
-  const notebookNamespace = config.spec.notebookController?.notebookNamespace;
-  const fallbackNamespace = config.metadata.namespace || fastify.kube.namespace;
-
-  return {
-    notebookNamespace: notebookNamespace || fallbackNamespace,
-    dashboardNamespace: fallbackNamespace,
-  };
-};
+import { getNamespaces } from './notebookUtils';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -68,6 +43,28 @@ const testAdmin = async (
   }
 
   return false; // Not admin, no bypassing
+};
+
+const requestSecurityGuardNotebook = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  username: string,
+): Promise<void> => {
+  const user = await getUserName(fastify, request);
+
+  // Check first admin to not give away if a user does not exist to regular users
+  await testAdmin(fastify, request, true);
+
+  try {
+    await getOpenshiftUser(fastify.kube.customObjectsApi, username);
+    return;
+  } catch (e) {
+    throw createCustomError(
+      'Wrong username',
+      'Request invalid against a username that does not exist.',
+      403,
+    );
+  }
 };
 
 const requestSecurityGuard = async (
@@ -120,11 +117,6 @@ const requestSecurityGuard = async (
     return;
   }
 
-  // PVC api endpoint
-  if (namespace === notebookNamespace && name === `jupyterhub-nb-${translatedUsername}-pvc`) {
-    return;
-  }
-
   // ConfigMap and Secret endpoint (for env variables)
   if (
     namespace === notebookNamespace &&
@@ -153,6 +145,17 @@ const isRequestBody = (
 ): request is OauthFastifyRequest<{ Body: K8sResourceCommon }> =>
   !!(request?.body as K8sResourceCommon)?.metadata?.namespace;
 
+const isRequestNotebookAdmin = (
+  request: FastifyRequest,
+): request is OauthFastifyRequest<{ Body: NotebookData }> =>
+  !!(request?.body as NotebookData)?.username;
+
+const isRequestNotebookEndpoint = (
+  request: FastifyRequest,
+): request is OauthFastifyRequest<{ Body: NotebookData }> =>
+  request.url === '/api/notebooks' &&
+  Object.values(NotebookState).includes((request.body as NotebookData)?.state);
+
 /** Determine which type of call it is -- request body data or request params. */
 const handleSecurityOnRouteData = async (
   fastify: KubeFastifyInstance,
@@ -175,6 +178,11 @@ const handleSecurityOnRouteData = async (
       request.params.namespace,
       needsAdmin,
     );
+  } else if (isRequestNotebookAdmin(request)) {
+    await requestSecurityGuardNotebook(fastify, request, request.body.username);
+  } else if (isRequestNotebookEndpoint(request)) {
+    // Endpoint has self validation internal
+    return;
   } else {
     // Route is un-parameterized
     if (await testAdmin(fastify, request, needsAdmin)) {
@@ -219,99 +227,3 @@ export const secureRoute =
  */
 export const secureAdminRoute = (fastify: KubeFastifyInstance): ReturnType<typeof secureRoute> =>
   secureRoute(fastify, true);
-
-/**
- * Sanitizes the properties of a Notebook against what we expect.
- * No sharing of secrets, configmaps, etc between users.
- */
-export const sanitizeNotebookForSecurity = async <
-  T extends RecursivePartial<Notebook> = RecursivePartial<Notebook>,
->(
-  fastify: KubeFastifyInstance,
-  request: FastifyRequest,
-  notebook: T,
-): Promise<T> => {
-  const secureNotebook = cloneDeep(notebook);
-  const username = await getUserName(fastify, request);
-  const translatedUsername = usernameTranslate(username);
-
-  // PVCs
-  secureNotebook?.spec?.template?.spec?.volumes?.forEach((volume) => {
-    if (volume.name.startsWith('jupyterhub-nb-')) {
-      // PVC we generated
-      const allowedValue = `jupyterhub-nb-${translatedUsername}-pvc`;
-      if (volume.name !== allowedValue) {
-        // Was not targeted at their user
-        fastify.log.warn(
-          `${username} submitted a Notebook that contained a pvc (${volume.name}) that was not for them. Reset back to them.`,
-        );
-        fastify.log.warn(`PVC structure: ${JSON.stringify(volume)}`);
-
-        volume.name = allowedValue;
-        if (volume.persistentVolumeClaim) {
-          volume.persistentVolumeClaim.claimName = allowedValue;
-        }
-      }
-    }
-  });
-
-  // Configmaps & secrets
-  const envAllowedValue = `jupyterhub-singleuser-profile-${translatedUsername}-envs`;
-  secureNotebook?.spec?.template?.spec?.containers?.forEach((container) => {
-    if (container.name === 'oauth-proxy') {
-      return;
-    }
-
-    if (container.envFrom) {
-      fastify.log.warn(`${username} submitted a Notebook that contained an envFrom`);
-      delete container.envFrom;
-    }
-
-    container.env?.forEach((env) => {
-      if (
-        env.valueFrom?.configMapKeyRef?.name &&
-        env.valueFrom?.configMapKeyRef?.name !== envAllowedValue
-      ) {
-        // Was not targeted at their user
-        fastify.log.warn(
-          `${username} submitted a Notebook that contained an env configmap (${env.valueFrom.configMapKeyRef.name}) that was not for them. Reset back to them.`,
-        );
-        fastify.log.warn(`Env structure: ${JSON.stringify(env)}`);
-
-        env.valueFrom.configMapKeyRef.name = envAllowedValue;
-      }
-
-      if (
-        env.valueFrom?.secretKeyRef?.name &&
-        env.valueFrom?.secretKeyRef?.name !== envAllowedValue
-      ) {
-        // Was not targeted at their user
-        fastify.log.warn(
-          `${username} submitted a Notebook that contained an env secret (${env.valueFrom.secretKeyRef.name}) that was not for them. Reset back to them.`,
-        );
-        fastify.log.warn(`Env structure: ${JSON.stringify(env)}`);
-
-        env.valueFrom.secretKeyRef.name = envAllowedValue;
-      }
-    });
-
-    // Volume mounts
-    container.volumeMounts?.forEach((volumeMount) => {
-      if (volumeMount.name.startsWith('jupyterhub-nb-')) {
-        // The volume mount's PVC we generated
-        const allowedValue = `jupyterhub-nb-${translatedUsername}-pvc`;
-        if (volumeMount.name !== allowedValue) {
-          // Was not targeted at their user
-          fastify.log.warn(
-            `${username} submitted a Notebook that contained a volumeMount (${volumeMount.name}) that was not for them. Reset back to them.`,
-          );
-          fastify.log.warn(`volumeMount structure: ${JSON.stringify(volumeMount)}`);
-
-          volumeMount.name = allowedValue;
-        }
-      }
-    });
-  });
-
-  return secureNotebook;
-};
