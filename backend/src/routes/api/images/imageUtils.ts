@@ -37,6 +37,29 @@ export const getImageList = async (
   }
 };
 
+const getImage = async (fastify: KubeFastifyInstance, imageName: string): Promise<ImageStream> => {
+  return fastify.kube.customObjectsApi
+    .getNamespacedCustomObject(
+      'image.openshift.io',
+      'v1',
+      fastify.kube.namespace,
+      'imagestreams',
+      imageName,
+    )
+    .then((res) => {
+      return res.body as ImageStream;
+    });
+};
+
+export const getImageInfo = async (
+  fastify: KubeFastifyInstance,
+  imageName: string,
+): Promise<ImageInfo> => {
+  return getImage(fastify, imageName).then((res) => {
+    return processImageInfo(res);
+  });
+};
+
 const getImageStreams = async (
   fastify: KubeFastifyInstance,
   labels: { [key: string]: string },
@@ -68,7 +91,7 @@ const getImageStreams = async (
   return await requestPromise;
 };
 
-const processImageInfo = (imageStream: ImageStream): ImageInfo => {
+export const processImageInfo = (imageStream: ImageStream): ImageInfo => {
   const annotations = imageStream.metadata.annotations;
 
   const imageInfo: ImageInfo = {

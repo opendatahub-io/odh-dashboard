@@ -6,6 +6,22 @@ import { DEV_MODE } from './constants';
 
 const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 
+export const usernameTranslate = (username: string): string => {
+  const encodedUsername = encodeURIComponent(username);
+  return encodedUsername
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2a')
+    .replace(/-/g, '%2d')
+    .replace(/\./g, '%2e')
+    .replace(/_/g, '%5f')
+    .replace(/~/g, '%7f')
+    .replace(/%/g, '-')
+    .toLowerCase();
+};
+
 export type OpenShiftUser = {
   kind: string;
   apiVersion: string;
@@ -17,6 +33,23 @@ export type OpenShiftUser = {
   fullName: string;
   identities: string[];
   groups: string[];
+};
+
+export const getOpenshiftUser = async (
+  customObjectApi: CustomObjectsApi,
+  username: string,
+): Promise<OpenShiftUser> => {
+  try {
+    const userResponse = await customObjectApi.getClusterCustomObject(
+      'user.openshift.io',
+      'v1',
+      'users',
+      username,
+    );
+    return userResponse.body as OpenShiftUser;
+  } catch (e) {
+    throw new Error(`Error retrieving user, ${e.response?.data?.message || e.message}`);
+  }
 };
 
 export const getUser = async (

@@ -88,6 +88,14 @@ rules:
       - list
       - watch
     apiGroups:
+      - user.openshift.io
+    resources:
+      - users
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
       - ''
     resources:
       - pods

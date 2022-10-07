@@ -59,10 +59,6 @@ export type EnvironmentVariable = EitherNotBoth<
   name: string;
 };
 
-export type EnvVarReducedType = {
-  envVarFileName: string;
-} & EnvVarReducedTypeKeyValues;
-
 export type EnvVarReducedTypeKeyValues = {
   configMap: Record<string, string>;
   secrets: Record<string, string>;
@@ -631,5 +627,21 @@ export enum EventStatus {
   INFO = 'Info',
   WARNING = 'Warning',
 }
+
+export enum NotebookState {
+  Started = 'started',
+  Stopped = 'stopped',
+}
+
+export type NotebookData = {
+  notebookSizeName: string;
+  imageName: string;
+  imageTagName: string;
+  url: string;
+  gpus: number;
+  envVars: EnvVarReducedTypeKeyValues;
+  state?: NotebookState;
+  username?: string;
+};
 
 export type UsernameMap<V> = { [username: string]: V };

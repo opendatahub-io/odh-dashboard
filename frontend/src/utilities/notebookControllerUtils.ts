@@ -1,22 +1,16 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { AxiosError } from 'axios';
 import { createRoleBinding, getRoleBinding } from '../services/roleBindingService';
 import {
   EnvVarReducedTypeKeyValues,
-  EnvVarResource,
-  EnvVarResourceType,
   EventStatus,
   K8sEvent,
   K8sResourceCommon,
   Notebook,
   NotebookControllerUserState,
   NotebookStatus,
-  PersistentVolumeClaim,
   ResourceCreator,
-  ResourceDeleter,
   ResourceGetter,
-  ResourceReplacer,
   RoleBinding,
   VariableRow,
 } from '../types';
@@ -99,80 +93,6 @@ export const classifyEnvVars = (variableRows: VariableRow[]): EnvVarReducedTypeK
     { configMap: {}, secrets: {} },
   );
 };
-
-/** Check whether to get, create, replace or delete the environment variable files (Secret and ConfigMap) */
-export const verifyEnvVars = async (
-  name: string,
-  namespace: string,
-  kind: string,
-  envVars: Record<string, string>,
-  fetchFunc: ResourceGetter<EnvVarResource>,
-  createFunc: ResourceCreator<EnvVarResource>,
-  replaceFunc: ResourceReplacer<EnvVarResource>,
-  deleteFunc: ResourceDeleter,
-): Promise<void> => {
-  if (!envVars) {
-    const resource = await verifyResource(name, namespace, fetchFunc);
-    if (resource) {
-      await deleteFunc(namespace, name);
-    }
-    return;
-  }
-
-  const body =
-    kind === EnvVarResourceType.Secret
-      ? {
-          stringData: envVars,
-          type: 'Opaque',
-        }
-      : {
-          data: envVars,
-        };
-  const newResource: EnvVarResource = {
-    apiVersion: 'v1',
-    kind,
-    metadata: {
-      name,
-      namespace,
-    },
-    ...body,
-  };
-  const response = await verifyResource<EnvVarResource>(
-    name,
-    namespace,
-    fetchFunc,
-    createFunc,
-    newResource,
-  );
-  if (!_.isEqual(response?.data, envVars)) {
-    await replaceFunc(newResource);
-  }
-};
-
-export const generatePvc = (
-  pvcName: string,
-  namespace: string,
-  pvcSize: string,
-): PersistentVolumeClaim => ({
-  apiVersion: 'v1',
-  kind: 'PersistentVolumeClaim',
-  metadata: {
-    name: pvcName,
-    namespace,
-  },
-  spec: {
-    accessModes: ['ReadWriteOnce'],
-    resources: {
-      requests: {
-        storage: pvcSize,
-      },
-    },
-    volumeMode: 'Filesystem',
-  },
-  status: {
-    phase: 'Pending',
-  },
-});
 
 export const getNotebookControllerUserState = (
   notebook: Notebook | null,
