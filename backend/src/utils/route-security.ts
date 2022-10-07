@@ -2,6 +2,7 @@ import {
   K8sResourceCommon,
   KubeFastifyInstance,
   NotebookData,
+  NotebookState,
   OauthFastifyRequest,
 } from '../types';
 import { getOpenshiftUser, getUserName, usernameTranslate } from './userUtils';
@@ -149,6 +150,12 @@ const isRequestNotebookAdmin = (
 ): request is OauthFastifyRequest<{ Body: NotebookData }> =>
   !!(request?.body as NotebookData)?.username;
 
+const isRequestNotebookEndpoint = (
+  request: FastifyRequest,
+): request is OauthFastifyRequest<{ Body: NotebookData }> =>
+  request.url === '/api/notebooks' &&
+  Object.values(NotebookState).includes((request.body as NotebookData)?.state);
+
 /** Determine which type of call it is -- request body data or request params. */
 const handleSecurityOnRouteData = async (
   fastify: KubeFastifyInstance,
@@ -173,6 +180,9 @@ const handleSecurityOnRouteData = async (
     );
   } else if (isRequestNotebookAdmin(request)) {
     await requestSecurityGuardNotebook(fastify, request, request.body.username);
+  } else if (isRequestNotebookEndpoint(request)) {
+    // Endpoint has self validation internal
+    return;
   } else {
     // Route is un-parameterized
     if (await testAdmin(fastify, request, needsAdmin)) {
