@@ -57,7 +57,6 @@ const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
         const value = OdhDocumentType[docType];
         return (
           <FilterSidePanelCategoryItem
-            data-id={value}
             id={value}
             key={value}
             checked={docTypeFilters.includes(value)}

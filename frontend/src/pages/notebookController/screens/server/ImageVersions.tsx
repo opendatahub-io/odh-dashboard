@@ -43,7 +43,6 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
           <Radio
             key={`${image.name}:${tag.name}`}
             id={`${image.name}:${tag.name}`}
-            data-id={`${image.name}:${tag.name}`}
             name={`${image.name}:${tag.name}`}
             className="odh-notebook-controller__notebook-image-option"
             isDisabled={disabled}

@@ -78,7 +78,6 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
         .map((providerType) => {
           return (
             <FilterSidePanelCategoryItem
-              data-id={providerType}
               id={providerType}
               key={providerType}
               checked={providerTypeFilters.includes(providerType)}

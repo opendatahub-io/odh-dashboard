@@ -14,7 +14,7 @@ const ImpersonateAlert: React.FC = () => {
       title={`This notebook server is being created for "${impersonatedUsername}"`}
       isInline
     >
-      <Button data-id="return-admin-view-button" variant="link" onClick={() => setImpersonating()}>
+      <Button variant="link" onClick={() => setImpersonating()}>
         Return to administration view
       </Button>
     </Alert>

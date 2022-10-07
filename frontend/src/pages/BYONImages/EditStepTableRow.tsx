@@ -23,8 +23,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
       <Td dataLabel={imagePackage.name}>
         {isEditMode ? (
           <TextInput
-            id={`${imagePackage.name}-software-package-input`}
-            data-id="software-package-input"
+            id="software-package-input"
             type="text"
             value={modifiedValue.name}
             onChange={(value) => {
@@ -42,8 +41,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
       <Td dataLabel={imagePackage.version}>
         {isEditMode ? (
           <TextInput
-            id={`${imagePackage.name}-version-input`}
-            data-id="version-input"
+            id="version-input"
             type="text"
             value={modifiedValue.version}
             onChange={(value) => {
@@ -61,7 +59,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
       <Td modifier="nowrap">
         {!isEditMode ? (
           <Button
-            data-id="edit-package-software-button"
+            id="edit-package-software-button"
             variant="plain"
             icon={<PencilAltIcon />}
             iconPosition="right"
@@ -73,7 +71,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
         ) : (
           <>
             <Button
-              data-id="save-package-software-button"
+              id="save-package-software-button"
               variant="plain"
               icon={<CheckIcon />}
               onClick={() => {
@@ -82,7 +80,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
               }}
             />
             <Button
-              data-id="cancel-package-software-modifications-button"
+              id="cancel-package-software-modifications-button"
               variant="plain"
               icon={<TimesIcon />}
               onClick={() => {
@@ -93,7 +91,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
           </>
         )}
         <Button
-          data-id="delete-package-software-button"
+          id="delete-package-software-button"
           variant="plain"
           icon={<MinusCircleIcon />}
           onClick={() => {

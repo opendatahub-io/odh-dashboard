@@ -200,7 +200,7 @@ const ClusterSettings: React.FC = () => {
                   id="pvc-size-input"
                   className="odh-number-input"
                   name="pvc"
-                  data-id="pvc-size-input"
+                  id="pvc-size-input"
                   type="text"
                   aria-label="PVC Size Input"
                   value={pvcSize}
@@ -226,7 +226,6 @@ const ClusterSettings: React.FC = () => {
                 <InputGroupText variant={InputGroupTextVariant.plain}>GiB</InputGroupText>
               </InputGroup>
               <Button
-                data-id="restore-default-button"
                 innerRef={pvcDefaultBtnRef}
                 variant={ButtonVariant.secondary}
                 onClick={() => {
@@ -253,7 +252,6 @@ const ClusterSettings: React.FC = () => {
               <Text>Set the time limit for idle notebooks to be stopped.</Text>
               <Radio
                 id="culler-timeout-unlimited"
-                data-id="culler-timeout-unlimited"
                 label="Do not stop idle notebooks"
                 isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
                 name={CULLER_TIMEOUT_UNLIMITED}
@@ -262,7 +260,6 @@ const ClusterSettings: React.FC = () => {
               />
               <Radio
                 id="culler-timeout-limited"
-                data-id="culler-timeout-unlimited"
                 label="Stop idle notebooks after"
                 isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_LIMITED}
                 name={CULLER_TIMEOUT_LIMITED}
@@ -274,7 +271,7 @@ const ClusterSettings: React.FC = () => {
                   id="hour-input"
                   className="odh-number-input__hour"
                   name="hour"
-                  data-id="hour-input"
+                  id="hour-input"
                   type="text"
                   aria-label="Culler Timeout Hour Input"
                   value={hour}
@@ -298,7 +295,7 @@ const ClusterSettings: React.FC = () => {
                   id="minute-input"
                   className="odh-number-input"
                   name="minute"
-                  data-id="minute-input"
+                  id="minute-input"
                   type="text"
                   aria-label="Culler Timeout Minute Input"
                   value={minute}
@@ -358,7 +355,6 @@ const ClusterSettings: React.FC = () => {
                   }}
                   aria-label="usageData"
                   id="usage-data-checkbox"
-                  data-id="usage-data-checkbox"
                   name="usageDataCheckbox"
                 />
               </FormGroup>
@@ -377,7 +373,6 @@ const ClusterSettings: React.FC = () => {
                   }}
                   aria-label="tolerationsEnabled"
                   id="tolerations-enabled-checkbox"
-                  data-id="tolerations-enabled-checkbox"
                   name="tolerationsEnabledCheckbox"
                 />
                 <InputGroup>
@@ -389,7 +384,7 @@ const ClusterSettings: React.FC = () => {
                     isDisabled={!notebookTolerationSettings.enabled}
                     className="odh-number-input"
                     name="tolerationKey"
-                    data-id="toleration-key-input"
+                    id="toleration-key-input"
                     type="text"
                     aria-label="Toleration key"
                     value={notebookTolerationSettings.key}
@@ -426,7 +421,6 @@ const ClusterSettings: React.FC = () => {
             ) : null}
             <ActionGroup>
               <Button
-                data-id="submit-cluster-settings"
                 isDisabled={!isSettingsChanged || !!notebookTolerationSettings.error}
                 variant="primary"
                 onClick={handleSaveButtonClicked}

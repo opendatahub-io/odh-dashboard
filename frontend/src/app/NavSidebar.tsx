@@ -15,7 +15,6 @@ const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, 
   if (group && children?.length) {
     return (
       <NavExpandable
-        data-id={group.id}
         key={group.id}
         id={group.id}
         title={group.title}
@@ -26,18 +25,13 @@ const NavDataItem: React.FC<{ item: NavDataItem; pathname: string }> = ({ item, 
         aria-label={group.title}
       >
         {children.map((childItem) => (
-          <NavDataItem
-            data-id={childItem.id}
-            key={childItem.id}
-            item={childItem}
-            pathname={pathname}
-          />
+          <NavDataItem key={childItem.id} item={childItem} pathname={pathname} />
         ))}
       </NavExpandable>
     );
   }
   return (
-    <NavItem data-id={item.id} key={item.id} itemId={item.id} isActive={isActive}>
+    <NavItem key={item.id} itemId={item.id} isActive={isActive}>
       <Link to={item.href || '/'} aria-label={item.label}>
         {item.label}
       </Link>

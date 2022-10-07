@@ -43,7 +43,6 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
 
   return (
     <Card
-      data-id={odhApp.metadata.name}
       id={odhApp.metadata.name}
       role="article"
       isHoverable={!disabled}

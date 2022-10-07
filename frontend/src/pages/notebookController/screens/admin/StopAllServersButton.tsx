@@ -16,7 +16,6 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
 
   return (
     <Button
-      data-id="stop-all-servers-button"
       variant="secondary"
       isDanger
       isDisabled={serverCount === 0}

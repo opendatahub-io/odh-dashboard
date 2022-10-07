@@ -346,7 +346,6 @@ const SpawnerPage: React.FC = () => {
                 {[...images].sort(checkOrder).map((image) => (
                   <GridItem key={image.name}>
                     <ImageSelector
-                      data-id="image-selector"
                       image={image}
                       selectedImage={selectedImageTag.image}
                       selectedTag={selectedImageTag.tag}
@@ -359,7 +358,6 @@ const SpawnerPage: React.FC = () => {
           </FormSection>
           <FormSection title="Deployment size">
             <SizeSelectField
-              data-id="container-size"
               value={selectedSize}
               setValue={(size) => setSelectedSize(size)}
               sizes={sizes}
@@ -390,7 +388,6 @@ const SpawnerPage: React.FC = () => {
             )}
             <ActionGroup>
               <Button
-                data-id="start-server-button"
                 variant="primary"
                 onClick={() => {
                   handleNotebookAction().catch((e) => {
@@ -405,7 +402,6 @@ const SpawnerPage: React.FC = () => {
                 Start server
               </Button>
               <Button
-                data-id="cancel-button"
                 variant="secondary"
                 onClick={() => {
                   if (impersonatedUsername) {
