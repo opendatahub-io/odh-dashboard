@@ -94,6 +94,9 @@ const SpawnerPage: React.FC = () => {
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
+  const disableSubmit =
+    createInProgress || variableRows.some(({ errors }) => Object.keys(errors).length > 0);
+
   React.useEffect(() => {
     const setFirstValidImage = () => {
       const getDefaultImageTag = () => {
@@ -400,7 +403,7 @@ const SpawnerPage: React.FC = () => {
                     setSubmitError(e);
                   });
                 }}
-                isDisabled={createInProgress}
+                isDisabled={disableSubmit}
               >
                 Start server
               </Button>
