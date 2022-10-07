@@ -8,7 +8,6 @@ import {
 } from '../../../types';
 import { V1PodList } from '@kubernetes/client-node';
 import https from 'https';
-import * as fs from 'fs';
 
 /** Storage to prevent heavy calls from being performed for EVERY user */
 const storage: { lastFetch: number; lastValue: GPUInfo } = {
@@ -36,27 +35,23 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
   const scalingLimit = await getGPUScaling(fastify);
   if (gpuPodList.items.length != 0) {
     areGpusConfigured = true;
-    const token = await new Promise<string>((resolve, reject) => {
-      fs.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token', (err, data) => {
-        try {
-          resolve(String(data));
-        } catch {
-          reject('');
-          fastify.log.error(err);
-        }
-      });
-    });
+    const gpuDataResponses = [];
     for (let i = 0; i < gpuPodList.items.length; i++) {
-      const data = await getGPUData(gpuPodList.items[i].status.podIP, token);
-      if (data.code === 200) {
-        const gpuNumber = data.response;
-        if (gpuNumber > maxGpuNumber) {
-          maxGpuNumber = gpuNumber;
-        }
-      } else {
-        fastify.log.warn(`Error getting GPUData ${data.response}`);
-      }
+      gpuDataResponses.push(getGPUData(gpuPodList.items[i].status.podIP, fastify.kube.saToken));
     }
+
+    await Promise.all(gpuDataResponses).then((gpuDataList) => {
+      for (let i = 0; i < gpuDataList.length; i++) {
+        if (gpuDataList[i].code === 200) {
+          const gpuNumber = gpuDataList[i].response;
+          if (gpuNumber > maxGpuNumber) {
+            maxGpuNumber = gpuNumber;
+          }
+        } else {
+          fastify.log.warn(`Error getting GPUData ${gpuDataList[i].response}`);
+        }
+      }
+    });
   } else if (scalingLimit.length != 0) {
     areGpusConfigured = true;
   }
@@ -75,7 +70,7 @@ export const getGPUData = async (
   podIP: string,
   token: string,
 ): Promise<{ code: number; response: number | any }> => {
-  return await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const options = {
       hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
       port: 9091,
