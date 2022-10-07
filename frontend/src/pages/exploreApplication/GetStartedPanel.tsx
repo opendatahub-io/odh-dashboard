@@ -21,9 +21,7 @@ import { useAppContext } from '../../app/AppContext';
 import './GetStartedPanel.scss';
 
 const DEFAULT_BETA_TEXT =
-  'This application is available for early access prior to official ' +
-  ' release. It won’t appear in the *Enabled* view, but you can access it by' +
-  ' [signing up for beta access.](https://www.starburst.io/platform/starburst-galaxy/).';
+  'This application is available for early access in a beta pre-release stage. You might find bugs or issues with availability, stability, data, or performance.';
 
 type GetStartedPanelProps = {
   selectedApp?: OdhApplication;
@@ -106,17 +104,15 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
             <Alert
               variantLabel="error"
               variant="info"
-              title={
-                selectedApp.spec.betaTitle ||
-                `${selectedApp.spec.displayName} is currently in beta.`
-              }
+              title={selectedApp.spec.betaTitle || `${selectedApp.spec.displayName} is in beta.`}
               aria-live="polite"
               isInline
             >
               <div
                 dangerouslySetInnerHTML={{
                   __html: markdownConverter.makeHtml(
-                    selectedApp.spec.betaText || DEFAULT_BETA_TEXT,
+                    selectedApp.spec.betaText ||
+                      DEFAULT_BETA_TEXT.replace('This application', selectedApp.spec.displayName),
                   ),
                 }}
               />
