@@ -18,6 +18,7 @@ import {
   ConfigMap,
   Secret,
   EnvVarResourceType,
+  NotebookState,
 } from '../../../../types';
 import ImageSelector from './ImageSelector';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -233,16 +234,13 @@ const SpawnerPage: React.FC = () => {
     setCreateInProgress(true);
     const envVars = classifyEnvVars(variableRows);
 
-    const location = new URL(window.location.href);
-    const url = location.origin;
-
     enableNotebook({
       notebookSizeName: selectedSize.name,
       imageName: selectedImageTag.image?.name || '',
       imageTagName: selectedImageTag.tag?.name || '',
-      url,
       gpus: parseInt(selectedGpu),
       envVars: envVars,
+      state: NotebookState.Started,
     })
       .then(() => {
         fireStartServerEvent();

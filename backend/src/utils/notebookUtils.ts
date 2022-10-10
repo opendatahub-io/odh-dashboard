@@ -143,13 +143,14 @@ export const assembleNotebook = async (
   fastify: KubeFastifyInstance,
   data: NotebookData,
   username: string,
+  url: string,
   name: string,
   namespace: string,
   pvcName: string,
   envName: string,
   tolerationSettings: NotebookTolerationSettings,
 ): Promise<Notebook> => {
-  const { notebookSizeName, imageName, imageTagName, url, gpus, envVars } = data;
+  const { notebookSizeName, imageName, imageTagName, gpus, envVars } = data;
 
   const notebookSize = getNotebookSize(notebookSizeName);
 
@@ -402,6 +403,7 @@ export const stopNotebook = async (
 export const createNotebook = async (
   fastify: KubeFastifyInstance,
   username: string,
+  url: string,
   notebookData?: NotebookData,
 ): Promise<Notebook> => {
   if (!notebookData) {
@@ -417,7 +419,7 @@ export const createNotebook = async (
   let notebookAssembled: Notebook;
 
   try {
-    notebookAssembled = await generateNotebookResources(fastify, username, notebookData);
+    notebookAssembled = await generateNotebookResources(fastify, username, url, notebookData);
   } catch (e) {
     fastify.log.error(
       `Failed to generate notebook resources, ${e.response?.data?.message || e.message}`,
@@ -492,6 +494,7 @@ export const createNotebook = async (
 export const updateNotebook = async (
   fastify: KubeFastifyInstance,
   username: string,
+  url: string,
   notebookData: NotebookData,
 ): Promise<Notebook> => {
   if (!notebookData) {
@@ -504,7 +507,7 @@ export const updateNotebook = async (
     throw error;
   }
   try {
-    const notebookAssembled = await generateNotebookResources(fastify, username, notebookData);
+    const notebookAssembled = await generateNotebookResources(fastify, username, url, notebookData);
     const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
       'kubeflow.org',
       'v1',
@@ -541,6 +544,7 @@ export const verifyResources = (resources: NotebookResources): NotebookResources
 const generateNotebookResources = async (
   fastify: KubeFastifyInstance,
   username: string,
+  url: string,
   notebookData: NotebookData,
 ): Promise<Notebook> => {
   const name = generateNotebookNameFromUsername(username);
@@ -567,6 +571,7 @@ const generateNotebookResources = async (
     fastify,
     notebookData,
     username,
+    url,
     name,
     namespace,
     pvcName,
