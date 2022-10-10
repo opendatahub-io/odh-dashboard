@@ -43,13 +43,8 @@ export const getNotebookAndStatus = (
 export const enableNotebook = async (notebookData: NotebookData): Promise<Notebook> => {
   const url = `/api/notebooks`;
 
-  const body = {
-    ...notebookData,
-    state: NotebookState.Started,
-  };
-
   return axios
-    .post(url, body)
+    .post(url, notebookData)
     .then((response) => {
       return response.data;
     })
