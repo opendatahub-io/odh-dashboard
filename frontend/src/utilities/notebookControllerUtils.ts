@@ -292,20 +292,36 @@ const filterEvents = (
   return [filteredEvents, thisInstanceEvents, gracePeriod];
 };
 
+const useLastActivity = (storeValue: boolean, annotationValue?: string): Date | null => {
+  const lastOpenActivity = React.useRef<Date | null>(null);
+
+  if (storeValue && annotationValue && !lastOpenActivity.current) {
+    lastOpenActivity.current = new Date(annotationValue);
+  } else if (!storeValue && lastOpenActivity.current) {
+    lastOpenActivity.current = null;
+  }
+
+  return lastOpenActivity.current;
+};
+
 export const useNotebookStatus = (
   spawnInProgress: boolean,
+  open: boolean,
 ): [status: NotebookStatus | null, events: K8sEvent[]] => {
   const { notebookNamespace } = useNamespaces();
-  const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
+  const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
+    React.useContext(NotebookControllerContext);
 
   const events = useWatchNotebookEvents(
     notebookNamespace,
     notebook?.metadata.name || '',
-    spawnInProgress,
+    spawnInProgress && !isNotebookRunning,
   );
 
-  const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
-  const lastActivity = annotationTime ? new Date(annotationTime) : null;
+  const lastActivity = useLastActivity(
+    open,
+    notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
+  );
   if (!lastActivity) {
     // Notebook not started, we don't have a filter time, ignore
     return [null, []];
