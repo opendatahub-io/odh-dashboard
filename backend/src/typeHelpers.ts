@@ -3,7 +3,7 @@
  *
  * TODO: Implement the SDK & Patch logic -- this should stop being needed as things will be defined as Patches
  */
- export type RecursivePartial<T> = {
+export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 

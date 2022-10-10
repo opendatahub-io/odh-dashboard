@@ -1,4 +1,3 @@
-import { CustomObjectsApi } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
 import { KubeFastifyInstance } from '../types';
@@ -36,11 +35,11 @@ export type OpenShiftUser = {
 };
 
 export const getOpenshiftUser = async (
-  customObjectApi: CustomObjectsApi,
+  fastify: KubeFastifyInstance,
   username: string,
 ): Promise<OpenShiftUser> => {
   try {
-    const userResponse = await customObjectApi.getClusterCustomObject(
+    const userResponse = await fastify.kube.customObjectsApi.getClusterCustomObject(
       'user.openshift.io',
       'v1',
       'users',
@@ -53,15 +52,15 @@ export const getOpenshiftUser = async (
 };
 
 export const getUser = async (
+  fastify: KubeFastifyInstance,
   request: FastifyRequest,
-  customObjectApi: CustomObjectsApi,
 ): Promise<OpenShiftUser> => {
   try {
     const accessToken = request.headers[USER_ACCESS_TOKEN] as string;
     if (!accessToken) {
       throw new Error(`missing x-forwarded-access-token header`);
     }
-    const customObjectApiNoAuth = _.cloneDeep(customObjectApi);
+    const customObjectApiNoAuth = _.cloneDeep(fastify.kube.customObjectsApi);
     customObjectApiNoAuth.setApiKey(0, `Bearer ${accessToken}`);
     const userResponse = await customObjectApiNoAuth.getClusterCustomObject(
       'user.openshift.io',
@@ -82,10 +81,10 @@ export const getUserName = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<string> => {
-  const { currentUser, customObjectsApi } = fastify.kube;
+  const { currentUser } = fastify.kube;
 
   try {
-    const userOauth = await getUser(request, customObjectsApi);
+    const userOauth = await getUser(fastify, request);
     return userOauth.metadata.name;
   } catch (e) {
     if (DEV_MODE) {
