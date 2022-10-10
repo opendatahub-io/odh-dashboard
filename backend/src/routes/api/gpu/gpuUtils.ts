@@ -1,9 +1,19 @@
 import { KubeFastifyInstance, PrometheusResponse } from '../../../types';
 import { V1PodList } from '@kubernetes/client-node';
 import https from 'https';
-import * as fs from 'fs';
+
+/** Storage to prevent heavy calls from being performed for EVERY user */
+const storage: { lastFetch: number; lastValue: [boolean, number] } = {
+  lastValue: [false, 0],
+  lastFetch: 0,
+};
 
 export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<[boolean, number]> => {
+  if (storage.lastFetch >= Date.now() - 30_000) {
+    fastify.log.info(`Returning cached gpu value (${JSON.stringify(storage)})`);
+    return storage.lastValue;
+  }
+  fastify.log.info(`Computing GPU state`);
   let maxGpuNumber = 0;
   let areGpusConfigured = false;
   const gpuPodList = await fastify.kube.coreV1Api
@@ -17,36 +27,36 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<[boole
     });
   if (gpuPodList.items.length != 0) {
     areGpusConfigured = true;
-    const token = await new Promise<string>((resolve, reject) => {
-      fs.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token', (err, data) => {
-        try {
-          resolve(String(data));
-        } catch {
-          reject('');
-          fastify.log.error(err);
-        }
-      });
-    });
+    const gpuDataResponses = [];
     for (let i = 0; i < gpuPodList.items.length; i++) {
-      const data = await getGPUData(gpuPodList.items[i].status.podIP, token);
-      if (data.code === 200) {
-        const gpuNumber = data.response;
-        if (gpuNumber > maxGpuNumber) {
-          maxGpuNumber = gpuNumber;
-        }
-      } else {
-        fastify.log.warn(`Error getting GPUData ${data.response}`);
-      }
+      gpuDataResponses.push(getGPUData(gpuPodList.items[i].status.podIP, fastify.kube.saToken));
     }
+
+    await Promise.all(gpuDataResponses).then((gpuDataList) => {
+      for (let i = 0; i < gpuDataList.length; i++) {
+        if (gpuDataList[i].code === 200) {
+          const gpuNumber = gpuDataList[i].response;
+          if (gpuNumber > maxGpuNumber) {
+            maxGpuNumber = gpuNumber;
+          }
+        } else {
+          fastify.log.warn(`Error getting GPUData ${gpuDataList[i].response}`);
+        }
+      }
+    });
+    const data: [boolean, number] = [areGpusConfigured, maxGpuNumber];
+
+    storage.lastFetch = Date.now();
+    storage.lastValue = data;
+    return data;
   }
-  return [areGpusConfigured, maxGpuNumber];
 };
 
 export const getGPUData = async (
   podIP: string,
   token: string,
 ): Promise<{ code: number; response: number | any }> => {
-  return await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const options = {
       hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
       port: 9091,

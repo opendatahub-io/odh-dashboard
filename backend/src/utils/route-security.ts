@@ -50,7 +50,7 @@ const requestSecurityGuardNotebook = async (
   request: OauthFastifyRequest,
   username: string,
 ): Promise<void> => {
-  const user = await getUserName(fastify, request);
+  //const user = await getUserName(fastify, request);
 
   // Check first admin to not give away if a user does not exist to regular users
   await testAdmin(fastify, request, true);

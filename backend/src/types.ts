@@ -185,6 +185,7 @@ export type KubeStatus = {
   clusterBranding: string;
   isAdmin: boolean;
   isAllowed: boolean;
+  saToken: string;
 };
 
 export type KubeDecorator = KubeStatus & {
