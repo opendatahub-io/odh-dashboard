@@ -711,10 +711,9 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  url: string;
   gpus: number;
   envVars: EnvVarReducedTypeKeyValues;
-  state?: NotebookState;
+  state: NotebookState;
   username?: string;
 };
 
