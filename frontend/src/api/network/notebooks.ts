@@ -11,30 +11,19 @@ import {
   NotebookAffinity,
   NotebookResources,
   NotebookToleration,
-  StartNotebookData,
+  NotebookTolerationSettings,
 } from '../../types';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { genRandomChars } from '../../utilities/string';
+import { StartNotebookData } from '../../pages/projects/types';
 
-const assembleNotebook = (data: StartNotebookData): NotebookKind => {
-  const {
-    projectName,
-    notebookName,
-    description,
-    username,
-    notebookSize,
-    gpus,
-    image,
-    tolerationSettings,
-    volumes,
-    volumeMounts,
-  } = data;
-  const notebookId = `notebook-${genRandomChars()}`;
-  const resources: NotebookResources = { ...notebookSize.resources };
-  const imageUrl = `${image?.imageStream?.status?.dockerImageRepository}:${image?.imageVersion?.name}`;
-  const imageSelection = `${image?.imageStream?.metadata.name}:${image?.imageVersion?.name}`;
-  const tolerations: NotebookToleration[] = [];
+const assembleNotebookAffinityAndTolerations = (
+  resources: NotebookResources,
+  gpus: number,
+  tolerationSettings?: NotebookTolerationSettings,
+): { affinity: NotebookAffinity; tolerations: NotebookToleration[] } => {
   let affinity: NotebookAffinity = {};
+  const tolerations: NotebookToleration[] = [];
   if (gpus > 0) {
     if (!resources.limits) {
       resources.limits = {};
@@ -69,7 +58,6 @@ const assembleNotebook = (data: StartNotebookData): NotebookKind => {
       },
     };
   }
-
   if (tolerationSettings?.enabled) {
     tolerations.push({
       effect: 'NoSchedule',
@@ -77,6 +65,33 @@ const assembleNotebook = (data: StartNotebookData): NotebookKind => {
       operator: 'Exists',
     });
   }
+  return { affinity, tolerations };
+};
+
+const assembleNotebook = (data: StartNotebookData): NotebookKind => {
+  const {
+    projectName,
+    notebookName,
+    description,
+    username,
+    notebookSize,
+    gpus,
+    image,
+    volumes,
+    volumeMounts,
+    tolerationSettings,
+  } = data;
+  const notebookId = `notebook-${genRandomChars()}`;
+  const resources: NotebookResources = { ...notebookSize.resources };
+  const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
+  const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
+
+  const { affinity, tolerations } = assembleNotebookAffinityAndTolerations(
+    resources,
+    gpus,
+    tolerationSettings,
+  );
+
   const translatedUsername = usernameTranslate(username);
 
   const location = new URL(window.location.href);

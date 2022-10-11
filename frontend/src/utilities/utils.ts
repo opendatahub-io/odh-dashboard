@@ -138,3 +138,24 @@ export const isGroupEmpty = <T extends { enabled: boolean }>(groupList: Array<T>
 
 export const getDashboardMainContainer = (): HTMLElement =>
   document.getElementById('dashboard-page-main') || document.body;
+
+export const isHTMLInputElement = (object: unknown): object is HTMLInputElement => {
+  return (object as HTMLInputElement).value !== undefined;
+};
+
+export const normalizeBetween = (
+  value: number,
+  min?: number,
+  max?: number,
+  toFixedValue?: number,
+): number => {
+  let returnedValue = value;
+  if (min !== undefined && max !== undefined) {
+    returnedValue = Math.max(Math.min(value, max), min);
+  } else if (min && value <= min) {
+    returnedValue = min;
+  } else if (max && value >= max) {
+    returnedValue = max;
+  }
+  return +returnedValue.toFixed(toFixedValue || 2);
+};

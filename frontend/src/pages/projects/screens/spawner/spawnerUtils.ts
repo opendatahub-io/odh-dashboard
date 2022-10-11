@@ -1,5 +1,5 @@
 import compareVersions from 'compare-versions';
-import { NotebookSize, StartNotebookData } from '../../../../types';
+import { NotebookSize, Volume, VolumeMount } from '../../../../types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '../../../../k8sTypes';
 import { FAILED_PHASES, PENDING_PHASES } from './const';
 import {
@@ -8,6 +8,7 @@ import {
   ImageVersionDependencyType,
   ImageVersionSelectOptionObjectType,
 } from './types';
+import { StartNotebookData, StorageData } from '../../types';
 
 /******************* Common utils *******************/
 export const getVersion = (version?: string, prefix?: string): string => {
@@ -192,6 +193,30 @@ export const getSizeDescription = (size: NotebookSize): string =>
   `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
   `${size.resources.requests?.memory || '??'} Memory`;
 
+/******************* Storage utils *******************/
+export const getVolumesByStorageData = (
+  storageData: StorageData,
+): { volumes: Volume[]; volumeMounts: VolumeMount[] } => {
+  const { storageType, storageBindingType, existingObject } = storageData;
+  const volumes: Volume[] = [];
+  const volumeMounts: VolumeMount[] = [];
+  if (storageType === 'ephemeral') {
+    volumes.push({ name: 'cache-volume', emptyDir: {} });
+    volumeMounts.push({ mountPath: '/cache', name: 'cache-volume' });
+    return { volumes, volumeMounts };
+  }
+  // we will deal with new storage after creating it because the name is different
+  if (storageBindingType.has('existing')) {
+    const { storage } = existingObject;
+    if (storage) {
+      volumes.push({ name: storage, persistentVolumeClaim: { claimName: storage } });
+      volumeMounts.push({ mountPath: '/opt/app-root/src', name: storage });
+    }
+  }
+
+  return { volumes, volumeMounts };
+};
+
 /******************* Checking utils *******************/
 /**
  * Check if there is 1 or more versions available for an image stream
@@ -241,14 +266,29 @@ export const checkVersionExistence = (
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
   !!imageVersion.annotations?.['opendatahub.io/notebook-image-recommended'];
 
-export const checkRequiredFieldsForNotebookStart = (startData: StartNotebookData): boolean => {
-  const { projectName, notebookName, username, notebookSize, image } = startData;
-  return !!(
+export const checkRequiredFieldsForNotebookStart = (
+  startNotebookData: StartNotebookData,
+  storageData: StorageData,
+): boolean => {
+  const { projectName, notebookName, username, notebookSize, image } = startNotebookData;
+  const { storageType, storageBindingType, creatingObject, existingObject } = storageData;
+  const isNotebookDataValid = !!(
     projectName &&
     notebookName &&
     username &&
     notebookSize &&
-    image?.imageStream &&
-    image?.imageVersion
+    image.imageStream &&
+    image.imageVersion
   );
+  // if you choose pvc and don't choose binding type, that's invalid
+  // if you choose creating new pvc, you need to input name
+  // if you choose add existing pvc, you need to select storage name
+  // other situations are valid
+  const isStorageDataValid = !(
+    storageType === 'persistent' &&
+    (storageBindingType.size === 0 ||
+      (storageBindingType.has('new') && !creatingObject.name) ||
+      (storageBindingType.has('existing') && !existingObject.storage))
+  );
+  return isNotebookDataValid && isStorageDataValid;
 };

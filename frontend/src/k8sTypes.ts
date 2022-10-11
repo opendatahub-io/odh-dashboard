@@ -117,7 +117,7 @@ export type ImageStreamKind = K8sResourceCommon & {
 };
 
 /**
- * tpye of `imageStream.spec.tags[i]`
+ * type of `imageStream.spec.tags[i]`
  */
 export type ImageStreamSpecTagType = {
   name: string;
@@ -139,6 +139,10 @@ export type K8sStatus = {
 };
 
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+  };
   spec: {
     accessModes: string[];
     resources: {
