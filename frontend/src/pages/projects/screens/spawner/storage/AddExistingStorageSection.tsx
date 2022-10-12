@@ -1,60 +1,30 @@
 import * as React from 'react';
-import { Checkbox, SelectOption, Stack, StackItem } from '@patternfly/react-core';
-import { ExistingStorageObject, UpdateObjectAtPropAndValue } from '../../../types';
-import ExistingStorageProjectField from '../../../components/ExistingStorageProjectField';
-import ExistingStoragePVField from '../../../components/ExistingStoragePVField';
-import { getAvailablePvcs } from '../../../../../api';
-import { getProjectDisplayName, getPvcDisplayName } from '../../../utils';
-import { ProjectKind } from '../../../../../k8sTypes';
+import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
+import { ExistingStorageObject } from '../../../types';
+import ExistingProjectField from '../../../components/ExistingProjectField';
+import ExistingPVCField from '../../../components/ExistingPVCField';
+import { getDashboardMainContainer } from '../../../../../utilities/utils';
+import useAvailablePvcs from './useAvailablePvcs';
 
 type AddExistingStorageSectionProps = {
-  projects: ProjectKind[];
   isChecked: boolean;
   setChecked: (checked: boolean) => void;
-  existingObject: ExistingStorageObject;
-  setExistingObject: UpdateObjectAtPropAndValue<ExistingStorageObject>;
+  data: ExistingStorageObject;
+  setData: (data: ExistingStorageObject) => void;
 };
 
 const AddExistingStorageSection: React.FC<AddExistingStorageSectionProps> = ({
-  projects,
   isChecked,
   setChecked,
-  existingObject,
-  setExistingObject,
+  data,
+  setData,
 }) => {
-  const [selectOpen, setSelectOpen] = React.useState<'project' | 'storage' | null>(null);
-  const [storageLoading, setStorageLoading] = React.useState(false);
+  const [pvcs, loaded, loadError, fetchPvcs] = useAvailablePvcs();
 
-  const projectOptions = React.useMemo(
-    () =>
-      projects.map((project) => (
-        <SelectOption key={project.metadata.name} value={project.metadata.name}>
-          {getProjectDisplayName(project)}
-        </SelectOption>
-      )),
-    [projects],
-  );
-
-  const storageOptions = React.useMemo(() => {
-    if (existingObject.project) {
-      setStorageLoading(true);
-      getAvailablePvcs(existingObject.project)
-        .then((pvcs) => {
-          setStorageLoading(false);
-          return pvcs.map((pvc) => (
-            <SelectOption key={pvc.metadata.name} value={pvc.metadata.name}>
-              {getPvcDisplayName(pvc)}
-            </SelectOption>
-          ));
-        })
-        .catch((e) => {
-          console.error(e);
-          setStorageLoading(false);
-          return [];
-        });
-    }
-    return [];
-  }, [existingObject.project]);
+  const onProjectSelect = (selection?: string) => {
+    setData({ ...data, project: selection, storage: undefined });
+    fetchPvcs(selection);
+  };
 
   return (
     <Checkbox
@@ -68,27 +38,24 @@ const AddExistingStorageSection: React.FC<AddExistingStorageSectionProps> = ({
         isChecked && (
           <Stack hasGutter>
             <StackItem>
-              <ExistingStorageProjectField
+              <ExistingProjectField
                 fieldId="add-existing-storage-project-selection"
-                project={existingObject.project}
-                isOpen={selectOpen === 'project'}
-                setProject={(project) => setExistingObject('project', project)}
-                setStorage={(storage) => setExistingObject('storage', storage)}
-                setOpen={(isOpen) => setSelectOpen(isOpen ? 'project' : null)}
+                selectedProject={data.project}
+                onSelect={onProjectSelect}
                 selectDirection="up"
-                options={projectOptions}
+                menuAppendTo={getDashboardMainContainer()}
               />
             </StackItem>
             <StackItem>
-              <ExistingStoragePVField
+              <ExistingPVCField
                 fieldId="add-existing-storage-pv-selection"
-                storage={existingObject.storage}
-                isOpen={selectOpen === 'storage'}
-                setStorage={(storage) => setExistingObject('storage', storage)}
-                setOpen={(isOpen) => setSelectOpen(isOpen ? 'storage' : null)}
+                storages={pvcs}
+                loaded={loaded}
+                loadError={loadError}
+                selectedStorage={data.storage}
+                setStorage={(storage) => setData({ ...data, storage })}
                 selectDirection="up"
-                options={storageOptions}
-                storageLoading={storageLoading}
+                menuAppendTo={getDashboardMainContainer()}
               />
             </StackItem>
           </Stack>

@@ -1,23 +1,24 @@
 import * as React from 'react';
 import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
-import { CreatingStorageObject, UpdateObjectAtPropAndValue } from '../../../types';
-import NewStorageNameDescFields from '../../../components/NewStorageNameDescFields';
+import { CreatingStorageObject } from '../../../types';
 import PVSizeField from '../../../components/PVSizeField';
 import ConnectWorkspaceOptionsField from './ConnectWorkspaceOptionsField';
+import NameDescriptionField from '../../../components/NameDescriptionField';
+import { UpdateObjectAtPropAndValue } from '../../../typeHelpers';
 
 type CreateNewStorageSectionProps = {
   isChecked: boolean;
   setChecked: (checked: boolean) => void;
-  creatingObject: CreatingStorageObject;
-  setCreatingObject: UpdateObjectAtPropAndValue<CreatingStorageObject>;
+  data: CreatingStorageObject;
+  setData: UpdateObjectAtPropAndValue<CreatingStorageObject>;
   availableSize: number;
 };
 
 const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
   isChecked,
   setChecked,
-  creatingObject,
-  setCreatingObject,
+  data,
+  setData,
   availableSize,
 }) => {
   return (
@@ -32,28 +33,26 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
         isChecked && (
           <Stack hasGutter>
             <StackItem>
-              <NewStorageNameDescFields
+              <NameDescriptionField
                 nameFieldId="create-new-storage-name"
                 descriptionFieldId="create-new-storage-description"
-                name={creatingObject.name}
-                description={creatingObject.description}
-                setName={(name) => setCreatingObject('name', name)}
-                setDescription={(description) => setCreatingObject('description', description)}
+                data={data.nameDesc}
+                setData={(newData) => setData('nameDesc', newData)}
               />
             </StackItem>
             <StackItem>
               <ConnectWorkspaceOptionsField
                 fieldId="connection-options-radio-group"
                 allWorkspaces={[]}
-                setSelections={(selections) => setCreatingObject('workspaceSelections', selections)}
+                setSelections={(selections) => setData('workspaceSelections', selections)}
               />
             </StackItem>
             <StackItem>
               <PVSizeField
                 fieldID="create-new-storage-size"
                 availableSize={availableSize}
-                size={creatingObject.size}
-                setSize={(size: number) => setCreatingObject('size', size)}
+                size={data.size}
+                setSize={(size: number) => setData('size', size)}
               />
             </StackItem>
           </Stack>

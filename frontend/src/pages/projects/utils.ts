@@ -5,10 +5,7 @@ import {
   PersistentVolumeClaimKind,
   ProjectKind,
 } from '../../k8sTypes';
-import { DEFAULT_PVC_SIZE } from './const';
 import { ProjectDetailsContext } from './ProjectDetailsContext';
-import { CreatingStorageObject, ExistingStorageObject, UpdateObjectAtPropAndValue } from './types';
-import useGenericObjectState from './useGenericObjectState';
 
 const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
@@ -32,28 +29,6 @@ export const getNotebookDisplayName = (notebook: NotebookKind): string =>
 
 export const getNotebookDescription = (notebook: NotebookKind): string =>
   getDescriptionFromK8sResource(notebook);
-
-export const useCreatingStorageObject = (): [
-  CreatingStorageObject,
-  UpdateObjectAtPropAndValue<CreatingStorageObject>,
-] => {
-  return useGenericObjectState<CreatingStorageObject>({
-    name: '',
-    description: '',
-    size: DEFAULT_PVC_SIZE,
-    workspaceSelections: [],
-  });
-};
-
-export const useExistingStorageObject = (): [
-  ExistingStorageObject,
-  UpdateObjectAtPropAndValue<ExistingStorageObject>,
-] => {
-  return useGenericObjectState<ExistingStorageObject>({
-    project: undefined,
-    storage: undefined,
-  });
-};
 
 export const getPvcDisplayName = (pvc: PersistentVolumeClaimKind): string =>
   getDisplayNameFromK8sResource(pvc);

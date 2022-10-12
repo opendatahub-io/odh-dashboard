@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { FormGroup, Radio, Select, Stack, StackItem } from '@patternfly/react-core';
+import { NotebookKind } from '../../../../k8sTypes';
 
 type ConnectWorkspaceOptionsFieldProps = {
   fieldId: string;
-  allWorkspaces: string[]; // maybe workspace type in the future, take string now
+  allWorkspaces: NotebookKind[];
   selections: string[];
   setSelections: (selections: string[]) => void;
 };
@@ -27,7 +28,7 @@ const ConnectWorkspaceOptionsField: React.FC<ConnectWorkspaceOptionsFieldProps> 
             isChecked={isConnectToAll}
             onChange={() => {
               setConnectToAll(true);
-              setSelections(allWorkspaces);
+              setSelections(allWorkspaces.map((workspace) => workspace.metadata.name));
             }}
           />
         </StackItem>

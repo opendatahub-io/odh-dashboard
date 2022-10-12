@@ -7,38 +7,28 @@ import {
   VolumeMount,
 } from '../../types';
 
-export type ValueOf<T> = T[keyof T];
-export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
-
-export type ToggleValueInSet<T> = (value: T, isAdd: boolean) => void;
-
 export type NameDescType = {
   name: string;
   description: string;
 };
 
 export type CreatingStorageObject = {
-  name: string;
-  description: string;
+  nameDesc: NameDescType;
   size: number;
   workspaceSelections: string[];
+  enabled: boolean;
 };
 
 export type ExistingStorageObject = {
   project?: string;
   storage?: string;
-};
-
-export type StorageOptions = {
-  storageType: 'ephemeral' | 'persistent';
-  storageName: string;
+  enabled: boolean;
 };
 
 export type StorageData = {
   storageType: 'ephemeral' | 'persistent';
-  storageBindingType: Set<'new' | 'existing'>;
-  creatingObject: CreatingStorageObject;
-  existingObject: ExistingStorageObject;
+  creating: CreatingStorageObject;
+  existing: ExistingStorageObject;
 };
 
 export type StartNotebookData = {

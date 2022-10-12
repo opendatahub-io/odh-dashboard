@@ -1,23 +1,29 @@
 import * as React from 'react';
 import { Form, Radio } from '@patternfly/react-core';
-import { ExistingStorageObject, UpdateObjectAtPropAndValue } from '../../types';
-import ExistingStorageProjectField from '../../components/ExistingStorageProjectField';
-import ExistingStoragePVField from '../../components/ExistingStoragePVField';
+import { ExistingStorageObject } from '../../types';
+import ExistingProjectField from '../../components/ExistingProjectField';
+import ExistingPVCField from '../../components/ExistingPVCField';
+import useAvailablePvcs from '../../screens/spawner/storage/useAvailablePvcs';
 
 type AddExistingStorageSectionProps = {
   isChecked: boolean;
   setChecked: (checked: boolean) => void;
-  existingObject: ExistingStorageObject;
-  setExistingObject: UpdateObjectAtPropAndValue<ExistingStorageObject>;
+  data: ExistingStorageObject;
+  setData: (data: ExistingStorageObject) => void;
 };
 
 const AddExistingStorageSection: React.FC<AddExistingStorageSectionProps> = ({
   isChecked,
   setChecked,
-  existingObject,
-  setExistingObject,
+  data,
+  setData,
 }) => {
-  const [selectOpen, setSelectOpen] = React.useState<'project' | 'storage' | null>(null);
+  const [pvcs, loaded, loadError, fetchPvcs] = useAvailablePvcs();
+
+  const onProjectSelect = (selection?: string) => {
+    setData({ ...data, project: selection, storage: undefined });
+    fetchPvcs(selection);
+  };
 
   return (
     <Radio
@@ -30,23 +36,18 @@ const AddExistingStorageSection: React.FC<AddExistingStorageSectionProps> = ({
       body={
         isChecked && (
           <Form>
-            <ExistingStorageProjectField
-              options={[]}
+            <ExistingProjectField
               fieldId="add-existing-storage-project-selection"
-              project={existingObject.project}
-              isOpen={selectOpen === 'project'}
-              setProject={(project) => setExistingObject('project', project)}
-              setStorage={(storage) => setExistingObject('storage', storage)}
-              setOpen={(isOpen) => setSelectOpen(isOpen ? 'project' : null)}
+              selectedProject={data.project}
+              onSelect={onProjectSelect}
             />
-            <ExistingStoragePVField
-              options={[]}
+            <ExistingPVCField
               fieldId="add-existing-storage-pv-selection"
-              storage={existingObject.storage}
-              isOpen={selectOpen === 'storage'}
-              setStorage={(storage) => setExistingObject('storage', storage)}
-              setOpen={(isOpen) => setSelectOpen(isOpen ? 'storage' : null)}
-              storageLoading={false}
+              storages={pvcs}
+              loaded={loaded}
+              loadError={loadError}
+              selectedStorage={data.storage}
+              setStorage={(storage) => setData({ ...data, storage })}
             />
           </Form>
         )
