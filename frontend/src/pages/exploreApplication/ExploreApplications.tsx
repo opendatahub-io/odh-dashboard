@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import classNames from 'classnames';
 import * as _ from 'lodash';
 import {
@@ -45,7 +45,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
 
     return (
       <Drawer
-        data-testid="explore-applications"
+        data-id="explore-applications"
         isExpanded={!disableInfo && !!selectedComponent}
         isInline
       >
@@ -67,7 +67,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               loadError={loadError}
             >
               {!isEmpty ? (
-                <div className="odh-dashboard__page-content" data-testid="page-content">
+                <div className="odh-dashboard__page-content" data-id="page-content">
                   <PageSection>
                     <Gallery role="list" className="odh-explore-apps__gallery" hasGutter>
                       {exploreComponents.map((c) => (
@@ -101,7 +101,7 @@ ExploreApplicationsInner.displayName = 'ExploreApplicationsInner';
 
 const ExploreApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(false);
-  const history = useHistory();
+  const navigate = useNavigate();
   const queryParams = useQueryParams();
   const selectedId = queryParams.get('selectId');
   const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
@@ -111,13 +111,13 @@ const ExploreApplications: React.FC = () => {
     (selectedId?: string | null): void => {
       const selection = components.find((c) => c.metadata.name && c.metadata.name === selectedId);
       if (selectedId && selection) {
-        setQueryArgument(history, 'selectId', selectedId);
+        setQueryArgument(navigate, 'selectId', selectedId);
         setSelectedComponent(selection);
         return;
       }
 
       setSelectedComponent(undefined);
-      removeQueryArgument(history, 'selectId');
+      removeQueryArgument(navigate, 'selectId');
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [components],

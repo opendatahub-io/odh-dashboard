@@ -131,3 +131,7 @@ export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minu
 
 export const getTimeoutByHourAndMinute = (hour: number, minute: number): number =>
   (hour * 60 + minute) * 60;
+
+export const isGroupEmpty = <T extends { enabled: boolean }>(groupList: Array<T>): boolean => {
+  return groupList.filter((element) => element.enabled).length === 0;
+};

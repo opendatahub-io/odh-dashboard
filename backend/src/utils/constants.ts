@@ -1,5 +1,5 @@
 import './dotenv';
-import { DashboardConfig } from '../types';
+import { DashboardConfig, NotebookSize } from '../types';
 
 export const PORT = process.env.PORT || process.env.BACKEND_PORT || 8080;
 export const IP = process.env.IP || '0.0.0.0';
@@ -47,3 +47,61 @@ export const blankDashboardCR: DashboardConfig = {
     },
   },
 };
+
+export const MOUNT_PATH = '/opt/app-root/src';
+export const DEFAULT_PVC_SIZE = '20';
+
+export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
+  {
+    name: 'Small',
+    resources: {
+      requests: {
+        cpu: '1',
+        memory: '8Gi',
+      },
+      limits: {
+        cpu: '2',
+        memory: '8Gi',
+      },
+    },
+  },
+  {
+    name: 'Medium',
+    resources: {
+      requests: {
+        cpu: '3',
+        memory: '24Gi',
+      },
+      limits: {
+        cpu: '6',
+        memory: '24Gi',
+      },
+    },
+  },
+  {
+    name: 'Large',
+    resources: {
+      requests: {
+        cpu: '7',
+        memory: '56Gi',
+      },
+      limits: {
+        cpu: '14',
+        memory: '56Gi',
+      },
+    },
+  },
+  {
+    name: 'X Large',
+    resources: {
+      requests: {
+        cpu: '15',
+        memory: '120Gi',
+      },
+      limits: {
+        cpu: '30',
+        memory: '120Gi',
+      },
+    },
+  },
+];

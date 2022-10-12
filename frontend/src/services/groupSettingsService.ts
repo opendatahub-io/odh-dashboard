@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GroupsConfig } from '../pages/groupSettings/GroupTypes';
+import { GroupsConfig } from '../pages/groupSettings/groupTypes';
 
 export const fetchGroupsSettings = (): Promise<GroupsConfig> => {
   const url = '/api/groups-config';

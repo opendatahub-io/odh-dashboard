@@ -34,7 +34,7 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
         loadError={loadError}
       >
         {!isEmpty ? (
-          <div className="odh-dashboard__page-content" data-testid="page-content">
+          <div className="odh-dashboard__page-content" data-id="page-content">
             <PageSection>
               <Gallery role="list" className="odh-installed-apps__gallery" hasGutter>
                 {components.map((c) => (

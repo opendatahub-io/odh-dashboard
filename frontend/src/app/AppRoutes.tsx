@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Switch } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '../pages/ApplicationsPage';
 import { useUser } from '../redux/selectors';
 
@@ -22,36 +22,31 @@ const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/Lear
 const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
-const Routes: React.FC = () => {
+const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
 
   return (
     <React.Suspense
       fallback={<ApplicationsPage title="" description="" loaded={false} empty={true} />}
     >
-      <Switch>
-        <Route path="/" exact component={InstalledApplications} />
-        <Route path="/explore" exact component={ExploreApplications} />
-        <Route path="/resources" exact component={LearningCenterPage} />
-        {isAllowed && (
-          <Route path="/notebookController">
-            <NotebookController />
-          </Route>
-        )}
+      <Routes>
+        <Route path="/" element={<InstalledApplications />} />
+        <Route path="/explore" element={<ExploreApplications />} />
+        <Route path="/resources" element={<LearningCenterPage />} />
+        {isAllowed && <Route path="/notebookController/*" element={<NotebookController />} />}
         {isAllowed && (
           <Route
             path="/notebook/:namespace/:notebookName/logout"
-            exact
-            component={NotebookLogoutRedirectPage}
+            element={<NotebookLogoutRedirectPage />}
           />
         )}
-        {isAdmin && <Route path="/notebookImages" exact component={BYONImagesPage} />}
-        {isAdmin && <Route path="/clusterSettings" exact component={ClusterSettingsPage} />}
-        {isAdmin && <Route path="/groupSettings" exact component={GroupSettingsPage} />}
-        <Route component={NotFound} />
-      </Switch>
+        {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
+        {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}
+        {isAdmin && <Route path="/groupSettings" element={<GroupSettingsPage />} />}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </React.Suspense>
   );
 };
 
-export default Routes;
+export default AppRoutes;

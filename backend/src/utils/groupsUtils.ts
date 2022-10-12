@@ -2,7 +2,7 @@ import { CustomObjectsApi } from '@kubernetes/client-node';
 import { setDashboardConfig } from '../routes/api/config/configUtils';
 import {
   GroupCustomObject,
-  groupObjResponse,
+  GroupObjResponse,
   GroupsConfigBody,
   KubeFastifyInstance,
 } from '../types';
@@ -16,11 +16,10 @@ export class MissingGroupError extends Error {
 }
 
 export const getGroupsCR = (): GroupsConfigBody => {
-  try {
-    return getDashboardConfig().spec.groupsConfig || { adminGroups: '', allowedGroups: '' };
-  } catch (e) {
-    throw new Error(`Failed to retrieve Dashboard CR groups configuration`);
+  if (typeof getDashboardConfig().spec.groupsConfig !== 'undefined') {
+    return getDashboardConfig().spec.groupsConfig;
   }
+  throw new Error(`Failed to retrieve Dashboard CR groups configuration`);
 };
 
 export const updateGroupsCR = async (
@@ -66,7 +65,7 @@ export const getGroup = async (
       'groups',
       adminGroup,
     );
-    return (adminGroupResponse.body as groupObjResponse).users;
+    return (adminGroupResponse.body as GroupObjResponse).users;
   } catch (e) {
     throw new MissingGroupError(`Failed to retrieve Group ${adminGroup}, might not exist.`);
   }

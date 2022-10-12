@@ -1,7 +1,8 @@
-import k8s from '@kubernetes/client-node';
+import k8s, { V1ConfigMap, V1Secret } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { RouteGenericInterface } from 'fastify/types/route';
+import { EitherNotBoth } from './typeHelpers';
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
@@ -37,30 +38,17 @@ export type NotebookResources = {
   requests?: {
     cpu?: string;
     memory?: string;
-  };
-  limits: {
+  } & Record<string, unknown>;
+  limits?: {
     cpu?: string;
     memory?: string;
-  };
-};
-
-type EnvValue = {
-  key: string;
-  name: string;
-};
-
-export type EnvironmentVariable = {
-  name: string;
-  value?: string;
-  valueFrom?: {
-    configMapKeyRef?: EnvValue;
-    secretKeyRef?: EnvValue;
-  };
+  } & Record<string, unknown>;
 };
 
 export type NotebookSize = {
   name: string;
   resources: NotebookResources;
+  notUserDefined?: boolean;
 };
 
 export type NotebookTolerationSettings = {
@@ -324,11 +312,17 @@ export type NotebookToleration = {
 
 export type VolumeMount = { mountPath: string; name: string };
 
+type EnvFrom = {
+  configMapRef?: { name: string };
+  secretRef?: { name: string };
+};
+
 export type NotebookContainer = {
   name: string;
   image: string;
   imagePullPolicy?: string;
   workingDir?: string;
+  envFrom?: EnvFrom[];
   env: EnvironmentVariable[];
   ports?: NotebookPort[];
   resources?: NotebookResources;
@@ -442,6 +436,11 @@ export type BYONImageCreateRequest = {
   user: string;
   software?: BYONImagePackage[];
   packages?: BYONImagePackage[];
+};
+
+export type ImageTag = {
+  image: ImageInfo | undefined;
+  tag: ImageTagInfo | undefined;
 };
 
 export type BYONImageUpdateRequest = {
@@ -636,7 +635,7 @@ export type GroupsConfigBody = {
   allowedGroups: string;
 };
 
-export type groupObjResponse = {
+export type GroupObjResponse = {
   users: string[] | null;
 };
 
@@ -708,3 +707,60 @@ export type GPUInfo = {
   available: number;
   autoscalers: gpuScale[];
 };
+export type EnvironmentVariable = EitherNotBoth<
+  { value: string | number },
+  { valueFrom: Record<string, unknown> }
+> & {
+  name: string;
+};
+
+export type ResourceGetter<T extends K8sResourceCommon> = (
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  name: string,
+) => Promise<T>;
+
+export type ResourceConstructor<T extends K8sResourceCommon> = (
+  namespace: string,
+  name: string,
+  resource: Record<string, string>,
+) => T;
+
+export type ResourceCreator<T extends K8sResourceCommon> = (
+  fastify: KubeFastifyInstance,
+  resource: T,
+) => Promise<T>;
+
+export type ResourceUpdater<T extends K8sResourceCommon> = (
+  fastify: KubeFastifyInstance,
+  resource: T,
+) => Promise<T>;
+
+export type EnvVarResource = V1Secret | V1ConfigMap;
+
+export type EnvVarReducedTypeKeyValues = {
+  configMap: Record<string, string>;
+  secrets: Record<string, string>;
+};
+
+export enum EnvVarResourceType {
+  Secret = 'Secret',
+  ConfigMap = 'ConfigMap',
+}
+
+export enum NotebookState {
+  Started = 'started',
+  Stopped = 'stopped',
+}
+
+export type NotebookData = {
+  notebookSizeName: string;
+  imageName: string;
+  imageTagName: string;
+  gpus: number;
+  envVars: EnvVarReducedTypeKeyValues;
+  state: NotebookState;
+  username?: string;
+};
+
+export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';

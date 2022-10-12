@@ -1,22 +1,16 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { AxiosError } from 'axios';
 import { createRoleBinding, getRoleBinding } from '../services/roleBindingService';
 import {
   EnvVarReducedTypeKeyValues,
-  EnvVarResource,
-  EnvVarResourceType,
   EventStatus,
   K8sEvent,
   K8sResourceCommon,
   Notebook,
   NotebookControllerUserState,
   NotebookStatus,
-  PersistentVolumeClaim,
   ResourceCreator,
-  ResourceDeleter,
   ResourceGetter,
-  ResourceReplacer,
   RoleBinding,
   VariableRow,
 } from '../types';
@@ -99,80 +93,6 @@ export const classifyEnvVars = (variableRows: VariableRow[]): EnvVarReducedTypeK
     { configMap: {}, secrets: {} },
   );
 };
-
-/** Check whether to get, create, replace or delete the environment variable files (Secret and ConfigMap) */
-export const verifyEnvVars = async (
-  name: string,
-  namespace: string,
-  kind: string,
-  envVars: Record<string, string>,
-  fetchFunc: ResourceGetter<EnvVarResource>,
-  createFunc: ResourceCreator<EnvVarResource>,
-  replaceFunc: ResourceReplacer<EnvVarResource>,
-  deleteFunc: ResourceDeleter,
-): Promise<void> => {
-  if (!envVars) {
-    const resource = await verifyResource(name, namespace, fetchFunc);
-    if (resource) {
-      await deleteFunc(namespace, name);
-    }
-    return;
-  }
-
-  const body =
-    kind === EnvVarResourceType.Secret
-      ? {
-          stringData: envVars,
-          type: 'Opaque',
-        }
-      : {
-          data: envVars,
-        };
-  const newResource: EnvVarResource = {
-    apiVersion: 'v1',
-    kind,
-    metadata: {
-      name,
-      namespace,
-    },
-    ...body,
-  };
-  const response = await verifyResource<EnvVarResource>(
-    name,
-    namespace,
-    fetchFunc,
-    createFunc,
-    newResource,
-  );
-  if (!_.isEqual(response?.data, envVars)) {
-    await replaceFunc(newResource);
-  }
-};
-
-export const generatePvc = (
-  pvcName: string,
-  namespace: string,
-  pvcSize: string,
-): PersistentVolumeClaim => ({
-  apiVersion: 'v1',
-  kind: 'PersistentVolumeClaim',
-  metadata: {
-    name: pvcName,
-    namespace,
-  },
-  spec: {
-    accessModes: ['ReadWriteOnce'],
-    resources: {
-      requests: {
-        storage: pvcSize,
-      },
-    },
-    volumeMode: 'Filesystem',
-  },
-  status: {
-    phase: 'Pending',
-  },
-});
 
 export const getNotebookControllerUserState = (
   notebook: Notebook | null,
@@ -372,20 +292,36 @@ const filterEvents = (
   return [filteredEvents, thisInstanceEvents, gracePeriod];
 };
 
+const useLastActivity = (storeValue: boolean, annotationValue?: string): Date | null => {
+  const lastOpenActivity = React.useRef<Date | null>(null);
+
+  if (storeValue && annotationValue && !lastOpenActivity.current) {
+    lastOpenActivity.current = new Date(annotationValue);
+  } else if (!storeValue && lastOpenActivity.current) {
+    lastOpenActivity.current = null;
+  }
+
+  return lastOpenActivity.current;
+};
+
 export const useNotebookStatus = (
   spawnInProgress: boolean,
+  open: boolean,
 ): [status: NotebookStatus | null, events: K8sEvent[]] => {
   const { notebookNamespace } = useNamespaces();
-  const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
+  const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
+    React.useContext(NotebookControllerContext);
 
   const events = useWatchNotebookEvents(
     notebookNamespace,
     notebook?.metadata.name || '',
-    spawnInProgress,
+    spawnInProgress && !isNotebookRunning,
   );
 
-  const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
-  const lastActivity = annotationTime ? new Date(annotationTime) : null;
+  const lastActivity = useLastActivity(
+    open,
+    notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
+  );
   if (!lastActivity) {
     // Notebook not started, we don't have a filter time, ignore
     return [null, []];

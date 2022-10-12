@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowsAltVIcon, LongArrowAltDownIcon, LongArrowAltUpIcon } from '@patternfly/react-icons';
 import { setQueryArgument } from '../../utilities/router';
 import { useQueryParams } from '../../utilities/useQueryParams';
@@ -15,17 +15,17 @@ import {
 } from './const';
 
 const LearningCenterListHeaders: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const queryParams = useQueryParams();
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
   const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
 
   const onSortSelect = React.useCallback(
     (sortType: string, ascending: boolean) => {
-      setQueryArgument(history, DOC_SORT_KEY, sortType);
-      setQueryArgument(history, DOC_SORT_ORDER_KEY, ascending ? SORT_ASC : SORT_DESC);
+      setQueryArgument(navigate, DOC_SORT_KEY, sortType);
+      setQueryArgument(navigate, DOC_SORT_ORDER_KEY, ascending ? SORT_ASC : SORT_DESC);
     },
-    [history],
+    [navigate],
   );
 
   const renderSortArrow = (field: string) => {

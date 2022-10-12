@@ -21,7 +21,7 @@ import {
 } from '../../../../utilities/notebookControllerUtils';
 import { EventStatus } from '../../../../types';
 import { NotebookControllerContext } from '../../NotebookControllerContext';
-import { useHistory } from 'react-router';
+import { useNavigate } from 'react-router';
 import useBrowserTabPreference from './useBrowserTabPreference';
 
 import '../../NotebookController.scss';
@@ -44,11 +44,11 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
   const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
-  const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress);
+  const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress, open);
   const [isUsingCurrentTab] = useBrowserTabPreference();
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
   const getNotebookLink = useNotebookRedirectLink();
-  const history = useHistory();
+  const navigate = useNavigate();
   const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
@@ -68,7 +68,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
             window.location.href = notebookLink;
           } else {
             window.open(notebookLink, '_blank');
-            history.push('/notebookController');
+            navigate('/notebookController');
           }
         })
         .catch(() => {
@@ -80,7 +80,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
           });
         });
     },
-    [getNotebookLink, history],
+    [getNotebookLink, navigate],
   );
 
   React.useEffect(() => {
@@ -158,7 +158,9 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
     } else {
       title = 'Waiting for server request to start...';
     }
-    return <Progress id="progress-bar" value={spawnPercentile} title={title} variant={variant} />;
+    return (
+      <Progress data-id="progress-bar" value={spawnPercentile} title={title} variant={variant} />
+    );
   };
 
   const renderStatus = () => {
@@ -175,6 +177,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   const renderButtons = () =>
     !isNotebookRunning ? (
       <Button
+        data-id="close-spawn"
         key="cancel"
         variant={spawnFailed ? 'primary' : 'secondary'}
         onClick={onClose}
@@ -207,6 +210,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
 
   const renderLogs = () => (
     <ExpandableSection
+      data-id="expand-logs"
       toggleText={`${logsExpanded ? 'Collapse' : 'Expand'} event log`}
       onToggle={(isExpanded) => setLogsExpanded(isExpanded)}
       isExpanded={logsExpanded}

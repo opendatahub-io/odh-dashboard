@@ -12,11 +12,6 @@
       background-color: var(--pf-global--disabled-color--200);
     }
   }
-  &__favorite {
-    &.odh-dashboard__favorite {
-      margin-top: -20px;
-    }
-  }
   &__doc-text {
     color: var(--pf-global--Color--100);
     font-size: var(--pf-global--FontSize--sm);

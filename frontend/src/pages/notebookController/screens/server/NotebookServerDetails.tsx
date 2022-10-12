@@ -53,6 +53,7 @@ const NotebookServerDetails: React.FC = () => {
 
   return (
     <ExpandableSection
+      data-id="details-expand"
       className="odh-notebook-controller__server-details"
       toggleText="Notebook server details"
       onToggle={onToggle}

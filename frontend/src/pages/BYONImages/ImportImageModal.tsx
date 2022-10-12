@@ -67,6 +67,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
       onClose={onCloseHandler}
       actions={[
         <Button
+          data-id="import-confirm-button"
           key="confirm"
           variant="primary"
           onClick={() => {
@@ -100,7 +101,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
         >
           Import
         </Button>,
-        <Button key="cancel" variant="link" onClick={onCloseHandler}>
+        <Button data-id="import-cancel-button" key="cancel" variant="link" onClick={onCloseHandler}>
           Cancel
         </Button>,
       ]}
@@ -120,9 +121,10 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
           validated={validRepo ? undefined : 'error'}
         >
           <TextInput
+            id="byon-image-repository-input"
             isRequired
             type="text"
-            id="byon-image-repository-input"
+            data-id="byon-image-repository-input"
             name="byon-image-repository-input"
             aria-describedby="byon-image-repository-input"
             value={repository}
@@ -140,9 +142,10 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
           validated={validName ? undefined : 'error'}
         >
           <TextInput
+            id="byon-image-name-input"
             isRequired
             type="text"
-            id="byon-image-name-input"
+            data-id="byon-image-name-input"
             name="byon-image-name-input"
             value={name}
             onChange={(value) => {
@@ -152,9 +155,10 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
         </FormGroup>
         <FormGroup label="Description" fieldId="byon-image-description">
           <TextInput
+            id="byon-image-description-input"
             isRequired
             type="text"
-            id="byon-image-description-input"
+            data-id="byon-image-description-input"
             name="byon-image-description-input"
             aria-describedby="byon-image-description-input"
             value={description}
@@ -170,7 +174,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
               setActiveTabKey(indexKey as number);
             }}
           >
-            <Tab eventKey={0} title={<TabTitleText>Software</TabTitleText>}>
+            <Tab data-id="software-tab" eventKey={0} title={<TabTitleText>Software</TabTitleText>}>
               {software.length > 0 ? (
                 <>
                   <TableComposable aria-label="Simple table" variant="compact">
@@ -203,6 +207,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
+                    data-id="add-software-secondary-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {
@@ -230,6 +235,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
+                    data-id="add-software-button"
                     className="empty-button"
                     variant="secondary"
                     onClick={() => {
@@ -248,7 +254,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                 </EmptyState>
               )}
             </Tab>
-            <Tab eventKey={1} title={<TabTitleText>Packages</TabTitleText>}>
+            <Tab data-id="packages-tab" eventKey={1} title={<TabTitleText>Packages</TabTitleText>}>
               {packages.length > 0 ? (
                 <>
                   <TableComposable aria-label="Simple table" variant="compact" isStickyHeader>
@@ -281,6 +287,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     </Tbody>
                   </TableComposable>
                   <Button
+                    data-id="add-package-secondary-button"
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={() => {
@@ -308,6 +315,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                     won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
                   <Button
+                    data-id="add-package-button"
                     className="empty-button"
                     variant="secondary"
                     onClick={() => {

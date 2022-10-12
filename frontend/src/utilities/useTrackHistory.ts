@@ -1,20 +1,12 @@
 import React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { fireTrackingEvent } from './segmentIOUtils';
 
 export const useTrackHistory = (): void => {
-  const history = useHistory();
+  const { pathname } = useLocation();
 
   // notify url change events
   React.useEffect(() => {
-    let { pathname } = history.location;
-    const unlisten = history.listen(() => {
-      const { pathname: nextPathname } = history.location;
-      if (pathname !== nextPathname) {
-        pathname = nextPathname;
-        fireTrackingEvent('page');
-      }
-    });
-    return () => unlisten();
-  }, [history]);
+    fireTrackingEvent('page');
+  }, [pathname]);
 };

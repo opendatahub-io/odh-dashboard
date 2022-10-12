@@ -17,7 +17,6 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
   }
   return (
     <Popover
-      className="odh-notebook-controller__notebook-image-popover"
       showClose
       bodyContent={
         <>
