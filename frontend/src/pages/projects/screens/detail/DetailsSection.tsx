@@ -1,14 +1,60 @@
 import * as React from 'react';
-import { Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
+import {
+  Alert,
+  Bullseye,
+  Flex,
+  FlexItem,
+  Spinner,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
   id: ProjectSectionID;
   actions: React.ReactNode[];
   title: string;
+  isLoading: boolean;
+  loadError?: Error;
+  isEmpty: boolean;
+  emptyState: React.ReactNode;
 };
 
-const DetailsSection: React.FC<DetailsSectionProps> = ({ children, id, title, actions }) => {
+const DetailsSection: React.FC<DetailsSectionProps> = ({
+  actions,
+  children,
+  emptyState,
+  id,
+  isEmpty,
+  isLoading,
+  loadError,
+  title,
+}) => {
+  const renderContent = () => {
+    if (loadError) {
+      return (
+        <Alert variant="danger" isInline title="Loading error">
+          {loadError.message}
+        </Alert>
+      );
+    }
+
+    if (isLoading) {
+      return (
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      );
+    }
+
+    if (isEmpty) {
+      return emptyState;
+    }
+
+    return children;
+  };
+
   return (
     <Stack hasGutter>
       <StackItem>
@@ -21,7 +67,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({ children, id, title, ac
           <FlexItem>{actions}</FlexItem>
         </Flex>
       </StackItem>
-      <StackItem>{children}</StackItem>
+      <StackItem>{renderContent()}</StackItem>
     </Stack>
   );
 };

@@ -15,11 +15,17 @@ const DataConnectionsList: React.FC = () => {
           Add data connection
         </Button>,
       ]}
+      isLoading={false}
+      isEmpty
+      loadError={undefined}
+      emptyState={
+        <EmptyDetailsList
+          title="No data connections"
+          description="To get started, add data to your project."
+        />
+      }
     >
-      <EmptyDetailsList
-        title="No data connections"
-        description="To get started, add data to your project."
-      />
+      No content
     </DetailsSection>
   );
 };

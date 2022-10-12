@@ -7,13 +7,13 @@ import { getNotebookDisplayName } from '../utils';
 import { hasStopAnnotation } from './utils';
 
 type NotebookRouteLinkProps = {
+  label?: React.ReactNode;
   notebook: NotebookKind;
   isRunning: boolean;
 };
 
-const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({ notebook, isRunning }) => {
+const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({ label, notebook, isRunning }) => {
   const [routeLink, loaded, error] = useRouteForNotebook(notebook);
-  const notebookName = getNotebookDisplayName(notebook);
   const isStopped = hasStopAnnotation(notebook);
   const canLink = !!routeLink && !error && !isStopped && isRunning;
 
@@ -24,6 +24,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({ notebook, isRunni
       isDisabled={!canLink}
       isLoading={!loaded}
       href={error || !routeLink ? undefined : routeLink}
+      target="_blank"
       variant="link"
       icon={
         error ? (
@@ -33,8 +34,9 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({ notebook, isRunni
         )
       }
       iconPosition="right"
+      style={{ whiteSpace: 'nowrap' }}
     >
-      {notebookName}
+      {label ?? getNotebookDisplayName(notebook)}
     </Button>
   );
 };

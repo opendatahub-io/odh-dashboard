@@ -7,7 +7,7 @@ import DataConnectionsList from './DataConnectionsList';
 import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './StorageList';
 import { ProjectSectionID } from './types';
-import WorkspacesList from './WorkspacesList';
+import WorkspacesList from './workspaces/WorkspacesList';
 
 type SectionType = {
   id: ProjectSectionID;

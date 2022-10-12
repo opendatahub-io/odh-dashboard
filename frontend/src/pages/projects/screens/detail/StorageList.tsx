@@ -9,25 +9,33 @@ import AddStorageModal from '../../modals/addStorageModal/AddStorageModal';
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
   return (
-    <DetailsSection
-      id={ProjectSectionID.STORAGE}
-      title={ProjectSectionTitles[ProjectSectionID.STORAGE]}
-      actions={[
-        <Button
-          onClick={() => setOpen(true)}
-          key={`action-${ProjectSectionID.STORAGE}`}
-          variant="secondary"
-        >
-          Add storage
-        </Button>,
-      ]}
-    >
-      <EmptyDetailsList
-        title="No storage"
-        description="Choose existing, or add new on cluster storage."
-      />
+    <>
+      <DetailsSection
+        id={ProjectSectionID.STORAGE}
+        title={ProjectSectionTitles[ProjectSectionID.STORAGE]}
+        actions={[
+          <Button
+            onClick={() => setOpen(true)}
+            key={`action-${ProjectSectionID.STORAGE}`}
+            variant="secondary"
+          >
+            Add storage
+          </Button>,
+        ]}
+        isLoading={false}
+        isEmpty
+        loadError={undefined}
+        emptyState={
+          <EmptyDetailsList
+            title="No storage"
+            description="Choose existing, or add new on cluster storage."
+          />
+        }
+      >
+        No content
+      </DetailsSection>
       <AddStorageModal isOpen={isOpen} onClose={() => setOpen(false)} />
-    </DetailsSection>
+    </>
   );
 };
 
