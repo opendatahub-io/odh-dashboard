@@ -30,6 +30,9 @@ export const useCurrentProjectDisplayName = (): string => {
 export const getNotebookDisplayName = (notebook: NotebookKind): string =>
   getDisplayNameFromK8sResource(notebook);
 
+export const getNotebookDescription = (notebook: NotebookKind): string =>
+  getDescriptionFromK8sResource(notebook);
+
 export const useCreatingStorageObject = (): [
   CreatingStorageObject,
   UpdateObjectAtPropAndValue<CreatingStorageObject>,

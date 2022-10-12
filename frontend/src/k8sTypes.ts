@@ -153,7 +153,12 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
     storageClassName?: string;
     volumeMode: 'Filesystem' | 'Block';
   };
-  status?: Record<string, unknown>;
+  status?: {
+    phase: string;
+    capacity?: {
+      storage: string;
+    };
+  } & Record<string, unknown>;
 };
 
 export type NotebookKind = K8sResourceCommon & {
