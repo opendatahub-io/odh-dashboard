@@ -4,11 +4,11 @@ import { SpawnerPageSectionID } from './types';
 import { NameDescType } from '../../types';
 
 type NameDescriptionFieldProps = {
-  nameDesc: NameDescType;
-  setNameDesc: (nameDesc: NameDescType) => void;
+  data: NameDescType;
+  setData: (nameDesc: NameDescType) => void;
 };
 
-const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({ nameDesc, setNameDesc }) => {
+const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({ data, setData }) => {
   return (
     <FormSection id={SpawnerPageSectionID.NAME_DESCRIPTION}>
       <FormGroup label="Name" fieldId="workspace-name">
@@ -17,8 +17,8 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({ nameDesc, s
           type="text"
           id="workspace-name"
           name="workspace-name"
-          value={nameDesc.name}
-          onChange={(name: string) => setNameDesc({ ...nameDesc, name })}
+          value={data.name}
+          onChange={(name: string) => setData({ ...data, name })}
         />
       </FormGroup>
       <FormGroup label="Description" fieldId="workspace-description">
@@ -26,8 +26,8 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({ nameDesc, s
           type="text"
           id="workspace-description"
           name="workspace-description"
-          value={nameDesc.description}
-          onChange={(description: string) => setNameDesc({ ...nameDesc, description })}
+          value={data.description}
+          onChange={(description: string) => setData({ ...data, description })}
         />
       </FormGroup>
     </FormSection>

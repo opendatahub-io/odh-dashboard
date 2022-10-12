@@ -41,9 +41,7 @@ export const getImageVersionSelectOptionObject = (
 ): ImageVersionSelectOptionObjectType => ({
   imageVersion,
   toString: () =>
-    `${getImageStreamDisplayName(imageStream)} ${imageVersion.name}${
-      checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''
-    }`,
+    `${imageVersion.name}${checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''}`,
 });
 export const isImageStreamSelectOptionObject = (
   object: unknown,
@@ -85,15 +83,13 @@ export const compareTagVersions = (
   return b.name.localeCompare(a.name);
 };
 
-export const compareImageVersionOptionOrder = (
-  a: ImageVersionSelectOptionObjectType,
-  b: ImageVersionSelectOptionObjectType,
-): number => compareTagVersions(a.imageVersion, b.imageVersion);
+export const compareImageVersionOrder = (
+  a: ImageStreamSpecTagType,
+  b: ImageStreamSpecTagType,
+): number => compareTagVersions(a, b);
 
-export const compareImageStreamOptionOrder = (
-  a: ImageStreamSelectOptionObjectType,
-  b: ImageStreamSelectOptionObjectType,
-): number => getImageSteamOrder(a.imageStream) - getImageSteamOrder(b.imageStream);
+export const compareImageStreamOrder = (a: ImageStreamKind, b: ImageStreamKind): number =>
+  getImageSteamOrder(a) - getImageSteamOrder(b);
 
 /******************* ImageStream and ImageVersion utils *******************/
 export const getImageStreamDisplayName = (imageStream: ImageStreamKind): string =>
@@ -244,9 +240,6 @@ export const checkTagBuildValid = (
   return !PENDING_PHASES.includes(build.status) && !FAILED_PHASES.includes(build.status);
 };
 
-/**
- * Check whether `imageStream.spec.tags[i]` exists in status.tags
- */
 export const checkVersionExistence = (
   imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
@@ -260,9 +253,6 @@ export const checkVersionExistence = (
   return false;
 };
 
-/**
- * Check whether a version is recommended
- */
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
   !!imageVersion.annotations?.['opendatahub.io/notebook-image-recommended'];
 

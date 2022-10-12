@@ -32,7 +32,7 @@ const ImageStreamPopover: React.FC<ImageStreamPopoverProps> = ({ selectedImage }
       <Popover
         headerContent={description}
         bodyContent={
-          dependencies && (
+          dependencies.length !== 0 && (
             <>
               <Title headingLevel="h6">Packages included:</Title>
               {dependencies.map((dep) => {

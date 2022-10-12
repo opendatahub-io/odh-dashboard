@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getBuildConfigs, getBuildsForBuildConfig } from '../../../../api';
+import { getNotebookBuildConfigs, getBuildsForBuildConfig } from '../../../../api';
 import useNotification from '../../../../utilities/useNotification';
 import { BuildConfigKind, BuildKind, BUILD_PHASE } from '../../../../k8sTypes';
 import { BuildStatus } from './types';
@@ -44,7 +44,7 @@ const useBuildStatuses = (namespace?: string): BuildStatus[] => {
         });
     };
     if (namespace) {
-      getBuildConfigs(namespace)
+      getNotebookBuildConfigs(namespace)
         .then((buildConfigs) => {
           const getter = buildConfigs.map((buildConfig) => getBuildStatus(namespace, buildConfig));
           Promise.all(getter).then((buildStatusesRes) => setBuildStatuses(buildStatusesRes));

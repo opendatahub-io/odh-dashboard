@@ -6,12 +6,12 @@ import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData } from '../../types';
 import { patchStartNotebookDataWithPvc } from './service';
 
-type FormFooterProps = {
+type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
   storageData: StorageData;
 };
 
-const FormFooter: React.FC<FormFooterProps> = ({ startNotebookData, storageData }) => {
+const SpawnerFooter: React.FC<SpawnerFooterProps> = ({ startNotebookData, storageData }) => {
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -66,4 +66,4 @@ const FormFooter: React.FC<FormFooterProps> = ({ startNotebookData, storageData 
   );
 };
 
-export default FormFooter;
+export default SpawnerFooter;

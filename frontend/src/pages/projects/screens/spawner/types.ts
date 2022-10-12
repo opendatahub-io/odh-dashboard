@@ -34,13 +34,8 @@ export type ImageVersionSelectOptionObjectType = {
   toString: () => string;
 };
 
-export type ImageStreamSelectDataType = {
-  buildStatuses: BuildStatus[];
-  imageOptions: ImageStreamSelectOptionObjectType[];
-};
-
 export type ImageVersionSelectDataType = {
   buildStatuses: BuildStatus[];
   imageStream?: ImageStreamKind;
-  versionOptions: ImageVersionSelectOptionObjectType[];
+  imageVersions: ImageStreamSpecTagType[];
 };

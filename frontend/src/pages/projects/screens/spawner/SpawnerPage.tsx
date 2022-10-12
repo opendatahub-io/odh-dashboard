@@ -5,7 +5,7 @@ import GenericSidebar from '../../components/GenericSidebar';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
-import FormFooter from './FormFooter';
+import SpawnerFooter from './SpawnerFooter';
 import NameDescriptionField from './NameDescriptionField';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import useImageStreams from './useImageStreams';
@@ -74,7 +74,7 @@ const SpawnerPage: React.FC = () => {
           scrollableSelector={`#${ScrollableSelectorID}`}
         >
           <Form maxWidth="50%">
-            <NameDescriptionField nameDesc={nameDesc} setNameDesc={setNameDesc} />
+            <NameDescriptionField data={nameDesc} setData={setNameDesc} />
             <ImageSelectorField
               selectedImage={selectedImage}
               setSelectedImage={setSelectedImage}
@@ -106,7 +106,7 @@ const SpawnerPage: React.FC = () => {
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-        <FormFooter
+        <SpawnerFooter
           startNotebookData={{
             notebookName: nameDesc.name,
             description: nameDesc.description,

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ImageStreamKind } from '../../../../k8sTypes';
-import { getImageStreams } from '../../../../api';
+import { getNotebookImageStreams } from '../../../../api';
 
 const useImageStreams = (
   namespace?: string,
@@ -11,7 +11,7 @@ const useImageStreams = (
 
   React.useEffect(() => {
     if (namespace) {
-      getImageStreams(namespace)
+      getNotebookImageStreams(namespace)
         .then((imageStreams) => {
           setImageStreams(imageStreams);
           setLoaded(true);

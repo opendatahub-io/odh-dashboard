@@ -1,17 +1,10 @@
 import * as React from 'react';
-import { FormSection, Skeleton } from '@patternfly/react-core';
-import {
-  BuildStatus,
-  ImageStreamSelectOptionObjectType,
-  ImageVersionSelectOptionObjectType,
-  SpawnerPageSectionID,
-} from '../types';
+import { Alert, FormSection, Skeleton } from '@patternfly/react-core';
+import { BuildStatus, SpawnerPageSectionID } from '../types';
 import { ImageStreamKind } from '../../../../../k8sTypes';
 import {
   getDefaultVersionForImageStream,
   getExistingVersionsForImageStream,
-  getImageStreamSelectOptionObject,
-  getImageVersionSelectOptionObject,
 } from '../spawnerUtils';
 import ImageStreamSelector from './ImageStreamSelector';
 import ImageVersionSelector from './ImageVersionSelector';
@@ -20,7 +13,7 @@ import { ImageStreamAndVersion } from '../../../../../types';
 
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;
-  setSelectedImage: (imageStream: ImageStreamAndVersion) => void;
+  setSelectedImage: React.Dispatch<React.SetStateAction<ImageStreamAndVersion>>;
   imageStreams: ImageStreamKind[];
   loaded: boolean;
   error?: Error;
@@ -35,85 +28,71 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   error,
   buildStatuses,
 }) => {
-  const [selectedImageStream, setSelectedImageStream] =
-    React.useState<ImageStreamSelectOptionObjectType>();
-  const [selectedImageVersion, setSelectedImageVersion] =
-    React.useState<ImageVersionSelectOptionObjectType>();
-
-  const imageStreamData = React.useMemo(
-    () => ({
-      buildStatuses,
-      imageOptions: imageStreams.map((imageStream) =>
-        getImageStreamSelectOptionObject(imageStream),
-      ),
-    }),
-    [imageStreams, buildStatuses],
-  );
-
   const imageVersionData = React.useMemo(() => {
-    const imageStream = selectedImageStream?.imageStream;
+    const imageStream = selectedImage.imageStream;
     if (!imageStream) {
-      return { buildStatuses, imageStream, versionOptions: [] };
+      return { buildStatuses, imageStream, imageVersions: [] };
     }
-    const versions = getExistingVersionsForImageStream(imageStream);
     return {
       buildStatuses,
       imageStream,
-      versionOptions: versions.map((version) =>
-        getImageVersionSelectOptionObject(imageStream, version),
-      ),
+      imageVersions: getExistingVersionsForImageStream(imageStream),
     };
-  }, [selectedImageStream, buildStatuses]);
+  }, [selectedImage.imageStream, buildStatuses]);
 
-  const onImageStreamSelect = (selection: ImageStreamSelectOptionObjectType) => {
-    setSelectedImageStream(selection);
-  };
-
-  const onImageVersionSelect = (selection: ImageVersionSelectOptionObjectType) => {
-    setSelectedImageVersion(selection);
-  };
-
-  React.useEffect(() => {
-    setSelectedImage({
-      imageStream: selectedImageStream?.imageStream,
-      imageVersion: selectedImageVersion?.imageVersion,
-    });
-  }, [selectedImageStream, selectedImageVersion, setSelectedImage]);
+  const onImageStreamSelect = React.useCallback(
+    (selection: ImageStreamKind) =>
+      setSelectedImage((oldSelectedImage) => ({
+        ...oldSelectedImage,
+        imageStream: selection,
+      })),
+    [setSelectedImage],
+  );
 
   React.useEffect(() => {
-    if (selectedImageStream) {
-      const version = getDefaultVersionForImageStream(
-        selectedImageStream.imageStream,
-        buildStatuses,
-      );
-      const selectedVersion = imageVersionData.versionOptions.find(
-        (optionObject) => optionObject.imageVersion.name === version?.name,
-      );
-      setSelectedImageVersion(selectedVersion);
+    const imageStream = selectedImage.imageStream;
+    if (imageStream) {
+      const version = getDefaultVersionForImageStream(imageStream, buildStatuses);
+      const versions = getExistingVersionsForImageStream(imageStream);
+      const selectedVersion = versions.find((v) => v.name === version?.name);
+      setSelectedImage((oldSelectedImage) => ({
+        ...oldSelectedImage,
+        imageVersion: selectedVersion,
+      }));
     }
-  }, [selectedImageStream, buildStatuses, imageVersionData]);
+  }, [selectedImage.imageStream, buildStatuses, imageVersionData, setSelectedImage]);
 
   if (!loaded) {
     return <Skeleton />;
   }
 
-  if (error) {
-    return <>{error.message}</>;
-  }
-
   return (
     <FormSection title="Notebook image" id={SpawnerPageSectionID.NOTEBOOK_IMAGE}>
-      <ImageStreamSelector
-        data={imageStreamData}
-        onImageStreamSelect={onImageStreamSelect}
-        selectedImageStream={selectedImageStream}
-      />
-      <ImageVersionSelector
-        data={imageVersionData}
-        onImageVersionSelect={onImageVersionSelect}
-        selectedImageVersion={selectedImageVersion}
-      />
-      <ImageStreamPopover selectedImage={selectedImage} />
+      {error ? (
+        <Alert title="Image loading error" variant="danger">
+          {error.message}
+        </Alert>
+      ) : (
+        <>
+          <ImageStreamSelector
+            imageStreams={imageStreams}
+            buildStatuses={buildStatuses}
+            onImageStreamSelect={onImageStreamSelect}
+            selectedImageStream={selectedImage.imageStream}
+          />
+          <ImageVersionSelector
+            data={imageVersionData}
+            setSelectedImageVersion={(selection) =>
+              setSelectedImage((oldSelectedImage) => ({
+                ...oldSelectedImage,
+                imageVersion: selection,
+              }))
+            }
+            selectedImageVersion={selectedImage.imageVersion}
+          />
+          <ImageStreamPopover selectedImage={selectedImage} />
+        </>
+      )}
     </FormSection>
   );
 };

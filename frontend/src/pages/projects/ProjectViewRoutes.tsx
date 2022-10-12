@@ -9,22 +9,10 @@ const ProjectViewRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<ProjectView />} />
-      <Route
-        path="/:namespace/*"
-        element={
-          <ProjectDetailsContextProvider>
-            <ProjectDetails />
-          </ProjectDetailsContextProvider>
-        }
-      />
-      <Route
-        path="/:namespace/spawner"
-        element={
-          <ProjectDetailsContextProvider>
-            <SpawnerPage />
-          </ProjectDetailsContextProvider>
-        }
-      />
+      <Route path="/:namespace/*" element={<ProjectDetailsContextProvider />}>
+        <Route index element={<ProjectDetails />} />
+        <Route path="spawner" element={<SpawnerPage />} />
+      </Route>
       <Route path="*" element={<Navigate to="." />} />
     </Routes>
   );
