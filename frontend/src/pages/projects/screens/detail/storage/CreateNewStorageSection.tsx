@@ -1,23 +1,24 @@
 import * as React from 'react';
 import { Form, Radio } from '@patternfly/react-core';
-import { CreatingStorageObject, UpdateObjectAtPropAndValue } from '../../types';
-import PVSizeField from '../../components/PVSizeField';
-import NewStorageNameDescFields from '../../components/NewStorageNameDescFields';
+import { CreatingStorageObject } from '../../../types';
+import PVSizeField from '../../../components/PVSizeField';
+import NameDescriptionField from '../../../components/NameDescriptionField';
 import ConnectWorkspaceOptionsField from './ConnectWorkspaceOptionsField';
+import { UpdateObjectAtPropAndValue } from '../../../typeHelpers';
 
 type CreateNewStorageSectionProps = {
   isChecked: boolean;
   setChecked: (checked: boolean) => void;
-  creatingObject: CreatingStorageObject;
-  setCreatingObject: UpdateObjectAtPropAndValue<CreatingStorageObject>;
+  data: CreatingStorageObject;
+  setData: UpdateObjectAtPropAndValue<CreatingStorageObject>;
   availableSize: number;
 };
 
 const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
   isChecked,
   setChecked,
-  creatingObject,
-  setCreatingObject,
+  data,
+  setData,
   availableSize,
 }) => {
   return (
@@ -31,25 +32,23 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
       body={
         isChecked && (
           <Form>
-            <NewStorageNameDescFields
+            <NameDescriptionField
               nameFieldId="create-new-storage-name"
               descriptionFieldId="create-new-storage-description"
-              name={creatingObject.name}
-              description={creatingObject.description}
-              setName={(name) => setCreatingObject('name', name)}
-              setDescription={(description) => setCreatingObject('description', description)}
+              data={data.nameDesc}
+              setData={(newData) => setData('nameDesc', newData)}
             />
             <ConnectWorkspaceOptionsField
               fieldId="connection-options-radio-group"
               allWorkspaces={[]}
-              selections={creatingObject.workspaceSelections}
-              setSelections={(selections) => setCreatingObject('workspaceSelections', selections)}
+              selections={data.workspaceSelections}
+              setSelections={(selections) => setData('workspaceSelections', selections)}
             />
             <PVSizeField
               fieldID="create-new-storage-size"
               availableSize={availableSize}
-              size={creatingObject.size}
-              setSize={(size: number) => setCreatingObject('size', size)}
+              size={data.size}
+              setSize={(size: number) => setData('size', size)}
             />
           </Form>
         )

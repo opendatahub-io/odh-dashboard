@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ProjectKind } from '../../k8sTypes';
-import { useParams } from 'react-router';
+import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
   Button,
@@ -23,7 +23,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   currentProject: null as unknown as ProjectKind,
 });
 
-const ProjectDetailsContextProvider: React.FC = ({ children }) => {
+const ProjectDetailsContextProvider: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
   const [project, loaded, error] = useProject(namespace);
@@ -55,7 +55,7 @@ const ProjectDetailsContextProvider: React.FC = ({ children }) => {
 
   return (
     <ProjectDetailsContext.Provider value={{ currentProject: project }}>
-      {children}
+      <Outlet />
     </ProjectDetailsContext.Provider>
   );
 };

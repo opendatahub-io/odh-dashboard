@@ -11,17 +11,6 @@ type PVSizeFieldProps = {
 
 const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, availableSize, size, setSize }) => {
   const MIN_SIZE = 0.1; // We can decide this value later and move it out to const file
-  const onChange = React.useCallback(
-    (event: React.FormEvent<HTMLInputElement>) => {
-      if (isHTMLInputElement(event.target)) {
-        const newSize = Number(event.target.value);
-        setSize(
-          isNaN(newSize) ? availableSize : normalizeBetween(newSize, MIN_SIZE, availableSize),
-        );
-      }
-    },
-    [availableSize, setSize],
-  );
 
   const onStep = (step: number) => {
     setSize(normalizeBetween(size + step, MIN_SIZE, availableSize));
@@ -41,7 +30,14 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, availableSize, size,
           min={MIN_SIZE}
           onPlus={() => onStep(1)}
           onMinus={() => onStep(-1)}
-          onChange={onChange}
+          onChange={(event) => {
+            if (isHTMLInputElement(event.target)) {
+              const newSize = Number(event.target.value);
+              setSize(
+                isNaN(newSize) ? availableSize : normalizeBetween(newSize, MIN_SIZE, availableSize),
+              );
+            }
+          }}
         />
         <InputGroupText variant="plain">GiB</InputGroupText>
       </InputGroup>

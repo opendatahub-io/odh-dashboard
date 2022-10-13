@@ -4,14 +4,14 @@ import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
 import { createNotebook, createNotebookWithoutStarting } from '../../../../api';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData } from '../../types';
-import { patchStartNotebookDataWithPvc } from './service';
+import { createPvcDataForNotebook } from './service';
 
-type FormFooterProps = {
+type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
   storageData: StorageData;
 };
 
-const FormFooter: React.FC<FormFooterProps> = ({ startNotebookData, storageData }) => {
+const SpawnerFooter: React.FC<SpawnerFooterProps> = ({ startNotebookData, storageData }) => {
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -20,15 +20,15 @@ const FormFooter: React.FC<FormFooterProps> = ({ startNotebookData, storageData 
 
   const onCreateNotebook = async (action: 'stop' | 'start') => {
     setCreateInProgress(true);
-    const newStartData = await patchStartNotebookDataWithPvc(startNotebookData, storageData);
+    const { volumes, volumeMounts } = await createPvcDataForNotebook(projectName, storageData);
+    const newStartData = { ...startNotebookData, volumes, volumeMounts };
     if (action === 'start') {
       await createNotebook(newStartData);
     } else if (action === 'stop') {
       await createNotebookWithoutStarting(newStartData);
     }
     setCreateInProgress(false);
-    // TODO: navigate to `/projects/${projectName}` after Notebook List is implemented
-    navigate('/projects');
+    navigate(`/projects/${projectName}`);
   };
 
   return (
@@ -66,4 +66,4 @@ const FormFooter: React.FC<FormFooterProps> = ({ startNotebookData, storageData 
   );
 };
 
-export default FormFooter;
+export default SpawnerFooter;

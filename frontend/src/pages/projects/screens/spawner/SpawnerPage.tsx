@@ -5,8 +5,8 @@ import GenericSidebar from '../../components/GenericSidebar';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
-import FormFooter from './FormFooter';
-import NameDescriptionField from './NameDescriptionField';
+import SpawnerFooter from './SpawnerFooter';
+import NameDescriptionField from '../../components/NameDescriptionField';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import useImageStreams from './useImageStreams';
 import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
@@ -15,16 +15,15 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import { useNotebookSize } from './useNotebookSize';
 import { ImageStreamAndVersion } from '../../../../types';
 import StorageField from './storage/StorageField';
-import useGenericSet from '../../useGenericSet';
-import { useCreatingStorageObject, useExistingStorageObject } from '../../utils';
-import { NameDescType, StorageData } from '../../types';
+import { NameDescType } from '../../types';
+import { useStorageDataObject } from './storage/utils';
 
 const SpawnerPage: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { username } = useUser();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
-  // Name and description field
+
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({ name: '', description: '' });
 
   // Image selector field
@@ -38,21 +37,7 @@ const SpawnerPage: React.FC = () => {
   // Deployment size field
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
 
-  // Storage field
-  const [storageType, setStorageType] = React.useState<'ephemeral' | 'persistent'>('ephemeral');
-  const [storageBindingType, setStorageBindingType] = useGenericSet<'new' | 'existing'>(['new']);
-  const [creatingObject, setCreatingObject] = useCreatingStorageObject();
-  const [existingObject, setExistingObject] = useExistingStorageObject();
-
-  const storageData: StorageData = React.useMemo(
-    () => ({
-      storageType,
-      storageBindingType,
-      creatingObject,
-      existingObject,
-    }),
-    [storageType, storageBindingType, creatingObject, existingObject],
-  );
+  const [storageData, setStorageData] = useStorageDataObject('ephemeral');
 
   return (
     <ApplicationsPage
@@ -74,7 +59,14 @@ const SpawnerPage: React.FC = () => {
           scrollableSelector={`#${ScrollableSelectorID}`}
         >
           <Form maxWidth="50%">
-            <NameDescriptionField nameDesc={nameDesc} setNameDesc={setNameDesc} />
+            <FormSection id={SpawnerPageSectionID.NAME_DESCRIPTION}>
+              <NameDescriptionField
+                nameFieldId="workspace-name"
+                descriptionFieldId="workspace-description"
+                data={nameDesc}
+                setData={setNameDesc}
+              />
+            </FormSection>
             <ImageSelectorField
               selectedImage={selectedImage}
               setSelectedImage={setSelectedImage}
@@ -91,22 +83,15 @@ const SpawnerPage: React.FC = () => {
               />
             </FormSection>
             <StorageField
-              projects={[currentProject]} // set only current project as projects for now
-              storageType={storageType}
-              setStorageType={setStorageType}
-              storageBindingType={storageBindingType}
-              setStorageBindingType={setStorageBindingType}
-              creatingObject={creatingObject}
-              setCreatingObject={setCreatingObject}
-              existingObject={existingObject}
-              setExistingObject={setExistingObject}
+              storageData={storageData}
+              setStorageData={setStorageData}
               availableSize={20}
             />
           </Form>
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-        <FormFooter
+        <SpawnerFooter
           startNotebookData={{
             notebookName: nameDesc.name,
             description: nameDesc.description,

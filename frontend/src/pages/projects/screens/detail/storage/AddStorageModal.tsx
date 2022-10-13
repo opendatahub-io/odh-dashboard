@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Modal, Stack, StackItem } from '@patternfly/react-core';
 import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageSection from './AddExistingStorageSection';
-import { useCreatingStorageObject, useExistingStorageObject } from '../../utils';
+import { useStorageDataObject } from '../../spawner/storage/utils';
 
 import './addStorageModal.scss';
 
@@ -12,9 +12,13 @@ type AddStorageModalProps = {
 };
 
 const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) => {
-  const [storageType, setStorageType] = React.useState<'new' | 'existing'>('new');
-  const [creatingObject, setCreatingObject] = useCreatingStorageObject();
-  const [existingObject, setExistingObject] = useExistingStorageObject();
+  const [{ creating, existing }, setStorageData] = useStorageDataObject('persistent', 'new');
+
+  const setChecked = (selection: 'existing' | 'creating') => {
+    const isCreatingChecked = selection === 'creating';
+    setStorageData('creating', { ...creating, enabled: isCreatingChecked });
+    setStorageData('existing', { ...existing, enabled: !isCreatingChecked });
+  };
 
   return (
     <Modal
@@ -36,19 +40,19 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
       <Stack hasGutter>
         <StackItem>
           <CreateNewStorageSection
-            isChecked={storageType === 'new'}
-            setChecked={() => setStorageType('new')}
-            creatingObject={creatingObject}
-            setCreatingObject={setCreatingObject}
+            isChecked={creating.enabled}
+            setChecked={() => setChecked('creating')}
+            data={creating}
+            setData={(key, value) => setStorageData('creating', { ...creating, [key]: value })}
             availableSize={20}
           />
         </StackItem>
         <StackItem>
           <AddExistingStorageSection
-            isChecked={storageType === 'existing'}
-            setChecked={() => setStorageType('existing')}
-            existingObject={existingObject}
-            setExistingObject={setExistingObject}
+            isChecked={existing.enabled}
+            setChecked={() => setChecked('existing')}
+            data={existing}
+            setData={(data) => setStorageData('existing', data)}
           />
         </StackItem>
       </Stack>

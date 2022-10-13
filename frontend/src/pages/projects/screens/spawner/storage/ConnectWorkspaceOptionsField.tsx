@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Checkbox, FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import { NotebookKind } from '../../../../../k8sTypes';
 
 type ConnectWorkspaceOptionsFieldProps = {
   fieldId: string;
-  allWorkspaces: string[]; // maybe workspace type in the future, take string now
+  allWorkspaces: NotebookKind[];
   setSelections: (selections: string[]) => void;
 };
 
@@ -31,10 +32,12 @@ const ConnectWorkspaceOptionsField: React.FC<ConnectWorkspaceOptionsFieldProps> 
             name="connect-to-all-workspaces-checkbox"
             label="Connect to all workspaces"
             isChecked={isConnectToAll}
-            isDisabled // disabled it for now
+            isDisabled
             onChange={(checked) => {
               setConnectToAll(checked);
-              setSelections(checked ? allWorkspaces : []); // here we use [] to represent the current workspace so we don't need to pass it in here
+              setSelections(
+                checked ? allWorkspaces.map((workspace) => workspace.metadata.name) : [],
+              );
             }}
           />
         </StackItem>

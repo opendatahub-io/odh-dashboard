@@ -23,13 +23,6 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
 
-  const sizeOptions = () =>
-    sizes.map((size) => {
-      const name = size.name;
-      const desc = getSizeDescription(size);
-      return <SelectOption key={name} value={name} description={desc} />;
-    });
-
   return (
     <FormGroup
       label="Container Size"
@@ -59,7 +52,11 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
         }}
         menuAppendTo={getDashboardMainContainer}
       >
-        {sizeOptions()}
+        {sizes.map((size) => {
+          const name = size.name;
+          const desc = getSizeDescription(size);
+          return <SelectOption key={name} value={name} description={desc} />;
+        })}
       </Select>
     </FormGroup>
   );

@@ -1,31 +1,37 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption, Text, Title } from '@patternfly/react-core';
-import { ImageStreamSelectDataType, ImageStreamSelectOptionObjectType } from '../types';
+import { BuildStatus } from '../types';
 import {
   checkImageStreamAvailability,
-  compareImageStreamOptionOrder,
+  compareImageStreamOrder,
   getExistingVersionsForImageStream,
+  getImageStreamSelectOptionObject,
   getImageVersionSoftwareString,
   isImageStreamSelectOptionObject,
 } from '../spawnerUtils';
 import { getDashboardMainContainer } from '../../../../../utilities/utils';
+import { ImageStreamKind } from '../../../../../k8sTypes';
 
 type ImageStreamSelectorProps = {
-  selectedImageStream?: ImageStreamSelectOptionObjectType;
-  onImageStreamSelect: (selection: ImageStreamSelectOptionObjectType) => void;
-  data: ImageStreamSelectDataType;
+  imageStreams: ImageStreamKind[];
+  buildStatuses: BuildStatus[];
+  selectedImageStream?: ImageStreamKind;
+  onImageStreamSelect: (selection: ImageStreamKind) => void;
 };
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
+  imageStreams,
   selectedImageStream,
   onImageStreamSelect,
-  data,
+  buildStatuses,
 }) => {
   const [imageSelectionOpen, setImageSelectionOpen] = React.useState<boolean>(false);
 
-  const { buildStatuses, imageOptions } = data;
+  const selectOptionObjects = [...imageStreams]
+    .sort(compareImageStreamOrder)
+    .map((imageStream) => getImageStreamSelectOptionObject(imageStream));
 
-  const options = [...imageOptions].sort(compareImageStreamOptionOrder).map((optionObject) => {
+  const options = selectOptionObjects.map((optionObject) => {
     const imageStream = optionObject.imageStream;
     const versions = getExistingVersionsForImageStream(imageStream);
     const description =
@@ -54,12 +60,15 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
         onSelect={(e, selection) => {
           // We know selection here is ImageStreamSelectOptionObjectType
           if (isImageStreamSelectOptionObject(selection)) {
-            onImageStreamSelect(selection);
+            onImageStreamSelect(selection.imageStream);
             setImageSelectionOpen(false);
           }
         }}
         isOpen={imageSelectionOpen}
-        selections={selectedImageStream}
+        selections={selectOptionObjects.find(
+          (optionObject) =>
+            optionObject.imageStream.metadata.name === selectedImageStream?.metadata.name,
+        )}
         placeholderText="Select one"
         menuAppendTo={getDashboardMainContainer}
       >

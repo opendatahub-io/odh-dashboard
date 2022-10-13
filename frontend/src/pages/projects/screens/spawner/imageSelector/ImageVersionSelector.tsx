@@ -1,37 +1,43 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption, Text, Title } from '@patternfly/react-core';
-import { ImageVersionSelectDataType, ImageVersionSelectOptionObjectType } from '../types';
+import { ImageVersionSelectDataType } from '../types';
 import {
   checkTagBuildValid,
-  compareImageVersionOptionOrder,
+  compareImageVersionOrder,
   getAvailableVersionsForImageStream,
   getImageVersionDependencies,
+  getImageVersionSelectOptionObject,
   getImageVersionSoftwareString,
   isImageVersionSelectOptionObject,
 } from '../spawnerUtils';
 import ImageVersionTooltip from './ImageVersionTooltip';
 import { getDashboardMainContainer } from '../../../../../utilities/utils';
+import { ImageStreamSpecTagType } from '../../../../../k8sTypes';
 
 type ImageVersionSelectorProps = {
   data: ImageVersionSelectDataType;
-  selectedImageVersion?: ImageVersionSelectOptionObjectType;
-  onImageVersionSelect: (selection: ImageVersionSelectOptionObjectType) => void;
+  selectedImageVersion?: ImageStreamSpecTagType;
+  setSelectedImageVersion: (selection: ImageStreamSpecTagType) => void;
 };
 
 const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
   selectedImageVersion,
-  onImageVersionSelect,
+  setSelectedImageVersion,
   data,
 }) => {
   const [versionSelectionOpen, setVersionSelectionOpen] = React.useState<boolean>(false);
 
-  const { imageStream, versionOptions, buildStatuses } = data;
+  const { imageStream, buildStatuses, imageVersions } = data;
 
   if (!imageStream || getAvailableVersionsForImageStream(imageStream, buildStatuses).length <= 1) {
     return null;
   }
 
-  const options = [...versionOptions].sort(compareImageVersionOptionOrder).map((optionObject) => {
+  const selectOptionObjects = [...imageVersions]
+    .sort(compareImageVersionOrder)
+    .map((imageVersion) => getImageVersionSelectOptionObject(imageStream, imageVersion));
+
+  const options = selectOptionObjects.map((optionObject) => {
     const imageVersion = optionObject.imageVersion;
     // Cannot wrap the SelectOption with Tooltip because Select component requires SelectOption as the children
     // Can only wrap the SelectOption children with Tooltip
@@ -62,12 +68,14 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
         onSelect={(e, selection) => {
           // We know selection here is ImageVersionSelectOptionObjectType
           if (isImageVersionSelectOptionObject(selection)) {
-            onImageVersionSelect(selection as ImageVersionSelectOptionObjectType);
+            setSelectedImageVersion(selection.imageVersion);
             setVersionSelectionOpen(false);
           }
         }}
         isOpen={versionSelectionOpen}
-        selections={selectedImageVersion}
+        selections={selectOptionObjects.find(
+          (optionObject) => optionObject.imageVersion.name === selectedImageVersion?.name,
+        )}
         placeholderText="Select one"
         menuAppendTo={getDashboardMainContainer}
       >

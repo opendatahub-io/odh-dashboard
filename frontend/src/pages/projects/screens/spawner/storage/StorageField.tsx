@@ -1,43 +1,26 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { SpawnerPageSectionID } from '../types';
-import {
-  CreatingStorageObject,
-  ExistingStorageObject,
-  ToggleValueInSet,
-  UpdateObjectAtPropAndValue,
-} from '../../../types';
+import { StorageData } from '../../../types';
 import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageSection from './AddExistingStorageSection';
-import { ProjectKind } from '../../../../../k8sTypes';
+import { UpdateObjectAtPropAndValue } from '../../../typeHelpers';
 
-import '../../../modals/addStorageModal/addStorageModal.scss';
+import '../../detail/storage/addStorageModal.scss';
 
 type StorageFieldType = {
-  projects: ProjectKind[];
-  storageType: 'ephemeral' | 'persistent';
-  setStorageType: (type: 'ephemeral' | 'persistent') => void;
-  storageBindingType: Set<'new' | 'existing'>;
-  setStorageBindingType: ToggleValueInSet<'new' | 'existing'>;
-  creatingObject: CreatingStorageObject;
-  setCreatingObject: UpdateObjectAtPropAndValue<CreatingStorageObject>;
-  existingObject: ExistingStorageObject;
-  setExistingObject: UpdateObjectAtPropAndValue<ExistingStorageObject>;
+  storageData: StorageData;
+  setStorageData: UpdateObjectAtPropAndValue<StorageData>;
   availableSize: number;
 };
 
 const StorageField: React.FC<StorageFieldType> = ({
-  projects,
-  storageType,
-  setStorageType,
-  storageBindingType,
-  setStorageBindingType,
-  creatingObject,
-  setCreatingObject,
-  existingObject,
-  setExistingObject,
+  storageData,
+  setStorageData,
   availableSize,
 }) => {
+  const { storageType, creating, existing } = storageData;
+
   return (
     <FormSection title="Storage" id={SpawnerPageSectionID.STORAGE}>
       <FormGroup fieldId="storage" role="radiogroup">
@@ -49,7 +32,7 @@ const StorageField: React.FC<StorageFieldType> = ({
               label="Ephemeral storage"
               description="This is temporary storage that is cleared when logged out."
               isChecked={storageType === 'ephemeral'}
-              onChange={() => setStorageType('ephemeral')}
+              onChange={() => setStorageData('storageType', 'ephemeral')}
             />
           </StackItem>
           <StackItem>
@@ -60,26 +43,31 @@ const StorageField: React.FC<StorageFieldType> = ({
               label="Persistent storage"
               description="This is storage that is retained when logged out."
               isChecked={storageType === 'persistent'}
-              onChange={() => setStorageType('persistent')}
+              onChange={() => setStorageData('storageType', 'persistent')}
               body={
                 storageType === 'persistent' && (
                   <Stack hasGutter>
                     <StackItem>
                       <CreateNewStorageSection
-                        isChecked={storageBindingType.has('new')}
-                        setChecked={(checked) => setStorageBindingType('new', checked)}
-                        creatingObject={creatingObject}
-                        setCreatingObject={setCreatingObject}
+                        isChecked={creating.enabled}
+                        setChecked={(checked) =>
+                          setStorageData('creating', { ...creating, enabled: checked })
+                        }
+                        data={creating}
+                        setData={(key, value) =>
+                          setStorageData('creating', { ...creating, [key]: value })
+                        }
                         availableSize={availableSize}
                       />
                     </StackItem>
                     <StackItem>
                       <AddExistingStorageSection
-                        isChecked={storageBindingType.has('existing')}
-                        setChecked={(checked) => setStorageBindingType('existing', checked)}
-                        existingObject={existingObject}
-                        setExistingObject={setExistingObject}
-                        projects={projects}
+                        isChecked={existing.enabled}
+                        setChecked={(checked) =>
+                          setStorageData('existing', { ...existing, enabled: checked })
+                        }
+                        data={existing}
+                        setData={(data) => setStorageData('existing', data)}
                       />
                     </StackItem>
                   </Stack>

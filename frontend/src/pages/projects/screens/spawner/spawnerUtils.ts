@@ -41,9 +41,7 @@ export const getImageVersionSelectOptionObject = (
 ): ImageVersionSelectOptionObjectType => ({
   imageVersion,
   toString: () =>
-    `${getImageStreamDisplayName(imageStream)} ${imageVersion.name}${
-      checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''
-    }`,
+    `${imageVersion.name}${checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''}`,
 });
 export const isImageStreamSelectOptionObject = (
   object: unknown,
@@ -85,15 +83,13 @@ export const compareTagVersions = (
   return b.name.localeCompare(a.name);
 };
 
-export const compareImageVersionOptionOrder = (
-  a: ImageVersionSelectOptionObjectType,
-  b: ImageVersionSelectOptionObjectType,
-): number => compareTagVersions(a.imageVersion, b.imageVersion);
+export const compareImageVersionOrder = (
+  a: ImageStreamSpecTagType,
+  b: ImageStreamSpecTagType,
+): number => compareTagVersions(a, b);
 
-export const compareImageStreamOptionOrder = (
-  a: ImageStreamSelectOptionObjectType,
-  b: ImageStreamSelectOptionObjectType,
-): number => getImageSteamOrder(a.imageStream) - getImageSteamOrder(b.imageStream);
+export const compareImageStreamOrder = (a: ImageStreamKind, b: ImageStreamKind): number =>
+  getImageSteamOrder(a) - getImageSteamOrder(b);
 
 /******************* ImageStream and ImageVersion utils *******************/
 export const getImageStreamDisplayName = (imageStream: ImageStreamKind): string =>
@@ -197,7 +193,7 @@ export const getSizeDescription = (size: NotebookSize): string =>
 export const getVolumesByStorageData = (
   storageData: StorageData,
 ): { volumes: Volume[]; volumeMounts: VolumeMount[] } => {
-  const { storageType, storageBindingType, existingObject } = storageData;
+  const { storageType, existing } = storageData;
   const volumes: Volume[] = [];
   const volumeMounts: VolumeMount[] = [];
   if (storageType === 'ephemeral') {
@@ -206,8 +202,8 @@ export const getVolumesByStorageData = (
     return { volumes, volumeMounts };
   }
   // we will deal with new storage after creating it because the name is different
-  if (storageBindingType.has('existing')) {
-    const { storage } = existingObject;
+  if (existing.enabled) {
+    const { storage } = existing;
     if (storage) {
       volumes.push({ name: storage, persistentVolumeClaim: { claimName: storage } });
       volumeMounts.push({ mountPath: '/opt/app-root/src', name: storage });
@@ -244,9 +240,6 @@ export const checkTagBuildValid = (
   return !PENDING_PHASES.includes(build.status) && !FAILED_PHASES.includes(build.status);
 };
 
-/**
- * Check whether `imageStream.spec.tags[i]` exists in status.tags
- */
 export const checkVersionExistence = (
   imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
@@ -260,9 +253,6 @@ export const checkVersionExistence = (
   return false;
 };
 
-/**
- * Check whether a version is recommended
- */
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
   !!imageVersion.annotations?.['opendatahub.io/notebook-image-recommended'];
 
@@ -271,7 +261,7 @@ export const checkRequiredFieldsForNotebookStart = (
   storageData: StorageData,
 ): boolean => {
   const { projectName, notebookName, username, notebookSize, image } = startNotebookData;
-  const { storageType, storageBindingType, creatingObject, existingObject } = storageData;
+  const { storageType, creating, existing } = storageData;
   const isNotebookDataValid = !!(
     projectName &&
     notebookName &&
@@ -284,11 +274,13 @@ export const checkRequiredFieldsForNotebookStart = (
   // if you choose creating new pvc, you need to input name
   // if you choose add existing pvc, you need to select storage name
   // other situations are valid
+  const newStorageFieldInvalid = creating.enabled && !creating.nameDesc.name;
+  const existingStorageFiledInvalid = existing.enabled && !existing.storage;
   const isStorageDataValid = !(
     storageType === 'persistent' &&
-    (storageBindingType.size === 0 ||
-      (storageBindingType.has('new') && !creatingObject.name) ||
-      (storageBindingType.has('existing') && !existingObject.storage))
+    ((!creating.enabled && !existing.enabled) ||
+      newStorageFieldInvalid ||
+      existingStorageFiledInvalid)
   );
   return isNotebookDataValid && isStorageDataValid;
 };
