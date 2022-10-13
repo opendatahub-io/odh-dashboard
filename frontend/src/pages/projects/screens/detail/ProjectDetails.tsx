@@ -5,7 +5,7 @@ import { useCurrentProjectDisplayName } from '../../utils';
 import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './DataConnectionsList';
 import GenericSidebar from '../../components/GenericSidebar';
-import StorageList from './StorageList';
+import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
 import WorkspacesList from './workspaces/WorkspacesList';
 

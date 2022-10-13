@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Form, Radio } from '@patternfly/react-core';
-import { ExistingStorageObject } from '../../types';
-import ExistingProjectField from '../../components/ExistingProjectField';
-import ExistingPVCField from '../../components/ExistingPVCField';
-import useAvailablePvcs from '../../screens/spawner/storage/useAvailablePvcs';
+import { ExistingStorageObject } from '../../../types';
+import ExistingProjectField from '../../../components/ExistingProjectField';
+import ExistingPVCField from '../../../components/ExistingPVCField';
+import useAvailablePvcs from '../../spawner/storage/useAvailablePvcs';
 
 type AddExistingStorageSectionProps = {
   isChecked: boolean;

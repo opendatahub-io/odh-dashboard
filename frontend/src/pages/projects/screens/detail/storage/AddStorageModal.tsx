@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Modal, Stack, StackItem } from '@patternfly/react-core';
 import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageSection from './AddExistingStorageSection';
-import { useStorageDataObject } from '../../screens/spawner/storage/utils';
+import { useStorageDataObject } from '../../spawner/storage/utils';
 
 import './addStorageModal.scss';
 

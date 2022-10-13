@@ -5,12 +5,11 @@ import { ProjectSectionID } from '../types';
 import DetailsSection from '../DetailsSection';
 import { ProjectSectionTitles } from '../const';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import useProjectNotebooks from '../../../notebook/useProjectNotebooks';
 import WorkspaceTable from './WorkspaceTable';
 
 const WorkspacesList: React.FC = () => {
-  const navigate = useNavigate();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const projectName = currentProject.metadata.name;
   const [notebookStates, loaded, loadError] = useProjectNotebooks(projectName);
@@ -19,12 +18,9 @@ const WorkspacesList: React.FC = () => {
       id={ProjectSectionID.WORKSPACE}
       title={ProjectSectionTitles[ProjectSectionID.WORKSPACE]}
       actions={[
-        <Button
-          key={`action-${ProjectSectionID.WORKSPACE}`}
-          variant="secondary"
-          onClick={() => navigate(`/projects/${projectName}/spawner`)}
-        >
-          Create data science workspace
+        <Button key={`action-${ProjectSectionID.WORKSPACE}`} variant="secondary">
+          {/* this will generate an underscore under the text when hover it, maybe we need to override the style */}
+          <Link to={`/projects/${projectName}/spawner`}>Create data science workspace</Link>
         </Button>,
       ]}
       isLoading={!loaded}

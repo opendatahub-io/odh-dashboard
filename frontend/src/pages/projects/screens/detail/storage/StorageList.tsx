@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import EmptyDetailsList from './EmptyDetailsList';
-import DetailsSection from './DetailsSection';
-import { ProjectSectionID } from './types';
-import { ProjectSectionTitles } from './const';
-import AddStorageModal from '../../modals/addStorageModal/AddStorageModal';
+import EmptyDetailsList from '../EmptyDetailsList';
+import DetailsSection from '../DetailsSection';
+import { ProjectSectionID } from '../types';
+import { ProjectSectionTitles } from '../const';
+import AddStorageModal from './AddStorageModal';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);

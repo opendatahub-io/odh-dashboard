@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup, Radio, Select, Stack, StackItem } from '@patternfly/react-core';
-import { NotebookKind } from '../../../../k8sTypes';
+import { NotebookKind } from '../../../../../k8sTypes';
 
 type ConnectWorkspaceOptionsFieldProps = {
   fieldId: string;

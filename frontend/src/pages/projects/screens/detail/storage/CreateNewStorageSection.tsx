@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Form, Radio } from '@patternfly/react-core';
-import { CreatingStorageObject } from '../../types';
-import PVSizeField from '../../components/PVSizeField';
-import NameDescriptionField from '../../components/NameDescriptionField';
+import { CreatingStorageObject } from '../../../types';
+import PVSizeField from '../../../components/PVSizeField';
+import NameDescriptionField from '../../../components/NameDescriptionField';
 import ConnectWorkspaceOptionsField from './ConnectWorkspaceOptionsField';
-import { UpdateObjectAtPropAndValue } from '../../typeHelpers';
+import { UpdateObjectAtPropAndValue } from '../../../typeHelpers';
 
 type CreateNewStorageSectionProps = {
   isChecked: boolean;

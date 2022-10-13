@@ -1,4 +1,4 @@
-import { CreatingStorageObject, ExistingStorageObject } from '../../types';
+import { CreatingStorageObject, ExistingStorageObject } from '../../../types';
 
 export const checkRequiredFieldsForAddingStorage = (
   storageType: 'new' | 'existing',
