@@ -10,24 +10,23 @@ import ImageStreamSelector from './ImageStreamSelector';
 import ImageVersionSelector from './ImageVersionSelector';
 import ImageStreamPopover from './ImageStreamPopover';
 import { ImageStreamAndVersion } from '../../../../../types';
+import useImageStreams from '../useImageStreams';
+import { useDashboardNamespace } from '../../../../../redux/selectors';
 
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;
   setSelectedImage: React.Dispatch<React.SetStateAction<ImageStreamAndVersion>>;
-  imageStreams: ImageStreamKind[];
-  loaded: boolean;
-  error?: Error;
   buildStatuses: BuildStatus[];
 };
 
 const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   selectedImage,
   setSelectedImage,
-  imageStreams,
-  loaded,
-  error,
   buildStatuses,
 }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace);
+
   const imageVersionData = React.useMemo(() => {
     const imageStream = selectedImage.imageStream;
     if (!imageStream) {
@@ -40,27 +39,16 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
     };
   }, [selectedImage.imageStream, buildStatuses]);
 
-  const onImageStreamSelect = React.useCallback(
-    (selection: ImageStreamKind) =>
-      setSelectedImage((oldSelectedImage) => ({
-        ...oldSelectedImage,
-        imageStream: selection,
-      })),
-    [setSelectedImage],
-  );
+  const onImageStreamSelect = (newImageStream: ImageStreamKind) => {
+    const version = getDefaultVersionForImageStream(newImageStream, buildStatuses);
+    const versions = getExistingVersionsForImageStream(newImageStream);
+    const initialVersion = versions.find((v) => v.name === version?.name);
 
-  React.useEffect(() => {
-    const imageStream = selectedImage.imageStream;
-    if (imageStream) {
-      const version = getDefaultVersionForImageStream(imageStream, buildStatuses);
-      const versions = getExistingVersionsForImageStream(imageStream);
-      const selectedVersion = versions.find((v) => v.name === version?.name);
-      setSelectedImage((oldSelectedImage) => ({
-        ...oldSelectedImage,
-        imageVersion: selectedVersion,
-      }));
-    }
-  }, [selectedImage.imageStream, buildStatuses, imageVersionData, setSelectedImage]);
+    return setSelectedImage({
+      imageStream: newImageStream,
+      imageVersion: initialVersion,
+    });
+  };
 
   if (!loaded) {
     return <Skeleton />;

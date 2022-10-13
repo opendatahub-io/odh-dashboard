@@ -6,6 +6,9 @@ import {
   Volume,
   VolumeMount,
 } from '../../types';
+import { ValueOf } from '../../typeHelpers';
+
+export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
 export type NameDescType = {
   name: string;

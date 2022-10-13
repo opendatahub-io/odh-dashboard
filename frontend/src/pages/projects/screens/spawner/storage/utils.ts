@@ -1,5 +1,5 @@
 import { DEFAULT_PVC_SIZE } from '../../../const';
-import { UpdateObjectAtPropAndValue } from '../../../typeHelpers';
+import { UpdateObjectAtPropAndValue } from '../../../types';
 import { StorageData } from '../../../types';
 import useGenericObjectState from '../../../useGenericObjectState';
 
