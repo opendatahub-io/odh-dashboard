@@ -1,22 +1,42 @@
 import * as React from 'react';
-import { FormGroup, Radio, Select, Stack, StackItem } from '@patternfly/react-core';
+import { FormGroup, Radio, Select, SelectOption, Stack, StackItem } from '@patternfly/react-core';
 import { NotebookKind } from '../../../../../k8sTypes';
+import { getNotebooks } from '../../../../../api';
+import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
+import { getNotebookDisplayName } from '../../../utils';
 
 type ConnectWorkspaceOptionsFieldProps = {
   fieldId: string;
-  allWorkspaces: NotebookKind[];
   selections: string[];
   setSelections: (selections: string[]) => void;
 };
 
 const ConnectWorkspaceOptionsField: React.FC<ConnectWorkspaceOptionsFieldProps> = ({
   fieldId,
-  allWorkspaces,
   selections,
   setSelections,
 }) => {
   const [workspaceSelectOpen, setWorkspaceSelectOpen] = React.useState<boolean>(false);
-  const [isConnectToAll, setConnectToAll] = React.useState<boolean>(true);
+  const [isConnectToAll, setConnectToAll] = React.useState<boolean>(false);
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const [allWorkspaces, setAllWorkspaces] = React.useState<NotebookKind[]>([]);
+
+  React.useEffect(() => {
+    getNotebooks(currentProject.metadata.name)
+      .then((notebooks) => setAllWorkspaces(notebooks))
+      .catch((e) => console.error('Error getting notebooks: ', e));
+  }, [currentProject.metadata.name]);
+
+  const options = React.useMemo(
+    () =>
+      allWorkspaces.map((workspace) => (
+        <SelectOption key={workspace.metadata.name} value={workspace.metadata.name}>
+          {getNotebookDisplayName(workspace)}
+        </SelectOption>
+      )),
+    [allWorkspaces],
+  );
+
   return (
     <FormGroup role="radiogroup" fieldId={fieldId}>
       <Stack hasGutter>
@@ -25,6 +45,7 @@ const ConnectWorkspaceOptionsField: React.FC<ConnectWorkspaceOptionsFieldProps> 
             id="connect-to-all-workspaces-radio"
             name="connect-to-all-workspaces-radio"
             label="Connect to all workspaces"
+            isDisabled
             isChecked={isConnectToAll}
             onChange={() => {
               setConnectToAll(true);
@@ -62,7 +83,9 @@ const ConnectWorkspaceOptionsField: React.FC<ConnectWorkspaceOptionsFieldProps> 
                   onToggle={(isOpen) => setWorkspaceSelectOpen(isOpen)}
                   placeholderText="Choose an existing workspace"
                   menuAppendTo="parent"
-                />
+                >
+                  {options}
+                </Select>
               )
             }
           />

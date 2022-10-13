@@ -40,7 +40,6 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
             />
             <ConnectWorkspaceOptionsField
               fieldId="connection-options-radio-group"
-              allWorkspaces={[]}
               selections={data.workspaceSelections}
               setSelections={(selections) => setData('workspaceSelections', selections)}
             />

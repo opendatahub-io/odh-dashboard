@@ -5,9 +5,16 @@ import DetailsSection from '../DetailsSection';
 import { ProjectSectionID } from '../types';
 import { ProjectSectionTitles } from '../const';
 import AddStorageModal from './AddStorageModal';
+import useProjectPvcs from './useProjectPvcs';
+import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
+import StorageTable from './StorageTable';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const projectName = currentProject.metadata.name;
+  const [pvcs, loaded, loadError, forceRefresh] = useProjectPvcs(projectName);
+
   return (
     <>
       <DetailsSection
@@ -22,9 +29,9 @@ const StorageList: React.FC = () => {
             Add storage
           </Button>,
         ]}
-        isLoading={false}
-        isEmpty
-        loadError={undefined}
+        isLoading={!loaded}
+        isEmpty={pvcs.length === 0}
+        loadError={loadError}
         emptyState={
           <EmptyDetailsList
             title="No storage"
@@ -32,9 +39,9 @@ const StorageList: React.FC = () => {
           />
         }
       >
-        No content
+        <StorageTable pvcs={pvcs} />
       </DetailsSection>
-      <AddStorageModal isOpen={isOpen} onClose={() => setOpen(false)} />
+      <AddStorageModal isOpen={isOpen} onClose={() => setOpen(false)} forceRefresh={forceRefresh} />
     </>
   );
 };
