@@ -8,7 +8,6 @@ import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import SpawnerFooter from './SpawnerFooter';
 import NameDescriptionField from '../../components/NameDescriptionField';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
-import useImageStreams from './useImageStreams';
 import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
 import useBuildStatuses from './useBuildStatuses';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
@@ -27,8 +26,6 @@ const SpawnerPage: React.FC = () => {
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({ name: '', description: '' });
 
   // Image selector field
-  const [imageStreams, imageStreamsLoaded, imageStreamsLoadError] =
-    useImageStreams(dashboardNamespace);
   const [selectedImage, setSelectedImage] = React.useState<ImageStreamAndVersion>({
     imageStream: undefined,
     imageVersion: undefined,
@@ -70,9 +67,6 @@ const SpawnerPage: React.FC = () => {
             <ImageSelectorField
               selectedImage={selectedImage}
               setSelectedImage={setSelectedImage}
-              imageStreams={imageStreams}
-              loaded={imageStreamsLoaded}
-              error={imageStreamsLoadError}
               buildStatuses={buildStatuses}
             />
             <FormSection title="Deployment size" id={SpawnerPageSectionID.DEPLOYMENT_SIZE}>

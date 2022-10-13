@@ -4,7 +4,7 @@ import { CreatingStorageObject } from '../../../types';
 import PVSizeField from '../../../components/PVSizeField';
 import ConnectWorkspaceOptionsField from './ConnectWorkspaceOptionsField';
 import NameDescriptionField from '../../../components/NameDescriptionField';
-import { UpdateObjectAtPropAndValue } from '../../../typeHelpers';
+import { UpdateObjectAtPropAndValue } from '../../../types';
 
 type CreateNewStorageSectionProps = {
   isChecked: boolean;

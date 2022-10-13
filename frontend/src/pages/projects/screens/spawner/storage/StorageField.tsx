@@ -4,7 +4,7 @@ import { SpawnerPageSectionID } from '../types';
 import { StorageData } from '../../../types';
 import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageSection from './AddExistingStorageSection';
-import { UpdateObjectAtPropAndValue } from '../../../typeHelpers';
+import { UpdateObjectAtPropAndValue } from '../../../types';
 
 import '../../detail/storage/addStorageModal.scss';
 
