@@ -4,9 +4,8 @@ import { BuildStatus } from '../types';
 import {
   checkImageStreamAvailability,
   compareImageStreamOrder,
-  getExistingVersionsForImageStream,
   getImageStreamSelectOptionObject,
-  getImageVersionSoftwareString,
+  getRelatedVersionDescription,
   isImageStreamSelectOptionObject,
 } from '../spawnerUtils';
 import { getDashboardMainContainer } from '../../../../../utilities/utils';
@@ -33,9 +32,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
 
   const options = selectOptionObjects.map((optionObject) => {
     const imageStream = optionObject.imageStream;
-    const versions = getExistingVersionsForImageStream(imageStream);
-    const description =
-      versions.length === 1 ? getImageVersionSoftwareString(versions[0]) : undefined;
+    const description = getRelatedVersionDescription(imageStream);
     return (
       <SelectOption
         key={imageStream.metadata.name}

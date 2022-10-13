@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Title, Tooltip } from '@patternfly/react-core';
+import { Tooltip } from '@patternfly/react-core';
 import { ImageVersionDependencyType } from '../types';
-import { getNameVersionString } from '../spawnerUtils';
+import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
 
 type ImageVersionTooltipProps = {
   dependencies: ImageVersionDependencyType[];
@@ -15,13 +15,7 @@ const ImageVersionTooltip: React.FC<ImageVersionTooltipProps> = ({ children, dep
   return (
     <Tooltip
       content={
-        <>
-          <Title headingLevel="h6">Packages included:</Title>
-          {dependencies.map((dep) => {
-            const depString = getNameVersionString(dep);
-            return <p key={depString}>{depString}</p>;
-          })}
-        </>
+        <NotebookImagePackageDetails title="Packages included" dependencies={dependencies} />
       }
       position="right"
     >

@@ -8,7 +8,7 @@ import NotebookStatusToggle from '../../../notebook/NotebookStatusToggle';
 import useWorkspaceSize from './useWorkspaceSize';
 import useWorkspaceImage from './useWorkspaceImage';
 import WorkspaceSizeDetails from './WorkspaceSizeDetails';
-import WorkspacePackageDetails from './WorkspacePackageDetails';
+import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
 import WorkspaceStorageBars from './WorkspaceStorageBars';
 
 type NotebookTableRowProps = {
@@ -69,7 +69,13 @@ const WorkspaceTableRow: React.FC<NotebookTableRowProps> = ({ obj }) => {
         <Td>
           <WorkspaceStorageBars notebook={obj.notebook} />
         </Td>
-        <Td>{notebookImage && <WorkspacePackageDetails notebookImage={notebookImage} />}</Td>
+        <Td>
+          {notebookImage ? (
+            <NotebookImagePackageDetails dependencies={notebookImage.dependencies} />
+          ) : (
+            'Unknown package info'
+          )}
+        </Td>
         <Td>{notebookSize && <WorkspaceSizeDetails notebookSize={notebookSize} />}</Td>
         <Td />
         <Td />

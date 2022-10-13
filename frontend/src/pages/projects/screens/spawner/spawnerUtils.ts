@@ -22,7 +22,7 @@ export const getVersion = (version?: string, prefix?: string): string => {
 };
 
 export const getNameVersionString = (software: ImageVersionDependencyType): string =>
-  `${software.name}${getVersion(software.version, ' v')}`;
+  `${software.name} ${getVersion(software.version, 'v')}`;
 
 /******************* PF Select related utils *******************/
 /**
@@ -107,7 +107,7 @@ export const getImageSteamOrder = (imageStream: ImageStreamKind): number =>
  */
 export const getImageVersionDependencies = (
   imageVersion: ImageStreamSpecTagType,
-  isSoftware: boolean,
+  isSoftware = false,
 ): ImageVersionDependencyType[] => {
   const depString = isSoftware
     ? imageVersion.annotations?.['opendatahub.io/notebook-software'] || ''
@@ -139,6 +139,14 @@ export const getExistingVersionsForImageStream = (
 ): ImageStreamSpecTagType[] => {
   const allVersions = imageStream.spec.tags || [];
   return allVersions.filter((version) => checkVersionExistence(imageStream, version));
+};
+
+/**
+ * Takes an ImageStream and returns the related description we show next to the name
+ */
+export const getRelatedVersionDescription = (imageStream: ImageStreamKind): string | undefined => {
+  const versions = getExistingVersionsForImageStream(imageStream);
+  return versions.length === 1 ? getImageVersionSoftwareString(versions[0]) : undefined;
 };
 
 /**
@@ -245,12 +253,7 @@ export const checkVersionExistence = (
   imageVersion: ImageStreamSpecTagType,
 ): boolean => {
   const versions = imageStream.status?.tags || [];
-  for (let i = 0; i < versions.length; i++) {
-    if (versions[i].tag === imageVersion.name) {
-      return true;
-    }
-  }
-  return false;
+  return versions.some((version) => version.tag === imageVersion.name);
 };
 
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
