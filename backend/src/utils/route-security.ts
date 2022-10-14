@@ -16,13 +16,7 @@ const testAdmin = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<boolean> => {
-  const username = await getUserName(fastify, request).catch((error) => {
-    throw createCustomError(
-      'Error retrieving username',
-      error.response?.data?.message || error.message,
-      500,
-    );
-  });
+  const username = await getUserName(fastify, request);
   const { dashboardNamespace } = getNamespaces(fastify);
   const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
   if (isAdmin) {
