@@ -2,6 +2,7 @@ import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from './constants';
+import { createCustomError } from './requestUtils';
 
 const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 
@@ -55,11 +56,16 @@ export const getUser = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OpenShiftUser> => {
+  const accessToken = request.headers[USER_ACCESS_TOKEN] as string;
+  if (!accessToken) {
+    const error = createCustomError(
+      'Unauthorized',
+      `Error, missing x-forwarded-access-token header`,
+      401,
+    );
+    throw error;
+  }
   try {
-    const accessToken = request.headers[USER_ACCESS_TOKEN] as string;
-    if (!accessToken) {
-      throw new Error(`missing x-forwarded-access-token header`);
-    }
     const customObjectApiNoAuth = _.cloneDeep(fastify.kube.customObjectsApi);
     customObjectApiNoAuth.setApiKey(0, `Bearer ${accessToken}`);
     const userResponse = await customObjectApiNoAuth.getClusterCustomObject(
@@ -71,9 +77,7 @@ export const getUser = async (
     );
     return userResponse.body as OpenShiftUser;
   } catch (e) {
-    throw new Error(
-      `Error getting Oauth Info for user, ${e.code} - ${e.response?.data?.message || e.message}`,
-    );
+    throw new Error(`Error getting Oauth Info for user, ${e.response?.data?.message || e.message}`);
   }
 };
 
@@ -90,7 +94,12 @@ export const getUserName = async (
     if (DEV_MODE) {
       return (currentUser.username || currentUser.name)?.split('/')[0];
     }
-    fastify.log.error(`Error retrieving username: ${e.response?.data?.message || e.message}`);
-    throw new Error(`Failed to retrieve username: ${e.response?.data?.message || e.message}`);
+    fastify.log.error(`Failed to retrieve username: ${e.response?.data?.message || e.message}`);
+    const error = createCustomError(
+      'Unauthorized',
+      `Failed to retrieve username: ${e.response?.data?.message || e.message}`,
+      e.statusCode || 500,
+    );
+    throw error;
   }
 };
