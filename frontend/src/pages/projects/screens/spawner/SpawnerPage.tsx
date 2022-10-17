@@ -14,6 +14,7 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import { useNotebookSize } from './useNotebookSize';
 import { ImageStreamAndVersion } from '../../../../types';
 import StorageField from './storage/StorageField';
+import EnviornmentVariables from 'pages/projects/components/enviornmentVariables/EnviornmentVariables';
 import { NameDescType } from '../../types';
 import { useStorageDataObject } from './storage/utils';
 
@@ -79,6 +80,12 @@ const SpawnerPage: React.FC = () => {
                 setValue={setSelectedSize}
                 value={selectedSize}
               />
+            </FormSection>
+            <FormSection
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
+              id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
+            >
+              <EnviornmentVariables />
             </FormSection>
             <StorageField
               storageData={storageData}
