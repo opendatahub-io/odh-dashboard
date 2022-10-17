@@ -34,7 +34,11 @@ const SpawnerPage: React.FC = () => {
   // Deployment size field
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
 
-  const [storageData, setStorageData] = useStorageDataObject('ephemeral');
+  const [storageData, setStorageData] = useStorageDataObject(
+    'ephemeral',
+    undefined,
+    currentProject.metadata.name,
+  );
 
   return (
     <ApplicationsPage

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
-import { Button, Text, Title } from '@patternfly/react-core';
+import { Text, Title } from '@patternfly/react-core';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
-import { ExternalLinkAltIcon, HddIcon } from '@patternfly/react-icons';
-import StorageSizeBar from './StorageSizeBars';
+import { HddIcon } from '@patternfly/react-icons';
+import StorageSizeBar from '../../../components/StorageSizeBars';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
@@ -28,18 +28,6 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj }) => {
           </Text>
         </Td>
         <Td>Wind turbines</Td>
-        <Td>
-          <Button
-            component="a"
-            isInline
-            onClick={() => alert('Not implemented yet')}
-            variant="link"
-            icon={<ExternalLinkAltIcon />}
-            iconPosition="right"
-          >
-            Access
-          </Button>
-        </Td>
         <Td isActionCell>
           <ActionsColumn
             items={[
@@ -63,10 +51,10 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj }) => {
         <Td />
         <Td>
           <ExpandableRowContent>
+            <strong>Size</strong>
             <StorageSizeBar pvc={obj} />
           </ExpandableRowContent>
         </Td>
-        <Td />
         <Td />
         <Td />
         <Td />

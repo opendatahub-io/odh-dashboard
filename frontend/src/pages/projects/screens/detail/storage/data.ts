@@ -27,11 +27,6 @@ export const columns: SortableData<PersistentVolumeClaimKind>[] = [
     sortable: false,
   },
   {
-    field: 'access',
-    label: '',
-    sortable: false,
-  },
-  {
     field: 'kebab',
     label: '',
     sortable: false,

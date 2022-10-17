@@ -41,7 +41,15 @@ const StorageList: React.FC = () => {
       >
         <StorageTable pvcs={pvcs} />
       </DetailsSection>
-      <AddStorageModal isOpen={isOpen} onClose={() => setOpen(false)} forceRefresh={forceRefresh} />
+      <AddStorageModal
+        isOpen={isOpen}
+        onClose={(submit: boolean) => {
+          setOpen(false);
+          if (submit) {
+            forceRefresh();
+          }
+        }}
+      />
     </>
   );
 };

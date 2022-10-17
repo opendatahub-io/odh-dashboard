@@ -5,6 +5,6 @@ export const checkRequiredFieldsForAddingStorage = (
   existing: ExistingStorageObject,
 ): boolean =>
   !!(
-    (creating.enabled && creating.nameDesc.name && creating.workspaceSelections.length !== 0) ||
+    (creating.enabled && creating.nameDesc.name && creating.workspaceSelection) ||
     (existing.enabled && existing.project && existing.storage)
   );

@@ -11,11 +11,10 @@ import './addStorageModal.scss';
 
 type AddStorageModalProps = {
   isOpen: boolean;
-  onClose: () => void;
-  forceRefresh: () => void;
+  onClose: (submit: boolean) => void;
 };
 
-const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose, forceRefresh }) => {
+const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) => {
   const [{ creating, existing }, setStorageData] = useStorageDataObject('persistent', 'new');
   const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -39,8 +38,7 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose, forc
       createPvc(pvcData)
         .then(() => {
           setActionInProgress(false);
-          onClose();
-          forceRefresh();
+          onClose(true);
           // TODO: update notebook volume and volumeMount
         })
         .catch((e) => {
@@ -58,7 +56,7 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose, forc
       description="Add and connect storage to your cluster"
       variant="medium"
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => onClose(false)}
       showClose
       actions={[
         <Button
@@ -69,7 +67,7 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose, forc
         >
           Add storage
         </Button>,
-        <Button key="add-storage-cancel" variant="secondary" onClick={onClose}>
+        <Button key="add-storage-cancel" variant="secondary" onClick={() => onClose(false)}>
           Cancel
         </Button>,
       ]}

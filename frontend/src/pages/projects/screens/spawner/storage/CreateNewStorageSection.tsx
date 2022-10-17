@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
+import { Checkbox, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import { CreatingStorageObject } from '../../../types';
 import PVSizeField from '../../../components/PVSizeField';
-import ConnectWorkspaceOptionsField from './ConnectWorkspaceOptionsField';
 import NameDescriptionField from '../../../components/NameDescriptionField';
 import { UpdateObjectAtPropAndValue } from '../../../types';
 
@@ -41,11 +40,15 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
               />
             </StackItem>
             <StackItem>
-              <ConnectWorkspaceOptionsField
-                fieldId="connection-options-radio-group"
-                allWorkspaces={[]}
-                setSelections={(selections) => setData('workspaceSelections', selections)}
-              />
+              <FormGroup fieldId="connect-to-current-workspace-checkbox">
+                <Checkbox
+                  id="connect-to-current-workspace-checkbox"
+                  name="connect-to-current-workspace-checkbox"
+                  label="Connect to this workspace"
+                  isChecked
+                  isDisabled
+                />
+              </FormGroup>
             </StackItem>
             <StackItem>
               <PVSizeField

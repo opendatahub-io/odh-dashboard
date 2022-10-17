@@ -11,12 +11,11 @@ const useProjectPvcs = (
   forceRefresh: () => void,
 ] => {
   const [pvcs, setPvcs] = React.useState<PersistentVolumeClaimKind[]>([]);
-  const [loaded, setLoaded] = React.useState(true);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
   const getProjectPvcs = React.useCallback(() => {
     if (namespace) {
-      setLoaded(false);
       getPvcs(namespace)
         .then((newPvcs) => {
           setPvcs(newPvcs);
