@@ -39,10 +39,9 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
               setData={(newData) => setData('nameDesc', newData)}
             />
             <ConnectWorkspaceOptionsField
-              fieldId="connection-options-radio-group"
-              allWorkspaces={[]}
-              selections={data.workspaceSelections}
-              setSelections={(selections) => setData('workspaceSelections', selections)}
+              fieldId="connection-options-radio"
+              selection={data.workspaceSelection}
+              setSelection={(selection) => setData('workspaceSelection', selection)}
             />
             <PVSizeField
               fieldID="create-new-storage-size"

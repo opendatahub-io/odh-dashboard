@@ -6,6 +6,7 @@ import useGenericObjectState from '../../../useGenericObjectState';
 export const useStorageDataObject = (
   storageType: 'ephemeral' | 'persistent',
   storageBindingType?: 'new' | 'existing',
+  defaultWorkspaceSelection?: string,
 ): [StorageData, UpdateObjectAtPropAndValue<StorageData>] =>
   useGenericObjectState<StorageData>({
     storageType,
@@ -15,7 +16,7 @@ export const useStorageDataObject = (
         description: '',
       },
       size: DEFAULT_PVC_SIZE,
-      workspaceSelections: [],
+      workspaceSelection: defaultWorkspaceSelection,
       enabled: storageBindingType === 'new',
     },
     existing: {

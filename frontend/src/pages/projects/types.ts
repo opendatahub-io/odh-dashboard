@@ -18,7 +18,7 @@ export type NameDescType = {
 export type CreatingStorageObject = {
   nameDesc: NameDescType;
   size: number;
-  workspaceSelections: string[];
+  workspaceSelection?: string;
   enabled: boolean;
 };
 

@@ -32,3 +32,9 @@ export const getNotebookDescription = (notebook: NotebookKind): string =>
 
 export const getPvcDisplayName = (pvc: PersistentVolumeClaimKind): string =>
   getDisplayNameFromK8sResource(pvc);
+
+export const getPvcDescription = (pvc: PersistentVolumeClaimKind): string =>
+  getDescriptionFromK8sResource(pvc);
+
+export const getPvcTotalSize = (pvc: PersistentVolumeClaimKind): string =>
+  pvc.status?.capacity?.storage || pvc.spec.resources.requests.storage;
