@@ -5,17 +5,19 @@ import { NotebookState } from '../../../notebook/types';
 import { getNotebookDescription, getNotebookDisplayName } from '../../../utils';
 import NotebookRouteLink from '../../../notebook/NotebookRouteLink';
 import NotebookStatusToggle from '../../../notebook/NotebookStatusToggle';
+import { NotebookKind } from '../../../../../k8sTypes';
+import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
 import useWorkspaceSize from './useWorkspaceSize';
 import useWorkspaceImage from './useWorkspaceImage';
 import WorkspaceSizeDetails from './WorkspaceSizeDetails';
-import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
 import WorkspaceStorageBars from './WorkspaceStorageBars';
 
 type WorkspaceTableRowProps = {
   obj: NotebookState;
+  onNotebookDelete: (notebook: NotebookKind) => void;
 };
 
-const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({ obj }) => {
+const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({ obj, onNotebookDelete }) => {
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
   const notebookSize = useWorkspaceSize(obj.notebook);
   const [notebookImage, loaded] = useWorkspaceImage(obj.notebook);
@@ -57,7 +59,7 @@ const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({ obj }) => {
               {
                 title: 'Delete workspace',
                 onClick: () => {
-                  alert('Not implemented yet');
+                  onNotebookDelete(obj.notebook);
                 },
               },
             ]}

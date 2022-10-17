@@ -12,7 +12,7 @@ import WorkspaceTable from './WorkspaceTable';
 const WorkspacesList: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const projectName = currentProject.metadata.name;
-  const [notebookStates, loaded, loadError] = useProjectNotebooks(projectName);
+  const [notebookStates, loaded, loadError, refreshNotebooks] = useProjectNotebooks(projectName);
   return (
     <DetailsSection
       id={ProjectSectionID.WORKSPACE}
@@ -33,7 +33,7 @@ const WorkspacesList: React.FC = () => {
         />
       }
     >
-      <WorkspaceTable notebookStates={notebookStates} />
+      <WorkspaceTable notebookStates={notebookStates} refreshNotebooks={refreshNotebooks} />
     </DetailsSection>
   );
 };
