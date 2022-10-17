@@ -13,7 +13,7 @@ const DataConnectionsList: React.FC = () => {
   return (
     <DetailsSection
       id={ProjectSectionID.DATA_CONNECTIONS}
-      title={ProjectSectionTitles[ProjectSectionID.DATA_CONNECTIONS]}
+      title={ProjectSectionTitles[ProjectSectionID.DATA_CONNECTIONS] || ''}
       actions={[
         <Button key={`action-${ProjectSectionID.DATA_CONNECTIONS}`} variant="secondary">
           Add data connection

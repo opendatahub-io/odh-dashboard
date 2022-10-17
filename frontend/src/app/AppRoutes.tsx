@@ -13,6 +13,9 @@ const NotebookLogoutRedirectPage = React.lazy(
   () => import('../pages/notebookController/NotebookLogoutRedirect'),
 );
 const ProjectViewRoutes = React.lazy(() => import('../pages/projects/ProjectViewRoutes'));
+const ModelViewRoutes = React.lazy(
+  () => import('../pages/modelServing/screens/global/ModelServingGlobal'),
+);
 const NotebookController = React.lazy(
   () => import('../pages/notebookController/NotebookController'),
 );
@@ -35,6 +38,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
         {isAllowed && <Route path="/projects/*" element={<ProjectViewRoutes />} />}
+        {isAllowed && <Route path="/modelServing/*" element={<ModelViewRoutes />} />}
         {isAllowed && <Route path="/notebookController/*" element={<NotebookController />} />}
         {isAllowed && (
           <Route

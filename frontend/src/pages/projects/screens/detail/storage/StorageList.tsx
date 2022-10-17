@@ -19,7 +19,7 @@ const StorageList: React.FC = () => {
     <>
       <DetailsSection
         id={ProjectSectionID.STORAGE}
-        title={ProjectSectionTitles[ProjectSectionID.STORAGE]}
+        title={ProjectSectionTitles[ProjectSectionID.STORAGE] || ''}
         actions={[
           <Button
             onClick={() => setOpen(true)}
