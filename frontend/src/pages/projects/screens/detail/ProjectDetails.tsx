@@ -3,7 +3,7 @@ import * as React from 'react';
 import ApplicationsPage from '../../../ApplicationsPage';
 import { useCurrentProjectDisplayName } from '../../utils';
 import { ProjectSectionTitles } from './const';
-import DataConnectionsList from './DataConnectionsList';
+import DataConnectionsList from './data-connections/DataConnectionsList';
 import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';

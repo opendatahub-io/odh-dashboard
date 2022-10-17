@@ -7,6 +7,7 @@ import {
   VolumeMount,
 } from '../../types';
 import { ValueOf } from '../../typeHelpers';
+import { AWSSecretKind } from '../../k8sTypes';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
@@ -47,3 +48,17 @@ export type StartNotebookData = {
   envVars?: EnvVarReducedType;
   description?: string;
 };
+
+export enum DataConnectionType {
+  AWS,
+}
+
+export type DataConnectionAWS = {
+  type: DataConnectionType.AWS;
+  data: AWSSecretKind;
+};
+
+export type DataConnection = {
+  type: DataConnectionType;
+  data: Record<string, unknown>; // likely will be a unified CR at some point
+} & DataConnectionAWS;
