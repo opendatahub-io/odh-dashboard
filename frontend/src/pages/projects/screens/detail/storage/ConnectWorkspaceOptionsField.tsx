@@ -26,12 +26,6 @@ const ConnectWorkspaceOptionsField: React.FC<ConnectWorkspaceOptionsFieldProps> 
       .catch((e) => console.error('Error getting notebooks: ', e));
   }, [currentProject.metadata.name]);
 
-  const options = allWorkspaces.map((workspace) => (
-    <SelectOption key={workspace.metadata.name} value={workspace.metadata.name}>
-      {getNotebookDisplayName(workspace)}
-    </SelectOption>
-  ));
-
   return (
     <FormGroup fieldId={fieldId}>
       <Select
@@ -52,7 +46,11 @@ const ConnectWorkspaceOptionsField: React.FC<ConnectWorkspaceOptionsFieldProps> 
         placeholderText="Choose an existing workspace"
         menuAppendTo="parent"
       >
-        {options}
+        {allWorkspaces.map((workspace) => (
+          <SelectOption key={workspace.metadata.name} value={workspace.metadata.name}>
+            {getNotebookDisplayName(workspace)}
+          </SelectOption>
+        ))}
       </Select>
     </FormGroup>
   );

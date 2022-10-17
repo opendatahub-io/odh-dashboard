@@ -27,29 +27,6 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
 
   const isDisabled = !checkRequiredFieldsForAddingStorage(creating, existing);
 
-  const handleSubmit = () => {
-    setActionInProgress(true);
-    if (creating.enabled) {
-      const {
-        nameDesc: { name, description },
-        size,
-      } = creating;
-      const pvcData = assemblePvc(name, currentProject.metadata.name, description, size);
-      createPvc(pvcData)
-        .then(() => {
-          setActionInProgress(false);
-          onClose(true);
-          // TODO: update notebook volume and volumeMount
-        })
-        .catch((e) => {
-          console.error('Error creating new PVC: ' + e);
-          setActionInProgress(false);
-        });
-    } else if (existing.enabled) {
-      // TODO: update notebook volume and volumeMount
-    }
-  };
-
   return (
     <Modal
       title="Add storage"
@@ -63,7 +40,28 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
           isDisabled={isDisabled || actionInProgress}
           key="add-storage-confirm"
           variant="primary"
-          onClick={handleSubmit}
+          onClick={() => {
+            setActionInProgress(true);
+            if (creating.enabled) {
+              const {
+                nameDesc: { name, description },
+                size,
+              } = creating;
+              const pvcData = assemblePvc(name, currentProject.metadata.name, description, size);
+              createPvc(pvcData)
+                .then(() => {
+                  setActionInProgress(false);
+                  onClose(true);
+                  // TODO: update notebook volume and volumeMount
+                })
+                .catch((e) => {
+                  console.error('Error creating new PVC: ' + e);
+                  setActionInProgress(false);
+                });
+            } else if (existing.enabled) {
+              // TODO: update notebook volume and volumeMount
+            }
+          }}
         >
           Add storage
         </Button>,
