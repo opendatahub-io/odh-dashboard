@@ -43,6 +43,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableAppLauncher: false,
       disableUserManagement: false,
       disableProjects: false,
+      disableModelServing: false,
     },
     notebookController: {
       enabled: true,

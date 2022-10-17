@@ -17,6 +17,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
       disableProjects: boolean;
+      disableModelServing: boolean;
     };
     groupsConfig?: {
       adminGroups: string;

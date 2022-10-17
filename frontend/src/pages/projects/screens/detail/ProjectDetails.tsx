@@ -2,14 +2,16 @@ import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patt
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '../../../ApplicationsPage';
-import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
+import { ProjectSectionTitles, ProjectSectionTitlesExtended } from './const';
 import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
 import NotebookList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
+import ModelServerList from './ModelServerList';
+import { useAppContext } from 'app/AppContext';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -20,12 +22,17 @@ const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
+  const { dashboardConfig } = useAppContext();
+  const modelServingEnabled = dashboardConfig.spec.dashboardConfig.disableModelServing;
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
     { id: ProjectSectionID.WORKBENCHES, component: <NotebookList /> },
     { id: ProjectSectionID.CLUSTER_STORAGES, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
+    ...(!modelServingEnabled
+      ? [{ id: ProjectSectionID.MODEL_SERVER, component: <ModelServerList /> }]
+      : []),
   ];
 
   return (
@@ -49,8 +56,12 @@ const ProjectDetails: React.FC = () => {
         variant="light"
       >
         <GenericSidebar
-          sections={Object.values(ProjectSectionID)}
-          titles={ProjectSectionTitles}
+          sections={Object.keys(
+            modelServingEnabled
+              ? ProjectSectionTitles
+              : { ...ProjectSectionTitles, ...ProjectSectionTitlesExtended },
+          )}
+          titles={modelServingEnabled ? ProjectSectionTitles : ProjectSectionTitlesExtended}
           scrollableSelector={`#${scrollableSelectorID}`}
           maxWidth={175}
         >
