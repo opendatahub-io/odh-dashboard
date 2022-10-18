@@ -1,12 +1,13 @@
 import {
   k8sCreateResource,
+  k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
   k8sPatchResource,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { NotebookModel } from '../models';
-import { NotebookKind } from '../../k8sTypes';
+import { K8sStatus, NotebookKind } from '../../k8sTypes';
 import {
   NotebookAffinity,
   NotebookResources,
@@ -244,5 +245,12 @@ export const createNotebookWithoutStarting = (data: StartNotebookData): Promise<
   return k8sCreateResource<NotebookKind>({
     model: NotebookModel,
     resource: notebook,
+  });
+};
+
+export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> => {
+  return k8sDeleteResource<NotebookKind, K8sStatus>({
+    model: NotebookModel,
+    queryOptions: { name: notebookName, ns: namespace },
   });
 };

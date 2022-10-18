@@ -5,7 +5,12 @@ import { getNotebooksStatus, getNotebookStatus } from './service';
 
 const useProjectNotebooks = (
   namespace?: string,
-): [notebooks: NotebookState[], loaded: boolean, loadError: Error | undefined] => {
+): [
+  notebooks: NotebookState[],
+  loaded: boolean,
+  loadError: Error | undefined,
+  refreshNotebooks: () => void,
+] => {
   const [notebookState, setNotebookState] = React.useState<NotebookState[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
@@ -49,7 +54,7 @@ const useProjectNotebooks = (
     [namespace],
   );
 
-  React.useEffect(() => {
+  const fetchAllNotebooks = React.useCallback(() => {
     if (namespace) {
       getNotebooks(namespace)
         .then((notebooks) => {
@@ -75,7 +80,11 @@ const useProjectNotebooks = (
     }
   }, [namespace, refreshNotebookState]);
 
-  return [notebookState, loaded, loadError];
+  React.useEffect(() => {
+    fetchAllNotebooks();
+  }, [fetchAllNotebooks]);
+
+  return [notebookState, loaded, loadError, fetchAllNotebooks];
 };
 
 export default useProjectNotebooks;
