@@ -1,4 +1,5 @@
 import {
+  EnvironmentVariable,
   EnvVarReducedType,
   ImageStreamAndVersion,
   NotebookSize,
@@ -45,8 +46,17 @@ export type StartNotebookData = {
   volumes: Volume[];
   volumeMounts: VolumeMount[];
   tolerationSettings?: NotebookTolerationSettings;
+  envFrom?: EnvFromSourceType[];
   envVars?: EnvVarReducedType;
   description?: string;
+};
+export type EnvFromSourceType = {
+  configMapRef: {
+    name: string;
+  };
+  secretRef: {
+    name: string;
+  };
 };
 
 export enum DataConnectionType {
@@ -62,3 +72,52 @@ export type DataConnection = {
   type: DataConnectionType;
   data: Record<string, unknown>; // likely will be a unified CR at some point
 } & DataConnectionAWS;
+
+export type EnvVarCategoryType = {
+  name: string;
+  variables: [
+    {
+      name: string;
+      type: string;
+    },
+  ];
+};
+
+// export type VariableRow = {
+//   variableType: string;
+//   variables: EnvVarType[];
+//   errors: { [key: string]: string };
+// };
+
+// export type EnvVarType = {
+//   name: string;
+//   type: string;
+//   value: string | number | AWSEnvVarValue;
+// };
+
+export type EnvVariable = {
+  type: EnvironmentVariableTypes;
+  values: {
+    category: SecretCategories | ConfigMapCategories;
+    data: {key: string, value: string | number}[];
+  }
+}
+export type AWSEnvVarValue = {
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  AWS_S3_ENDPOINT?: string;
+  AWS_DEFAULT_REGION?: string;
+  AWS_S3_BUCKET?: string;
+};
+export enum EnvironmentVariableTypes {
+  secret = 'Secret',
+  configMap = 'Config Map',
+}
+export enum SecretCategories {
+  keyValue = 'Key / Value',
+  aws = 'AWS',
+}
+export enum ConfigMapCategories {
+  keyValue = 'Key / Value',
+  upload = 'Upload',
+}

@@ -76,6 +76,7 @@ const assembleNotebook = (data: StartNotebookData): NotebookKind => {
     description,
     username,
     notebookSize,
+    envFrom,
     gpus,
     image,
     volumes,
@@ -144,6 +145,7 @@ const assembleNotebook = (data: StartNotebookData): NotebookKind => {
                   value: imageUrl,
                 },
               ],
+              envFrom,
               resources,
               volumeMounts,
               ports: [

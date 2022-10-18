@@ -14,8 +14,8 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import { useNotebookSize } from './useNotebookSize';
 import { ImageStreamAndVersion } from '../../../../types';
 import StorageField from './storage/StorageField';
-import EnviornmentVariables from 'pages/projects/components/enviornmentVariables/EnviornmentVariables';
-import { NameDescType } from '../../types';
+import EnvironmentVariables from 'pages/projects/components/environmentVariables/EnvironmentVariables';
+import { EnvVariable, NameDescType, VariableRow } from '../../types';
 import { useStorageDataObject } from './storage/utils';
 
 const SpawnerPage: React.FC = () => {
@@ -40,8 +40,9 @@ const SpawnerPage: React.FC = () => {
     undefined,
     currentProject.metadata.name,
   );
+  const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
-  return (
+   return (
     <ApplicationsPage
       title={`Create data science workspace`}
       description="Configure properties for your data science workspace."
@@ -85,7 +86,7 @@ const SpawnerPage: React.FC = () => {
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
               id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
             >
-              <EnviornmentVariables />
+              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables}/>
             </FormSection>
             <StorageField
               storageData={storageData}
@@ -102,6 +103,7 @@ const SpawnerPage: React.FC = () => {
             description: nameDesc.description,
             projectName: currentProject.metadata.name,
             username,
+            envFrom: [],
             image: selectedImage,
             notebookSize: selectedSize,
             gpus: 0,
