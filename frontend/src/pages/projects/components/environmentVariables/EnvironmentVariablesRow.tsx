@@ -57,21 +57,21 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
         />
       );
     }
-      if (envVariable.values.category === SecretCategories.aws) {
-        return (
-          envVariable.values.data.map((awsData, awsIndex) => 
-          <AWSField
-          key={`${rowIndex}-${index}`}
-          fieldIndex={`${rowIndex}-${index}`}
-          variable={{
-            ...variable,
-            type: currentCategory === Categories.secret ? 'password' : 'text',
-          }}
-          variableRow={variableRow}
-          onUpdateVariable={(updatedVariable) => updateVariable(updatedVariable, variable.name)}
-        />)
-        );
-      }
+      // if (envVariable.values.category === SecretCategories.aws) {
+      //   return (
+      //     envVariable.values.data.map((awsData, awsIndex) => 
+      //     <AWSField
+      //     key={`${rowIndex}-${index}`}
+      //     fieldIndex={`${rowIndex}-${index}`}
+      //     variable={{
+      //       ...variable,
+      //       type: currentCategory === Categories.secret ? 'password' : 'text',
+      //     }}
+      //     variableRow={variableRow}
+      //     onUpdateVariable={(updatedVariable) => updateVariable(updatedVariable, variable.name)}
+      //   />)
+      //   );
+      // }
       // if (currentSubCategory === ConfigMapCategories.upload)
       //   return (
       //     <UploadField
