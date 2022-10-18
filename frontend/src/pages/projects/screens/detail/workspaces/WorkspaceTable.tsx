@@ -44,9 +44,11 @@ const WorkspaceTable: React.FC<NotebookTableProps> = ({
       </TableComposable>
       <DeleteNotebookModal
         notebook={notebookToDelete}
-        onClose={() => {
+        onClose={(deleted) => {
+          if (deleted) {
+            refreshNotebooks();
+          }
           setNotebookToDelete(undefined);
-          refreshNotebooks();
         }}
       />
     </>

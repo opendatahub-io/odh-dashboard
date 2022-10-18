@@ -6,7 +6,7 @@ import { deleteNotebook } from '../../../api';
 
 type DeleteNotebookModalProps = {
   notebook?: NotebookKind;
-  onClose: () => void;
+  onClose: (deleted: boolean) => void;
 };
 
 const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onClose }) => {
@@ -18,7 +18,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
       title="Confirm notebook delete"
       variant="small"
       isOpen={!!notebook}
-      onClose={onClose}
+      onClose={() => onClose(false)}
       actions={[
         <Button
           key="delete-notebook"
@@ -27,9 +27,9 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
           onClick={() => {
             if (notebook) {
               setIsDeleting(true);
-              deleteNotebook(notebook.metadata.name, notebook?.metadata.namespace)
+              deleteNotebook(notebook.metadata.name, notebook.metadata.namespace)
                 .then(() => {
-                  onClose();
+                  onClose(true);
                 })
                 .catch((e) => {
                   setError(e);
@@ -39,7 +39,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
         >
           Delete notebook
         </Button>,
-        <Button key="cancel" variant="secondary" onClick={onClose}>
+        <Button key="cancel" variant="secondary" onClick={() => onClose(false)}>
           Cancel
         </Button>,
       ]}
