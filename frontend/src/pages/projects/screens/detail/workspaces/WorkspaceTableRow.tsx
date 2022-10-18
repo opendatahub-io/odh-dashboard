@@ -11,11 +11,11 @@ import WorkspaceSizeDetails from './WorkspaceSizeDetails';
 import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
 import WorkspaceStorageBars from './WorkspaceStorageBars';
 
-type NotebookTableRowProps = {
+type WorkspaceTableRowProps = {
   obj: NotebookState;
 };
 
-const WorkspaceTableRow: React.FC<NotebookTableRowProps> = ({ obj }) => {
+const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({ obj }) => {
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
   const notebookSize = useWorkspaceSize(obj.notebook);
   const [notebookImage, loaded] = useWorkspaceImage(obj.notebook);
