@@ -4,6 +4,7 @@ import {
   NotebookKind,
   PersistentVolumeClaimKind,
   ProjectKind,
+  SecretKind,
 } from '../../k8sTypes';
 import { ProjectDetailsContext } from './ProjectDetailsContext';
 
@@ -38,3 +39,8 @@ export const getPvcDescription = (pvc: PersistentVolumeClaimKind): string =>
 
 export const getPvcTotalSize = (pvc: PersistentVolumeClaimKind): string =>
   pvc.status?.capacity?.storage || pvc.spec.resources.requests.storage;
+
+export const getSecretDisplayName = (secret: SecretKind): string =>
+  getDisplayNameFromK8sResource(secret);
+export const getSecretDescription = (secret: SecretKind): string =>
+  getDescriptionFromK8sResource(secret);

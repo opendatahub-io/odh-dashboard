@@ -10,6 +10,10 @@ type DisplayNameAnnotations = Partial<{
   'openshift.io/display-name': string; // the name provided by the user
 }>;
 
+type RelatedToNotebookAnnotations = Partial<{
+  'opendatahub.io/related-notebooks': string; // a JSON array of notebook.metadata.names
+}>;
+
 export type K8sDSGResource = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
@@ -220,7 +224,19 @@ export type RouteKind = K8sResourceCommon & {
 };
 
 export type SecretKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
   data?: Record<string, string>;
   stringData?: Record<string, string>;
   type?: string;
+};
+
+export type AWSSecretKind = SecretKind & {
+  metadata: {
+    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
+    labels?: {
+      'opendatahub.io/managed': 'true';
+    };
+  };
 };
