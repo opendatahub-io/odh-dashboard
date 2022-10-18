@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { ConfigMapCategories, EnvironmentVariableTypes, EnvVariable } from '../../types';
+import { ConfigMapCategories, EnvironmentVariableTypes, EnvVariable } from '../../../types';
 import { EMPTY_KEY } from './const';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 

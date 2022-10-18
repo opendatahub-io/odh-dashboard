@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import { EMPTY_KEY } from './const';
-import { EnvironmentVariableTypes, EnvVariable} from '../../types';
+import { EnvironmentVariableTypes, EnvVariable} from '../../../types';
 
 type KeyValueFieldProps = {
   fieldIndex: string;

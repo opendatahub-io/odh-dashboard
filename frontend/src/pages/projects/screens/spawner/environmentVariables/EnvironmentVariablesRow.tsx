@@ -6,10 +6,10 @@ import {
   ConfigMapCategories,
   EnvVariable,
   EnvironmentVariableTypes,
-} from '../../types';
+} from '../../../types';
 
 import KeyValueField from './KeyValueField';
-// import AWSField from './AWSField';
+import AWSField from './AWSField';
 // import UploadField from './UploadField';
 import { EMPTY_AWS_SECRET_DATA, EMPTY_KEY } from './const';
 
@@ -57,21 +57,17 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
         />
       );
     }
-      // if (envVariable.values.category === SecretCategories.aws) {
-      //   return (
-      //     envVariable.values.data.map((awsData, awsIndex) => 
-      //     <AWSField
-      //     key={`${rowIndex}-${index}`}
-      //     fieldIndex={`${rowIndex}-${index}`}
-      //     variable={{
-      //       ...variable,
-      //       type: currentCategory === Categories.secret ? 'password' : 'text',
-      //     }}
-      //     variableRow={variableRow}
-      //     onUpdateVariable={(updatedVariable) => updateVariable(updatedVariable, variable.name)}
-      //   />)
-      //   );
-      // }
+      if (envVariable.values.category === SecretCategories.aws) {
+        return (
+          envVariable.values.data.map((awsData, awsIndex) => 
+          <AWSField
+          key={`${rowIndex}-${awsIndex}`}
+          fieldIndex={`${rowIndex}-${awsIndex}`}
+          fieldData={awsData}
+          onUpdateValue={(updatedValue) => onUpdateAWSValue(awsIndex, updatedValue)}
+        />)
+        );
+      }
       // if (currentSubCategory === ConfigMapCategories.upload)
       //   return (
       //     <UploadField
@@ -87,6 +83,18 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
       //   );
       return <></>;
   };
+
+  const onUpdateAWSValue = (index: number, value: string) => {
+    const newData = [...envVariable.values.data];
+    newData[index] = {key: envVariable.values.data[index].key, value}
+    onUpdate({
+      ...envVariable,
+      values: {
+        ...envVariable.values,
+        data: newData
+      }
+    })
+  }
 
   const isEnvironmentVariableType = (
     type: unknown,

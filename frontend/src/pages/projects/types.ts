@@ -47,14 +47,13 @@ export type StartNotebookData = {
   volumeMounts: VolumeMount[];
   tolerationSettings?: NotebookTolerationSettings;
   envFrom?: EnvFromSourceType[];
-  envVars?: EnvVarReducedType;
   description?: string;
 };
 export type EnvFromSourceType = {
-  configMapRef: {
+  configMapRef?: {
     name: string;
   };
-  secretRef: {
+  secretRef?: {
     name: string;
   };
 };
@@ -99,7 +98,7 @@ export type EnvVariable = {
   type: EnvironmentVariableTypes;
   values: {
     category: SecretCategories | ConfigMapCategories;
-    data: {key: string, value: string | number}[];
+    data: {key: string, value: string }[];
   }
 }
 export type AWSEnvVarValue = {

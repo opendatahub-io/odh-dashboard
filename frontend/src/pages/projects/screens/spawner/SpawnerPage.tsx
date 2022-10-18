@@ -14,8 +14,8 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import { useNotebookSize } from './useNotebookSize';
 import { ImageStreamAndVersion } from '../../../../types';
 import StorageField from './storage/StorageField';
-import EnvironmentVariables from 'pages/projects/components/environmentVariables/EnvironmentVariables';
-import { EnvVariable, NameDescType, VariableRow } from '../../types';
+import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
+import { EnvVariable, NameDescType } from '../../types';
 import { useStorageDataObject } from './storage/utils';
 
 const SpawnerPage: React.FC = () => {
@@ -103,7 +103,6 @@ const SpawnerPage: React.FC = () => {
             description: nameDesc.description,
             projectName: currentProject.metadata.name,
             username,
-            envFrom: [],
             image: selectedImage,
             notebookSize: selectedSize,
             gpus: 0,
@@ -111,6 +110,7 @@ const SpawnerPage: React.FC = () => {
             volumeMounts: [],
           }}
           storageData={storageData}
+          envVariables={envVariables}
         />
       </PageSection>
     </ApplicationsPage>

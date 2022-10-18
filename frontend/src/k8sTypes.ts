@@ -100,6 +100,9 @@ export enum BUILD_PHASE {
 }
 
 export type ConfigMapKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
   data?: Record<string, string>;
 };
 

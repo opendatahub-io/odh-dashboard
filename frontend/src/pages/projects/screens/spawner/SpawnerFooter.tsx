@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
 import { createNotebook, createNotebookWithoutStarting } from '../../../../api';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
-import { EnvFromSourceType, StartNotebookData, StorageData } from '../../types';
-import { createPvcDataForNotebook } from './service';
+import { EnvFromSourceType, StartNotebookData, StorageData, EnvVariable } from '../../types';
+import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
   storageData: StorageData;
+  envVariables: EnvVariable[];
 };
 
-const SpawnerFooter: React.FC<SpawnerFooterProps> = ({ startNotebookData, storageData }) => {
+const SpawnerFooter: React.FC<SpawnerFooterProps> = ({ startNotebookData, storageData, envVariables}) => {
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -20,8 +21,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({ startNotebookData, storag
 
   const onCreateNotebook = async (action: 'stop' | 'start') => {
     setCreateInProgress(true);
-    const envFrom: EnvFromSourceType[] = [];
     const { volumes, volumeMounts } = await createPvcDataForNotebook(projectName, storageData);
+    const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, envVariables);
     const newStartData = { ...startNotebookData, volumes, volumeMounts, envFrom };
     if (action === 'start') {
       await createNotebook(newStartData);
