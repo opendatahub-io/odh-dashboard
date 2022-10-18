@@ -5,6 +5,16 @@
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 
+export type PrometheusResponse = {
+  data: {
+    result: {
+      value: [number, string];
+    }[];
+    resultType: string;
+  };
+  status: string;
+};
+
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;

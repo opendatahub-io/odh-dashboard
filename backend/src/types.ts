@@ -215,6 +215,7 @@ export type KubeStatus = {
   clusterBranding: string;
   isAdmin: boolean;
   isAllowed: boolean;
+  serverURL: string;
 };
 
 export type KubeDecorator = KubeStatus & {

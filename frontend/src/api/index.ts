@@ -1,3 +1,4 @@
+// Normal SDK/pass-through network API calls
 export * from './network/builds';
 export * from './network/configMaps';
 export * from './network/imageStreams';
@@ -8,3 +9,6 @@ export * from './network/pvcs';
 export * from './network/roleBindings';
 export * from './network/routes';
 export * from './network/secrets';
+
+// Prometheus queries
+export * from './prometheus/pvcs';
