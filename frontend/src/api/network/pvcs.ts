@@ -1,9 +1,10 @@
 import {
   k8sCreateResource,
+  k8sDeleteResource,
   k8sGetResource,
   k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { PersistentVolumeClaimKind } from '../../k8sTypes';
+import { K8sStatus, PersistentVolumeClaimKind } from '../../k8sTypes';
 import { genRandomChars } from '../../utilities/string';
 import { PVCModel } from '../models';
 
@@ -65,4 +66,11 @@ export const getAvailablePvcs = (projectName: string): Promise<PersistentVolumeC
       return accessModes.includes('ReadOnlyMany') || accessModes.includes('ReadWriteMany');
     }),
   );
+};
+
+export const deletePvc = (pvcName: string, namespace: string): Promise<K8sStatus> => {
+  return k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>({
+    model: PVCModel,
+    queryOptions: { name: pvcName, ns: namespace },
+  });
 };

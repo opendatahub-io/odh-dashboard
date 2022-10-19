@@ -143,6 +143,7 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
     name: string;
+    namespace: string;
   };
   spec: {
     accessModes: string[];

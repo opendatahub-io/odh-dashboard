@@ -39,7 +39,7 @@ const StorageList: React.FC = () => {
           />
         }
       >
-        <StorageTable pvcs={pvcs} />
+        <StorageTable pvcs={pvcs} refreshPVCs={forceRefresh} />
       </DetailsSection>
       <AddStorageModal
         isOpen={isOpen}

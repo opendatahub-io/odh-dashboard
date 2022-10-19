@@ -8,9 +8,10 @@ import StorageSizeBar from '../../../components/StorageSizeBars';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
+  onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
 };
 
-const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj }) => {
+const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC }) => {
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
 
   return (
@@ -40,7 +41,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj }) => {
               {
                 title: 'Delete storage',
                 onClick: () => {
-                  alert('Not implemented yet');
+                  onDeletePVC(obj);
                 },
               },
             ]}
