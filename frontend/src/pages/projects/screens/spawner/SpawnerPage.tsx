@@ -14,7 +14,8 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import { useNotebookSize } from './useNotebookSize';
 import { ImageStreamAndVersion } from '../../../../types';
 import StorageField from './storage/StorageField';
-import { NameDescType } from '../../types';
+import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
+import { EnvVariable, NameDescType } from '../../types';
 import { useStorageDataObject } from './storage/utils';
 
 const SpawnerPage: React.FC = () => {
@@ -39,6 +40,7 @@ const SpawnerPage: React.FC = () => {
     undefined,
     currentProject.metadata.name,
   );
+  const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
   return (
     <ApplicationsPage
@@ -80,6 +82,12 @@ const SpawnerPage: React.FC = () => {
                 value={selectedSize}
               />
             </FormSection>
+            <FormSection
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
+              id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
+            >
+              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+            </FormSection>
             <StorageField
               storageData={storageData}
               setStorageData={setStorageData}
@@ -102,6 +110,7 @@ const SpawnerPage: React.FC = () => {
             volumeMounts: [],
           }}
           storageData={storageData}
+          envVariables={envVariables}
         />
       </PageSection>
     </ApplicationsPage>

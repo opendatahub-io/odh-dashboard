@@ -7,6 +7,35 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sStatus, SecretKind } from '../../k8sTypes';
 import { SecretModel } from '../models';
+import { genRandomChars } from '../../utilities/string';
+
+export const assembleSecret = (
+  projectName: string,
+  secretData: Record<string, string>,
+  type?: 'aws', // We only have aws type now, but could add more in the future
+  notebookName?: string,
+): SecretKind => {
+  let name = `secret-${genRandomChars()}`;
+  const labels = {};
+  const annotations = {};
+  if (type === 'aws') {
+    name = secretData['Name'];
+    labels['opendatahub.io/managed'] = true;
+    annotations['opendatahub.io/related-notebooks'] = `["${notebookName}"]`;
+    delete secretData['Name'];
+  }
+  return {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name,
+      namespace: projectName,
+      labels,
+      annotations,
+    },
+    stringData: secretData,
+  };
+};
 
 export const getSecret = (projectName: string, secretName: string): Promise<SecretKind> => {
   return k8sGetResource<SecretKind>({
