@@ -23,17 +23,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
     }
 
     updatedEnvVariables[index] = { ...variable };
-    // updatedRows[index].errors = {};
-    // for (let i = 0; i < updatedRows.length; i++) {
-    //   if (i !== index) {
-    //     updatedRow.variables.forEach((variable) => {
-    //       if (updatedRows[i].variables.find((v) => v.name === variable.name)) {
-    //         updatedRows[index].errors[variable.name] =
-    //           'That name is already in use. Try a different name.';
-    //       }
-    //     });
-    //   }
-    // }
+
     setEnvVariables(updatedEnvVariables);
   };
 

@@ -87,6 +87,7 @@ export type EnvVariable = {
     data: { key: string; value: string }[];
   };
 };
+
 export type AWSEnvVarValue = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;

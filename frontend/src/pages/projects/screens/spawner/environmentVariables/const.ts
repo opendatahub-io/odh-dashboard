@@ -1,32 +1,32 @@
 export const EMPTY_KEY = '---NO KEY---';
 
-export const AWS_KEYS = [
-  'Name',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'AWS_S3_ENDPOINT',
-  'AWS_DEFAULT_REGION',
-];
+export enum AWS_KEYS {
+  NAME = 'Name',
+  ACCESS_KEY_ID = 'AWS_ACCESS_KEY_ID',
+  SECRET_ACCESS_KEY = 'AWS_SECRET_ACCESS_KEY',
+  S3_ENDPOINT = 'AWS_S3_ENDPOINT',
+  DEFAULT_REGION = 'AWS_DEFAULT_REGION',
+};
 
 export const EMPTY_AWS_SECRET_DATA = [
   {
-    key: 'Name',
+    key: AWS_KEYS.NAME,
     value: '',
   },
   {
-    key: 'AWS_ACCESS_KEY_ID',
+    key: AWS_KEYS.ACCESS_KEY_ID,
     value: '',
   },
   {
-    key: 'AWS_SECRET_ACCESS_KEY',
+    key: AWS_KEYS.SECRET_ACCESS_KEY,
     value: '',
   },
-  {
-    key: 'AWS_S3_ENDPOINT',
+  { 
+    key: AWS_KEYS.S3_ENDPOINT,
     value: 'https://s3.amazonaws.com/',
   },
   {
-    key: 'AWS_DEFAULT_REGION',
+    key: AWS_KEYS.DEFAULT_REGION,
     value: 'us-east-1',
   },
 ];

@@ -18,7 +18,8 @@ import {
 
 import KeyValueField from './KeyValueField';
 import AWSField from './AWSField';
-// import UploadField from './UploadField';
+import UploadField from './UploadField';
+ 
 import { EMPTY_AWS_SECRET_DATA, EMPTY_KEY } from './const';
 
 type EnvironmentVariablesRowProps = {
@@ -78,19 +79,15 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
         />
       ));
     }
-    // if (currentSubCategory === ConfigMapCategories.upload)
-    //   return (
-    //     <UploadField
-    //       key={`${rowIndex}-${index}`}
-    //       fieldIndex={`${rowIndex}-${index}`}
-    //       variable={{
-    //         ...variable,
-    //         type: currentCategory === Categories.secret ? 'password' : 'text',
-    //       }}
-    //       variableRow={variableRow}
-    //       onUpdateVariable={(updatedVariable) => updateVariable(updatedVariable, variable.name)}
-    //     />
-    //   );
+    if (envVariable.values.category  === ConfigMapCategories.upload)
+      return (
+        <UploadField
+          key={`${rowIndex}-${envVariable.values.category}`}
+          fieldIndex={`${rowIndex}-${envVariable.values.category}`}
+          variable={envVariable}
+          onUpdateVariable={(updatedVariable) => {}}
+        />
+      );
     return <></>;
   };
 
