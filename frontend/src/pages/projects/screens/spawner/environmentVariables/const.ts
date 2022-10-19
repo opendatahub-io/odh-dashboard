@@ -6,7 +6,7 @@ export enum AWS_KEYS {
   SECRET_ACCESS_KEY = 'AWS_SECRET_ACCESS_KEY',
   S3_ENDPOINT = 'AWS_S3_ENDPOINT',
   DEFAULT_REGION = 'AWS_DEFAULT_REGION',
-};
+}
 
 export const EMPTY_AWS_SECRET_DATA = [
   {
@@ -21,7 +21,7 @@ export const EMPTY_AWS_SECRET_DATA = [
     key: AWS_KEYS.SECRET_ACCESS_KEY,
     value: '',
   },
-  { 
+  {
     key: AWS_KEYS.S3_ENDPOINT,
     value: 'https://s3.amazonaws.com/',
   },

@@ -26,7 +26,7 @@ export const KeyValueField: React.FC<KeyValueFieldProps> = ({
 
   //const validated = variableRow.errors[variable.name] !== undefined ? 'error' : 'default';
   return (
-    <div className="odh-notebook-controller__env-var-field">
+    <>
       <FormGroup fieldId={`${fieldIndex}-${variable.type}`} label="Variable name">
         <TextInput
           id={`${fieldIndex}-${variable.type}`}
@@ -78,7 +78,7 @@ export const KeyValueField: React.FC<KeyValueFieldProps> = ({
           </InputGroup>
         </Flex>
       </FormGroup>
-    </div>
+    </>
   );
 };
 

@@ -24,7 +24,7 @@ export const assembleSecret = (
     annotations['opendatahub.io/related-notebooks'] = `["${notebookName}"]`;
     delete secretData['Name'];
   }
-  return({
+  return {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
@@ -34,7 +34,7 @@ export const assembleSecret = (
       annotations,
     },
     stringData: secretData,
-  })
+  };
 };
 
 export const getSecret = (projectName: string, secretName: string): Promise<SecretKind> => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
 import { createNotebook, createNotebookWithoutStarting } from '../../../../api';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
-import { EnvFromSourceType, StartNotebookData, StorageData, EnvVariable } from '../../types';
+import { StartNotebookData, StorageData, EnvVariable } from '../../types';
 import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
 
 type SpawnerFooterProps = {
@@ -12,7 +12,11 @@ type SpawnerFooterProps = {
   envVariables: EnvVariable[];
 };
 
-const SpawnerFooter: React.FC<SpawnerFooterProps> = ({ startNotebookData, storageData, envVariables}) => {
+const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
+  startNotebookData,
+  storageData,
+  envVariables,
+}) => {
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
