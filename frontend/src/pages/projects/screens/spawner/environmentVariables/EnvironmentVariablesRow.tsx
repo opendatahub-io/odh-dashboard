@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Button, Stack, Select, Split, SelectOption, SplitItem, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  Stack,
+  Select,
+  Split,
+  SelectOption,
+  SplitItem,
+  StackItem,
+} from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import {
   SecretCategories,
@@ -28,7 +36,10 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
   const [subCategoryDropdownOpen, setSubCategoryDropdownOpen] = React.useState<boolean>(false);
 
   const selectOptions = [
-    <SelectOption value={EnvironmentVariableTypes.configMap} key={EnvironmentVariableTypes.configMap} />,
+    <SelectOption
+      value={EnvironmentVariableTypes.configMap}
+      key={EnvironmentVariableTypes.configMap}
+    />,
     <SelectOption value={EnvironmentVariableTypes.secret} key={EnvironmentVariableTypes.secret} />,
   ];
   const secretSelectOptions = [
@@ -57,122 +68,119 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
         />
       );
     }
-      if (envVariable.values.category === SecretCategories.aws) {
-        return (
-          envVariable.values.data.map((awsData, awsIndex) => 
-          <AWSField
+    if (envVariable.values.category === SecretCategories.aws) {
+      return envVariable.values.data.map((awsData, awsIndex) => (
+        <AWSField
           key={`${rowIndex}-${awsIndex}`}
           fieldIndex={`${rowIndex}-${awsIndex}`}
           fieldData={awsData}
           onUpdateValue={(updatedValue) => onUpdateAWSValue(awsIndex, updatedValue)}
-        />)
-        );
-      }
-      // if (currentSubCategory === ConfigMapCategories.upload)
-      //   return (
-      //     <UploadField
-      //       key={`${rowIndex}-${index}`}
-      //       fieldIndex={`${rowIndex}-${index}`}
-      //       variable={{
-      //         ...variable,
-      //         type: currentCategory === Categories.secret ? 'password' : 'text',
-      //       }}
-      //       variableRow={variableRow}
-      //       onUpdateVariable={(updatedVariable) => updateVariable(updatedVariable, variable.name)}
-      //     />
-      //   );
-      return <></>;
+        />
+      ));
+    }
+    // if (currentSubCategory === ConfigMapCategories.upload)
+    //   return (
+    //     <UploadField
+    //       key={`${rowIndex}-${index}`}
+    //       fieldIndex={`${rowIndex}-${index}`}
+    //       variable={{
+    //         ...variable,
+    //         type: currentCategory === Categories.secret ? 'password' : 'text',
+    //       }}
+    //       variableRow={variableRow}
+    //       onUpdateVariable={(updatedVariable) => updateVariable(updatedVariable, variable.name)}
+    //     />
+    //   );
+    return <></>;
   };
 
   const onUpdateAWSValue = (index: number, value: string) => {
     const newData = [...envVariable.values.data];
-    newData[index] = {key: envVariable.values.data[index].key, value}
+    newData[index] = { key: envVariable.values.data[index].key, value };
     onUpdate({
       ...envVariable,
       values: {
         ...envVariable.values,
-        data: newData
-      }
-    })
-  }
+        data: newData,
+      },
+    });
+  };
 
-  const isEnvironmentVariableType = (
-    type: unknown,
-  ): type is EnvironmentVariableTypes => {
+  const isEnvironmentVariableType = (type: unknown): type is EnvironmentVariableTypes => {
     return (type as EnvironmentVariableTypes) !== undefined;
   };
 
-  const isSubCategoryType = (
-    type: unknown,
-  ): type is ConfigMapCategories | SecretCategories => {
+  const isSubCategoryType = (type: unknown): type is ConfigMapCategories | SecretCategories => {
     return (type as ConfigMapCategories | SecretCategories) !== undefined;
   };
 
   return (
-      <Stack hasGutter>
-        <StackItem>
-          <Split hasGutter>
-            <SplitItem isFilled>
-              <Select
-                isOpen={categoryDropdownOpen}
-                onToggle={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-                aria-labelledby="container-size"
-                selections={envVariable.type}
-                onSelect={(_e, selection) => {
-                  if (isEnvironmentVariableType(selection)) {
-                    const subCategory = selection === EnvironmentVariableTypes.secret ? SecretCategories.keyValue : ConfigMapCategories.keyValue;
-                    onUpdate({
-                      type: selection,
-                      values: {
-                        category: subCategory,
-                        data: [{key: EMPTY_KEY, value: ''}]
-                      }
-                    })
-                  }    
-                  setCategoryDropdownOpen(false);
-                }}
-              >
-                {selectOptions}
-              </Select>
-            </SplitItem>
-            <SplitItem>
-              <Button data-id="remove-env-var-button" variant="plain" onClick={removeVariables}>
-                <MinusCircleIcon />
-              </Button>
-            </SplitItem>
-          </Split>
-        </StackItem>
-        <StackItem>
-          <Select
-            isOpen={subCategoryDropdownOpen}
-            onToggle={() => setSubCategoryDropdownOpen(!subCategoryDropdownOpen)}
-            aria-labelledby="container-size"
-            selections={envVariable.values.category}
-            onSelect={(_e, selection) => {
-              if (isSubCategoryType(selection)) {
-                let data: {key: string, value: string | number}[] = [{ key: EMPTY_KEY, value: '' }];
-                if (selection === SecretCategories.aws) {
-                  data = EMPTY_AWS_SECRET_DATA;
+    <Stack hasGutter>
+      <StackItem>
+        <Split hasGutter>
+          <SplitItem isFilled>
+            <Select
+              isOpen={categoryDropdownOpen}
+              onToggle={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+              aria-labelledby="container-size"
+              selections={envVariable.type}
+              onSelect={(_e, selection) => {
+                if (isEnvironmentVariableType(selection)) {
+                  const subCategory =
+                    selection === EnvironmentVariableTypes.secret
+                      ? SecretCategories.keyValue
+                      : ConfigMapCategories.keyValue;
+                  onUpdate({
+                    type: selection,
+                    values: {
+                      category: subCategory,
+                      data: [{ key: EMPTY_KEY, value: '' }],
+                    },
+                  });
                 }
-                onUpdate({
-                  ...envVariable,
-                  values: {
-                    category: selection,
-                    data,
-                  }
-                })
+                setCategoryDropdownOpen(false);
+              }}
+            >
+              {selectOptions}
+            </Select>
+          </SplitItem>
+          <SplitItem>
+            <Button data-id="remove-env-var-button" variant="plain" onClick={removeVariables}>
+              <MinusCircleIcon />
+            </Button>
+          </SplitItem>
+        </Split>
+      </StackItem>
+      <StackItem>
+        <Select
+          isOpen={subCategoryDropdownOpen}
+          onToggle={() => setSubCategoryDropdownOpen(!subCategoryDropdownOpen)}
+          aria-labelledby="container-size"
+          selections={envVariable.values.category}
+          onSelect={(_e, selection) => {
+            if (isSubCategoryType(selection)) {
+              let data: { key: string; value: string }[] = [{ key: EMPTY_KEY, value: '' }];
+              if (selection === SecretCategories.aws) {
+                data = EMPTY_AWS_SECRET_DATA;
               }
-              setSubCategoryDropdownOpen(false);
-            }}
-          >
-            {envVariable.type === EnvironmentVariableTypes.secret ? secretSelectOptions : configMapSelectOptions}
-          </Select>
-        </StackItem>
-        <StackItem>
-          {getFieldComponent()}
-        </StackItem>
-      </Stack>
-  
+              onUpdate({
+                ...envVariable,
+                values: {
+                  category: selection,
+                  data: data,
+                },
+              });
+            }
+            setSubCategoryDropdownOpen(false);
+          }}
+        >
+          {envVariable.type === EnvironmentVariableTypes.secret
+            ? secretSelectOptions
+            : configMapSelectOptions}
+        </Select>
+      </StackItem>
+      <StackItem>{getFieldComponent()}</StackItem>
+    </Stack>
   );
 };
 

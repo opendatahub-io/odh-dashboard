@@ -1,6 +1,4 @@
 import {
-  EnvironmentVariable,
-  EnvVarReducedType,
   ImageStreamAndVersion,
   NotebookSize,
   NotebookTolerationSettings,
@@ -82,25 +80,13 @@ export type EnvVarCategoryType = {
   ];
 };
 
-// export type VariableRow = {
-//   variableType: string;
-//   variables: EnvVarType[];
-//   errors: { [key: string]: string };
-// };
-
-// export type EnvVarType = {
-//   name: string;
-//   type: string;
-//   value: string | number | AWSEnvVarValue;
-// };
-
 export type EnvVariable = {
   type: EnvironmentVariableTypes;
   values: {
     category: SecretCategories | ConfigMapCategories;
-    data: {key: string, value: string }[];
-  }
-}
+    data: { key: string; value: string }[];
+  };
+};
 export type AWSEnvVarValue = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;

@@ -7,9 +7,9 @@ import {
   TextInput,
   TextInputTypes,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import { EMPTY_KEY } from './const';
-import { EnvironmentVariableTypes, EnvVariable} from '../../../types';
+import { EnvironmentVariableTypes, EnvVariable } from '../../../types';
 
 type KeyValueFieldProps = {
   fieldIndex: string;
@@ -27,21 +27,19 @@ export const KeyValueField: React.FC<KeyValueFieldProps> = ({
   //const validated = variableRow.errors[variable.name] !== undefined ? 'error' : 'default';
   return (
     <div className="odh-notebook-controller__env-var-field">
-      <FormGroup
-        fieldId={`${fieldIndex}-${variable.type}`}
-        label="Variable name"
-      >
+      <FormGroup fieldId={`${fieldIndex}-${variable.type}`} label="Variable name">
         <TextInput
           id={`${fieldIndex}-${variable.type}`}
           data-id={`${fieldIndex}-${variable.type}`}
           type={TextInputTypes.text}
           onChange={(newKey) =>
             onUpdateVariable({
-              type: variable.type, 
+              type: variable.type,
               values: {
                 ...variable.values,
-                data: [{ ...variable.values.data[0], key: newKey}]
-              }})
+                data: [{ ...variable.values.data[0], key: newKey }],
+              },
+            })
           }
           value={variable.values.data[0].key === EMPTY_KEY ? '' : variable.values.data[0].key}
         />
@@ -60,11 +58,12 @@ export const KeyValueField: React.FC<KeyValueFieldProps> = ({
               value={variable.values.data[0].value}
               onChange={(newValue) =>
                 onUpdateVariable({
-                  type: variable.type, 
+                  type: variable.type,
                   values: {
                     ...variable.values,
-                    data: [{ ...variable.values.data[0], value: newValue}]
-                  }})
+                    data: [{ ...variable.values.data[0], value: newValue }],
+                  },
+                })
               }
             />
             {variable.type === EnvironmentVariableTypes.secret ? (

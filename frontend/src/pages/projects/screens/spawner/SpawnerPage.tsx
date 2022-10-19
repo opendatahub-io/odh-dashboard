@@ -42,7 +42,7 @@ const SpawnerPage: React.FC = () => {
   );
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
-   return (
+  return (
     <ApplicationsPage
       title={`Create data science workspace`}
       description="Configure properties for your data science workspace."
@@ -86,7 +86,7 @@ const SpawnerPage: React.FC = () => {
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
               id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
             >
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables}/>
+              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
             <StorageField
               storageData={storageData}
