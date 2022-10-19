@@ -6,7 +6,7 @@ import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageSection from './AddExistingStorageSection';
 import { UpdateObjectAtPropAndValue } from '../../../types';
 
-import '../../detail/storage/addStorageModal.scss';
+import '../../detail/storage/AddStorageModal.scss';
 
 type StorageFieldType = {
   storageData: StorageData;

@@ -16,11 +16,13 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
   onClose,
 }) => {
   const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
-  const close = () => {
-    // Disable the choice -- we were in this modal and they checked and then cancelled -- so undo it
-    setDontShowModalValue(false);
+  const onBeforeClose = (confirmStatus: boolean) => {
+    if (!confirmStatus) {
+      // Disable the choice -- we were in this modal and they checked and then cancelled -- so undo it
+      setDontShowModalValue(false);
+    }
 
-    onClose(false);
+    onClose(confirmStatus);
   };
 
   return (
@@ -28,12 +30,12 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
       variant="small"
       title="Stop workspace?"
       isOpen={isOpen}
-      onClose={close}
+      onClose={() => onBeforeClose(false)}
       actions={[
-        <Button key="confirm-stop" variant="primary" onClick={() => onClose(true)}>
+        <Button key="confirm-stop" variant="primary" onClick={() => onBeforeClose(true)}>
           Stop workspace
         </Button>,
-        <Button key="cancel" variant="secondary" onClick={close}>
+        <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel
         </Button>,
       ]}

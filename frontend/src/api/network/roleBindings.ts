@@ -13,6 +13,9 @@ export const generateRoleBindingData = (
     metadata: {
       name: rbName,
       namespace: dashboardNamespace,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+      },
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',

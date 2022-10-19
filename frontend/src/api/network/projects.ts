@@ -17,10 +17,11 @@ export const getProject = (projectName: string): Promise<ProjectKind> => {
   });
 };
 
-export const getProjects = (translatedUsername: string): Promise<ProjectKind[]> => {
+export const getProjects = (labelSelector?: string): Promise<ProjectKind[]> => {
+  const queryOptions = labelSelector ? { queryParams: { labelSelector } } : undefined;
   return k8sListResource<ProjectKind>({
     model: ProjectModel,
-    queryOptions: { queryParams: { labelSelector: `opendatahub.io/user=${translatedUsername}` } },
+    queryOptions,
   }).then((listResource) => listResource.items);
 };
 
@@ -44,6 +45,7 @@ export const createProject = (
           'openshift.io/requester': username,
         },
         labels: {
+          'opendatahub.io/dashboard': 'true',
           'opendatahub.io/user': translatedUsername,
         },
       },

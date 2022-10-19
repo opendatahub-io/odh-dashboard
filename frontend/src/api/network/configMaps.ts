@@ -18,6 +18,9 @@ export const assembleConfigMap = (
   metadata: {
     name: configMapName || `configmap-${genRandomChars()}`,
     namespace: projectName,
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+    },
   },
   data: configMapData,
 });

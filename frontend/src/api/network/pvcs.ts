@@ -19,6 +19,9 @@ export const assemblePvc = (
   metadata: {
     name: `pvc-${genRandomChars()}`,
     namespace: projectName,
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+    },
     annotations: {
       'openshift.io/display-name': pvcName,
       'openshift.io/description': description,

@@ -7,7 +7,11 @@ export const useStorageDataObject = (
   storageType: 'ephemeral' | 'persistent',
   storageBindingType?: 'new' | 'existing',
   defaultWorkspaceSelection?: string,
-): [StorageData, UpdateObjectAtPropAndValue<StorageData>] =>
+): [
+  data: StorageData,
+  setData: UpdateObjectAtPropAndValue<StorageData>,
+  resetDefaults: () => void,
+] =>
   useGenericObjectState<StorageData>({
     storageType,
     creating: {
