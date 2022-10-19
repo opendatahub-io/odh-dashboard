@@ -4,32 +4,46 @@ import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import useTableColumnSort from '../../../../../utilities/useTableColumnSort';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import DeletePVCModal from '../../../pvc/DeletePVCModal';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
+  refreshPVCs: () => void;
 };
 
-const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs }) => {
+const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refreshPVCs }) => {
+  const [deleteStorage, setDeleteStorage] = React.useState<PersistentVolumeClaimKind | undefined>();
   const sort = useTableColumnSort<PersistentVolumeClaimKind>(columns, 1);
   const sortedPvcs = sort.transformData(unsortedPvcs);
 
   return (
-    <TableComposable variant="compact">
-      <Thead>
-        <Tr>
-          {columns.map((col, i) => (
-            <Th key={col.field} sort={sort.getColumnSort(i)} width={col.width}>
-              {col.label}
-            </Th>
+    <>
+      <TableComposable variant="compact">
+        <Thead>
+          <Tr>
+            {columns.map((col, i) => (
+              <Th key={col.field} sort={sort.getColumnSort(i)} width={col.width}>
+                {col.label}
+              </Th>
+            ))}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {sortedPvcs.map((pvc) => (
+            <StorageTableRow key={pvc.metadata.uid} obj={pvc} onDeletePVC={setDeleteStorage} />
           ))}
-        </Tr>
-      </Thead>
-      <Tbody>
-        {sortedPvcs.map((pvc) => (
-          <StorageTableRow key={pvc.metadata.uid} obj={pvc} />
-        ))}
-      </Tbody>
-    </TableComposable>
+        </Tbody>
+      </TableComposable>
+      <DeletePVCModal
+        pvcToDelete={deleteStorage}
+        onClose={(deleted) => {
+          if (deleted) {
+            refreshPVCs();
+          }
+          setDeleteStorage(undefined);
+        }}
+      />
+    </>
   );
 };
 
