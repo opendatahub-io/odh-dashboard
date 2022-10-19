@@ -7,7 +7,10 @@ module.exports = async (fastify: KubeFastifyInstance) => {
   const kc = fastify.kube.config;
   const cluster = kc.getCurrentCluster();
 
-  /** Pass through API for all things kubernetes */
+  /**
+   * Pass through API for all things kubernetes
+   * Acts on the user who made the call -- does not need route security; k8s provides that.
+   */
   fastify.route({
     method: ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS'],
     url: '/*',
