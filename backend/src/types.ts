@@ -185,6 +185,7 @@ export type KubeStatus = {
   clusterBranding: string;
   isAdmin: boolean;
   isAllowed: boolean;
+  saToken: string;
 };
 
 export type KubeDecorator = KubeStatus & {
@@ -660,6 +661,52 @@ export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
+export type GPUScaleType = {
+  type: 'nvidia.com/gpu' | 'amd.com/gpu';
+  min: number;
+  max: number;
+};
+
+export type MachineAutoscaler = {
+  spec: {
+    maxReplicas: number;
+    minReplicas: number;
+    scaleTargetRef: {
+      apiversion: string;
+      kind: string;
+      name: string;
+    };
+  };
+} & K8sResourceCommon;
+
+export type MachineSet = {
+  status: {
+    availableReplicas: number;
+    fullyLabeledReplicas: number;
+    observedGeneration: number;
+    readyReplicas: number;
+    replicas: number;
+  };
+} & K8sResourceCommon;
+
+export type MachineAutoscalerList = {
+  items: MachineAutoscaler[];
+} & K8sResourceCommon;
+
+export type MachineSetList = {
+  items: MachineSet[];
+} & K8sResourceCommon;
+
+export type gpuScale = {
+  availableScale: number;
+  gpuNumber: number;
+};
+
+export type GPUInfo = {
+  configured: boolean;
+  available: number;
+  autoscalers: gpuScale[];
+};
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
   { valueFrom: Record<string, unknown> }
