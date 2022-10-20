@@ -1,4 +1,11 @@
-import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Divider,
+  PageSection,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import * as React from 'react';
 import ApplicationsPage from '../../../ApplicationsPage';
 import { useCurrentProjectDisplayName } from '../../utils';
@@ -8,6 +15,7 @@ import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
 import WorkspacesList from './workspaces/WorkspacesList';
+import { Link } from 'react-router-dom';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -36,9 +44,17 @@ const ProjectDetails: React.FC = () => {
     </React.Fragment>
   );
 
+  const breadcrumb = (
+    <Breadcrumb>
+      <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
+      <BreadcrumbItem isActive>{`${displayName}`}</BreadcrumbItem>
+    </Breadcrumb>
+  );
+
   return (
     <ApplicationsPage
       title={`${displayName} project details`}
+      breadcrumb={breadcrumb}
       description={null}
       loaded
       empty={false}
