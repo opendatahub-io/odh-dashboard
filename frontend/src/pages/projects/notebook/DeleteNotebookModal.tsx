@@ -13,12 +13,18 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
+  const onBeforeClose = (deleted: boolean) => {
+    onClose(deleted);
+    setIsDeleting(false);
+    setError(undefined);
+  };
+
   return (
     <Modal
       title="Confirm notebook delete"
       variant="small"
       isOpen={!!notebook}
-      onClose={() => onClose(false)}
+      onClose={() => onBeforeClose(false)}
       actions={[
         <Button
           key="delete-notebook"
@@ -29,17 +35,18 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
               setIsDeleting(true);
               deleteNotebook(notebook.metadata.name, notebook.metadata.namespace)
                 .then(() => {
-                  onClose(true);
+                  onBeforeClose(true);
                 })
                 .catch((e) => {
                   setError(e);
+                  setIsDeleting(false);
                 });
             }
           }}
         >
           Delete notebook
         </Button>,
-        <Button key="cancel" variant="secondary" onClick={() => onClose(false)}>
+        <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel
         </Button>,
       ]}

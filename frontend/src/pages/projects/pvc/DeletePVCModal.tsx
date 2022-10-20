@@ -13,12 +13,16 @@ const DeletePVCModal: React.FC<DeleteStorageProps> = ({ pvcToDelete, onClose }) 
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
+  const onBeforeClose = (deleted: boolean) => {
+    onClose(deleted);
+  };
+
   return (
     <Modal
       title="Confirm storage delete"
       variant="small"
       isOpen={!!pvcToDelete}
-      onClose={() => onClose(false)}
+      onClose={() => onBeforeClose(false)}
       actions={[
         <Button
           key="delete-storage"
@@ -31,17 +35,18 @@ const DeletePVCModal: React.FC<DeleteStorageProps> = ({ pvcToDelete, onClose }) 
               setIsDeleting(true);
               deletePvc(name, namespace)
                 .then(() => {
-                  onClose(true);
+                  onBeforeClose(true);
                 })
                 .catch((e) => {
                   setError(e);
+                  setIsDeleting(false);
                 });
             }
           }}
         >
           Delete storage
         </Button>,
-        <Button key="cancel" variant="secondary" onClick={() => onClose(false)}>
+        <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel
         </Button>,
       ]}

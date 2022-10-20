@@ -15,7 +15,9 @@ export const assembleSecret = (
   type?: 'aws', // We only have aws type now, but could add more in the future
 ): SecretKind => {
   let name = `secret-${genRandomChars()}`;
-  const labels = {};
+  const labels = {
+    'opendatahub.io/dashboard': 'true',
+  };
   if (type === 'aws') {
     name = secretData['Name'];
     labels['opendatahub.io/managed'] = 'true';

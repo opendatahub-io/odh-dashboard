@@ -10,21 +10,19 @@ const useUserProjects = (): [
   loadError: Error | undefined,
   fetchProjects: () => Promise<void>,
 ] => {
-  const { username } = useUser();
-  const translatedUsername = usernameTranslate(username);
   const [projects, setProjects] = React.useState<ProjectKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
   const fetchProjects = React.useCallback(() => {
-    return getProjects(translatedUsername)
+    return getProjects('opendatahub.io/dashboard=true')
       .then((newProjects) => {
         setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
       })
       .catch((e) => {
         setLoadError(e);
       });
-  }, [translatedUsername]);
+  }, []);
 
   React.useEffect(() => {
     if (!loaded) {

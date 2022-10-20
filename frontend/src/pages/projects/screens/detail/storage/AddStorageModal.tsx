@@ -7,7 +7,7 @@ import { checkRequiredFieldsForAddingStorage } from './utils';
 import { assemblePvc, createPvc } from '../../../../../api';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 
-import './addStorageModal.scss';
+import './AddStorageModal.scss';
 
 type AddStorageModalProps = {
   isOpen: boolean;
@@ -15,9 +15,18 @@ type AddStorageModalProps = {
 };
 
 const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) => {
-  const [{ creating, existing }, setStorageData] = useStorageDataObject('persistent', 'new');
+  const [{ creating, existing }, setStorageData, resetData] = useStorageDataObject(
+    'persistent',
+    'new',
+  );
   const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
   const { currentProject } = React.useContext(ProjectDetailsContext);
+
+  const onBeforeClose = (submitted: boolean) => {
+    onClose(submitted);
+    setActionInProgress(false);
+    resetData();
+  };
 
   const setChecked = (selection: 'existing' | 'creating') => {
     const isCreatingChecked = selection === 'creating';
@@ -33,7 +42,7 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
       description="Add and connect storage to your cluster"
       variant="medium"
       isOpen={isOpen}
-      onClose={() => onClose(false)}
+      onClose={() => onBeforeClose(false)}
       showClose
       actions={[
         <Button
@@ -51,7 +60,7 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
               createPvc(pvcData)
                 .then(() => {
                   setActionInProgress(false);
-                  onClose(true);
+                  onBeforeClose(true);
                   // TODO: update notebook volume and volumeMount
                 })
                 .catch((e) => {
@@ -65,7 +74,7 @@ const AddStorageModal: React.FC<AddStorageModalProps> = ({ isOpen, onClose }) =>
         >
           Add storage
         </Button>,
-        <Button key="add-storage-cancel" variant="secondary" onClick={() => onClose(false)}>
+        <Button key="add-storage-cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel
         </Button>,
       ]}
