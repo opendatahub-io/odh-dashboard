@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { FormGroup, InputGroup, InputGroupText, NumberInput } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement, normalizeBetween } from '../../../utilities/utils';
 
 type PVSizeFieldProps = {
@@ -7,23 +8,33 @@ type PVSizeFieldProps = {
   availableSize: number;
   size: number;
   setSize: (size: number) => void;
+  disable?: boolean;
 };
 
-const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, availableSize, size, setSize }) => {
-  const MIN_SIZE = 0.1; // We can decide this value later and move it out to const file
+const PVSizeField: React.FC<PVSizeFieldProps> = ({
+  fieldID,
+  availableSize,
+  size,
+  setSize,
+  disable,
+}) => {
+  const MIN_SIZE = 1;
 
   const onStep = (step: number) => {
     setSize(normalizeBetween(size + step, MIN_SIZE, availableSize));
   };
   return (
     <FormGroup
-      label="PV size"
+      label="Persistent storage size"
+      helperText={disable ? 'Cannot change size after creation' : ''}
+      helperTextIcon={<ExclamationTriangleIcon />}
+      validated={disable ? 'warning' : 'default'}
       fieldId={fieldID}
-      helperText={`${availableSize} of 20 GiB available`}
     >
       <InputGroup>
         <NumberInput
           id={fieldID}
+          isDisabled={disable}
           name={fieldID}
           value={size}
           max={availableSize}

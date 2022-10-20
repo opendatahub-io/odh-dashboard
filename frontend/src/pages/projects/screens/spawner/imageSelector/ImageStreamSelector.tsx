@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption, Text, Title } from '@patternfly/react-core';
+import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
 import { BuildStatus } from '../types';
 import {
   checkImageStreamAvailability,
@@ -44,13 +44,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   });
 
   return (
-    <FormGroup fieldId="workspace-image-stream-selection">
-      <Title headingLevel="h4" size="md">
-        Image Selection
-      </Title>
-      <Text component="small">
-        Preloaded notebook images maintained by Red Hat or independent software vendors.
-      </Text>
+    <FormGroup
+      isRequired
+      helperText="Preloaded notebook images maintained by Red Hat or independent software vendors."
+      label="Image selection"
+      fieldId="workspace-image-stream-selection"
+    >
       <Select
         id="workspace-image-stream-selection"
         onToggle={(open) => setImageSelectionOpen(open)}

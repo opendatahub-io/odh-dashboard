@@ -4,17 +4,19 @@ import { getPvcDisplayName } from '../utils';
 import { PersistentVolumeClaimKind } from '../../../k8sTypes';
 import { deletePvc } from '../../../api';
 
-type DeleteStorageProps = {
+type DeletePVCModalProps = {
   pvcToDelete?: PersistentVolumeClaimKind;
   onClose: (deleted: boolean) => void;
 };
 
-const DeletePVCModal: React.FC<DeleteStorageProps> = ({ pvcToDelete, onClose }) => {
+const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
+    setIsDeleting(false);
+    setError(undefined);
   };
 
   return (

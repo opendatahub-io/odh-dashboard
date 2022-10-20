@@ -18,18 +18,40 @@ export type NameDescType = {
 export type CreatingStorageObject = {
   nameDesc: NameDescType;
   size: number;
-  workspaceSelection?: string;
-  enabled: boolean;
 };
+
+export type MountPath = {
+  /** Suffix to the root path */
+  value: string;
+  /** Any error with the value */
+  error: string;
+};
+
+export type ForNotebookSelection = {
+  name: string;
+  mountPath: MountPath;
+};
+
+export type CreatingStorageObjectForNotebook = CreatingStorageObject & {
+  forNotebook: ForNotebookSelection;
+  existingNotebooks: string[];
+  hasExistingNotebookConnections: boolean;
+};
+
+export type ExistingStorageObjectForNotebook = ForNotebookSelection;
 
 export type ExistingStorageObject = {
-  project?: string;
-  storage?: string;
-  enabled: boolean;
+  storage: string;
 };
 
+export enum StorageType {
+  EPHEMERAL = 'ephemeral',
+  NEW_PVC = 'new-persistent',
+  EXISTING_PVC = 'existing-persistent',
+}
+
 export type StorageData = {
-  storageType: 'ephemeral' | 'persistent';
+  storageType: StorageType;
   creating: CreatingStorageObject;
   existing: ExistingStorageObject;
 };
@@ -37,7 +59,6 @@ export type StorageData = {
 export type StartNotebookData = {
   projectName: string;
   notebookName: string;
-  username: string;
   notebookSize: NotebookSize;
   gpus: number;
   image: ImageStreamAndVersion;

@@ -8,7 +8,8 @@ import {
   ImageVersionDependencyType,
   ImageVersionSelectOptionObjectType,
 } from './types';
-import { StartNotebookData, StorageData } from '../../types';
+import { StartNotebookData, StorageData, StorageType } from '../../types';
+import { ROOT_MOUNT_PATH } from '../../pvc/const';
 
 /******************* Common utils *******************/
 export const getVersion = (version?: string, prefix?: string): string => {
@@ -112,11 +113,14 @@ export const getImageVersionDependencies = (
   const depString = isSoftware
     ? imageVersion.annotations?.['opendatahub.io/notebook-software'] || ''
     : imageVersion.annotations?.['opendatahub.io/notebook-python-dependencies'] || '';
-  let dependencies = [];
+  let dependencies: ImageVersionDependencyType[];
   try {
     dependencies = JSON.parse(depString);
   } catch (e) {
-    console.error(`JSON parse error when parsing ${imageVersion.name}`);
+    if (depString.includes('[')) {
+      // It was intended to be an array but failed to parse, log the error
+      console.error(`JSON parse error when parsing ${imageVersion.name}`);
+    }
     dependencies = [];
   }
   return dependencies || [];
@@ -204,17 +208,16 @@ export const getVolumesByStorageData = (
   const { storageType, existing } = storageData;
   const volumes: Volume[] = [];
   const volumeMounts: VolumeMount[] = [];
-  if (storageType === 'ephemeral') {
+
+  if (storageType === StorageType.EPHEMERAL) {
     volumes.push({ name: 'cache-volume', emptyDir: {} });
     volumeMounts.push({ mountPath: '/cache', name: 'cache-volume' });
     return { volumes, volumeMounts };
-  }
-  // we will deal with new storage after creating it because the name is different
-  if (existing.enabled) {
+  } else if (storageType === StorageType.EXISTING_PVC) {
     const { storage } = existing;
     if (storage) {
       volumes.push({ name: storage, persistentVolumeClaim: { claimName: storage } });
-      volumeMounts.push({ mountPath: '/opt/app-root/src', name: storage });
+      volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: storage });
     }
   }
 
@@ -263,27 +266,19 @@ export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
   storageData: StorageData,
 ): boolean => {
-  const { projectName, notebookName, username, notebookSize, image } = startNotebookData;
+  const { projectName, notebookName, notebookSize, image } = startNotebookData;
   const { storageType, creating, existing } = storageData;
   const isNotebookDataValid = !!(
     projectName &&
     notebookName &&
-    username &&
     notebookSize &&
     image.imageStream &&
     image.imageVersion
   );
-  // if you choose pvc and don't choose binding type, that's invalid
-  // if you choose creating new pvc, you need to input name
-  // if you choose add existing pvc, you need to select storage name
-  // other situations are valid
-  const newStorageFieldInvalid = creating.enabled && !creating.nameDesc.name;
-  const existingStorageFiledInvalid = existing.enabled && !existing.storage;
-  const isStorageDataValid = !(
-    storageType === 'persistent' &&
-    ((!creating.enabled && !existing.enabled) ||
-      newStorageFieldInvalid ||
-      existingStorageFiledInvalid)
-  );
+
+  const newStorageFieldInvalid = storageType === StorageType.NEW_PVC && !creating.nameDesc.name;
+  const existingStorageFiledInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
+  const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFiledInvalid;
+
   return isNotebookDataValid && isStorageDataValid;
 };

@@ -1,6 +1,10 @@
 import * as React from 'react';
 import { DataConnection, DataConnectionAWS, DataConnectionType } from '../../../types';
-import { getSecretDescription, getSecretDisplayName } from '../../../utils';
+import {
+  getAWSSecretRelatedNotebooks,
+  getSecretDescription,
+  getSecretDisplayName,
+} from '../../../utils';
 import { DATA_CONNECTION_TYPES } from './connectionRenderers';
 
 export const isDataConnectionAWS = (
@@ -42,7 +46,7 @@ export const getDataConnectionType = (dataConnection: DataConnection): React.Rea
 
 export const getDataConnectedNotebookAnnotation = (dataConnection: DataConnection): string => {
   if (isDataConnectionAWS(dataConnection)) {
-    return dataConnection.data.metadata.annotations?.['opendatahub.io/related-notebooks'] || '';
+    return getAWSSecretRelatedNotebooks(dataConnection.data);
   }
 
   throw new Error('Invalid data connection type');

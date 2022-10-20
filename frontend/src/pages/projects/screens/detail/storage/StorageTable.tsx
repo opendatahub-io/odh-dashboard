@@ -5,6 +5,7 @@ import { columns } from './data';
 import useTableColumnSort from '../../../../../utilities/useTableColumnSort';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import DeletePVCModal from '../../../pvc/DeletePVCModal';
+import ManageStorageModal from './ManageStorageModal';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
@@ -13,6 +14,7 @@ type StorageTableProps = {
 
 const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refreshPVCs }) => {
   const [deleteStorage, setDeleteStorage] = React.useState<PersistentVolumeClaimKind | undefined>();
+  const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
   const sort = useTableColumnSort<PersistentVolumeClaimKind>(columns, 1);
   const sortedPvcs = sort.transformData(unsortedPvcs);
 
@@ -30,10 +32,25 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refresh
         </Thead>
         <Tbody>
           {sortedPvcs.map((pvc) => (
-            <StorageTableRow key={pvc.metadata.uid} obj={pvc} onDeletePVC={setDeleteStorage} />
+            <StorageTableRow
+              key={pvc.metadata.uid}
+              obj={pvc}
+              onEditPVC={setEditPVC}
+              onDeletePVC={setDeleteStorage}
+            />
           ))}
         </Tbody>
       </TableComposable>
+      <ManageStorageModal
+        isOpen={!!editPVC}
+        existingData={editPVC}
+        onClose={(updated) => {
+          if (updated) {
+            refreshPVCs();
+          }
+          setEditPVC(undefined);
+        }}
+      />
       <DeletePVCModal
         pvcToDelete={deleteStorage}
         onClose={(deleted) => {

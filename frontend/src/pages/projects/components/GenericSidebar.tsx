@@ -11,6 +11,7 @@ type GenericSidebarProps = {
   sections: string[];
   titles: Record<string, string>;
   scrollableSelector: string;
+  maxWidth?: number;
 };
 
 const GenericSidebar: React.FC<GenericSidebarProps> = ({
@@ -18,10 +19,11 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
   sections,
   titles,
   scrollableSelector,
+  maxWidth,
 }) => {
   return (
     <Sidebar hasGutter>
-      <SidebarPanel variant="sticky">
+      <SidebarPanel variant="sticky" style={{ maxWidth }}>
         <JumpLinks isVertical label="Jump to section" scrollableSelector={scrollableSelector}>
           {sections.map((section) => (
             <JumpLinksItem key={section} href={`#${section}`}>

@@ -5,22 +5,27 @@ import { ProjectSectionID } from '../types';
 import DetailsSection from '../DetailsSection';
 import { ProjectSectionTitles } from '../const';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
-import { Link } from 'react-router-dom';
-import useProjectNotebooks from '../../../notebook/useProjectNotebooks';
+import { useNavigate } from 'react-router-dom';
+import useProjectNotebookStates from '../../../notebook/useProjectNotebookStates';
 import WorkspaceTable from './WorkspaceTable';
 
 const WorkspacesList: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
-  const [notebookStates, loaded, loadError, refreshNotebooks] = useProjectNotebooks(projectName);
+  const [notebookStates, loaded, loadError, refreshNotebooks] =
+    useProjectNotebookStates(projectName);
   return (
     <DetailsSection
-      id={ProjectSectionID.WORKSPACE}
-      title={ProjectSectionTitles[ProjectSectionID.WORKSPACE]}
+      id={ProjectSectionID.WORKSPACES}
+      title={ProjectSectionTitles[ProjectSectionID.WORKSPACES]}
       actions={[
-        <Button key={`action-${ProjectSectionID.WORKSPACE}`} variant="secondary">
-          {/* this will generate an underscore under the text when hover it, maybe we need to override the style */}
-          <Link to={`/projects/${projectName}/spawner`}>Create data science workspace</Link>
+        <Button
+          key={`action-${ProjectSectionID.WORKSPACES}`}
+          onClick={() => navigate(`/projects/${projectName}/spawner`)}
+          variant="secondary"
+        >
+          Create data science workspace
         </Button>,
       ]}
       isLoading={!loaded}
@@ -28,8 +33,9 @@ const WorkspacesList: React.FC = () => {
       isEmpty={notebookStates.length === 0}
       emptyState={
         <EmptyDetailsList
-          title="No data science workspaces"
-          description="To get started, create a data science workspace."
+          title="No workspaces"
+          description="To get started, create a workspace."
+          includeDivider
         />
       }
     >

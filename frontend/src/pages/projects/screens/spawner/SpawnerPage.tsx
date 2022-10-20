@@ -1,64 +1,50 @@
 import * as React from 'react';
-import ApplicationsPage from '../../../../pages/ApplicationsPage';
+import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
+import ApplicationsPage from '../../../../pages/ApplicationsPage';
+import { ImageStreamAndVersion } from '../../../../types';
 import GenericSidebar from '../../components/GenericSidebar';
+import NameDescriptionField from '../../components/NameDescriptionField';
+import { ProjectDetailsContext } from '../../ProjectDetailsContext';
+import { EnvVariable, NameDescType, StorageType } from '../../types';
+import { getProjectDisplayName } from '../../utils';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
-import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import SpawnerFooter from './SpawnerFooter';
-import NameDescriptionField from '../../components/NameDescriptionField';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
-import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
-import useBuildStatuses from './useBuildStatuses';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import { useNotebookSize } from './useNotebookSize';
-import { ImageStreamAndVersion } from '../../../../types';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
-import { EnvVariable, NameDescType } from '../../types';
 import { useStorageDataObject } from './storage/utils';
-import { useCurrentProjectDisplayName } from '../../utils';
-import { Link } from 'react-router-dom';
 
 const SpawnerPage: React.FC = () => {
-  const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const displayName = useCurrentProjectDisplayName();
-  const { username } = useUser();
-  const buildStatuses = useBuildStatuses(dashboardNamespace);
+  const displayName = getProjectDisplayName(currentProject);
 
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({ name: '', description: '' });
-
-  // Image selector field
   const [selectedImage, setSelectedImage] = React.useState<ImageStreamAndVersion>({
     imageStream: undefined,
     imageVersion: undefined,
   });
-
-  // Deployment size field
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
-
-  const [storageData, setStorageData] = useStorageDataObject(
-    'ephemeral',
-    undefined,
-    currentProject.metadata.name,
-  );
+  const [storageData, setStorageData] = useStorageDataObject(StorageType.EPHEMERAL);
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
-
-  const breadcrumb = (
-    <Breadcrumb>
-      <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
-      <BreadcrumbItem
-        render={() => <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>}
-      />
-      <BreadcrumbItem>Create workspace</BreadcrumbItem>
-    </Breadcrumb>
-  );
 
   return (
     <ApplicationsPage
-      title={`Create data science workspace`}
-      breadcrumb={breadcrumb}
+      title="Create data science workspace"
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
+          <BreadcrumbItem
+            render={() => (
+              <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>
+            )}
+          />
+          <BreadcrumbItem>Create workspace</BreadcrumbItem>
+        </Breadcrumb>
+      }
       description="Configure properties for your data science workspace."
       loaded
       empty={false}
@@ -75,20 +61,17 @@ const SpawnerPage: React.FC = () => {
           titles={SpawnerPageSectionTitles}
           scrollableSelector={`#${ScrollableSelectorID}`}
         >
-          <Form maxWidth="50%">
+          <Form style={{ maxWidth: 600, marginBottom: 'var(--pf-global--spacer--lg)' }}>
             <FormSection id={SpawnerPageSectionID.NAME_DESCRIPTION}>
               <NameDescriptionField
                 nameFieldId="workspace-name"
                 descriptionFieldId="workspace-description"
                 data={nameDesc}
                 setData={setNameDesc}
+                autoFocusName
               />
             </FormSection>
-            <ImageSelectorField
-              selectedImage={selectedImage}
-              setSelectedImage={setSelectedImage}
-              buildStatuses={buildStatuses}
-            />
+            <ImageSelectorField selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
             <FormSection title="Deployment size" id={SpawnerPageSectionID.DEPLOYMENT_SIZE}>
               <ContainerSizeSelector
                 sizes={sizes}
@@ -116,7 +99,6 @@ const SpawnerPage: React.FC = () => {
             notebookName: nameDesc.name,
             description: nameDesc.description,
             projectName: currentProject.metadata.name,
-            username,
             image: selectedImage,
             notebookSize: selectedSize,
             gpus: 0,
