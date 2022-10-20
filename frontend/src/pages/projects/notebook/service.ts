@@ -25,18 +25,19 @@ export const getNotebooksStatus = async (
       getPodsForNotebook(notebook.metadata.namespace, notebook.metadata.name),
     ),
   ).then((podsPerNotebook) =>
-    podsPerNotebook.reduce<NotebookDataState[]>(
-      (acc, pods, i) => [
+    podsPerNotebook.reduce<NotebookDataState[]>((acc, pods, i) => {
+      const isStopped = hasStopAnnotation(notebooks[i]);
+      const podsReady = pods.some((pod) => checkPodContainersReady(pod));
+      return [
         ...acc,
         {
           notebook: notebooks[i],
-          isStarting: !hasStopAnnotation(notebooks[i]),
-          isRunning:
-            !hasStopAnnotation(notebooks[i]) && pods.some((pod) => checkPodContainersReady(pod)),
+          isStarting: !isStopped && !podsReady,
+          isRunning: !isStopped && podsReady,
+          runningPodUid: pods[0]?.metadata?.uid || '',
         },
-      ],
-      [],
-    ),
+      ];
+    }, []),
   );
 };
 

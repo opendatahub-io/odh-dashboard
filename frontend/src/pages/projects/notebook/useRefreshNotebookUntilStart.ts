@@ -2,7 +2,9 @@ import * as React from 'react';
 import { FAST_POLL_INTERVAL } from '../../../utilities/const';
 import { NotebookState } from './types';
 
-const useRefreshNotebookUntilStart = (notebookState: NotebookState): (() => void) => {
+const useRefreshNotebookUntilStart = (
+  notebookState: NotebookState,
+): ((listen: boolean) => void) => {
   const [watchingForNotebook, setWatchingForNotebook] = React.useState(false);
   const lastNotebookState = React.useRef<NotebookState>(notebookState);
   lastNotebookState.current = notebookState;
@@ -28,8 +30,8 @@ const useRefreshNotebookUntilStart = (notebookState: NotebookState): (() => void
     };
   }, [watchingForNotebook]);
 
-  return React.useCallback(() => {
-    setWatchingForNotebook(true);
+  return React.useCallback((listen: boolean) => {
+    setWatchingForNotebook(listen);
   }, []);
 };
 
