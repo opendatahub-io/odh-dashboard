@@ -19,6 +19,7 @@ import './ApplicationsPage.scss';
 
 type ApplicationsPageProps = {
   title: string;
+  breadcrumb?: React.ReactNode;
   description: React.ReactNode;
   loaded: boolean;
   empty: boolean;
@@ -32,6 +33,7 @@ type ApplicationsPageProps = {
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   title,
+  breadcrumb,
   description,
   loaded,
   empty,
@@ -43,19 +45,22 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerAction,
   provideChildrenPadding,
 }) => {
-  const renderHeader = () => (
-    <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
-      <Split>
-        <SplitItem isFilled>
-          <TextContent className="odh-apps__heading__text">
-            <Text component="h1">{title}</Text>
-            <Text component="p">{description}</Text>
-          </TextContent>
-        </SplitItem>
-        {headerAction && <SplitItem>{headerAction}</SplitItem>}
-      </Split>
-    </PageSection>
-  );
+  const renderHeader = () => {
+    return (
+      <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
+        {breadcrumb}
+        <Split>
+          <SplitItem isFilled>
+            <TextContent className="odh-apps__heading__text">
+              <Text component="h1">{title}</Text>
+              <Text component="p">{description}</Text>
+            </TextContent>
+          </SplitItem>
+          {headerAction && <SplitItem>{headerAction}</SplitItem>}
+        </Split>
+      </PageSection>
+    );
+  };
 
   const renderContents = () => {
     if (loadError) {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import ApplicationsPage from '../../../../pages/ApplicationsPage';
-import { Form, FormSection, PageSection } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
 import GenericSidebar from '../../components/GenericSidebar';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
@@ -17,10 +17,13 @@ import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { EnvVariable, NameDescType } from '../../types';
 import { useStorageDataObject } from './storage/utils';
+import { useCurrentProjectDisplayName } from '../../utils';
+import { Link } from 'react-router-dom';
 
 const SpawnerPage: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const displayName = useCurrentProjectDisplayName();
   const { username } = useUser();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
 
@@ -42,9 +45,20 @@ const SpawnerPage: React.FC = () => {
   );
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
+  const breadcrumb = (
+    <Breadcrumb>
+      <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
+      <BreadcrumbItem
+        render={() => <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>}
+      />
+      <BreadcrumbItem>Create workspace</BreadcrumbItem>
+    </Breadcrumb>
+  );
+
   return (
     <ApplicationsPage
       title={`Create data science workspace`}
+      breadcrumb={breadcrumb}
       description="Configure properties for your data science workspace."
       loaded
       empty={false}

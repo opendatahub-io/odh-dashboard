@@ -1,5 +1,8 @@
 .odh-apps {
   &__heading {
+    .pf-c-breadcrumb {
+      margin-bottom: var(--pf-global--spacer--md);
+    }
     &__text {
       margin-bottom: 1rem;
     }

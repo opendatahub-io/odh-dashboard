@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { getProjects } from '../../../../api';
 import { ProjectKind } from '../../../../k8sTypes';
-import { useUser } from '../../../../redux/selectors';
-import { usernameTranslate } from '../../../../utilities/notebookControllerUtils';
 
 const useUserProjects = (): [
   projects: ProjectKind[],
