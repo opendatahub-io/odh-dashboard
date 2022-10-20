@@ -62,40 +62,39 @@ export const createConfigMapsAndSecretsForNotebook = async (
         return createConfigMap(configMapData);
       }
     } else if (envVariable.type === EnvironmentVariableTypes.secret) {
-      if (envVariable.values.category === SecretCategories.keyValue) {
-        const secretMapData = assembleSecret(
-          projectName,
-          mapKeyValueToData(envVariable.values.data),
-        );
-        return createSecret(secretMapData);
-      }
+      const secretMapData = assembleSecret(
+        projectName,
+        mapKeyValueToData(envVariable.values.data),
+        envVariable.values.category === SecretCategories.aws ? 'aws' : undefined,
+      );
+      return createSecret(secretMapData);
     }
     return Promise.resolve(null);
   });
 
+  const results = await Promise.all(creatingPromises).catch((e) => {
+    console.error('Creating environment variables failed: ', e);
+  });
+
   const envFrom: EnvFromSourceType[] = [];
 
-  await Promise.all(creatingPromises)
-    .then((result) =>
-      result.forEach((cmOrSecret) => {
-        if (cmOrSecret?.kind === 'Secret') {
-          envFrom.push({
-            secretRef: {
-              name: cmOrSecret.metadata.name,
-            },
-          });
-        } else if (cmOrSecret?.kind === 'ConfigMap') {
-          envFrom.push({
-            configMapRef: {
-              name: cmOrSecret.metadata.name,
-            },
-          });
-        }
-      }),
-    )
-    .catch((e) => {
-      console.error('Creating environment variables failed: ', e);
+  if (results) {
+    results.forEach((cmOrSecret) => {
+      if (cmOrSecret?.kind === 'Secret') {
+        envFrom.push({
+          secretRef: {
+            name: cmOrSecret.metadata.name,
+          },
+        });
+      } else if (cmOrSecret?.kind === 'ConfigMap') {
+        envFrom.push({
+          configMapRef: {
+            name: cmOrSecret.metadata.name,
+          },
+        });
+      }
     });
+  }
 
   return envFrom;
 };

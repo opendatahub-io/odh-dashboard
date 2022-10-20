@@ -23,7 +23,6 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
     }
 
     updatedEnvVariables[index] = { ...variable };
-
     setEnvVariables(updatedEnvVariables);
   };
 

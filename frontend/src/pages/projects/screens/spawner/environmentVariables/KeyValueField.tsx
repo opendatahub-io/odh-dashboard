@@ -24,7 +24,6 @@ export const KeyValueField: React.FC<KeyValueFieldProps> = ({
 }) => {
   const [showPassword, setShowPassword] = React.useState<boolean>(false);
 
-  //const validated = variableRow.errors[variable.name] !== undefined ? 'error' : 'default';
   return (
     <>
       <FormGroup fieldId={`${fieldIndex}-${variable.type}`} label="Variable name">
