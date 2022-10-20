@@ -28,12 +28,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     const { volumes, volumeMounts } = await createPvcDataForNotebook(projectName, storageData);
     const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, envVariables);
     const newStartData = { ...startNotebookData, volumes, volumeMounts, envFrom };
-    if (action === 'start') {
-      await createNotebook(newStartData);
-    } else if (action === 'stop') {
-      await createNotebookWithoutStarting(newStartData);
-    }
-    // TODO: Create config maps and secrets
+    action === 'start'
+      ? await createNotebook(newStartData)
+      : await createNotebookWithoutStarting(newStartData);
+    // TODO: patch annotation of PVCs and AWS Secrets for related notebook
     setCreateInProgress(false);
     navigate(`/projects/${projectName}`);
   };

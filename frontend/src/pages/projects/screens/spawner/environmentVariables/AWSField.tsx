@@ -8,6 +8,7 @@ import {
   TextInputTypes,
 } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
+import { AWS_KEYS } from './const';
 
 type AWSFieldProps = {
   fieldIndex: string;
@@ -17,7 +18,7 @@ type AWSFieldProps = {
 
 export const AWSField: React.FC<AWSFieldProps> = ({ fieldIndex, fieldData, onUpdateValue }) => {
   const [showPassword, setShowPassword] = React.useState<boolean>(false);
-  const isPassword = fieldData.key === 'AWS_SECRET_ACCESS_KEY';
+  const isPassword = fieldData.key === AWS_KEYS.SECRET_ACCESS_KEY;
 
   return (
     <FormGroup fieldId={`${fieldIndex}-${fieldData.key}`} label={fieldData.key}>

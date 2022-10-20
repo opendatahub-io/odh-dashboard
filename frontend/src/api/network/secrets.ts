@@ -13,15 +13,12 @@ export const assembleSecret = (
   projectName: string,
   secretData: Record<string, string>,
   type?: 'aws', // We only have aws type now, but could add more in the future
-  notebookName?: string,
 ): SecretKind => {
   let name = `secret-${genRandomChars()}`;
   const labels = {};
-  const annotations = {};
   if (type === 'aws') {
     name = secretData['Name'];
-    labels['opendatahub.io/managed'] = true;
-    annotations['opendatahub.io/related-notebooks'] = `["${notebookName}"]`;
+    labels['opendatahub.io/managed'] = 'true';
     delete secretData['Name'];
   }
   return {
@@ -31,7 +28,6 @@ export const assembleSecret = (
       name,
       namespace: projectName,
       labels,
-      annotations,
     },
     stringData: secretData,
   };

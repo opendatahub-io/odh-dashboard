@@ -18,7 +18,6 @@ import {
 
 import KeyValueField from './KeyValueField';
 import AWSField from './AWSField';
-
 import { EMPTY_AWS_SECRET_DATA, EMPTY_KEY } from './const';
 
 type EnvironmentVariablesRowProps = {
