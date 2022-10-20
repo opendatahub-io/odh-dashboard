@@ -43,6 +43,7 @@ export type DashboardCommonConfig = {
   disableAppLauncher: boolean;
   disableUserManagement: boolean;
   disableProjects: boolean;
+  disableModelServing: boolean;
 };
 
 export type NotebookControllerUserState = {

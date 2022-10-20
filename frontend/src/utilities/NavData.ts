@@ -80,6 +80,10 @@ export const getNavBarData = (
     navItems.push({ id: 'dsg', label: 'Data Science Projects', href: '/projects' });
   }
 
+  if (!dashboardConfig.spec.dashboardConfig.disableModelServing) {
+    navItems.push({ id: 'modelServing', label: 'Model Serving', href: '/modelServing' });
+  }
+
   navItems.push({ id: 'resources', label: 'Resources', href: '/resources' });
 
   const settingsNav = getSettingsNav(isAdmin, dashboardConfig);

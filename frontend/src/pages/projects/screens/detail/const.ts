@@ -5,3 +5,8 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
   [ProjectSectionID.STORAGE]: 'Storage',
   [ProjectSectionID.DATA_CONNECTIONS]: 'Data connections',
 };
+
+export const ProjectSectionTitlesExtended: ProjectSectionTitlesType = {
+  ...ProjectSectionTitles,
+  [ProjectSectionID.MODEL_SERVER]: 'Model server',
+};

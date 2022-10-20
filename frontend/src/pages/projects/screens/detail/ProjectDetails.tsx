@@ -2,12 +2,14 @@ import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import ApplicationsPage from '../../../ApplicationsPage';
 import { useCurrentProjectDisplayName } from '../../utils';
-import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
+import { ProjectSectionTitles, ProjectSectionTitlesExtended } from './const';
 import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
 import WorkspacesList from './workspaces/WorkspacesList';
+import { useAppContext } from 'app/AppContext';
+import ModelServerList from './ModelServerList';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -17,11 +19,16 @@ type SectionType = {
 const ProjectDetails: React.FC = () => {
   const scrollableSelectorID = 'project-details-list';
   const displayName = useCurrentProjectDisplayName();
+  const { dashboardConfig } = useAppContext();
+  const modelServingEnabled = dashboardConfig.spec.dashboardConfig.disableModelServing;
 
   const sections: SectionType[] = [
     { id: ProjectSectionID.WORKSPACE, component: <WorkspacesList /> },
     { id: ProjectSectionID.STORAGE, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
+    ...(!modelServingEnabled
+      ? [{ id: ProjectSectionID.MODEL_SERVER, component: <ModelServerList /> }]
+      : []),
   ];
 
   const mapSections = (
@@ -50,8 +57,12 @@ const ProjectDetails: React.FC = () => {
         variant="light"
       >
         <GenericSidebar
-          sections={Object.values(ProjectSectionID)}
-          titles={ProjectSectionTitles}
+          sections={Object.keys(
+            modelServingEnabled
+              ? ProjectSectionTitles
+              : { ...ProjectSectionTitles, ...ProjectSectionTitlesExtended },
+          )}
+          titles={modelServingEnabled ? ProjectSectionTitles : ProjectSectionTitlesExtended}
           scrollableSelector={`#${scrollableSelectorID}`}
         >
           <Stack hasGutter>

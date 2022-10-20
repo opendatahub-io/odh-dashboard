@@ -16,7 +16,7 @@ const WorkspacesList: React.FC = () => {
   return (
     <DetailsSection
       id={ProjectSectionID.WORKSPACE}
-      title={ProjectSectionTitles[ProjectSectionID.WORKSPACE]}
+      title={ProjectSectionTitles[ProjectSectionID.WORKSPACE] || ''}
       actions={[
         <Button key={`action-${ProjectSectionID.WORKSPACE}`} variant="secondary">
           {/* this will generate an underscore under the text when hover it, maybe we need to override the style */}
