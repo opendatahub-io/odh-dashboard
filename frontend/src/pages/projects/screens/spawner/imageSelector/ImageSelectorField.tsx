@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, FormSection, Skeleton } from '@patternfly/react-core';
-import { BuildStatus, SpawnerPageSectionID } from '../types';
+import { SpawnerPageSectionID } from '../types';
 import { ImageStreamKind } from '../../../../../k8sTypes';
 import {
   getDefaultVersionForImageStream,
@@ -12,19 +12,19 @@ import ImageStreamPopover from './ImageStreamPopover';
 import { ImageStreamAndVersion } from '../../../../../types';
 import useImageStreams from '../useImageStreams';
 import { useDashboardNamespace } from '../../../../../redux/selectors';
+import useBuildStatuses from '../useBuildStatuses';
 
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;
   setSelectedImage: React.Dispatch<React.SetStateAction<ImageStreamAndVersion>>;
-  buildStatuses: BuildStatus[];
 };
 
 const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   selectedImage,
   setSelectedImage,
-  buildStatuses,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const buildStatuses = useBuildStatuses(dashboardNamespace);
   const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace);
 
   const imageVersionData = React.useMemo(() => {

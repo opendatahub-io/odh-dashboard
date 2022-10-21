@@ -17,9 +17,10 @@ import StorageSizeBar from '../../../components/StorageSizeBars';
 
 type WorkspaceStorageBarsProps = {
   notebook: NotebookKind;
+  onAddStorage: (notebook: NotebookKind) => void;
 };
 
-const WorkspaceStorageBars: React.FC<WorkspaceStorageBarsProps> = ({ notebook }) => {
+const WorkspaceStorageBars: React.FC<WorkspaceStorageBarsProps> = ({ notebook, onAddStorage }) => {
   const [pvcs, loaded, loadError] = useNotebookPVCItems(notebook);
 
   return (
@@ -53,7 +54,7 @@ const WorkspaceStorageBars: React.FC<WorkspaceStorageBarsProps> = ({ notebook })
                 variant="link"
                 isInline
                 icon={<PlusCircleIcon />}
-                onClick={() => alert('Not implemented')}
+                onClick={() => onAddStorage(notebook)}
               >
                 Add storage
               </Button>

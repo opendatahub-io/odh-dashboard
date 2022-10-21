@@ -1,40 +1,50 @@
 import {
-  assemblePvc,
-  createPvc,
-  createConfigMap,
-  createSecret,
   assembleConfigMap,
+  assemblePvc,
   assembleSecret,
+  createConfigMap,
+  createPvc,
+  createSecret,
 } from '../../../../api';
 import { Volume, VolumeMount } from '../../../../types';
 import {
-  StorageData,
-  EnvFromSourceType,
-  EnvVariable,
-  EnvironmentVariableTypes,
   ConfigMapCategories,
+  EnvFromSourceType,
+  EnvironmentVariableTypes,
+  EnvVariable,
   SecretCategories,
+  StorageData,
+  StorageType,
 } from '../../types';
 import { getVolumesByStorageData } from './spawnerUtils';
+import { ROOT_MOUNT_PATH } from '../../pvc/const';
 
 export const createPvcDataForNotebook = async (
   projectName: string,
   storageData: StorageData,
-): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
-  const { storageType, creating } = storageData;
+): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[]; associatedPVCName: string }> => {
   const {
-    nameDesc: { name: pvcName, description: pvcDescription },
-    size,
-  } = creating;
+    storageType,
+    creating: {
+      nameDesc: { name: pvcName, description: pvcDescription },
+      size,
+    },
+  } = storageData;
+  let k8sPvcName = '';
+
   const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
-  if (storageType === 'persistent' && creating.enabled) {
+
+  if (storageType === StorageType.NEW_PVC) {
     const pvcData = assemblePvc(pvcName, projectName, pvcDescription, size);
+    k8sPvcName = pvcData.metadata.name;
     const pvc = await createPvc(pvcData);
     const newPvcName = pvc.metadata.name;
     volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });
-    volumeMounts.push({ mountPath: '/opt/app-root/src', name: newPvcName });
+    volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: newPvcName });
+  } else if (storageType === StorageType.EXISTING_PVC) {
+    k8sPvcName = storageData.existing.storage;
   }
-  return { volumes, volumeMounts };
+  return { volumes, volumeMounts, associatedPVCName: k8sPvcName };
 };
 
 const mapKeyValueToData = (

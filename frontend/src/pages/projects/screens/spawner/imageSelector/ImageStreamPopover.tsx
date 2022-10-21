@@ -1,12 +1,9 @@
 import * as React from 'react';
-import { Button, Popover, Title } from '@patternfly/react-core';
+import { Button, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import {
-  getImageStreamDescription,
-  getImageVersionDependencies,
-  getNameVersionString,
-} from '../spawnerUtils';
+import { getImageStreamDescription, getImageVersionDependencies } from '../spawnerUtils';
 import { ImageStreamAndVersion } from '../../../../../types';
+import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
 
 type ImageStreamPopoverProps = {
   selectedImage: ImageStreamAndVersion;
@@ -30,17 +27,20 @@ const ImageStreamPopover: React.FC<ImageStreamPopoverProps> = ({ selectedImage }
     // have to use <span> here to make sure the Button is inline, maybe it's an PF bug
     <span>
       <Popover
-        headerContent={description}
+        removeFindDomNode
+        headerContent="Package information"
         bodyContent={
-          dependencies.length !== 0 && (
-            <>
-              <Title headingLevel="h6">Packages included:</Title>
-              {dependencies.map((dep) => {
-                const depString = getNameVersionString(dep);
-                return <p key={depString}>{depString}</p>;
-              })}
-            </>
-          )
+          <Stack hasGutter>
+            <StackItem>{description}</StackItem>
+            {dependencies.length !== 0 && (
+              <StackItem>
+                <NotebookImagePackageDetails
+                  title="Packages included"
+                  dependencies={dependencies}
+                />
+              </StackItem>
+            )}
+          </Stack>
         }
         position="right"
       >

@@ -16,7 +16,7 @@ type RelatedToNotebookAnnotations = Partial<{
 
 export type K8sDSGResource = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
     name: string;
   };
 };
@@ -144,7 +144,7 @@ export type K8sStatus = {
 
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
     name: string;
     namespace: string;
   };

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
+import { Alert, FormGroup, Select, SelectOption } from '@patternfly/react-core';
 import { getPvcDisplayName } from '../utils';
 import { PersistentVolumeClaimKind } from '../../../k8sTypes';
 
@@ -26,10 +26,6 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
 }) => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
 
-  if (!loaded) {
-    return <Skeleton />;
-  }
-
   if (loadError) {
     return (
       <Alert title="Error loading pvcs" variant="danger">
@@ -38,16 +34,18 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
     );
   }
 
-  const options = storages.map((pvc) => (
-    <SelectOption key={pvc.metadata.name} value={pvc.metadata.name}>
-      {getPvcDisplayName(pvc)}
-    </SelectOption>
-  ));
-
-  const empty = options.length === 0;
+  const empty = storages.length === 0;
+  let placeholderText: string;
+  if (!loaded) {
+    placeholderText = 'Loading storages...';
+  } else if (empty) {
+    placeholderText = 'No existing storages available';
+  } else {
+    placeholderText = 'Select a persistent storage';
+  }
 
   return (
-    <FormGroup label="PV" fieldId={fieldId}>
+    <FormGroup isRequired label="Persistent storage" fieldId={fieldId}>
       <Select
         variant="typeahead"
         selections={selectedStorage}
@@ -64,11 +62,15 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
           }
         }}
         onToggle={setOpen}
-        placeholderText={empty ? 'No storage available' : 'Select the PV to add to your project'}
+        placeholderText={placeholderText}
         direction={selectDirection}
         menuAppendTo={menuAppendTo}
       >
-        {options}
+        {storages.map((pvc) => (
+          <SelectOption key={pvc.metadata.name} value={pvc.metadata.name}>
+            {getPvcDisplayName(pvc)}
+          </SelectOption>
+        ))}
       </Select>
     </FormGroup>
   );

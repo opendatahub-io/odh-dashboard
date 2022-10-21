@@ -3,7 +3,7 @@ import { ProjectKind } from '../../../../k8sTypes';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import ProjectLink from './ProjectLink';
 import { Text, TextVariants, Timestamp } from '@patternfly/react-core';
-import useProjectNotebooks from '../../notebook/useProjectNotebooks';
+import useProjectNotebookStates from '../../notebook/useProjectNotebookStates';
 import ListNotebookState from '../../notebook/ListNotebookState';
 
 type ProjectTableRowProps = {
@@ -19,7 +19,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   setEditData,
   setDeleteData,
 }) => {
-  const [notebookStates, loaded, error] = useProjectNotebooks(project.metadata.name);
+  const [notebookStates, loaded, error] = useProjectNotebookStates(project.metadata.name);
   const owner = project.metadata.annotations?.['openshift.io/requester'];
 
   return (

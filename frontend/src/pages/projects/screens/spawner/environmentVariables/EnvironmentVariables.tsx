@@ -54,7 +54,8 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
         onClick={addEnvironmentVariable}
       >
         <PlusCircleIcon />
-        {` Add more variables`}
+        {` `}
+        {envVariables.length > 0 ? 'Add more variables' : 'Add variable'}
       </Button>
     </>
   );

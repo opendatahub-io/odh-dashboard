@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Spinner, Text, TextVariants, Title } from '@patternfly/react-core';
 import { NotebookState } from '../../../notebook/types';
 import { getNotebookDescription, getNotebookDisplayName } from '../../../utils';
@@ -15,9 +15,14 @@ import WorkspaceStorageBars from './WorkspaceStorageBars';
 type WorkspaceTableRowProps = {
   obj: NotebookState;
   onNotebookDelete: (notebook: NotebookKind) => void;
+  onNotebookAddStorage: (notebook: NotebookKind) => void;
 };
 
-const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({ obj, onNotebookDelete }) => {
+const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({
+  obj,
+  onNotebookDelete,
+  onNotebookAddStorage,
+}) => {
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
   const notebookSize = useWorkspaceSize(obj.notebook);
   const [notebookImage, loaded] = useWorkspaceImage(obj.notebook);
@@ -69,16 +74,24 @@ const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({ obj, onNotebookDe
       <Tr isExpanded={isExpanded}>
         <Td />
         <Td>
-          <WorkspaceStorageBars notebook={obj.notebook} />
+          <ExpandableRowContent>
+            <WorkspaceStorageBars notebook={obj.notebook} onAddStorage={onNotebookAddStorage} />
+          </ExpandableRowContent>
         </Td>
         <Td>
-          {notebookImage ? (
-            <NotebookImagePackageDetails dependencies={notebookImage.dependencies} />
-          ) : (
-            'Unknown package info'
-          )}
+          <ExpandableRowContent>
+            {notebookImage ? (
+              <NotebookImagePackageDetails dependencies={notebookImage.dependencies} />
+            ) : (
+              'Unknown package info'
+            )}
+          </ExpandableRowContent>
         </Td>
-        <Td>{notebookSize && <WorkspaceSizeDetails notebookSize={notebookSize} />}</Td>
+        <Td>
+          <ExpandableRowContent>
+            {notebookSize && <WorkspaceSizeDetails notebookSize={notebookSize} />}
+          </ExpandableRowContent>
+        </Td>
         <Td />
         <Td />
         <Td />

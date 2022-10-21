@@ -1,17 +1,19 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Text, Title } from '@patternfly/react-core';
-import { getPvcDescription, getPvcDisplayName } from '../../../utils';
+import { getPvcDescription, getPvcDisplayName, getPvcRelatedNotebooks } from '../../../utils';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { HddIcon } from '@patternfly/react-icons';
 import StorageSizeBar from '../../../components/StorageSizeBars';
+import ConnectedWorkspaces from '../../../notebook/ConnectedWorkspaces';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
+  onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
 };
 
-const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC }) => {
+const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onEditPVC }) => {
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
 
   return (
@@ -28,14 +30,16 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC }) =
             {` Persistent storage`}
           </Text>
         </Td>
-        <Td>Wind turbines</Td>
+        <Td>
+          <ConnectedWorkspaces connectedAnnotation={getPvcRelatedNotebooks(obj)} />
+        </Td>
         <Td isActionCell>
           <ActionsColumn
             items={[
               {
                 title: 'Edit storage',
                 onClick: () => {
-                  alert('Not implemented yet');
+                  onEditPVC(obj);
                 },
               },
               {
