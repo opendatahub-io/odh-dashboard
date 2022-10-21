@@ -109,6 +109,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         {helpMenuItems.length > 0 ? (
           <PageHeaderToolsItem>
             <Dropdown
+              removeFindDomNode
               position={DropdownPosition.right}
               toggle={
                 <DropdownToggle
@@ -126,6 +127,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         ) : null}
         <PageHeaderToolsItem>
           <Dropdown
+            removeFindDomNode
             position={DropdownPosition.right}
             toggle={
               <DropdownToggle

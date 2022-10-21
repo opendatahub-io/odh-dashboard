@@ -186,6 +186,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
     <React.Fragment>
       <ToolbarItem variant="search-filter" className="filter-select">
         <Select
+          removeFindDomNode
           data-id="search-filter-select"
           variant={SelectVariant.single}
           aria-label="Select for image images table"
@@ -209,6 +210,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       </ToolbarItem>
       <ToolbarItem variant="search-filter">
         <SearchInput
+          removeFindDomNode
           data-id="search-filter-input"
           className="filter-search"
           aria-label="search input for image images table"

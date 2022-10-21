@@ -17,6 +17,7 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
   }
   return (
     <Popover
+      removeFindDomNode
       showClose
       bodyContent={
         <>

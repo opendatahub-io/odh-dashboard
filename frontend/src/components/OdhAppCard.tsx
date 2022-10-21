@@ -175,6 +175,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const disabledPopover = (
     <Popover
+      removeFindDomNode
       headerContent={<div className="odh-card__disabled-popover-title">Application disabled</div>}
       bodyContent={popoverBodyContent}
       position="bottom"
@@ -198,6 +199,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         <div className="odh-card__enabled-controls">
           {disabled ? disabledPopover : null}
           <Dropdown
+            removeFindDomNode
             onSelect={onOpenKebab}
             toggle={<KebabToggle onToggle={onToggle} />}
             isOpen={isOpen}

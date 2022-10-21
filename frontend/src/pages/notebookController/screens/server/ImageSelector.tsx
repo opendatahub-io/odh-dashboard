@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Radio } from '@patternfly/react-core';
+import { Flex, FlexItem, Radio } from '@patternfly/react-core';
 import { ImageInfo, ImageTagInfo } from '../../../../types';
 import {
   getDescriptionForTag,
@@ -47,15 +47,15 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         className="odh-notebook-controller__notebook-image-option"
         isDisabled={disabled}
         label={
-          <span className="odh-notebook-controller__notebook-image-title">
-            {image.display_name}
+          <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+            <FlexItem>{image.display_name}</FlexItem>
             {tags.length > 1 ? (
-              <span className="odh-notebook-controller__notebook-image-title-version">
+              <FlexItem>
                 {getImageTagVersion(buildStatuses, image, selectedImage?.name, selectedTag?.name)}
-              </span>
+              </FlexItem>
             ) : null}
-            {getImagePopover(image)}
-          </span>
+            <FlexItem>{getImagePopover(image)}</FlexItem>
+          </Flex>
         }
         description={getDescriptionForTag(currentTag)}
         isChecked={image.name === selectedImage?.name}
