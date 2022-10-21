@@ -11,27 +11,33 @@ import { genRandomChars } from '../../utilities/string';
 
 export const assembleSecret = (
   projectName: string,
-  secretData: Record<string, string>,
-  type?: 'aws', // We only have aws type now, but could add more in the future
+  data: Record<string, string>,
+  type: 'aws' | 'generic' = 'generic',
 ): SecretKind => {
-  let name = `secret-${genRandomChars()}`;
   const labels = {
     'opendatahub.io/dashboard': 'true',
   };
+  const annotations = {};
+
+  let stringData = data;
+
   if (type === 'aws') {
-    name = secretData['Name'];
+    const { Name, ...secretBody } = data;
+    stringData = secretBody;
+    annotations['openshift.io/display-name'] = Name;
     labels['opendatahub.io/managed'] = 'true';
-    delete secretData['Name'];
   }
+
   return {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name,
+      name: `secret-${genRandomChars()}`,
       namespace: projectName,
+      annotations,
       labels,
     },
-    stringData: secretData,
+    stringData,
   };
 };
 

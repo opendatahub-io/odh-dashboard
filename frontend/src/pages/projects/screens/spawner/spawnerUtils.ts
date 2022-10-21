@@ -8,8 +8,18 @@ import {
   ImageVersionDependencyType,
   ImageVersionSelectOptionObjectType,
 } from './types';
-import { StartNotebookData, StorageData, StorageType } from '../../types';
+import {
+  ConfigMapCategory,
+  EnvVariable,
+  EnvVariableData,
+  EnvVariableDataEntry,
+  SecretCategory,
+  StartNotebookData,
+  StorageData,
+  StorageType,
+} from '../../types';
 import { ROOT_MOUNT_PATH } from '../../pvc/const';
+import { AWS_KEYS, AWS_REQUIRED_KEYS } from '../../dataConnections/const';
 
 /******************* Common utils *******************/
 export const getVersion = (version?: string, prefix?: string): string => {
@@ -262,9 +272,54 @@ export const checkVersionExistence = (
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
   !!imageVersion.annotations?.['opendatahub.io/notebook-image-recommended'];
 
+export const isValidGenericKey = (key: string): boolean => !!key;
+
+export const isAWSValid = (values: EnvVariableDataEntry[]): boolean =>
+  values.every(({ key, value }) => (AWS_REQUIRED_KEYS.includes(key as AWS_KEYS) ? !!value : true));
+
+export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => {
+  if (envVariables.length === 0) {
+    return true;
+  }
+
+  const hasValidValuesForType = (
+    values: EnvVariableDataEntry[],
+    type: ConfigMapCategory | SecretCategory,
+  ) => {
+    if (values.length === 0) {
+      // No entries -- they have partial form structure
+      return false;
+    }
+
+    switch (type) {
+      case ConfigMapCategory.GENERIC:
+      case SecretCategory.GENERIC:
+        return values.every(({ key, value }) => isValidGenericKey(key) && !!value);
+      case SecretCategory.AWS:
+        return isAWSValid(values);
+      case ConfigMapCategory.UPLOAD:
+        // TODO: Write upload logic
+        return false;
+      default:
+        return false;
+    }
+  };
+
+  const isValid = envVariables.every(
+    (envVar) =>
+      !!envVar.type &&
+      !!envVar.values &&
+      !!envVar.values.category &&
+      hasValidValuesForType(envVar.values.data, envVar.values.category),
+  );
+
+  return isValid;
+};
+
 export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
   storageData: StorageData,
+  envVariables: EnvVariable[],
 ): boolean => {
   const { projectName, notebookName, notebookSize, image } = startNotebookData;
   const { storageType, creating, existing } = storageData;
@@ -280,5 +335,5 @@ export const checkRequiredFieldsForNotebookStart = (
   const existingStorageFiledInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
   const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFiledInvalid;
 
-  return isNotebookDataValid && isStorageDataValid;
+  return isNotebookDataValid && isStorageDataValid && isEnvVariableDataValid(envVariables);
 };

@@ -13,9 +13,13 @@ import ConnectedWorkspaces from '../../../notebook/ConnectedWorkspaces';
 
 type DataConnectionsTableRowProps = {
   obj: DataConnection;
+  onDeleteDataConnection: (dataConnection: DataConnection) => void;
 };
 
-const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({ obj }) => {
+const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
+  obj,
+  onDeleteDataConnection,
+}) => {
   return (
     <Tr>
       <Td>
@@ -31,15 +35,9 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({ obj }
         <ActionsColumn
           items={[
             {
-              title: 'Edit data connection',
-              onClick: () => {
-                alert('Not implemented yet');
-              },
-            },
-            {
               title: 'Delete data connection',
               onClick: () => {
-                alert('Not implemented yet');
+                onDeleteDataConnection(obj);
               },
             },
           ]}

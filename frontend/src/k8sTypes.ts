@@ -244,6 +244,7 @@ export type RouteKind = K8sResourceCommon & {
 export type SecretKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
   };
   data?: Record<string, string>;
   stringData?: Record<string, string>;

@@ -44,6 +44,7 @@ const ProjectDetails: React.FC = () => {
       <PageSection
         id={scrollableSelectorID}
         hasOverflowScroll
+        isFilled
         aria-label="project-details-page-section"
         variant="light"
       >

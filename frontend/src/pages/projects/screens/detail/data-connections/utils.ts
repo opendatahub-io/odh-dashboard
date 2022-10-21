@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { deleteSecret } from '../../../../../api';
+import { K8sStatus } from '../../../../../k8sTypes';
 import { DataConnection, DataConnectionAWS, DataConnectionType } from '../../../types';
 import {
   getAWSSecretRelatedNotebooks,
@@ -56,6 +58,18 @@ export const getDataConnectionProvider = (dataConnection: DataConnection): strin
   switch (dataConnection.type) {
     case DataConnectionType.AWS:
       return 'AWS S3';
+    default:
+      throw new Error('Invalid data connection type');
+  }
+};
+
+export const deleteDataConnection = (dataConnection: DataConnection): Promise<K8sStatus> => {
+  switch (dataConnection.type) {
+    case DataConnectionType.AWS:
+      return deleteSecret(
+        dataConnection.data.metadata.namespace,
+        dataConnection.data.metadata.name,
+      );
     default:
       throw new Error('Invalid data connection type');
   }
