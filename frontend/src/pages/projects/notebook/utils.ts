@@ -70,12 +70,11 @@ const filterEvents = (
 };
 
 export const useNotebookStatus = (
-  projectName: string,
   notebook: NotebookKind,
   podUid: string,
   spawnInProgress: boolean,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
-  const events = useWatchNotebookEvents(projectName, podUid, spawnInProgress);
+  const events = useWatchNotebookEvents(notebook.metadata.namespace, podUid, spawnInProgress);
 
   const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime ? new Date(annotationTime) : null;

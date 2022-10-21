@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Button, Popover } from '@patternfly/react-core';
 import StartNotebookModal from './StartNotebookModal';
 import { NotebookState } from './types';
-import { ProjectDetailsContext } from '../ProjectDetailsContext';
 import { getEventFullMessage, useNotebookStatus } from './utils';
 import { useDeepCompareMemoize } from '../../../utilities/useDeepCompareMemoize';
 
@@ -21,14 +20,8 @@ const NotebookStatusPopover: React.FC<NotebookStatusPopoverProps> = ({
   stopNotebook,
 }) => {
   const { notebook, runningPodUid, isStarting } = notebookState;
-  const { currentProject } = React.useContext(ProjectDetailsContext);
   const [isStartModalOpen, setStartModalOpen] = React.useState(false);
-  const [unstableNotebookStatus, events] = useNotebookStatus(
-    currentProject.metadata.name,
-    notebook,
-    runningPodUid,
-    isStarting,
-  );
+  const [unstableNotebookStatus, events] = useNotebookStatus(notebook, runningPodUid, isStarting);
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
 
   return (
