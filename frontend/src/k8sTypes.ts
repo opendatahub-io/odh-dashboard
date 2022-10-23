@@ -106,6 +106,20 @@ export type ConfigMapKind = K8sResourceCommon & {
   data?: Record<string, string>;
 };
 
+export type EventKind = K8sResourceCommon & {
+  metadata: {
+    uid?: string;
+  };
+  involvedObject: {
+    name: string;
+  };
+  lastTimestamp?: string;
+  eventTime: string;
+  type: 'Normal' | 'Warning';
+  reason: string;
+  message: string;
+};
+
 export type ImageStreamKind = K8sResourceCommon & {
   metadata: {
     annotations?: ImageStreamAnnotations;

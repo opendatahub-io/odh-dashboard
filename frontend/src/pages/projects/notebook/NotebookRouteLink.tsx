@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button, ButtonVariant } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '../../../k8sTypes';
 import useRouteForNotebook from './useRouteForNotebook';
@@ -10,9 +10,15 @@ type NotebookRouteLinkProps = {
   label?: React.ReactNode;
   notebook: NotebookKind;
   isRunning: boolean;
+  variant?: ButtonVariant;
 };
 
-const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({ label, notebook, isRunning }) => {
+const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
+  label,
+  notebook,
+  isRunning,
+  variant,
+}) => {
   const [routeLink, loaded, error] = useRouteForNotebook(notebook);
   const isStopped = hasStopAnnotation(notebook);
   const canLink = !!routeLink && !error && !isStopped && isRunning;
@@ -25,7 +31,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({ label, notebook, 
       isLoading={!loaded}
       href={error || !routeLink ? undefined : routeLink}
       target="_blank"
-      variant="link"
+      variant={variant || 'link'}
       icon={
         error ? (
           <ExclamationCircleIcon title="Error getting link for notebook" />

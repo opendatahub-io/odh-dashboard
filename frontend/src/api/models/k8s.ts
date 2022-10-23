@@ -6,6 +6,12 @@ export const ConfigMapModel: K8sModelCommon = {
   plural: 'configmaps',
 };
 
+export const EventModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  kind: 'Event',
+  plural: 'events',
+};
+
 export const PodModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'Pod',
