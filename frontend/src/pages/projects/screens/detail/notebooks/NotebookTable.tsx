@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TableComposable, Tbody, Th, Thead, Tr } from '@patternfly/react-table';
-import WorkspaceTableRow from './WorkspaceTableRow';
+import NotebookTableRow from './NotebookTableRow';
 import { NotebookState } from '../../../notebook/types';
 import { columns } from './data';
 import useTableColumnSort from '../../../../../utilities/useTableColumnSort';
@@ -13,7 +13,7 @@ type NotebookTableProps = {
   refreshNotebooks: () => void;
 };
 
-const WorkspaceTable: React.FC<NotebookTableProps> = ({
+const NotebookTable: React.FC<NotebookTableProps> = ({
   notebookStates: unsortedNotebookStates,
   refreshNotebooks,
 }) => {
@@ -36,7 +36,7 @@ const WorkspaceTable: React.FC<NotebookTableProps> = ({
         </Thead>
         <Tbody>
           {sortedNotebookStates.map((notebookState) => (
-            <WorkspaceTableRow
+            <NotebookTableRow
               key={notebookState.notebook.metadata.uid}
               obj={notebookState}
               onNotebookDelete={setNotebookToDelete}
@@ -67,4 +67,4 @@ const WorkspaceTable: React.FC<NotebookTableProps> = ({
   );
 };
 
-export default WorkspaceTable;
+export default NotebookTable;

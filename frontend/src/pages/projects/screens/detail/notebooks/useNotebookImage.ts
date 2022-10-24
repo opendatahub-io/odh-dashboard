@@ -9,15 +9,15 @@ import {
 import useNamespaces from '../../../../notebookController/useNamespaces';
 import { ImageVersionDependencyType } from '../../spawner/types';
 
-export type WorkspaceImage = {
+export type NotebookImage = {
   imageName: string;
   tagSoftware?: string;
   dependencies: ImageVersionDependencyType[];
 };
 
-const useWorkspaceImage = (
+const useNotebookImage = (
   notebook: NotebookKind,
-): [workspaceImage: WorkspaceImage | null, loaded: boolean] => {
+): [notebookImage: NotebookImage | null, loaded: boolean] => {
   const { dashboardNamespace } = useNamespaces();
   const [images, loaded] = useImageStreams(dashboardNamespace);
 
@@ -58,4 +58,4 @@ const useWorkspaceImage = (
   ];
 };
 
-export default useWorkspaceImage;
+export default useNotebookImage;

@@ -5,7 +5,7 @@ import { NotebookContainer, NotebookSize } from '../../../../../types';
 import { getNotebookSizes } from '../../../../notebookController/screens/server/usePreferredNotebookSize';
 import { NotebookKind } from '../../../../../k8sTypes';
 
-const useWorkspaceSize = (notebook: NotebookKind): NotebookSize | null => {
+const useNotebookSize = (notebook: NotebookKind): NotebookSize | null => {
   const { dashboardConfig } = React.useContext(AppContext);
 
   const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
@@ -26,4 +26,4 @@ const useWorkspaceSize = (notebook: NotebookKind): NotebookSize | null => {
   return size;
 };
 
-export default useWorkspaceSize;
+export default useNotebookSize;

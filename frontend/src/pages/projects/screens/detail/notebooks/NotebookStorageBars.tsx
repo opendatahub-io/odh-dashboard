@@ -15,18 +15,18 @@ import useNotebookPVCItems from '../../../pvc/useNotebookPVCItems';
 import { getPvcDisplayName } from '../../../utils';
 import StorageSizeBar from '../../../components/StorageSizeBars';
 
-type WorkspaceStorageBarsProps = {
+type NotebookStorageBarsProps = {
   notebook: NotebookKind;
   onAddStorage: (notebook: NotebookKind) => void;
 };
 
-const WorkspaceStorageBars: React.FC<WorkspaceStorageBarsProps> = ({ notebook, onAddStorage }) => {
+const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook, onAddStorage }) => {
   const [pvcs, loaded, loadError] = useNotebookPVCItems(notebook);
 
   return (
     <Stack>
       <StackItem>
-        <strong>Workspace storages</strong>
+        <strong>Workbench storages</strong>
       </StackItem>
       <StackItem>
         {!loaded ? (
@@ -66,4 +66,4 @@ const WorkspaceStorageBars: React.FC<WorkspaceStorageBarsProps> = ({ notebook, o
   );
 };
 
-export default WorkspaceStorageBars;
+export default NotebookStorageBars;

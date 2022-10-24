@@ -293,12 +293,10 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     switch (type) {
       case ConfigMapCategory.GENERIC:
       case SecretCategory.GENERIC:
+      case ConfigMapCategory.UPLOAD:
         return values.every(({ key, value }) => isValidGenericKey(key) && !!value);
       case SecretCategory.AWS:
         return isAWSValid(values);
-      case ConfigMapCategory.UPLOAD:
-        // TODO: Write upload logic
-        return false;
       default:
         return false;
     }

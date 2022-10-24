@@ -408,33 +408,6 @@ export type BYONImagePackage = {
   visible: boolean;
 };
 
-export type PipelineRunKind = {
-  spec: {
-    params: {
-      name: string;
-      value: string;
-    }[];
-    pipelineRef: {
-      name: string;
-    };
-    workspaces?: [
-      {
-        name: string;
-        volumeClaimTemplate: {
-          spec: {
-            accessModes: string[];
-            resources: {
-              requests: {
-                storage: string;
-              };
-            };
-          };
-        };
-      },
-    ];
-  };
-} & K8sResourceCommon;
-
 export type ImageTag = {
   image: ImageInfo | undefined;
   tag: ImageTagInfo | undefined;

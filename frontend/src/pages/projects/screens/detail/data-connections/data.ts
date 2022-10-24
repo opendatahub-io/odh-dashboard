@@ -16,7 +16,7 @@ export const columns: SortableData<DataConnection>[] = [
   },
   {
     field: 'connections',
-    label: 'Connected workspaces',
+    label: 'Connected workbenches',
     width: 30,
     sortable: false,
   },

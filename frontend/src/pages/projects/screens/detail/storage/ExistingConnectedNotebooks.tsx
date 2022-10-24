@@ -42,7 +42,7 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
   let content: React.ReactNode;
   if (error) {
     content = (
-      <Alert variant="danger" isInline title="Failed to fetch existing connected workspaces">
+      <Alert variant="danger" isInline title="Failed to fetch existing connected workbenches">
         {error.message}
       </Alert>
     );
@@ -74,7 +74,7 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
     );
   }
 
-  return <FormGroup label="Existing connected workspaces">{content}</FormGroup>;
+  return <FormGroup label="Existing connected workbenches">{content}</FormGroup>;
 };
 
 export default ExistingConnectedNotebooks;

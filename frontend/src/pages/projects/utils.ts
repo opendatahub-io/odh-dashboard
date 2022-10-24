@@ -15,6 +15,8 @@ export const getProjectDisplayName = (project: ProjectKind): string =>
   getDisplayNameFromK8sResource(project);
 export const getProjectDescription = (project: ProjectKind): string =>
   getDescriptionFromK8sResource(project);
+export const getProjectCreationTime = (project: ProjectKind): number =>
+  project.metadata.creationTimestamp ? new Date(project.metadata.creationTimestamp).getTime() : 0;
 
 export const getNotebookDisplayName = (notebook: NotebookKind): string =>
   getDisplayNameFromK8sResource(notebook);

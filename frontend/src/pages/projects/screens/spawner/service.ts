@@ -66,10 +66,10 @@ export const createConfigMapsAndSecretsForNotebook = async (
         case SecretCategory.GENERIC:
           return createSecret(assembleSecret(projectName, dataAsRecord));
         case ConfigMapCategory.GENERIC:
+        case ConfigMapCategory.UPLOAD:
           return createConfigMap(assembleConfigMap(projectName, dataAsRecord));
         case SecretCategory.AWS:
           return createSecret(assembleSecret(projectName, dataAsRecord, 'aws'));
-        case ConfigMapCategory.UPLOAD:
         default:
           return null;
       }

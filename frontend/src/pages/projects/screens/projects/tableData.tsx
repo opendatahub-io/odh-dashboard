@@ -1,6 +1,6 @@
 import { SortableData } from '../../../../utilities/useTableColumnSort';
 import { ProjectKind } from '../../../../k8sTypes';
-import { getProjectDisplayName } from '../../utils';
+import { getProjectCreationTime, getProjectDisplayName } from '../../utils';
 
 export const columns: SortableData<ProjectKind>[] = [
   {
@@ -10,7 +10,7 @@ export const columns: SortableData<ProjectKind>[] = [
   },
   {
     field: 'notebooks',
-    label: 'Data science workspace',
+    label: 'Workbench',
     sortable: false,
   },
   {
@@ -21,7 +21,7 @@ export const columns: SortableData<ProjectKind>[] = [
   {
     field: 'created',
     label: 'Created',
-    sortable: false,
+    sortable: (a, b) => getProjectCreationTime(a) - getProjectCreationTime(b),
   },
   {
     field: 'kebab',

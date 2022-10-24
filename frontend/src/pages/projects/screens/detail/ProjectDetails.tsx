@@ -7,7 +7,7 @@ import DataConnectionsList from './data-connections/DataConnectionsList';
 import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
-import WorkspacesList from './workspaces/WorkspacesList';
+import NotebooksList from './notebooks/NotebooksList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
 
@@ -23,7 +23,7 @@ const ProjectDetails: React.FC = () => {
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
-    { id: ProjectSectionID.WORKSPACES, component: <WorkspacesList /> },
+    { id: ProjectSectionID.WORKBENCHES, component: <NotebooksList /> },
     { id: ProjectSectionID.STORAGES, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
   ];
