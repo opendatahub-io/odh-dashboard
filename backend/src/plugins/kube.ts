@@ -27,6 +27,13 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.log.error(e, 'Failed to retrieve current namespace');
   }
 
+  let saToken;
+  try {
+    saToken = await getSAToken();
+  } catch (e) {
+    fastify.log.error(e, 'Failed to retrieve Service Account token');
+  }
+
   let clusterID;
   try {
     const clusterVersion = await customObjectsApi.getClusterCustomObject(
@@ -67,6 +74,7 @@ export default fp(async (fastify: FastifyInstance) => {
     clusterID,
     clusterBranding,
     rbac,
+    saToken,
   });
 
   // Initialize the watching of resources
@@ -90,6 +98,19 @@ const getCurrentNamespace = async () => {
       resolve(process.env.OC_PROJECT);
     } else {
       resolve(currentContext.split('/')[0]);
+    }
+  });
+};
+
+const getSAToken = async () => {
+  return new Promise<string>((resolve, reject) => {
+    if (currentContext === 'inClusterContext') {
+      fs.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token', (err, data) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(String(data));
+      });
     }
   });
 };

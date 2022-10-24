@@ -37,9 +37,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
     areGpusConfigured = true;
     const gpuDataResponses = [];
     for (let i = 0; i < gpuPodList.items.length; i++) {
-      gpuDataResponses.push(
-        getGPUData(gpuPodList.items[i].status.podIP, fastify.kube.currentUser.token),
-      );
+      gpuDataResponses.push(getGPUData(gpuPodList.items[i].status.podIP, fastify.kube.saToken));
     }
 
     await Promise.all(gpuDataResponses).then((gpuDataList) => {

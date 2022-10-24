@@ -9,7 +9,8 @@ export const status = async (
   request: FastifyRequest,
 ): Promise<{ kube: KubeStatus }> => {
   const kubeContext = fastify.kube.currentContext;
-  const { currentContext, namespace, currentUser, clusterID, clusterBranding } = fastify.kube;
+  const { currentContext, namespace, currentUser, clusterID, clusterBranding, saToken } =
+    fastify.kube;
 
   const userName = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, userName, namespace);
@@ -33,6 +34,7 @@ export const status = async (
         clusterBranding,
         isAdmin,
         isAllowed,
+        saToken,
       },
     };
   }
