@@ -10,7 +10,6 @@ import { Volume, VolumeMount } from '../../../../types';
 import {
   ConfigMapCategory,
   EnvFromSourceType,
-  EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
   StorageData,
@@ -18,7 +17,6 @@ import {
 } from '../../types';
 import { getVolumesByStorageData } from './spawnerUtils';
 import { ROOT_MOUNT_PATH } from '../../pvc/const';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ConfigMapKind, SecretKind } from '../../../../k8sTypes';
 
 export const createPvcDataForNotebook = async (

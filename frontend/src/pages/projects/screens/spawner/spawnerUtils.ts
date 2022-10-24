@@ -11,7 +11,6 @@ import {
 import {
   ConfigMapCategory,
   EnvVariable,
-  EnvVariableData,
   EnvVariableDataEntry,
   SecretCategory,
   StartNotebookData,
