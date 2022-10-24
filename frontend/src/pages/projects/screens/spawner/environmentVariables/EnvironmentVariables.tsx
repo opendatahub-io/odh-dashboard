@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
+import { EnvVariable } from '../../../types';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { ConfigMapCategories, EnvironmentVariableTypes, EnvVariable } from '../../../types';
-import { EMPTY_KEY } from './const';
-import EnvironmentVariablesRow from './EnvironmentVariablesRow';
+import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
@@ -13,49 +12,32 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
   setEnvVariables,
 }) => {
-  const onUpdateEnvVariables = (index: number, variable?: EnvVariable) => {
-    const updatedEnvVariables = [...envVariables];
-
-    if (!variable) {
-      updatedEnvVariables.splice(index, 1); // remove the whole variable at the index
-      setEnvVariables(updatedEnvVariables);
-      return;
-    }
-
-    updatedEnvVariables[index] = { ...variable };
-    setEnvVariables(updatedEnvVariables);
-  };
-
-  const addEnvironmentVariable = () => {
-    const newEnvVar: EnvVariable = {
-      type: EnvironmentVariableTypes.configMap,
-      values: {
-        category: ConfigMapCategories.keyValue,
-        data: [{ key: EMPTY_KEY, value: '' }],
-      },
-    };
-    setEnvVariables([...envVariables, newEnvVar]);
-  };
-
   return (
     <>
-      {envVariables.map((envVariable, index) => (
-        <EnvironmentVariablesRow
-          key={`environment-variable-row-${index}`}
-          rowIndex={`environment-variable-row-${index}`}
+      {envVariables.map((envVariable, i) => (
+        <EnvTypeSelectField
+          key={i}
           envVariable={envVariable}
-          onUpdate={(variable) => onUpdateEnvVariables(index, variable)}
+          onUpdate={(updatedVariable) => {
+            setEnvVariables(
+              envVariables.map((envVariable, mapIndex) =>
+                mapIndex === i ? updatedVariable : envVariable,
+              ),
+            );
+          }}
+          onRemove={() =>
+            setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
+          }
         />
       ))}
       <Button
-        className="odh-notebook-controller__env-var-add-button"
-        isInline
         variant="link"
-        onClick={addEnvironmentVariable}
+        isInline
+        icon={<PlusCircleIcon />}
+        iconPosition="left"
+        onClick={() => setEnvVariables([...envVariables, { type: null }])}
       >
-        <PlusCircleIcon />
-        {` `}
-        {envVariables.length > 0 ? 'Add more variables' : 'Add variable'}
+        {envVariables.length === 0 ? 'Add variable' : 'Add more variables'}
       </Button>
     </>
   );

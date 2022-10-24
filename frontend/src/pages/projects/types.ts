@@ -91,40 +91,30 @@ export type DataConnection = {
   data: Record<string, unknown>; // likely will be a unified CR at some point
 } & DataConnectionAWS;
 
-export type EnvVarCategoryType = {
-  name: string;
-  variables: [
-    {
-      name: string;
-      type: string;
-    },
-  ];
+export type EnvVariableDataEntry = {
+  key: string;
+  value: string;
+};
+
+export type EnvVariableData = {
+  category: SecretCategory | ConfigMapCategory | null;
+  data: EnvVariableDataEntry[];
 };
 
 export type EnvVariable = {
-  type: EnvironmentVariableTypes;
-  values: {
-    category: SecretCategories | ConfigMapCategories;
-    data: { key: string; value: string }[];
-  };
+  type: EnvironmentVariableType | null;
+  values?: EnvVariableData;
 };
 
-export type AWSEnvVarValue = {
-  AWS_ACCESS_KEY_ID: string;
-  AWS_SECRET_ACCESS_KEY: string;
-  AWS_S3_ENDPOINT?: string;
-  AWS_DEFAULT_REGION?: string;
-  AWS_S3_BUCKET?: string;
-};
-export enum EnvironmentVariableTypes {
-  secret = 'Secret',
-  configMap = 'Config Map',
+export enum EnvironmentVariableType {
+  CONFIG_MAP = 'Config Map',
+  SECRET = 'Secret',
 }
-export enum SecretCategories {
-  keyValue = 'Key / Value',
-  aws = 'AWS',
+export enum SecretCategory {
+  GENERIC = 'Key / Value',
+  AWS = 'AWS',
 }
-export enum ConfigMapCategories {
-  keyValue = 'Key / Value',
-  upload = 'Upload',
+export enum ConfigMapCategory {
+  GENERIC = 'Key / Value',
+  UPLOAD = 'Upload',
 }

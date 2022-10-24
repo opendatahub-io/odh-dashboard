@@ -27,7 +27,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const isButtonDisabled =
-    createInProgress || !checkRequiredFieldsForNotebookStart(startNotebookData, storageData);
+    createInProgress ||
+    !checkRequiredFieldsForNotebookStart(startNotebookData, storageData, envVariables);
   const { username } = useUser();
 
   const onCreateNotebook = async (action: 'stop' | 'start') => {
