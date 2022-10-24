@@ -5,6 +5,15 @@ metadata:
 rules:
   - verbs:
       - get
+      - list
+    apiGroups:
+      - machine.openshift.io
+      - autoscaling.openshift.io
+    resources:
+      - machineautoscalers
+      - machinesets
+  - verbs:
+      - get
       - watch
       - list
     apiGroups:
@@ -83,6 +92,14 @@ rules:
       - user.openshift.io
     resources:
       - groups
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
+      - user.openshift.io
+    resources:
+      - users
   - verbs:
       - get
       - list

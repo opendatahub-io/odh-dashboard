@@ -48,7 +48,7 @@ const useSpawnerNotebookModalState = (
           // Not stopped means we are spawning (as it is not running)
           if (!createInProgress) {
             // We are not creating, make sure the Notebook is stopped
-            stopNotebook(notebookNamespace, notebook.metadata.name).catch(() => {
+            stopNotebook().catch(() => {
               console.error('Failed to stop notebook on refresh');
             });
           } else {

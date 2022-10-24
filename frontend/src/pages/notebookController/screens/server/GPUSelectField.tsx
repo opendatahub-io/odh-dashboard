@@ -19,13 +19,23 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
     let lastCall = 0;
     let cancelled = false;
     const fetchGPU = () => {
-      setFetching(true);
       lastCall = Date.now();
-      return getGPU().then(([areGpusAvailable, size]) => {
+      return getGPU().then((gpuInfo) => {
         if (cancelled) return;
-        setAreGpusAvailable(areGpusAvailable);
-        setGpuSize(size || 0);
+        setGpuSize(gpuInfo.available || 0);
+        setAreGpusAvailable(gpuInfo.configured);
         setFetching(false);
+        let availableScaleableGPU = 0;
+        if (gpuInfo.autoscalers) {
+          availableScaleableGPU = gpuInfo.autoscalers.reduce(
+            (highestValue, { availableScale, gpuNumber }) =>
+              availableScale > 0 ? Math.max(highestValue, gpuNumber) : highestValue,
+            0,
+          );
+        }
+        if (gpuInfo.available < availableScaleableGPU) {
+          setGpuSize(availableScaleableGPU);
+        }
       });
     };
 
