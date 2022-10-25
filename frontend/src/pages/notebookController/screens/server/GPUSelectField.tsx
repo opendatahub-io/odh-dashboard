@@ -24,7 +24,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
   if (noAvailableGPUs) {
     helpText = 'All GPUs are currently in use, try again later.';
   } else if (untrustedGPUs && value !== '0') {
-    helpText = 'This GPU value has not been verified';
+    helpText = 'GPU availability is unverified';
     helpTextIcon = <ExclamationTriangleIcon />;
   }
 
