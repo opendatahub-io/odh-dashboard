@@ -65,10 +65,10 @@ export type StartNotebookData = {
   volumes: Volume[];
   volumeMounts: VolumeMount[];
   tolerationSettings?: NotebookTolerationSettings;
-  envFrom?: EnvFromSourceType[];
+  envFrom?: EnvironmentFromVariable[];
   description?: string;
 };
-export type EnvFromSourceType = {
+export type EnvironmentFromVariable = {
   configMapRef?: {
     name: string;
   };
@@ -111,10 +111,10 @@ export enum EnvironmentVariableType {
   SECRET = 'Secret',
 }
 export enum SecretCategory {
-  GENERIC = 'Key / Value',
+  GENERIC = 'Key / value',
   AWS = 'AWS',
 }
 export enum ConfigMapCategory {
-  GENERIC = 'Key / Value',
+  GENERIC = 'Key / value',
   UPLOAD = 'Upload',
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
+import { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,

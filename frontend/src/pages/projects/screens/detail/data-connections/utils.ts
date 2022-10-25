@@ -2,11 +2,7 @@ import * as React from 'react';
 import { deleteSecret } from '../../../../../api';
 import { K8sStatus } from '../../../../../k8sTypes';
 import { DataConnection, DataConnectionAWS, DataConnectionType } from '../../../types';
-import {
-  getAWSSecretRelatedNotebooks,
-  getSecretDescription,
-  getSecretDisplayName,
-} from '../../../utils';
+import { getSecretDescription, getSecretDisplayName } from '../../../utils';
 import { DATA_CONNECTION_TYPES } from './connectionRenderers';
 
 export const isDataConnectionAWS = (
@@ -21,7 +17,15 @@ export const getDataConnectionId = (dataConnection: DataConnection): string => {
   throw new Error('Invalid data connection type');
 };
 
-export const getDataConnectionName = (dataConnection: DataConnection): string => {
+export const getDataConnectionResourceName = (dataConnection: DataConnection): string => {
+  if (isDataConnectionAWS(dataConnection)) {
+    return dataConnection.data.metadata.name;
+  }
+
+  throw new Error('Invalid data connection type');
+};
+
+export const getDataConnectionDisplayName = (dataConnection: DataConnection): string => {
   if (isDataConnectionAWS(dataConnection)) {
     return getSecretDisplayName(dataConnection.data);
   }
@@ -41,14 +45,6 @@ export const getDataConnectionType = (dataConnection: DataConnection): React.Rea
   const connectionType = DATA_CONNECTION_TYPES[dataConnection.type];
   if (connectionType) {
     return connectionType;
-  }
-
-  throw new Error('Invalid data connection type');
-};
-
-export const getDataConnectedNotebookAnnotation = (dataConnection: DataConnection): string => {
-  if (isDataConnectionAWS(dataConnection)) {
-    return getAWSSecretRelatedNotebooks(dataConnection.data);
   }
 
   throw new Error('Invalid data connection type');
