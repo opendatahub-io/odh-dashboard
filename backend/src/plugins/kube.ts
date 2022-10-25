@@ -5,7 +5,6 @@ import * as jsYaml from 'js-yaml';
 import * as k8s from '@kubernetes/client-node';
 import { DEV_MODE } from '../utils/constants';
 import { initializeWatchedResources } from '../utils/resourceUtils';
-import { promiseWithTimeout } from '../utils/requestUtils';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
@@ -30,7 +29,9 @@ export default fp(async (fastify: FastifyInstance) => {
 
   let saToken;
   try {
-    saToken = await promiseWithTimeout(getSAToken(), 5000);
+    if (currentContext === 'inClusterContext') {
+      saToken = await getSAToken();
+    }
   } catch (e) {
     fastify.log.error(e, 'Failed to retrieve Service Account token');
   }
@@ -105,13 +106,11 @@ const getCurrentNamespace = async () => {
 
 const getSAToken = async () => {
   return new Promise<string>((resolve, reject) => {
-    if (currentContext === 'inClusterContext') {
-      fs.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token', (err, data) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(String(data));
-      });
-    }
+    fs.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token', (err, data) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(String(data));
+    });
   });
 };
