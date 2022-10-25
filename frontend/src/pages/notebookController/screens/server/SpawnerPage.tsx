@@ -244,6 +244,7 @@ const SpawnerPage: React.FC = () => {
       gpus: parseInt(selectedGpu),
       envVars: envVars,
       state: NotebookState.Started,
+      username: impersonatedUsername || undefined,
     })
       .then(() => {
         fireStartServerEvent();
