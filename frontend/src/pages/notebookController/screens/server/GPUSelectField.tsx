@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
-import { getGPU } from '../../../../services/gpuService';
-import useNotification from '../../../../utilities/useNotification';
+import useGPUSetting from './useGPUSetting';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 type GPUSelectFieldProps = {
   value: string;
@@ -10,71 +10,38 @@ type GPUSelectFieldProps = {
 
 const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
   const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
-  const [gpuSize, setGpuSize] = React.useState<number>();
-  const [isFetching, setFetching] = React.useState(true);
-  const [areGpusAvailable, setAreGpusAvailable] = React.useState<boolean>(false);
-  const notification = useNotification();
+  const { available, count: gpuSize, loaded, untrustedGPUs } = useGPUSetting();
 
-  React.useEffect(() => {
-    let lastCall = 0;
-    let cancelled = false;
-    const fetchGPU = () => {
-      setFetching(true);
-      lastCall = Date.now();
-      return getGPU().then(([areGpusAvailable, size]) => {
-        if (cancelled) return;
-        setAreGpusAvailable(areGpusAvailable);
-        setGpuSize(size || 0);
-        setFetching(false);
-      });
-    };
-
-    const errorCatch = (e: Error) => {
-      if (cancelled) return;
-      setFetching(false);
-      setAreGpusAvailable(false);
-      setGpuSize(0);
-      console.error(e);
-      notification.error('Failed to fetch GPU', e.message);
-    };
-
-    fetchGPU().catch(errorCatch);
-
-    const onUserClick = (): void => {
-      const now = Date.now();
-      if (now - lastCall > 60_000) {
-        // User has been idle for a while, let us check on GPUs again
-        fetchGPU().catch(errorCatch);
-      }
-    };
-    if (areGpusAvailable) {
-      window.addEventListener('click', onUserClick);
-    }
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('click', onUserClick);
-    };
-  }, [notification, areGpusAvailable]);
-
-  if (!areGpusAvailable) {
+  if (!available) {
     return null;
   }
 
   const gpuOptions = gpuSize === undefined ? [] : Array.from(Array(gpuSize + 1).keys());
   const noAvailableGPUs = gpuOptions.length === 1;
 
+  let helpText: string | undefined;
+  let helpTextIcon: React.ReactNode | undefined;
+  if (noAvailableGPUs) {
+    helpText = 'All GPUs are currently in use, try again later.';
+  } else if (untrustedGPUs && value !== '0') {
+    helpText = 'GPU availability is unverified';
+    helpTextIcon = <ExclamationTriangleIcon />;
+  }
+
   return (
     <FormGroup
       label="Number of GPUs"
       fieldId="modal-notebook-gpu-number"
-      helperText={noAvailableGPUs ? 'All GPUs are currently in use, try again later.' : undefined}
+      helperText={helpText}
+      helperTextIcon={helpTextIcon}
+      validated={untrustedGPUs && value !== '0' ? 'warning' : undefined}
     >
-      {isFetching ? (
+      {!loaded ? (
         <Skeleton height="36px" width="70%" />
       ) : (
         <Select
-          isDisabled={isFetching || noAvailableGPUs}
+          data-id="gpu-select"
+          isDisabled={!loaded || noAvailableGPUs}
           isOpen={gpuDropdownOpen}
           onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
           aria-labelledby="gpu-numbers"
