@@ -123,7 +123,6 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
             id="byon-image-repository-input"
             isRequired
             type="text"
-            id="byon-image-repository-input"
             name="byon-image-repository-input"
             aria-describedby="byon-image-repository-input"
             value={repository}
@@ -144,7 +143,6 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
             id="byon-image-name-input"
             isRequired
             type="text"
-            id="byon-image-name-input"
             name="byon-image-name-input"
             value={name}
             onChange={(value) => {
@@ -157,7 +155,6 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
             id="byon-image-description-input"
             isRequired
             type="text"
-            id="byon-image-description-input"
             name="byon-image-description-input"
             aria-describedby="byon-image-description-input"
             value={description}

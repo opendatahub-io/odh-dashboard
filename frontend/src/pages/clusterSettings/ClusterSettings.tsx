@@ -200,7 +200,6 @@ const ClusterSettings: React.FC = () => {
                   id="pvc-size-input"
                   className="odh-number-input"
                   name="pvc"
-                  id="pvc-size-input"
                   type="text"
                   aria-label="PVC Size Input"
                   value={pvcSize}
@@ -271,7 +270,6 @@ const ClusterSettings: React.FC = () => {
                   id="hour-input"
                   className="odh-number-input__hour"
                   name="hour"
-                  id="hour-input"
                   type="text"
                   aria-label="Culler Timeout Hour Input"
                   value={hour}
@@ -295,7 +293,6 @@ const ClusterSettings: React.FC = () => {
                   id="minute-input"
                   className="odh-number-input"
                   name="minute"
-                  id="minute-input"
                   type="text"
                   aria-label="Culler Timeout Minute Input"
                   value={minute}
@@ -384,7 +381,6 @@ const ClusterSettings: React.FC = () => {
                     isDisabled={!notebookTolerationSettings.enabled}
                     className="odh-number-input"
                     name="tolerationKey"
-                    id="toleration-key-input"
                     type="text"
                     aria-label="Toleration key"
                     value={notebookTolerationSettings.key}
