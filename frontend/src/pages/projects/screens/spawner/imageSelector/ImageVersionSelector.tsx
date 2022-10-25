@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption, Text, Title } from '@patternfly/react-core';
+import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
 import { ImageVersionSelectDataType } from '../types';
 import {
   checkTagBuildValid,
@@ -57,11 +57,12 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
   });
 
   return (
-    <FormGroup fieldId="workspace-image-version-selection">
-      <Title headingLevel="h4" size="md">
-        Version Selection
-      </Title>
-      <Text component="small">Hover an option to learn more information about the package.</Text>
+    <FormGroup
+      isRequired
+      label="Version selection"
+      helperText="Hover an option to learn more information about the package."
+      fieldId="workspace-image-version-selection"
+    >
       <Select
         id="workspace-image-version-selection"
         onToggle={(open) => setVersionSelectionOpen(open)}

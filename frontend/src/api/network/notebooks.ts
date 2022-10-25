@@ -17,6 +17,7 @@ import {
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { genRandomChars } from '../../utilities/string';
 import { StartNotebookData } from '../../pages/projects/types';
+import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 
 const assembleNotebookAffinityAndTolerations = (
   resources: NotebookResources,
@@ -69,12 +70,11 @@ const assembleNotebookAffinityAndTolerations = (
   return { affinity, tolerations };
 };
 
-const assembleNotebook = (data: StartNotebookData): NotebookKind => {
+const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
   const {
     projectName,
     notebookName,
     description,
-    username,
     notebookSize,
     envFrom,
     gpus,
@@ -128,7 +128,7 @@ const assembleNotebook = (data: StartNotebookData): NotebookKind => {
             {
               image: imageUrl,
               imagePullPolicy: 'Always',
-              workingDir: '/opt/app-root/src',
+              workingDir: ROOT_MOUNT_PATH,
               name: notebookId,
               env: [
                 {
@@ -231,8 +231,11 @@ export const startNotebook = (name: string, namespace: string): Promise<Notebook
   });
 };
 
-export const createNotebook = (data: StartNotebookData): Promise<NotebookKind> => {
-  const notebook = assembleNotebook(data);
+export const createNotebook = (
+  data: StartNotebookData,
+  username: string,
+): Promise<NotebookKind> => {
+  const notebook = assembleNotebook(data, username);
 
   return k8sCreateResource<NotebookKind>({
     model: NotebookModel,
@@ -240,8 +243,11 @@ export const createNotebook = (data: StartNotebookData): Promise<NotebookKind> =
   });
 };
 
-export const createNotebookWithoutStarting = (data: StartNotebookData): Promise<NotebookKind> => {
-  const notebook = assembleNotebook(data);
+export const createNotebookWithoutStarting = (
+  data: StartNotebookData,
+  username: string,
+): Promise<NotebookKind> => {
+  const notebook = assembleNotebook(data, username);
   notebook.metadata.annotations['kubeflow-resource-stopped'] = getStopPatchDataString();
 
   return k8sCreateResource<NotebookKind>({
@@ -254,5 +260,70 @@ export const deleteNotebook = (notebookName: string, namespace: string): Promise
   return k8sDeleteResource<NotebookKind, K8sStatus>({
     model: NotebookModel,
     queryOptions: { name: notebookName, ns: namespace },
+  });
+};
+
+export const attachNotebookPVC = (
+  notebookName: string,
+  namespace: string,
+  pvcName: string,
+  mountSuffix: string,
+): Promise<NotebookKind> => {
+  const patches: Patch[] = [
+    {
+      op: 'add',
+      path: '/spec/template/spec/volumes/-',
+      value: { name: pvcName, persistentVolumeClaim: { claimName: pvcName } },
+    },
+    {
+      op: 'add',
+      // TODO: can we assume first container?
+      path: '/spec/template/spec/containers/0/volumeMounts/-',
+      value: { mountPath: `${ROOT_MOUNT_PATH}/${mountSuffix}`, name: pvcName },
+    },
+  ];
+
+  return k8sPatchResource<NotebookKind>({
+    model: NotebookModel,
+    queryOptions: { name: notebookName, ns: namespace },
+    patches,
+  });
+};
+
+export const removeNotebookPVC = (
+  notebookName: string,
+  namespace: string,
+  pvcName: string,
+): Promise<NotebookKind> => {
+  return new Promise((resolve, reject) => {
+    getNotebook(notebookName, namespace)
+      .then((notebook) => {
+        const volumes = notebook.spec.template.spec.volumes || [];
+        // TODO: can we assume first container?
+        const volumeMounts = notebook.spec.template.spec.containers[0].volumeMounts || [];
+
+        const patches: Patch[] = [
+          {
+            op: 'replace',
+            path: '/spec/template/spec/volumes',
+            value: volumes.filter((volume) => volume.persistentVolumeClaim?.claimName !== pvcName),
+          },
+          {
+            op: 'replace',
+            // TODO: can we assume first container?
+            path: '/spec/template/spec/containers/0/volumeMounts',
+            value: volumeMounts.filter((volumeMount) => volumeMount.name !== pvcName),
+          },
+        ];
+
+        k8sPatchResource<NotebookKind>({
+          model: NotebookModel,
+          queryOptions: { name: notebookName, ns: namespace },
+          patches,
+        })
+          .then(resolve)
+          .catch(reject);
+      })
+      .catch(reject);
   });
 };

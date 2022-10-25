@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, TextArea, TextInput } from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem, TextArea, TextInput } from '@patternfly/react-core';
 import { NameDescType } from '../types';
 
 type NameDescriptionFieldProps = {
@@ -7,6 +7,7 @@ type NameDescriptionFieldProps = {
   descriptionFieldId: string;
   data: NameDescType;
   setData: (data: NameDescType) => void;
+  autoFocusName?: boolean;
 };
 
 const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
@@ -14,29 +15,44 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   descriptionFieldId,
   data,
   setData,
+  autoFocusName,
 }) => {
+  const autoSelectNameRef = React.useRef<HTMLInputElement | null>(null);
+
+  React.useEffect(() => {
+    if (autoFocusName) {
+      autoSelectNameRef.current?.focus();
+    }
+  }, [autoFocusName]);
+
   return (
-    <>
-      <FormGroup label="Name" fieldId={nameFieldId}>
-        <TextInput
-          id={nameFieldId}
-          name={nameFieldId}
-          aria-labelledby={nameFieldId}
-          value={data.name}
-          onChange={(name) => setData({ ...data, name })}
-        />
-      </FormGroup>
-      <FormGroup label="Description" fieldId={descriptionFieldId}>
-        <TextArea
-          resizeOrientation="vertical"
-          id={descriptionFieldId}
-          name={descriptionFieldId}
-          aria-labelledby={descriptionFieldId}
-          value={data.description}
-          onChange={(description) => setData({ ...data, description })}
-        />
-      </FormGroup>
-    </>
+    <Stack hasGutter>
+      <StackItem>
+        <FormGroup label="Name" isRequired fieldId={nameFieldId}>
+          <TextInput
+            isRequired
+            ref={autoSelectNameRef}
+            id={nameFieldId}
+            name={nameFieldId}
+            aria-labelledby={nameFieldId}
+            value={data.name}
+            onChange={(name) => setData({ ...data, name })}
+          />
+        </FormGroup>
+      </StackItem>
+      <StackItem>
+        <FormGroup label="Description" fieldId={descriptionFieldId}>
+          <TextArea
+            resizeOrientation="vertical"
+            id={descriptionFieldId}
+            name={descriptionFieldId}
+            aria-labelledby={descriptionFieldId}
+            value={data.description}
+            onChange={(description) => setData({ ...data, description })}
+          />
+        </FormGroup>
+      </StackItem>
+    </Stack>
   );
 };
 

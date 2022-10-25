@@ -4,7 +4,7 @@ import EmptyDetailsList from '../EmptyDetailsList';
 import DetailsSection from '../DetailsSection';
 import { ProjectSectionID } from '../types';
 import { ProjectSectionTitles } from '../const';
-import AddStorageModal from './AddStorageModal';
+import ManageStorageModal from './ManageStorageModal';
 import useProjectPvcs from './useProjectPvcs';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import StorageTable from './StorageTable';
@@ -18,12 +18,12 @@ const StorageList: React.FC = () => {
   return (
     <>
       <DetailsSection
-        id={ProjectSectionID.STORAGE}
-        title={ProjectSectionTitles[ProjectSectionID.STORAGE] || ''}
+        id={ProjectSectionID.STORAGES}
+        title={ProjectSectionTitles[ProjectSectionID.STORAGES] || ''}
         actions={[
           <Button
             onClick={() => setOpen(true)}
-            key={`action-${ProjectSectionID.STORAGE}`}
+            key={`action-${ProjectSectionID.STORAGES}`}
             variant="secondary"
           >
             Add storage
@@ -36,12 +36,13 @@ const StorageList: React.FC = () => {
           <EmptyDetailsList
             title="No storage"
             description="Choose existing, or add new on cluster storage."
+            includeDivider
           />
         }
       >
         <StorageTable pvcs={pvcs} refreshPVCs={forceRefresh} />
       </DetailsSection>
-      <AddStorageModal
+      <ManageStorageModal
         isOpen={isOpen}
         onClose={(submit: boolean) => {
           setOpen(false);

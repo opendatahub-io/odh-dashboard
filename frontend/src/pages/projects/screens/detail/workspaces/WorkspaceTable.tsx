@@ -6,6 +6,7 @@ import { columns } from './data';
 import useTableColumnSort from '../../../../../utilities/useTableColumnSort';
 import { NotebookKind } from '../../../../../k8sTypes';
 import DeleteNotebookModal from '../../../notebook/DeleteNotebookModal';
+import AddNotebookStorage from '../../../pvc/AddNotebookStorage';
 
 type NotebookTableProps = {
   notebookStates: NotebookState[];
@@ -16,6 +17,7 @@ const WorkspaceTable: React.FC<NotebookTableProps> = ({
   notebookStates: unsortedNotebookStates,
   refreshNotebooks,
 }) => {
+  const [addNotebookStorage, setAddNotebookStorage] = React.useState<NotebookKind | undefined>();
   const [notebookToDelete, setNotebookToDelete] = React.useState<NotebookKind | undefined>();
   const sort = useTableColumnSort<NotebookState>(columns, 1);
   const sortedNotebookStates = sort.transformData(unsortedNotebookStates);
@@ -38,10 +40,20 @@ const WorkspaceTable: React.FC<NotebookTableProps> = ({
               key={notebookState.notebook.metadata.uid}
               obj={notebookState}
               onNotebookDelete={setNotebookToDelete}
+              onNotebookAddStorage={setAddNotebookStorage}
             />
           ))}
         </Tbody>
       </TableComposable>
+      <AddNotebookStorage
+        notebook={addNotebookStorage}
+        onClose={(submitted) => {
+          if (submitted) {
+            refreshNotebooks();
+          }
+          setAddNotebookStorage(undefined);
+        }}
+      />
       <DeleteNotebookModal
         notebook={notebookToDelete}
         onClose={(deleted) => {

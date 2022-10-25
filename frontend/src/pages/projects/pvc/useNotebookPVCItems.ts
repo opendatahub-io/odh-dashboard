@@ -17,7 +17,7 @@ const useNotebookPVCItems = (
   React.useEffect(() => {
     Promise.all(pvcNames.map((pvcName) => getPvc(projectName, pvcName)))
       .then((newPVCs) => {
-        setPVCs(newPVCs);
+        setPVCs(newPVCs.filter((pvc) => !!pvc));
         setLoaded(true);
       })
       .catch((e) => setLoadError(e));

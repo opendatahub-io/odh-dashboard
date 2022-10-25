@@ -1,10 +1,16 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
-import { createNotebook, createNotebookWithoutStarting } from '../../../../api';
+import {
+  createNotebook,
+  createNotebookWithoutStarting,
+  patchPVCForNotebook,
+} from '../../../../api';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData, EnvVariable } from '../../types';
 import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
+import { useUser } from '../../../../redux/selectors';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -21,19 +27,37 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
   const isButtonDisabled =
-    !checkRequiredFieldsForNotebookStart(startNotebookData, storageData) || createInProgress;
+    createInProgress ||
+    !checkRequiredFieldsForNotebookStart(startNotebookData, storageData, envVariables);
+  const { username } = useUser();
 
   const onCreateNotebook = async (action: 'stop' | 'start') => {
     setCreateInProgress(true);
-    const { volumes, volumeMounts } = await createPvcDataForNotebook(projectName, storageData);
+    const { volumes, volumeMounts, associatedPVCName } = await createPvcDataForNotebook(
+      projectName,
+      storageData,
+    );
     const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, envVariables);
     const newStartData = { ...startNotebookData, volumes, volumeMounts, envFrom };
-    action === 'start'
-      ? await createNotebook(newStartData)
-      : await createNotebookWithoutStarting(newStartData);
-    // TODO: patch annotation of PVCs and AWS Secrets for related notebook
-    setCreateInProgress(false);
-    navigate(`/projects/${projectName}`);
+    const promise =
+      action === 'start'
+        ? createNotebook(newStartData, username)
+        : createNotebookWithoutStarting(newStartData, username);
+
+    await promise.then((notebook) => {
+      const actions: Promise<K8sResourceCommon>[] = [];
+      if (associatedPVCName) {
+        actions.push(patchPVCForNotebook(associatedPVCName, projectName, notebook.metadata.name));
+      }
+      // TODO: do AWS Secrets
+
+      const doNavigate = () => navigate(`/projects/${projectName}`);
+      if (actions.length === 0) {
+        doNavigate();
+      }
+
+      Promise.all(actions).then(doNavigate);
+    });
   };
 
   return (

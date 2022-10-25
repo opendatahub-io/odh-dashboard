@@ -22,14 +22,7 @@ export const usePVCFreeAmount = (
   }, [refetch]);
 
   const value = result?.data.result[0]?.value[1];
-  const readError = React.useMemo(() => {
-    if (value === undefined) {
-      return new Error('Could not determine the value');
-    }
-    return undefined;
-  }, [value]);
-
   const usedInBytes = parseInt(value || '', 10);
 
-  return [usedInBytes, loaded, loadError || readError];
+  return [usedInBytes, loaded, loadError];
 };

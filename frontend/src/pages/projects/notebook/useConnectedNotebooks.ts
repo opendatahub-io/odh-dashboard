@@ -16,6 +16,7 @@ const useConnectedNotebooks = (
   React.useEffect(() => {
     if (!connectedAnnotation) {
       setLoaded(true);
+      setNotebookNames([]);
       return;
     }
 
@@ -38,6 +39,8 @@ const useConnectedNotebooks = (
         .catch((e) => {
           setError(e);
         });
+    } else {
+      setNotebooks([]);
     }
   }, [namespace, notebookNames]);
 

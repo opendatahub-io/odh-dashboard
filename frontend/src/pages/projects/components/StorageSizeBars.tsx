@@ -21,8 +21,20 @@ type StorageSizeBarProps = {
 
 const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   const [inUseInBytes, loaded, error] = usePVCFreeAmount(pvc);
-  const inUseValue = `${bytesAsGB(inUseInBytes)}Gi`;
   const maxValue = getPvcTotalSize(pvc);
+
+  if (!error && isNaN(inUseInBytes)) {
+    return (
+      <Tooltip
+        removeFindDomNode
+        content="No active storage information at this time, check back later"
+      >
+        <Text component="small">Max {maxValue}</Text>
+      </Tooltip>
+    );
+  }
+
+  const inUseValue = `${bytesAsGB(inUseInBytes)}Gi`;
   const percentage = (parseFloat(inUseValue) / parseFloat(maxValue)) * 100;
   const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
 

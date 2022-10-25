@@ -1,100 +1,105 @@
 import {
-  assemblePvc,
-  createPvc,
-  createConfigMap,
-  createSecret,
   assembleConfigMap,
+  assemblePvc,
   assembleSecret,
+  createConfigMap,
+  createPvc,
+  createSecret,
 } from '../../../../api';
 import { Volume, VolumeMount } from '../../../../types';
 import {
-  StorageData,
+  ConfigMapCategory,
   EnvFromSourceType,
   EnvVariable,
-  EnvironmentVariableTypes,
-  ConfigMapCategories,
-  SecretCategories,
+  SecretCategory,
+  StorageData,
+  StorageType,
 } from '../../types';
 import { getVolumesByStorageData } from './spawnerUtils';
+import { ROOT_MOUNT_PATH } from '../../pvc/const';
+import { ConfigMapKind, SecretKind } from '../../../../k8sTypes';
 
 export const createPvcDataForNotebook = async (
   projectName: string,
   storageData: StorageData,
-): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
-  const { storageType, creating } = storageData;
+): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[]; associatedPVCName: string }> => {
   const {
-    nameDesc: { name: pvcName, description: pvcDescription },
-    size,
-  } = creating;
+    storageType,
+    creating: {
+      nameDesc: { name: pvcName, description: pvcDescription },
+      size,
+    },
+  } = storageData;
+  let k8sPvcName = '';
+
   const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
-  if (storageType === 'persistent' && creating.enabled) {
+
+  if (storageType === StorageType.NEW_PVC) {
     const pvcData = assemblePvc(pvcName, projectName, pvcDescription, size);
+    k8sPvcName = pvcData.metadata.name;
     const pvc = await createPvc(pvcData);
     const newPvcName = pvc.metadata.name;
     volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });
-    volumeMounts.push({ mountPath: '/opt/app-root/src', name: newPvcName });
+    volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: newPvcName });
+  } else if (storageType === StorageType.EXISTING_PVC) {
+    k8sPvcName = storageData.existing.storage;
   }
-  return { volumes, volumeMounts };
-};
-
-const mapKeyValueToData = (
-  data: {
-    key: string;
-    value: string;
-  }[],
-): Record<string, string> => {
-  const newData: Record<string, string> = {};
-  data.forEach(({ key, value }) => (newData[key] = value));
-  return newData;
+  return { volumes, volumeMounts, associatedPVCName: k8sPvcName };
 };
 
 export const createConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   envVariables: EnvVariable[],
 ): Promise<EnvFromSourceType[]> => {
-  const creatingPromises = envVariables.map((envVariable) => {
-    if (envVariable.type === EnvironmentVariableTypes.configMap) {
-      if (envVariable.values.category === ConfigMapCategories.keyValue) {
-        const configMapData = assembleConfigMap(
-          projectName,
-          mapKeyValueToData(envVariable.values.data),
-        );
-        return createConfigMap(configMapData);
+  const creatingPromises = envVariables
+    .map<Promise<SecretKind | ConfigMapKind> | null>((envVar) => {
+      if (!envVar.values) {
+        return null;
       }
-    } else if (envVariable.type === EnvironmentVariableTypes.secret) {
-      const secretMapData = assembleSecret(
-        projectName,
-        mapKeyValueToData(envVariable.values.data),
-        envVariable.values.category === SecretCategories.aws ? 'aws' : undefined,
+
+      const dataAsRecord = envVar.values.data.reduce<Record<string, string>>(
+        (acc, { key, value }) => ({ ...acc, [key]: value }),
+        {},
       );
-      return createSecret(secretMapData);
-    }
-    return Promise.resolve(null);
-  });
 
-  const results = await Promise.all(creatingPromises).catch((e) => {
-    console.error('Creating environment variables failed: ', e);
-  });
-
-  const envFrom: EnvFromSourceType[] = [];
-
-  if (results) {
-    results.forEach((cmOrSecret) => {
-      if (cmOrSecret?.kind === 'Secret') {
-        envFrom.push({
-          secretRef: {
-            name: cmOrSecret.metadata.name,
-          },
-        });
-      } else if (cmOrSecret?.kind === 'ConfigMap') {
-        envFrom.push({
-          configMapRef: {
-            name: cmOrSecret.metadata.name,
-          },
-        });
+      switch (envVar.values.category) {
+        case SecretCategory.GENERIC:
+          return createSecret(assembleSecret(projectName, dataAsRecord));
+        case ConfigMapCategory.GENERIC:
+          return createConfigMap(assembleConfigMap(projectName, dataAsRecord));
+        case SecretCategory.AWS:
+          return createSecret(assembleSecret(projectName, dataAsRecord, 'aws'));
+        case ConfigMapCategory.UPLOAD:
+        default:
+          return null;
       }
-    });
-  }
+    })
+    .filter((v): v is Promise<SecretKind | ConfigMapKind> => !!v);
 
-  return envFrom;
+  return Promise.all(creatingPromises)
+    .then((results: (ConfigMapKind | SecretKind)[]) => {
+      return results.reduce<EnvFromSourceType[]>((acc, resource) => {
+        let envFrom;
+        if (resource.kind === 'Secret') {
+          envFrom = {
+            secretRef: {
+              name: resource.metadata.name,
+            },
+          };
+        } else if (resource.kind === 'ConfigMap') {
+          envFrom = {
+            configMapRef: {
+              name: resource.metadata.name,
+            },
+          };
+        } else {
+          return acc;
+        }
+        return [...acc, envFrom];
+      }, []);
+    })
+    .catch((e) => {
+      console.error('Creating environment variables failed: ', e);
+      throw e;
+    });
 };

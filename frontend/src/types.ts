@@ -72,10 +72,6 @@ export type EnvironmentVariable = EitherNotBoth<
   name: string;
 };
 
-export type EnvVarReducedType = {
-  envVarFileName: string;
-} & EnvVarReducedTypeKeyValues;
-
 export type EnvVarReducedTypeKeyValues = {
   configMap: Record<string, string>;
   secrets: Record<string, string>;
@@ -648,9 +644,35 @@ export enum EventStatus {
   WARNING = 'Warning',
 }
 
+export enum NotebookState {
+  Started = 'started',
+  Stopped = 'stopped',
+}
+
+export type NotebookData = {
+  notebookSizeName: string;
+  imageName: string;
+  imageTagName: string;
+  gpus: number;
+  envVars: EnvVarReducedTypeKeyValues;
+  state: NotebookState;
+  username?: string;
+};
+
 export type UsernameMap<V> = { [username: string]: V };
 
 export type ImageStreamAndVersion = {
   imageStream?: ImageStreamKind;
   imageVersion?: ImageStreamSpecTagType;
+};
+
+export type gpuScale = {
+  availableScale: number;
+  gpuNumber: number;
+};
+
+export type GPUInfo = {
+  configured: boolean;
+  available: number;
+  autoscalers: gpuScale[];
 };

@@ -16,7 +16,7 @@ type RelatedToNotebookAnnotations = Partial<{
 
 export type K8sDSGResource = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
     name: string;
   };
 };
@@ -106,6 +106,20 @@ export type ConfigMapKind = K8sResourceCommon & {
   data?: Record<string, string>;
 };
 
+export type EventKind = K8sResourceCommon & {
+  metadata: {
+    uid?: string;
+  };
+  involvedObject: {
+    name: string;
+  };
+  lastTimestamp?: string;
+  eventTime: string;
+  type: 'Normal' | 'Warning';
+  reason: string;
+  message: string;
+};
+
 export type ImageStreamKind = K8sResourceCommon & {
   metadata: {
     annotations?: ImageStreamAnnotations;
@@ -144,7 +158,7 @@ export type K8sStatus = {
 
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
     name: string;
     namespace: string;
   };
@@ -230,6 +244,7 @@ export type RouteKind = K8sResourceCommon & {
 export type SecretKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
   };
   data?: Record<string, string>;
   stringData?: Record<string, string>;

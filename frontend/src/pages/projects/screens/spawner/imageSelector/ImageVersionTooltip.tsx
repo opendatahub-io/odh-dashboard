@@ -14,6 +14,7 @@ const ImageVersionTooltip: React.FC<ImageVersionTooltipProps> = ({ children, dep
 
   return (
     <Tooltip
+      removeFindDomNode
       content={
         <NotebookImagePackageDetails title="Packages included" dependencies={dependencies} />
       }

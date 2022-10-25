@@ -5,6 +5,7 @@ export type NotebookDataState = {
   notebook: NotebookKind;
   isStarting: boolean;
   isRunning: boolean;
+  runningPodUid: string;
 };
 
 /** A refresh function that can be waited on to complete the refresh and then acted on */
