@@ -52,13 +52,13 @@ endif
 ##################################
 
 .PHONY: deploy
-deploy: login
+deploy:
 	./install/deploy.sh
 
 ##################################
 
 .PHONY: undeploy
-undeploy: login
+undeploy:
 	./install/undeploy.sh
 
 ##################################
