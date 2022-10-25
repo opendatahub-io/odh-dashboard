@@ -5,15 +5,14 @@ import DetailsSection from '../DetailsSection';
 import { ProjectSectionID } from '../types';
 import { ProjectSectionTitles } from '../const';
 import ManageStorageModal from './ManageStorageModal';
-import useProjectPvcs from './useProjectPvcs';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import StorageTable from './StorageTable';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const projectName = currentProject.metadata.name;
-  const [pvcs, loaded, loadError, forceRefresh] = useProjectPvcs(projectName);
+  const {
+    pvcs: { data: pvcs, loaded, error: loadError, refresh },
+  } = React.useContext(ProjectDetailsContext);
 
   return (
     <>
@@ -40,14 +39,14 @@ const StorageList: React.FC = () => {
           />
         }
       >
-        <StorageTable pvcs={pvcs} refreshPVCs={forceRefresh} />
+        <StorageTable pvcs={pvcs} refreshPVCs={refresh} />
       </DetailsSection>
       <ManageStorageModal
         isOpen={isOpen}
         onClose={(submit: boolean) => {
           setOpen(false);
           if (submit) {
-            forceRefresh();
+            refresh();
           }
         }}
       />

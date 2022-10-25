@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Text, Title } from '@patternfly/react-core';
+import ConnectedWorkspaces from '../../../notebook/ConnectedWorkspaces';
 import { DataConnection } from '../../../types';
 import {
   getDataConnectedNotebookAnnotation,
@@ -9,7 +10,6 @@ import {
   getDataConnectionProvider,
   getDataConnectionType,
 } from './utils';
-import ConnectedWorkspaces from '../../../notebook/ConnectedWorkspaces';
 
 type DataConnectionsTableRowProps = {
   obj: DataConnection;
