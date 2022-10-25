@@ -22,7 +22,7 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
       const name = size.name;
       const desc =
         `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
-        `${size.resources.limits?.memory || '??'} Memory ` +
+        `${size.resources.limits?.memory || '??'} Memory | ` +
         `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
         `${size.resources.requests?.memory || '??'} Memory`;
       return <SelectOption key={name} value={name} description={desc} />;
