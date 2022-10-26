@@ -15,7 +15,7 @@ import {
   useCreateStorageObjectForNotebook,
 } from '../../spawner/storage/utils';
 import CreateNewStorageSection from '../../spawner/storage/CreateNewStorageSection';
-import ConnectExistingWorkspace from './ConnectExistingWorkspace';
+import ConnectExistingNotebook from './ConnectExistingNotebook';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 import './ManageStorageModal.scss';
@@ -123,8 +123,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       title={existingData ? 'Edit storage' : 'Add storage'}
       description={
         existingData
-          ? 'Edit storage and optionally connect it to another existing workspace.'
-          : 'Add a storage and optionally connect it with an existing workspace.'
+          ? 'Edit storage and optionally connect it to another existing workbench.'
+          : 'Add a storage and optionally connect it with an existing workbench.'
       }
       variant="medium"
       isOpen={isOpen}
@@ -159,7 +159,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
             }
           />
         )}
-        <ConnectExistingWorkspace
+        <ConnectExistingNotebook
           setForNotebookData={(forNotebookData) => {
             setCreateData('forNotebook', forNotebookData);
           }}

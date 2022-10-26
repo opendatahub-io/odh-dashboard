@@ -6,9 +6,9 @@ import DetailsSection from '../DetailsSection';
 import { ProjectSectionTitles } from '../const';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { useNavigate } from 'react-router-dom';
-import WorkspaceTable from './WorkspaceTable';
+import NotebookTable from './NotebookTable';
 
-const WorkspacesList: React.FC = () => {
+const NotebooksList: React.FC = () => {
   const {
     currentProject,
     notebooks: { data: notebookStates, loaded, error: loadError, refresh: refreshNotebooks },
@@ -18,15 +18,15 @@ const WorkspacesList: React.FC = () => {
 
   return (
     <DetailsSection
-      id={ProjectSectionID.WORKSPACES}
-      title={ProjectSectionTitles[ProjectSectionID.WORKSPACES]}
+      id={ProjectSectionID.WORKBENCHES}
+      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES]}
       actions={[
         <Button
-          key={`action-${ProjectSectionID.WORKSPACES}`}
+          key={`action-${ProjectSectionID.WORKBENCHES}`}
           onClick={() => navigate(`/projects/${projectName}/spawner`)}
           variant="secondary"
         >
-          Create data science workspace
+          Create workbench
         </Button>,
       ]}
       isLoading={!loaded}
@@ -34,15 +34,15 @@ const WorkspacesList: React.FC = () => {
       isEmpty={notebookStates.length === 0}
       emptyState={
         <EmptyDetailsList
-          title="No workspaces"
-          description="To get started, create a workspace."
+          title="No workbenches"
+          description="To get started, create a workbench."
           includeDivider
         />
       }
     >
-      <WorkspaceTable notebookStates={notebookStates} refreshNotebooks={refreshNotebooks} />
+      <NotebookTable notebookStates={notebookStates} refreshNotebooks={refreshNotebooks} />
     </DetailsSection>
   );
 };
 
-export default WorkspacesList;
+export default NotebooksList;

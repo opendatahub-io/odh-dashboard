@@ -22,7 +22,7 @@ export const columns: SortableData<PersistentVolumeClaimKind>[] = [
   },
   {
     field: 'connected',
-    label: 'Connected workspaces',
+    label: 'Connected workbenches',
     width: 25,
     sortable: false,
   },

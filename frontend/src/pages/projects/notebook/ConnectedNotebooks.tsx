@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { List, ListItem, Spinner } from '@patternfly/react-core';
 import { getNotebookDisplayName } from '../utils';
-import useRelatedNotebooks, { ConnectedWorkspaceContext } from './useRelatedNotebooks';
+import useRelatedNotebooks, { ConnectedNotebookContext } from './useRelatedNotebooks';
 
-type ConnectedWorkspacesProps = {
-  context: ConnectedWorkspaceContext;
+type ConnectedNotebooksProps = {
+  context: ConnectedNotebookContext;
   relatedResourceName: string;
 };
 
-const ConnectedWorkspaces: React.FC<ConnectedWorkspacesProps> = ({
+const ConnectedNotebooks: React.FC<ConnectedNotebooksProps> = ({
   context,
   relatedResourceName,
 }) => {
@@ -36,4 +36,4 @@ const ConnectedWorkspaces: React.FC<ConnectedWorkspacesProps> = ({
   );
 };
 
-export default ConnectedWorkspaces;
+export default ConnectedNotebooks;

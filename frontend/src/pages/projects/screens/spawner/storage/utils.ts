@@ -11,7 +11,7 @@ import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import * as React from 'react';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import useRelatedNotebooks, {
-  ConnectedWorkspaceContext,
+  ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
 
 export const getRelatedNotebooksArray = (relatedNotebooksAnnotation: string): string[] => {
@@ -52,7 +52,7 @@ export const useCreateStorageObjectForNotebook = (
   const existingDescription = existingData ? getPvcDescription(existingData) : '';
   const existingSize = existingData ? existingData.spec.resources.requests.storage : '';
   const { connectedNotebooks: relatedNotebooks } = useRelatedNotebooks(
-    ConnectedWorkspaceContext.PVC,
+    ConnectedNotebookContext.PVC,
     existingData ? existingData.metadata.name : undefined,
   );
   React.useEffect(() => {

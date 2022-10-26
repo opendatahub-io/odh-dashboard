@@ -247,13 +247,17 @@ export const createNotebookWithoutStarting = (
   data: StartNotebookData,
   username: string,
 ): Promise<NotebookKind> => {
-  const notebook = assembleNotebook(data, username);
-  notebook.metadata.annotations['kubeflow-resource-stopped'] = getStopPatchDataString();
-
-  return k8sCreateResource<NotebookKind>({
-    model: NotebookModel,
-    resource: notebook,
-  });
+  return new Promise((resolve, reject) =>
+    createNotebook(data, username).then((notebook) =>
+      setTimeout(
+        () =>
+          stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
+            .then(resolve)
+            .catch(reject),
+        10_000,
+      ),
+    ),
+  );
 };
 
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> => {
