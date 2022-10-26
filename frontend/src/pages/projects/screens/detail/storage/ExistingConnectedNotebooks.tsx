@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { NotebookKind } from '../../../../../k8sTypes';
 import { Alert, Chip, ChipGroup, FormGroup, Spinner, Text } from '@patternfly/react-core';
-import { getNotebook } from '../../../../../api';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { getNotebookDisplayName } from '../../../utils';
 
@@ -14,30 +12,9 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
   existingNotebooks,
   setExistingNotebooks,
 }) => {
-  const [notebookMap, setNotebookMap] = React.useState<{ [name: string]: NotebookKind }>({});
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>();
-
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const namespace = currentProject.metadata.name;
-
-  React.useEffect(() => {
-    if (existingNotebooks.length > 0) {
-      Promise.all(existingNotebooks.map((name) => getNotebook(name, namespace)))
-        .then((fetchedNotebooks) => {
-          setNotebookMap(
-            fetchedNotebooks.reduce(
-              (acc, notebook) => ({ ...acc, [notebook.metadata.name]: notebook }),
-              {},
-            ),
-          );
-          setLoaded(true);
-        })
-        .catch((e) => {
-          setError(e);
-        });
-    }
-  }, [existingNotebooks, namespace]);
+  const {
+    notebooks: { data: allNotebooks, loaded, error },
+  } = React.useContext(ProjectDetailsContext);
 
   let content: React.ReactNode;
   if (error) {
@@ -54,7 +31,13 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
     content = (
       <ChipGroup>
         {existingNotebooks.map((notebookName) => {
-          const notebookDisplayName = getNotebookDisplayName(notebookMap[notebookName]);
+          const foundNotebook = allNotebooks.find(
+            (notebook) => notebook.notebook.metadata.name === notebookName,
+          );
+          if (!foundNotebook) {
+            return null;
+          }
+          const notebookDisplayName = getNotebookDisplayName(foundNotebook.notebook);
           return (
             <Chip
               key={notebookDisplayName}
