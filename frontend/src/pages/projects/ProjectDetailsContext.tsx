@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '../../k8sTypes';
+import { PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -18,6 +18,7 @@ import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import { DataConnection } from './types';
 import { NotebookState } from './notebook/types';
+import { POLL_INTERVAL } from '../../utilities/const';
 
 type ContextResourceData<T> = {
   data: T[];
@@ -42,6 +43,10 @@ const DEFAULT_DATA: ContextResourceData<never> = {
 
 const useContextResourceData = <T,>(resourceData): ContextResourceData<T> => {
   const [values, loaded, error, refresh] = resourceData;
+  React.useEffect(() => {
+    const timer = setInterval(() => refresh(), POLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, [refresh]);
   return React.useMemo(
     () => ({
       data: values,

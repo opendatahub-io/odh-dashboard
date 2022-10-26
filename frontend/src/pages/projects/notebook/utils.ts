@@ -3,7 +3,10 @@ import { EventStatus, NotebookStatus } from '../../../types';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean => {
-  return !!notebook.metadata.annotations?.['kubeflow-resource-stopped'];
+  return !!(
+    notebook.metadata.annotations?.['kubeflow-resource-stopped'] &&
+    notebook.metadata.annotations['kubeflow-resource-stopped'] !== 'odh-notebook-controller-lock'
+  );
 };
 
 export const getNotebookMountPaths = (notebook?: NotebookKind): string[] => {

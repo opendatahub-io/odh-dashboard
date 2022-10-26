@@ -7,14 +7,23 @@ import { ProjectSectionTitles } from '../const';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { useNavigate } from 'react-router-dom';
 import NotebookTable from './NotebookTable';
+import { FAST_POLL_INTERVAL } from '../../../../../utilities/const';
 
-const NotebooksList: React.FC = () => {
+const NotebookList: React.FC = () => {
   const {
     currentProject,
     notebooks: { data: notebookStates, loaded, error: loadError, refresh: refreshNotebooks },
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
+
+  React.useEffect(() => {
+    let interval;
+    if (notebookStates.some((notebookState) => notebookState.isStarting)) {
+      interval = setInterval(() => refreshNotebooks(), FAST_POLL_INTERVAL);
+    }
+    return () => clearInterval(interval);
+  }, [notebookStates, refreshNotebooks]);
 
   return (
     <DetailsSection
@@ -45,4 +54,4 @@ const NotebooksList: React.FC = () => {
   );
 };
 
-export default NotebooksList;
+export default NotebookList;
