@@ -47,7 +47,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         </Td>
         <Td>{notebookSize?.name ?? 'Unknown'}</Td>
         <Td>
-          <NotebookStatusToggle notebookState={obj} />
+          <NotebookStatusToggle notebookState={obj} doListen={false} />
         </Td>
         <Td>
           <NotebookRouteLink label="Open" notebook={obj.notebook} isRunning={obj.isRunning} />

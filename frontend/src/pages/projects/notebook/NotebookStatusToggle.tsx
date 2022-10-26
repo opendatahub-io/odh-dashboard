@@ -2,19 +2,22 @@ import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '../../../api';
 import { NotebookState } from './types';
+import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import NotebookStatusPopover from './NotebookStatusPopover';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
+  doListen: boolean;
 };
 
-const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookState }) => {
+const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookState, doListen }) => {
   const { notebook, isStarting, isRunning, refresh } = notebookState;
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const [isPopoverVisible, setPopoverVisible] = React.useState(false);
+  const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState, doListen);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const notebookName = notebook.metadata.name;
   const notebookNamespace = notebook.metadata.namespace;
@@ -36,8 +39,9 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
     setInProgress(true);
     stopNotebook(notebookName, notebookNamespace).then(() => {
       refresh().then(() => setInProgress(false));
+      listenToNotebookStart(false);
     });
-  }, [notebookName, notebookNamespace, refresh]);
+  }, [notebookName, notebookNamespace, refresh, listenToNotebookStart]);
 
   return (
     <NotebookStatusPopover
@@ -64,6 +68,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
             setInProgress(true);
             startNotebook(notebookName, notebookNamespace).then(() => {
               refresh().then(() => setInProgress(false));
+              listenToNotebookStart(true);
             });
           }
         }}
