@@ -48,10 +48,10 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       isRequired
       helperText="Preloaded notebook images maintained by Red Hat or independent software vendors."
       label="Image selection"
-      fieldId="workspace-image-stream-selection"
+      fieldId="workbench-image-stream-selection"
     >
       <Select
-        id="workspace-image-stream-selection"
+        id="workbench-image-stream-selection"
         onToggle={(open) => setImageSelectionOpen(open)}
         onSelect={(e, selection) => {
           // We know selection here is ImageStreamSelectOptionObjectType

@@ -7,25 +7,25 @@ import NotebookRouteLink from '../../../notebook/NotebookRouteLink';
 import NotebookStatusToggle from '../../../notebook/NotebookStatusToggle';
 import { NotebookKind } from '../../../../../k8sTypes';
 import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
-import useWorkspaceSize from './useWorkspaceSize';
-import useWorkspaceImage from './useWorkspaceImage';
-import WorkspaceSizeDetails from './WorkspaceSizeDetails';
-import WorkspaceStorageBars from './WorkspaceStorageBars';
+import useNotebookSize from './useNotebookSize';
+import useNotebookImage from './useNotebookImage';
+import NotebookSizeDetails from './NotebookSizeDetails';
+import NotebookStorageBars from './NotebookStorageBars';
 
-type WorkspaceTableRowProps = {
+type NotebookTableRowProps = {
   obj: NotebookState;
   onNotebookDelete: (notebook: NotebookKind) => void;
   onNotebookAddStorage: (notebook: NotebookKind) => void;
 };
 
-const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({
+const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   obj,
   onNotebookDelete,
   onNotebookAddStorage,
 }) => {
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
-  const notebookSize = useWorkspaceSize(obj.notebook);
-  const [notebookImage, loaded] = useWorkspaceImage(obj.notebook);
+  const notebookSize = useNotebookSize(obj.notebook);
+  const [notebookImage, loaded] = useNotebookImage(obj.notebook);
 
   return (
     <>
@@ -56,13 +56,13 @@ const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({
           <ActionsColumn
             items={[
               {
-                title: 'Edit workspace',
+                title: 'Edit workbench',
                 onClick: () => {
                   alert('Not implemented yet');
                 },
               },
               {
-                title: 'Delete workspace',
+                title: 'Delete workbench',
                 onClick: () => {
                   onNotebookDelete(obj.notebook);
                 },
@@ -75,7 +75,7 @@ const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({
         <Td />
         <Td>
           <ExpandableRowContent>
-            <WorkspaceStorageBars notebook={obj.notebook} onAddStorage={onNotebookAddStorage} />
+            <NotebookStorageBars notebook={obj.notebook} onAddStorage={onNotebookAddStorage} />
           </ExpandableRowContent>
         </Td>
         <Td>
@@ -89,7 +89,7 @@ const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({
         </Td>
         <Td>
           <ExpandableRowContent>
-            {notebookSize && <WorkspaceSizeDetails notebookSize={notebookSize} />}
+            {notebookSize && <NotebookSizeDetails notebookSize={notebookSize} />}
           </ExpandableRowContent>
         </Td>
         <Td />
@@ -100,4 +100,4 @@ const WorkspaceTableRow: React.FC<WorkspaceTableRowProps> = ({
   );
 };
 
-export default WorkspaceTableRow;
+export default NotebookTableRow;

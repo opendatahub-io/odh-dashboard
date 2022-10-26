@@ -33,7 +33,7 @@ const SpawnerPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Create data science workspace"
+      title="Create workbench"
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
@@ -42,10 +42,10 @@ const SpawnerPage: React.FC = () => {
               <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>
             )}
           />
-          <BreadcrumbItem>Create workspace</BreadcrumbItem>
+          <BreadcrumbItem>Create workbench</BreadcrumbItem>
         </Breadcrumb>
       }
-      description="Configure properties for your data science workspace."
+      description="Configure properties for your workbench."
       loaded
       empty={false}
     >
@@ -64,8 +64,8 @@ const SpawnerPage: React.FC = () => {
           <Form style={{ maxWidth: 600, marginBottom: 'var(--pf-global--spacer--lg)' }}>
             <FormSection id={SpawnerPageSectionID.NAME_DESCRIPTION}>
               <NameDescriptionField
-                nameFieldId="workspace-name"
-                descriptionFieldId="workspace-description"
+                nameFieldId="workbench-name"
+                descriptionFieldId="workbench-description"
                 data={nameDesc}
                 setData={setNameDesc}
                 autoFocusName

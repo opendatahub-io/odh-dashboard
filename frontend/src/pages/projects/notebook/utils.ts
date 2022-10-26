@@ -78,7 +78,7 @@ export const useNotebookStatus = (
 
   const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime ? new Date(annotationTime) : null;
-  console.log(lastActivity);
+
   if (!lastActivity) {
     // Notebook not started, we don't have a filter time, ignore
     return [null, []];

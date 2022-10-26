@@ -2,14 +2,17 @@ import { DEFAULT_PVC_SIZE } from '../../../const';
 import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
+  StorageData,
   StorageType,
   UpdateObjectAtPropAndValue,
 } from '../../../types';
-import { StorageData } from '../../../types';
 import useGenericObjectState from '../../../useGenericObjectState';
-import { getPvcDescription, getPvcDisplayName, getPvcRelatedNotebooks } from '../../../utils';
+import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import * as React from 'react';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import useRelatedNotebooks, {
+  ConnectedNotebookContext,
+} from '../../../notebook/useRelatedNotebooks';
 
 export const getRelatedNotebooksArray = (relatedNotebooksAnnotation: string): string[] => {
   try {
@@ -48,7 +51,10 @@ export const useCreateStorageObjectForNotebook = (
   const existingName = existingData ? getPvcDisplayName(existingData) : '';
   const existingDescription = existingData ? getPvcDescription(existingData) : '';
   const existingSize = existingData ? existingData.spec.resources.requests.storage : '';
-  const relatedNotebooks = existingData ? getPvcRelatedNotebooks(existingData) : '';
+  const { connectedNotebooks: relatedNotebooks } = useRelatedNotebooks(
+    ConnectedNotebookContext.PVC,
+    existingData ? existingData.metadata.name : undefined,
+  );
   React.useEffect(() => {
     if (existingName) {
       setCreateData('nameDesc', {
@@ -56,11 +62,13 @@ export const useCreateStorageObjectForNotebook = (
         description: existingDescription,
       });
 
-      const relatedNotebookValues: string[] = getRelatedNotebooksArray(relatedNotebooks);
-      if (relatedNotebookValues.length > 0) {
+      if (relatedNotebooks.length > 0) {
         setCreateData('hasExistingNotebookConnections', true);
       }
-      setCreateData('existingNotebooks', relatedNotebookValues);
+      setCreateData(
+        'existingNotebooks',
+        relatedNotebooks.map((notebook) => notebook.metadata.name),
+      );
 
       const newSize = parseInt(existingSize);
       if (newSize) {

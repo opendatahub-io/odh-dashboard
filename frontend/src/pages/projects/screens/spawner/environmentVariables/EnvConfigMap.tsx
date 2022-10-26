@@ -3,6 +3,7 @@ import { ConfigMapCategory, EnvVariableData } from '../../../types';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
+import ConfigMapUploadField from './ConfigMapUploadField';
 
 type EnvConfigMapProps = {
   env?: EnvVariableData;
@@ -26,7 +27,9 @@ const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate
             onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
           />
         ),
-        [ConfigMapCategory.UPLOAD]: null,
+        [ConfigMapCategory.UPLOAD]: (
+          <ConfigMapUploadField onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })} />
+        ),
       }}
     />
   );

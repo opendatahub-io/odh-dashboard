@@ -61,10 +61,10 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
       isRequired
       label="Version selection"
       helperText="Hover an option to learn more information about the package."
-      fieldId="workspace-image-version-selection"
+      fieldId="workbench-image-version-selection"
     >
       <Select
-        id="workspace-image-version-selection"
+        id="workbench-image-version-selection"
         onToggle={(open) => setVersionSelectionOpen(open)}
         onSelect={(e, selection) => {
           // We know selection here is ImageVersionSelectOptionObjectType

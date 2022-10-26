@@ -4,6 +4,7 @@
 
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+import { EnvironmentFromVariable } from './pages/projects/types';
 
 export type PrometheusResponse = {
   data: {
@@ -14,6 +15,12 @@ export type PrometheusResponse = {
   };
   status: string;
 };
+
+/**
+ * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
+ * "any string" as a documentation touch point. Has no baring on the type checking.
+ */
+type NumberString = string;
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
@@ -27,6 +34,7 @@ export type DashboardConfig = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
+      gpuSetting?: 'autodetect' | 'hidden' | NumberString;
       notebookTolerationSettings?: NotebookTolerationSettings;
     };
   };
@@ -287,6 +295,7 @@ export type NotebookContainer = {
   imagePullPolicy?: string;
   workingDir?: string;
   env: EnvironmentVariable[];
+  envFrom?: EnvironmentFromVariable[];
   ports?: NotebookPort[];
   resources?: NotebookResources;
   livenessProbe?: Record<string, unknown>;
@@ -406,33 +415,6 @@ export type BYONImagePackage = {
   version: string;
   visible: boolean;
 };
-
-export type PipelineRunKind = {
-  spec: {
-    params: {
-      name: string;
-      value: string;
-    }[];
-    pipelineRef: {
-      name: string;
-    };
-    workspaces?: [
-      {
-        name: string;
-        volumeClaimTemplate: {
-          spec: {
-            accessModes: string[];
-            resources: {
-              requests: {
-                storage: string;
-              };
-            };
-          };
-        };
-      },
-    ];
-  };
-} & K8sResourceCommon;
 
 export type ImageTag = {
   image: ImageInfo | undefined;

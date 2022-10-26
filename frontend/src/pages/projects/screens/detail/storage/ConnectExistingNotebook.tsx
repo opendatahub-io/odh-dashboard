@@ -6,16 +6,16 @@ import { getNotebookMountPaths } from '../../../notebook/utils';
 import { ForNotebookSelection } from '../../../types';
 import MountPathField from '../../../pvc/MountPathField';
 
-type ConnectExistingWorkspaceProps = {
+type ConnectExistingNotebookProps = {
   forNotebookData: ForNotebookSelection;
   setForNotebookData: (value: ForNotebookSelection) => void;
 };
 
-const ConnectExistingWorkspace: React.FC<ConnectExistingWorkspaceProps> = ({
+const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
   forNotebookData,
   setForNotebookData,
 }) => {
-  const [workspaceSelectOpen, setWorkspaceSelectOpen] = React.useState<boolean>(false);
+  const [notebookSelectOpen, setNotebookSelectOpen] = React.useState<boolean>(false);
   const [notebooks, loaded, error] = useProjectNotebooks();
 
   if (error) {
@@ -31,11 +31,11 @@ const ConnectExistingWorkspace: React.FC<ConnectExistingWorkspaceProps> = ({
 
   let placeholderText: string;
   if (!loaded) {
-    placeholderText = 'Fetching workspaces...';
+    placeholderText = 'Fetching workbenches...';
   } else if (noNotebooks) {
-    placeholderText = 'No available workspaces';
+    placeholderText = 'No available workbenches';
   } else {
-    placeholderText = 'Choose an existing workspace';
+    placeholderText = 'Choose an existing workbench';
   }
 
   const inUseMountPaths = getNotebookMountPaths(
@@ -45,18 +45,18 @@ const ConnectExistingWorkspace: React.FC<ConnectExistingWorkspaceProps> = ({
   return (
     <>
       <FormGroup
-        label="Workspace"
-        helperText={!noNotebooks && 'Optionally connect it to an existing workspace'}
-        fieldId="connect-existing-workspace"
+        label="Workbench"
+        helperText={!noNotebooks && 'Optionally connect it to an existing workbench'}
+        fieldId="connect-existing-workbench"
       >
         <Select
           variant="typeahead"
           selections={forNotebookData.name}
-          isOpen={workspaceSelectOpen}
+          isOpen={notebookSelectOpen}
           isDisabled={isDisabled}
           onClear={() => {
             setForNotebookData({ name: '', mountPath: { value: '', error: '' } });
-            setWorkspaceSelectOpen(false);
+            setNotebookSelectOpen(false);
           }}
           onSelect={(e, selection) => {
             if (typeof selection === 'string') {
@@ -64,10 +64,10 @@ const ConnectExistingWorkspace: React.FC<ConnectExistingWorkspaceProps> = ({
                 name: selection,
                 mountPath: { value: '', error: '' },
               });
-              setWorkspaceSelectOpen(false);
+              setNotebookSelectOpen(false);
             }
           }}
-          onToggle={(isOpen) => setWorkspaceSelectOpen(isOpen)}
+          onToggle={(isOpen) => setNotebookSelectOpen(isOpen)}
           placeholderText={placeholderText}
           menuAppendTo="parent"
         >
@@ -91,4 +91,4 @@ const ConnectExistingWorkspace: React.FC<ConnectExistingWorkspaceProps> = ({
   );
 };
 
-export default ConnectExistingWorkspace;
+export default ConnectExistingNotebook;

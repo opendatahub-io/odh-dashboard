@@ -1,16 +1,13 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
-import {
-  createNotebook,
-  createNotebookWithoutStarting,
-  patchPVCForNotebook,
-} from '../../../../api';
+import { createNotebook, patchPVCForNotebook } from '../../../../api';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData, EnvVariable } from '../../types';
 import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
 import { useUser } from '../../../../redux/selectors';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -23,6 +20,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   storageData,
   envVariables,
 }) => {
+  const { refreshAllProjectData } = React.useContext(ProjectDetailsContext);
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -31,7 +29,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     !checkRequiredFieldsForNotebookStart(startNotebookData, storageData, envVariables);
   const { username } = useUser();
 
-  const onCreateNotebook = async (action: 'stop' | 'start') => {
+  const onCreateNotebook = async () => {
     setCreateInProgress(true);
     const { volumes, volumeMounts, associatedPVCName } = await createPvcDataForNotebook(
       projectName,
@@ -39,19 +37,18 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     );
     const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, envVariables);
     const newStartData = { ...startNotebookData, volumes, volumeMounts, envFrom };
-    const promise =
-      action === 'start'
-        ? createNotebook(newStartData, username)
-        : createNotebookWithoutStarting(newStartData, username);
 
-    await promise.then((notebook) => {
+    createNotebook(newStartData, username).then((notebook) => {
       const actions: Promise<K8sResourceCommon>[] = [];
       if (associatedPVCName) {
         actions.push(patchPVCForNotebook(associatedPVCName, projectName, notebook.metadata.name));
       }
       // TODO: do AWS Secrets
 
-      const doNavigate = () => navigate(`/projects/${projectName}`);
+      const doNavigate = () => {
+        refreshAllProjectData();
+        navigate(`/projects/${projectName}`);
+      };
       if (actions.length === 0) {
         doNavigate();
       }
@@ -67,19 +64,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           isDisabled={isButtonDisabled}
           variant="primary"
           id="create-button"
-          onClick={() => onCreateNotebook('stop')}
+          onClick={onCreateNotebook}
         >
-          Create
-        </Button>
-      </ActionListItem>
-      <ActionListItem>
-        <Button
-          isDisabled={isButtonDisabled}
-          variant="secondary"
-          id="create-and-start-button"
-          onClick={() => onCreateNotebook('start')}
-        >
-          Create and start
+          Create workbench
         </Button>
       </ActionListItem>
       <ActionListItem>

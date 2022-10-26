@@ -1,5 +1,5 @@
 export enum ProjectSectionID {
-  WORKSPACES = 'workspaces',
+  WORKBENCHES = 'workbenches',
   STORAGES = 'storages',
   DATA_CONNECTIONS = 'data-connections',
   MODEL_SERVER = 'model-server',

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Button, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { DataConnection } from '../../../types';
-import { deleteDataConnection, getDataConnectionName } from './utils';
+import { deleteDataConnection, getDataConnectionDisplayName } from './utils';
 
 type DeleteDataConnectionModalProps = {
   dataConnection?: DataConnection;
@@ -57,7 +57,7 @@ const DeleteDataConnectionModal: React.FC<DeleteDataConnectionModalProps> = ({
         <StackItem>
           Are you sure you want to delete{' '}
           {dataConnection ? (
-            <strong>{getDataConnectionName(dataConnection)}</strong>
+            <strong>{getDataConnectionDisplayName(dataConnection)}</strong>
           ) : (
             'this data connection'
           )}

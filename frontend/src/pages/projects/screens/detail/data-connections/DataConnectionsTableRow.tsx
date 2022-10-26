@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Text, Title } from '@patternfly/react-core';
+import ConnectedNotebooks from '../../../notebook/ConnectedNotebooks';
+import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
 import { DataConnection } from '../../../types';
 import {
-  getDataConnectedNotebookAnnotation,
   getDataConnectionDescription,
-  getDataConnectionName,
+  getDataConnectionDisplayName,
   getDataConnectionProvider,
+  getDataConnectionResourceName,
   getDataConnectionType,
 } from './utils';
-import ConnectedWorkspaces from '../../../notebook/ConnectedWorkspaces';
 
 type DataConnectionsTableRowProps = {
   obj: DataConnection;
@@ -23,12 +24,15 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
   return (
     <Tr>
       <Td>
-        <Title headingLevel="h4">{getDataConnectionName(obj)}</Title>
+        <Title headingLevel="h4">{getDataConnectionDisplayName(obj)}</Title>
         <Text>{getDataConnectionDescription(obj)}</Text>
       </Td>
       <Td>{getDataConnectionType(obj)}</Td>
       <Td>
-        <ConnectedWorkspaces connectedAnnotation={getDataConnectedNotebookAnnotation(obj)} />
+        <ConnectedNotebooks
+          context={ConnectedNotebookContext.DATA_CONNECTION}
+          relatedResourceName={getDataConnectionResourceName(obj)}
+        />
       </Td>
       <Td>{getDataConnectionProvider(obj)}</Td>
       <Td isActionCell>

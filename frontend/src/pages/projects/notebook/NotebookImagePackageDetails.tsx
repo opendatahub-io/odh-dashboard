@@ -9,12 +9,12 @@ import {
 import { getNameVersionString } from '../screens/spawner/spawnerUtils';
 import { ImageVersionDependencyType } from '../screens/spawner/types';
 
-type WorkspacePackageDetailsProps = {
+type NotebookPackageDetailsProps = {
   dependencies: ImageVersionDependencyType[];
   title?: string;
 };
 
-const NotebookImagePackageDetails: React.FC<WorkspacePackageDetailsProps> = ({
+const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({
   dependencies,
   title,
 }) => {

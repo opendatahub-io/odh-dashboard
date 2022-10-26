@@ -7,11 +7,11 @@ import {
 } from '@patternfly/react-core';
 import { NotebookSize } from '../../../../../types';
 
-type ContainerDetailsProps = {
+type NotebookSizeDetailsProps = {
   notebookSize: NotebookSize;
 };
 
-const WorkspaceSizeDetails: React.FC<ContainerDetailsProps> = ({ notebookSize }) => {
+const NotebookSizeDetails: React.FC<NotebookSizeDetailsProps> = ({ notebookSize }) => {
   const {
     resources: { requests, limits },
   } = notebookSize;
@@ -34,4 +34,4 @@ const WorkspaceSizeDetails: React.FC<ContainerDetailsProps> = ({ notebookSize })
   );
 };
 
-export default WorkspaceSizeDetails;
+export default NotebookSizeDetails;

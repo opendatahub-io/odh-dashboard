@@ -8,12 +8,10 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import NewProjectButton from './NewProjectButton';
+import { Link } from 'react-router-dom';
 
 const EmptyProjects: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <EmptyState>
       <EmptyStateIcon icon={CubesIcon} />
@@ -25,8 +23,8 @@ const EmptyProjects: React.FC = () => {
       </EmptyStateBody>
       <NewProjectButton />
       <EmptyStateSecondaryActions>
-        <Button variant="link" onClick={() => navigate('/notebookController')}>
-          Launch notebook
+        <Button variant="link">
+          <Link to="/notebookController">Launch Jupyter</Link>
         </Button>
       </EmptyStateSecondaryActions>
     </EmptyState>

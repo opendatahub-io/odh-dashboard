@@ -5,11 +5,13 @@ import { ProjectSectionID } from '../types';
 import DetailsSection from '../DetailsSection';
 import { ProjectSectionTitles } from '../const';
 import DataConnectionsTable from './DataConnectionsTable';
-import useDataConnections from './useDataConnections';
 import AddDataConnectionModal from './AddDataConnectionModal';
+import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 
 const DataConnectionsList: React.FC = () => {
-  const [connections, loaded, error, refreshDataConnections] = useDataConnections();
+  const {
+    dataConnections: { data: connections, loaded, error, refresh: refreshDataConnections },
+  } = React.useContext(ProjectDetailsContext);
   const [open, setOpen] = React.useState(false);
 
   return (

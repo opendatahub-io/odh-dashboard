@@ -28,12 +28,12 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
   return (
     <Modal
       variant="small"
-      title="Stop workspace?"
+      title="Stop workbench?"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       actions={[
         <Button key="confirm-stop" variant="primary" onClick={() => onBeforeClose(true)}>
-          Stop workspace
+          Stop workbench
         </Button>,
         <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel
@@ -42,12 +42,12 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
     >
       <Stack hasGutter>
         <StackItem>
-          Are you sure you want to stop the workspace? Any changes without saving will be erased.
+          Are you sure you want to stop the workbench? Any changes without saving will be erased.
         </StackItem>
         {notebook && (
           <StackItem>
             To save changes, access your{' '}
-            <NotebookRouteLink label="workspace" notebook={notebook} isRunning />.
+            <NotebookRouteLink label="workbench" notebook={notebook} isRunning />.
           </StackItem>
         )}
         <StackItem>

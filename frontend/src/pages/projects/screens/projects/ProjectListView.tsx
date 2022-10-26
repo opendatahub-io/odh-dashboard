@@ -1,12 +1,19 @@
 import * as React from 'react';
-import { Divider, Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import {
+  Button,
+  Pagination,
+  SearchInput,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+} from '@patternfly/react-core';
 import { ProjectKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { getProjectDisplayName } from '../../utils';
 import ProjectTable from './ProjectTable';
-import FilterToolbar from './FilterToolbar';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
+import { Link } from 'react-router-dom';
 
 const MIN_PAGE_SIZE = 10;
 
@@ -53,18 +60,26 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
 
   return (
     <>
-      <FilterToolbar
-        search={search}
-        setSearch={(newSearch) => {
-          setSearch(newSearch);
-          setPage(1);
-        }}
-      />
-      <Divider />
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
+            <SearchInput
+              placeholder="Find by name"
+              value={search}
+              onChange={(newSearch) => {
+                setSearch(newSearch);
+                setPage(1);
+              }}
+              onClear={() => setSearch('')}
+            />
+          </ToolbarItem>
+          <ToolbarItem>
             <NewProjectButton />
+          </ToolbarItem>
+          <ToolbarItem>
+            <Button variant="link">
+              <Link to="/notebookController">Launch Jupyter</Link>
+            </Button>
           </ToolbarItem>
           <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
             {pagination('down')}
