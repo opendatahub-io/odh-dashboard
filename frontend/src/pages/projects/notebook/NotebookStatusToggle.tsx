@@ -9,14 +9,15 @@ import NotebookStatusPopover from './NotebookStatusPopover';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
+  doListen: boolean;
 };
 
-const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookState }) => {
+const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookState, doListen }) => {
   const { notebook, isStarting, isRunning, refresh } = notebookState;
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const [isPopoverVisible, setPopoverVisible] = React.useState(false);
-  const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState);
+  const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState, doListen);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const notebookName = notebook.metadata.name;
   const notebookNamespace = notebook.metadata.namespace;

@@ -17,15 +17,15 @@ const StorageList: React.FC = () => {
   return (
     <>
       <DetailsSection
-        id={ProjectSectionID.STORAGES}
-        title={ProjectSectionTitles[ProjectSectionID.STORAGES]}
+        id={ProjectSectionID.CLUSTER_STORAGES}
+        title={ProjectSectionTitles[ProjectSectionID.CLUSTER_STORAGES]}
         actions={[
           <Button
             onClick={() => setOpen(true)}
-            key={`action-${ProjectSectionID.STORAGES}`}
+            key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
             variant="secondary"
           >
-            Add storage
+            Add cluster storage
           </Button>,
         ]}
         isLoading={!loaded}

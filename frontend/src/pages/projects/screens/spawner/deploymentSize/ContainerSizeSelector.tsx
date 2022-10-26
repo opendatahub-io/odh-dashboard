@@ -25,7 +25,7 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
 
   return (
     <FormGroup
-      label="Container Size"
+      label="Container size"
       fieldId="container-size"
       helperText={
         value.notUserDefined ? (

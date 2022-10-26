@@ -4,6 +4,7 @@ import { NotebookState } from './types';
 
 const useRefreshNotebookUntilStart = (
   notebookState: NotebookState,
+  doListen: boolean,
 ): ((listen: boolean) => void) => {
   const [watchingForNotebook, setWatchingForNotebook] = React.useState(false);
   const lastNotebookState = React.useRef<NotebookState>(notebookState);
@@ -11,7 +12,7 @@ const useRefreshNotebookUntilStart = (
 
   React.useEffect(() => {
     let interval;
-    if (watchingForNotebook) {
+    if (watchingForNotebook && doListen) {
       interval = setInterval(() => {
         const { isRunning, refresh } = lastNotebookState.current;
         if (!isRunning) {
@@ -28,7 +29,7 @@ const useRefreshNotebookUntilStart = (
     return () => {
       clearInterval(interval);
     };
-  }, [watchingForNotebook]);
+  }, [watchingForNotebook, doListen]);
 
   return React.useCallback((listen: boolean) => {
     setWatchingForNotebook(listen);
