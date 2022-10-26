@@ -4,8 +4,10 @@ import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean => {
   return !!(
-    notebook.metadata.annotations?.['kubeflow-resource-stopped'] &&
-    notebook.metadata.annotations['kubeflow-resource-stopped'] !== 'odh-notebook-controller-lock'
+    (
+      notebook.metadata.annotations?.['kubeflow-resource-stopped'] &&
+      notebook.metadata.annotations['kubeflow-resource-stopped'] !== 'odh-notebook-controller-lock'
+    ) // 'odh-notebook-controller-lock' is set when first creating the notebook to avoid race conditions, it's a fake stop
   );
 };
 

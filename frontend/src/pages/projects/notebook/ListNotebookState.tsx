@@ -37,7 +37,7 @@ const ListNotebookState: React.FC<ListNotebookStateProps> = ({
       case 'notebook':
         return <NotebookRouteLink notebook={state.notebook} isRunning={state.isRunning} />;
       case 'status':
-        return <NotebookStatusToggle notebookState={state} doListen={true} />;
+        return <NotebookStatusToggle notebookState={state} doListen />;
       default:
         console.error('Unknown show type', show);
         return <>-</>;

@@ -1,4 +1,3 @@
-import { DEFAULT_PVC_SIZE } from '../../../const';
 import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
@@ -13,6 +12,7 @@ import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
+import useDefaultPvcSize from './useAvailablePvcSize';
 
 export const getRelatedNotebooksArray = (relatedNotebooksAnnotation: string): string[] => {
   try {
@@ -29,12 +29,13 @@ export const useCreateStorageObjectForNotebook = (
   setData: UpdateObjectAtPropAndValue<CreatingStorageObjectForNotebook>,
   resetDefaults: () => void,
 ] => {
+  const defaultPvcSize = useDefaultPvcSize();
   const createDataState = useGenericObjectState<CreatingStorageObjectForNotebook>({
     nameDesc: {
       name: '',
       description: '',
     },
-    size: DEFAULT_PVC_SIZE,
+    size: defaultPvcSize,
     forNotebook: {
       name: '',
       mountPath: {
@@ -99,17 +100,19 @@ export const useStorageDataObject = (
   data: StorageData,
   setData: UpdateObjectAtPropAndValue<StorageData>,
   resetDefaults: () => void,
-] =>
-  useGenericObjectState<StorageData>({
+] => {
+  const defaultPvcSize = useDefaultPvcSize();
+  return useGenericObjectState<StorageData>({
     storageType,
     creating: {
       nameDesc: {
         name: '',
         description: '',
       },
-      size: DEFAULT_PVC_SIZE,
+      size: defaultPvcSize,
     },
     existing: {
       storage: '',
     },
   });
+};

@@ -143,12 +143,7 @@ export const isHTMLInputElement = (object: unknown): object is HTMLInputElement 
   return (object as HTMLInputElement).value !== undefined;
 };
 
-export const normalizeBetween = (
-  value: number,
-  min?: number,
-  max?: number,
-  toFixedValue?: number,
-): number => {
+export const normalizeBetween = (value: number, min?: number, max?: number): number => {
   let returnedValue = value;
   if (min !== undefined && max !== undefined) {
     returnedValue = Math.max(Math.min(value, max), min);
@@ -157,5 +152,5 @@ export const normalizeBetween = (
   } else if (max && value >= max) {
     returnedValue = max;
   }
-  return +returnedValue.toFixed(toFixedValue || 2);
+  return Math.floor(returnedValue);
 };

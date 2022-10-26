@@ -92,11 +92,7 @@ const SpawnerPage: React.FC = () => {
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
             >
-              <StorageField
-                storageData={storageData}
-                setStorageData={setStorageData}
-                availableSize={20}
-              />
+              <StorageField storageData={storageData} setStorageData={setStorageData} />
             </FormSection>
           </Form>
         </GenericSidebar>

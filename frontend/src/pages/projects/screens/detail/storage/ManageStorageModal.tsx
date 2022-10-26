@@ -146,7 +146,6 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
         }}
       >
         <CreateNewStorageSection
-          availableSize={20}
           data={createData}
           setData={(key, value) => setCreateData(key, value)}
           disableSize={!!existingData}

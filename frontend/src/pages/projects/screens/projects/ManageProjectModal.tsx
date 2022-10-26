@@ -80,8 +80,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         }}
       >
         <NameDescriptionField
-          nameFieldId="test"
-          descriptionFieldId="test"
+          nameFieldId="manage-project-modal-name"
+          descriptionFieldId="manage-project-modal-description"
           data={nameDesc}
           setData={setNameDesc}
           autoFocusName
