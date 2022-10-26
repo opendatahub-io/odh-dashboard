@@ -16,6 +16,12 @@ export type PrometheusResponse = {
   status: string;
 };
 
+/**
+ * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
+ * "any string" as a documentation touch point. Has no baring on the type checking.
+ */
+type NumberString = string;
+
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
@@ -28,6 +34,7 @@ export type DashboardConfig = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
+      gpuSetting?: 'autodetect' | 'hidden' | NumberString;
       notebookTolerationSettings?: NotebookTolerationSettings;
     };
   };

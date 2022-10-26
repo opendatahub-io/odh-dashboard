@@ -8,10 +8,17 @@ if [[ -z "${OC_PROJECT}" ]]; then
   exit 1
 fi
 
-oc project ${OC_PROJECT} 2> /dev/null || oc new-project ${PROJECT}
-oc label namespace ${OC_PROJECT} openshift.io/cluster-monitoring='true'
-oc project
+if ! oc get project ${OC_PROJECT} 2> /dev/null; then
+  echo "INFO: Project ${OC_PROJECT} does not exist, creating it..."
+  oc new-project ${OC_PROJECT} --skip-config-write=true
+fi
 
+oc config set-context --current --namespace=${OC_PROJECT}
+
+# Allow Prometheus metrics scraping in the namespace
+oc label namespace ${OC_PROJECT} openshift.io/cluster-monitoring='true' --overwrite
+
+# Deploy dashboard manifests using kustomize
 pushd ${KUSTOMIZE_MANIFEST_DIR_OVERLAY_DEV}
 kustomize edit set namespace ${OC_PROJECT}
 kustomize edit set image quay.io/opendatahub/odh-dashboard=${IMAGE_REPOSITORY}
