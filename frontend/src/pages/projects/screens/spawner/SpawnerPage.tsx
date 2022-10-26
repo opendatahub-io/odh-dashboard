@@ -72,7 +72,10 @@ const SpawnerPage: React.FC = () => {
               />
             </FormSection>
             <ImageSelectorField selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
-            <FormSection title="Deployment size" id={SpawnerPageSectionID.DEPLOYMENT_SIZE}>
+            <FormSection
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.DEPLOYMENT_SIZE]}
+              id={SpawnerPageSectionID.DEPLOYMENT_SIZE}
+            >
               <ContainerSizeSelector
                 sizes={sizes}
                 setValue={setSelectedSize}
@@ -85,11 +88,16 @@ const SpawnerPage: React.FC = () => {
             >
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
-            <StorageField
-              storageData={storageData}
-              setStorageData={setStorageData}
-              availableSize={20}
-            />
+            <FormSection
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+              id={SpawnerPageSectionID.CLUSTER_STORAGE}
+            >
+              <StorageField
+                storageData={storageData}
+                setStorageData={setStorageData}
+                availableSize={20}
+              />
+            </FormSection>
           </Form>
         </GenericSidebar>
       </PageSection>

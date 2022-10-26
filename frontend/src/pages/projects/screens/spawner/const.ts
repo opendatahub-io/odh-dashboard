@@ -6,7 +6,7 @@ export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {
   [SpawnerPageSectionID.NOTEBOOK_IMAGE]: 'Notebook image',
   [SpawnerPageSectionID.DEPLOYMENT_SIZE]: 'Deployment size',
   [SpawnerPageSectionID.ENVIRONMENT_VARIABLES]: 'Environment variables',
-  [SpawnerPageSectionID.STORAGE]: 'Storage',
+  [SpawnerPageSectionID.CLUSTER_STORAGE]: 'Cluster storage',
 };
 
 export const ScrollableSelectorID = 'workbench-spawner-page';

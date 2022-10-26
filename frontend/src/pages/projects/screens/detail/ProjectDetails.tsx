@@ -24,7 +24,7 @@ const ProjectDetails: React.FC = () => {
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
     { id: ProjectSectionID.WORKBENCHES, component: <NotebookList /> },
-    { id: ProjectSectionID.STORAGES, component: <StorageList /> },
+    { id: ProjectSectionID.CLUSTER_STORAGES, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
   ];
 

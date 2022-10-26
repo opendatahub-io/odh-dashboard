@@ -1,6 +1,6 @@
 export enum ProjectSectionID {
   WORKBENCHES = 'workbenches',
-  STORAGES = 'storages',
+  CLUSTER_STORAGES = 'cluster-storages',
   DATA_CONNECTIONS = 'data-connections',
 }
 

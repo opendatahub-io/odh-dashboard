@@ -19,6 +19,7 @@ const AWSField: React.FC<AWSFieldProps> = ({ values, onUpdate }) => {
       {Object.values(AWS_KEYS).map((value: AWS_KEYS) => (
         <StackItem key={value}>
           <AWSInputField
+            isPassword={value === AWS_KEYS.SECRET_ACCESS_KEY}
             isRequired={AWS_REQUIRED_KEYS.includes(value)}
             onChange={update}
             type={value}

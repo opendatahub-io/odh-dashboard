@@ -5,7 +5,7 @@ export enum SpawnerPageSectionID {
   NOTEBOOK_IMAGE = 'notebook-image',
   DEPLOYMENT_SIZE = 'deployment-size',
   ENVIRONMENT_VARIABLES = 'environment-variables',
-  STORAGE = 'storage',
+  CLUSTER_STORAGE = 'cluster-storage',
 }
 
 export type SpawnerPageSectionTitlesType = {
