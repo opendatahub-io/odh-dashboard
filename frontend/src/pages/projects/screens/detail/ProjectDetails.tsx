@@ -8,7 +8,7 @@ import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
 import { useAppContext } from 'app/AppContext';
-import ModelServerList from './ModelServerList';
+import ModelServerList from '../../../modelServing/screens/projects/ModelServerList';
 import NotebooksList from './notebooks/NotebooksList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';

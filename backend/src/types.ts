@@ -24,6 +24,7 @@ export type DashboardConfig = K8sResourceCommon & {
       allowedGroups: string;
     };
     notebookSizes?: NotebookSize[];
+    modelServerSizes?: ModelServerSize[];
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
@@ -33,6 +34,22 @@ export type DashboardConfig = K8sResourceCommon & {
         key: string;
       };
     };
+  };
+};
+
+export type ModelServerSize = {
+  name: string;
+  resources: ModelServerResources;
+};
+
+export type ModelServerResources = {
+  limits: {
+    cpu: string;
+    memory: string;
+  };
+  requests: {
+    cpu: string;
+    memory: string;
   };
 };
 

@@ -13,3 +13,10 @@ export const NotebookModel: K8sModelCommon = {
   kind: 'Notebook',
   plural: 'notebooks',
 };
+
+export const ModelServerModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'serving.kserve.io',
+  kind: 'ServingRuntime',
+  plural: 'servingruntimes',
+};

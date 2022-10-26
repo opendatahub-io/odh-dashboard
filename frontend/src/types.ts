@@ -5,6 +5,7 @@
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { EnvironmentFromVariable } from './pages/projects/types';
+import { ModelServerSize } from 'pages/modelServing/screens/types';
 
 export type PrometheusResponse = {
   data: {
@@ -30,6 +31,7 @@ export type DashboardConfig = K8sResourceCommon & {
       allowedGroups: string;
     };
     notebookSizes?: NotebookSize[];
+    modelServerSizes?: ModelServerSize[];
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
