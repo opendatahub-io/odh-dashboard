@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { List, ListItem, Spinner } from '@patternfly/react-core';
 import { getNotebookDisplayName } from '../utils';
-import useRelatedNotebooks, { ConnectedWorkspaceContext } from './useRelatedNotebooks';
+import useRelatedNotebooks, { ConnectedNotebookContext } from './useRelatedNotebooks';
 
 type ConnectedNotebooksProps = {
-  context: ConnectedWorkspaceContext;
+  context: ConnectedNotebookContext;
   relatedResourceName: string;
 };
 

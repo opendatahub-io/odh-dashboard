@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Text, Title } from '@patternfly/react-core';
 import ConnectedNotebooks from '../../../notebook/ConnectedNotebooks';
-import { ConnectedWorkspaceContext } from '../../../notebook/useRelatedNotebooks';
+import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
 import { DataConnection } from '../../../types';
 import {
   getDataConnectionDescription,
@@ -30,7 +30,7 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
       <Td>{getDataConnectionType(obj)}</Td>
       <Td>
         <ConnectedNotebooks
-          context={ConnectedWorkspaceContext.DATA_CONNECTION}
+          context={ConnectedNotebookContext.DATA_CONNECTION}
           relatedResourceName={getDataConnectionResourceName(obj)}
         />
       </Td>

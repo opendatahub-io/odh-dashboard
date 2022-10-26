@@ -6,7 +6,7 @@ import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { HddIcon } from '@patternfly/react-icons';
 import StorageSizeBar from '../../../components/StorageSizeBars';
 import ConnectedNotebooks from '../../../notebook/ConnectedNotebooks';
-import { ConnectedWorkspaceContext } from '../../../notebook/useRelatedNotebooks';
+import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
@@ -33,7 +33,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
         </Td>
         <Td>
           <ConnectedNotebooks
-            context={ConnectedWorkspaceContext.PVC}
+            context={ConnectedNotebookContext.PVC}
             relatedResourceName={obj.metadata.name}
           />
         </Td>
