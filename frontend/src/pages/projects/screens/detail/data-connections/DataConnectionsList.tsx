@@ -11,6 +11,7 @@ import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 const DataConnectionsList: React.FC = () => {
   const {
     dataConnections: { data: connections, loaded, error, refresh: refreshDataConnections },
+    refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
   const [open, setOpen] = React.useState(false);
 
@@ -38,10 +39,7 @@ const DataConnectionsList: React.FC = () => {
           />
         }
       >
-        <DataConnectionsTable
-          connections={connections}
-          refreshDataConnections={refreshDataConnections}
-        />
+        <DataConnectionsTable connections={connections} refreshData={refreshAllProjectData} />
       </DetailsSection>
       <AddDataConnectionModal
         isOpen={open}

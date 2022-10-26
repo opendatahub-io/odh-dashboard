@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { Alert, FormGroup, Select, SelectOption } from '@patternfly/react-core';
-import { getNotebookDisplayName } from '../../../utils';
-import useProjectNotebooks from '../../../notebook/useProjectNotebooks';
+import { Alert } from '@patternfly/react-core';
 import { getNotebookMountPaths } from '../../../notebook/utils';
 import { ForNotebookSelection } from '../../../types';
 import MountPathField from '../../../pvc/MountPathField';
+import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
+import SelectNotebookField from '../../../notebook/SelectNotebookField';
 
 type ConnectExistingNotebookProps = {
   forNotebookData: ForNotebookSelection;
@@ -17,8 +17,10 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
   setForNotebookData,
   isDisabled,
 }) => {
-  const [notebookSelectOpen, setNotebookSelectOpen] = React.useState<boolean>(false);
-  const [notebooks, loaded, error] = useProjectNotebooks();
+  const {
+    notebooks: { data, loaded, error },
+  } = React.useContext(ProjectDetailsContext);
+  const notebooks = data.map(({ notebook }) => notebook);
 
   if (error) {
     return (
@@ -28,58 +30,28 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
     );
   }
 
-  const noNotebooks = notebooks.length === 0;
-  const disabled = isDisabled || !loaded || noNotebooks;
-
-  let placeholderText: string;
-  if (!loaded) {
-    placeholderText = 'Fetching workbenches...';
-  } else if (noNotebooks) {
-    placeholderText = 'No available workbenches';
-  } else {
-    placeholderText = 'Choose an existing workbench';
-  }
-
   const inUseMountPaths = getNotebookMountPaths(
     notebooks.find((notebook) => notebook.metadata.name === forNotebookData.name),
   );
 
   return (
     <>
-      <FormGroup
-        label="Workbench"
-        helperText={!noNotebooks && 'Optionally connect it to an existing workbench'}
-        fieldId="connect-existing-workbench"
-      >
-        <Select
-          variant="typeahead"
-          selections={forNotebookData.name}
-          isOpen={notebookSelectOpen}
-          isDisabled={disabled}
-          onClear={() => {
+      <SelectNotebookField
+        isDisabled={isDisabled}
+        loaded={loaded}
+        notebooks={notebooks}
+        selection={forNotebookData.name}
+        onSelect={(selection) => {
+          if (selection) {
+            setForNotebookData({
+              name: selection,
+              mountPath: { value: '', error: '' },
+            });
+          } else {
             setForNotebookData({ name: '', mountPath: { value: '', error: '' } });
-            setNotebookSelectOpen(false);
-          }}
-          onSelect={(e, selection) => {
-            if (typeof selection === 'string') {
-              setForNotebookData({
-                name: selection,
-                mountPath: { value: '', error: '' },
-              });
-              setNotebookSelectOpen(false);
-            }
-          }}
-          onToggle={(isOpen) => setNotebookSelectOpen(isOpen)}
-          placeholderText={placeholderText}
-          menuAppendTo="parent"
-        >
-          {notebooks.map((notebook) => (
-            <SelectOption key={notebook.metadata.name} value={notebook.metadata.name}>
-              {getNotebookDisplayName(notebook)}
-            </SelectOption>
-          ))}
-        </Select>
-      </FormGroup>
+          }
+        }}
+      />
       {forNotebookData.name && (
         <MountPathField
           inUseMountPaths={inUseMountPaths}

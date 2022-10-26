@@ -15,11 +15,13 @@ import {
 type DataConnectionsTableRowProps = {
   obj: DataConnection;
   onDeleteDataConnection: (dataConnection: DataConnection) => void;
+  onConnectExistingWorkbench: (dataConnection: DataConnection) => void;
 };
 
 const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
   obj,
   onDeleteDataConnection,
+  onConnectExistingWorkbench,
 }) => {
   return (
     <Tr>
@@ -38,6 +40,12 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
       <Td isActionCell>
         <ActionsColumn
           items={[
+            {
+              title: 'Connect to existing workbench',
+              onClick: () => {
+                onConnectExistingWorkbench(obj);
+              },
+            },
             {
               title: 'Delete data connection',
               onClick: () => {

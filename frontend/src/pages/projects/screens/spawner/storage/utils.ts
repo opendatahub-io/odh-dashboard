@@ -43,7 +43,7 @@ export const useCreateStorageObjectForNotebook = (
   const existingName = existingData ? getPvcDisplayName(existingData) : '';
   const existingDescription = existingData ? getPvcDescription(existingData) : '';
   const existingSize = existingData ? existingData.spec.resources.requests.storage : '';
-  const { connectedNotebooks: relatedNotebooks } = useRelatedNotebooks(
+  const { notebooks: relatedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.PVC,
     existingData ? existingData.metadata.name : undefined,
   );
