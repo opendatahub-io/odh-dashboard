@@ -29,7 +29,7 @@ const NotebookList: React.FC = () => {
   return (
     <DetailsSection
       id={ProjectSectionID.WORKBENCHES}
-      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES]}
+      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES] || ''}
       actions={[
         <Button
           key={`action-${ProjectSectionID.WORKBENCHES}`}

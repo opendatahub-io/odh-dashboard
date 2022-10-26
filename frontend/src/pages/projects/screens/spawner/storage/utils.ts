@@ -5,7 +5,6 @@ import {
   StorageType,
   UpdateObjectAtPropAndValue,
 } from '../../../types';
-import useGenericObjectState from '../../../useGenericObjectState';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import * as React from 'react';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
@@ -13,6 +12,7 @@ import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
 import useDefaultPvcSize from './useAvailablePvcSize';
+import useGenericObjectState from '../../../../../utilities/useGenericObjectState';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,

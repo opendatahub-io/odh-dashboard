@@ -33,6 +33,29 @@ export const generateRoleBindingData = (
   return roleBindingObject;
 };
 
+export const generateRoleBindingModelServer = (namespace: string): RoleBindingKind => {
+  const roleBindingObject: RoleBindingKind = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'RoleBinding',
+    metadata: {
+      name: `model-server-sa-${namespace}-view`,
+      namespace,
+    },
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'ClusterRole',
+      name: 'view',
+    },
+    subjects: [
+      {
+        kind: 'ServiceAccount',
+        name: `model-server-sa-${namespace}`,
+      },
+    ],
+  };
+  return roleBindingObject;
+};
+
 export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBindingKind> => {
   return k8sGetResource({
     model: RoleBindingModel,

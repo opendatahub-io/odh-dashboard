@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { UpdateObjectAtPropAndValue } from './types';
+import { UpdateObjectAtPropAndValue } from '../pages/projects/types';
 
 const useGenericObjectState = <T>(
   defaultData: T,

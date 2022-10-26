@@ -4,12 +4,14 @@ import {
   k8sGetResource,
   k8sListResource,
   K8sModelCommon,
+  k8sPatchResource,
   k8sUpdateResource,
+  Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind } from '../../k8sTypes';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
-import { ProjectModel } from '../models';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
+import { NamespaceModel, ProjectModel } from '../models';
 
 export const getProject = (projectName: string): Promise<ProjectKind> => {
   return k8sGetResource<ProjectKind>({
@@ -62,6 +64,7 @@ export const createProject = (
           labels: {
             'opendatahub.io/dashboard': 'true',
             'opendatahub.io/user': translatedUsername,
+            'modelmesh-enable': 'true',
           },
         },
       },
@@ -74,6 +77,20 @@ export const createProject = (
         resolve(namespace.metadata.name);
       })
       .catch(reject);
+  });
+};
+
+const modelMeshLabelPatch: Patch = {
+  op: 'add',
+  path: '/metadata/labels/modelmesh-enable',
+  value: 'true',
+};
+
+export const addSupportModelMeshProject = (name: string): Promise<ProjectKind> => {
+  return k8sPatchResource<ProjectKind>({
+    model: NamespaceModel,
+    queryOptions: { name },
+    patches: [modelMeshLabelPatch],
   });
 };
 

@@ -7,11 +7,11 @@ import { ProjectSectionTitles, ProjectSectionTitlesExtended } from './const';
 import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
-import NotebookList from './notebooks/NotebookList';
+import { useAppContext } from 'app/AppContext';
+import ModelServerList from '../../../modelServing/screens/projects/ModelServerList';
+import NotebooksList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
-import ModelServerList from './ModelServerList';
-import { useAppContext } from 'app/AppContext';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -27,7 +27,7 @@ const ProjectDetails: React.FC = () => {
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
-    { id: ProjectSectionID.WORKBENCHES, component: <NotebookList /> },
+    { id: ProjectSectionID.WORKBENCHES, component: <NotebooksList /> },
     { id: ProjectSectionID.CLUSTER_STORAGES, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
     ...(!modelServingEnabled
