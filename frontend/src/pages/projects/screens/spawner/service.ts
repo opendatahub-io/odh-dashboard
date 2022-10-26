@@ -9,7 +9,7 @@ import {
 import { Volume, VolumeMount } from '../../../../types';
 import {
   ConfigMapCategory,
-  EnvFromSourceType,
+  EnvironmentFromVariable,
   EnvVariable,
   SecretCategory,
   StorageData,
@@ -50,7 +50,7 @@ export const createPvcDataForNotebook = async (
 export const createConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   envVariables: EnvVariable[],
-): Promise<EnvFromSourceType[]> => {
+): Promise<EnvironmentFromVariable[]> => {
   const creatingPromises = envVariables
     .map<Promise<SecretKind | ConfigMapKind> | null>((envVar) => {
       if (!envVar.values) {
@@ -78,7 +78,7 @@ export const createConfigMapsAndSecretsForNotebook = async (
 
   return Promise.all(creatingPromises)
     .then((results: (ConfigMapKind | SecretKind)[]) => {
-      return results.reduce<EnvFromSourceType[]>((acc, resource) => {
+      return results.reduce<EnvironmentFromVariable[]>((acc, resource) => {
         let envFrom;
         if (resource.kind === 'Secret') {
           envFrom = {

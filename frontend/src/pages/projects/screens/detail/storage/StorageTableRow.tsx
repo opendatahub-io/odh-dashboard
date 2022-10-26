@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Text, Title } from '@patternfly/react-core';
-import { getPvcDescription, getPvcDisplayName, getPvcRelatedNotebooks } from '../../../utils';
+import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { HddIcon } from '@patternfly/react-icons';
 import StorageSizeBar from '../../../components/StorageSizeBars';
 import ConnectedWorkspaces from '../../../notebook/ConnectedWorkspaces';
+import { ConnectedWorkspaceContext } from '../../../notebook/useRelatedNotebooks';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
@@ -31,7 +32,10 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
           </Text>
         </Td>
         <Td>
-          <ConnectedWorkspaces connectedAnnotation={getPvcRelatedNotebooks(obj)} />
+          <ConnectedWorkspaces
+            context={ConnectedWorkspaceContext.PVC}
+            relatedResourceName={obj.metadata.name}
+          />
         </Td>
         <Td isActionCell>
           <ActionsColumn

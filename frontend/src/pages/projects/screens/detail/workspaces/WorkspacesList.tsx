@@ -6,15 +6,16 @@ import DetailsSection from '../DetailsSection';
 import { ProjectSectionTitles } from '../const';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { useNavigate } from 'react-router-dom';
-import useProjectNotebookStates from '../../../notebook/useProjectNotebookStates';
 import WorkspaceTable from './WorkspaceTable';
 
 const WorkspacesList: React.FC = () => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const {
+    currentProject,
+    notebooks: { data: notebookStates, loaded, error: loadError, refresh: refreshNotebooks },
+  } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
-  const [notebookStates, loaded, loadError, refreshNotebooks] =
-    useProjectNotebookStates(projectName);
+
   return (
     <DetailsSection
       id={ProjectSectionID.WORKSPACES}

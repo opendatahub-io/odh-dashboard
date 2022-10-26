@@ -1,23 +1,24 @@
 import * as React from 'react';
 import { DataConnection, DataConnectionAWS, DataConnectionType } from '../../../types';
 import { getSecretsByLabel } from '../../../../../api';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { AWSSecretKind } from '../../../../../k8sTypes';
 
-const useDataConnections = (): [
+const useDataConnections = (
+  namespace?: string,
+): [
   connections: DataConnection[],
   loaded: boolean,
   loadError: Error | undefined,
   refreshDataConnections: () => void,
 ] => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
   const [connections, setConnections] = React.useState<DataConnection[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const namespace = currentProject.metadata.name;
-
   const fetchDataConnections = React.useCallback(() => {
+    if (!namespace) {
+      return;
+    }
     getSecretsByLabel(`opendatahub.io/managed=true`, namespace)
       .then((secrets) => {
         const dataConnections = secrets

@@ -1,15 +1,18 @@
 import * as React from 'react';
 import { List, ListItem, Spinner } from '@patternfly/react-core';
 import { getNotebookDisplayName } from '../utils';
-import useConnectedNotebooks from './useConnectedNotebooks';
+import useRelatedNotebooks, { ConnectedWorkspaceContext } from './useRelatedNotebooks';
 
 type ConnectedWorkspacesProps = {
-  /** @see RelatedToNotebookAnnotations type */
-  connectedAnnotation: string; // JSON array value of metadata.name notebooks
+  context: ConnectedWorkspaceContext;
+  relatedResourceName: string;
 };
 
-const ConnectedWorkspaces: React.FC<ConnectedWorkspacesProps> = ({ connectedAnnotation }) => {
-  const [connectedNotebooks, loaded, error] = useConnectedNotebooks(connectedAnnotation);
+const ConnectedWorkspaces: React.FC<ConnectedWorkspacesProps> = ({
+  context,
+  relatedResourceName,
+}) => {
+  const { connectedNotebooks, loaded, error } = useRelatedNotebooks(context, relatedResourceName);
 
   if (!loaded) {
     return <Spinner size="md" />;

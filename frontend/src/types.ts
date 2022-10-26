@@ -4,6 +4,7 @@
 
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+import { EnvironmentFromVariable } from './pages/projects/types';
 
 export type PrometheusResponse = {
   data: {
@@ -286,6 +287,7 @@ export type NotebookContainer = {
   imagePullPolicy?: string;
   workingDir?: string;
   env: EnvironmentVariable[];
+  envFrom?: EnvironmentFromVariable[];
   ports?: NotebookPort[];
   resources?: NotebookResources;
   livenessProbe?: Record<string, unknown>;

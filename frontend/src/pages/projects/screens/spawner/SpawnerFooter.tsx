@@ -11,6 +11,7 @@ import { StartNotebookData, StorageData, EnvVariable } from '../../types';
 import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
 import { useUser } from '../../../../redux/selectors';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -23,6 +24,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   storageData,
   envVariables,
 }) => {
+  const { refreshAllProjectData } = React.useContext(ProjectDetailsContext);
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -51,7 +53,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       }
       // TODO: do AWS Secrets
 
-      const doNavigate = () => navigate(`/projects/${projectName}`);
+      const doNavigate = () => {
+        refreshAllProjectData();
+        navigate(`/projects/${projectName}`);
+      };
       if (actions.length === 0) {
         doNavigate();
       }
