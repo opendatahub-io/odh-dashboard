@@ -10,6 +10,8 @@ type SelectNotebookFieldProps = {
   onSelect: (selection?: string) => void;
   isRequired?: boolean;
   isDisabled?: boolean;
+  selectionHelperText?: string;
+  label?: string;
 };
 
 const SelectNotebookField: React.FC<SelectNotebookFieldProps> = ({
@@ -19,6 +21,8 @@ const SelectNotebookField: React.FC<SelectNotebookFieldProps> = ({
   selection,
   onSelect,
   isDisabled,
+  selectionHelperText,
+  label = 'Workbench',
 }) => {
   const [notebookSelectOpen, setNotebookSelectOpen] = React.useState<boolean>(false);
 
@@ -36,8 +40,8 @@ const SelectNotebookField: React.FC<SelectNotebookFieldProps> = ({
 
   return (
     <FormGroup
-      label="Workbench"
-      helperText={!noNotebooks && 'Optionally connect it to an existing workbench'}
+      label={label}
+      helperText={!noNotebooks && selectionHelperText}
       fieldId="connect-existing-workbench"
       isRequired={isRequired}
     >

@@ -67,14 +67,19 @@ export type StartNotebookData = {
   envFrom?: EnvironmentFromVariable[];
   description?: string;
 };
-export type EnvironmentFromVariable = {
-  configMapRef?: {
-    name: string;
-  };
-  secretRef?: {
+
+export type SecretRef = {
+  secretRef: {
     name: string;
   };
 };
+export type ConfigMapRef = {
+  configMapRef: {
+    name: string;
+  };
+};
+
+export type EnvironmentFromVariable = Partial<SecretRef> & Partial<ConfigMapRef>;
 
 export enum DataConnectionType {
   AWS,

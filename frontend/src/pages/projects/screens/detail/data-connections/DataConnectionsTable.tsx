@@ -6,7 +6,7 @@ import { columns } from './data';
 import DataConnectionsTableRow from './DataConnectionsTableRow';
 import { getDataConnectionId } from './utils';
 import DeleteDataConnectionModal from './DeleteDataConnectionModal';
-import ConnectDataConnectionExistingWorkbenchModal from './ConnectDataConnectionExistingWorkbenchModal';
+import ChangeDataConnectionWorkbenchModal from './ChangeDataConnectionWorkbenchModal';
 
 type DataConnectionsTableProps = {
   connections: DataConnection[];
@@ -49,7 +49,7 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
           ))}
         </Tbody>
       </TableComposable>
-      <ConnectDataConnectionExistingWorkbenchModal
+      <ChangeDataConnectionWorkbenchModal
         dataConnection={connectExistingWorkbench}
         onClose={(successfulConnect) => {
           if (successfulConnect) {

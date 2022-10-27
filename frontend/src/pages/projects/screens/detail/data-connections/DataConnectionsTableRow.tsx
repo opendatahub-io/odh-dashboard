@@ -41,7 +41,7 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
         <ActionsColumn
           items={[
             {
-              title: 'Connect to existing workbench',
+              title: 'Change connected workbenches',
               onClick: () => {
                 onConnectExistingWorkbench(obj);
               },

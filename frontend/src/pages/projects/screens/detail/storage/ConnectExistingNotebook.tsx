@@ -51,6 +51,7 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
             setForNotebookData({ name: '', mountPath: { value: '', error: '' } });
           }
         }}
+        selectionHelperText="Optionally connect it to an existing workbench"
       />
       {forNotebookData.name && (
         <MountPathField
