@@ -196,6 +196,11 @@ export type NotebookKind = K8sResourceCommon & {
       };
     };
   };
+  status?: {
+    containerState?: {
+      terminated?: { [key: string]: string };
+    };
+  };
 };
 
 export type PodKind = K8sResourceCommon & {
