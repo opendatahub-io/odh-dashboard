@@ -21,17 +21,17 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
     <>
       <Tr>
         <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
-        <Td>
+        <Td dataLabel="Name">
           <Title headingLevel="h4">{getPvcDisplayName(obj)}</Title>
           <Text>{getPvcDescription(obj)}</Text>
         </Td>
-        <Td>
+        <Td dataLabel="Type">
           <Text>
             <HddIcon />
             {` Persistent storage`}
           </Text>
         </Td>
-        <Td>
+        <Td dataLabel="Connected workbenches">
           <ConnectedNotebooks
             context={ConnectedNotebookContext.PVC}
             relatedResourceName={obj.metadata.name}
@@ -58,7 +58,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
       </Tr>
       <Tr isExpanded={isExpanded}>
         <Td />
-        <Td>
+        <Td dataLabel="Size">
           <ExpandableRowContent>
             <strong>Size</strong>
             <StorageSizeBar pvc={obj} />
