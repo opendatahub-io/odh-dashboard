@@ -79,6 +79,42 @@ export const createPvc = (data: PersistentVolumeClaimKind): Promise<PersistentVo
   return k8sCreateResource<PersistentVolumeClaimKind>({ model: PVCModel, resource: data });
 };
 
+export const updatePvcDisplayName = (
+  pvcName: string,
+  namespace: string,
+  displayName: string,
+): Promise<PersistentVolumeClaimKind> => {
+  return k8sPatchResource({
+    model: PVCModel,
+    queryOptions: { name: pvcName, ns: namespace },
+    patches: [
+      {
+        op: 'replace',
+        path: '/metadata/annotations/openshift.io~1display-name',
+        value: displayName,
+      },
+    ],
+  });
+};
+
+export const updatePvcDescription = (
+  pvcName: string,
+  namespace: string,
+  description: string,
+): Promise<PersistentVolumeClaimKind> => {
+  return k8sPatchResource({
+    model: PVCModel,
+    queryOptions: { name: pvcName, ns: namespace },
+    patches: [
+      {
+        op: 'replace',
+        path: '/metadata/annotations/openshift.io~1description',
+        value: description,
+      },
+    ],
+  });
+};
+
 export const patchPVCForNotebook = (
   pvcName: string,
   namespace: string,
