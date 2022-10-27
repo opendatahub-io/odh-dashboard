@@ -16,7 +16,7 @@ import {
 } from '../../types';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { genRandomChars } from '../../utilities/string';
-import { StartNotebookData } from '../../pages/projects/types';
+import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 
 const assembleNotebookAffinityAndTolerations = (
@@ -264,6 +264,63 @@ export const deleteNotebook = (notebookName: string, namespace: string): Promise
   return k8sDeleteResource<NotebookKind, K8sStatus>({
     model: NotebookModel,
     queryOptions: { name: notebookName, ns: namespace },
+  });
+};
+
+export const attachNotebookSecret = (
+  notebookName: string,
+  namespace: string,
+  secretName: string,
+  hasExistingEnvFrom: boolean,
+): Promise<NotebookKind> => {
+  const patches: Patch[] = [];
+
+  if (!hasExistingEnvFrom) {
+    // Create the array if it does not exist
+    patches.push({
+      op: 'add',
+      // TODO: can we assume first container?
+      path: '/spec/template/spec/containers/0/envFrom',
+      value: [],
+    });
+  }
+
+  patches.push({
+    op: 'add',
+    // TODO: can we assume first container?
+    path: '/spec/template/spec/containers/0/envFrom/-',
+    value: {
+      secretRef: {
+        name: secretName,
+      },
+    },
+  });
+
+  return k8sPatchResource<NotebookKind>({
+    model: NotebookModel,
+    queryOptions: { name: notebookName, ns: namespace },
+    patches,
+  });
+};
+
+export const replaceNotebookSecret = (
+  notebookName: string,
+  namespace: string,
+  newEnvs: EnvironmentFromVariable[],
+): Promise<NotebookKind> => {
+  const patches: Patch[] = [
+    {
+      op: 'replace',
+      // TODO: can we assume first container?
+      path: '/spec/template/spec/containers/0/envFrom',
+      value: newEnvs,
+    },
+  ];
+
+  return k8sPatchResource<NotebookKind>({
+    model: NotebookModel,
+    queryOptions: { name: notebookName, ns: namespace },
+    patches,
   });
 };
 

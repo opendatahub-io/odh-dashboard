@@ -14,7 +14,7 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const {
-    connectedNotebooks,
+    notebooks: connectedNotebooks,
     loaded: notebookLoaded,
     error: notebookError,
   } = useRelatedNotebooks(ConnectedNotebookContext.PVC, pvcToDelete?.metadata.name);

@@ -3,6 +3,7 @@ import {
   k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
+  K8sModelCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind } from '../../k8sTypes';
@@ -29,27 +30,49 @@ export const createProject = (
   username: string,
   name: string,
   description: string,
-): Promise<ProjectKind> => {
+): Promise<string> => {
   const translatedUsername = usernameTranslate(username);
 
-  return k8sCreateResource<ProjectKind>({
-    model: ProjectModel,
-    resource: {
-      apiVersion: 'project.openshift.io/v1',
-      kind: 'Project',
-      metadata: {
-        name: `${translatedUsername}-${genRandomChars()}`,
-        annotations: {
-          'openshift.io/description': description,
-          'openshift.io/display-name': name,
-          'openshift.io/requester': username,
-        },
-        labels: {
-          'opendatahub.io/dashboard': 'true',
-          'opendatahub.io/user': translatedUsername,
+  // Specific types and models for creating projects
+  const NamespaceModel: K8sModelCommon = {
+    apiVersion: 'v1',
+    kind: 'Namespace',
+    plural: 'namespaces',
+  };
+  type NamespaceKind = ProjectKind & {
+    metadata: {
+      name: string;
+    };
+  };
+
+  return new Promise((resolve, reject) => {
+    k8sCreateResource<NamespaceKind, NamespaceKind>({
+      model: NamespaceModel,
+      resource: {
+        apiVersion: 'v1',
+        kind: 'Namespace',
+        metadata: {
+          name: `dsg-${translatedUsername}-${genRandomChars()}`,
+          annotations: {
+            'openshift.io/description': description,
+            'openshift.io/display-name': name,
+            'openshift.io/requester': username,
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+            'opendatahub.io/user': translatedUsername,
+          },
         },
       },
-    },
+    })
+      .then((namespace) => {
+        if (!namespace) {
+          reject('Unable to create a project due to permissions.');
+          return;
+        }
+        resolve(namespace.metadata.name);
+      })
+      .catch(reject);
   });
 };
 

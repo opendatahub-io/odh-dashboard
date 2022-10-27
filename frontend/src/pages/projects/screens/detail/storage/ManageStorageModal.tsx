@@ -26,7 +26,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
   const {
-    connectedNotebooks,
+    notebooks: connectedNotebooks,
     loaded: notebookLoaded,
     error: notebookError,
   } = useRelatedNotebooks(ConnectedNotebookContext.PVC, existingData?.metadata.name);

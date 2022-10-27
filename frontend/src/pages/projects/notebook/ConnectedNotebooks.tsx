@@ -12,7 +12,11 @@ const ConnectedNotebooks: React.FC<ConnectedNotebooksProps> = ({
   context,
   relatedResourceName,
 }) => {
-  const { connectedNotebooks, loaded, error } = useRelatedNotebooks(context, relatedResourceName);
+  const {
+    notebooks: connectedNotebooks,
+    loaded,
+    error,
+  } = useRelatedNotebooks(context, relatedResourceName);
 
   if (!loaded) {
     return <Spinner size="md" />;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Modal } from '@patternfly/react-core';
+import { Alert, Button, Form, Modal } from '@patternfly/react-core';
 import {
   createProject,
   createRoleBinding,
@@ -25,6 +25,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const [fetching, setFetching] = React.useState(false);
+  const [error, setError] = React.useState<Error | undefined>();
   const [nameDesc, setNameDesc] = React.useState({ name: '', description: '' });
   const { username } = useUser();
   const { dashboardNamespace } = useDashboardNamespace();
@@ -40,6 +41,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   const onBeforeClose = () => {
     onClose();
     setFetching(false);
+    setError(undefined);
     setNameDesc({ name: '', description: '' });
   };
 
@@ -49,12 +51,16 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     if (editProjectData) {
       updateProject(editProjectData, name, description).then(() => onBeforeClose());
     } else {
-      createProject(username, name, description).then((project) => {
-        const projectName = project.metadata.name;
-        const rbName = `${projectName}-image-pullers`;
-        const roleBindingData = generateRoleBindingData(rbName, dashboardNamespace, projectName);
-        createRoleBinding(roleBindingData).then(() => navigate(`/projects/${projectName}`));
-      });
+      createProject(username, name, description)
+        .then((projectName) => {
+          const rbName = `${projectName}-image-pullers`;
+          const roleBindingData = generateRoleBindingData(rbName, dashboardNamespace, projectName);
+          createRoleBinding(roleBindingData).then(() => navigate(`/projects/${projectName}`));
+        })
+        .catch((e) => {
+          setError(e);
+          setFetching(false);
+        });
     }
   };
 
@@ -87,6 +93,11 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
           autoFocusName
         />
       </Form>
+      {error && (
+        <Alert variant="danger" isInline title="Error creating project">
+          {error.message}
+        </Alert>
+      )}
     </Modal>
   );
 };
