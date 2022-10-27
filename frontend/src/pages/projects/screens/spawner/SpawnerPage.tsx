@@ -17,6 +17,7 @@ import { useNotebookSize } from './useNotebookSize';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
+import GPUSelectField from '../../../notebookController/screens/server/GPUSelectField';
 
 const SpawnerPage: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -28,6 +29,7 @@ const SpawnerPage: React.FC = () => {
     imageVersion: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
+  const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
   const [storageData, setStorageData] = useStorageDataObject(StorageType.EPHEMERAL);
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
@@ -94,6 +96,10 @@ const SpawnerPage: React.FC = () => {
                 setValue={setSelectedSize}
                 value={selectedSize}
               />
+              <GPUSelectField
+                value={selectedGpu}
+                setValue={(value: string) => setSelectedGpu(value)}
+              />
             </FormSection>
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
@@ -120,7 +126,7 @@ const SpawnerPage: React.FC = () => {
             projectName: currentProject.metadata.name,
             image: selectedImage,
             notebookSize: selectedSize,
-            gpus: 0,
+            gpus: parseInt(selectedGpu),
             volumes: [],
             volumeMounts: [],
           }}
