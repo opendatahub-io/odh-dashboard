@@ -1,24 +1,17 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal } from '@patternfly/react-core';
-import * as _ from 'lodash';
-import {
-  assemblePvc,
-  attachNotebookPVC,
-  createPvc,
-  patchPvcChanges,
-  removeNotebookPVC,
-} from '../../../../../api';
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import { assemblePvc, attachNotebookPVC, createPvc, removeNotebookPVC } from '../../../../../api';
+import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
-import {
-  getRelatedNotebooksArray,
-  useCreateStorageObjectForNotebook,
-} from '../../spawner/storage/utils';
+import { useCreateStorageObjectForNotebook } from '../../spawner/storage/utils';
 import CreateNewStorageSection from '../../spawner/storage/CreateNewStorageSection';
 import ConnectExistingNotebook from './ConnectExistingNotebook';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 import './ManageStorageModal.scss';
+import useRelatedNotebooks, {
+  ConnectedNotebookContext,
+} from '../../../notebook/useRelatedNotebooks';
 
 type AddStorageModalProps = {
   existingData?: PersistentVolumeClaimKind;
@@ -32,10 +25,17 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const [error, setError] = React.useState<Error | undefined>();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
+  const {
+    connectedNotebooks,
+    loaded: notebookLoaded,
+    error: notebookError,
+  } = useRelatedNotebooks(ConnectedNotebookContext.PVC, existingData?.metadata.name);
+  const [removedNotebooks, setRemovedNotebooks] = React.useState<string[]>([]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
     setActionInProgress(false);
+    setRemovedNotebooks([]);
     resetData();
   };
 
@@ -52,25 +52,17 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       nameDesc: { name, description },
       size,
       forNotebook: { name: notebookName, mountPath },
-      existingNotebooks,
     } = createData;
-    const notebookNames: string[] = [];
-    if (notebookName) {
-      notebookNames.push(notebookName);
-    }
-    if (existingNotebooks.length > 0) {
-      notebookNames.push(...existingNotebooks);
-    }
 
-    const pvc = assemblePvc(name, namespace, description, size, notebookNames);
+    const pvc = assemblePvc(name, namespace, description, size);
 
     const handleError = (e: Error) => {
       setError(e);
       setActionInProgress(false);
     };
-    const handleNotebookNameConnection = () => {
+    const handleNotebookNameConnection = (pvcName: string) => {
       if (notebookName) {
-        attachNotebookPVC(notebookName, namespace, pvc.metadata.name, mountPath.value)
+        attachNotebookPVC(notebookName, namespace, pvcName, mountPath.value)
           .then(() => {
             setActionInProgress(false);
             onBeforeClose(true);
@@ -86,35 +78,23 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     };
 
     if (existingData) {
-      const pvcAnnotations = pvc.metadata.annotations;
-      const existingAnnotations = existingData.metadata.annotations;
-      const annotations = _.isEqual(pvcAnnotations, existingAnnotations)
-        ? undefined
-        : pvcAnnotations;
-      const removedConnectedNotebooks = _.difference<string>(
-        getRelatedNotebooksArray(
-          existingData.metadata.annotations?.['opendatahub.io/related-notebooks'] || '',
-        ),
-        existingNotebooks,
-      );
-      patchPvcChanges(existingData.metadata.name, existingData.metadata.namespace, annotations)
-        .then(() => {
-          if (removedConnectedNotebooks.length > 0) {
-            // Remove connected pvcs
-            Promise.all(
-              removedConnectedNotebooks.map((notebookName) =>
-                removeNotebookPVC(notebookName, namespace, existingData.metadata.name),
-              ),
-            )
-              .then(handleNotebookNameConnection)
-              .catch(handleError);
-            return;
-          }
-          handleNotebookNameConnection();
-        })
-        .catch(handleError);
+      const pvcName = existingData.metadata.name;
+      if (removedNotebooks.length > 0) {
+        // Remove connected pvcs
+        Promise.all(
+          removedNotebooks.map((notebookName) =>
+            removeNotebookPVC(notebookName, namespace, pvcName),
+          ),
+        )
+          .then(() => handleNotebookNameConnection(pvcName))
+          .catch(handleError);
+        return;
+      }
+      handleNotebookNameConnection(pvcName);
     } else {
-      createPvc(pvc).then(handleNotebookNameConnection).catch(handleError);
+      createPvc(pvc)
+        .then((createdPvc) => handleNotebookNameConnection(createdPvc.metadata.name))
+        .catch(handleError);
     }
   };
 
@@ -152,10 +132,12 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
         />
         {createData.hasExistingNotebookConnections && (
           <ExistingConnectedNotebooks
-            existingNotebooks={createData.existingNotebooks}
-            setExistingNotebooks={(newExistingNotebooks) =>
-              setCreateData('existingNotebooks', newExistingNotebooks)
+            connectedNotebooks={connectedNotebooks}
+            onNotebookRemove={(notebook: NotebookKind) =>
+              setRemovedNotebooks([...removedNotebooks, notebook.metadata.name])
             }
+            loaded={notebookLoaded}
+            error={notebookError}
           />
         )}
         <ConnectExistingNotebook
@@ -163,6 +145,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
             setCreateData('forNotebook', forNotebookData);
           }}
           forNotebookData={createData.forNotebook}
+          isDisabled={connectedNotebooks.length !== 0 && removedNotebooks.length === 0}
         />
       </Form>
       {error && (

@@ -9,10 +9,10 @@ import ManageStorageModal from './ManageStorageModal';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
-  refreshPVCs: () => void;
+  refresh: () => void;
 };
 
-const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refreshPVCs }) => {
+const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refresh }) => {
   const [deleteStorage, setDeleteStorage] = React.useState<PersistentVolumeClaimKind | undefined>();
   const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
   const sort = useTableColumnSort<PersistentVolumeClaimKind>(columns, 1);
@@ -46,7 +46,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refresh
         existingData={editPVC}
         onClose={(updated) => {
           if (updated) {
-            refreshPVCs();
+            refresh();
           }
           setEditPVC(undefined);
         }}
@@ -55,7 +55,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refresh
         pvcToDelete={deleteStorage}
         onClose={(deleted) => {
           if (deleted) {
-            refreshPVCs();
+            refresh();
           }
           setDeleteStorage(undefined);
         }}

@@ -14,14 +14,6 @@ import useRelatedNotebooks, {
 } from '../../../notebook/useRelatedNotebooks';
 import useDefaultPvcSize from './useAvailablePvcSize';
 
-export const getRelatedNotebooksArray = (relatedNotebooksAnnotation: string): string[] => {
-  try {
-    return JSON.parse(relatedNotebooksAnnotation);
-  } catch (e) {
-    return [];
-  }
-};
-
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,
 ): [
@@ -43,7 +35,6 @@ export const useCreateStorageObjectForNotebook = (
         error: '',
       },
     },
-    existingNotebooks: [],
     hasExistingNotebookConnections: false,
   });
 
@@ -66,10 +57,6 @@ export const useCreateStorageObjectForNotebook = (
       if (relatedNotebooks.length > 0) {
         setCreateData('hasExistingNotebookConnections', true);
       }
-      setCreateData(
-        'existingNotebooks',
-        relatedNotebooks.map((notebook) => notebook.metadata.name),
-      );
 
       const newSize = parseInt(existingSize);
       if (newSize) {

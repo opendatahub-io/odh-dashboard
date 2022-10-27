@@ -11,7 +11,8 @@ import StorageTable from './StorageTable';
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
   const {
-    pvcs: { data: pvcs, loaded, error: loadError, refresh },
+    pvcs: { data: pvcs, loaded, error: loadError },
+    refreshAllProjectData: refresh,
   } = React.useContext(ProjectDetailsContext);
 
   return (
@@ -39,7 +40,7 @@ const StorageList: React.FC = () => {
           />
         }
       >
-        <StorageTable pvcs={pvcs} refreshPVCs={refresh} />
+        <StorageTable pvcs={pvcs} refresh={refresh} />
       </DetailsSection>
       <ManageStorageModal
         isOpen={isOpen}

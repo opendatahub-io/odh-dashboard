@@ -305,18 +305,30 @@ export const removeNotebookPVC = (
         const volumes = notebook.spec.template.spec.volumes || [];
         // TODO: can we assume first container?
         const volumeMounts = notebook.spec.template.spec.containers[0].volumeMounts || [];
+        const filteredVolumes = volumes.filter(
+          (volume) => volume.persistentVolumeClaim?.claimName !== pvcName,
+        );
+        const filteredVolumeMounts = volumeMounts.filter(
+          (volumeMount) => volumeMount.name !== pvcName,
+        );
 
         const patches: Patch[] = [
           {
             op: 'replace',
             path: '/spec/template/spec/volumes',
-            value: volumes.filter((volume) => volume.persistentVolumeClaim?.claimName !== pvcName),
+            value:
+              filteredVolumes.length === 0
+                ? [{ name: 'cache-volume', emptyDir: {} }]
+                : filteredVolumes,
           },
           {
             op: 'replace',
             // TODO: can we assume first container?
             path: '/spec/template/spec/containers/0/volumeMounts',
-            value: volumeMounts.filter((volumeMount) => volumeMount.name !== pvcName),
+            value:
+              filteredVolumeMounts.length === 0
+                ? [{ mountPath: '/cache', name: 'cache-volume' }]
+                : filteredVolumeMounts,
           },
         ];
 

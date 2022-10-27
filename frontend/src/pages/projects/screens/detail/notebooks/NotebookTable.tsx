@@ -10,12 +10,12 @@ import AddNotebookStorage from '../../../pvc/AddNotebookStorage';
 
 type NotebookTableProps = {
   notebookStates: NotebookState[];
-  refreshNotebooks: () => void;
+  refresh: () => void;
 };
 
 const NotebookTable: React.FC<NotebookTableProps> = ({
   notebookStates: unsortedNotebookStates,
-  refreshNotebooks,
+  refresh,
 }) => {
   const [addNotebookStorage, setAddNotebookStorage] = React.useState<NotebookKind | undefined>();
   const [notebookToDelete, setNotebookToDelete] = React.useState<NotebookKind | undefined>();
@@ -49,7 +49,7 @@ const NotebookTable: React.FC<NotebookTableProps> = ({
         notebook={addNotebookStorage}
         onClose={(submitted) => {
           if (submitted) {
-            refreshNotebooks();
+            refresh();
           }
           setAddNotebookStorage(undefined);
         }}
@@ -58,7 +58,7 @@ const NotebookTable: React.FC<NotebookTableProps> = ({
         notebook={notebookToDelete}
         onClose={(deleted) => {
           if (deleted) {
-            refreshNotebooks();
+            refresh();
           }
           setNotebookToDelete(undefined);
         }}

@@ -80,6 +80,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const dataConnectionRefresh = dataConnections.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
+    setTimeout(notebookRefresh, 2000);
     pvcRefresh();
     dataConnectionRefresh();
   }, [notebookRefresh, pvcRefresh, dataConnectionRefresh]);

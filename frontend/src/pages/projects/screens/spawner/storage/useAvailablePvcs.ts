@@ -1,9 +1,13 @@
 import * as React from 'react';
+import * as _ from 'lodash';
 import { getPvcs } from '../../../../../api';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import { NotebookState } from '../../../notebook/types';
+import { getNotebookPVCNames } from '../../../pvc/utils';
 
 const useAvailablePvcs = (
   projectName: string,
+  notebooks: NotebookState[],
 ): [pvcs: PersistentVolumeClaimKind[], loaded: boolean, loadError: Error | undefined] => {
   const [pvcs, setPvcs] = React.useState<PersistentVolumeClaimKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
@@ -13,7 +17,12 @@ const useAvailablePvcs = (
     if (projectName) {
       getPvcs(projectName)
         .then((newPvcs) => {
-          setPvcs(newPvcs);
+          let usedPvcs: string[] = [];
+          notebooks.forEach((notebook) => {
+            const pvcNames = getNotebookPVCNames(notebook.notebook);
+            usedPvcs = _.union(usedPvcs, pvcNames);
+          });
+          setPvcs(newPvcs.filter((pvc) => !usedPvcs.includes(pvc.metadata.name)));
           setLoaded(true);
         })
         .catch((e) => {
@@ -21,7 +30,7 @@ const useAvailablePvcs = (
           setLoaded(true);
         });
     }
-  }, [projectName]);
+  }, [projectName, notebooks]);
 
   return [pvcs, loaded, loadError];
 };
