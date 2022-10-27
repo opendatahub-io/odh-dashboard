@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Alert, FormSection, Skeleton } from '@patternfly/react-core';
-import { SpawnerPageSectionID } from '../types';
+import { Alert, Skeleton } from '@patternfly/react-core';
 import { ImageStreamKind } from '../../../../../k8sTypes';
 import {
   getDefaultVersionForImageStream,
@@ -55,7 +54,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   }
 
   return (
-    <FormSection title="Notebook image" id={SpawnerPageSectionID.NOTEBOOK_IMAGE}>
+    <>
       {error ? (
         <Alert title="Image loading error" variant="danger">
           {error.message}
@@ -81,7 +80,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
           <ImageStreamPopover selectedImage={selectedImage} />
         </>
       )}
-    </FormSection>
+    </>
   );
 };
 

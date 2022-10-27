@@ -62,7 +62,10 @@ const SpawnerPage: React.FC = () => {
           scrollableSelector={`#${ScrollableSelectorID}`}
         >
           <Form style={{ maxWidth: 600, marginBottom: 'var(--pf-global--spacer--lg)' }}>
-            <FormSection id={SpawnerPageSectionID.NAME_DESCRIPTION}>
+            <FormSection
+              id={SpawnerPageSectionID.NAME_DESCRIPTION}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NAME_DESCRIPTION]}
+            >
               <NameDescriptionField
                 nameFieldId="workbench-name"
                 descriptionFieldId="workbench-description"
@@ -71,10 +74,20 @@ const SpawnerPage: React.FC = () => {
                 autoFocusName
               />
             </FormSection>
-            <ImageSelectorField selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
+            <FormSection
+              title={SpawnerPageSectionID.NOTEBOOK_IMAGE}
+              id={SpawnerPageSectionID.NOTEBOOK_IMAGE}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NOTEBOOK_IMAGE]}
+            >
+              <ImageSelectorField
+                selectedImage={selectedImage}
+                setSelectedImage={setSelectedImage}
+              />
+            </FormSection>
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.DEPLOYMENT_SIZE]}
               id={SpawnerPageSectionID.DEPLOYMENT_SIZE}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DEPLOYMENT_SIZE]}
             >
               <ContainerSizeSelector
                 sizes={sizes}
@@ -85,12 +98,14 @@ const SpawnerPage: React.FC = () => {
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
               id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
             >
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
             >
               <StorageField storageData={storageData} setStorageData={setStorageData} />
             </FormSection>
