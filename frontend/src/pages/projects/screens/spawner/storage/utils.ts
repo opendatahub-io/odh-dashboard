@@ -1,4 +1,3 @@
-import { DEFAULT_PVC_SIZE } from '../../../const';
 import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
@@ -13,14 +12,7 @@ import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
-
-export const getRelatedNotebooksArray = (relatedNotebooksAnnotation: string): string[] => {
-  try {
-    return JSON.parse(relatedNotebooksAnnotation);
-  } catch (e) {
-    return [];
-  }
-};
+import useDefaultPvcSize from './useAvailablePvcSize';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,
@@ -29,12 +21,13 @@ export const useCreateStorageObjectForNotebook = (
   setData: UpdateObjectAtPropAndValue<CreatingStorageObjectForNotebook>,
   resetDefaults: () => void,
 ] => {
+  const defaultPvcSize = useDefaultPvcSize();
   const createDataState = useGenericObjectState<CreatingStorageObjectForNotebook>({
     nameDesc: {
       name: '',
       description: '',
     },
-    size: DEFAULT_PVC_SIZE,
+    size: defaultPvcSize,
     forNotebook: {
       name: '',
       mountPath: {
@@ -42,7 +35,6 @@ export const useCreateStorageObjectForNotebook = (
         error: '',
       },
     },
-    existingNotebooks: [],
     hasExistingNotebookConnections: false,
   });
 
@@ -65,10 +57,6 @@ export const useCreateStorageObjectForNotebook = (
       if (relatedNotebooks.length > 0) {
         setCreateData('hasExistingNotebookConnections', true);
       }
-      setCreateData(
-        'existingNotebooks',
-        relatedNotebooks.map((notebook) => notebook.metadata.name),
-      );
 
       const newSize = parseInt(existingSize);
       if (newSize) {
@@ -99,17 +87,19 @@ export const useStorageDataObject = (
   data: StorageData,
   setData: UpdateObjectAtPropAndValue<StorageData>,
   resetDefaults: () => void,
-] =>
-  useGenericObjectState<StorageData>({
+] => {
+  const defaultPvcSize = useDefaultPvcSize();
+  return useGenericObjectState<StorageData>({
     storageType,
     creating: {
       nameDesc: {
         name: '',
         description: '',
       },
-      size: DEFAULT_PVC_SIZE,
+      size: defaultPvcSize,
     },
     existing: {
       storage: '',
     },
   });
+};

@@ -2,23 +2,19 @@ import * as React from 'react';
 import { FormGroup, InputGroup, InputGroupText, NumberInput } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement, normalizeBetween } from '../../../utilities/utils';
+import useDefaultPvcSize from '../screens/spawner/storage/useAvailablePvcSize';
 
 type PVSizeFieldProps = {
   fieldID: string;
-  availableSize: number;
   size: number;
   setSize: (size: number) => void;
   disable?: boolean;
 };
 
-const PVSizeField: React.FC<PVSizeFieldProps> = ({
-  fieldID,
-  availableSize,
-  size,
-  setSize,
-  disable,
-}) => {
+const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, disable }) => {
   const MIN_SIZE = 1;
+  const defaultSize = useDefaultPvcSize();
+  const availableSize = defaultSize * 2;
 
   const onStep = (step: number) => {
     setSize(normalizeBetween(size + step, MIN_SIZE, availableSize));

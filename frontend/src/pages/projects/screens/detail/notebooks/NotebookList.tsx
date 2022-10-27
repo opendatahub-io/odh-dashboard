@@ -13,6 +13,7 @@ const NotebookList: React.FC = () => {
   const {
     currentProject,
     notebooks: { data: notebookStates, loaded, error: loadError, refresh: refreshNotebooks },
+    refreshAllProjectData: refresh,
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
@@ -49,7 +50,7 @@ const NotebookList: React.FC = () => {
         />
       }
     >
-      <NotebookTable notebookStates={notebookStates} refreshNotebooks={refreshNotebooks} />
+      <NotebookTable notebookStates={notebookStates} refresh={refresh} />
     </DetailsSection>
   );
 };

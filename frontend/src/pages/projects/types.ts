@@ -34,7 +34,6 @@ export type ForNotebookSelection = {
 
 export type CreatingStorageObjectForNotebook = CreatingStorageObject & {
   forNotebook: ForNotebookSelection;
-  existingNotebooks: string[];
   hasExistingNotebookConnections: boolean;
 };
 

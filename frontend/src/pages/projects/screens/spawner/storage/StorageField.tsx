@@ -10,14 +10,9 @@ import '../../detail/storage/ManageStorageModal.scss';
 type StorageFieldType = {
   storageData: StorageData;
   setStorageData: UpdateObjectAtPropAndValue<StorageData>;
-  availableSize: number;
 };
 
-const StorageField: React.FC<StorageFieldType> = ({
-  storageData,
-  setStorageData,
-  availableSize,
-}) => {
+const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData }) => {
   const { storageType, creating, existing } = storageData;
 
   return (
@@ -49,7 +44,6 @@ const StorageField: React.FC<StorageFieldType> = ({
                   setData={(key, value) =>
                     setStorageData('creating', { ...creating, [key]: value })
                   }
-                  availableSize={availableSize}
                 />
               )
             }

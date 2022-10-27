@@ -15,15 +15,11 @@ export const assemblePvc = (
   projectName: string,
   description: string,
   pvcSize: number,
-  associatedNotebookNames?: string[],
 ): PersistentVolumeClaimKind => {
   const annotations = {
     'openshift.io/display-name': pvcName,
     'openshift.io/description': description,
   };
-  if (associatedNotebookNames?.length !== 0) {
-    annotations['opendatahub.io/related-notebooks'] = JSON.stringify(associatedNotebookNames);
-  }
 
   return {
     apiVersion: 'v1',
@@ -81,31 +77,6 @@ export const getAvailableMultiUsePvcs = (
 
 export const createPvc = (data: PersistentVolumeClaimKind): Promise<PersistentVolumeClaimKind> => {
   return k8sCreateResource<PersistentVolumeClaimKind>({ model: PVCModel, resource: data });
-};
-
-export const patchPvcChanges = (
-  pvcName: string,
-  namespace: string,
-  annotations?: PersistentVolumeClaimKind['metadata']['annotations'],
-): Promise<PersistentVolumeClaimKind | null> => {
-  const patches: Patch[] = [];
-  if (annotations) {
-    patches.push({
-      op: 'replace',
-      path: '/metadata/annotations',
-      value: annotations,
-    });
-  }
-
-  if (patches.length === 0) {
-    return Promise.resolve(null);
-  }
-
-  return k8sPatchResource<PersistentVolumeClaimKind>({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: namespace },
-    patches,
-  });
 };
 
 export const patchPVCForNotebook = (

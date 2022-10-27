@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button, Divider } from '@patternfly/react-core';
 import { EnvVariable } from '../../../types';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EnvTypeSelectField from './EnvTypeSelectField';
@@ -15,20 +15,23 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   return (
     <>
       {envVariables.map((envVariable, i) => (
-        <EnvTypeSelectField
-          key={i}
-          envVariable={envVariable}
-          onUpdate={(updatedVariable) => {
-            setEnvVariables(
-              envVariables.map((envVariable, mapIndex) =>
-                mapIndex === i ? updatedVariable : envVariable,
-              ),
-            );
-          }}
-          onRemove={() =>
-            setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
-          }
-        />
+        <>
+          <EnvTypeSelectField
+            key={i}
+            envVariable={envVariable}
+            onUpdate={(updatedVariable) => {
+              setEnvVariables(
+                envVariables.map((envVariable, mapIndex) =>
+                  mapIndex === i ? updatedVariable : envVariable,
+                ),
+              );
+            }}
+            onRemove={() =>
+              setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
+            }
+          />
+          {i !== envVariables.length - 1 && <Divider />}
+        </>
       ))}
       <Button
         variant="link"

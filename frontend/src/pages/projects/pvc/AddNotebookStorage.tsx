@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Button, Form, Modal } from '@patternfly/react-core';
 import { NotebookKind } from '../../../k8sTypes';
 import { getNotebookDisplayName } from '../utils';
-import { getNotebookPVCNames } from './utils';
 import AddExistingStorageField from '../screens/spawner/storage/AddExistingStorageField';
 import { useExistingStorageDataObjectForNotebook } from '../screens/spawner/storage/utils';
 import MountPathField from './MountPathField';
@@ -17,7 +16,6 @@ type AddNotebookStorageProps = {
 const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClose }) => {
   const [existingData, setExistingData, resetDefaults] = useExistingStorageDataObjectForNotebook();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const pvsNames: string[] = notebook ? getNotebookPVCNames(notebook) : [];
   const notebookDisplayName = notebook ? getNotebookDisplayName(notebook) : 'this notebook';
   const inUseMountPaths = getNotebookMountPaths(notebook);
 
@@ -75,7 +73,6 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
         <AddExistingStorageField
           data={{ storage: existingData.name }}
           setData={({ storage }) => setExistingData('name', storage)}
-          excludePVCNames={pvsNames}
         />
         <MountPathField
           inUseMountPaths={inUseMountPaths}

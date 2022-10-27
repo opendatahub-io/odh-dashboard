@@ -8,14 +8,12 @@ import { UpdateObjectAtPropAndValue } from '../../../types';
 type CreateNewStorageSectionProps = {
   data: CreatingStorageObject;
   setData: UpdateObjectAtPropAndValue<CreatingStorageObject>;
-  availableSize: number;
   disableSize?: boolean;
 };
 
 const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
   data,
   setData,
-  availableSize,
   disableSize,
 }) => {
   return (
@@ -33,7 +31,6 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
         <PVSizeField
           fieldID="create-new-storage-size"
           disable={disableSize}
-          availableSize={availableSize}
           size={data.size}
           setSize={(size: number) => setData('size', size)}
         />

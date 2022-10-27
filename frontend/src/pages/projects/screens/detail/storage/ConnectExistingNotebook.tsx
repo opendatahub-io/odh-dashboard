@@ -9,11 +9,13 @@ import MountPathField from '../../../pvc/MountPathField';
 type ConnectExistingNotebookProps = {
   forNotebookData: ForNotebookSelection;
   setForNotebookData: (value: ForNotebookSelection) => void;
+  isDisabled: boolean;
 };
 
 const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
   forNotebookData,
   setForNotebookData,
+  isDisabled,
 }) => {
   const [notebookSelectOpen, setNotebookSelectOpen] = React.useState<boolean>(false);
   const [notebooks, loaded, error] = useProjectNotebooks();
@@ -27,7 +29,7 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
   }
 
   const noNotebooks = notebooks.length === 0;
-  const isDisabled = !loaded || noNotebooks;
+  const disabled = isDisabled || !loaded || noNotebooks;
 
   let placeholderText: string;
   if (!loaded) {
@@ -53,7 +55,7 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
           variant="typeahead"
           selections={forNotebookData.name}
           isOpen={notebookSelectOpen}
-          isDisabled={isDisabled}
+          isDisabled={disabled}
           onClear={() => {
             setForNotebookData({ name: '', mountPath: { value: '', error: '' } });
             setNotebookSelectOpen(false);

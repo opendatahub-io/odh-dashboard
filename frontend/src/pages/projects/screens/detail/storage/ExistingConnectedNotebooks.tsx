@@ -1,21 +1,22 @@
 import * as React from 'react';
 import { Alert, Chip, ChipGroup, FormGroup, Spinner, Text } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { getNotebookDisplayName } from '../../../utils';
+import { NotebookKind } from '../../../../../k8sTypes';
 
 type ExistingConnectedNotebooksProps = {
-  existingNotebooks: string[];
-  setExistingNotebooks: (newExistingNotebooks: string[]) => void;
+  connectedNotebooks: NotebookKind[];
+  onNotebookRemove: (notebook: NotebookKind) => void;
+  loaded: boolean;
+  error?: Error;
 };
 
 const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
-  existingNotebooks,
-  setExistingNotebooks,
+  connectedNotebooks,
+  onNotebookRemove,
+  loaded,
+  error,
 }) => {
-  const {
-    notebooks: { data: allNotebooks, loaded, error },
-  } = React.useContext(ProjectDetailsContext);
-
+  const [notebooksToShow, setNotebooksToShow] = React.useState<NotebookKind[]>(connectedNotebooks);
   let content: React.ReactNode;
   if (error) {
     content = (
@@ -25,28 +26,23 @@ const ExistingConnectedNotebooks: React.FC<ExistingConnectedNotebooksProps> = ({
     );
   } else if (!loaded) {
     content = <Spinner size="md" />;
-  } else if (existingNotebooks.length === 0) {
+  } else if (notebooksToShow.length === 0) {
     content = <Text component="small">All existing connections have been removed.</Text>;
   } else {
     content = (
       <ChipGroup>
-        {existingNotebooks.map((notebookName) => {
-          const foundNotebook = allNotebooks.find(
-            (notebook) => notebook.notebook.metadata.name === notebookName,
-          );
-          if (!foundNotebook) {
-            return null;
-          }
-          const notebookDisplayName = getNotebookDisplayName(foundNotebook.notebook);
+        {notebooksToShow.map((notebook) => {
+          const notebookDisplayName = getNotebookDisplayName(notebook);
           return (
             <Chip
               key={notebookDisplayName}
               onClick={() => {
-                setExistingNotebooks(
-                  existingNotebooks.filter(
-                    (existingNotebookName) => existingNotebookName !== notebookName,
+                setNotebooksToShow(
+                  notebooksToShow.filter(
+                    (notebookToShow) => notebookToShow.metadata.name !== notebook.metadata.name,
                   ),
                 );
+                onNotebookRemove(notebook);
               }}
             >
               {notebookDisplayName}

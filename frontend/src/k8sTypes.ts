@@ -10,13 +10,9 @@ type DisplayNameAnnotations = Partial<{
   'openshift.io/display-name': string; // the name provided by the user
 }>;
 
-type RelatedToNotebookAnnotations = Partial<{
-  'opendatahub.io/related-notebooks': string; // a JSON array of notebook.metadata.names
-}>;
-
 export type K8sDSGResource = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
+    annotations?: DisplayNameAnnotations;
     name: string;
   };
 };
@@ -158,7 +154,7 @@ export type K8sStatus = {
 
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
+    annotations?: DisplayNameAnnotations;
     name: string;
     namespace: string;
   };
@@ -198,6 +194,11 @@ export type NotebookKind = K8sResourceCommon & {
         volumes?: Volume[];
         tolerations?: NotebookToleration[];
       };
+    };
+  };
+  status?: {
+    containerState?: {
+      terminated?: { [key: string]: string };
     };
   };
 };
@@ -253,7 +254,7 @@ export type SecretKind = K8sResourceCommon & {
 
 export type AWSSecretKind = SecretKind & {
   metadata: {
-    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
+    annotations?: DisplayNameAnnotations;
     labels?: {
       'opendatahub.io/managed': 'true';
     };

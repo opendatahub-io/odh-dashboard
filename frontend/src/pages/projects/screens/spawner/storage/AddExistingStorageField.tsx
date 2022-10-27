@@ -7,7 +7,6 @@ import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 type AddExistingStorageFieldProps = {
   data: ExistingStorageObject;
   setData: (data: ExistingStorageObject) => void;
-  excludePVCNames?: string[];
   selectDirection?: 'up' | 'down';
   menuAppendTo?: HTMLElement | 'parent';
 };
@@ -15,19 +14,19 @@ type AddExistingStorageFieldProps = {
 const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   data,
   setData,
-  excludePVCNames,
   selectDirection,
   menuAppendTo,
 }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const [pvcs, loaded, loadError] = useAvailablePvcs(currentProject.metadata.name);
+  const {
+    currentProject,
+    notebooks: { data: allNotebooks },
+  } = React.useContext(ProjectDetailsContext);
+  const [pvcs, loaded, loadError] = useAvailablePvcs(currentProject.metadata.name, allNotebooks);
 
   return (
     <ExistingPVCField
       fieldId="add-existing-storage-pv-selection"
-      storages={
-        excludePVCNames ? pvcs.filter((pvc) => !excludePVCNames.includes(pvc.metadata.name)) : pvcs
-      }
+      storages={pvcs}
       loaded={loaded}
       loadError={loadError}
       selectedStorage={data.storage}
