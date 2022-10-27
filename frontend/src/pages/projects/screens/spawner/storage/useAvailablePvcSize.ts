@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { AppContext } from '../../../../../app/AppContext';
-import { DEFAULT_PVC_SIZE } from '../../../const';
+
+const DEFAULT_PVC_SIZE = 20;
 
 const useDefaultPvcSize = (): number => {
   const {
