@@ -17,11 +17,9 @@ const useAvailablePvcs = (
     if (projectName) {
       getPvcs(projectName)
         .then((newPvcs) => {
-          let usedPvcs: string[] = [];
-          notebooks.forEach((notebook) => {
-            const pvcNames = getNotebookPVCNames(notebook.notebook);
-            usedPvcs = _.union(usedPvcs, pvcNames);
-          });
+          const usedPvcs = _.uniq(
+            notebooks.flatMap((notebook) => getNotebookPVCNames(notebook.notebook)),
+          );
           setPvcs(newPvcs.filter((pvc) => !usedPvcs.includes(pvc.metadata.name)));
           setLoaded(true);
         })

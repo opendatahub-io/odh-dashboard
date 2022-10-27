@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { Alert, Button, Modal, Stack, StackItem } from '@patternfly/react-core';
-import { getPvcDisplayName } from '../utils';
+import { getNotebookDisplayName, getPvcDisplayName } from '../utils';
 import { PersistentVolumeClaimKind } from '../../../k8sTypes';
-import { deletePvc } from '../../../api';
+import { deletePvc, removeNotebookPVC } from '../../../api';
+import useRelatedNotebooks, { ConnectedNotebookContext } from '../notebook/useRelatedNotebooks';
 
 type DeletePVCModalProps = {
   pvcToDelete?: PersistentVolumeClaimKind;
@@ -12,6 +13,11 @@ type DeletePVCModalProps = {
 const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const {
+    connectedNotebooks,
+    loaded: notebookLoaded,
+    error: notebookError,
+  } = useRelatedNotebooks(ConnectedNotebookContext.PVC, pvcToDelete?.metadata.name);
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -33,12 +39,17 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
           onClick={() => {
             if (pvcToDelete) {
               const { name, namespace } = pvcToDelete.metadata;
-
               setIsDeleting(true);
-              deletePvc(name, namespace)
-                .then(() => {
-                  onBeforeClose(true);
-                })
+              Promise.all(
+                connectedNotebooks.map((notebook) =>
+                  removeNotebookPVC(notebook.metadata.name, namespace, name),
+                ),
+              )
+                .then(() =>
+                  deletePvc(name, namespace).then(() => {
+                    onBeforeClose(true);
+                  }),
+                )
                 .catch((e) => {
                   setError(e);
                   setIsDeleting(false);
@@ -54,6 +65,24 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
       ]}
     >
       <Stack hasGutter>
+        {notebookLoaded && !notebookError && connectedNotebooks.length !== 0 && (
+          <StackItem>
+            <Alert
+              variant="warning"
+              isInline
+              title={
+                <>
+                  This storage is connected to{' '}
+                  {connectedNotebooks
+                    .map((notebook) => getNotebookDisplayName(notebook))
+                    .join(', ')}
+                </>
+              }
+            >
+              Delete this storage could lead to the restart of the workbenches it connects to.
+            </Alert>
+          </StackItem>
+        )}
         <StackItem>
           Are you sure you want to delete{' '}
           {pvcToDelete ? (
