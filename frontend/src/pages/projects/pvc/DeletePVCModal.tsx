@@ -69,6 +69,7 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
           <StackItem>
             <Alert
               variant="warning"
+              isInline
               title={
                 <>
                   This storage is connected to{' '}
