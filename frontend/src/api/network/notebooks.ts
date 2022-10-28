@@ -18,6 +18,7 @@ import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { genRandomChars } from '../../utilities/string';
 import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
+import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 
 const assembleNotebookAffinityAndTolerations = (
   resources: NotebookResources,
@@ -83,7 +84,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
     volumeMounts,
     tolerationSettings,
   } = data;
-  const notebookId = `notebook-${genRandomChars()}`;
+  const notebookId = translateDisplayNameForK8s(notebookName);
   const resources: NotebookResources = { ...notebookSize.resources };
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;

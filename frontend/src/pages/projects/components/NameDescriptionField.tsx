@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, TextArea, TextInput } from '@patternfly/react-core';
 import { NameDescType } from '../types';
+import { isValidK8sName, translateDisplayNameForK8s } from '../utils';
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
@@ -8,6 +9,7 @@ type NameDescriptionFieldProps = {
   data: NameDescType;
   setData: (data: NameDescType) => void;
   autoFocusName?: boolean;
+  showK8sName?: boolean;
 };
 
 const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
@@ -16,6 +18,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   data,
   setData,
   autoFocusName,
+  showK8sName,
 }) => {
   const autoSelectNameRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -24,6 +27,8 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
       autoSelectNameRef.current?.focus();
     }
   }, [autoFocusName]);
+
+  const k8sName = React.useMemo(() => translateDisplayNameForK8s(data.name), [data.name]);
 
   return (
     <Stack hasGutter>
@@ -40,6 +45,28 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
           />
         </FormGroup>
       </StackItem>
+      {showK8sName && (
+        <StackItem>
+          <FormGroup
+            label="Resource name"
+            isRequired
+            fieldId={nameFieldId}
+            helperText="Must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character"
+          >
+            <TextInput
+              isRequired
+              id={`resource-${nameFieldId}`}
+              name={`resource-${nameFieldId}`}
+              aria-labelledby={`resource-${nameFieldId}`}
+              value={data.k8sName ?? k8sName}
+              onChange={(k8sName) => {
+                setData({ ...data, k8sName });
+              }}
+              validated={!isValidK8sName(data.k8sName) ? 'error' : undefined}
+            />
+          </FormGroup>
+        </StackItem>
+      )}
       <StackItem>
         <FormGroup label="Description" fieldId={descriptionFieldId}>
           <TextArea

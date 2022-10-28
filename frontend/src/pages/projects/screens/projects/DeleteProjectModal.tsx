@@ -23,10 +23,11 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
 
   return (
     <DeleteModal
-      title="Delete Project?"
+      title="Delete project?"
       isOpen={!!deleteData}
       onClose={() => onBeforeClose(false)}
       deleting={deleting}
+      submitButtonLabel="Delete project"
       onDelete={() => {
         if (deleteData) {
           setDeleting(true);

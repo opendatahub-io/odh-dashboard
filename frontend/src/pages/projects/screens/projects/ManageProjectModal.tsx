@@ -9,8 +9,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
 import { ProjectKind } from '../../../../k8sTypes';
-import { getProjectDescription, getProjectDisplayName } from '../../utils';
+import { getProjectDescription, getProjectDisplayName, isValidK8sName } from '../../utils';
 import NameDescriptionField from '../../components/NameDescriptionField';
+import { NameDescType } from '../../types';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -26,11 +27,16 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   const navigate = useNavigate();
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [nameDesc, setNameDesc] = React.useState({ name: '', description: '' });
+  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
+    name: '',
+    k8sName: undefined,
+    description: '',
+  });
   const { username } = useUser();
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const canSubmit = !fetching && nameDesc.name.length > 0;
+  const canSubmit =
+    !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
 
   const editNameValue = editProjectData ? getProjectDisplayName(editProjectData) : '';
   const editDescriptionValue = editProjectData ? getProjectDescription(editProjectData) : '';
@@ -42,16 +48,16 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     onClose();
     setFetching(false);
     setError(undefined);
-    setNameDesc({ name: '', description: '' });
+    setNameDesc({ name: '', k8sName: undefined, description: '' });
   };
 
   const submit = () => {
     setFetching(true);
-    const { name, description } = nameDesc;
+    const { name, description, k8sName } = nameDesc;
     if (editProjectData) {
       updateProject(editProjectData, name, description).then(() => onBeforeClose());
     } else {
-      createProject(username, name, description)
+      createProject(username, name, description, k8sName)
         .then((projectName) => {
           const rbName = `${projectName}-image-pullers`;
           const roleBindingData = generateRoleBindingData(rbName, dashboardNamespace, projectName);
@@ -91,6 +97,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
           data={nameDesc}
           setData={setNameDesc}
           autoFocusName
+          showK8sName={!editProjectData}
         />
       </Form>
       {error && (

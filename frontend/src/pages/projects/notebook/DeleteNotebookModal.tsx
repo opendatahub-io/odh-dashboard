@@ -23,9 +23,10 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
 
   return (
     <DeleteModal
-      title="Delete Workbench?"
+      title="Delete workbench?"
       isOpen={!!notebook}
       onClose={() => onBeforeClose(false)}
+      submitButtonLabel="Delete workbench"
       onDelete={() => {
         if (notebook) {
           setIsDeleting(true);

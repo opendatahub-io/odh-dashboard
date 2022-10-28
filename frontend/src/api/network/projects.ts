@@ -10,6 +10,7 @@ import { ProjectKind } from '../../k8sTypes';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { genRandomChars } from '../../utilities/string';
 import { ProjectModel } from '../models';
+import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 
 export const getProject = (projectName: string): Promise<ProjectKind> => {
   return k8sGetResource<ProjectKind>({
@@ -30,6 +31,7 @@ export const createProject = (
   username: string,
   name: string,
   description: string,
+  k8sName?: string,
 ): Promise<string> => {
   const translatedUsername = usernameTranslate(username);
 
@@ -52,7 +54,7 @@ export const createProject = (
         apiVersion: 'v1',
         kind: 'Namespace',
         metadata: {
-          name: `dsg-${translatedUsername}-${genRandomChars()}`,
+          name: k8sName || translateDisplayNameForK8s(name),
           annotations: {
             'openshift.io/description': description,
             'openshift.io/display-name': name,
