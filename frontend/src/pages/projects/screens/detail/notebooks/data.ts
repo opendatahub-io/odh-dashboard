@@ -1,5 +1,5 @@
 import { SortableData } from '../../../../../utilities/useTableColumnSort';
-import { getNotebookDisplayName } from '../../../utils';
+import { getNotebookDisplayName, getNotebookStatusPriority } from '../../../utils';
 import { NotebookState } from '../../../notebook/types';
 
 export const columns: SortableData<NotebookState>[] = [
@@ -30,7 +30,7 @@ export const columns: SortableData<NotebookState>[] = [
   {
     field: 'status',
     label: 'Status',
-    sortable: false,
+    sortable: (a, b) => getNotebookStatusPriority(a) - getNotebookStatusPriority(b),
   },
   {
     field: 'open',
