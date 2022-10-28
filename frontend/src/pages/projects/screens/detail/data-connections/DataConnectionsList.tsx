@@ -10,7 +10,7 @@ import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 
 const DataConnectionsList: React.FC = () => {
   const {
-    dataConnections: { data: connections, loaded, error, refresh: refreshDataConnections },
+    dataConnections: { data: connections, loaded, error },
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
   const [open, setOpen] = React.useState(false);
@@ -45,7 +45,7 @@ const DataConnectionsList: React.FC = () => {
         isOpen={open}
         onClose={(submitted) => {
           if (submitted) {
-            refreshDataConnections();
+            refreshAllProjectData();
           }
           setOpen(false);
         }}
