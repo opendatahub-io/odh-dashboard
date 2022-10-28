@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { TableComposable, Tbody, Th, Thead, Tr } from '@patternfly/react-table';
+import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
 import NotebookTableRow from './NotebookTableRow';
 import { NotebookState } from '../../../notebook/types';
 import { columns } from './data';
@@ -34,16 +34,14 @@ const NotebookTable: React.FC<NotebookTableProps> = ({
             ))}
           </Tr>
         </Thead>
-        <Tbody>
-          {sortedNotebookStates.map((notebookState) => (
-            <NotebookTableRow
-              key={notebookState.notebook.metadata.uid}
-              obj={notebookState}
-              onNotebookDelete={setNotebookToDelete}
-              onNotebookAddStorage={setAddNotebookStorage}
-            />
-          ))}
-        </Tbody>
+        {sortedNotebookStates.map((notebookState) => (
+          <NotebookTableRow
+            key={notebookState.notebook.metadata.uid}
+            obj={notebookState}
+            onNotebookDelete={setNotebookToDelete}
+            onNotebookAddStorage={setAddNotebookStorage}
+          />
+        ))}
       </TableComposable>
       <AddNotebookStorage
         notebook={addNotebookStorage}

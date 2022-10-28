@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Spinner, Text, TextVariants, Title } from '@patternfly/react-core';
 import { NotebookState } from '../../../notebook/types';
 import { getNotebookDescription, getNotebookDisplayName } from '../../../utils';
@@ -28,7 +28,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [notebookImage, loaded] = useNotebookImage(obj.notebook);
 
   return (
-    <>
+    <Tbody isExpanded={isExpanded}>
       <Tr>
         <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
         <Td dataLabel="Name">
@@ -96,7 +96,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         <Td />
         <Td />
       </Tr>
-    </>
+    </Tbody>
   );
 };
 

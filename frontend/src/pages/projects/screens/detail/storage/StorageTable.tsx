@@ -30,16 +30,14 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refresh
             ))}
           </Tr>
         </Thead>
-        <Tbody>
-          {sortedPvcs.map((pvc) => (
-            <StorageTableRow
-              key={pvc.metadata.uid}
-              obj={pvc}
-              onEditPVC={setEditPVC}
-              onDeletePVC={setDeleteStorage}
-            />
-          ))}
-        </Tbody>
+        {sortedPvcs.map((pvc) => (
+          <StorageTableRow
+            key={pvc.metadata.uid}
+            obj={pvc}
+            onEditPVC={setEditPVC}
+            onDeletePVC={setDeleteStorage}
+          />
+        ))}
       </TableComposable>
       <ManageStorageModal
         isOpen={!!editPVC}
