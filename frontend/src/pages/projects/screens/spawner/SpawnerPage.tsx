@@ -67,7 +67,7 @@ const SpawnerPage: React.FC = () => {
           titles={SpawnerPageSectionTitles}
           scrollableSelector={`#${ScrollableSelectorID}`}
         >
-          <Form style={{ maxWidth: 600, marginBottom: 'var(--pf-global--spacer--lg)' }}>
+          <Form style={{ maxWidth: 600 }}>
             <FormSection
               id={SpawnerPageSectionID.NAME_DESCRIPTION}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NAME_DESCRIPTION]}

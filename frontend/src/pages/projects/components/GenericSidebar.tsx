@@ -32,7 +32,9 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
           ))}
         </JumpLinks>
       </SidebarPanel>
-      <SidebarContent>{children}</SidebarContent>
+      <SidebarContent style={{ paddingBottom: 'var(--pf-global--spacer--lg)' }}>
+        {children}
+      </SidebarContent>
     </Sidebar>
   );
 };
