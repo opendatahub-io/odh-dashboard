@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Switch } from '@patternfly/react-core';
+import { Flex, FlexItem, Switch, Text } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '../../../api';
 import { NotebookState } from './types';
 import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
@@ -44,35 +44,49 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
   }, [notebookName, notebookNamespace, refresh, listenToNotebookStart]);
 
   return (
-    <NotebookStatusPopover
-      isVisible={isPopoverVisible}
-      notebookState={notebookState}
-      stopNotebook={handleStop}
-      onClose={() => setPopoverVisible(false)}
-    >
-      <Switch
-        label={label}
-        isDisabled={inProgress}
-        id={notebookName}
-        isChecked={isChecked}
-        onClick={() => {
-          if (isRunning) {
-            if (dontShowModalValue) {
-              handleStop();
-            } else {
-              setOpenConfirm(true);
-            }
-          } else if (isStarting) {
-            setPopoverVisible((visible) => !visible);
-          } else {
-            setInProgress(true);
-            startNotebook(notebookName, notebookNamespace).then(() => {
-              refresh().then(() => setInProgress(false));
-              listenToNotebookStart(true);
-            });
-          }
-        }}
-      />
+    <>
+      <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+        <FlexItem>
+          <Switch
+            isDisabled={inProgress}
+            id={notebookName}
+            isChecked={isChecked}
+            onClick={() => {
+              if (isRunning || isStarting) {
+                if (dontShowModalValue) {
+                  handleStop();
+                } else {
+                  setOpenConfirm(true);
+                }
+              } else {
+                setInProgress(true);
+                startNotebook(notebookName, notebookNamespace).then(() => {
+                  refresh().then(() => setInProgress(false));
+                  listenToNotebookStart(true);
+                });
+              }
+            }}
+          />
+        </FlexItem>
+        <FlexItem>
+          <NotebookStatusPopover
+            isVisible={isPopoverVisible}
+            notebookState={notebookState}
+            stopNotebook={handleStop}
+            onClose={() => setPopoverVisible(false)}
+          >
+            <Text
+              onClick={() => {
+                if (isStarting) {
+                  setPopoverVisible((visible) => !visible);
+                }
+              }}
+            >
+              {label}
+            </Text>
+          </NotebookStatusPopover>
+        </FlexItem>
+      </Flex>
       <StopNotebookConfirmModal
         isOpen={isOpenConfirm}
         notebook={notebook}
@@ -83,7 +97,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
           setOpenConfirm(false);
         }}
       />
-    </NotebookStatusPopover>
+    </>
   );
 };
 
