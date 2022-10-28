@@ -27,6 +27,9 @@ export const blankDashboardCR: DashboardConfig = {
   kind: 'OdhDashboardConfig',
   metadata: {
     name: 'odh-dashboard-config',
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+    },
   },
   spec: {
     dashboardConfig: {

@@ -211,6 +211,7 @@ export const postImage = async (
   const labels = {
     'app.kubernetes.io/created-by': 'byon',
     'opendatahub.io/notebook-image': 'true',
+    'opendatahub.io/dashboard': 'true',
   };
   const imageStreams = (await getImageStreams(fastify, labels)) as ImageStream[];
   const validName = imageStreams.filter((is) => is.metadata.name === body.name);

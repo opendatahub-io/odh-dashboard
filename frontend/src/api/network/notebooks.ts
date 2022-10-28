@@ -107,6 +107,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
         app: notebookId,
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
+        'opendatahub.io/dashboard': 'true',
       },
       annotations: {
         'openshift.io/display-name': notebookName,
