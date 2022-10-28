@@ -4,11 +4,10 @@ import {
   k8sGetResource,
   k8sListResourceItems,
   k8sPatchResource,
-  Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sStatus, PersistentVolumeClaimKind } from '../../k8sTypes';
-import { genRandomChars } from '../../utilities/string';
 import { PVCModel } from '../models';
+import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 
 export const assemblePvc = (
   pvcName: string,
@@ -16,21 +15,19 @@ export const assemblePvc = (
   description: string,
   pvcSize: number,
 ): PersistentVolumeClaimKind => {
-  const annotations = {
-    'openshift.io/display-name': pvcName,
-    'openshift.io/description': description,
-  };
-
   return {
     apiVersion: 'v1',
     kind: 'PersistentVolumeClaim',
     metadata: {
-      name: `pvc-${genRandomChars()}`,
+      name: translateDisplayNameForK8s(pvcName),
       namespace: projectName,
       labels: {
         'opendatahub.io/dashboard': 'true',
       },
-      annotations,
+      annotations: {
+        'openshift.io/display-name': pvcName,
+        'openshift.io/description': description,
+      },
     },
     spec: {
       accessModes: ['ReadWriteOnce'],
@@ -112,27 +109,6 @@ export const updatePvcDescription = (
         value: description,
       },
     ],
-  });
-};
-
-export const patchPVCForNotebook = (
-  pvcName: string,
-  namespace: string,
-  relatedNotebookName: string,
-): Promise<PersistentVolumeClaimKind> => {
-  const patches: Patch[] = [
-    {
-      op: 'add',
-      // TODO: document / utility ~1
-      path: '/metadata/annotations/opendatahub.io~1related-notebooks',
-      value: JSON.stringify([relatedNotebookName]),
-    },
-  ];
-
-  return k8sPatchResource<PersistentVolumeClaimKind>({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: namespace },
-    patches,
   });
 };
 

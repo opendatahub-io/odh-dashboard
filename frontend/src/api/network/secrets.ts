@@ -8,6 +8,7 @@ import {
 import { K8sStatus, SecretKind } from '../../k8sTypes';
 import { SecretModel } from '../models';
 import { genRandomChars } from '../../utilities/string';
+import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 
 export const assembleSecret = (
   projectName: string,
@@ -20,10 +21,12 @@ export const assembleSecret = (
   const annotations = {};
 
   let stringData = data;
+  let name = `secret-${genRandomChars()}`;
 
   if (type === 'aws') {
     const { Name, ...secretBody } = data;
     stringData = secretBody;
+    name = `aws-connection-${translateDisplayNameForK8s(Name)}`;
     annotations['openshift.io/display-name'] = Name;
     labels['opendatahub.io/managed'] = 'true';
   }
@@ -32,7 +35,7 @@ export const assembleSecret = (
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: `secret-${genRandomChars()}`,
+      name,
       namespace: projectName,
       annotations,
       labels,

@@ -12,6 +12,7 @@ export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueO
 
 export type NameDescType = {
   name: string;
+  k8sName?: string;
   description: string;
 };
 

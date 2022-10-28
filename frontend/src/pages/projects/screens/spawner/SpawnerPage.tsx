@@ -23,7 +23,11 @@ const SpawnerPage: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
 
-  const [nameDesc, setNameDesc] = React.useState<NameDescType>({ name: '', description: '' });
+  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
+    name: '',
+    k8sName: undefined,
+    description: '',
+  });
   const [selectedImage, setSelectedImage] = React.useState<ImageStreamAndVersion>({
     imageStream: undefined,
     imageVersion: undefined,

@@ -25,6 +25,7 @@ export const useCreateStorageObjectForNotebook = (
   const createDataState = useGenericObjectState<CreatingStorageObjectForNotebook>({
     nameDesc: {
       name: '',
+      k8sName: undefined,
       description: '',
     },
     size: defaultPvcSize,

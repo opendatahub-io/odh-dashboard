@@ -32,7 +32,7 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
           fieldID="create-new-storage-size"
           disable={disableSize}
           size={data.size}
-          setSize={(size: number) => setData('size', size)}
+          setSize={(size) => setData('size', size)}
         />
       </StackItem>
     </Stack>

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
-import { createNotebook, patchPVCForNotebook } from '../../../../api';
+import { createNotebook } from '../../../../api';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData, EnvVariable } from '../../types';
 import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
@@ -31,18 +31,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   const onCreateNotebook = async () => {
     setCreateInProgress(true);
-    const { volumes, volumeMounts, associatedPVCName } = await createPvcDataForNotebook(
-      projectName,
-      storageData,
-    );
+    const { volumes, volumeMounts } = await createPvcDataForNotebook(projectName, storageData);
     const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, envVariables);
     const newStartData = { ...startNotebookData, volumes, volumeMounts, envFrom };
 
-    createNotebook(newStartData, username).then((notebook) => {
+    createNotebook(newStartData, username).then(() => {
       const actions: Promise<K8sResourceCommon>[] = [];
-      if (associatedPVCName) {
-        actions.push(patchPVCForNotebook(associatedPVCName, projectName, notebook.metadata.name));
-      }
       // TODO: do AWS Secrets
 
       const doNavigate = () => {

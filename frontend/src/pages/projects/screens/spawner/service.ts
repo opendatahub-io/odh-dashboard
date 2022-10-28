@@ -22,7 +22,7 @@ import { ConfigMapKind, SecretKind } from '../../../../k8sTypes';
 export const createPvcDataForNotebook = async (
   projectName: string,
   storageData: StorageData,
-): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[]; associatedPVCName: string }> => {
+): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const {
     storageType,
     creating: {
@@ -30,21 +30,17 @@ export const createPvcDataForNotebook = async (
       size,
     },
   } = storageData;
-  let k8sPvcName = '';
 
   const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
 
   if (storageType === StorageType.NEW_PVC) {
     const pvcData = assemblePvc(pvcName, projectName, pvcDescription, size);
-    k8sPvcName = pvcData.metadata.name;
     const pvc = await createPvc(pvcData);
     const newPvcName = pvc.metadata.name;
     volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });
     volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: newPvcName });
-  } else if (storageType === StorageType.EXISTING_PVC) {
-    k8sPvcName = storageData.existing.storage;
   }
-  return { volumes, volumeMounts, associatedPVCName: k8sPvcName };
+  return { volumes, volumeMounts };
 };
 
 export const createConfigMapsAndSecretsForNotebook = async (
