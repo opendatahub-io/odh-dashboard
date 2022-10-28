@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { TableComposable, Tbody, Th, Thead, Tr } from '@patternfly/react-table';
+import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
 import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import useTableColumnSort from '../../../../../utilities/useTableColumnSort';
