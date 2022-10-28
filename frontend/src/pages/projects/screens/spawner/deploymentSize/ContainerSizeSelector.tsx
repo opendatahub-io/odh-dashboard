@@ -8,7 +8,6 @@ import {
 } from '@patternfly/react-core';
 import { NotebookSize } from '../../../../../types';
 import { getSizeDescription } from '../spawnerUtils';
-import { getDashboardMainContainer } from '../../../../../utilities/utils';
 
 type ContainerSizeSelectorProps = {
   value: NotebookSize;
@@ -51,7 +50,6 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
             setSizeDropdownOpen(false);
           }
         }}
-        menuAppendTo={getDashboardMainContainer}
       >
         {sizes.map((size) => {
           const name = size.name;

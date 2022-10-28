@@ -9,7 +9,6 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { EnvironmentVariableType, EnvVariable } from '../../../types';
-import { getDashboardMainContainer } from '../../../../../utilities/utils';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import EnvTypeSwitch from './EnvTypeSwitch';
 import IndentSection from '../../../components/IndentSection';
@@ -45,7 +44,6 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                   setOpen(false);
                 }
               }}
-              menuAppendTo={getDashboardMainContainer}
             >
               {Object.values(EnvironmentVariableType).map((type) => (
                 <SelectOption key={type} value={type}>

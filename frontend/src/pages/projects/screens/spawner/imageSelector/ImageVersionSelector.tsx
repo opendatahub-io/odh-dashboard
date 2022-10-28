@@ -11,7 +11,6 @@ import {
   isImageVersionSelectOptionObject,
 } from '../spawnerUtils';
 import ImageVersionTooltip from './ImageVersionTooltip';
-import { getDashboardMainContainer } from '../../../../../utilities/utils';
 import { ImageStreamSpecTagType } from '../../../../../k8sTypes';
 
 type ImageVersionSelectorProps = {
@@ -78,7 +77,6 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
           (optionObject) => optionObject.imageVersion.name === selectedImageVersion?.name,
         )}
         placeholderText="Select one"
-        menuAppendTo={getDashboardMainContainer}
       >
         {options}
       </Select>
