@@ -4,6 +4,8 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Stack,
+  StackItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -21,17 +23,25 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
         <div style={{ display: 'inline-block' }}>
           <Tooltip
             removeFindDomNode
+            position="right"
             content={
-              <DescriptionList isCompact isHorizontal>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Resource name</DescriptionListTerm>
-                  <DescriptionListDescription>{resource.metadata.name}</DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Resource type</DescriptionListTerm>
-                  <DescriptionListDescription>{resource.kind}</DescriptionListDescription>
-                </DescriptionListGroup>
-              </DescriptionList>
+              <Stack hasGutter>
+                <StackItem>Resource names and types are what appear in OpenShift.</StackItem>
+                <StackItem>
+                  <DescriptionList isCompact isHorizontal>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Resource name</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {resource.metadata.name}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Resource type</DescriptionListTerm>
+                      <DescriptionListDescription>{resource.kind}</DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
+                </StackItem>
+              </Stack>
             }
           >
             <OutlinedQuestionCircleIcon />

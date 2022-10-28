@@ -40,9 +40,14 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
 
   const editNameValue = editProjectData ? getProjectDisplayName(editProjectData) : '';
   const editDescriptionValue = editProjectData ? getProjectDescription(editProjectData) : '';
+  const editResourceNameValue = editProjectData ? editProjectData.metadata.name : undefined;
   React.useEffect(() => {
-    setNameDesc({ name: editNameValue, description: editDescriptionValue });
-  }, [editDescriptionValue, editNameValue]);
+    setNameDesc({
+      name: editNameValue,
+      k8sName: editResourceNameValue,
+      description: editDescriptionValue,
+    });
+  }, [editDescriptionValue, editNameValue, editResourceNameValue]);
 
   const onBeforeClose = () => {
     onClose();
@@ -97,7 +102,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
           data={nameDesc}
           setData={setNameDesc}
           autoFocusName
-          showK8sName={!editProjectData}
+          showK8sName
+          disableK8sName={!!editProjectData}
         />
       </Form>
       {error && (

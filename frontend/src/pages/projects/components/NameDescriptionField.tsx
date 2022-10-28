@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { FormGroup, Stack, StackItem, TextArea, TextInput } from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
 import { NameDescType } from '../types';
 import { isValidK8sName, translateDisplayNameForK8s } from '../utils';
+import { HelpIcon } from '@patternfly/react-icons';
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
@@ -10,6 +11,7 @@ type NameDescriptionFieldProps = {
   setData: (data: NameDescType) => void;
   autoFocusName?: boolean;
   showK8sName?: boolean;
+  disableK8sName?: boolean;
 };
 
 const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
@@ -19,6 +21,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   setData,
   autoFocusName,
   showK8sName,
+  disableK8sName,
 }) => {
   const autoSelectNameRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -49,12 +52,35 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
         <StackItem>
           <FormGroup
             label="Resource name"
+            labelIcon={
+              <Tooltip
+                removeFindDomNode
+                position="right"
+                content={
+                  <Stack hasGutter>
+                    <StackItem>
+                      Resource names are what appear in OpenShift as resources. Resource names are
+                      not editable after creation.
+                    </StackItem>
+                    {!disableK8sName && (
+                      <StackItem>
+                        We automatically generate it based on what you enter or you can create it
+                        yourself.
+                      </StackItem>
+                    )}
+                  </Stack>
+                }
+              >
+                <HelpIcon />
+              </Tooltip>
+            }
             isRequired
             fieldId={nameFieldId}
             helperText="Must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character"
           >
             <TextInput
               isRequired
+              isDisabled={disableK8sName}
               id={`resource-${nameFieldId}`}
               name={`resource-${nameFieldId}`}
               aria-labelledby={`resource-${nameFieldId}`}
