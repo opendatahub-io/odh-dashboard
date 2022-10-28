@@ -8,7 +8,6 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind } from '../../k8sTypes';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
-import { genRandomChars } from '../../utilities/string';
 import { ProjectModel } from '../models';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 

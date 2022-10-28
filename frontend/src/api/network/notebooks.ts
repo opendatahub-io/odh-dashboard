@@ -15,7 +15,6 @@ import {
   NotebookTolerationSettings,
 } from '../../types';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
-import { genRandomChars } from '../../utilities/string';
 import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
