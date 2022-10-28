@@ -11,6 +11,7 @@ import {
   getDataConnectionResourceName,
   getDataConnectionType,
 } from './utils';
+import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
 
 type DataConnectionsTableRowProps = {
   obj: DataConnection;
@@ -30,7 +31,11 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
         <div style={{ width: 46 }} />
       </Td>
       <Td dataLabel="Name">
-        <Title headingLevel="h4">{getDataConnectionDisplayName(obj)}</Title>
+        <Title headingLevel="h4">
+          <ResourceNameTooltip resource={obj.data}>
+            {getDataConnectionDisplayName(obj)}
+          </ResourceNameTooltip>
+        </Title>
         <Text>{getDataConnectionDescription(obj)}</Text>
       </Td>
       <Td dataLabel="Type">{getDataConnectionType(obj)}</Td>

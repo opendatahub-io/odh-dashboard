@@ -16,7 +16,7 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
   return (
     <FormGroup
       isRequired
-      helperText="Can consist of lower case letters and dashes"
+      helperText="Must consist of lower case letters and dashes"
       helperTextInvalid={mountPath.error}
       label="Mount folder"
       validated={mountPath.error ? 'error' : 'success'}
