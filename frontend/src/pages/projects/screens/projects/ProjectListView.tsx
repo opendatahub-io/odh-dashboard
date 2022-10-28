@@ -1,6 +1,10 @@
 import * as React from 'react';
 import {
   Button,
+  Dropdown,
+  DropdownItem,
+  DropdownToggle,
+  InputGroup,
   Pagination,
   SearchInput,
   Toolbar,
@@ -9,11 +13,12 @@ import {
 } from '@patternfly/react-core';
 import { ProjectKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
-import { getProjectDisplayName } from '../../utils';
+import { getProjectDisplayName, getProjectOwner } from '../../utils';
 import ProjectTable from './ProjectTable';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import { Link } from 'react-router-dom';
+import ProjectSearchField, { SearchType } from './ProjectSearchField';
 
 const MIN_PAGE_SIZE = 10;
 
@@ -26,15 +31,23 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
   projects: unfilteredProjects,
   refreshProjects,
 }) => {
+  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
   const sort = useTableColumnSort<ProjectKind>(columns, 0);
-  const filteredProjects = sort
-    .transformData(unfilteredProjects)
-    .filter((project) =>
-      !search ? true : getProjectDisplayName(project).toLowerCase().includes(search.toLowerCase()),
-    );
+  const filteredProjects = sort.transformData(unfilteredProjects).filter((project) => {
+    if (!search) return true;
+
+    switch (searchType) {
+      case SearchType.NAME:
+        return getProjectDisplayName(project).toLowerCase().includes(search.toLowerCase());
+      case SearchType.USER:
+        return getProjectOwner(project).toLowerCase().includes(search.toLowerCase());
+      default:
+        return true;
+    }
+  });
 
   const resetFilters = () => {
     setSearch('');
@@ -63,14 +76,16 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <SearchInput
-              placeholder="Find by name"
-              value={search}
-              onChange={(newSearch) => {
-                setSearch(newSearch);
-                setPage(1);
+            <ProjectSearchField
+              searchType={searchType}
+              searchValue={search}
+              onSearchTypeChange={(searchType) => {
+                setSearchType(searchType);
               }}
-              onClear={() => setSearch('')}
+              onSearchValueChange={(searchValue) => {
+                setPage(1);
+                setSearch(searchValue);
+              }}
             />
           </ToolbarItem>
           <ToolbarItem>

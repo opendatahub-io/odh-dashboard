@@ -6,6 +6,7 @@ import ProjectLink from './ProjectLink';
 import useProjectNotebookStates from '../../notebook/useProjectNotebookStates';
 import ListNotebookState from '../../notebook/ListNotebookState';
 import ResourceNameTooltip from '../../components/ResourceNameTooltip';
+import { getProjectOwner } from '../../utils';
 
 type ProjectTableRowProps = {
   obj: ProjectKind;
@@ -21,7 +22,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   setDeleteData,
 }) => {
   const [notebookStates, loaded, error] = useProjectNotebookStates(project.metadata.name);
-  const owner = project.metadata.annotations?.['openshift.io/requester'];
+  const owner = getProjectOwner(project);
 
   return (
     <Tr>
