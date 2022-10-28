@@ -7,7 +7,7 @@ import GenericSidebar from '../../components/GenericSidebar';
 import NameDescriptionField from '../../components/NameDescriptionField';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { EnvVariable, NameDescType, StorageType } from '../../types';
-import { getProjectDisplayName } from '../../utils';
+import { getNotebookDescription, getNotebookDisplayName, getProjectDisplayName } from '../../utils';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -18,8 +18,17 @@ import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
 import GPUSelectField from '../../../notebookController/screens/server/GPUSelectField';
+import { NotebookKind } from '../../../../k8sTypes';
+import useImageStreams from './useImageStreams';
+import useNamespaces from '../../../notebookController/useNamespaces';
+import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
+import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
 
-const SpawnerPage: React.FC = () => {
+type SpawnerPageProps = {
+  existingNotebook?: NotebookKind;
+};
+
+const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
 
@@ -37,9 +46,36 @@ const SpawnerPage: React.FC = () => {
   const [storageData, setStorageData] = useStorageDataObject(StorageType.EPHEMERAL);
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
+  React.useEffect(() => {
+    if (existingNotebook) {
+      setNameDesc({
+        name: getNotebookDisplayName(existingNotebook),
+        k8sName: existingNotebook.metadata.name,
+        description: getNotebookDescription(existingNotebook),
+      });
+    }
+  }, [existingNotebook]);
+
+  const [data, loaded] = useNotebookImageData(existingNotebook);
+  React.useEffect(() => {
+    const { imageStream, imageVersion } = data || {};
+    if (loaded && imageStream && imageVersion) {
+      setSelectedImage({ imageStream, imageVersion });
+    }
+  }, [data, loaded]);
+
+  const notebookSize = useNotebookDeploymentSize(existingNotebook);
+  React.useEffect(() => {
+    if (notebookSize) {
+      setSelectedSize(notebookSize.name);
+    }
+  }, [notebookSize, setSelectedSize]);
+
+  const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
+
   return (
     <ApplicationsPage
-      title="Create workbench"
+      title={existingNotebook ? `Edit ${editNotebookDisplayName}` : 'Create workbench'}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
@@ -48,10 +84,15 @@ const SpawnerPage: React.FC = () => {
               <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>
             )}
           />
-          <BreadcrumbItem>Create workbench</BreadcrumbItem>
+          {existingNotebook && <BreadcrumbItem>{editNotebookDisplayName}</BreadcrumbItem>}
+          <BreadcrumbItem>{existingNotebook ? 'Edit' : 'Create'} workbench</BreadcrumbItem>
         </Breadcrumb>
       }
-      description="Configure properties for your workbench."
+      description={
+        existingNotebook
+          ? 'Modify properties for your workbench.'
+          : 'Configure properties for your workbench.'
+      }
       loaded
       empty={false}
     >
@@ -81,7 +122,7 @@ const SpawnerPage: React.FC = () => {
               />
             </FormSection>
             <FormSection
-              title={SpawnerPageSectionID.NOTEBOOK_IMAGE}
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.NOTEBOOK_IMAGE]}
               id={SpawnerPageSectionID.NOTEBOOK_IMAGE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NOTEBOOK_IMAGE]}
             >
@@ -105,25 +146,33 @@ const SpawnerPage: React.FC = () => {
                 setValue={(value: string) => setSelectedGpu(value)}
               />
             </FormSection>
-            <FormSection
-              title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
-              id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
-              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
-            >
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
-            </FormSection>
-            <FormSection
-              title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
-              id={SpawnerPageSectionID.CLUSTER_STORAGE}
-              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
-            >
-              <StorageField storageData={storageData} setStorageData={setStorageData} />
-            </FormSection>
+            {!existingNotebook && ( // TODO: Support these functionalities
+              <>
+                <FormSection
+                  title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
+                  id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
+                  aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
+                >
+                  <EnvironmentVariables
+                    envVariables={envVariables}
+                    setEnvVariables={setEnvVariables}
+                  />
+                </FormSection>
+                <FormSection
+                  title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+                  id={SpawnerPageSectionID.CLUSTER_STORAGE}
+                  aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+                >
+                  <StorageField storageData={storageData} setStorageData={setStorageData} />
+                </FormSection>
+              </>
+            )}
           </Form>
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
         <SpawnerFooter
+          editNotebook={existingNotebook}
           startNotebookData={{
             notebookName: nameDesc.name,
             description: nameDesc.description,

@@ -62,11 +62,13 @@ export type StartNotebookData = {
   notebookSize: NotebookSize;
   gpus: number;
   image: ImageStreamAndVersion;
-  volumes: Volume[];
-  volumeMounts: VolumeMount[];
+  volumes?: Volume[];
+  volumeMounts?: VolumeMount[];
   tolerationSettings?: NotebookTolerationSettings;
   envFrom?: EnvironmentFromVariable[];
   description?: string;
+  /** An override for the assembleNotebook so it doesn't regen an id */
+  notebookId?: string;
 };
 
 export type SecretRef = {

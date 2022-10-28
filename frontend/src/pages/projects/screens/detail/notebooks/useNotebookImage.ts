@@ -1,13 +1,11 @@
-import { NotebookContainer } from '../../../../../types';
 import { NotebookKind } from '../../../../../k8sTypes';
-import useImageStreams from '../../spawner/useImageStreams';
 import {
   getImageStreamDisplayName,
   getImageVersionDependencies,
   getRelatedVersionDescription,
 } from '../../spawner/spawnerUtils';
-import useNamespaces from '../../../../notebookController/useNamespaces';
 import { ImageVersionDependencyType } from '../../spawner/types';
+import useNotebookImageData from './useNotebookImageData';
 
 export type NotebookImage = {
   imageName: string;
@@ -18,35 +16,13 @@ export type NotebookImage = {
 const useNotebookImage = (
   notebook: NotebookKind,
 ): [notebookImage: NotebookImage | null, loaded: boolean] => {
-  const { dashboardNamespace } = useNamespaces();
-  const [images, loaded] = useImageStreams(dashboardNamespace);
+  const [imageData, loaded] = useNotebookImageData(notebook);
 
-  if (!loaded) {
-    return [null, false];
+  if (!imageData) {
+    return [null, loaded];
   }
 
-  const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
-    (container) => container.name === notebook.metadata.name,
-  );
-  const imageTag = container?.image.split('/').at(-1)?.split(':');
-
-  if (!imageTag || imageTag.length < 2 || !container) {
-    return [null, true];
-  }
-
-  const [imageName, versionName] = imageTag;
-  const imageStream = images.find((image) => image.metadata.name === imageName);
-
-  if (!imageStream) {
-    return [null, true];
-  }
-
-  const versions = imageStream.spec.tags || [];
-  const imageVersion = versions.find((version) => version.name === versionName);
-
-  if (!imageVersion) {
-    return [null, true];
-  }
+  const { imageStream, imageVersion } = imageData;
 
   return [
     {

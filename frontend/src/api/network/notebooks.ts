@@ -4,8 +4,10 @@ import {
   k8sGetResource,
   k8sListResource,
   k8sPatchResource,
+  k8sUpdateResource,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import * as _ from 'lodash';
 import { NotebookModel } from '../models';
 import { K8sStatus, NotebookKind } from '../../k8sTypes';
 import {
@@ -74,6 +76,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
   const {
     projectName,
     notebookName,
+    notebookId: overrideNotebookId,
     description,
     notebookSize,
     envFrom,
@@ -83,7 +86,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
     volumeMounts,
     tolerationSettings,
   } = data;
-  const notebookId = translateDisplayNameForK8s(notebookName);
+  const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
   const resources: NotebookResources = { ...notebookSize.resources };
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
@@ -241,6 +244,20 @@ export const createNotebook = (
   return k8sCreateResource<NotebookKind>({
     model: NotebookModel,
     resource: notebook,
+  });
+};
+
+export const updateNotebook = (
+  existingNotebook: NotebookKind,
+  data: StartNotebookData,
+  username: string,
+): Promise<NotebookKind> => {
+  data.notebookId = existingNotebook.metadata.name;
+  const notebook = assembleNotebook(data, username);
+
+  return k8sUpdateResource<NotebookKind>({
+    model: NotebookModel,
+    resource: _.merge({}, existingNotebook, notebook),
   });
 };
 
