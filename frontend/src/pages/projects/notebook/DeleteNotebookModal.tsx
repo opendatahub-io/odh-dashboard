@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { Alert, Button, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { NotebookKind } from '../../../k8sTypes';
 import { getNotebookDisplayName } from '../utils';
 import { deleteNotebook } from '../../../api';
+import DeleteModal from '../components/DeleteModal';
 
 type DeleteNotebookModalProps = {
   notebook?: NotebookKind;
@@ -19,52 +19,32 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
     setError(undefined);
   };
 
+  const displayName = notebook ? getNotebookDisplayName(notebook) : 'this workbench';
+
   return (
-    <Modal
-      title="Confirm notebook delete"
-      variant="small"
+    <DeleteModal
+      title="Delete Workbench?"
       isOpen={!!notebook}
       onClose={() => onBeforeClose(false)}
-      actions={[
-        <Button
-          key="delete-notebook"
-          variant="danger"
-          isDisabled={isDeleting}
-          onClick={() => {
-            if (notebook) {
-              setIsDeleting(true);
-              deleteNotebook(notebook.metadata.name, notebook.metadata.namespace)
-                .then(() => {
-                  onBeforeClose(true);
-                })
-                .catch((e) => {
-                  setError(e);
-                  setIsDeleting(false);
-                });
-            }
-          }}
-        >
-          Delete notebook
-        </Button>,
-        <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
-          Cancel
-        </Button>,
-      ]}
+      onDelete={() => {
+        if (notebook) {
+          setIsDeleting(true);
+          deleteNotebook(notebook.metadata.name, notebook.metadata.namespace)
+            .then(() => {
+              onBeforeClose(true);
+            })
+            .catch((e) => {
+              setError(e);
+              setIsDeleting(false);
+            });
+        }
+      }}
+      deleting={isDeleting}
+      error={error}
+      deleteName={displayName}
     >
-      <Stack hasGutter>
-        <StackItem>
-          Are you sure you want to delete{' '}
-          {notebook ? <strong>{getNotebookDisplayName(notebook)}</strong> : 'this notebook'}?
-        </StackItem>
-        {error && (
-          <StackItem>
-            <Alert title="Error deleting notebook" isInline variant="danger">
-              {error.message}
-            </Alert>
-          </StackItem>
-        )}
-      </Stack>
-    </Modal>
+      This action cannot be undone.
+    </DeleteModal>
   );
 };
 

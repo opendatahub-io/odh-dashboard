@@ -14,12 +14,12 @@ import { useCreateStorageObjectForNotebook } from '../../spawner/storage/utils';
 import CreateNewStorageSection from '../../spawner/storage/CreateNewStorageSection';
 import ConnectExistingNotebook from './ConnectExistingNotebook';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
-
-import './ManageStorageModal.scss';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
+
+import './ManageStorageModal.scss';
 
 type AddStorageModalProps = {
   existingData?: PersistentVolumeClaimKind;
