@@ -2,28 +2,23 @@ import * as React from 'react';
 import { NotebookKind, PersistentVolumeClaimKind } from '../../../k8sTypes';
 import { getNotebookPVCNames } from './utils';
 import { useDeepCompareMemoize } from '../../../utilities/useDeepCompareMemoize';
-import { getPvc } from '../../../api';
+import { ProjectDetailsContext } from '../ProjectDetailsContext';
 
 const useNotebookPVCItems = (
   notebook: NotebookKind,
 ): [pvcs: PersistentVolumeClaimKind[], loaded: boolean, loadError?: Error] => {
-  const [pvcs, setPVCs] = React.useState<PersistentVolumeClaimKind[]>([]);
-  const [loadError, setLoadError] = React.useState<Error | undefined>();
-  const [loaded, setLoaded] = React.useState(false);
+  const {
+    pvcs: { data: allPvcs, loaded, error },
+  } = React.useContext(ProjectDetailsContext);
 
   const pvcNames = useDeepCompareMemoize(getNotebookPVCNames(notebook));
-  const projectName = notebook.metadata.namespace;
 
-  React.useEffect(() => {
-    Promise.all(pvcNames.map((pvcName) => getPvc(projectName, pvcName)))
-      .then((newPVCs) => {
-        setPVCs(newPVCs.filter((pvc) => !!pvc));
-        setLoaded(true);
-      })
-      .catch((e) => setLoadError(e));
-  }, [projectName, pvcNames]);
+  const pvcs = React.useMemo(
+    () => allPvcs.filter((pvc) => pvcNames.includes(pvc.metadata.name)),
+    [allPvcs, pvcNames],
+  );
 
-  return [pvcs, loaded, loadError];
+  return [pvcs, loaded, error];
 };
 
 export default useNotebookPVCItems;

@@ -56,9 +56,9 @@ const ProjectDetails: React.FC = () => {
         >
           <Stack hasGutter>
             {sections.map(({ id, component }) => (
-              <React.Fragment key={id}>
-                <StackItem>{component}</StackItem>
-              </React.Fragment>
+              <StackItem key={id} id={id} aria-label={ProjectSectionTitles[id]}>
+                {component}
+              </StackItem>
             ))}
           </Stack>
         </GenericSidebar>

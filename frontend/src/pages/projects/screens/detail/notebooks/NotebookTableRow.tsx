@@ -31,11 +31,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     <>
       <Tr>
         <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
-        <Td>
+        <Td dataLabel="Name">
           <Title headingLevel="h4">{getNotebookDisplayName(obj.notebook)}</Title>
           <Text>{getNotebookDescription(obj.notebook)}</Text>
         </Td>
-        <Td>
+        <Td dataLabel="Notebook image">
           {!loaded ? (
             <Spinner size="md" />
           ) : (
@@ -45,8 +45,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             <Text component={TextVariants.small}>{notebookImage.tagSoftware}</Text>
           )}
         </Td>
-        <Td>{notebookSize?.name ?? 'Unknown'}</Td>
-        <Td>
+        <Td dataLabel="Container size">{notebookSize?.name ?? 'Unknown'}</Td>
+        <Td dataLabel="Status">
           <NotebookStatusToggle notebookState={obj} doListen={false} />
         </Td>
         <Td>
@@ -73,12 +73,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       </Tr>
       <Tr isExpanded={isExpanded}>
         <Td />
-        <Td>
+        <Td dataLabel="Workbench storages">
           <ExpandableRowContent>
             <NotebookStorageBars notebook={obj.notebook} onAddStorage={onNotebookAddStorage} />
           </ExpandableRowContent>
         </Td>
-        <Td>
+        <Td dataLabel="Packages">
           <ExpandableRowContent>
             {notebookImage ? (
               <NotebookImagePackageDetails dependencies={notebookImage.dependencies} />
@@ -87,7 +87,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             )}
           </ExpandableRowContent>
         </Td>
-        <Td>
+        <Td dataLabel="Limits">
           <ExpandableRowContent>
             {notebookSize && <NotebookSizeDetails notebookSize={notebookSize} />}
           </ExpandableRowContent>

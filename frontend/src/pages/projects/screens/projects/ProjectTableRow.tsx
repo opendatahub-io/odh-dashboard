@@ -24,12 +24,12 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
 
   return (
     <Tr>
-      <Td>
+      <Td dataLabel="Name">
         <ProjectLink project={project} />
         <br />
         {owner && <Text component={TextVariants.small}>{owner}</Text>}
       </Td>
-      <Td>
+      <Td dataLabel="Workbench">
         <ListNotebookState
           notebookStates={notebookStates}
           loaded={loaded}
@@ -37,7 +37,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           show="notebook"
         />
       </Td>
-      <Td>
+      <Td dataLabel="Status">
         <ListNotebookState
           notebookStates={notebookStates}
           loaded={loaded}
@@ -45,7 +45,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           show="status"
         />
       </Td>
-      <Td>
+      <Td dataLabel="Created">
         {project.metadata.creationTimestamp ? (
           <Timestamp date={new Date(project.metadata.creationTimestamp)} />
         ) : (

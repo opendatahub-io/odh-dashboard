@@ -25,18 +25,18 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
 }) => {
   return (
     <Tr>
-      <Td>
+      <Td dataLabel="Name">
         <Title headingLevel="h4">{getDataConnectionDisplayName(obj)}</Title>
         <Text>{getDataConnectionDescription(obj)}</Text>
       </Td>
-      <Td>{getDataConnectionType(obj)}</Td>
-      <Td>
+      <Td dataLabel="Type">{getDataConnectionType(obj)}</Td>
+      <Td dataLabel="Connected workbenches">
         <ConnectedNotebooks
           context={ConnectedNotebookContext.DATA_CONNECTION}
           relatedResourceName={getDataConnectionResourceName(obj)}
         />
       </Td>
-      <Td>{getDataConnectionProvider(obj)}</Td>
+      <Td dataLabel="Provider">{getDataConnectionProvider(obj)}</Td>
       <Td isActionCell>
         <ActionsColumn
           items={[

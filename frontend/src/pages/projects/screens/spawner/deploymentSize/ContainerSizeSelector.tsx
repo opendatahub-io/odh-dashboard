@@ -39,6 +39,7 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
       }
     >
       <Select
+        data-id="container-size-select"
         isOpen={sizeDropdownOpen}
         onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
         aria-labelledby="container-size"

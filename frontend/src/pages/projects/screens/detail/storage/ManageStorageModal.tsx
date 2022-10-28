@@ -1,17 +1,25 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal } from '@patternfly/react-core';
-import { assemblePvc, attachNotebookPVC, createPvc, removeNotebookPVC } from '../../../../../api';
+import {
+  assemblePvc,
+  attachNotebookPVC,
+  createPvc,
+  removeNotebookPVC,
+  updatePvcDescription,
+  updatePvcDisplayName,
+} from '../../../../../api';
 import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { useCreateStorageObjectForNotebook } from '../../spawner/storage/utils';
 import CreateNewStorageSection from '../../spawner/storage/CreateNewStorageSection';
 import ConnectExistingNotebook from './ConnectExistingNotebook';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
-
-import './ManageStorageModal.scss';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
+import { getPvcDescription, getPvcDisplayName } from '../../../utils';
+
+import './ManageStorageModal.scss';
 
 type AddStorageModalProps = {
   existingData?: PersistentVolumeClaimKind;
@@ -44,7 +52,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     : true;
   const canCreate = !actionInProgress && createData.nameDesc.name && hasValidNotebookRelationship;
 
-  const submit = () => {
+  const submit = async () => {
     setError(undefined);
     setActionInProgress(true);
 
@@ -79,6 +87,12 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
 
     if (existingData) {
       const pvcName = existingData.metadata.name;
+      if (getPvcDisplayName(existingData) !== createData.nameDesc.name) {
+        await updatePvcDisplayName(pvcName, namespace, createData.nameDesc.name);
+      }
+      if (getPvcDescription(existingData) !== createData.nameDesc.description) {
+        await updatePvcDescription(pvcName, namespace, createData.nameDesc.description);
+      }
       if (removedNotebooks.length > 0) {
         // Remove connected pvcs
         Promise.all(

@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { Alert, Button, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Alert } from '@patternfly/react-core';
 import { getNotebookDisplayName, getPvcDisplayName } from '../utils';
 import { PersistentVolumeClaimKind } from '../../../k8sTypes';
 import { deletePvc, removeNotebookPVC } from '../../../api';
 import useRelatedNotebooks, { ConnectedNotebookContext } from '../notebook/useRelatedNotebooks';
+import DeleteModal from '../components/DeleteModal';
 
 type DeletePVCModalProps = {
   pvcToDelete?: PersistentVolumeClaimKind;
@@ -25,82 +26,54 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
     setError(undefined);
   };
 
+  const displayName = pvcToDelete ? getPvcDisplayName(pvcToDelete) : 'this storage';
+
   return (
-    <Modal
-      title="Confirm storage delete"
-      variant="small"
+    <DeleteModal
+      title="Delete Storage?"
       isOpen={!!pvcToDelete}
       onClose={() => onBeforeClose(false)}
-      actions={[
-        <Button
-          key="delete-storage"
-          variant="danger"
-          isDisabled={isDeleting}
-          onClick={() => {
-            if (pvcToDelete) {
-              const { name, namespace } = pvcToDelete.metadata;
-              setIsDeleting(true);
-              Promise.all(
-                connectedNotebooks.map((notebook) =>
-                  removeNotebookPVC(notebook.metadata.name, namespace, name),
-                ),
-              )
-                .then(() =>
-                  deletePvc(name, namespace).then(() => {
-                    onBeforeClose(true);
-                  }),
-                )
-                .catch((e) => {
-                  setError(e);
-                  setIsDeleting(false);
-                });
-            }
-          }}
-        >
-          Delete storage
-        </Button>,
-        <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
-          Cancel
-        </Button>,
-      ]}
+      onDelete={() => {
+        if (pvcToDelete) {
+          const { name, namespace } = pvcToDelete.metadata;
+          setIsDeleting(true);
+          Promise.all(
+            connectedNotebooks.map((notebook) =>
+              removeNotebookPVC(notebook.metadata.name, namespace, name),
+            ),
+          )
+            .then(() =>
+              deletePvc(name, namespace).then(() => {
+                onBeforeClose(true);
+              }),
+            )
+            .catch((e) => {
+              setError(e);
+              setIsDeleting(false);
+            });
+        }
+      }}
+      deleting={isDeleting}
+      error={error}
+      deleteName={displayName}
     >
-      <Stack hasGutter>
-        {notebookLoaded && !notebookError && connectedNotebooks.length !== 0 && (
-          <StackItem>
-            <Alert
-              variant="warning"
-              isInline
-              title={
-                <>
-                  This storage is connected to{' '}
-                  {connectedNotebooks
-                    .map((notebook) => getNotebookDisplayName(notebook))
-                    .join(', ')}
-                </>
-              }
-            >
-              Delete this storage could lead to the restart of the workbenches it connects to.
-            </Alert>
-          </StackItem>
-        )}
-        <StackItem>
-          Are you sure you want to delete{' '}
-          {pvcToDelete ? (
-            <strong>{getPvcDisplayName(pvcToDelete)}</strong>
-          ) : (
-            'this persistent storage'
-          )}
-          ?
-        </StackItem>
-        {error && (
-          <StackItem>
-            <Alert title="Error deleting storage" isInline variant="danger">
-              {error.message}
-            </Alert>
-          </StackItem>
-        )}
-      </Stack>
-    </Modal>
+      {notebookLoaded && !notebookError && connectedNotebooks.length !== 0 ? (
+        <Alert
+          variant="warning"
+          isInline
+          title={
+            <>
+              This storage is connected to{' '}
+              {connectedNotebooks.map((notebook) => getNotebookDisplayName(notebook)).join(', ')}
+            </>
+          }
+        >
+          This action cannot be undone, it will restart the workbenches it connects to.
+        </Alert>
+      ) : (
+        'This action cannot be undone.'
+      )}
+    </DeleteModal>
   );
 };
 
