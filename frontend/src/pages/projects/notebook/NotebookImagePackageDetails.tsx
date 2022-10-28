@@ -4,7 +4,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Text,
+  Truncate,
 } from '@patternfly/react-core';
 import { getNameVersionString } from '../screens/spawner/spawnerUtils';
 import { ImageVersionDependencyType } from '../screens/spawner/types';
@@ -28,7 +28,9 @@ const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({
         <DescriptionListTerm>{title || 'Packages'}</DescriptionListTerm>
         <DescriptionListDescription>
           {dependencies.map(getNameVersionString).map((pkg) => (
-            <Text key={pkg}>{pkg}</Text>
+            <p key={pkg}>
+              <Truncate content={pkg} />
+            </p>
           ))}
         </DescriptionListDescription>
       </DescriptionListGroup>
