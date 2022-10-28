@@ -24,22 +24,33 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   submitButtonLabel = 'Delete',
 }) => {
   const [value, setValue] = React.useState('');
+
+  const onBeforeClose = (deleted: boolean) => {
+    setValue('');
+
+    if (deleted) {
+      onDelete();
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <Modal
       title={title}
       titleIconVariant="warning"
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => onBeforeClose(false)}
       actions={[
         <Button
           key="delete-button"
           variant="danger"
           isDisabled={deleting || value !== deleteName}
-          onClick={onDelete}
+          onClick={() => onBeforeClose(true)}
         >
           {submitButtonLabel}
         </Button>,
-        <Button key="cancel-button" variant="secondary" onClick={onClose}>
+        <Button key="cancel-button" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel
         </Button>,
       ]}
