@@ -26,7 +26,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
             position="right"
             content={
               <Stack hasGutter>
-                <StackItem>Resource names and types are what appear in OpenShift.</StackItem>
+                <StackItem>
+                  Resource names and types are used to find your resources in OpenShift.
+                </StackItem>
                 <StackItem>
                   <DescriptionList isCompact isHorizontal>
                     <DescriptionListGroup>

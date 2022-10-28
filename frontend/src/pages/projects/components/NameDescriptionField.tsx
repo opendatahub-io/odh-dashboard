@@ -59,15 +59,9 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
                 content={
                   <Stack hasGutter>
                     <StackItem>
-                      Resource names are what appear in OpenShift as resources. Resource names are
-                      not editable after creation.
+                      Resource names are what your resources are labeled in OpenShift.
                     </StackItem>
-                    {!disableK8sName && (
-                      <StackItem>
-                        We automatically generate it based on what you enter or you can create it
-                        yourself.
-                      </StackItem>
-                    )}
+                    <StackItem>Resource names are not editable after creation.</StackItem>
                   </Stack>
                 }
               >
@@ -76,7 +70,10 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             }
             isRequired
             fieldId={nameFieldId}
-            helperText="Must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character"
+            helperText={
+              !disableK8sName &&
+              "Must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character"
+            }
           >
             <TextInput
               isRequired
