@@ -3,6 +3,11 @@ import { DataConnection } from '../../../types';
 
 export const columns: SortableData<DataConnection>[] = [
   {
+    field: 'empty',
+    label: '',
+    sortable: false,
+  },
+  {
     field: 'name',
     label: 'Name',
     width: 20,

@@ -48,11 +48,12 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
       <Flex spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem>
           <Switch
+            aria-label={label}
             isDisabled={inProgress}
             id={notebookName}
             isChecked={isChecked}
             onClick={() => {
-              if (isRunning || isStarting) {
+              if (isRunningOrStarting) {
                 if (dontShowModalValue) {
                   handleStop();
                 } else {
