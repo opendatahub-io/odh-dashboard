@@ -8,6 +8,7 @@ type DeleteModalProps = {
   deleting: boolean;
   onDelete: () => void;
   deleteName: string;
+  submitButtonLabel?: string;
   error?: Error;
 };
 
@@ -20,6 +21,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   onDelete,
   deleteName,
   error,
+  submitButtonLabel = 'Delete',
 }) => {
   const [value, setValue] = React.useState('');
   return (
@@ -35,7 +37,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           isDisabled={deleting || value !== deleteName}
           onClick={onDelete}
         >
-          Delete
+          {submitButtonLabel}
         </Button>,
         <Button key="cancel-button" variant="secondary" onClick={onClose}>
           Cancel

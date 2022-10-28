@@ -27,9 +27,10 @@ const DeleteDataConnectionModal: React.FC<DeleteDataConnectionModalProps> = ({
 
   return (
     <DeleteModal
-      title="Delete Data Connection?"
+      title="Delete data connection?"
       isOpen={!!dataConnection}
       onClose={() => onBeforeClose(false)}
+      submitButtonLabel="Delete data connection"
       onDelete={() => {
         if (dataConnection) {
           setIsDeleting(true);

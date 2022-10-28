@@ -30,9 +30,10 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
 
   return (
     <DeleteModal
-      title="Delete Storage?"
+      title="Delete storage?"
       isOpen={!!pvcToDelete}
       onClose={() => onBeforeClose(false)}
+      submitButtonLabel="Delete storage"
       onDelete={() => {
         if (pvcToDelete) {
           const { name, namespace } = pvcToDelete.metadata;
