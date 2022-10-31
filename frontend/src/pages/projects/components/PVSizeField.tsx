@@ -22,7 +22,7 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, disab
   return (
     <FormGroup
       label="Persistent storage size"
-      helperText={disable ? 'Cannot change size after creation' : ''}
+      helperText={disable ? 'Size cannot be changed after creation.' : ''}
       helperTextIcon={<ExclamationTriangleIcon />}
       validated={disable ? 'warning' : 'default'}
       fieldId={fieldID}
