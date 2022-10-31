@@ -1,10 +1,12 @@
 import * as React from 'react';
+import { Text, TextVariants, Timestamp } from '@patternfly/react-core';
 import { ProjectKind } from '../../../../k8sTypes';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import ProjectLink from './ProjectLink';
-import { Text, TextVariants, Timestamp } from '@patternfly/react-core';
 import useProjectNotebookStates from '../../notebook/useProjectNotebookStates';
 import ListNotebookState from '../../notebook/ListNotebookState';
+import ResourceNameTooltip from '../../components/ResourceNameTooltip';
+import { getProjectOwner } from '../../utils';
 
 type ProjectTableRowProps = {
   obj: ProjectKind;
@@ -20,13 +22,14 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   setDeleteData,
 }) => {
   const [notebookStates, loaded, error] = useProjectNotebookStates(project.metadata.name);
-  const owner = project.metadata.annotations?.['openshift.io/requester'];
+  const owner = getProjectOwner(project);
 
   return (
     <Tr>
       <Td dataLabel="Name">
-        <ProjectLink project={project} />
-        <br />
+        <ResourceNameTooltip resource={project}>
+          <ProjectLink project={project} />
+        </ResourceNameTooltip>
         {owner && <Text component={TextVariants.small}>{owner}</Text>}
       </Td>
       <Td dataLabel="Workbench">

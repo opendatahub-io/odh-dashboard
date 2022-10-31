@@ -27,6 +27,8 @@ export const getProjectDisplayName = (project: ProjectKind): string =>
   getDisplayNameFromK8sResource(project);
 export const getProjectDescription = (project: ProjectKind): string =>
   getDescriptionFromK8sResource(project);
+export const getProjectOwner = (project: ProjectKind): string =>
+  project.metadata.annotations?.['openshift.io/requester'] || '';
 export const getProjectCreationTime = (project: ProjectKind): number =>
   project.metadata.creationTimestamp ? new Date(project.metadata.creationTimestamp).getTime() : 0;
 

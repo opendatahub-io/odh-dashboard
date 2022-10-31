@@ -7,6 +7,7 @@ import { HddIcon } from '@patternfly/react-icons';
 import StorageSizeBar from '../../../components/StorageSizeBars';
 import ConnectedNotebooks from '../../../notebook/ConnectedNotebooks';
 import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
+import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
@@ -22,7 +23,9 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
       <Tr>
         <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
         <Td dataLabel="Name">
-          <Title headingLevel="h4">{getPvcDisplayName(obj)}</Title>
+          <Title headingLevel="h4">
+            <ResourceNameTooltip resource={obj}>{getPvcDisplayName(obj)}</ResourceNameTooltip>
+          </Title>
           <Text>{getPvcDescription(obj)}</Text>
         </Td>
         <Td dataLabel="Type">

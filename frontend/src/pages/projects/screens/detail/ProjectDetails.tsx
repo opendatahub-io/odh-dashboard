@@ -30,7 +30,7 @@ const ProjectDetails: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={`${displayName} project details`}
+      title={displayName}
       description={description}
       breadcrumb={
         <Breadcrumb>

@@ -7,10 +7,13 @@ import NotebookRouteLink from '../../../notebook/NotebookRouteLink';
 import NotebookStatusToggle from '../../../notebook/NotebookStatusToggle';
 import { NotebookKind } from '../../../../../k8sTypes';
 import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
-import useNotebookSize from './useNotebookSize';
+import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import NotebookStorageBars from './NotebookStorageBars';
+import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
+import { useNavigate } from 'react-router-dom';
+import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -23,8 +26,10 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   onNotebookDelete,
   onNotebookAddStorage,
 }) => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
-  const notebookSize = useNotebookSize(obj.notebook);
+  const notebookSize = useNotebookDeploymentSize(obj.notebook);
   const [notebookImage, loaded] = useNotebookImage(obj.notebook);
 
   return (
@@ -32,7 +37,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       <Tr>
         <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
         <Td dataLabel="Name">
-          <Title headingLevel="h4">{getNotebookDisplayName(obj.notebook)}</Title>
+          <Title headingLevel="h4">
+            <ResourceNameTooltip resource={obj.notebook}>
+              {getNotebookDisplayName(obj.notebook)}
+            </ResourceNameTooltip>
+          </Title>
           <Text>{getNotebookDescription(obj.notebook)}</Text>
         </Td>
         <Td dataLabel="Notebook image">
@@ -58,7 +67,9 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               {
                 title: 'Edit workbench',
                 onClick: () => {
-                  alert('Not implemented yet');
+                  navigate(
+                    `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
+                  );
                 },
               },
               {

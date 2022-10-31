@@ -5,8 +5,12 @@ import { NotebookContainer, NotebookSize } from '../../../../../types';
 import { getNotebookSizes } from '../../../../notebookController/screens/server/usePreferredNotebookSize';
 import { NotebookKind } from '../../../../../k8sTypes';
 
-const useNotebookSize = (notebook: NotebookKind): NotebookSize | null => {
+const useNotebookDeploymentSize = (notebook?: NotebookKind): NotebookSize | null => {
   const { dashboardConfig } = React.useContext(AppContext);
+
+  if (!notebook) {
+    return null;
+  }
 
   const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
@@ -26,4 +30,4 @@ const useNotebookSize = (notebook: NotebookKind): NotebookSize | null => {
   return size;
 };
 
-export default useNotebookSize;
+export default useNotebookDeploymentSize;
