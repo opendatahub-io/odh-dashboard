@@ -18,7 +18,7 @@ export default async (fastify: FastifyInstance): Promise<void> => {
     }),
   );
 
-  fastify.post(
+  fastify.get(
     '/:namespace/allowedUsers',
     secureAdminRoute(fastify)(
       async (request: FastifyRequest<{ Params: { namespace: string } }>, reply) => {

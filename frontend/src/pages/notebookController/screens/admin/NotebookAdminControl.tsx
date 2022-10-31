@@ -115,7 +115,11 @@ const NotebookAdminControl: React.FC = () => {
             </StackItem>
           </Stack>
         </div>
-        <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
+        <StopServerModal
+          impersonatedUsername={undefined}
+          notebooksToStop={notebooksToStop}
+          onNotebooksStop={onNotebooksStop}
+        />
       </ApplicationsPage>
     </div>
   );

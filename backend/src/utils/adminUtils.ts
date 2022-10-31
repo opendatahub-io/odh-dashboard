@@ -25,8 +25,8 @@ export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<st
   const adminGroups = getAdminGroups();
   const adminGroupsList = adminGroups
     .split(',')
-    .filter((groupName) => !groupName.startsWith('system:')); // do not include k8s defaults
-
+    .filter((groupName) => !groupName.startsWith('system:')) // do not include k8s defaults
+    .filter((groupName) => groupName != ''); // To prevent edge cases where groups are unset
   return getGroupUserList(fastify, adminGroupsList);
 };
 
@@ -34,8 +34,8 @@ export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<
   const allowedGroups = getAllowedGroups();
   const allowedGroupList = allowedGroups
     .split(',')
-    .filter((groupName) => !groupName.startsWith('system:')); // do not include k8s defaults
-
+    .filter((groupName) => !groupName.startsWith('system:')) // do not include k8s defaults
+    .filter((groupName) => groupName != ''); // To prevent edge cases where groups are unset
   return getGroupUserList(fastify, allowedGroupList);
 };
 
