@@ -19,8 +19,6 @@ import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
 import GPUSelectField from '../../../notebookController/screens/server/GPUSelectField';
 import { NotebookKind } from '../../../../k8sTypes';
-import useImageStreams from './useImageStreams';
-import useNamespaces from '../../../notebookController/useNamespaces';
 import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
 

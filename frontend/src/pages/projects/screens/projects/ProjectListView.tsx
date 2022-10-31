@@ -1,16 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  Dropdown,
-  DropdownItem,
-  DropdownToggle,
-  InputGroup,
-  Pagination,
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { ProjectKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { getProjectDisplayName, getProjectOwner } from '../../utils';

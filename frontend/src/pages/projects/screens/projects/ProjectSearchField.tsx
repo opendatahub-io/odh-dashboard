@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownToggle,
-  InputGroup,
-  SearchInput,
-  Select,
-  SelectOption,
-} from '@patternfly/react-core';
+import { InputGroup, SearchInput, Select, SelectOption } from '@patternfly/react-core';
 
 export enum SearchType {
   NAME = 'Name',

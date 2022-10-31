@@ -6,7 +6,6 @@ import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData, EnvVariable } from '../../types';
 import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
 import { useUser } from '../../../../redux/selectors';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { NotebookKind } from '../../../../k8sTypes';
 
