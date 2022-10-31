@@ -145,6 +145,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
               data={createData}
               setData={(key, value) => setCreateData(key, value)}
               disableSize={!!existingData}
+              autoFocusName
             />
             {createData.hasExistingNotebookConnections && (
               <ExistingConnectedNotebooks

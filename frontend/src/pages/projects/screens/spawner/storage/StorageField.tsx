@@ -20,16 +20,6 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData 
       <Stack hasGutter>
         <StackItem>
           <Radio
-            name="ephemeral-storage-type-radio"
-            id="ephemeral-storage-type-radio"
-            label="Ephemeral storage"
-            description="This is temporary storage that is cleared when logged out."
-            isChecked={storageType === StorageType.EPHEMERAL}
-            onChange={() => setStorageData('storageType', StorageType.EPHEMERAL)}
-          />
-        </StackItem>
-        <StackItem>
-          <Radio
             className="checkbox-radio-fix-body-width"
             name="persistent-new-storage-type-radio"
             id="persistent-new-storage-type-radio"

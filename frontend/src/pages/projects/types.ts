@@ -46,7 +46,6 @@ export type ExistingStorageObject = {
 };
 
 export enum StorageType {
-  EPHEMERAL = 'ephemeral',
   NEW_PVC = 'new-persistent',
   EXISTING_PVC = 'existing-persistent',
 }

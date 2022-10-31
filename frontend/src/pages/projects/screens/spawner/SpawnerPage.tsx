@@ -21,6 +21,7 @@ import GPUSelectField from '../../../notebookController/screens/server/GPUSelect
 import { NotebookKind } from '../../../../k8sTypes';
 import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
+import { useMergeDefaultPVCName } from './spawnerUtils';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -41,7 +42,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   });
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
-  const [storageData, setStorageData] = useStorageDataObject(StorageType.EPHEMERAL);
+  const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(StorageType.NEW_PVC);
+  const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
   React.useEffect(() => {
