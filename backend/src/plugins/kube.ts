@@ -5,6 +5,7 @@ import * as jsYaml from 'js-yaml';
 import * as k8s from '@kubernetes/client-node';
 import { DEV_MODE } from '../utils/constants';
 import { initializeWatchedResources } from '../utils/resourceUtils';
+import { V1Secret, V1ServiceAccount } from '@kubernetes/client-node';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
@@ -31,6 +32,10 @@ export default fp(async (fastify: FastifyInstance) => {
   try {
     if (currentContext === 'inClusterContext') {
       saToken = await getSAToken();
+    } else if (DEV_MODE) {
+      saToken = await getSATokenLocal();
+    } else {
+      saToken = undefined;
     }
   } catch (e) {
     fastify.log.error(e, 'Failed to retrieve Service Account token');
@@ -114,3 +119,23 @@ const getSAToken = async () => {
     });
   });
 };
+
+const getSATokenLocal = async () => {
+  const promSA = await coreV1Api
+    .readNamespacedServiceAccount('prometheus-k8s', 'openshift-monitoring')
+    .then((res) => res.body as V1ServiceAccount);
+  let promTokenName = '';
+  for (let i = 0; i < promSA.secrets.length; i++) {
+    if (promSA.secrets[i].name.includes('token')) {
+      promTokenName = promSA.secrets[i].name;
+    }
+  }
+  const promSecret = await coreV1Api
+    .readNamespacedSecret(promTokenName, 'openshift-monitoring')
+    .then((res) => res.body as V1Secret);
+  const promToken = decodeB64(promSecret.data.token);
+
+  return promToken;
+};
+
+const decodeB64 = (str: string): string => Buffer.from(str, 'base64').toString('binary');
