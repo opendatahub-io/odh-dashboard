@@ -27,30 +27,32 @@ const UnauthorizedError = React.lazy(() => import('../pages/UnauthorizedError'))
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
 
+  if (!isAllowed) {
+    return (
+      <Routes>
+        <Route path="*" element={<UnauthorizedError />} />
+      </Routes>
+    );
+  }
+
   return (
     <React.Suspense
       fallback={<ApplicationsPage title="" description="" loaded={false} empty={true} />}
     >
       <Routes>
-        {isAllowed ? (
-          <>
-            <Route path="/" element={<InstalledApplications />} />
-            <Route path="/explore" element={<ExploreApplications />} />
-            <Route path="/resources" element={<LearningCenterPage />} />
-            <Route path="/projects/*" element={<ProjectViewRoutes />} />
-            <Route path="/notebookController/*" element={<NotebookController />} />
-            <Route
-              path="/notebook/:namespace/:notebookName/logout"
-              element={<NotebookLogoutRedirectPage />}
-            />
-            {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
-            {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}
-            {isAdmin && <Route path="/groupSettings" element={<GroupSettingsPage />} />}
-            <Route path="*" element={<NotFound />} />
-          </>
-        ) : (
-          <Route path="*" element={<UnauthorizedError />} />
-        )}
+        <Route path="/" element={<InstalledApplications />} />
+        <Route path="/explore" element={<ExploreApplications />} />
+        <Route path="/resources" element={<LearningCenterPage />} />
+        <Route path="/projects/*" element={<ProjectViewRoutes />} />
+        <Route path="/notebookController/*" element={<NotebookController />} />
+        <Route
+          path="/notebook/:namespace/:notebookName/logout"
+          element={<NotebookLogoutRedirectPage />}
+        />
+        {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
+        {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}
+        {isAdmin && <Route path="/groupSettings" element={<GroupSettingsPage />} />}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </React.Suspense>
   );
