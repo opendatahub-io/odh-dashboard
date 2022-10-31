@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { Alert } from '@patternfly/react-core';
-import { getNotebookDisplayName, getPvcDisplayName } from '../utils';
+import { getPvcDisplayName } from '../utils';
 import { PersistentVolumeClaimKind } from '../../../k8sTypes';
 import { deletePvc, removeNotebookPVC } from '../../../api';
 import useRelatedNotebooks, { ConnectedNotebookContext } from '../notebook/useRelatedNotebooks';
 import DeleteModal from '../components/DeleteModal';
+import DeleteModalConnectedAlert from '../components/DeleteModalConnectedAlert';
 
 type DeletePVCModalProps = {
   pvcToDelete?: PersistentVolumeClaimKind;
@@ -58,22 +58,11 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
       error={error}
       deleteName={displayName}
     >
-      {notebookLoaded && !notebookError && connectedNotebooks.length !== 0 ? (
-        <Alert
-          variant="warning"
-          isInline
-          title={
-            <>
-              This storage is connected to{' '}
-              {connectedNotebooks.map((notebook) => getNotebookDisplayName(notebook)).join(', ')}
-            </>
-          }
-        >
-          This action cannot be undone, it will restart the workbenches it connects to.
-        </Alert>
-      ) : (
-        'This action cannot be undone.'
-      )}
+      <DeleteModalConnectedAlert
+        connectedNotebooks={connectedNotebooks}
+        error={notebookError}
+        loaded={notebookLoaded}
+      />
     </DeleteModal>
   );
 };

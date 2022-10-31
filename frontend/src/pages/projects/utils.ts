@@ -5,6 +5,7 @@ import {
   ProjectKind,
   SecretKind,
 } from '../../k8sTypes';
+import { NotebookState } from './notebook/types';
 
 const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
@@ -33,6 +34,8 @@ export const getNotebookDisplayName = (notebook: NotebookKind): string =>
   getDisplayNameFromK8sResource(notebook);
 export const getNotebookDescription = (notebook: NotebookKind): string =>
   getDescriptionFromK8sResource(notebook);
+export const getNotebookStatusPriority = (notebookState: NotebookState): number =>
+  notebookState.isRunning ? 1 : notebookState.isStarting ? 2 : 3;
 
 export const getPvcDisplayName = (pvc: PersistentVolumeClaimKind): string =>
   getDisplayNameFromK8sResource(pvc);

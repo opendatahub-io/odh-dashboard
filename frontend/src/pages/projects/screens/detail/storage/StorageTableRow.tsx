@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Text, Title } from '@patternfly/react-core';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
@@ -18,7 +18,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
 
   return (
-    <>
+    <Tbody isExpanded={isExpanded}>
       <Tr>
         <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
         <Td dataLabel="Name">
@@ -68,7 +68,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
         <Td />
         <Td />
       </Tr>
-    </>
+    </Tbody>
   );
 };
 

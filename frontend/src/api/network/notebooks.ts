@@ -107,6 +107,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
         app: notebookId,
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
+        'opendatahub.io/dashboard': 'true',
       },
       annotations: {
         'openshift.io/display-name': notebookName,
@@ -386,6 +387,40 @@ export const removeNotebookPVC = (
               filteredVolumeMounts.length === 0
                 ? [{ mountPath: '/cache', name: 'cache-volume' }]
                 : filteredVolumeMounts,
+          },
+        ];
+
+        k8sPatchResource<NotebookKind>({
+          model: NotebookModel,
+          queryOptions: { name: notebookName, ns: namespace },
+          patches,
+        })
+          .then(resolve)
+          .catch(reject);
+      })
+      .catch(reject);
+  });
+};
+
+export const removeNotebookSecret = (
+  notebookName: string,
+  namespace: string,
+  secretName: string,
+): Promise<NotebookKind> => {
+  return new Promise((resolve, reject) => {
+    getNotebook(notebookName, namespace)
+      .then((notebook) => {
+        const envFroms = notebook.spec.template.spec.containers[0].envFrom || [];
+        const filteredEnvFroms = envFroms.filter(
+          (envFrom) => envFrom.secretRef?.name !== secretName,
+        );
+
+        const patches: Patch[] = [
+          {
+            op: 'replace',
+            // TODO: can we assume first container?
+            path: '/spec/template/spec/containers/0/envFrom',
+            value: filteredEnvFroms,
           },
         ];
 

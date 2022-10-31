@@ -1,12 +1,19 @@
 import { SortableData } from '../../../../../utilities/useTableColumnSort';
 import { DataConnection } from '../../../types';
+import { getDataConnectionDisplayName } from './utils';
 
 export const columns: SortableData<DataConnection>[] = [
+  {
+    field: 'empty',
+    label: '',
+    sortable: false,
+  },
   {
     field: 'name',
     label: 'Name',
     width: 20,
-    sortable: false,
+    sortable: (a, b) =>
+      getDataConnectionDisplayName(a).localeCompare(getDataConnectionDisplayName(b)),
   },
   {
     field: 'type',

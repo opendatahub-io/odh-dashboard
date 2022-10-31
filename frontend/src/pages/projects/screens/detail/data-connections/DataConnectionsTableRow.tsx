@@ -25,6 +25,10 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
 }) => {
   return (
     <Tr>
+      {/* This cell is used to align with the other lists which have a toggle button */}
+      <Td className="pf-c-table__toggle">
+        <div style={{ width: 46 }} />
+      </Td>
       <Td dataLabel="Name">
         <Title headingLevel="h4">{getDataConnectionDisplayName(obj)}</Title>
         <Text>{getDataConnectionDescription(obj)}</Text>

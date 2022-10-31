@@ -26,11 +26,7 @@ export const getNotebooksStatus = async (
     ),
   ).then((podsPerNotebook) =>
     podsPerNotebook.reduce<NotebookDataState[]>((acc, pods, i) => {
-      // Sometimes a notebook is terminated without being set a stop annotation
-      // We should also check that and think that's also a stop
-      // Or the notebook will always be in `isStarting` status
-      const isTerminated = notebooks[i].status?.containerState?.terminated;
-      const isStopped = hasStopAnnotation(notebooks[i]) || isTerminated;
+      const isStopped = hasStopAnnotation(notebooks[i]);
       const podsReady = pods.some((pod) => checkPodContainersReady(pod));
       return [
         ...acc,

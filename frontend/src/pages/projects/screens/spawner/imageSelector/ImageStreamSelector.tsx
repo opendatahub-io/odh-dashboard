@@ -8,7 +8,6 @@ import {
   getRelatedVersionDescription,
   isImageStreamSelectOptionObject,
 } from '../spawnerUtils';
-import { getDashboardMainContainer } from '../../../../../utilities/utils';
 import { ImageStreamKind } from '../../../../../k8sTypes';
 
 type ImageStreamSelectorProps = {
@@ -66,7 +65,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
             optionObject.imageStream.metadata.name === selectedImageStream?.metadata.name,
         )}
         placeholderText="Select one"
-        menuAppendTo={getDashboardMainContainer}
+        maxHeight={250}
       >
         {options}
       </Select>
