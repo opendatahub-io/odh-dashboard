@@ -1,8 +1,6 @@
 import React from 'react';
-
 import {
   Title,
-  Button,
   EmptyState,
   EmptyStateVariant,
   EmptyStateIcon,
@@ -10,24 +8,23 @@ import {
   PageSection,
   PageSectionVariants,
 } from '@patternfly/react-core';
-import { HomeIcon, WarningTriangleIcon } from '@patternfly/react-icons';
+import { WarningTriangleIcon } from '@patternfly/react-icons';
 
-const Placeholder: React.FC = () => (
+const UnauthorizedError: React.FC = () => (
   <>
     <PageSection variant={PageSectionVariants.light}>
       <EmptyState variant={EmptyStateVariant.full}>
         <EmptyStateIcon icon={WarningTriangleIcon} />
 
         <Title headingLevel="h5" size="lg">
-          Placeholder
+          Unauthorized User
         </Title>
-        <EmptyStateBody>Docs</EmptyStateBody>
-        <Button component="a" href="/" variant="primary">
-          <HomeIcon /> Home
-        </Button>
+        <EmptyStateBody>
+          It looks like you have no access to this application, please contact the administrator.
+        </EmptyStateBody>
       </EmptyState>
     </PageSection>
   </>
 );
 
-export default Placeholder;
+export default UnauthorizedError;

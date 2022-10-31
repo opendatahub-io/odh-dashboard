@@ -4,6 +4,7 @@ import HeaderTools from './HeaderTools';
 import { ODH_LOGO, ODH_PRODUCT_NAME } from '../utilities/const';
 import { useAppContext } from './AppContext';
 import { Link } from 'react-router-dom';
+import { useUser } from '../redux/selectors';
 
 type HeaderProps = {
   onNotificationsClick: () => void;
@@ -11,6 +12,7 @@ type HeaderProps = {
 
 const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
   const { isNavOpen, onNavToggle } = useAppContext();
+  const { isAllowed } = useUser();
   return (
     <PageHeader
       logo={
@@ -22,7 +24,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
       logoComponent={Link}
       logoProps={{ to: '/' }}
       headerTools={<HeaderTools onNotificationsClick={onNotificationsClick} />}
-      showNavToggle
+      showNavToggle={isAllowed}
       isNavOpen={isNavOpen}
       onNavToggle={onNavToggle}
     />
