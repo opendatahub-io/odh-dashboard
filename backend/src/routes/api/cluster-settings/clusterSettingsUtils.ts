@@ -71,6 +71,9 @@ export const updateClusterSettings = async (
                 kind: 'ConfigMap',
                 metadata: {
                   name: 'notebook-controller-culler-config',
+                  labels: {
+                    'opendatahub.io/dashboard': 'true',
+                  },
                 },
                 data: {
                   ENABLE_CULLING: String(isEnabled),

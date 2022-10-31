@@ -15,3 +15,5 @@ if (process.env.ODH_IS_PROJECT_ROOT_DIR === 'false') {
 configure({
   testIdAttribute: 'data-id',
 });
+
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({}));

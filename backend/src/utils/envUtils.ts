@@ -135,6 +135,9 @@ const generateSecret = (
     metadata: {
       name,
       namespace,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+      },
     },
     stringData: secrets,
     type: 'Opaque',
@@ -152,6 +155,9 @@ const generateConfigMap = (
     metadata: {
       name,
       namespace,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+      },
     },
     data: configmap,
   };

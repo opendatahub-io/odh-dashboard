@@ -13,6 +13,7 @@ spec:
     disableSupport: false
     disableTracking: true
     enablement: true
+    disableProjects: true
   notebookController:
     enabled: true
   notebookSizes:

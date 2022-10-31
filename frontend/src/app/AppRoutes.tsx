@@ -12,6 +12,7 @@ const ExploreApplications = React.lazy(
 const NotebookLogoutRedirectPage = React.lazy(
   () => import('../pages/notebookController/NotebookLogoutRedirect'),
 );
+const ProjectViewRoutes = React.lazy(() => import('../pages/projects/ProjectViewRoutes'));
 const NotebookController = React.lazy(
   () => import('../pages/notebookController/NotebookController'),
 );
@@ -33,6 +34,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
+        {isAllowed && <Route path="/projects/*" element={<ProjectViewRoutes />} />}
         {isAllowed && <Route path="/notebookController/*" element={<NotebookController />} />}
         {isAllowed && (
           <Route

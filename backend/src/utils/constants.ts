@@ -7,6 +7,8 @@ export const LOG_LEVEL = process.env.FASTIFY_LOG_LEVEL || process.env.LOG_LEVEL 
 export const DEV_MODE = process.env.APP_ENV === 'development';
 export const APP_ENV = process.env.APP_ENV;
 
+export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
+
 export const yamlRegExp = /\.ya?ml$/;
 export const mdRegExp = /\.md$/;
 
@@ -25,6 +27,9 @@ export const blankDashboardCR: DashboardConfig = {
   kind: 'OdhDashboardConfig',
   metadata: {
     name: 'odh-dashboard-config',
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+    },
   },
   spec: {
     dashboardConfig: {
@@ -37,6 +42,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableISVBadges: false,
       disableAppLauncher: false,
       disableUserManagement: false,
+      disableProjects: false,
     },
     notebookController: {
       enabled: true,

@@ -16,6 +16,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableISVBadges: boolean;
       disableAppLauncher: boolean;
       disableUserManagement: boolean;
+      disableProjects: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -99,6 +100,18 @@ export type K8sResourceCommon = {
     creationTimestamp?: Date;
   };
 } & K8sResourceBase;
+
+/**
+ * A status object when Kube backend can't handle a request.
+ */
+export type K8sStatus = {
+  kind: string;
+  apiVersion: string;
+  code: number;
+  message: string;
+  reason: string;
+  status: string;
+};
 
 export enum BUILD_PHASE {
   none = 'Not started',
@@ -186,6 +199,7 @@ export type KubeStatus = {
   isAdmin: boolean;
   isAllowed: boolean;
   saToken?: string;
+  serverURL: string;
 };
 
 export type KubeDecorator = KubeStatus & {
@@ -457,37 +471,6 @@ export type BYONImagePackage = {
   version: string;
   visible: boolean;
 };
-
-export type PipelineRunKind = {
-  spec: {
-    params: {
-      name: string;
-      value: string;
-    }[];
-    pipelineRef: {
-      name: string;
-    };
-    workspaces?: [
-      {
-        name: string;
-        volumeClaimTemplate: {
-          spec: {
-            accessModes: string[];
-            resources: {
-              requests: {
-                storage: string;
-              };
-            };
-          };
-        };
-      },
-    ];
-  };
-} & K8sResourceCommon;
-
-export type PipelineRunListKind = {
-  items: PipelineRunKind[];
-} & K8sResourceBase;
 
 export type ImageStreamTag = {
   name: string;

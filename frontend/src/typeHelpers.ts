@@ -8,6 +8,11 @@ export type RecursivePartial<T> = {
 };
 
 /**
+ * Unions all values of an object togethers -- antithesis to `keyof myObj`.
+ */
+export type ValueOf<T> = T[keyof T];
+
+/**
  * Never allow any properties of `Type`.
  *
  * Utility type, probably never a reason to export.

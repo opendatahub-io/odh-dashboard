@@ -33,13 +33,12 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
       }),
     )
       .then(() => {
+        setDeleting(false);
         onNotebooksStop(true);
       })
       .catch((e) => {
-        notification.error(`Error stopping ${textToShow}`, e.message);
-      })
-      .finally(() => {
         setDeleting(false);
+        notification.error(`Error stopping ${textToShow}`, e.message);
       });
   };
 
