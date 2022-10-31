@@ -46,7 +46,7 @@ export const calculateRelativeTime = (startTime: Date, endTime: Date): string =>
   return 'a few seconds ago';
 };
 
-// Returns the possible colors allowed for a patternly-react Label component
+// Returns the possible colors allowed for a patternfly-react Label component
 // There is no type defined for this so it must be exactly one of the possible strings
 // required :/
 // FixMe: Fix when https://github.com/patternfly/patternfly-react/issues/5895 is resolved
@@ -134,4 +134,23 @@ export const getTimeoutByHourAndMinute = (hour: number, minute: number): number 
 
 export const isGroupEmpty = <T extends { enabled: boolean }>(groupList: Array<T>): boolean => {
   return groupList.filter((element) => element.enabled).length === 0;
+};
+
+export const getDashboardMainContainer = (): HTMLElement =>
+  document.getElementById('dashboard-page-main') || document.body;
+
+export const isHTMLInputElement = (object: unknown): object is HTMLInputElement => {
+  return (object as HTMLInputElement).value !== undefined;
+};
+
+export const normalizeBetween = (value: number, min?: number, max?: number): number => {
+  let returnedValue = value;
+  if (min !== undefined && max !== undefined) {
+    returnedValue = Math.max(Math.min(value, max), min);
+  } else if (min && value <= min) {
+    returnedValue = min;
+  } else if (max && value >= max) {
+    returnedValue = max;
+  }
+  return Math.floor(returnedValue);
 };

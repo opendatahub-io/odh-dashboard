@@ -19,6 +19,7 @@ import './ApplicationsPage.scss';
 
 type ApplicationsPageProps = {
   title: string;
+  breadcrumb?: React.ReactNode;
   description: React.ReactNode;
   loaded: boolean;
   empty: boolean;
@@ -27,10 +28,12 @@ type ApplicationsPageProps = {
   emptyMessage?: string;
   emptyStatePage?: React.ReactNode;
   headerAction?: React.ReactNode;
+  provideChildrenPadding?: boolean;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   title,
+  breadcrumb,
   description,
   loaded,
   empty,
@@ -40,20 +43,24 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   emptyMessage,
   emptyStatePage,
   headerAction,
+  provideChildrenPadding,
 }) => {
-  const renderHeader = () => (
-    <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
-      <Split>
-        <SplitItem isFilled>
-          <TextContent className="odh-apps__heading__text">
-            <Text component="h1">{title}</Text>
-            <Text component="p">{description}</Text>
-          </TextContent>
-        </SplitItem>
-        {headerAction && <SplitItem>{headerAction}</SplitItem>}
-      </Split>
-    </PageSection>
-  );
+  const renderHeader = () => {
+    return (
+      <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
+        {breadcrumb}
+        <Split>
+          <SplitItem isFilled>
+            <TextContent className="odh-apps__heading__text">
+              <Text component="h1">{title}</Text>
+              <Text component="p">{description}</Text>
+            </TextContent>
+          </SplitItem>
+          {headerAction && <SplitItem>{headerAction}</SplitItem>}
+        </Split>
+      </PageSection>
+    );
+  };
 
   const renderContents = () => {
     if (loadError) {
@@ -99,6 +106,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         </PageSection>
       ) : (
         emptyStatePage
+      );
+    }
+
+    if (provideChildrenPadding) {
+      return (
+        <PageSection variant="light" isFilled>
+          {children}
+        </PageSection>
       );
     }
 

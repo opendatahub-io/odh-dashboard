@@ -40,6 +40,9 @@ export const rolloutDeployment = async (
           annotations: {
             'kubectl.kubernetes.io/restartedAt': new Date().toISOString(),
           },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
         },
       },
     },

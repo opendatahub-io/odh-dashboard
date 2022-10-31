@@ -1,10 +1,9 @@
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
+import { USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
-
-const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);

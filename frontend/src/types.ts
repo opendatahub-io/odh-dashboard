@@ -2,7 +2,19 @@
  * Common types, should be kept up to date with backend types
  */
 
+import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+import { EnvironmentFromVariable } from './pages/projects/types';
+
+export type PrometheusResponse = {
+  data: {
+    result: {
+      value: [number, string];
+    }[];
+    resultType: string;
+  };
+  status: string;
+};
 
 /**
  * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
@@ -38,6 +50,7 @@ export type DashboardCommonConfig = {
   disableISVBadges: boolean;
   disableAppLauncher: boolean;
   disableUserManagement: boolean;
+  disableProjects: boolean;
 };
 
 export type NotebookControllerUserState = {
@@ -92,12 +105,14 @@ export type ClusterSettings = {
   notebookTolerationSettings: NotebookTolerationSettings | null;
 };
 
+/** @deprecated -- use SDK type */
 export type Secret = {
   data?: Record<string, string>;
   stringData?: Record<string, string>;
   type?: string;
 } & K8sResourceCommon;
 
+/** @deprecated -- use SDK type */
 export type ConfigMap = {
   data?: Record<string, string>;
 } & K8sResourceCommon;
@@ -212,6 +227,11 @@ type K8sMetadata = {
   annotations?: { [key: string]: string };
 };
 
+/**
+ * @deprecated -- use the SDK version -- see k8sTypes.ts
+ * All references that use this are un-vetted data against existing types, should be converted over
+ * to the new K8sResourceCommon from the SDK to keep everythung unified on one front.
+ */
 export type K8sResourceCommon = {
   apiVersion?: string;
   kind?: string;
@@ -274,6 +294,7 @@ export type NotebookContainer = {
   imagePullPolicy?: string;
   workingDir?: string;
   env: EnvironmentVariable[];
+  envFrom?: EnvironmentFromVariable[];
   ports?: NotebookPort[];
   resources?: NotebookResources;
   livenessProbe?: Record<string, unknown>;
@@ -288,7 +309,7 @@ export type NotebookAffinity = {
 export type Notebook = K8sResourceCommon & {
   metadata: {
     annotations: Partial<{
-      'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
+      'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook
@@ -393,33 +414,6 @@ export type BYONImagePackage = {
   version: string;
   visible: boolean;
 };
-
-export type PipelineRunKind = {
-  spec: {
-    params: {
-      name: string;
-      value: string;
-    }[];
-    pipelineRef: {
-      name: string;
-    };
-    workspaces?: [
-      {
-        name: string;
-        volumeClaimTemplate: {
-          spec: {
-            accessModes: string[];
-            resources: {
-              requests: {
-                storage: string;
-              };
-            };
-          };
-        };
-      },
-    ];
-  };
-} & K8sResourceCommon;
 
 export type ImageTag = {
   image: ImageInfo | undefined;
@@ -541,14 +535,7 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
-export type PersistentVolumeClaim = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    annotations?: { [key: string]: string };
-  };
+export type PersistentVolumeClaim = K8sResourceCommon & {
   spec: {
     accessModes: string[];
     resources: {
@@ -579,7 +566,10 @@ export type Volume = {
 
 export type VolumeMount = { mountPath: string; name: string };
 
-/** Copy from partial of V1Status that will returned by the delete CoreV1Api */
+/**
+ * @deprecated -- use K8sStatus
+ * Copy from partial of V1Status that will returned by the delete CoreV1Api
+ */
 export type DeleteStatus = {
   apiVersion?: string;
   code?: number;
@@ -651,6 +641,11 @@ export type NotebookData = {
 };
 
 export type UsernameMap<V> = { [username: string]: V };
+
+export type ImageStreamAndVersion = {
+  imageStream?: ImageStreamKind;
+  imageVersion?: ImageStreamSpecTagType;
+};
 
 export type gpuScale = {
   availableScale: number;

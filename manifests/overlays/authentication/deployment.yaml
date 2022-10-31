@@ -5,10 +5,12 @@
     args:
       - --https-address=:8443
       - --provider=openshift
-      - --openshift-service-account=odh-dashboard
       - --upstream=http://localhost:8080
       - --tls-cert=/etc/tls/private/tls.crt
       - --tls-key=/etc/tls/private/tls.key
+      - --client-id=dashboard-oauth-client
+      - --client-secret-file=/etc/oauth/client/secret
+      - --scope=user:full
       - --cookie-secret-file=/etc/oauth/config/cookie_secret
       - --pass-access-token
       - '--openshift-delegate-urls={"/": {"resource": "services", "verb": "get", "name": "odh-dashboard"}}'
@@ -49,6 +51,8 @@
         name: proxy-tls
       - mountPath: /etc/oauth/config
         name: oauth-config
+      - mountPath: /etc/oauth/client
+        name: oauth-client
         
 - op: add
   path: /spec/template/spec/volumes
@@ -59,3 +63,6 @@
     - name: oauth-config
       secret:
         secretName: dashboard-oauth-config-generated
+    - name: oauth-client
+      secret:
+        secretName: dashboard-oauth-client-generated
