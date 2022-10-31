@@ -40,6 +40,7 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
         <Skeleton height="36px" width="70%" />
       ) : (
         <Select
+          removeFindDomNode
           data-id="gpu-select"
           isDisabled={!loaded || noAvailableGPUs}
           isOpen={gpuDropdownOpen}

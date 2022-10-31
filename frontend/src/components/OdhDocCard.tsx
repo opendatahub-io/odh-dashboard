@@ -140,7 +140,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
         <DocCardBadges odhDoc={odhDoc} />
       </CardTitle>
       <CardBody>
-        <Tooltip content={odhDoc.spec.description}>
+        <Tooltip removeFindDomNode content={odhDoc.spec.description}>
           <span className="odh-card__body-text">{odhDoc.spec.description}</span>
         </Tooltip>
       </CardBody>

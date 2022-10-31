@@ -33,7 +33,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
       'odh-m-how-to': docType === OdhDocumentType.HowTo,
     });
     return (
-      <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
+      <Tooltip removeFindDomNode content={DOC_TYPE_TOOLTIPS[docType]}>
         <div className={typeBadgeClasses}>{odhDoc.spec.type}</div>
       </Tooltip>
     );
@@ -87,12 +87,12 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
       </div>
       <div className="odh-list-item__doc-text">
         <div id={odhDoc.metadata.name} className="odh-list-item__doc-title">
-          <Tooltip content={odhDoc.spec.displayName}>
+          <Tooltip removeFindDomNode content={odhDoc.spec.displayName}>
             <span>{odhDoc.spec.displayName}</span>
           </Tooltip>
         </div>
         <div className="odh-list-item__doc-description">
-          <Tooltip content={odhDoc.spec.description}>
+          <Tooltip removeFindDomNode content={odhDoc.spec.description}>
             <span>{odhDoc.spec.description}</span>
           </Tooltip>
         </div>
@@ -100,14 +100,14 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
       <div className="odh-list-item__doc-text">
         {odhDoc.spec.appDisplayName ? (
           <div id={odhDoc.spec.appDisplayName} className="odh-list-item__doc-title">
-            <Tooltip content={odhDoc.spec.appDisplayName}>
+            <Tooltip removeFindDomNode content={odhDoc.spec.appDisplayName}>
               <span>{odhDoc.spec.appDisplayName}</span>
             </Tooltip>
           </div>
         ) : null}
         {odhDoc.spec.provider ? (
           <div className="odh-list-item__doc-description">
-            <Tooltip content={odhDoc.spec.provider}>
+            <Tooltip removeFindDomNode content={odhDoc.spec.provider}>
               <span>by {odhDoc.spec.provider}</span>
             </Tooltip>
           </div>

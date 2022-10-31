@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Button,
   ButtonVariant,
+  Flex,
+  FlexItem,
   SearchInput,
   Select,
   SelectOption,
@@ -164,19 +166,21 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   return (
     <Toolbar className="odh-learning-paths__toolbar">
       <div className="odh-learning-paths__toolbar__view-filter">
-        <span>
-          {categoryQuery || 'All Items'}
+        <Flex spaceItems={{ default: 'spaceItemsNone' }}>
+          <FlexItem>{categoryQuery || 'All Items'}</FlexItem>
           {filtersCollapsible ? (
-            <Tooltip content={isFiltered ? 'Filters set' : 'No filters set'}>
-              <Button
-                aria-label="Toggle filters shown"
-                variant={ButtonVariant.link}
-                icon={<FilterIcon />}
-                onClick={onToggleFiltersCollapsed}
-              />
-            </Tooltip>
+            <FlexItem>
+              <Tooltip removeFindDomNode content={isFiltered ? 'Filters set' : 'No filters set'}>
+                <Button
+                  aria-label="Toggle filters shown"
+                  variant={ButtonVariant.link}
+                  icon={<FilterIcon />}
+                  onClick={onToggleFiltersCollapsed}
+                />
+              </Tooltip>
+            </FlexItem>
           ) : null}
-        </span>
+        </Flex>
         <ToggleGroup aria-label="View type">
           <ToggleGroupItem
             icon={<ThIcon />}
@@ -197,6 +201,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
       <ToolbarContent>
         <ToolbarItem className="odh-learning-paths__toolbar__input">
           <SearchInput
+            removeFindDomNode
             placeholder="Search"
             value={searchInputText}
             onChange={handleTextChange}
@@ -207,6 +212,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
           <>
             <ToolbarItem>
               <Select
+                removeFindDomNode
                 variant={SelectVariant.single}
                 aria-label="Select sort type"
                 isOpen={isSortTypeDropdownOpen}
@@ -219,6 +225,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
             </ToolbarItem>
             <ToolbarItem>
               <Select
+                removeFindDomNode
                 variant={SelectVariant.single}
                 aria-label="Select sort order"
                 isOpen={isSortOrderDropdownOpen}

@@ -36,7 +36,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
 
   return (
     <div className="odh-card__doc-badges">
-      <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
+      <Tooltip removeFindDomNode content={DOC_TYPE_TOOLTIPS[docType]}>
         <Label color={getLabelColorForDocType(docType)}>{label}</Label>
       </Tooltip>
       {duration ? (

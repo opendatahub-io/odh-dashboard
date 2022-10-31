@@ -79,6 +79,7 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
     <div className="odh-notebook-controller__env-var-row">
       <Flex>
         <Select
+          removeFindDomNode
           isOpen={typeDropdownOpen}
           onToggle={() => setTypeDropdownOpen(!typeDropdownOpen)}
           aria-labelledby="container-size"

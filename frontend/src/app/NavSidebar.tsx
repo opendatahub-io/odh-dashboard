@@ -6,7 +6,13 @@ import { useAppContext } from './AppContext';
 import { useUser } from '../redux/selectors';
 
 const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, pathname }) => (
-  <NavItem key={item.id} data-id={item.id} itemId={item.id} isActive={pathname === item.href}>
+  <NavItem
+    removeFindDomNode
+    key={item.id}
+    data-id={item.id}
+    itemId={item.id}
+    isActive={pathname === item.href}
+  >
     <Link to={item.href} aria-label={item.label}>
       {item.label}
     </Link>

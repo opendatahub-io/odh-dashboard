@@ -51,7 +51,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       return button;
     }
     return (
-      <Tooltip content="This feature has been disabled by an administrator.">
+      <Tooltip removeFindDomNode content="This feature has been disabled by an administrator.">
         <span>{button}</span>
       </Tooltip>
     );

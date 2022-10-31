@@ -30,6 +30,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue 
   return (
     <>
       <Select
+        removeFindDomNode
         variant={SelectVariant.typeaheadMulti}
         onToggle={toggleMenu}
         onSelect={(e, newValue) => {
