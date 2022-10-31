@@ -36,6 +36,5 @@ export const getDirectCallOptions = async (
   return {
     ca,
     headers,
-    rejectUnauthorized: false,
   };
 };
