@@ -13,3 +13,6 @@ export * from './network/secrets';
 
 // Prometheus queries
 export * from './prometheus/pvcs';
+
+// Network error handling
+export * from './errorUtils';
