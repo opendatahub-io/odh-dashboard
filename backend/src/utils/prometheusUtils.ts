@@ -23,37 +23,31 @@ export const callPrometheus = async (
   }
 
   const url = `${host}/api/v1/query?namespace=${namespace}&query=${query}`;
-  const options = await getDirectCallOptions(fastify, request, url);
+  const rawOptions = await getDirectCallOptions(fastify, request, url);
+  const options = { ...rawOptions, rejectUnauthorized: false };
 
   return new Promise((resolve, reject) => {
     fastify.log.info(`Making Prometheus call: ${url}`);
     fastify.log.info(`Prometheus query: ${query}`);
 
     const httpsRequest = https
-      .get(
-        url,
-        {
-          ...options,
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          res.setEncoding('utf8');
-          let rawData = '';
-          res.on('data', (chunk: any) => {
-            rawData += chunk;
-          });
-          res.on('end', () => {
-            try {
-              const parsedData: PrometheusResponse = JSON.parse(rawData);
-              fastify.log.info('Successful response from Prometheus.');
-              resolve({ code: 200, response: parsedData });
-            } catch (e) {
-              fastify.log.error(`Failure parsing the response from Prometheus. ${e.message || e}`);
-              reject({ code: 500, response: rawData });
-            }
-          });
-        },
-      )
+      .get(url, options, (res) => {
+        res.setEncoding('utf8');
+        let rawData = '';
+        res.on('data', (chunk: any) => {
+          rawData += chunk;
+        });
+        res.on('end', () => {
+          try {
+            const parsedData: PrometheusResponse = JSON.parse(rawData);
+            fastify.log.info('Successful response from Prometheus.');
+            resolve({ code: 200, response: parsedData });
+          } catch (e) {
+            fastify.log.error(`Failure parsing the response from Prometheus. ${e.message || e}`);
+            reject({ code: 500, response: rawData });
+          }
+        });
+      })
       .on('error', (e) => {
         fastify.log.error(`Failure calling Prometheus. ${e.message}`);
         reject({ code: 500, response: `Cannot fetch prometheus data, ${e.message}` });
