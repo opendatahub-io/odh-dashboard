@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '../pages/ApplicationsPage';
+import UnauthorizedError from '../pages/UnauthorizedError';
 import { useUser } from '../redux/selectors';
 
 const InstalledApplications = React.lazy(
@@ -22,7 +23,6 @@ const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupS
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
-const UnauthorizedError = React.lazy(() => import('../pages/UnauthorizedError'));
 
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();

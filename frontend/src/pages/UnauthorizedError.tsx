@@ -6,25 +6,23 @@ import {
   EmptyStateIcon,
   EmptyStateBody,
   PageSection,
-  PageSectionVariants,
 } from '@patternfly/react-core';
-import { WarningTriangleIcon } from '@patternfly/react-icons';
+import { LockIcon } from '@patternfly/react-icons';
+import { ODH_PRODUCT_NAME } from '../utilities/const';
 
 const UnauthorizedError: React.FC = () => (
-  <>
-    <PageSection variant={PageSectionVariants.light}>
-      <EmptyState variant={EmptyStateVariant.full}>
-        <EmptyStateIcon icon={WarningTriangleIcon} />
+  <PageSection isFilled>
+    <EmptyState variant={EmptyStateVariant.large}>
+      <EmptyStateIcon icon={LockIcon} />
 
-        <Title headingLevel="h5" size="lg">
-          Unauthorized User
-        </Title>
-        <EmptyStateBody>
-          It looks like you have no access to this application, please contact the administrator.
-        </EmptyStateBody>
-      </EmptyState>
-    </PageSection>
-  </>
+      <Title headingLevel="h5" size="lg">
+        Access permissions needed
+      </Title>
+      <EmptyStateBody>
+        To access {ODH_PRODUCT_NAME}, ask your administrator to adjust your permissions.
+      </EmptyStateBody>
+    </EmptyState>
+  </PageSection>
 );
 
 export default UnauthorizedError;
