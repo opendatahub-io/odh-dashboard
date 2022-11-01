@@ -35,7 +35,7 @@ export const getDSGProjects = (): Promise<ProjectKind[]> => {
 
 export const createProject = (
   username: string,
-  name: string,
+  displayName: string,
   description: string,
   k8sName?: string,
 ): Promise<string> => {
@@ -53,6 +53,8 @@ export const createProject = (
     displayName?: string;
     description?: string;
   };
+
+  const name = k8sName || translateDisplayNameForK8s(displayName);
 
   return k8sCreateResource<ProjectRequestKind, ProjectKind>({
     model: ProjectRequest,
