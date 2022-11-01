@@ -23,7 +23,8 @@ export const callPrometheus = async (
   }
 
   const url = `${host}/api/v1/query?namespace=${namespace}&query=${query}`;
-  const options = await getDirectCallOptions(fastify, request, url);
+  const rawOptions = await getDirectCallOptions(fastify, request, url);
+  const options = { ...rawOptions, rejectUnauthorized: false };
 
   return new Promise((resolve, reject) => {
     fastify.log.info(`Making Prometheus call: ${url}`);
