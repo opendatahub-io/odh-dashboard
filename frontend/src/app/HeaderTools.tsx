@@ -1,5 +1,4 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import {
   Dropdown,
   DropdownPosition,
@@ -12,10 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { CaretDownIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
-import { AppNotification, State } from '../redux/types';
+import { AppNotification } from '../redux/types';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { logout } from './appUtils';
+import { useAppSelector } from '../redux/hooks';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -24,10 +24,8 @@ interface HeaderToolsProps {
 const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState<boolean>(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState<boolean>(false);
-  const notifications: AppNotification[] = useSelector<State, AppNotification[]>(
-    (state) => state.appState.notifications,
-  );
-  const userName: string = useSelector<State, string>((state) => state.appState.user || '');
+  const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
+  const userName: string = useAppSelector((state) => state.user || '');
   const { dashboardConfig } = useAppContext();
 
   const newNotifications = React.useMemo(() => {

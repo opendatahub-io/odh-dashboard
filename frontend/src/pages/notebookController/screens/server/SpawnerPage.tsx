@@ -46,9 +46,9 @@ import SizeSelectField from './SizeSelectField';
 import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
+import { getEnvConfigMap, getEnvSecret } from '../../../../services/envService';
 
 import '../../NotebookController.scss';
-import { getEnvConfigMap, getEnvSecret } from 'services/envService';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -134,7 +134,7 @@ const SpawnerPage: React.FC = () => {
             variables: [
               {
                 name: key,
-                value: isSecret ? Buffer.from(value, 'base64').toString() : value,
+                value: isSecret ? atob(value) : value,
                 type: isSecret ? 'password' : 'text',
               },
             ],

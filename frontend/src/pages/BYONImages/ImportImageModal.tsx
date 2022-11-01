@@ -17,14 +17,13 @@ import {
 } from '@patternfly/react-core';
 import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
 import { importBYONImage } from '../../services/imagesService';
-import { State } from '../../redux/types';
-import { useSelector } from 'react-redux';
 import { ResponseStatus, BYONImagePackage } from 'types';
 import { EditStepTableRow } from './EditStepTableRow';
 import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import './ImportImageModal.scss';
-import { useDispatch } from 'react-redux';
 import { addNotification } from '../../redux/actions/actions';
+import { useAppDispatch, useAppSelector } from '../../redux/hooks';
+
+import './ImportImageModal.scss';
 
 export type ImportImageModalProps = {
   isOpen: boolean;
@@ -44,8 +43,8 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
   const [activeTabKey, setActiveTabKey] = React.useState<number>(0);
   const [validName, setValidName] = React.useState<boolean>(true);
   const [validRepo, setValidRepo] = React.useState<boolean>(true);
-  const userName: string = useSelector<State, string>((state) => state.appState.user || '');
-  const dispatch = useDispatch();
+  const userName = useAppSelector((state) => state.user || '');
+  const dispatch = useAppDispatch();
 
   React.useEffect(() => {
     if (isOpen === true) {

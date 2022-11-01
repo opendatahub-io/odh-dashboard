@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './redux/store/store';
@@ -10,7 +10,11 @@ import SDKInitialize from './SDKInitialize';
 /**
  * Main function
  */
-ReactDOM.render(
+// https://reactjs.org/blog/2022/03/08/react-18-upgrade-guide.html#updates-to-client-rendering-apis
+// We have to use '!' here for 'document.getElementById('root')' to avoid type errors
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const root = createRoot(document.getElementById('root')!);
+root.render(
   <React.StrictMode>
     <Provider store={store}>
       <Router>
@@ -20,5 +24,4 @@ ReactDOM.render(
       </Router>
     </Provider>
   </React.StrictMode>,
-  document.getElementById('root'),
 );

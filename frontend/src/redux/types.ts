@@ -1,7 +1,4 @@
 import * as React from 'react';
-import { store } from './store/store';
-
-export type RootState = ReturnType<typeof store.getState>;
 
 export enum Actions {
   GET_USER_PENDING = 'GET_USER_PENDING',
@@ -53,7 +50,3 @@ export type AppState = {
   notifications: AppNotification[];
   forceComponentsUpdate: number;
 };
-
-export interface State {
-  appState: AppState;
-}

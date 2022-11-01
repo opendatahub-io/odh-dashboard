@@ -24,7 +24,6 @@ import ApplicationsPage from '../ApplicationsPage';
 import { useAppContext } from '../../app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '../../services/clusterSettingsService';
 import { ClusterSettings, NotebookTolerationFormSettings } from '../../types';
-import { useDispatch } from 'react-redux';
 import { addNotification } from '../../redux/actions/actions';
 import {
   DEFAULT_CONFIG,
@@ -43,6 +42,7 @@ import {
 } from './const';
 import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '../../utilities/utils';
 import { useCheckJupyterEnabled } from '../../utilities/notebookControllerUtils';
+import { useAppDispatch } from '../../redux/hooks';
 
 import './ClusterSettings.scss';
 
@@ -73,7 +73,7 @@ const ClusterSettings: React.FC = () => {
       enabled: false,
       key: isJupyterEnabled ? DEFAULT_TOLERATION_VALUE : '',
     });
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   React.useEffect(() => {
     fetchClusterSettings()

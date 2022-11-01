@@ -1,10 +1,7 @@
 import * as React from 'react';
-// import { useSelector } from 'react-redux';
-// import { State } from '../redux/types';
 import { fetchBYONImages } from '../services/imagesService';
 import { BYONImage } from '../types';
 import { POLL_INTERVAL } from './const';
-//import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchBYONImages = (): {
   images: BYONImage[];

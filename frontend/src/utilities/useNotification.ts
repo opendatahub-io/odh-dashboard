@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useDispatch } from 'react-redux';
 import { addNotification } from '../redux/actions/actions';
+import { useAppDispatch } from '../redux/hooks';
 
 type NotificationProps = (title: string, message?: React.ReactNode) => void;
 
@@ -16,7 +16,7 @@ enum NotificationTypes {
 }
 
 const useNotification = (): NotificationFunc => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const success: NotificationProps = React.useCallback(
     (title) => {
       dispatch(

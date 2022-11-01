@@ -20,9 +20,10 @@ import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/re
 import { updateBYONImage } from '../../services/imagesService';
 import { EditStepTableRow } from './EditStepTableRow';
 import { BYONImage, BYONImagePackage } from 'types';
-import './UpdateImageModal.scss';
-import { useDispatch } from 'react-redux';
 import { addNotification } from '../../redux/actions/actions';
+import { useAppDispatch } from '../../redux/hooks';
+
+import './UpdateImageModal.scss';
 
 export type UpdateImageModalProps = {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
   );
   const [activeTabKey, setActiveTabKey] = React.useState<number>(0);
   const [validName, setValidName] = React.useState<boolean>(true);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   React.useEffect(() => {
     if (isOpen === true) {
