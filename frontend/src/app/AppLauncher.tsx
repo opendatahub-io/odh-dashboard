@@ -141,6 +141,7 @@ const AppLauncher: React.FC = () => {
 
   return (
     <ApplicationLauncher
+      removeFindDomNode
       aria-label="Application launcher"
       onSelect={onSelect}
       onToggle={onToggle}

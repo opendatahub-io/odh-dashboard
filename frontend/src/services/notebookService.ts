@@ -25,6 +25,10 @@ export const getNotebookAndStatus = (
     .get(url)
     .then((response) => response.data)
     .catch((e) => {
+      if (e.response.status === 404) {
+        return { notebook, isRunning: false };
+      }
+
       console.error(
         'Checking notebook status failed, falling back on notebook check logic',
         e.response.data.message,

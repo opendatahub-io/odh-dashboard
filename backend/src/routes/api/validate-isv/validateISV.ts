@@ -58,7 +58,13 @@ export const createAccessSecret = async (
   const name = enable.validationSecret;
   const secret = {
     apiVersion: 'v1',
-    metadata: { name, namespace },
+    metadata: {
+      name,
+      namespace,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+      },
+    },
     type: 'Opaque',
     stringData,
   };
@@ -150,6 +156,9 @@ export const runValidation = async (
       namespace,
       annotations: {
         'cronjob.kubernetes.io/instantiate': 'manual',
+      },
+      labels: {
+        'opendatahub.io/dashboard': 'true',
       },
     },
     spec: cronJob.spec.jobTemplate.spec,

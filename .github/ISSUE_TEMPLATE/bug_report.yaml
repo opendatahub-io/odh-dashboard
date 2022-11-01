@@ -19,13 +19,13 @@ body:
       label: Current Behavior
       description: A concise description of what you're experiencing.
     validations:
-      required: false
+      required: true
   - type: textarea
     attributes:
       label: Expected Behavior
       description: A concise description of what you expected to happen.
     validations:
-      required: false
+      required: true
   - type: textarea
     attributes:
       label: Steps To Reproduce
@@ -41,29 +41,6 @@ body:
       label: Workaround (if any)
       description: Any manual steps that allow you to resolve the issue
       placeholder: Tell us the steps you followed to resolve the issue!
-    validations:
-      required: false
-  - type: dropdown
-    id: openshift-version
-    attributes:
-      label: OpenShift Infrastructure Version
-      description: On what infrastructure is OpenShift deployed?
-      options:
-        - Baremetal
-        - OpenStack
-        - RHV
-        - AWS
-        - OKD
-        - CodeReady Containers
-        - Other
-    validations:
-      required: false
-  - type: input
-    id: other-openshift-version
-    attributes:
-      label: Openshift Version
-      description: If selected other, which version of OpenShift are you running?
-      placeholder: e.g. GCP...
     validations:
       required: false
   - type: dropdown
@@ -85,8 +62,9 @@ body:
       description: Please attach relevant kfdef manifest if applicable
       render: yml
   - type: textarea
-    id: logs
+    id: anything-else
     attributes:
-      label: Relevant log output
-      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
-      render: shell
+      label: Anything else
+      description: Any additional information you'd like to share
+    validations:
+      required: false

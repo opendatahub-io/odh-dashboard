@@ -1,0 +1,12 @@
+// temp fix until https://github.com/patternfly/patternfly-react/issues/8028 is resolved
+.checkbox-radio-fix-body-width-50 {
+  .pf-c-check__body, .pf-c-radio__body {
+    width: 50%;
+  }
+}
+
+.checkbox-radio-fix-body-width {
+  .pf-c-check__body, .pf-c-radio__body {
+    width: 100%;
+  }
+}

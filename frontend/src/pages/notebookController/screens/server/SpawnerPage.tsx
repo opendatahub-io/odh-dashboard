@@ -116,7 +116,11 @@ const SpawnerPage: React.FC = () => {
       }
       let fetchedVariableRows: VariableRow[] = [];
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
-      const response = await verifyResource(envVarFileName, projectName, fetchFunc);
+      const response = await verifyResource<ConfigMap | Secret>(
+        envVarFileName,
+        projectName,
+        fetchFunc,
+      );
       if (response && response.data) {
         const isSecret = response.kind === EnvVarResourceType.Secret;
         fetchedVariableRows = Object.entries(response.data).map(([key, value]) => {

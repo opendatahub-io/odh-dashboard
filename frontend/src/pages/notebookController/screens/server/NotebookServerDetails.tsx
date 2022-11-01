@@ -102,7 +102,7 @@ const NotebookServerDetails: React.FC = () => {
           <DescriptionListDescription>{`${container.resources?.limits?.cpu} CPU, ${container.resources?.limits?.memory} Memory`}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Memory Requests</DescriptionListTerm>
+          <DescriptionListTerm>Requests</DescriptionListTerm>
           <DescriptionListDescription>{`${container.resources?.requests?.cpu} CPU, ${container.resources?.requests?.memory} Memory`}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>

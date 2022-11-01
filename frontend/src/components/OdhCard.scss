@@ -35,7 +35,6 @@
   }
 
   &__supported-image {
-    margin-left: var(--pf-global--spacer--sm);
     color: var(--pf-global--primary-color--100);
     &.m-hidden {
       visibility: hidden;
@@ -113,9 +112,9 @@
     .pf-c-label {
       font-size: var(--pf-c-label--FontSize);
       margin-bottom: var(--pf-global--spacer--sm);
-      &:not(:last-of-type) {
-        margin-right: var(--pf-global--spacer--xs);
-      }
+    }
+    & > :not(:last-child) {
+      margin-right: var(--pf-global--spacer--xs);
     }
   }
 
@@ -136,11 +135,6 @@
   .pf-c-card__header {
     align-items: flex-start;
     justify-content: space-between;
-  }
-
-  &__title-supported {
-    display: flex;
-    align-items: center;
   }
 
   &__provider {

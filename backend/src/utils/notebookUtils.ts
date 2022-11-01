@@ -79,6 +79,9 @@ export const createRBAC = async (
     kind: 'Role',
     metadata: {
       name: `${notebookData.metadata.name}-notebook-view`,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+      },
     },
     rules: [
       {
@@ -95,6 +98,9 @@ export const createRBAC = async (
     kind: 'RoleBinding',
     metadata: {
       name: `${notebookData.metadata.name}-notebook-view`,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+      },
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
@@ -252,6 +258,7 @@ export const assembleNotebook = async (
         app: name,
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
+        'opendatahub.io/dashboard': 'true',
       },
       annotations: {
         'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebookController/${translatedUsername}/home`,
@@ -609,6 +616,9 @@ const assemblePvc = (
   metadata: {
     name: pvcName,
     namespace,
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+    },
   },
   spec: {
     accessModes: ['ReadWriteOnce'],

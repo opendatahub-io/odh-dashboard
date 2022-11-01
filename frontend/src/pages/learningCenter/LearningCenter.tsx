@@ -85,10 +85,10 @@ export const LearningCenter: React.FC = () => {
 
       // Add doc cards for all quick starts
       qsContext.allQuickStarts?.forEach((quickStart) => {
-        const odhDoc: OdhDocument = _.merge({}, quickStart, {
+        const odhDoc = _.merge({}, quickStart, {
           spec: { type: OdhDocumentType.QuickStart },
         });
-        docs.push(odhDoc);
+        docs.push(odhDoc as unknown as OdhDocument); // TODO: Fix QuickStart type dependency -- they updated their types and broke us
       });
 
       const updatedDocApps = docs
