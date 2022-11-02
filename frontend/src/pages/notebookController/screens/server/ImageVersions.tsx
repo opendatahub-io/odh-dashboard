@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ExpandableSection, Label, Radio } from '@patternfly/react-core';
+import { ExpandableSection, Flex, FlexItem, Label, Radio } from '@patternfly/react-core';
 import { StarIcon } from '@patternfly/react-icons';
 import { ImageInfo, ImageTagInfo } from '../../../../types';
 import ImageTagPopover from './ImageTagPopover';
@@ -48,15 +48,19 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
             className="odh-notebook-controller__notebook-image-option"
             isDisabled={disabled}
             label={
-              <span className="odh-notebook-controller__notebook-image-title">
-                Version{` ${getVersion(tag.name)}`}
-                <ImageTagPopover tag={tag} />
+              <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+                <FlexItem>Version{` ${getVersion(tag.name)}`}</FlexItem>
+                <FlexItem>
+                  <ImageTagPopover tag={tag} />
+                </FlexItem>
                 {tag.recommended ? (
-                  <Label color="blue" icon={<StarIcon />}>
-                    Recommended
-                  </Label>
+                  <FlexItem>
+                    <Label color="blue" icon={<StarIcon />}>
+                      Recommended
+                    </Label>
+                  </FlexItem>
                 ) : null}
-              </span>
+              </Flex>
             }
             description={getDescriptionForTag(tag)}
             isChecked={tag.name === selectedTag?.name}
