@@ -41,6 +41,21 @@ export const assembleSecret = (
   };
 };
 
+export const assembleSecretSA = (name: string, saName: string, namespace: string): SecretKind => {
+  return {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name,
+      namespace,
+      annotations: {
+        'kubernetes.io/service-account.name': saName,
+      },
+    },
+    type: 'kubernetes.io/service-account-token',
+  };
+};
+
 export const getSecret = (projectName: string, secretName: string): Promise<SecretKind> => {
   return k8sGetResource<SecretKind>({
     model: SecretModel,

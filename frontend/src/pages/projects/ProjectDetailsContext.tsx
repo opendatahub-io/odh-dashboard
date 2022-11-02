@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
+import { ModelServerKind, PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -18,6 +18,7 @@ import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import { DataConnection } from './types';
 import { NotebookState } from './notebook/types';
+import useModelServer from 'pages/modelServing/screens/projects/useModelServer';
 
 type ContextResourceData<T> = {
   data: T[];
@@ -32,6 +33,7 @@ type ProjectDetailsContextType = {
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
+  modelServer: ContextResourceData<ModelServerKind>;
 };
 
 const DEFAULT_DATA: ContextResourceData<never> = {
@@ -60,6 +62,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   notebooks: DEFAULT_DATA,
   pvcs: DEFAULT_DATA,
   dataConnections: DEFAULT_DATA,
+  modelServer: DEFAULT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -69,15 +72,18 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
+  const modelServer = useContextResourceData<ModelServerKind>(useModelServer(namespace));
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
+  const modelServerRefresh = modelServer.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     pvcRefresh();
     dataConnectionRefresh();
-  }, [notebookRefresh, pvcRefresh, dataConnectionRefresh]);
+    modelServerRefresh();
+  }, [notebookRefresh, pvcRefresh, dataConnectionRefresh, modelServerRefresh]);
 
   if (error) {
     return (
@@ -106,7 +112,14 @@ const ProjectDetailsContextProvider: React.FC = () => {
 
   return (
     <ProjectDetailsContext.Provider
-      value={{ currentProject: project, notebooks, pvcs, dataConnections, refreshAllProjectData }}
+      value={{
+        currentProject: project,
+        notebooks,
+        pvcs,
+        dataConnections,
+        modelServer,
+        refreshAllProjectData,
+      }}
     >
       <Outlet />
     </ProjectDetailsContext.Provider>

@@ -224,9 +224,57 @@ export type ProjectKind = K8sResourceCommon & {
   };
 };
 
+export type ServiceAccountKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations & RelatedToNotebookAnnotations;
+    name: string;
+    namespace: string;
+  };
+  secrets?: {
+    name: string;
+  }[];
+};
+
+export type ModelServerKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        maxLoadingConcurrency: string; // maxLoadConcurrency for the model server
+      }>;
+    name: string;
+  };
+  spec: {
+    builtInAdapter: {
+      serverType: string;
+      runtimeManagementPort: number;
+    };
+    containers: {
+      args: string[];
+      image: string;
+      name: string;
+      resources: {
+        limits: {
+          cpu: string;
+          memory: string;
+        };
+        requests: {
+          cpu: string;
+          memory: string;
+        };
+      };
+    }[];
+    supportedModelFormats: {
+      name: string;
+      version: string;
+      autoSelect: boolean;
+    }[];
+    replicas: number;
+  };
+};
+
 type RoleBindingSubject = {
   kind: string;
-  apiGroup: string;
+  apiGroup?: string;
   name: string;
 };
 
