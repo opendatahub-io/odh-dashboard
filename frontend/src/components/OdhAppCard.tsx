@@ -1,6 +1,5 @@
 import React from 'react';
 import classNames from 'classnames';
-import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   Button,
@@ -24,6 +23,7 @@ import { removeComponent } from '../services/componentsServices';
 import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
 import { useAppContext } from '../app/AppContext';
+import { useAppDispatch } from '../redux/hooks';
 
 import './OdhCard.scss';
 
@@ -40,7 +40,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   );
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const onToggle = (value) => {
     setIsOpen(value);

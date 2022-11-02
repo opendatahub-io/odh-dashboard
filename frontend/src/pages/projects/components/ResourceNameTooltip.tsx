@@ -13,6 +13,7 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
+  children: React.ReactNode;
 };
 
 const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, resource }) => {

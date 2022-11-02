@@ -49,10 +49,16 @@ export const useLocalStorage = <T,>(
   return [(getValue(storageKey, jsonify) as T) ?? defaultValue, setValue];
 };
 
+type LocalStorageContextProviderProps = {
+  children: React.ReactNode;
+};
+
 /**
  * @see useLocalStorage
  */
-export const LocalStorageContextProvider: React.FC = ({ children }) => {
+export const LocalStorageContextProvider: React.FC<LocalStorageContextProviderProps> = ({
+  children,
+}) => {
   const [values, setValues] = React.useState<ValueMap>({});
 
   useEventListener(window, 'storage', () => {

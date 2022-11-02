@@ -5,6 +5,7 @@ import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageD
 
 type ImageVersionTooltipProps = {
   dependencies: ImageVersionDependencyType[];
+  children: React.ReactNode;
 };
 
 const ImageVersionTooltip: React.FC<ImageVersionTooltipProps> = ({ children, dependencies }) => {

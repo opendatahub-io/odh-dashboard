@@ -24,6 +24,7 @@ type ApplicationsPageProps = {
   loaded: boolean;
   empty: boolean;
   loadError?: Error;
+  children?: React.ReactNode;
   errorMessage?: string;
   emptyMessage?: string;
   emptyStatePage?: React.ReactNode;

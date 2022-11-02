@@ -1,5 +1,4 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
 import {
@@ -26,6 +25,7 @@ import { useUser } from '../redux/selectors';
 import { LocalStorageContextProvider } from '../components/localStorage/LocalStorageContext';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
+import { useAppDispatch } from '../redux/hooks';
 
 import './App.scss';
 
@@ -34,7 +34,7 @@ const App: React.FC = () => {
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const buildStatuses = useWatchBuildStatus();
   const {

@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { useSelector } from 'react-redux';
-import { State } from '../redux/types';
+import { useAppSelector } from '../redux/hooks';
 import { fetchComponents } from '../services/componentsServices';
 import { OdhApplication } from '../types';
 import { POLL_INTERVAL } from './const';
@@ -12,9 +11,7 @@ export const useWatchComponents = (
   const [loaded, setLoaded] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [components, setComponents] = React.useState<OdhApplication[]>([]);
-  const forceUpdate: number = useSelector<State, number>(
-    (state) => state.appState.forceComponentsUpdate,
-  );
+  const forceUpdate = useAppSelector((state) => state.forceComponentsUpdate);
   const initForce = React.useRef<number>(forceUpdate);
 
   React.useEffect(() => {

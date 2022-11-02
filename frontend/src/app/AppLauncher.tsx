@@ -1,5 +1,4 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import {
   ApplicationLauncher,
   ApplicationLauncherGroup,
@@ -7,10 +6,10 @@ import {
   ApplicationLauncherSeparator,
 } from '@patternfly/react-core';
 import openshiftLogo from '../images/openshift.svg';
-import { RootState } from '../redux/types';
 import { useWatchConsoleLinks } from '../utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
 import { useAppContext } from './AppContext';
+import { useAppSelector } from '../redux/hooks';
 
 type ApplicationAction = {
   label: string;
@@ -70,9 +69,9 @@ const sectionSortValue = (section: Section): number => {
 
 const AppLauncher: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState<boolean>(false);
-  const [clusterID, clusterBranding] = useSelector((state: RootState) => [
-    state.appState.clusterID,
-    state.appState.clusterBranding,
+  const [clusterID, clusterBranding] = useAppSelector((state) => [
+    state.clusterID,
+    state.clusterBranding,
   ]);
   const { consoleLinks } = useWatchConsoleLinks();
   const { dashboardConfig } = useAppContext();

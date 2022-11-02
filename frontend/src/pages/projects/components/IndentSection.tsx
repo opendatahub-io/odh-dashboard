@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
 
-const IndentSection: React.FC = ({ children }) => {
+type IndentSectionProps = {
+  children: React.ReactNode;
+};
+
+const IndentSection: React.FC<IndentSectionProps> = ({ children }) => {
   return (
     <Flex>
       <FlexItem spacer={{ default: 'spacerLg' }} />

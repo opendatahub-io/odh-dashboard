@@ -20,7 +20,13 @@ const defaultNotebookControllerContext: NotebookControllerContextProps = {
 
 export const NotebookControllerContext = React.createContext(defaultNotebookControllerContext);
 
-export const NotebookControllerContextProvider: React.FC = ({ children }) => {
+type NotebookControllerContextProviderProps = {
+  children: React.ReactNode;
+};
+
+export const NotebookControllerContextProvider: React.FC<
+  NotebookControllerContextProviderProps
+> = ({ children }) => {
   const [notebookState, setNotebookState] = React.useState<NotebookContextStorage>({
     current: undefined,
     currentIsRunning: false,

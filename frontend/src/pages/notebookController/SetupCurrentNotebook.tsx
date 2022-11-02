@@ -7,6 +7,7 @@ import useNamespaces from './useNamespaces';
 import { useSpecificNotebookUserState } from '../../utilities/notebookControllerUtils';
 
 type SetupCurrentNotebookProps = {
+  children: React.ReactNode;
   currentNotebook: NotebookContextStorage['current'];
   setNotebookState: SetNotebookState;
 };
