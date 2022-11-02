@@ -4,7 +4,7 @@ import useNamespaces from './useNamespaces';
 import ApplicationsPage from '../ApplicationsPage';
 
 type ValidateNotebookNamespaceProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 const ValidateNotebookNamespace: React.FC<ValidateNotebookNamespaceProps> = ({ children }) => {

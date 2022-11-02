@@ -10,7 +10,7 @@ type DeleteModalProps = {
   deleteName: string;
   submitButtonLabel?: string;
   error?: Error;
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({

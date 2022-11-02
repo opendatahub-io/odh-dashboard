@@ -25,7 +25,7 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
 };
 
 type SDKInitializeProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 const SDKInitialize: React.FC<SDKInitializeProps> = ({ children }) => {

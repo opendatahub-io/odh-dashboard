@@ -26,9 +26,7 @@ const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => 
   }, [src]);
 
   if (!image.imgSrc) {
-    return (
-      <Skeleton shape="square" width="40px" screenreaderText="Loading small square contents" />
-    );
+    return <Skeleton shape="square" width="40px" screenreaderText="Brand image loading" />;
   }
 
   const brandClasses = classNames('odh-card__header-brand', className, {

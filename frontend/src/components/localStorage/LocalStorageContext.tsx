@@ -50,7 +50,7 @@ export const useLocalStorage = <T,>(
 };
 
 type LocalStorageContextProviderProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 /**

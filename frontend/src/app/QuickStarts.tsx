@@ -5,7 +5,7 @@ import '@patternfly/quickstarts/dist/quickstarts.min.css';
 import { useWatchQuickStarts } from '../utilities/useWatchQuickStarts';
 
 type QuickStartsProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 const QuickStarts: React.FC<QuickStartsProps> = ({ children }) => {

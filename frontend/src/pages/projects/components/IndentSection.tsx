@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
 
 type IndentSectionProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 const IndentSection: React.FC<IndentSectionProps> = ({ children }) => {

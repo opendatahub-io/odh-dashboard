@@ -21,7 +21,7 @@ const defaultNotebookControllerContext: NotebookControllerContextProps = {
 export const NotebookControllerContext = React.createContext(defaultNotebookControllerContext);
 
 type NotebookControllerContextProviderProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 export const NotebookControllerContextProvider: React.FC<

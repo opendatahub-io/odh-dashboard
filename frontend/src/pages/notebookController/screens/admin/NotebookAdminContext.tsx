@@ -14,7 +14,7 @@ const defaultNotebookAdminContext: NotebookAdminContextProps = {
 export const NotebookAdminContext = React.createContext(defaultNotebookAdminContext);
 
 type NotebookAdminContextProviderProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 export const NotebookAdminContextProvider: React.FC<NotebookAdminContextProviderProps> = ({
