@@ -33,7 +33,7 @@ const App: React.FC = () => {
   const isDeskTop = useDesktopWidth();
   const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
-  const { username, userError } = useUser();
+  const { username, userError, isAllowed } = useUser();
   const dispatch = useDispatch();
 
   const buildStatuses = useWatchBuildStatus();
@@ -108,7 +108,7 @@ const App: React.FC = () => {
         <Page
           className="odh-dashboard"
           header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
-          sidebar={<NavSidebar />}
+          sidebar={isAllowed ? <NavSidebar /> : undefined}
           notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
           isNotificationDrawerExpanded={notificationsOpen}
           mainContainerId="dashboard-page-main"

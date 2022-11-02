@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '../pages/ApplicationsPage';
+import UnauthorizedError from '../pages/UnauthorizedError';
 import { useUser } from '../redux/selectors';
 
 const InstalledApplications = React.lazy(
@@ -26,6 +27,14 @@ const NotFound = React.lazy(() => import('../pages/NotFound'));
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
 
+  if (!isAllowed) {
+    return (
+      <Routes>
+        <Route path="*" element={<UnauthorizedError />} />
+      </Routes>
+    );
+  }
+
   return (
     <React.Suspense
       fallback={<ApplicationsPage title="" description="" loaded={false} empty={true} />}
@@ -34,14 +43,12 @@ const AppRoutes: React.FC = () => {
         <Route path="/" element={<InstalledApplications />} />
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
-        {isAllowed && <Route path="/projects/*" element={<ProjectViewRoutes />} />}
-        {isAllowed && <Route path="/notebookController/*" element={<NotebookController />} />}
-        {isAllowed && (
-          <Route
-            path="/notebook/:namespace/:notebookName/logout"
-            element={<NotebookLogoutRedirectPage />}
-          />
-        )}
+        <Route path="/projects/*" element={<ProjectViewRoutes />} />
+        <Route path="/notebookController/*" element={<NotebookController />} />
+        <Route
+          path="/notebook/:namespace/:notebookName/logout"
+          element={<NotebookLogoutRedirectPage />}
+        />
         {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
         {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}
         {isAdmin && <Route path="/groupSettings" element={<GroupSettingsPage />} />}
