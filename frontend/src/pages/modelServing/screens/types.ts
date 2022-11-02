@@ -28,3 +28,22 @@ export type ModelServerSize = {
   name: string;
   resources: ModelServerResources;
 };
+
+export type CreatingDeployedServerObject = {
+  name: string;
+  storage?: DeployedServerStorage;
+  storageUri?: string;
+  format: DeployedServerFormat;
+}
+
+export type DeployedServerStorage = {
+  key: string;
+  parameters: Record<string, string>;
+  path: string;
+  schemaPath: string;
+} 
+
+export type DeployedServerFormat = {
+  name: string;
+  version?: string;
+}

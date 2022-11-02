@@ -239,7 +239,8 @@ export type ModelServerKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
       Partial<{
-        maxLoadingConcurrency: string; // maxLoadConcurrency for the model server
+        ['create-route']: string;
+        ['enable-auth']: string;
       }>;
     name: string;
   };
@@ -270,6 +271,56 @@ export type ModelServerKind = K8sResourceCommon & {
     }[];
     replicas: number;
   };
+};
+
+export type DeployedModelKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: {
+    predictor: {
+      model: {
+        modelFormat: {
+          name: string;
+          version?: string;
+        }
+        runtime?: string;
+        storageUri?: string;
+        storage?: {
+          key: string;
+          parameters: Record<string, string>;
+          path: string;
+          schemaPath: string;
+        }
+      }
+    }
+  };
+  status?: {
+    components: {
+      predictor: {
+        grpcUrl: string;
+        restUrl: string;
+        url: string;
+      }
+    }
+    conditions: {
+      lastTransitionTime: string;
+      status: string;
+      type: string;
+    }[];
+    modelStatus: {
+      copies: {
+        failedCopies: number;
+        totalCopies: number;
+      };
+      states: {
+        activeModelState: string;
+        targetModelState: string;
+      }
+      transitionStatus: string;
+    }
+    url: string;
+  }
 };
 
 type RoleBindingSubject = {

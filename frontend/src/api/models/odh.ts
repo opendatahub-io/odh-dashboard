@@ -20,3 +20,10 @@ export const ModelServerModel: K8sModelCommon = {
   kind: 'ServingRuntime',
   plural: 'servingruntimes',
 };
+
+export const DeployedModelModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'serving.kserve.io',
+  kind: 'InferenceService',
+  plural: 'inferencservices',
+};
