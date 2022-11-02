@@ -1,13 +1,13 @@
-import { State } from '../types';
+import { AppState } from '../types';
 import { UserState } from './types';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '../hooks';
 
-const getUser = (state: State): UserState => ({
-  username: state.appState.user ?? '', // TODO: alternative?
-  isAdmin: !!state.appState.isAdmin,
-  isAllowed: !!state.appState.isAllowed,
-  userLoading: state.appState.userLoading,
-  userError: state.appState.userError ?? null,
+const getUser = (state: AppState): UserState => ({
+  username: state.user ?? '', // TODO: alternative?
+  isAdmin: !!state.isAdmin,
+  isAllowed: !!state.isAllowed,
+  userLoading: state.userLoading,
+  userError: state.userError ?? null,
 });
 
-export const useUser = (): UserState => useSelector<State, UserState>(getUser);
+export const useUser = (): UserState => useAppSelector(getUser);

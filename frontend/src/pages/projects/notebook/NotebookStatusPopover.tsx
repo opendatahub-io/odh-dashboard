@@ -10,6 +10,7 @@ type NotebookStatusPopoverProps = {
   onClose: () => void;
   notebookState: NotebookState;
   stopNotebook: () => void;
+  children: React.ReactNode;
 };
 
 const NotebookStatusPopover: React.FC<NotebookStatusPopoverProps> = ({

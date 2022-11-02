@@ -3,7 +3,11 @@ import { validateNotebookNamespaceRoleBinding } from '../../utilities/notebookCo
 import useNamespaces from './useNamespaces';
 import ApplicationsPage from '../ApplicationsPage';
 
-const ValidateNotebookNamespace: React.FC = ({ children }) => {
+type ValidateNotebookNamespaceProps = {
+  children: React.ReactNode;
+};
+
+const ValidateNotebookNamespace: React.FC<ValidateNotebookNamespaceProps> = ({ children }) => {
   const { notebookNamespace, dashboardNamespace } = useNamespaces();
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>();

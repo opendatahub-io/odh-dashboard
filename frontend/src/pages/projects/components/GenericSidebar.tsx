@@ -12,6 +12,7 @@ type GenericSidebarProps = {
   titles: Record<string, string>;
   scrollableSelector: string;
   maxWidth?: number;
+  children: React.ReactNode;
 };
 
 const GenericSidebar: React.FC<GenericSidebarProps> = ({

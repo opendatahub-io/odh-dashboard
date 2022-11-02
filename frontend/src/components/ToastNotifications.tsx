@@ -1,12 +1,10 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { AppNotification, State } from '../redux/types';
+import { useAppSelector } from '../redux/hooks';
+import { AppNotification } from '../redux/types';
 import ToastNotification from './ToastNotification';
 
 const ToastNotifications: React.FC = () => {
-  const notifications: AppNotification[] = useSelector<State, AppNotification[]>(
-    (state) => state.appState.notifications,
-  );
+  const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
 
   if (!notifications) {
     return null;

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton, AlertVariant } from '@patternfly/react-core';
-import { useDispatch } from 'react-redux';
 import { AppNotification } from '../redux/types';
 import { ackNotification, hideNotification } from '../redux/actions/actions';
+import { useAppDispatch } from '../redux/hooks';
 
 const TOAST_NOTIFICATION_TIMEOUT = 8 * 1000;
 
@@ -11,7 +11,7 @@ interface ToastNotificationProps {
 }
 
 const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [timedOut, setTimedOut] = React.useState<boolean>(false);
   const [mouseOver, setMouseOver] = React.useState<boolean>(false);
 

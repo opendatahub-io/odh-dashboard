@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { useDispatch } from 'react-redux';
 import { getValidationStatus, postValidateIsv } from '../services/validateIsvService';
 import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
+import { useAppDispatch } from '../redux/hooks';
 
 export enum EnableApplicationStatus {
   INPROGRESS,
@@ -20,7 +20,7 @@ export const useEnableApplication = (
     status: EnableApplicationStatus;
     error: string;
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
     (error?: string) => {

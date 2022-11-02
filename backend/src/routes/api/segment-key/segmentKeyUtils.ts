@@ -1,4 +1,5 @@
 import { KubeFastifyInstance, ODHSegmentKey } from '../../../types';
+import { Buffer } from 'buffer';
 
 export const getSegmentKey = async (fastify: KubeFastifyInstance): Promise<ODHSegmentKey> => {
   const coreV1Api = fastify.kube.coreV1Api;

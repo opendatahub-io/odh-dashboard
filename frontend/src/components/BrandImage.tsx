@@ -1,6 +1,6 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import { Brand } from '@patternfly/react-core';
+import { Brand, Skeleton } from '@patternfly/react-core';
 import { RocketIcon } from '@patternfly/react-icons';
 
 type BrandImageProps = {
@@ -12,12 +12,7 @@ type BrandImageProps = {
 const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => {
   const [image, setImage] = React.useState<{ imgSrc: string; isValid: boolean }>({
     imgSrc: '',
-    isValid: true,
-  });
-
-  const brandClasses = classNames('odh-card__header-brand', className, {
-    'pf-c-brand': !image.isValid,
-    'odh-card__header-fallback-img': !image.isValid,
+    isValid: false,
   });
 
   React.useEffect(() => {
@@ -30,15 +25,26 @@ const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => 
     setImage({ imgSrc: newSrc, isValid: !!src });
   }, [src]);
 
-  return image.isValid ? (
+  if (!image.imgSrc) {
+    return <Skeleton shape="square" width="40px" screenreaderText="Brand image loading" />;
+  }
+
+  const brandClasses = classNames('odh-card__header-brand', className, {
+    'pf-c-brand': !image.isValid,
+    'odh-card__header-fallback-img': !image.isValid,
+  });
+
+  if (!image.isValid) {
+    return <RocketIcon className={brandClasses} {...props} />;
+  }
+
+  return (
     <Brand
       {...props}
       className={brandClasses}
       src={image.imgSrc}
       onError={() => setImage((prevImage) => ({ imgSrc: prevImage.imgSrc, isValid: false }))}
     />
-  ) : (
-    <RocketIcon className={brandClasses} {...props} />
   );
 };
 

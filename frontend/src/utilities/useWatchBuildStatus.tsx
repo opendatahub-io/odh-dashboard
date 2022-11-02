@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { useDispatch } from 'react-redux';
 import { BUILD_PHASE, BuildStatus } from '../types';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchBuildStatuses } from '../services/buildsService';
 import { addNotification } from '../redux/actions/actions';
 import { AppNotificationStatus } from '../redux/types';
+import { useAppDispatch } from '../redux/hooks';
 
 const runningStatuses = [
   BUILD_PHASE.new,
@@ -25,7 +25,7 @@ const filterBuilds = (
 export const useWatchBuildStatus = (): BuildStatus[] => {
   const [statuses, setStatuses] = React.useState<BuildStatus[]>([]);
   const prevBuildStatuses = React.useRef<BuildStatus[]>([]);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   React.useEffect(() => {
     let watchHandle;

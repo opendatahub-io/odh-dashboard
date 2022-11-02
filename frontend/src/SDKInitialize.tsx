@@ -24,7 +24,11 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   wsAppSettings: () => Promise.resolve({ host: '', subProtocols: [] }),
 };
 
-const SDKInitialize: React.FC = ({ children }) => {
+type SDKInitializeProps = {
+  children: React.ReactNode;
+};
+
+const SDKInitialize: React.FC<SDKInitializeProps> = ({ children }) => {
   // hack to make sure the SDK has fully loaded before we try to render the app
   // TODO: Figure out what's going on in the SDK
   const [ready, setReady] = React.useState(false);
@@ -38,6 +42,9 @@ const SDKInitialize: React.FC = ({ children }) => {
   }, []);
 
   return (
+    // TODO: remove when the SDK supports children type
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     <AppInitSDK configurations={config}>
       {ready ? (
         children

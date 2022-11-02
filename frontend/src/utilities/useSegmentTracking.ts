@@ -1,15 +1,14 @@
 import React from 'react';
 import { useAppContext } from '../app/AppContext';
-import { useSelector } from 'react-redux';
-import { RootState } from '../redux/types';
 import { initSegment } from '../utilities/segmentIOUtils';
 import { useWatchSegmentKey } from './useWatchSegmentKey';
+import { useAppSelector } from '../redux/hooks';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();
   const { dashboardConfig } = useAppContext();
-  const username = useSelector((state: RootState) => state.appState.user);
-  const clusterID = useSelector((state: RootState) => state.appState.clusterID);
+  const username = useAppSelector((state) => state.user);
+  const clusterID = useAppSelector((state) => state.clusterID);
 
   React.useEffect(() => {
     if (segmentKey && loaded && !loadError && username && clusterID) {

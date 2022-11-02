@@ -5,7 +5,7 @@ import { Checkbox } from '@patternfly/react-core';
 export interface FilterSidePanelCategoryItemProps extends React.HTMLProps<HTMLDivElement> {
   id: string;
   /** Children nodes */
-  children?: React.ReactNode;
+  children: React.ReactNode;
   /** Additional css classes for the Filter Panel Property Item */
   className?: string;
   /** Optional icon (or other) to show before the children */

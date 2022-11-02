@@ -13,7 +13,13 @@ const defaultNotebookAdminContext: NotebookAdminContextProps = {
 
 export const NotebookAdminContext = React.createContext(defaultNotebookAdminContext);
 
-export const NotebookAdminContextProvider: React.FC = ({ children }) => {
+type NotebookAdminContextProviderProps = {
+  children: React.ReactNode;
+};
+
+export const NotebookAdminContextProvider: React.FC<NotebookAdminContextProviderProps> = ({
+  children,
+}) => {
   const [serverStatuses, setServerStatuses] = React.useState<AdminViewUserData['serverStatus'][]>(
     [],
   );

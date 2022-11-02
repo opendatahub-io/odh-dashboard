@@ -19,6 +19,7 @@ type DetailsSectionProps = {
   loadError?: Error;
   isEmpty: boolean;
   emptyState: React.ReactNode;
+  children: React.ReactNode;
 };
 
 const DetailsSection: React.FC<DetailsSectionProps> = ({

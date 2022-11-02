@@ -1,5 +1,4 @@
 import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import {
   Button,
   ButtonVariant,
@@ -15,22 +14,21 @@ import {
   EmptyStateBody,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { AppNotification, State } from '../redux/types';
+import { AppNotification } from '../redux/types';
 import { ackNotification, removeNotification } from '../redux/actions/actions';
 import { calculateRelativeTime } from '../utilities/utils';
+import { useAppDispatch, useAppSelector } from '../redux/hooks';
 
 interface AppNotificationDrawerProps {
   onClose: () => void;
 }
 
 const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }) => {
-  const stateNotifications: AppNotification[] = useSelector<State, AppNotification[]>(
-    (state) => state.appState.notifications,
-  );
+  const stateNotifications: AppNotification[] = useAppSelector((state) => state.notifications);
   const notifications = [...stateNotifications].sort(
     (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
   );
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const newNotifications = React.useMemo(() => {
     return notifications.filter((notification) => !notification.read).length;
   }, [notifications]);
