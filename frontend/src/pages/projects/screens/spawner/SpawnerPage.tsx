@@ -71,6 +71,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
 
+  const sectionIDs = Object.values(SpawnerPageSectionID);
+
+  // TODO: Remove this after we support the related sections
+  const filteredSectionIDs = existingNotebook
+    ? sectionIDs.filter(
+        (id) =>
+          id !== SpawnerPageSectionID.ENVIRONMENT_VARIABLES &&
+          id !== SpawnerPageSectionID.CLUSTER_STORAGE,
+      )
+    : sectionIDs;
+
   return (
     <ApplicationsPage
       title={existingNotebook ? `Edit ${editNotebookDisplayName}` : 'Create workbench'}
@@ -102,7 +113,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         variant="light"
       >
         <GenericSidebar
-          sections={Object.values(SpawnerPageSectionID)}
+          sections={filteredSectionIDs}
           titles={SpawnerPageSectionTitles}
           scrollableSelector={`#${ScrollableSelectorID}`}
         >

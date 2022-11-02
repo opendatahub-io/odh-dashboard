@@ -47,7 +47,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
         {notebook && (
           <StackItem>
             To save changes, access your{' '}
-            <NotebookRouteLink label="workbench" notebook={notebook} isRunning />.
+            <NotebookRouteLink label="workbench" notebook={notebook} isRunning isLarge />.
           </StackItem>
         )}
         <StackItem>
