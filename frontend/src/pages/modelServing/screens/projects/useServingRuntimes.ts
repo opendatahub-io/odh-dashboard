@@ -1,25 +1,25 @@
-import { getModelServers } from 'api/network/modelServer';
-import { ModelServerKind } from 'k8sTypes';
 import * as React from 'react';
+import { listServingRuntime } from '../../../../api/network/servingRuntimes';
+import { ServingRuntimeKind } from '../../../../k8sTypes';
 
-const useModelServer = (
+const useServingRuntimes = (
   namespace?: string,
 ): [
-  resource: ModelServerKind[],
+  resource: ServingRuntimeKind[],
   loaded: boolean,
   error: Error | undefined,
   forceRefresh: () => void,
 ] => {
-  const [modelServer, setModelServer] = React.useState<ModelServerKind[]>([]);
+  const [modelServers, setModelServers] = React.useState<ServingRuntimeKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
   // Now there's only one model server in the cluster, in the future, we may have multiple model servers
-  const getModelServerKind = React.useCallback(() => {
+  const getServingRuntimeKind = React.useCallback(() => {
     if (namespace) {
-      getModelServers(namespace)
+      listServingRuntime(namespace)
         .then((modelServer) => {
-          setModelServer(modelServer);
+          setModelServers(modelServer);
           setLoaded(true);
         })
         .catch((e) => {
@@ -27,21 +27,21 @@ const useModelServer = (
           setLoaded(true);
         });
     } else {
-      setModelServer([]);
+      setModelServers([]);
       setLoaded(true);
       setError(undefined);
     }
   }, [namespace]);
 
   const refresh = React.useCallback(() => {
-    getModelServerKind();
-  }, [getModelServerKind]);
+    getServingRuntimeKind();
+  }, [getServingRuntimeKind]);
 
   React.useEffect(() => {
-    getModelServerKind();
-  }, [getModelServerKind]);
+    getServingRuntimeKind();
+  }, [getServingRuntimeKind]);
 
-  return [modelServer, loaded, error, refresh];
+  return [modelServers, loaded, error, refresh];
 };
 
-export default useModelServer;
+export default useServingRuntimes;

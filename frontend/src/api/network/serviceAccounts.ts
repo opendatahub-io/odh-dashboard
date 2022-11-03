@@ -1,15 +1,15 @@
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServiceAccountModel } from 'api/models';
-import { ServiceAccountKind } from 'k8sTypes';
+import { ServiceAccountModel } from '../../api/models';
+import { ServiceAccountKind } from '../../k8sTypes';
 
-export const assembleModelServerSA = (namespace: string): ServiceAccountKind => {
-  const modelServerSA = `model-server-sa-${namespace}`;
+export const assembleServingRuntimeSA = (namespace: string): ServiceAccountKind => {
+  const servingRuntimeSA = `model-server-sa-${namespace}`;
 
   const serviceAccount: ServiceAccountKind = {
     apiVersion: 'v1',
     kind: 'ServiceAccount',
     metadata: {
-      name: modelServerSA,
+      name: servingRuntimeSA,
       namespace,
     },
   };

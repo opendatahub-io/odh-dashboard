@@ -11,16 +11,20 @@ import {
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingModelServerObject, ModelServerToken } from '../types';
+import { CreatingServingRuntimeObject, ServingRuntimeToken } from '../types';
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
 
-type ModelServerTokenInputProps = {
-  data: CreatingModelServerObject;
-  setData: UpdateObjectAtPropAndValue<CreatingModelServerObject>;
-  token: ModelServerToken;
+type ServingRuntimeTokenInputProps = {
+  data: CreatingServingRuntimeObject;
+  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
+  token: ServingRuntimeToken;
 };
 
-const ModelServerTokenInput: React.FC<ModelServerTokenInputProps> = ({ data, setData, token }) => {
+const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
+  data,
+  setData,
+  token,
+}) => {
   const checkDuplicates = (name: string): boolean => {
     const duplicates = data.tokens.filter((token) => token.name === name);
     return duplicates.length > 0;
@@ -94,4 +98,4 @@ const ModelServerTokenInput: React.FC<ModelServerTokenInputProps> = ({ data, set
   );
 };
 
-export default ModelServerTokenInput;
+export default ServingRuntimeTokenInput;

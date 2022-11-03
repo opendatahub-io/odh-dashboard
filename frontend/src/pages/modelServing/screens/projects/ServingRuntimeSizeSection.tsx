@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { FormGroup, FormSection, NumberInput, Select, SelectOption } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingModelServerObject, ModelServerSize } from '../types';
-import ModelServerSizeExpandedField from './ModelServerSizeExpandedField';
+import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../types';
+import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
-type ModelServerSizeSectionProps = {
-  data: CreatingModelServerObject;
-  setData: UpdateObjectAtPropAndValue<CreatingModelServerObject>;
-  sizes: ModelServerSize[];
+type ServingRuntimeSizeSectionProps = {
+  data: CreatingServingRuntimeObject;
+  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
+  sizes: ServingRuntimeSize[];
 };
 
-const ModelServerSizeSection: React.FC<ModelServerSizeSectionProps> = ({
+const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   data,
   setData,
   sizes,
@@ -63,7 +63,7 @@ const ModelServerSizeSection: React.FC<ModelServerSizeSectionProps> = ({
           {sizeOptions()}
         </Select>
         {data.modelSize.name === 'Custom' && (
-          <ModelServerSizeExpandedField data={data} setData={setData} />
+          <ServingRuntimeSizeExpandedField data={data} setData={setData} />
         )}
       </FormGroup>
       <FormGroup label="Number of GPUs (Not implemented)">
@@ -81,4 +81,4 @@ const ModelServerSizeSection: React.FC<ModelServerSizeSectionProps> = ({
   );
 };
 
-export default ModelServerSizeSection;
+export default ServingRuntimeSizeSection;

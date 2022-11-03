@@ -8,7 +8,7 @@ import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
 import { useAppContext } from 'app/AppContext';
-import ModelServerList from '../../../modelServing/screens/projects/ModelServerList';
+import ServingRuntimeList from '../../../modelServing/screens/projects/ServingRuntimeList';
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
@@ -31,7 +31,7 @@ const ProjectDetails: React.FC = () => {
     { id: ProjectSectionID.CLUSTER_STORAGES, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
     ...(!modelServingEnabled
-      ? [{ id: ProjectSectionID.MODEL_SERVER, component: <ModelServerList /> }]
+      ? [{ id: ProjectSectionID.MODEL_SERVER, component: <ServingRuntimeList /> }]
       : []),
   ];
 

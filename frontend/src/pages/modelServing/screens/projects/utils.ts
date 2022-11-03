@@ -1,16 +1,16 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { ModelServerKind } from 'k8sTypes';
+import { ServingRuntimeKind } from 'k8sTypes';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import useGenericObjectState from 'utilities/useGenericObjectState';
-import { CreatingModelServerObject, ModelServerSize } from '../types';
+import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../types';
 import { DashboardConfig } from 'types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '../const';
 import { useAppContext } from 'app/AppContext';
 import useNotification from 'utilities/useNotification';
 import { useDeepCompareMemoize } from 'utilities/useDeepCompareMemoize';
 
-export const getModelSizes = (config: DashboardConfig): ModelServerSize[] => {
+export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
   if (sizes.length === 0) {
     sizes = DEFAULT_MODEL_SERVER_SIZES;
@@ -18,19 +18,19 @@ export const getModelSizes = (config: DashboardConfig): ModelServerSize[] => {
   return sizes;
 };
 
-export const useCreateModelServerObject = (
-  existingData?: ModelServerKind,
+export const useCreateServingRuntimeObject = (
+  existingData?: ServingRuntimeKind,
 ): [
-  data: CreatingModelServerObject,
-  setData: UpdateObjectAtPropAndValue<CreatingModelServerObject>,
+  data: CreatingServingRuntimeObject,
+  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>,
   resetDefaults: () => void,
-  sizes: ModelServerSize[],
+  sizes: ServingRuntimeSize[],
 ] => {
   const { dashboardConfig } = useAppContext();
   const notification = useNotification();
-  const sizes = useDeepCompareMemoize(getModelSizes(dashboardConfig));
+  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
 
-  const createModelState = useGenericObjectState<CreatingModelServerObject>({
+  const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
     numReplicas: 1,
     modelSize: sizes[0],
     gpus: 0,

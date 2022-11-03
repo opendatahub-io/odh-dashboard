@@ -1,19 +1,19 @@
-export type CreatingModelServerObject = {
+export type CreatingServingRuntimeObject = {
   numReplicas: number;
-  modelSize: ModelServerSize;
+  modelSize: ServingRuntimeSize;
   gpus: number;
   externalRoute: boolean;
   tokenAuth: boolean;
-  tokens: ModelServerToken[];
+  tokens: ServingRuntimeToken[];
 };
 
-export type ModelServerToken = {
+export type ServingRuntimeToken = {
   uuid: string;
   name: string;
   error: string;
 };
 
-export type ModelServerResources = {
+export type ServingRuntimeResources = {
   limits: {
     cpu: string;
     memory: string;
@@ -24,26 +24,26 @@ export type ModelServerResources = {
   };
 };
 
-export type ModelServerSize = {
+export type ServingRuntimeSize = {
   name: string;
-  resources: ModelServerResources;
+  resources: ServingRuntimeResources;
 };
 
-export type CreatingDeployedServerObject = {
+export type CreatingInferenceServiceObject = {
   name: string;
-  storage?: DeployedServerStorage;
+  storage?: InferenceServiceStorage;
   storageUri?: string;
-  format: DeployedServerFormat;
-}
+  format: InferenceServiceFormat;
+};
 
-export type DeployedServerStorage = {
+export type InferenceServiceStorage = {
   key: string;
   parameters: Record<string, string>;
   path: string;
   schemaPath: string;
-} 
+};
 
-export type DeployedServerFormat = {
+export type InferenceServiceFormat = {
   name: string;
   version?: string;
-}
+};

@@ -33,7 +33,7 @@ export const generateRoleBindingData = (
   return roleBindingObject;
 };
 
-export const generateRoleBindingModelServer = (namespace: string): RoleBindingKind => {
+export const generateRoleBindingServingRuntime = (namespace: string): RoleBindingKind => {
   const roleBindingObject: RoleBindingKind = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
