@@ -629,7 +629,7 @@ export type GroupCustomObject = {
 
 export type GroupCustomObjectItem = {
   metadata: GroupCustomObjectItemMetadata;
-  users: string[];
+  users: string[] | null;
 };
 
 type GroupCustomObjectItemMetadata = {
