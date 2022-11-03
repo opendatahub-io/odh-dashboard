@@ -2,16 +2,19 @@ import * as React from 'react';
 import { Button, Checkbox, FormGroup, FormSection, getUniqueId } from '@patternfly/react-core';
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingModelServerObject } from '../types';
+import { CreatingServingRuntimeObject } from '../types';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import ModelServerTokenInput from './ModelServerTokenInput';
+import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
 
-type ModelServerTokenSectionProps = {
-  data: CreatingModelServerObject;
-  setData: UpdateObjectAtPropAndValue<CreatingModelServerObject>;
+type ServingRuntimeTokenSectionProps = {
+  data: CreatingServingRuntimeObject;
+  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
 };
 
-const ModelServerTokenSection: React.FC<ModelServerTokenSectionProps> = ({ data, setData }) => {
+const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
+  data,
+  setData,
+}) => {
   const createNewToken = () => {
     const name = 'default-name';
     const duplicated = data.tokens.filter((token) => token.name === name);
@@ -46,7 +49,12 @@ const ModelServerTokenSection: React.FC<ModelServerTokenSectionProps> = ({ data,
       {data.tokenAuth && (
         <IndentSection>
           {data.tokens.map((token) => (
-            <ModelServerTokenInput key={token.uuid} token={token} data={data} setData={setData} />
+            <ServingRuntimeTokenInput
+              key={token.uuid}
+              token={token}
+              data={data}
+              setData={setData}
+            />
           ))}
           <Button
             onClick={() => {
@@ -65,4 +73,4 @@ const ModelServerTokenSection: React.FC<ModelServerTokenSectionProps> = ({ data,
   );
 };
 
-export default ModelServerTokenSection;
+export default ServingRuntimeTokenSection;

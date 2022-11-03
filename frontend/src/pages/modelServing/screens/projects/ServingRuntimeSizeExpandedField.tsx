@@ -2,20 +2,20 @@ import * as React from 'react';
 import { FormGroup, Grid, NumberInput } from '@patternfly/react-core';
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingModelServerObject, ModelServerResources } from '../types';
+import { CreatingServingRuntimeObject, ServingRuntimeResources } from '../types';
 
-type ModelServerSizeExpandedFieldProps = {
-  data: CreatingModelServerObject;
-  setData: UpdateObjectAtPropAndValue<CreatingModelServerObject>;
+type ServingRuntimeSizeExpandedFieldProps = {
+  data: CreatingServingRuntimeObject;
+  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
 };
 
-type ResourceKeys = keyof ModelServerResources;
+type ResourceKeys = keyof ServingRuntimeResources;
 enum ResourceAttributes {
   CPU = 'cpu',
   MEMORY = 'memory',
 }
 
-const ModelServerSizeExpandedField: React.FC<ModelServerSizeExpandedFieldProps> = ({
+const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldProps> = ({
   data,
   setData,
 }) => {
@@ -179,4 +179,4 @@ const ModelServerSizeExpandedField: React.FC<ModelServerSizeExpandedFieldProps> 
   );
 };
 
-export default ModelServerSizeExpandedField;
+export default ServingRuntimeSizeExpandedField;

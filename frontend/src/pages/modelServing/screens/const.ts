@@ -1,6 +1,6 @@
-import { ModelServerSize } from './types';
+import { ServingRuntimeSize } from './types';
 
-export const DEFAULT_MODEL_SERVER_SIZES: ModelServerSize[] = [
+export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [
   {
     name: 'Small',
     resources: {

@@ -14,14 +14,14 @@ export const NotebookModel: K8sModelCommon = {
   plural: 'notebooks',
 };
 
-export const ModelServerModel: K8sModelCommon = {
+export const ServingRuntimeModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
   apiGroup: 'serving.kserve.io',
   kind: 'ServingRuntime',
   plural: 'servingruntimes',
 };
 
-export const DeployedModelModel: K8sModelCommon = {
+export const InferenceServiceModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
   apiGroup: 'serving.kserve.io',
   kind: 'InferenceService',

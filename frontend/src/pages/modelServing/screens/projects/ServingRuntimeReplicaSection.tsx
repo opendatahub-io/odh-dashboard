@@ -1,14 +1,17 @@
 import * as React from 'react';
 import { FormGroup, FormSection, NumberInput } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingModelServerObject } from '../types';
+import { CreatingServingRuntimeObject } from '../types';
 
-type ModelServerReplicaSectionProps = {
-  data: CreatingModelServerObject;
-  setData: UpdateObjectAtPropAndValue<CreatingModelServerObject>;
+type ServingRuntimeReplicaSectionProps = {
+  data: CreatingServingRuntimeObject;
+  setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
 };
 
-const ModelServerReplicaSection: React.FC<ModelServerReplicaSectionProps> = ({ data, setData }) => {
+const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> = ({
+  data,
+  setData,
+}) => {
   const onChangeReplicas = (event: React.FormEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
     setData('numReplicas', parseInt(target.value));
@@ -29,4 +32,4 @@ const ModelServerReplicaSection: React.FC<ModelServerReplicaSectionProps> = ({ d
   );
 };
 
-export default ModelServerReplicaSection;
+export default ServingRuntimeReplicaSection;

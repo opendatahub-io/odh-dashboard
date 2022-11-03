@@ -236,7 +236,7 @@ export type ServiceAccountKind = K8sResourceCommon & {
   }[];
 };
 
-export type ModelServerKind = K8sResourceCommon & {
+export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
       Partial<{
@@ -274,7 +274,7 @@ export type ModelServerKind = K8sResourceCommon & {
   };
 };
 
-export type DeployedModelKind = K8sResourceCommon & {
+export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
   };
@@ -284,7 +284,7 @@ export type DeployedModelKind = K8sResourceCommon & {
         modelFormat: {
           name: string;
           version?: string;
-        }
+        };
         runtime?: string;
         storageUri?: string;
         storage?: {
@@ -292,9 +292,9 @@ export type DeployedModelKind = K8sResourceCommon & {
           parameters: Record<string, string>;
           path: string;
           schemaPath: string;
-        }
-      }
-    }
+        };
+      };
+    };
   };
   status?: {
     components: {
@@ -302,8 +302,8 @@ export type DeployedModelKind = K8sResourceCommon & {
         grpcUrl: string;
         restUrl: string;
         url: string;
-      }
-    }
+      };
+    };
     conditions: {
       lastTransitionTime: string;
       status: string;
@@ -317,11 +317,11 @@ export type DeployedModelKind = K8sResourceCommon & {
       states: {
         activeModelState: string;
         targetModelState: string;
-      }
+      };
       transitionStatus: string;
-    }
+    };
     url: string;
-  }
+  };
 };
 
 type RoleBindingSubject = {

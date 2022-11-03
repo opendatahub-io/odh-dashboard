@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ModelServerKind, PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
+import { ServingRuntimeKind, PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -19,7 +19,7 @@ import useDataConnections from './screens/detail/data-connections/useDataConnect
 import { DataConnection } from './types';
 import { NotebookState } from './notebook/types';
 import { POLL_INTERVAL } from '../../utilities/const';
-import useModelServer from 'pages/modelServing/screens/projects/useModelServer';
+import useServingRuntimes from 'pages/modelServing/screens/projects/useServingRuntimes';
 
 type ContextResourceData<T> = {
   data: T[];
@@ -34,7 +34,7 @@ type ProjectDetailsContextType = {
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
-  modelServer: ContextResourceData<ModelServerKind>;
+  servingRuntimes: ContextResourceData<ServingRuntimeKind>;
 };
 
 const DEFAULT_DATA: ContextResourceData<never> = {
@@ -67,7 +67,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   notebooks: DEFAULT_DATA,
   pvcs: DEFAULT_DATA,
   dataConnections: DEFAULT_DATA,
-  modelServer: DEFAULT_DATA,
+  servingRuntimes: DEFAULT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -77,19 +77,19 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
-  const modelServer = useContextResourceData<ModelServerKind>(useModelServer(namespace));
+  const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
-  const modelServerRefresh = modelServer.refresh;
+  const servingRuntimeRefresh = servingRuntimes.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
     pvcRefresh();
     dataConnectionRefresh();
-    modelServerRefresh();
-  }, [notebookRefresh, pvcRefresh, dataConnectionRefresh, modelServerRefresh]);
+    servingRuntimeRefresh();
+  }, [notebookRefresh, pvcRefresh, dataConnectionRefresh, servingRuntimeRefresh]);
 
   if (error) {
     return (
@@ -123,7 +123,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
         notebooks,
         pvcs,
         dataConnections,
-        modelServer,
+        servingRuntimes,
         refreshAllProjectData,
       }}
     >

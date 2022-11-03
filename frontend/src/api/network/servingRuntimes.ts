@@ -4,14 +4,14 @@ import {
   k8sGetResource,
   k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ModelServerModel } from 'api/models';
-import { ModelServerKind } from 'k8sTypes';
-import { CreatingModelServerObject } from 'pages/modelServing/screens/types';
+import { ServingRuntimeModel } from '../models';
+import { ServingRuntimeKind } from '../../k8sTypes';
+import { CreatingServingRuntimeObject } from 'pages/modelServing/screens/types';
 
-const assembleModelServer = (
-  data: CreatingModelServerObject,
+const assembleServingRuntime = (
+  data: CreatingServingRuntimeObject,
   namespace: string,
-): ModelServerKind => {
+): ServingRuntimeKind => {
   const { numReplicas, modelSize, externalRoute, tokenAuth } = data;
 
   return {
@@ -80,36 +80,39 @@ const assembleModelServer = (
   };
 };
 
-export const getModelServers = (namespace: string): Promise<ModelServerKind[]> => {
-  return k8sListResource<ModelServerKind>({
-    model: ModelServerModel,
+export const listServingRuntime = (namespace: string): Promise<ServingRuntimeKind[]> => {
+  return k8sListResource<ServingRuntimeKind>({
+    model: ServingRuntimeModel,
     queryOptions: { ns: namespace },
   }).then((listResource) => listResource.items);
 };
 
-export const getModelServer = (name: string, namespace: string): Promise<ModelServerKind> => {
-  return k8sGetResource<ModelServerKind>({
-    model: ModelServerModel,
+export const getServingRuntime = (name: string, namespace: string): Promise<ServingRuntimeKind> => {
+  return k8sGetResource<ServingRuntimeKind>({
+    model: ServingRuntimeModel,
     queryOptions: { name, ns: namespace },
   });
 };
 
-export const createModelServer = (
-  data: CreatingModelServerObject,
+export const createServingRuntime = (
+  data: CreatingServingRuntimeObject,
   namespace: string,
-): Promise<ModelServerKind> => {
-  const modelServer = assembleModelServer(data, namespace);
+): Promise<ServingRuntimeKind> => {
+  const modelServer = assembleServingRuntime(data, namespace);
   console.log(modelServer);
 
-  return k8sCreateResource<ModelServerKind>({
-    model: ModelServerModel,
+  return k8sCreateResource<ServingRuntimeKind>({
+    model: ServingRuntimeModel,
     resource: modelServer,
   });
 };
 
-export const deleteModelServer = (name: string, namespace: string): Promise<ModelServerKind> => {
-  return k8sDeleteResource<ModelServerKind>({
-    model: ModelServerModel,
+export const deleteServingRuntime = (
+  name: string,
+  namespace: string,
+): Promise<ServingRuntimeKind> => {
+  return k8sDeleteResource<ServingRuntimeKind>({
+    model: ServingRuntimeModel,
     queryOptions: { name, ns: namespace },
   });
 };

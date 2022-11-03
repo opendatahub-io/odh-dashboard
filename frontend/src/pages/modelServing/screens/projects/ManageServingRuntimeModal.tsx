@@ -8,22 +8,25 @@ import {
   FormSection,
   Modal,
 } from '@patternfly/react-core';
-import { useCreateModelServerObject } from './utils';
+import { useCreateServingRuntimeObject } from './utils';
 import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
 import {
   addSupportModelMeshProject,
   assembleSecretSA,
   createRoleBinding,
   createSecret,
-  generateRoleBindingModelServer,
-} from 'api';
-import { createModelServer } from 'api/network/modelServer';
-import { ModelServerKind, ProjectKind, SecretKind } from 'k8sTypes';
-import { assembleModelServerSA, createServiceAccount } from 'api/network/serviceAccounts';
-import { allSettledPromises } from 'utilities/allSettledPromises';
-import ModelServerReplicaSection from './ModelServerReplicaSection';
-import ModelServerSizeSection from './ModelServerSizeSection';
-import ModelServerTokenSection from './ModelServerTokenSection';
+  generateRoleBindingServingRuntime,
+} from '../../../../api';
+import { createServingRuntime } from '../../../../api/network/servingRuntimes';
+import { ServingRuntimeKind, ProjectKind, SecretKind } from '../../../../k8sTypes';
+import {
+  assembleServingRuntimeSA,
+  createServiceAccount,
+} from '../../../../api/network/serviceAccounts';
+import { allSettledPromises } from '../../../../utilities/allSettledPromises';
+import ModelServerReplicaSection from './ServingRuntimeReplicaSection';
+import ModelServerSizeSection from './ServingRuntimeSizeSection';
+import ModelServerTokenSection from './ServingRuntimeTokenSection';
 
 type ManageModelServerModalProps = {
   isOpen: boolean;
@@ -31,7 +34,7 @@ type ManageModelServerModalProps = {
 };
 
 const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen, onClose }) => {
-  const [createData, setCreateData, resetData, sizes] = useCreateModelServerObject();
+  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject();
   const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -58,10 +61,10 @@ const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen,
       return Promise.resolve();
     }
 
-    const modelMeshSA = assembleModelServerSA(namespace);
+    const modelMeshSA = assembleServingRuntimeSA(namespace);
     createServiceAccount(modelMeshSA)
       .then(() => {
-        const tokenAuth = generateRoleBindingModelServer(namespace);
+        const tokenAuth = generateRoleBindingServingRuntime(namespace);
         createRoleBinding(tokenAuth)
           .then(() => {
             allSettledPromises<SecretKind, Error>(
@@ -94,9 +97,9 @@ const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen,
     setError(undefined);
     setActionInProgress(true);
 
-    allSettledPromises<ModelServerKind | ProjectKind | void, Error>([
+    allSettledPromises<ServingRuntimeKind | ProjectKind | void, Error>([
       addSupportModelMeshProject(currentProject.metadata.name),
-      createModelServer(createData, namespace),
+      createServingRuntime(createData, namespace),
       enableTokenAuth(),
     ])
       .then(() => {
