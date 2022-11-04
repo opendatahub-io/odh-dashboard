@@ -1,38 +1,33 @@
 import * as React from 'react';
-import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
-import { ProjectKind } from '../../../../k8sTypes';
+import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import { InferenceServiceKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
-import { getProjectDisplayName, getProjectOwner } from '../../utils';
-import ProjectTable from './ProjectTable';
-import NewProjectButton from './NewProjectButton';
-import { columns } from './tableData';
-import { Link } from 'react-router-dom';
-import SearchField, { SearchType } from '../../components/SearchField';
+import { getInferenceServiceDisplayName } from './utils';
+import ServeModelButton from './ServeModelButton';
+import { columns } from './data';
+import SearchField, { SearchType } from '../../../projects/components/SearchField';
+import InferenceServiceTable from './InferenceServiceTable';
 
 const MIN_PAGE_SIZE = 10;
 
-type ProjectListViewProps = {
-  projects: ProjectKind[];
-  refreshProjects: () => Promise<void>;
+type InferenceServiceListViewProps = {
+  inferenceServices: InferenceServiceKind[];
 };
 
-const ProjectListView: React.FC<ProjectListViewProps> = ({
-  projects: unfilteredProjects,
-  refreshProjects,
+const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
+  inferenceServices: unfilteredInferenceServices,
 }) => {
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
-  const sort = useTableColumnSort<ProjectKind>(columns, 0);
-  const filteredProjects = sort.transformData(unfilteredProjects).filter((project) => {
+  const sort = useTableColumnSort<InferenceServiceKind>(columns, 0);
+  const filteredInferenceServices = sort.transformData(unfilteredInferenceServices).filter((project) => {
     if (!search) return true;
 
     switch (searchType) {
       case SearchType.NAME:
-        return getProjectDisplayName(project).toLowerCase().includes(search.toLowerCase());
-      case SearchType.USER:
-        return getProjectOwner(project).toLowerCase().includes(search.toLowerCase());
+        return getInferenceServiceDisplayName(project).toLowerCase().includes(search.toLowerCase());
       default:
         return true;
     }
@@ -42,13 +37,13 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
     setSearch('');
   };
 
-  const showPagination = unfilteredProjects.length > MIN_PAGE_SIZE;
+  const showPagination = unfilteredInferenceServices.length > MIN_PAGE_SIZE;
   const pagination = (pageDirection: 'up' | 'down') =>
     showPagination && (
       <Pagination
         dropDirection={pageDirection}
         perPageComponent="button"
-        itemCount={filteredProjects.length}
+        itemCount={filteredInferenceServices.length}
         perPage={pageSize}
         page={page}
         onSetPage={(e, newPage) => setPage(newPage)}
@@ -60,7 +55,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
       />
     );
 
-  const searchTypes = React.useMemo(() => Object.keys(SearchType), []);
+  const searchTypes = React.useMemo(() => Object.keys(SearchType).filter((key) => SearchType[key] === SearchType.NAME),[])
 
   return (
     <>
@@ -81,23 +76,17 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
             />
           </ToolbarItem>
           <ToolbarItem>
-            <NewProjectButton />
-          </ToolbarItem>
-          <ToolbarItem>
-            <Button variant="link">
-              <Link to="/notebookController">Launch Jupyter</Link>
-            </Button>
+            <ServeModelButton />
           </ToolbarItem>
           <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
             {pagination('down')}
           </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
-      <ProjectTable
+      <InferenceServiceTable
         clearFilters={resetFilters}
-        projects={filteredProjects.slice(pageSize * (page - 1))}
+        inferenceServices={filteredInferenceServices.slice(pageSize * (page - 1))}
         getColumnSort={sort.getColumnSort}
-        refreshProjects={refreshProjects}
       />
       {showPagination && (
         <Toolbar>
@@ -112,4 +101,4 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
   );
 };
 
-export default ProjectListView;
+export default InferenceServiceListView;

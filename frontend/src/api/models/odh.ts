@@ -22,8 +22,8 @@ export const ServingRuntimeModel: K8sModelCommon = {
 };
 
 export const InferenceServiceModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
+  apiVersion: 'v1beta1',
   apiGroup: 'serving.kserve.io',
   kind: 'InferenceService',
-  plural: 'inferencservices',
+  plural: 'inferenceservices',
 };

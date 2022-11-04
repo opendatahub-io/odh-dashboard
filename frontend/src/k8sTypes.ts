@@ -277,6 +277,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
 export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
   };
   spec: {
     predictor: {
@@ -338,6 +339,7 @@ export type RoleBindingKind = K8sResourceCommon & {
 export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
+    path: string;
   };
 };
 
