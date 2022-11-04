@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { Alert, FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
-import { getProjectDisplayName } from '../utils';
-import useUserProjects from '../screens/projects/useUserProjects';
+import useModelServingProjects from './useModelServingProjects';
+import { getProjectDisplayName } from 'pages/projects/utils';
 
 type ExistingProjectFieldProps = {
   fieldId: string;
   selectedProject?: string;
   onSelect: (selection?: string) => void;
+  disabled?: boolean;
   selectDirection?: 'up' | 'down';
   menuAppendTo?: HTMLElement | 'parent';
 };
@@ -15,12 +16,13 @@ const ExistingProjectField: React.FC<ExistingProjectFieldProps> = ({
   fieldId,
   selectedProject,
   onSelect,
+  disabled,
   selectDirection = 'down',
   menuAppendTo = 'parent',
 }) => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
 
-  const [projects, loaded, loadError] = useUserProjects();
+  const [projects, loaded, loadError] = useModelServingProjects();
 
   if (!loaded) {
     return <Skeleton />;
@@ -43,21 +45,18 @@ const ExistingProjectField: React.FC<ExistingProjectFieldProps> = ({
   return (
     <FormGroup label="Project" fieldId={fieldId}>
       <Select
-        variant="typeahead"
+        removeFindDomNode
         selections={selectedProject}
         isOpen={isOpen}
-        onClear={() => {
-          onSelect(undefined);
-          setOpen(false);
-        }}
         onSelect={(e, selection) => {
           if (typeof selection === 'string') {
             onSelect(selection);
             setOpen(false);
           }
         }}
+        isDisabled={disabled}
         onToggle={setOpen}
-        placeholderText="Select the project connected to the PV"
+        placeholderText="Select the project"
         direction={selectDirection}
         menuAppendTo={menuAppendTo}
       >

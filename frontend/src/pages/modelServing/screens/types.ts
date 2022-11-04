@@ -1,3 +1,5 @@
+import { EnvVariableDataEntry } from 'pages/projects/types';
+
 export enum ServingRuntimeTableTabs {
   TYPE = 1,
   DEPLOYED_MODELS = 2,
@@ -37,16 +39,22 @@ export type ServingRuntimeSize = {
 
 export type CreatingInferenceServiceObject = {
   name: string;
-  storage?: InferenceServiceStorage;
-  storageUri?: string;
+  project: string;
+  servingRuntimeName: string;
+  storage: InferenceServiceStorage;
   format: InferenceServiceFormat;
 };
 
+export enum InferenceServiceStorageType {
+  NEW_STORAGE = 'new-storage',
+  EXISTING_STORAGE = 'existing-storage',
+}
+
 export type InferenceServiceStorage = {
-  key: string;
-  parameters: Record<string, string>;
+  type: InferenceServiceStorageType;
   path: string;
-  schemaPath: string;
+  dataConnection: string;
+  awsData: EnvVariableDataEntry[];
 };
 
 export type InferenceServiceFormat = {

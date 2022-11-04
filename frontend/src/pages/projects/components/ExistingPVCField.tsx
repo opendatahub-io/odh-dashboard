@@ -47,6 +47,7 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
   return (
     <FormGroup isRequired label="Persistent storage" fieldId={fieldId}>
       <Select
+        removeFindDomNode
         variant="typeahead"
         selections={selectedStorage}
         isOpen={isOpen}

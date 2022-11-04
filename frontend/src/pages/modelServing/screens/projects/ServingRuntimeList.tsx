@@ -10,13 +10,22 @@ import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntim
 import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 
-const ModelServerList: React.FC = () => {
+const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
   const {
-    servingRuntimes: { data: modelServers, loaded, error: loadError, refresh },
+    servingRuntimes: {
+      data: modelServers,
+      loaded,
+      error: loadError,
+      refresh: refreshServingRuntime,
+    },
     serverSecrets: { refresh: refreshTokens },
+    dataConnections: { data: dataConnections },
+    inferenceServices: { refresh: refreshInferenceServices },
+    currentProject,
   } = React.useContext(ProjectDetailsContext);
   const emptyModelServer = modelServers.length === 0;
+
   return (
     <>
       <DetailsSection
@@ -42,7 +51,7 @@ const ModelServerList: React.FC = () => {
           />
         }
       >
-        <ServingRuntimeTable modelServers={modelServers} refresh={refresh} />
+        <ServingRuntimeTable modelServers={modelServers} refresh={refreshServingRuntime} />
       </DetailsSection>{' '}
       {emptyModelServer && (
         <ManageServingRuntimeModal
@@ -50,7 +59,7 @@ const ModelServerList: React.FC = () => {
           onClose={(submit: boolean) => {
             setOpen(false);
             if (submit) {
-              refresh();
+              refreshServingRuntime();
               setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
             }
           }}
@@ -62,8 +71,13 @@ const ModelServerList: React.FC = () => {
           onClose={(submit: boolean) => {
             setOpen(false);
             if (submit) {
-              refresh();
+              refreshInferenceServices();
             }
+          }}
+          projectContext={{
+            currentProject,
+            currentServingRuntime: modelServers[0],
+            dataConnections,
           }}
         />
       )}
@@ -71,4 +85,4 @@ const ModelServerList: React.FC = () => {
   );
 };
 
-export default ModelServerList;
+export default ServingRuntimeList;

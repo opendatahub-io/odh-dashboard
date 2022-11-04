@@ -28,6 +28,7 @@ const NotebookStatusPopover: React.FC<NotebookStatusPopoverProps> = ({
   return (
     <>
       <Popover
+        removeFindDomNode
         shouldClose={onClose}
         isVisible={isVisible}
         headerContent="Notebook status"

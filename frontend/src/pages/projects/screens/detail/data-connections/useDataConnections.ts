@@ -19,6 +19,7 @@ const useDataConnections = (
     if (!namespace) {
       return;
     }
+    setLoaded(false);
     getSecretsByLabel(`opendatahub.io/managed=true`, namespace)
       .then((secrets) => {
         const dataConnections = secrets
