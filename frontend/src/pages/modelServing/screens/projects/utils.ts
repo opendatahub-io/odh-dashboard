@@ -50,34 +50,31 @@ export const useCreateServingRuntimeObject = (
 
   const existingExternalRoute = !!existingData?.metadata.annotations?.externalRoute;
 
-  React.useEffect(
-    () => () => {
-      if (existingNumReplicas) {
-        setCreateData('numReplicas', existingNumReplicas);
+  React.useEffect(() => {
+    if (existingNumReplicas) {
+      setCreateData('numReplicas', existingNumReplicas);
+    }
+    if (existingResources) {
+      let foundSize = sizes.find((size) => _.isEqual(size.resources, existingResources));
+      if (!foundSize) {
+        foundSize = sizes[0];
+        notification.warning(
+          'The size you select is no longer available, we have set the size to the default one.',
+        );
       }
-      if (existingResources) {
-        let foundSize = sizes.find((size) => !_.isEqual(size.resources, existingResources));
-        if (!foundSize) {
-          foundSize = sizes[0];
-          notification.warning(
-            'The size you select is no longer available, we have set the size to the default one.',
-          );
-        }
-        setCreateData('modelSize', foundSize);
-      }
-      if (existingExternalRoute) {
-        setCreateData('externalRoute', existingExternalRoute);
-      }
-    },
-    [
-      existingNumReplicas,
-      existingResources,
-      existingExternalRoute,
-      setCreateData,
-      notification,
-      sizes,
-    ],
-  );
+      setCreateData('modelSize', foundSize);
+    }
+    if (existingExternalRoute) {
+      setCreateData('externalRoute', existingExternalRoute);
+    }
+  }, [
+    existingNumReplicas,
+    existingResources,
+    existingExternalRoute,
+    setCreateData,
+    notification,
+    sizes,
+  ]);
 
   return [...createModelState, sizes];
 };

@@ -64,7 +64,7 @@ export const createProject = (
           labels: {
             'opendatahub.io/dashboard': 'true',
             'opendatahub.io/user': translatedUsername,
-            'modelmesh-enable': 'true',
+            'modelmesh-enabled': 'true',
           },
         },
       },
@@ -82,7 +82,7 @@ export const createProject = (
 
 const modelMeshLabelPatch: Patch = {
   op: 'add',
-  path: '/metadata/labels/modelmesh-enable',
+  path: '/metadata/labels/modelmesh-enabled',
   value: 'true',
 };
 

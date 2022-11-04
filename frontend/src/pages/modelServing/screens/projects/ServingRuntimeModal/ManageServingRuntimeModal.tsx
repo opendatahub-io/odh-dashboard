@@ -8,22 +8,22 @@ import {
   FormSection,
   Modal,
 } from '@patternfly/react-core';
-import { useCreateServingRuntimeObject } from './utils';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
+import { useCreateServingRuntimeObject } from '../utils';
+import { ProjectDetailsContext } from '../../../../projects/ProjectDetailsContext';
 import {
   addSupportModelMeshProject,
   assembleSecretSA,
   createRoleBinding,
   createSecret,
   generateRoleBindingServingRuntime,
-} from '../../../../api';
-import { createServingRuntime } from '../../../../api/network/servingRuntimes';
-import { ServingRuntimeKind, ProjectKind, SecretKind } from '../../../../k8sTypes';
+} from '../../../../../api';
+import { createServingRuntime } from '../../../../../api/network/servingRuntimes';
+import { ServingRuntimeKind, ProjectKind, SecretKind } from '../../../../../k8sTypes';
 import {
   assembleServingRuntimeSA,
   createServiceAccount,
-} from '../../../../api/network/serviceAccounts';
-import { allSettledPromises } from '../../../../utilities/allSettledPromises';
+} from '../../../../../api/network/serviceAccounts';
+import { allSettledPromises } from '../../../../../utilities/allSettledPromises';
 import ModelServerReplicaSection from './ServingRuntimeReplicaSection';
 import ModelServerSizeSection from './ServingRuntimeSizeSection';
 import ModelServerTokenSection from './ServingRuntimeTokenSection';
@@ -69,11 +69,7 @@ const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen,
           .then(() => {
             allSettledPromises<SecretKind, Error>(
               createData.tokens.map((token) => {
-                const secretToken = assembleSecretSA(
-                  token.name,
-                  `model-server-sa-${namespace}`,
-                  namespace,
-                );
+                const secretToken = assembleSecretSA(token.name, namespace);
                 return createSecret(secretToken);
               }),
             )

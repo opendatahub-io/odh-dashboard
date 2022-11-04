@@ -6,18 +6,15 @@ import { ProjectSectionTitlesExtended } from '../../../projects/screens/detail/c
 import { ProjectSectionID } from '../../../projects/screens/detail/types';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
-import ManageServingRuntimeModal from './ManageServingRuntimeModal';
+import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
+import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
 
 const ModelServerList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
   const {
     servingRuntimes: { data: modelServers, loaded, error: loadError, refresh },
-    currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const namespace = currentProject.metadata.name;
-  const emptyModelServer =
-    modelServers.filter((model) => model.metadata.name === `modelmesh-server-${namespace}`)
-      .length === 0;
+  const emptyModelServer = modelServers.length === 0;
   return (
     <>
       <DetailsSection
@@ -43,14 +40,23 @@ const ModelServerList: React.FC = () => {
           />
         }
       >
-        {modelServers
-          .filter((model) => model.metadata.name === `modelmesh-server-${namespace}`)
-          .map((model) => (
-            <p key={model.metadata.name}>{model.metadata.name}</p>
-          ))}
+        {modelServers.map((model) => (
+          <p key={model.metadata.name}>{model.metadata.name}</p>
+        ))}
       </DetailsSection>{' '}
       {emptyModelServer && (
         <ManageServingRuntimeModal
+          isOpen={isOpen}
+          onClose={(submit: boolean) => {
+            setOpen(false);
+            if (submit) {
+              refresh();
+            }
+          }}
+        />
+      )}
+      {!emptyModelServer && (
+        <ManageInferenceServiceModal
           isOpen={isOpen}
           onClose={(submit: boolean) => {
             setOpen(false);

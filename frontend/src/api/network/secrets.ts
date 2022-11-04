@@ -9,6 +9,7 @@ import { K8sStatus, SecretKind } from '../../k8sTypes';
 import { SecretModel } from '../models';
 import { genRandomChars } from '../../utilities/string';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
+import { getModelServiceAccountName } from 'pages/modelServing/utils';
 
 export const assembleSecret = (
   projectName: string,
@@ -44,15 +45,20 @@ export const assembleSecret = (
   };
 };
 
-export const assembleSecretSA = (name: string, saName: string, namespace: string): SecretKind => {
+export const assembleSecretSA = (name: string, namespace: string): SecretKind => {
+  const saName = getModelServiceAccountName(namespace);
   return {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name,
+      name: translateDisplayNameForK8s(name),
       namespace,
       annotations: {
         'kubernetes.io/service-account.name': saName,
+        'openshift.io/display-name': name,
+      },
+      labels: {
+        'opendatahub.io/dashboard': 'true',
       },
     },
     type: 'kubernetes.io/service-account-token',

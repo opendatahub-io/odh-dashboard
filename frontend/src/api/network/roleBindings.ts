@@ -1,4 +1,5 @@
 import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { getModelRoleBinding, getModelServiceAccountName } from 'pages/modelServing/utils';
 import { RoleBindingKind } from '../../k8sTypes';
 import { RoleBindingModel } from '../models';
 
@@ -34,12 +35,18 @@ export const generateRoleBindingData = (
 };
 
 export const generateRoleBindingServingRuntime = (namespace: string): RoleBindingKind => {
+  const name = getModelRoleBinding(namespace);
+  const saName = getModelServiceAccountName(namespace);
+
   const roleBindingObject: RoleBindingKind = {
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
     metadata: {
-      name: `model-server-sa-${namespace}-view`,
+      name,
       namespace,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+      },
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
@@ -49,7 +56,7 @@ export const generateRoleBindingServingRuntime = (namespace: string): RoleBindin
     subjects: [
       {
         kind: 'ServiceAccount',
-        name: `model-server-sa-${namespace}`,
+        name: saName,
       },
     ],
   };

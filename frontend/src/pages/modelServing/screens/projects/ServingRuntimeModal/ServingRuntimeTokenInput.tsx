@@ -11,7 +11,7 @@ import {
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingServingRuntimeObject, ServingRuntimeToken } from '../types';
+import { CreatingServingRuntimeObject, ServingRuntimeToken } from '../../types';
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
 
 type ServingRuntimeTokenInputProps = {
@@ -33,8 +33,6 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
   const checkValid = (value: string) => {
     if (value.length === 0) {
       return 'Required';
-    } else if (!/^[a-z-]+$/.test(value)) {
-      return 'Must only consist of lower case letters and dashes';
     } else if (checkDuplicates(value)) {
       return 'Duplicates are invalid';
     } else {
