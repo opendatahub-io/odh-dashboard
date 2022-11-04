@@ -87,7 +87,7 @@ export const verifyEnvVars = async (
       updateConfigMap,
     ),
   ]).catch((e) => {
-    fastify.log.error(`Error verifying env vars, ${e.response?.data?.message || e.message}`);
+    fastify.log.error(`Error verifying env vars, ${e.response?.body?.message || e.message}`);
     throw e;
   });
 };

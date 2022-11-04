@@ -174,7 +174,7 @@ export const assembleNotebook = async (
     fastify.log.error(`Error getting the image for ${imageName}:${imageTagName}`);
     throw Error(
       `Error getting the image for ${imageName}:${imageTagName}, ${
-        e.response?.data?.message || e.message
+        e.response?.body?.message || e.message
       }`,
     );
   }
@@ -429,7 +429,7 @@ export const createNotebook = async (
     notebookAssembled = await generateNotebookResources(fastify, username, url, notebookData);
   } catch (e) {
     fastify.log.error(
-      `Failed to generate notebook resources, ${e.response?.data?.message || e.message}`,
+      `Failed to generate notebook resources, ${e.response?.body?.message || e.message}`,
     );
     throw e;
   }
@@ -532,7 +532,7 @@ export const updateNotebook = async (
     return response.body as Notebook;
   } catch (e) {
     fastify.log.error(
-      `Failed to update notebook resources, ${e.response?.data?.message || e.message}`,
+      `Failed to update notebook resources, ${e.response?.body?.message || e.message}`,
     );
     throw e;
   }
