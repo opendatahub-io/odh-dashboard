@@ -5,26 +5,26 @@ import { getInferenceServiceDisplayName } from './utils';
 export const columns: SortableData<InferenceServiceKind>[] = [
   {
     field: 'name',
-    label: 'Name',
+    label: 'Model name',
     width: 20,
     sortable: (a, b) =>
       getInferenceServiceDisplayName(a).localeCompare(getInferenceServiceDisplayName(b)),
   },
   {
-    field: 'type',
-    label: 'Type',
+    field: 'project',
+    label: 'Project',
     width: 20,
     sortable: false,
   },
   {
-    field: 'connections',
-    label: 'Connected workbenches',
-    width: 30,
+    field: 'endpoint',
+    label: 'Inference endpoint',
+    width: 45,
     sortable: false,
   },
   {
-    field: 'provider',
-    label: 'Provider',
+    field: 'status',
+    label: 'Status',
     sortable: false,
   },
   {
