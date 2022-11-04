@@ -12,8 +12,8 @@ export default async (fastify: FastifyInstance): Promise<void> => {
           return res;
         })
         .catch((e) => {
-          fastify.log.error(`Failed to get status, ${e.response?.data?.message || e.message}}`);
-          reply.send(e.response?.data?.message || e.message);
+          fastify.log.error(`Failed to get status, ${e.response?.body?.message || e.message}}`);
+          reply.send(e.response?.body?.message || e.message);
         });
     }),
   );

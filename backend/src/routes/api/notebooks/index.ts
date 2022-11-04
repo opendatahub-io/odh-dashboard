@@ -16,10 +16,10 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         return getNotebook(fastify, namespace, name).catch((e) => {
           if (e.statusCode !== 404) {
             fastify.log.error(
-              `Failed get notebook status, ${e.response?.data?.message || e.message}}`,
+              `Failed get notebook status, ${e.response?.body?.message || e.message}}`,
             );
           }
-          reply.status(404).send(e.response?.data?.message || e.message);
+          reply.status(404).send(e.response?.body?.message || e.message);
         });
       },
     ),
@@ -39,10 +39,10 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         return getNotebookStatus(fastify, namespace, name).catch((e) => {
           if (e.statusCode !== 404) {
             fastify.log.error(
-              `Failed get notebook status, ${e.response?.data?.message || e.message}}`,
+              `Failed get notebook status, ${e.response?.body?.message || e.message}}`,
             );
           }
-          reply.status(404).send(e.response?.data?.message || e.message);
+          reply.status(404).send(e.response?.body?.message || e.message);
         });
       },
     ),
@@ -62,8 +62,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         }
 
         return enableNotebook(fastify, request).catch((e) => {
-          fastify.log.error(`${e.response?.data?.message || e.message}}`);
-          reply.status(400).send(e.response?.data?.message || e.message);
+          fastify.log.error(`${e.response?.body?.message || e.message}}`);
+          reply.status(400).send(e.response?.body?.message || e.message);
         });
       },
     ),
@@ -84,9 +84,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         return stopNotebook(fastify, request).catch((e) => {
           fastify.log.error(
-            `Failed to delete notebook, ${e.response?.data?.message || e.message}}`,
+            `Failed to delete notebook, ${e.response?.body?.message || e.message}}`,
           );
-          reply.status(400).send(e.response?.data?.message || e.message);
+          reply.status(400).send(e.response?.body?.message || e.message);
         });
       },
     ),

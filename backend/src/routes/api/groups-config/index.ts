@@ -16,9 +16,9 @@ export default async (fastify: FastifyInstance): Promise<void> => {
     secureAdminRoute(fastify)(async (request: FastifyRequest<{ Body: GroupsConfig }>, reply) => {
       return updateGroupsConfig(fastify, request).catch((e) => {
         fastify.log.error(
-          `Failed to update groups configuration, ${e.response?.data?.message || e.message}`,
+          `Failed to update groups configuration, ${e.response?.body?.message || e.message}`,
         );
-        reply.status(500).send({ message: e.response?.data?.message || e.message });
+        reply.status(500).send({ message: e.response?.body?.message || e.message });
       });
     }),
   );
