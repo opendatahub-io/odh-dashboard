@@ -7,21 +7,24 @@ import {
 import { ServingRuntimeModel } from '../models';
 import { ServingRuntimeKind } from '../../k8sTypes';
 import { CreatingServingRuntimeObject } from 'pages/modelServing/screens/types';
+import { getModelServingRuntimeName } from 'pages/modelServing/utils';
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
 ): ServingRuntimeKind => {
   const { numReplicas, modelSize, externalRoute, tokenAuth } = data;
+  const name = getModelServingRuntimeName(namespace);
 
   return {
     apiVersion: 'serving.kserve.io/v1alpha1',
     kind: 'ServingRuntime',
     metadata: {
-      name: `modelmesh-server-${namespace}`,
+      name,
       namespace,
       labels: {
-        name: `modelmesh-server-${namespace}`,
+        name,
+        'opendatahub.io/dashboard': 'true',
       },
       annotations: {
         ...(externalRoute && { 'create-route': 'true' }),
@@ -80,10 +83,17 @@ const assembleServingRuntime = (
   };
 };
 
-export const listServingRuntime = (namespace: string): Promise<ServingRuntimeKind[]> => {
+export const listServingRuntimes = (
+  namespace: string,
+  labelSelector?: string,
+): Promise<ServingRuntimeKind[]> => {
+  const queryOptions = {
+    ns: namespace,
+    ...(labelSelector && { queryParams: { labelSelector } }),
+  };
   return k8sListResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,
-    queryOptions: { ns: namespace },
+    queryOptions,
   }).then((listResource) => listResource.items);
 };
 
@@ -99,8 +109,6 @@ export const createServingRuntime = (
   namespace: string,
 ): Promise<ServingRuntimeKind> => {
   const modelServer = assembleServingRuntime(data, namespace);
-  console.log(modelServer);
-
   return k8sCreateResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,
     resource: modelServer,

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Checkbox, FormGroup, FormSection, getUniqueId } from '@patternfly/react-core';
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingServingRuntimeObject } from '../types';
+import { CreatingServingRuntimeObject } from '../../types';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
 

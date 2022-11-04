@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { listServingRuntime } from '../../../../api/network/servingRuntimes';
+import { listServingRuntimes } from '../../../../api/network/servingRuntimes';
 import { ServingRuntimeKind } from '../../../../k8sTypes';
 
 const useServingRuntimes = (
@@ -17,7 +17,7 @@ const useServingRuntimes = (
   // Now there's only one model server in the cluster, in the future, we may have multiple model servers
   const getServingRuntimeKind = React.useCallback(() => {
     if (namespace) {
-      listServingRuntime(namespace)
+      listServingRuntimes(namespace, 'opendatahub.io/dashboard=true')
         .then((modelServer) => {
           setModelServers(modelServer);
           setLoaded(true);

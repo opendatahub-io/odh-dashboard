@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FormGroup, Grid, NumberInput } from '@patternfly/react-core';
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingServingRuntimeObject, ServingRuntimeResources } from '../types';
+import { CreatingServingRuntimeObject, ServingRuntimeResources } from '../../types';
 
 type ServingRuntimeSizeExpandedFieldProps = {
   data: CreatingServingRuntimeObject;

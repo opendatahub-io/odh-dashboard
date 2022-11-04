@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup, FormSection, NumberInput, Select, SelectOption } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../types';
+import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../../types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
