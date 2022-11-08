@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { ServingRuntimeKind, PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
+import {
+  ServingRuntimeKind,
+  PersistentVolumeClaimKind,
+  ProjectKind,
+  InferenceServiceKind,
+} from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -20,6 +25,7 @@ import { DataConnection } from './types';
 import { NotebookState } from './notebook/types';
 import { POLL_INTERVAL } from '../../utilities/const';
 import useServingRuntimes from 'pages/modelServing/screens/projects/useServingRuntimes';
+import useInferenceServices from '../modelServing/screens/global/useInferenceServices';
 
 type ContextResourceData<T> = {
   data: T[];
@@ -35,6 +41,7 @@ type ProjectDetailsContextType = {
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
+  inferenceServices: ContextResourceData<InferenceServiceKind>;
 };
 
 const DEFAULT_DATA: ContextResourceData<never> = {
@@ -68,6 +75,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   pvcs: DEFAULT_DATA,
   dataConnections: DEFAULT_DATA,
   servingRuntimes: DEFAULT_DATA,
+  inferenceServices: DEFAULT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -78,6 +86,9 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
+  const inferenceServices = useContextResourceData<InferenceServiceKind>(
+    useInferenceServices(namespace),
+  );
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
@@ -124,6 +135,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
         pvcs,
         dataConnections,
         servingRuntimes,
+        inferenceServices,
         refreshAllProjectData,
       }}
     >

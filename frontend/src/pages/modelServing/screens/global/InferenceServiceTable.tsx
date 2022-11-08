@@ -7,7 +7,7 @@ import { columns } from './data';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 
 type InferenceServiceTableProps = {
-  clearFilters: () => void;
+  clearFilters?: () => void;
   inferenceServices: InferenceServiceKind[];
   getColumnSort: GetColumnSort;
 };
@@ -17,18 +17,20 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   inferenceServices,
   getColumnSort,
 }) => {
+  const isGlobal = !!clearFilters;
+  const mappedColumns = isGlobal ? columns : columns.filter((column) => column.field !== 'project');
   return (
-    <TableComposable>
+    <TableComposable variant={isGlobal ? undefined : 'compact'}>
       <Thead>
         <Tr>
-          {columns.map((col, i) => (
+          {mappedColumns.map((col, i) => (
             <Th key={col.field} sort={getColumnSort(i)} width={col.width}>
               {col.label}
             </Th>
           ))}
         </Tr>
       </Thead>
-      {inferenceServices.length === 0 && (
+      {isGlobal && inferenceServices.length === 0 && (
         <Tbody>
           <Tr>
             <Td colSpan={columns.length} style={{ textAlign: 'center' }}>
@@ -41,7 +43,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         </Tbody>
       )}
       {inferenceServices.map((is) => (
-        <InferenceServiceTableRow key={is.metadata.uid} obj={is} />
+        <InferenceServiceTableRow key={is.metadata.uid} obj={is} isGlobal={isGlobal} />
       ))}
     </TableComposable>
   );

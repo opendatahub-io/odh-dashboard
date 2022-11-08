@@ -2,7 +2,9 @@ import * as React from 'react';
 import { listInferenceService } from '../../../../api';
 import { InferenceServiceKind } from '../../../../k8sTypes';
 
-const useInferenceServices = (): [
+const useInferenceServices = (
+  namespace?: string,
+): [
   projects: InferenceServiceKind[],
   loaded: boolean,
   loadError: Error | undefined,
@@ -13,14 +15,14 @@ const useInferenceServices = (): [
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
   const fetchInferenceServices = React.useCallback(() => {
-    return listInferenceService()
+    return listInferenceService(namespace)
       .then((newInferenceServices) => {
         setInferenceServices(newInferenceServices);
       })
       .catch((e) => {
         setLoadError(e);
       });
-  }, []);
+  }, [namespace]);
 
   React.useEffect(() => {
     if (!loaded) {

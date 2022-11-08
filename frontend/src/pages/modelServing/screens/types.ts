@@ -1,3 +1,9 @@
+export enum ServingRuntimeTableTabs {
+  TYPE = 1,
+  DEPLOYED_MODELS = 2,
+  TOKENS = 3,
+}
+
 export type CreatingServingRuntimeObject = {
   numReplicas: number;
   modelSize: ServingRuntimeSize;

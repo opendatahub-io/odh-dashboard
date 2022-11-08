@@ -25,6 +25,7 @@ export const columns: SortableData<InferenceServiceKind>[] = [
   {
     field: 'status',
     label: 'Status',
+    width: 10,
     sortable: false,
   },
   {

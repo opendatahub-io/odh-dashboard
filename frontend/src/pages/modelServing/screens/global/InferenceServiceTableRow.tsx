@@ -10,10 +10,12 @@ import { Link } from 'react-router-dom';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
+  isGlobal: boolean;
 };
 
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   obj: inferenceService,
+  isGlobal,
 }) => {
   return (
     <Tbody>
@@ -23,7 +25,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             <Link to="/modelServing">{getInferenceServiceDisplayName(inferenceService)}</Link>
           </ResourceNameTooltip>
         </Td>
-        <Td dataLabel="Project">{inferenceService.metadata.namespace}</Td>
+        {isGlobal && <Td dataLabel="Project">{inferenceService.metadata.namespace}</Td>}
         <Td dataLabel="Inference endpoint">
           <InferenceServiceEndpoint inferenceService={inferenceService} />
         </Td>

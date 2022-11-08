@@ -8,6 +8,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
+import ServingRuntimeTable from './ServingRuntimeTable';
 
 const ModelServerList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
@@ -40,9 +41,7 @@ const ModelServerList: React.FC = () => {
           />
         }
       >
-        {modelServers.map((model) => (
-          <p key={model.metadata.name}>{model.metadata.name}</p>
-        ))}
+        <ServingRuntimeTable modelServers={modelServers} refresh={refresh} />
       </DetailsSection>{' '}
       {emptyModelServer && (
         <ManageServingRuntimeModal
