@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getProjects } from '../../../../api';
+import { getDSGProjects } from '../../../../api';
 import { ProjectKind } from '../../../../k8sTypes';
 
 const useUserProjects = (): [
@@ -13,7 +13,7 @@ const useUserProjects = (): [
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
   const fetchProjects = React.useCallback(() => {
-    return getProjects('opendatahub.io/dashboard=true')
+    return getDSGProjects()
       .then((newProjects) => {
         setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
       })

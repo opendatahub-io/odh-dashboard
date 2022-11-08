@@ -4,12 +4,13 @@ import {
   k8sGetResource,
   k8sListResource,
   K8sModelCommon,
+  K8sResourceCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind } from '../../k8sTypes';
-import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { ProjectModel } from '../models';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
+import { addDSGId, hasDSGId } from '../../pages/projects/projectNameUtils';
 
 export const getProject = (projectName: string): Promise<ProjectKind> => {
   return k8sGetResource<ProjectKind>({
@@ -18,12 +19,18 @@ export const getProject = (projectName: string): Promise<ProjectKind> => {
   });
 };
 
-export const getProjects = (labelSelector?: string): Promise<ProjectKind[]> => {
-  const queryOptions = labelSelector ? { queryParams: { labelSelector } } : undefined;
+export const getProjects = (): Promise<ProjectKind[]> => {
   return k8sListResource<ProjectKind>({
     model: ProjectModel,
-    queryOptions,
   }).then((listResource) => listResource.items);
+};
+
+export const getDSGProjects = (): Promise<ProjectKind[]> => {
+  return getProjects().then((projects) => {
+    return projects.filter((project) =>
+      hasDSGId(project.metadata.annotations?.['openshift.io/display-name']),
+    );
+  });
 };
 
 export const createProject = (
@@ -32,48 +39,37 @@ export const createProject = (
   description: string,
   k8sName?: string,
 ): Promise<string> => {
-  const translatedUsername = usernameTranslate(username);
-
   // Specific types and models for creating projects
-  const NamespaceModel: K8sModelCommon = {
+  const ProjectRequest: K8sModelCommon = {
+    apiGroup: 'project.openshift.io',
     apiVersion: 'v1',
-    kind: 'Namespace',
-    plural: 'namespaces',
+    kind: 'ProjectRequest',
+    plural: 'projectrequests',
   };
-  type NamespaceKind = ProjectKind & {
+  type ProjectRequestKind = K8sResourceCommon & {
     metadata: {
       name: string;
     };
+    displayName?: string;
+    description?: string;
   };
 
-  return new Promise((resolve, reject) => {
-    k8sCreateResource<NamespaceKind, NamespaceKind>({
-      model: NamespaceModel,
-      resource: {
-        apiVersion: 'v1',
-        kind: 'Namespace',
-        metadata: {
-          name: k8sName || translateDisplayNameForK8s(name),
-          annotations: {
-            'openshift.io/description': description,
-            'openshift.io/display-name': name,
-            'openshift.io/requester': username,
-          },
-          labels: {
-            'opendatahub.io/dashboard': 'true',
-            'opendatahub.io/user': translatedUsername,
-          },
-        },
+  return k8sCreateResource<ProjectRequestKind, ProjectKind>({
+    model: ProjectRequest,
+    resource: {
+      apiVersion: 'project.openshift.io/v1',
+      kind: 'ProjectRequest',
+      metadata: {
+        name: k8sName || translateDisplayNameForK8s(name),
       },
-    })
-      .then((namespace) => {
-        if (!namespace) {
-          reject('Unable to create a project due to permissions.');
-          return;
-        }
-        resolve(namespace.metadata.name);
-      })
-      .catch(reject);
+      description,
+      displayName: addDSGId(name),
+    },
+  }).then((project) => {
+    if (!project) {
+      throw new Error('Unable to create a project due to permissions.');
+    }
+    return project.metadata.name;
   });
 };
 
@@ -88,7 +84,7 @@ export const updateProject = (
       ...editProjectData.metadata,
       annotations: {
         ...editProjectData.metadata.annotations,
-        'openshift.io/display-name': displayName,
+        'openshift.io/display-name': addDSGId(displayName),
         'openshift.io/description': description,
       },
     },

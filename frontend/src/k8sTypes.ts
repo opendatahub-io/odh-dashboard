@@ -215,9 +215,6 @@ export type ProjectKind = K8sResourceCommon & {
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
-    labels?: Partial<{
-      'opendatahub.io/user': string; // translated username -- see translateUsername
-    }>;
     name: string;
   };
   status?: {
