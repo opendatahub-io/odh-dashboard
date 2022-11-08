@@ -84,11 +84,11 @@ const assembleServingRuntime = (
 };
 
 export const listServingRuntimes = (
-  namespace: string,
+  namespace?: string,
   labelSelector?: string,
 ): Promise<ServingRuntimeKind[]> => {
   const queryOptions = {
-    ns: namespace,
+    ...(namespace && { ns: namespace }),
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
   return k8sListResource<ServingRuntimeKind>({

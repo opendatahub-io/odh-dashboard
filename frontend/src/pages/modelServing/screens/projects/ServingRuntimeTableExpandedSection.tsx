@@ -2,10 +2,12 @@ import { ExpandableRowContent, Td } from '@patternfly/react-table';
 import * as React from 'react';
 import { InferenceServiceKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
+import EmptyTableCellForAlignment from '../../../projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
 import { columns } from '../global/data';
 import InferenceServiceTable from '../global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '../types';
+import ServingRuntimeTokens from './ServingRuntimeTokens';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
@@ -36,7 +38,16 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     );
   }
   if (activeColumn === ServingRuntimeTableTabs.TOKENS) {
-    return <>Not implemented 2</>;
+    return (
+      <>
+        <EmptyTableCellForAlignment />
+        <Td dataLabel="Tokens" colSpan={6}>
+          <ExpandableRowContent>
+            <ServingRuntimeTokens />
+          </ExpandableRowContent>
+        </Td>
+      </>
+    );
   }
 
   return null;

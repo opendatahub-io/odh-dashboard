@@ -35,6 +35,7 @@ const useDataConnections = (
       })
       .catch((e) => {
         setError(e);
+        setLoaded(true);
       });
   }, [namespace]);
 

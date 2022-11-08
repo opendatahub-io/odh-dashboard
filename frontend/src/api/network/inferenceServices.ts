@@ -3,10 +3,9 @@ import { InferenceServiceModel } from 'api/models';
 import { InferenceServiceKind } from 'k8sTypes';
 
 export const listInferenceService = (namespace?: string): Promise<InferenceServiceKind[]> => {
-  const queryOptions = namespace ? { ns: namespace } : undefined;
   return k8sListResource<InferenceServiceKind>({
     model: InferenceServiceModel,
-    queryOptions,
+    ...(namespace && { ns: namespace }),
   }).then((listResource) => listResource.items);
 };
 

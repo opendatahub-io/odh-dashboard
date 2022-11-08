@@ -660,3 +660,10 @@ export type GPUInfo = {
   available: number;
   autoscalers: gpuScale[];
 };
+
+export type ContextResourceData<T> = {
+  data: T[];
+  loaded: boolean;
+  error?: Error;
+  refresh: () => void;
+};

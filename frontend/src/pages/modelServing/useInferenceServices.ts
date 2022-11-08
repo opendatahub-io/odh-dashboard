@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { listInferenceService } from '../../../../api';
-import { InferenceServiceKind } from '../../../../k8sTypes';
+import { listInferenceService } from '../../api';
+import { InferenceServiceKind } from '../../k8sTypes';
 
 const useInferenceServices = (
   namespace?: string,
