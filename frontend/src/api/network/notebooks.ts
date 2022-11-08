@@ -118,6 +118,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/notebookController/${translatedUsername}/home`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
+        'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
       },
       name: notebookId,
