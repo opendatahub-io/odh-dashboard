@@ -1,5 +1,5 @@
-import { ExpandableRowContent, Td } from '@patternfly/react-table';
 import * as React from 'react';
+import { ExpandableRowContent, Td } from '@patternfly/react-table';
 import { InferenceServiceKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import EmptyTableCellForAlignment from '../../../projects/components/EmptyTableCellForAlignment';
