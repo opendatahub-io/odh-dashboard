@@ -10,6 +10,7 @@ import { createCustomError } from './requestUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { isUserAdmin } from './adminUtils';
 import { getNamespaces } from './notebookUtils';
+import { writeAdminLog } from './fileUtils';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -209,6 +210,17 @@ export const secureRoute =
   (requestCall: (request: FastifyRequest, reply: FastifyReply) => Promise<T>) =>
   async (request: OauthFastifyRequest, reply: FastifyReply): Promise<T> => {
     await handleSecurityOnRouteData(fastify, request, needsAdmin);
+    if (needsAdmin) {
+      const user = await getUserName(fastify, request);
+      writeAdminLog(fastify, {
+        timestamp: new Date().toISOString(),
+        user: user,
+        action: request.method.toUpperCase(),
+        endpoint: request.url.replace(request.headers.origin, ''),
+        result: reply.code,
+        namespace: fastify.kube.namespace,
+      });
+    }
     return requestCall(request, reply);
   };
 
