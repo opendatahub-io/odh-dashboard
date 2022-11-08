@@ -10,6 +10,7 @@ import { createCustomError } from './requestUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { isUserAdmin } from './adminUtils';
 import { getNamespaces } from './notebookUtils';
+import { writeAdminLog } from './fileUtils';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -153,6 +154,20 @@ const handleSecurityOnRouteData = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<void> => {
+  const username = await getUserName(fastify, request);
+  const { dashboardNamespace } = getNamespaces(fastify);
+  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+
+  writeAdminLog(fastify, {
+    user: username,
+    namespace: fastify.kube.namespace,
+    action: request.method.toUpperCase(),
+    endpoint: request.url.replace(request.headers.origin, ''),
+    payload: JSON.stringify(request.body),
+    isAdmin: isAdmin,
+    needsAdmin: needsAdmin,
+  });
+
   if (isRequestBody(request)) {
     await requestSecurityGuard(
       fastify,
@@ -187,9 +202,6 @@ const handleSecurityOnRouteData = async (
     }
 
     // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
-    const username = await getUserName(fastify, request);
-    const { dashboardNamespace } = getNamespaces(fastify);
-    const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
     fastify.log.warn(
       `${isAdmin ? 'Admin ' : ''}User ${username} interacted with a resource that was not secure.`,
     );

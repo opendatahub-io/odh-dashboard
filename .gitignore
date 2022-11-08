@@ -8,6 +8,7 @@
 .env*.local
 
 node_modules
+logs
 
 .docs
 .gitkeep
