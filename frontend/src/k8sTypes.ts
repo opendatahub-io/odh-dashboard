@@ -347,7 +347,6 @@ export type SecretKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    uid: string;
   };
   data?: Record<string, string>;
   stringData?: Record<string, string>;

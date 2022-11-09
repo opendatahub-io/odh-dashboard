@@ -7,6 +7,7 @@ import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '../types';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
@@ -94,7 +95,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({ obj }) 
             <Skeleton />
           )}
         </Td>
-        <Td>View metrics</Td>
+        <Td style={{ textAlign: 'end' }}>
+          <Link to={'#'}>View metrics</Link>
+        </Td>
         <Td isActionCell>
           <ActionsColumn
             items={[
@@ -111,7 +114,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({ obj }) 
         </Td>
       </Tr>
       <Tr isExpanded={isRowExpanded}>
-        <ServingRuntimeTableExpandedSection activeColumn={expandedColumn} />
+        <ServingRuntimeTableExpandedSection activeColumn={expandedColumn} obj={obj} />
       </Tr>
     </Tbody>
   );

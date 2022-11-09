@@ -14,6 +14,7 @@ const ModelServerList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
   const {
     servingRuntimes: { data: modelServers, loaded, error: loadError, refresh },
+    serverSecrets: { refresh: refreshTokens },
   } = React.useContext(ProjectDetailsContext);
   const emptyModelServer = modelServers.length === 0;
   return (
@@ -50,6 +51,7 @@ const ModelServerList: React.FC = () => {
             setOpen(false);
             if (submit) {
               refresh();
+              setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
             }
           }}
         />

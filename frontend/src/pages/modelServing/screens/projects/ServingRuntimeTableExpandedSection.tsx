@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import { InferenceServiceKind } from '../../../../k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import EmptyTableCellForAlignment from '../../../projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
@@ -8,13 +8,16 @@ import { columns } from '../global/data';
 import InferenceServiceTable from '../global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '../types';
 import ServingRuntimeTokens from './ServingRuntimeTokens';
+import ServingRuntimeDetails from './ServingRuntimeDetails';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
+  obj: ServingRuntimeKind;
 };
 
 const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSectionProps> = ({
   activeColumn,
+  obj,
 }) => {
   const {
     inferenceServices: { data: inferenceServices },
@@ -23,11 +26,20 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
   const inferenceServiceSort = useTableColumnSort<InferenceServiceKind>(columns, 0);
 
   if (activeColumn === ServingRuntimeTableTabs.TYPE) {
-    return <>Not implemented 0</>;
+    return (
+      <>
+        <EmptyTableCellForAlignment />
+        <Td dataLabel="Type expansion" colSpan={6}>
+          <ExpandableRowContent>
+            <ServingRuntimeDetails obj={obj} />
+          </ExpandableRowContent>
+        </Td>
+      </>
+    );
   }
   if (activeColumn === ServingRuntimeTableTabs.DEPLOYED_MODELS) {
     return (
-      <Td dataLabel="Deployed models" colSpan={6}>
+      <Td dataLabel="Deployed models expansion" colSpan={6}>
         <ExpandableRowContent>
           <InferenceServiceTable
             inferenceServices={inferenceServices}
@@ -41,7 +53,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     return (
       <>
         <EmptyTableCellForAlignment />
-        <Td dataLabel="Tokens" colSpan={6}>
+        <Td dataLabel="Tokens expansion" colSpan={6}>
           <ExpandableRowContent>
             <ServingRuntimeTokens />
           </ExpandableRowContent>

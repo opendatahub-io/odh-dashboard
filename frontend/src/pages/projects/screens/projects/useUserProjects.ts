@@ -13,7 +13,7 @@ const useUserProjects = (): [
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
   const fetchProjects = React.useCallback(() => {
-    return getProjects('modelmesh-enabled=true')
+    return getProjects('opendatahub.io/dashboard=true')
       .then((newProjects) => {
         setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
       })
