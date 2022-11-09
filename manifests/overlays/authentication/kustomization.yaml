@@ -5,6 +5,8 @@ bases:
 resources:
   - clusterrolebinding.yaml
   - secret.yaml
+  - fetch-builds-and-images.yaml
+  - image-clusterrolebinding.yaml
 patchesJson6902:
   - path: deployment.yaml
     target:

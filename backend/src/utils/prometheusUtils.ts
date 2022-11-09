@@ -44,6 +44,7 @@ export const callPrometheus = async (
             resolve({ code: 200, response: parsedData });
           } catch (e) {
             fastify.log.error(`Failure parsing the response from Prometheus. ${e.message || e}`);
+            fastify.log.error(`Unparsed Prometheus data. ${rawData}`);
             reject({ code: 500, response: rawData });
           }
         });
