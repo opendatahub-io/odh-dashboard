@@ -12,15 +12,18 @@ import ServingRuntimeDetails from './ServingRuntimeDetails';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
+  onClose: () => void;
   obj: ServingRuntimeKind;
 };
 
 const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSectionProps> = ({
   activeColumn,
+  onClose,
   obj,
 }) => {
   const {
     inferenceServices: { data: inferenceServices },
+    refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
 
   const inferenceServiceSort = useTableColumnSort<InferenceServiceKind>(columns, 0);
@@ -44,6 +47,10 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
           <InferenceServiceTable
             inferenceServices={inferenceServices}
             getColumnSort={inferenceServiceSort.getColumnSort}
+            refresh={() => {
+              refreshAllProjectData();
+              onClose();
+            }}
           />
         </ExpandableRowContent>
       </Td>
