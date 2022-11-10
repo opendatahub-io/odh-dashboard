@@ -23,14 +23,14 @@ const ProjectDetails: React.FC = () => {
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
   const { dashboardConfig } = useAppContext();
-  const modelServingEnabled = dashboardConfig.spec.dashboardConfig.disableModelServing;
+  const modelServingEnabled = !dashboardConfig.spec.dashboardConfig.disableModelServing;
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
     { id: ProjectSectionID.WORKBENCHES, component: <NotebooksList /> },
     { id: ProjectSectionID.CLUSTER_STORAGES, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
-    ...(!modelServingEnabled
+    ...(modelServingEnabled
       ? [{ id: ProjectSectionID.MODEL_SERVER, component: <ServingRuntimeList /> }]
       : []),
   ];
@@ -58,10 +58,10 @@ const ProjectDetails: React.FC = () => {
         <GenericSidebar
           sections={Object.keys(
             modelServingEnabled
-              ? ProjectSectionTitles
-              : { ...ProjectSectionTitles, ...ProjectSectionTitlesExtended },
+              ? { ...ProjectSectionTitles, ...ProjectSectionTitlesExtended }
+              : ProjectSectionTitles,
           )}
-          titles={modelServingEnabled ? ProjectSectionTitles : ProjectSectionTitlesExtended}
+          titles={modelServingEnabled ? ProjectSectionTitlesExtended : ProjectSectionTitles}
           scrollableSelector={`#${scrollableSelectorID}`}
           maxWidth={175}
         >
