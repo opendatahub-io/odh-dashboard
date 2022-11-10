@@ -8,11 +8,13 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
+import ServingRuntimeTable from './ServingRuntimeTable';
 
 const ModelServerList: React.FC = () => {
   const [isOpen, setOpen] = React.useState<boolean>(false);
   const {
     servingRuntimes: { data: modelServers, loaded, error: loadError, refresh },
+    serverSecrets: { refresh: refreshTokens },
   } = React.useContext(ProjectDetailsContext);
   const emptyModelServer = modelServers.length === 0;
   return (
@@ -40,9 +42,7 @@ const ModelServerList: React.FC = () => {
           />
         }
       >
-        {modelServers.map((model) => (
-          <p key={model.metadata.name}>{model.metadata.name}</p>
-        ))}
+        <ServingRuntimeTable modelServers={modelServers} refresh={refresh} />
       </DetailsSection>{' '}
       {emptyModelServer && (
         <ManageServingRuntimeModal
@@ -51,6 +51,7 @@ const ModelServerList: React.FC = () => {
             setOpen(false);
             if (submit) {
               refresh();
+              setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
             }
           }}
         />

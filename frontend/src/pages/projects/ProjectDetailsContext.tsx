@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { ServingRuntimeKind, PersistentVolumeClaimKind, ProjectKind } from '../../k8sTypes';
+import {
+  ServingRuntimeKind,
+  PersistentVolumeClaimKind,
+  ProjectKind,
+  InferenceServiceKind,
+  SecretKind,
+} from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -18,15 +24,12 @@ import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import { DataConnection } from './types';
 import { NotebookState } from './notebook/types';
-import { POLL_INTERVAL } from '../../utilities/const';
-import useServingRuntimes from 'pages/modelServing/screens/projects/useServingRuntimes';
-
-type ContextResourceData<T> = {
-  data: T[];
-  loaded: boolean;
-  error?: Error;
-  refresh: () => void;
-};
+import { DEFAULT_CONTEXT_DATA } from '../../utilities/const';
+import useServingRuntimes from '../modelServing/useServingRuntimes';
+import useInferenceServices from '../modelServing/useInferenceServices';
+import { ContextResourceData } from '../../types';
+import { useContextResourceData } from '../../utilities/useContextResourceData';
+import useServingRuntimeSecrets from '../modelServing/screens/projects/useServingRuntimeSecrets';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -35,39 +38,20 @@ type ProjectDetailsContextType = {
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
-};
-
-const DEFAULT_DATA: ContextResourceData<never> = {
-  data: [],
-  loaded: false,
-  refresh: () => undefined,
-};
-
-const useContextResourceData = <T,>(resourceData): ContextResourceData<T> => {
-  const [values, loaded, error, refresh] = resourceData;
-  React.useEffect(() => {
-    const timer = setInterval(() => refresh(), POLL_INTERVAL);
-    return () => clearInterval(timer);
-  }, [refresh]);
-  return React.useMemo(
-    () => ({
-      data: values,
-      loaded,
-      error,
-      refresh,
-    }),
-    [error, loaded, refresh, values],
-  );
+  inferenceServices: ContextResourceData<InferenceServiceKind>;
+  serverSecrets: ContextResourceData<SecretKind>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
   // We never will get into a case without a project, so fudge the default value
   currentProject: null as unknown as ProjectKind,
   refreshAllProjectData: () => undefined,
-  notebooks: DEFAULT_DATA,
-  pvcs: DEFAULT_DATA,
-  dataConnections: DEFAULT_DATA,
-  servingRuntimes: DEFAULT_DATA,
+  notebooks: DEFAULT_CONTEXT_DATA,
+  pvcs: DEFAULT_CONTEXT_DATA,
+  dataConnections: DEFAULT_CONTEXT_DATA,
+  servingRuntimes: DEFAULT_CONTEXT_DATA,
+  inferenceServices: DEFAULT_CONTEXT_DATA,
+  serverSecrets: DEFAULT_CONTEXT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -78,18 +62,30 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
+  const inferenceServices = useContextResourceData<InferenceServiceKind>(
+    useInferenceServices(namespace),
+  );
+  const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
+  const inferenceServiceRefresh = inferenceServices.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
     pvcRefresh();
     dataConnectionRefresh();
     servingRuntimeRefresh();
-  }, [notebookRefresh, pvcRefresh, dataConnectionRefresh, servingRuntimeRefresh]);
+    inferenceServiceRefresh();
+  }, [
+    notebookRefresh,
+    pvcRefresh,
+    dataConnectionRefresh,
+    servingRuntimeRefresh,
+    inferenceServiceRefresh,
+  ]);
 
   if (error) {
     return (
@@ -124,7 +120,9 @@ const ProjectDetailsContextProvider: React.FC = () => {
         pvcs,
         dataConnections,
         servingRuntimes,
+        inferenceServices,
         refreshAllProjectData,
+        serverSecrets,
       }}
     >
       <Outlet />

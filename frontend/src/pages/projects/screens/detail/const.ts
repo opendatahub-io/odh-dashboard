@@ -8,5 +8,5 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
 
 export const ProjectSectionTitlesExtended: ProjectSectionTitlesType = {
   ...ProjectSectionTitles,
-  [ProjectSectionID.MODEL_SERVER]: 'Model server',
+  [ProjectSectionID.MODEL_SERVER]: 'Models and model servers',
 };

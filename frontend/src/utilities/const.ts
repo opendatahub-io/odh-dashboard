@@ -1,4 +1,4 @@
-import { OdhDocumentType } from '../types';
+import { ContextResourceData, OdhDocumentType } from '../types';
 
 const DEV_MODE = process.env.APP_ENV === 'development';
 const API_PORT = process.env.BACKEND_PORT || 8080;
@@ -35,3 +35,9 @@ export const DOC_TYPE_TOOLTIPS = {
 
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
 export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
+
+export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
+  data: [],
+  loaded: false,
+  refresh: () => undefined,
+};

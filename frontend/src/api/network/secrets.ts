@@ -9,7 +9,7 @@ import { K8sStatus, SecretKind } from '../../k8sTypes';
 import { SecretModel } from '../models';
 import { genRandomChars } from '../../utilities/string';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
-import { getModelServiceAccountName } from 'pages/modelServing/utils';
+import { getModelServiceAccountName } from '../../pages/modelServing/utils';
 
 export const assembleSecret = (
   projectName: string,
