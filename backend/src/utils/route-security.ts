@@ -153,7 +153,21 @@ const handleSecurityOnRouteData = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   needsAdmin: boolean,
+  reply: FastifyReply
 ): Promise<void> => {
+  const username = await getUserName(fastify, request);
+  const { dashboardNamespace } = getNamespaces(fastify);
+  const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
+  writeAdminLog(fastify, {
+    timestamp: new Date().toISOString(),
+    user: username,
+    action: request.method.toUpperCase(),
+    endpoint: request.url.replace(request.headers.origin, ''),
+    result: reply.code,
+    namespace: fastify.kube.namespace,
+    isAdmin: isAdmin,
+    needsAdmin: needsAdmin
+  });
   if (isRequestBody(request)) {
     await requestSecurityGuard(
       fastify,
@@ -188,9 +202,6 @@ const handleSecurityOnRouteData = async (
     }
 
     // Not getting a resource, mutating something that is not verify-able theirs -- log the user encase of malicious behaviour
-    const username = await getUserName(fastify, request);
-    const { dashboardNamespace } = getNamespaces(fastify);
-    const isAdmin = await isUserAdmin(fastify, username, dashboardNamespace);
     fastify.log.warn(
       `${isAdmin ? 'Admin ' : ''}User ${username} interacted with a resource that was not secure.`,
     );
@@ -209,18 +220,7 @@ export const secureRoute =
   <T>(fastify: KubeFastifyInstance, needsAdmin = false) =>
   (requestCall: (request: FastifyRequest, reply: FastifyReply) => Promise<T>) =>
   async (request: OauthFastifyRequest, reply: FastifyReply): Promise<T> => {
-    await handleSecurityOnRouteData(fastify, request, needsAdmin);
-    if (needsAdmin) {
-      const user = await getUserName(fastify, request);
-      writeAdminLog(fastify, {
-        timestamp: new Date().toISOString(),
-        user: user,
-        action: request.method.toUpperCase(),
-        endpoint: request.url.replace(request.headers.origin, ''),
-        result: reply.code,
-        namespace: fastify.kube.namespace,
-      });
-    }
+    await handleSecurityOnRouteData(fastify, request, needsAdmin, reply);
     return requestCall(request, reply);
   };
 
