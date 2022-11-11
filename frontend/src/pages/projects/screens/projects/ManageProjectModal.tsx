@@ -1,13 +1,8 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal } from '@patternfly/react-core';
-import {
-  createProject,
-  createRoleBinding,
-  generateRoleBindingData,
-  updateProject,
-} from '../../../../api';
+import { createProject, updateProject } from '../../../../api';
 import { useNavigate } from 'react-router-dom';
-import { useDashboardNamespace, useUser } from '../../../../redux/selectors';
+import { useUser } from '../../../../redux/selectors';
 import { ProjectKind } from '../../../../k8sTypes';
 import { getProjectDescription, getProjectDisplayName, isValidK8sName } from '../../utils';
 import NameDescriptionField from '../../components/NameDescriptionField';
@@ -33,7 +28,6 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     description: '',
   });
   const { username } = useUser();
-  const { dashboardNamespace } = useDashboardNamespace();
 
   const canSubmit =
     !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
@@ -64,9 +58,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     } else {
       createProject(username, name, description, k8sName)
         .then((projectName) => {
-          const rbName = `${projectName}-image-pullers`;
-          const roleBindingData = generateRoleBindingData(rbName, dashboardNamespace, projectName);
-          createRoleBinding(roleBindingData).then(() => navigate(`/projects/${projectName}`));
+          navigate(`/projects/${projectName}`);
         })
         .catch((e) => {
           setError(e);

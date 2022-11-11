@@ -12,7 +12,6 @@ type ServingRuntimeTableProps = {
 
 const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
   modelServers: unsortedModelServers,
-  refresh,
 }) => {
   const sort = useTableColumnSort<ServingRuntimeKind>(columns, 1);
   const sortedModelServers = sort.transformData(unsortedModelServers);

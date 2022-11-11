@@ -47,7 +47,7 @@ export const getOpenshiftUser = async (
     );
     return userResponse.body as OpenShiftUser;
   } catch (e) {
-    throw new Error(`Error retrieving user, ${e.response?.data?.message || e.message}`);
+    throw new Error(`Error retrieving user, ${e.response?.body?.message || e.message}`);
   }
 };
 
@@ -76,7 +76,12 @@ export const getUser = async (
     );
     return userResponse.body as OpenShiftUser;
   } catch (e) {
-    throw new Error(`Error getting Oauth Info for user, ${e.response?.data?.message || e.message}`);
+    const error = createCustomError(
+      e.message,
+      `Error getting Oauth Info for user, ${e.response?.body?.message || e.message}`,
+      e.statusCode,
+    );
+    throw error;
   }
 };
 
@@ -93,10 +98,10 @@ export const getUserName = async (
     if (DEV_MODE) {
       return (currentUser.username || currentUser.name)?.split('/')[0];
     }
-    fastify.log.error(`Failed to retrieve username: ${e.response?.data?.message || e.message}`);
+    fastify.log.error(`Failed to retrieve username: ${e.response?.body?.message || e.message}`);
     const error = createCustomError(
       'Unauthorized',
-      `Failed to retrieve username: ${e.response?.data?.message || e.message}`,
+      `Failed to retrieve username: ${e.response?.body?.message || e.message}`,
       e.statusCode || 500,
     );
     throw error;
