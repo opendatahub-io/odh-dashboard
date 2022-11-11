@@ -7,6 +7,7 @@ import ServeModelButton from './ServeModelButton';
 import { columns } from './data';
 import SearchField, { SearchType } from '../../../projects/components/SearchField';
 import InferenceServiceTable from './InferenceServiceTable';
+import { ModelServingContext } from '../../ModelServingContext';
 
 const MIN_PAGE_SIZE = 10;
 
@@ -17,21 +18,28 @@ type InferenceServiceListViewProps = {
 const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   inferenceServices: unfilteredInferenceServices,
 }) => {
+  const {
+    inferenceServices: { refresh },
+  } = React.useContext(ModelServingContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
   const sort = useTableColumnSort<InferenceServiceKind>(columns, 0);
-  const filteredInferenceServices = sort.transformData(unfilteredInferenceServices).filter((project) => {
-    if (!search) return true;
+  const filteredInferenceServices = sort
+    .transformData(unfilteredInferenceServices)
+    .filter((project) => {
+      if (!search) return true;
 
-    switch (searchType) {
-      case SearchType.NAME:
-        return getInferenceServiceDisplayName(project).toLowerCase().includes(search.toLowerCase());
-      default:
-        return true;
-    }
-  });
+      switch (searchType) {
+        case SearchType.NAME:
+          return getInferenceServiceDisplayName(project)
+            .toLowerCase()
+            .includes(search.toLowerCase());
+        default:
+          return true;
+      }
+    });
 
   const resetFilters = () => {
     setSearch('');
@@ -55,7 +63,10 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       />
     );
 
-  const searchTypes = React.useMemo(() => Object.keys(SearchType).filter((key) => SearchType[key] === SearchType.NAME),[])
+  const searchTypes = React.useMemo(
+    () => Object.keys(SearchType).filter((key) => SearchType[key] === SearchType.NAME),
+    [],
+  );
 
   return (
     <>
@@ -87,6 +98,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
         clearFilters={resetFilters}
         inferenceServices={filteredInferenceServices.slice(pageSize * (page - 1))}
         getColumnSort={sort.getColumnSort}
+        refresh={refresh}
       />
       {showPagination && (
         <Toolbar>

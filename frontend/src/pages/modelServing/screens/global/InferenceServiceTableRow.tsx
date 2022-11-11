@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon } from '@patternfly/react-core';
+import { DropdownDirection, Icon } from '@patternfly/react-core';
 import { InferenceServiceKind } from '../../../../k8sTypes';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import ResourceNameTooltip from '../../../projects/components/ResourceNameTooltip';
@@ -11,10 +11,12 @@ import { Link } from 'react-router-dom';
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
   isGlobal: boolean;
+  onDeleteInferenceService: (obj: InferenceServiceKind) => void;
 };
 
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   obj: inferenceService,
+  onDeleteInferenceService,
   isGlobal,
 }) => {
   return (
@@ -42,6 +44,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         </Td>
         <Td isActionCell>
           <ActionsColumn
+            dropdownDirection={isGlobal ? DropdownDirection.down : DropdownDirection.up}
             items={[
               {
                 title: 'Edit',
@@ -52,7 +55,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
               {
                 title: 'Delete',
                 onClick: () => {
-                  alert('Not implemented');
+                  onDeleteInferenceService(inferenceService);
                 },
               },
             ]}

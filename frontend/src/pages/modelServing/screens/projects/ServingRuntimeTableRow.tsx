@@ -114,7 +114,11 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({ obj }) 
         </Td>
       </Tr>
       <Tr isExpanded={isRowExpanded}>
-        <ServingRuntimeTableExpandedSection activeColumn={expandedColumn} obj={obj} />
+        <ServingRuntimeTableExpandedSection
+          activeColumn={expandedColumn}
+          obj={obj}
+          onClose={() => setExpandedColumn(undefined)}
+        />
       </Tr>
     </Tbody>
   );
