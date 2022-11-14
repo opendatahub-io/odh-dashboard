@@ -153,7 +153,6 @@ const handleSecurityOnRouteData = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   needsAdmin: boolean,
-  reply: FastifyReply
 ): Promise<void> => {
   const username = await getUserName(fastify, request);
   const { dashboardNamespace } = getNamespaces(fastify);
@@ -163,10 +162,9 @@ const handleSecurityOnRouteData = async (
     user: username,
     action: request.method.toUpperCase(),
     endpoint: request.url.replace(request.headers.origin, ''),
-    result: reply.code,
     namespace: fastify.kube.namespace,
     isAdmin: isAdmin,
-    needsAdmin: needsAdmin
+    needsAdmin: needsAdmin,
   });
   if (isRequestBody(request)) {
     await requestSecurityGuard(
@@ -220,7 +218,7 @@ export const secureRoute =
   <T>(fastify: KubeFastifyInstance, needsAdmin = false) =>
   (requestCall: (request: FastifyRequest, reply: FastifyReply) => Promise<T>) =>
   async (request: OauthFastifyRequest, reply: FastifyReply): Promise<T> => {
-    await handleSecurityOnRouteData(fastify, request, needsAdmin, reply);
+    await handleSecurityOnRouteData(fastify, request, needsAdmin);
     return requestCall(request, reply);
   };
 
