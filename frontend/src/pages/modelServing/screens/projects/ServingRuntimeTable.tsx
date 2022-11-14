@@ -4,6 +4,7 @@ import { columns } from './data';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { ServingRuntimeKind } from '../../../../k8sTypes';
 import ServingRuntimeTableRow from './ServingRuntimeTableRow';
+import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
 
 type ServingRuntimeTableProps = {
   modelServers: ServingRuntimeKind[];
@@ -12,7 +13,9 @@ type ServingRuntimeTableProps = {
 
 const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
   modelServers: unsortedModelServers,
+  refresh,
 }) => {
+  const [deleteServingRuntime, setDeleteServingRuntime] = React.useState<ServingRuntimeKind>();
   const sort = useTableColumnSort<ServingRuntimeKind>(columns, 1);
   const sortedModelServers = sort.transformData(unsortedModelServers);
 
@@ -29,9 +32,22 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
           </Tr>
         </Thead>
         {sortedModelServers.map((modelServer) => (
-          <ServingRuntimeTableRow key={modelServer.metadata.uid} obj={modelServer} />
+          <ServingRuntimeTableRow
+            key={modelServer.metadata.uid}
+            obj={modelServer}
+            onDeleteServingRuntime={(obj) => setDeleteServingRuntime(obj)}
+          />
         ))}
       </TableComposable>
+      <DeleteServingRuntimeModal
+        servingRuntime={deleteServingRuntime}
+        onClose={(deleted) => {
+          if (deleted) {
+            refresh();
+          }
+          setDeleteServingRuntime(undefined);
+        }}
+      />
     </>
   );
 };

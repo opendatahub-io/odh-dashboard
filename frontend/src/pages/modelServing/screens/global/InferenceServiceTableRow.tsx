@@ -7,6 +7,7 @@ import { checkInferenceServiceReady, getInferenceServiceDisplayName } from './ut
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import InferenceServiceProject from './InferenceServiceProject';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -27,7 +28,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             <Link to="/modelServing">{getInferenceServiceDisplayName(inferenceService)}</Link>
           </ResourceNameTooltip>
         </Td>
-        {isGlobal && <Td dataLabel="Project">{inferenceService.metadata.namespace}</Td>}
+        {isGlobal && (
+          <Td dataLabel="Project">
+            <InferenceServiceProject inferenceService={inferenceService} />
+          </Td>
+        )}
         <Td dataLabel="Inference endpoint">
           <InferenceServiceEndpoint inferenceService={inferenceService} />
         </Td>

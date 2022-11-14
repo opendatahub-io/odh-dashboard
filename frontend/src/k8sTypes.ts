@@ -241,6 +241,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
         ['enable-auth']: string;
       }>;
     name: string;
+    namespace: string;
   };
   spec: {
     builtInAdapter: {
