@@ -1,8 +1,15 @@
 import * as React from 'react';
-import { NotebookKind } from '../../../k8sTypes';
+import { K8sStatus, NotebookKind } from '../../../k8sTypes';
 import { getNotebookDisplayName } from '../utils';
-import { deleteNotebook } from '../../../api';
+import {
+  DATA_CONNECTION_PREFIX,
+  deleteConfigMap,
+  deleteNotebook,
+  deleteSecret,
+} from '../../../api';
 import DeleteModal from '../components/DeleteModal';
+import { getEnvFromList } from '../pvc/utils';
+import { ConfigMapRef, SecretRef } from '../types';
 
 type DeleteNotebookModalProps = {
   notebook?: NotebookKind;
@@ -30,7 +37,25 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
       onDelete={() => {
         if (notebook) {
           setIsDeleting(true);
-          deleteNotebook(notebook.metadata.name, notebook.metadata.namespace)
+
+          const nonDataConnectionVariables = getEnvFromList(notebook).filter(
+            (envFrom) => !envFrom.secretRef?.name?.includes(DATA_CONNECTION_PREFIX),
+          );
+          const configMapNames = nonDataConnectionVariables
+            .filter((envName): envName is ConfigMapRef => !!envName.configMapRef)
+            .map((data) => data.configMapRef.name);
+          const secretNames = nonDataConnectionVariables
+            .filter((envName): envName is SecretRef => !!envName.secretRef)
+            .map((data) => data.secretRef.name);
+
+          const namespace = notebook.metadata.namespace;
+
+          const resourcesToDelete: Promise<K8sStatus>[] = [
+            deleteNotebook(notebook.metadata.name, namespace),
+            ...secretNames.map((name) => deleteSecret(namespace, name)),
+            ...configMapNames.map((name) => deleteConfigMap(namespace, name)),
+          ];
+          Promise.all(resourcesToDelete)
             .then(() => {
               onBeforeClose(true);
             })

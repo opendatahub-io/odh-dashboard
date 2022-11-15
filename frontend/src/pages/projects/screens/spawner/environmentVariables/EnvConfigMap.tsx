@@ -21,15 +21,23 @@ const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate
       selection={env.category || ''}
       onSelection={(value) => onUpdate({ ...env, category: value as ConfigMapCategory, data: [] })}
       options={{
-        [ConfigMapCategory.GENERIC]: (
-          <GenericKeyValuePairField
-            values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
-            onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
-          />
-        ),
-        [ConfigMapCategory.UPLOAD]: (
-          <ConfigMapUploadField onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })} />
-        ),
+        [ConfigMapCategory.GENERIC]: {
+          label: 'Key / value',
+          render: (
+            <GenericKeyValuePairField
+              values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
+              onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
+            />
+          ),
+        },
+        [ConfigMapCategory.UPLOAD]: {
+          label: 'Upload',
+          render: (
+            <ConfigMapUploadField
+              onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
+            />
+          ),
+        },
       }}
     />
   );

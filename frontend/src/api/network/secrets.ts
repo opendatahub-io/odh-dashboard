@@ -10,6 +10,8 @@ import { SecretModel } from '../models';
 import { genRandomChars } from '../../utilities/string';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 
+export const DATA_CONNECTION_PREFIX = 'aws-connection';
+
 export const assembleSecret = (
   projectName: string,
   data: Record<string, string>,
@@ -26,7 +28,7 @@ export const assembleSecret = (
   if (type === 'aws') {
     const { Name, ...secretBody } = data;
     stringData = secretBody;
-    name = `aws-connection-${translateDisplayNameForK8s(Name)}`;
+    name = `${DATA_CONNECTION_PREFIX}-${translateDisplayNameForK8s(Name)}`;
     annotations['openshift.io/display-name'] = Name;
     labels['opendatahub.io/managed'] = 'true';
   }
