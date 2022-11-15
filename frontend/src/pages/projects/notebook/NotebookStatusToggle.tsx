@@ -50,7 +50,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
           <Switch
             aria-label={label}
             isDisabled={inProgress}
-            id={notebookName}
+            id={`${notebookName}-${notebookNamespace}`}
             isChecked={isChecked}
             onClick={() => {
               if (isRunningOrStarting) {
@@ -90,7 +90,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
       </Flex>
       <StopNotebookConfirmModal
         isOpen={isOpenConfirm}
-        notebook={notebook}
+        notebookState={notebookState}
         onClose={(confirmStatus) => {
           if (confirmStatus) {
             handleStop();

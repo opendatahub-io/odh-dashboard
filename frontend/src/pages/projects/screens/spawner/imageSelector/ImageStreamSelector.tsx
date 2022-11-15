@@ -43,12 +43,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   });
 
   return (
-    <FormGroup
-      isRequired
-      helperText="Preloaded notebook images maintained by Red Hat or independent software vendors."
-      label="Image selection"
-      fieldId="workbench-image-stream-selection"
-    >
+    <FormGroup isRequired label="Image selection" fieldId="workbench-image-stream-selection">
       <Select
         id="workbench-image-stream-selection"
         onToggle={(open) => setImageSelectionOpen(open)}

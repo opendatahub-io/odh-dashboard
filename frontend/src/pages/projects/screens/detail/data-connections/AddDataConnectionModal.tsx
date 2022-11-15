@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Modal } from '@patternfly/react-core';
+import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import AWSField from '../../../dataConnections/AWSField';
 import { EnvVariableDataEntry } from '../../../types';
 import { EMPTY_AWS_SECRET_DATA } from '../../../dataConnections/const';
@@ -14,6 +14,7 @@ type AddDataConnectionModalProps = {
 
 const AddDataConnectionModal: React.FC<AddDataConnectionModalProps> = ({ isOpen, onClose }) => {
   const [isProgress, setIsProgress] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState('');
   const [awsData, setAWSData] = React.useState<EnvVariableDataEntry[]>(EMPTY_AWS_SECRET_DATA);
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const projectName = currentProject.metadata.name;
@@ -21,6 +22,7 @@ const AddDataConnectionModal: React.FC<AddDataConnectionModalProps> = ({ isOpen,
   const canCreate = !isProgress && isAWSValid(awsData);
 
   const submit = () => {
+    setErrorMessage('');
     setIsProgress(true);
     createSecret(
       assembleSecret(
@@ -31,9 +33,13 @@ const AddDataConnectionModal: React.FC<AddDataConnectionModalProps> = ({ isOpen,
         ),
         'aws',
       ),
-    ).then(() => {
-      onBeforeClose(true);
-    });
+    )
+      .then(() => {
+        onBeforeClose(true);
+      })
+      .catch((e) => {
+        setErrorMessage(e.message || 'An unknown error occurred');
+      });
   };
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -57,14 +63,25 @@ const AddDataConnectionModal: React.FC<AddDataConnectionModalProps> = ({ isOpen,
         </Button>,
       ]}
     >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <AWSField values={awsData} onUpdate={(data) => setAWSData(data)} />
-      </Form>
+      <Stack hasGutter>
+        <StackItem>
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <AWSField values={awsData} onUpdate={(data) => setAWSData(data)} />
+          </Form>
+        </StackItem>
+        {errorMessage && (
+          <StackItem>
+            <Alert isInline variant="danger" title="Error creating data connection">
+              {errorMessage}
+            </Alert>
+          </StackItem>
+        )}
+      </Stack>
     </Modal>
   );
 };

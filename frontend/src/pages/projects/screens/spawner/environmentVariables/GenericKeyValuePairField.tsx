@@ -89,7 +89,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
           iconPosition="left"
           onClick={() => onUpdate([...values, EMPTY_KEY_VALUE_PAIR])}
         >
-          Add another variable
+          Add another key / value pair
         </Button>
       </StackItem>
     </Stack>

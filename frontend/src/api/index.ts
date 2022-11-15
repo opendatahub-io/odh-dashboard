@@ -15,3 +15,6 @@ export * from './network/servingRuntimes';
 
 // Prometheus queries
 export * from './prometheus/pvcs';
+
+// Network error handling
+export * from './errorUtils';
