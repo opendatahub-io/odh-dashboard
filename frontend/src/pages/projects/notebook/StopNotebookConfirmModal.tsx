@@ -1,20 +1,21 @@
 import * as React from 'react';
 import { Button, Checkbox, Modal, Stack, StackItem } from '@patternfly/react-core';
 import NotebookRouteLink from './NotebookRouteLink';
-import { NotebookKind } from '../../../k8sTypes';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
+import { NotebookState } from './types';
 
 type StopNotebookConfirmProps = {
   isOpen: boolean;
-  notebook?: NotebookKind;
+  notebookState: NotebookState;
   onClose: (confirmStatus: boolean) => void;
 };
 
 const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
   isOpen,
-  notebook,
+  notebookState,
   onClose,
 }) => {
+  const { notebook, isRunning } = notebookState;
   const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
   const onBeforeClose = (confirmStatus: boolean) => {
     if (!confirmStatus) {
@@ -44,10 +45,10 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
         <StackItem>
           Are you sure you want to stop the workbench? Any changes without saving will be erased.
         </StackItem>
-        {notebook && (
+        {notebook && isRunning && (
           <StackItem>
             To save changes, access your{' '}
-            <NotebookRouteLink label="workbench" notebook={notebook} isRunning />.
+            <NotebookRouteLink label="workbench" notebook={notebook} isRunning isLarge />.
           </StackItem>
         )}
         <StackItem>

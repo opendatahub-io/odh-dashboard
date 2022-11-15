@@ -90,7 +90,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
       </Flex>
       <StopNotebookConfirmModal
         isOpen={isOpenConfirm}
-        notebook={notebook}
+        notebookState={notebookState}
         onClose={(confirmStatus) => {
           if (confirmStatus) {
             handleStop();

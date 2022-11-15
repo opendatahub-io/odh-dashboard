@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Text, Title } from '@patternfly/react-core';
+import { DropdownDirection, Text, Title } from '@patternfly/react-core';
 import ConnectedNotebooks from '../../../notebook/ConnectedNotebooks';
 import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
 import { DataConnection } from '../../../types';
@@ -48,6 +48,7 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
       <Td dataLabel="Provider">{getDataConnectionProvider(obj)}</Td>
       <Td isActionCell>
         <ActionsColumn
+          dropdownDirection={DropdownDirection.up}
           items={[
             {
               title: 'Change connected workbenches',
