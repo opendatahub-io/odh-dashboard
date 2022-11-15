@@ -118,10 +118,10 @@ export enum EnvironmentVariableType {
   SECRET = 'Secret',
 }
 export enum SecretCategory {
-  GENERIC = 'Key / value',
-  AWS = 'AWS',
+  GENERIC = 'secret key-value',
+  AWS = 'aws',
 }
 export enum ConfigMapCategory {
-  GENERIC = 'Key / value',
-  UPLOAD = 'Upload',
+  GENERIC = 'configmap key-value',
+  UPLOAD = 'upload',
 }

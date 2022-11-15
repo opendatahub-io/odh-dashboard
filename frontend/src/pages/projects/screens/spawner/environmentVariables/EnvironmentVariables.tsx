@@ -15,9 +15,8 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   return (
     <>
       {envVariables.map((envVariable, i) => (
-        <>
+        <React.Fragment key={i}>
           <EnvTypeSelectField
-            key={i}
             envVariable={envVariable}
             onUpdate={(updatedVariable) => {
               setEnvVariables(
@@ -31,7 +30,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
             }
           />
           {i !== envVariables.length - 1 && <Divider />}
-        </>
+        </React.Fragment>
       ))}
       <Button
         variant="link"
