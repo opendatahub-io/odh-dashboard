@@ -571,6 +571,7 @@ export type PersistentVolumeClaimKind = {
     };
     storageClassName?: string;
     volumeMode: 'Filesystem' | 'Block';
+    volumeName: string;
   };
   status?: Record<string, any>;
 };
