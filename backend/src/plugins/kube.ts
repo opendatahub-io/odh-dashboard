@@ -4,7 +4,7 @@ import { FastifyInstance } from 'fastify';
 import * as jsYaml from 'js-yaml';
 import * as k8s from '@kubernetes/client-node';
 import { DEV_MODE } from '../utils/constants';
-import { initializeWatchedResources } from '../utils/resourceUtils';
+import { cleanupDSPSuffix, initializeWatchedResources } from '../utils/resourceUtils';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
@@ -71,6 +71,16 @@ export default fp(async (fastify: FastifyInstance) => {
 
   // Initialize the watching of resources
   initializeWatchedResources(fastify);
+
+  // TODO: Delete this code in the future once we have no customers using RHODS 1.19 / ODH 2.4.0
+  // Cleanup for display name suffix of [DSP]
+  cleanupDSPSuffix(fastify).catch((e) =>
+    fastify.log.error(
+      `Unable to fully cleanup project display name suffixes - Some projects may not appear in the dashboard UI. ${
+        e.response?.body?.message || e.message
+      }`,
+    ),
+  );
 });
 
 const getCurrentNamespace = async () => {

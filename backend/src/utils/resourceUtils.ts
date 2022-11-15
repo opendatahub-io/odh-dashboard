@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import createError from 'http-errors';
-import { V1ConfigMap } from '@kubernetes/client-node';
+import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
   BUILD_PHASE,
   BuildKind,
@@ -30,6 +30,7 @@ import {
   getRouteForApplication,
   getRouteForClusterId,
 } from './componentUtils';
+import { createCustomError } from './requestUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -549,4 +550,123 @@ export const getBuildStatuses = (): BuildStatus[] => {
 
 export const getConsoleLinks = (): ConsoleLinkKind[] => {
   return consoleLinksWatcher.getResources();
+};
+
+/**
+ * @deprecated - Look to remove asap (see comments below)
+ * Converts namespaces that have a display-name annotation suffixed with `[DSP]` over to using a label.
+ * This is migration code from 1.19 to 1.20+. When customers are no longer on 1.19, we should remove
+ * this code.
+ */
+export const cleanupDSPSuffix = async (fastify: KubeFastifyInstance): Promise<void> => {
+  const CONFIG_MAP_NAME = 'dsg-prune-flag';
+
+  const continueProcessing = await fastify.kube.coreV1Api
+    .readNamespacedConfigMap(CONFIG_MAP_NAME, fastify.kube.namespace)
+    .then(() => {
+      // Found configmap, we're note continuing
+      return false;
+    })
+    .catch((e) => {
+      if (e.statusCode === 404) {
+        // No config saying we have already pruned settings
+        return true;
+      }
+      throw e;
+    });
+
+  if (continueProcessing) {
+    const configMap: V1ConfigMap = {
+      metadata: {
+        name: CONFIG_MAP_NAME,
+        namespace: fastify.kube.namespace,
+      },
+      data: {
+        startedPrune: 'true',
+      },
+    };
+    await fastify.kube.coreV1Api
+      .createNamespacedConfigMap(fastify.kube.namespace, configMap)
+      .then(() => fastify.log.info('Successfully created prune setting'))
+      .catch((e) => {
+        throw createCustomError(
+          'Unable to create DSG prune setting configmap',
+          e.response?.body?.message || e.message,
+        );
+      });
+  } else {
+    // Already processed, exit early and save the processing
+    return;
+  }
+
+  let namespaces: V1Namespace[] = [];
+
+  let continueValue: string | undefined = undefined;
+  do {
+    const listNamespaces: V1NamespaceList = await fastify.kube.coreV1Api
+      .listNamespace(undefined, undefined, continueValue, undefined, undefined, 100)
+      .then((response) => response.body);
+
+    const {
+      metadata: { _continue: continueProp },
+      items,
+    } = listNamespaces;
+
+    namespaces = namespaces.concat(items);
+    continueValue = continueProp;
+  } while (continueValue);
+
+  const SUFFIX = '[DSP]';
+
+  const toChangeNamespaces = namespaces.filter(
+    (namespace) =>
+      // Don't touch any openshift or kube namespaces
+      !(
+        namespace.metadata.name.startsWith('openshift') ||
+        namespace.metadata.name.startsWith('kube')
+      ) &&
+      // Just get the namespaces who are suffixed so we can convert them
+      namespace.metadata.annotations?.['openshift.io/display-name']?.endsWith(SUFFIX),
+  );
+
+  if (toChangeNamespaces.length === 0) {
+    return;
+  }
+
+  fastify.log.info(`Updating ${toChangeNamespaces.length} Namespace(s) over to DSG with labels.`);
+
+  const data = (namespace: V1Namespace) => {
+    const displayName = namespace.metadata.annotations['openshift.io/display-name'];
+
+    return {
+      metadata: {
+        annotations: {
+          'openshift.io/display-name': displayName.slice(0, displayName.length - SUFFIX.length),
+        },
+        labels: {
+          'opendatahub.io/dashboard': 'true',
+        },
+      },
+    };
+  };
+
+  const calls = toChangeNamespaces.map((namespace) =>
+    fastify.kube.coreV1Api
+      .patchNamespace(
+        namespace.metadata.name,
+        data(namespace),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+        },
+      )
+      .then(() => fastify.log.info(`Converted ${namespace.metadata.name} over to using labels.`)),
+  );
+
+  Promise.all(calls).then(() => {
+    fastify.log.info('Completed updating Namespaces');
+  });
 };
