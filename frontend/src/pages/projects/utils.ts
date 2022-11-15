@@ -6,7 +6,6 @@ import {
   SecretKind,
 } from '../../k8sTypes';
 import { NotebookState } from './notebook/types';
-import { stripDSGId } from './projectNameUtils';
 
 const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
@@ -24,10 +23,8 @@ export const isValidK8sName = (name?: string): boolean => {
   return name === undefined || (name.length > 0 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name));
 };
 
-export const getProjectDisplayName = (project: ProjectKind): string => {
-  const displayName = getDisplayNameFromK8sResource(project);
-  return stripDSGId(displayName);
-};
+export const getProjectDisplayName = (project: ProjectKind): string =>
+  getDisplayNameFromK8sResource(project);
 export const getProjectDescription = (project: ProjectKind): string =>
   getDescriptionFromK8sResource(project);
 export const getProjectOwner = (project: ProjectKind): string =>
