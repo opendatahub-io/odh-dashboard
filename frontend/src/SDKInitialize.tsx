@@ -2,11 +2,35 @@ import * as React from 'react';
 import { AppInitSDK, isUtilsConfigSet } from '@openshift/dynamic-plugin-sdk-utils';
 import { PluginLoader, PluginStore } from '@openshift/dynamic-plugin-sdk';
 import { Bullseye, Spinner } from '@patternfly/react-core';
+import { K8sStatus } from './k8sTypes';
+import { isK8sStatus, K8sStatusError } from './api';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   appFetch: (url, options) => {
     // Using fetch instead of axios because of internal SDK structures that needs to use `response.text`
-    return fetch(`/api/k8s${url}`, options);
+    return fetch(`/api/k8s${url}`, options).then(async (response) => {
+      if (response.status < 400) {
+        // Valid response, let it flow through the normal system
+        return response;
+      }
+
+      const result = await response.text();
+      let data: K8sStatus | unknown;
+      try {
+        data = JSON.parse(result);
+      } catch (e) {
+        // Parsing error, just fallback on SDK logic
+        return response;
+      }
+      if (isK8sStatus(data)) {
+        // TODO: SDK does not support error states, we need them though
+        // Turn it into an error object so we can use .catch
+        throw new K8sStatusError(data);
+      }
+
+      // Not a status object, let the normal SDK flow take over
+      return response;
+    });
   },
 
   /** Disable api discovery -- until we need to use the k8s watch hooks, we don't need to use api discovery */

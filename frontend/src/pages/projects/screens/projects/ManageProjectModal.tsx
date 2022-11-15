@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Alert, Button, Form, Modal } from '@patternfly/react-core';
 import { createProject, updateProject } from '../../../../api';
+import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../../../redux/selectors';
 import { ProjectKind } from '../../../../k8sTypes';
@@ -82,27 +82,33 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         </Button>,
       ]}
     >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <NameDescriptionField
-          nameFieldId="manage-project-modal-name"
-          descriptionFieldId="manage-project-modal-description"
-          data={nameDesc}
-          setData={setNameDesc}
-          autoFocusName
-          showK8sName
-          disableK8sName={!!editProjectData}
-        />
-      </Form>
-      {error && (
-        <Alert variant="danger" isInline title="Error creating project">
-          {error.message}
-        </Alert>
-      )}
+      <Stack hasGutter>
+        <StackItem>
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <NameDescriptionField
+              nameFieldId="manage-project-modal-name"
+              descriptionFieldId="manage-project-modal-description"
+              data={nameDesc}
+              setData={setNameDesc}
+              autoFocusName
+              showK8sName
+              disableK8sName={!!editProjectData}
+            />
+          </Form>
+        </StackItem>
+        {error && (
+          <StackItem>
+            <Alert variant="danger" isInline title="Error creating project">
+              {error.message}
+            </Alert>
+          </StackItem>
+        )}
+      </Stack>
     </Modal>
   );
 };
