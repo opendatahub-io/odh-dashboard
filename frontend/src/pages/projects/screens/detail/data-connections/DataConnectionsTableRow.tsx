@@ -15,12 +15,14 @@ import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
 
 type DataConnectionsTableRowProps = {
   obj: DataConnection;
+  onEditDataConnection: (pvc: DataConnection) => void;
   onDeleteDataConnection: (dataConnection: DataConnection) => void;
   onConnectExistingWorkbench: (dataConnection: DataConnection) => void;
 };
 
 const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
   obj,
+  onEditDataConnection,
   onDeleteDataConnection,
   onConnectExistingWorkbench,
 }) => {
@@ -50,6 +52,12 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
         <ActionsColumn
           dropdownDirection={DropdownDirection.up}
           items={[
+            {
+              title: 'Edit data connection',
+              onClick: () => {
+                onEditDataConnection(obj);
+              },
+            },
             {
               title: 'Change connected workbenches',
               onClick: () => {

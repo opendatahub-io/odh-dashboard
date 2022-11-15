@@ -7,6 +7,7 @@ import DataConnectionsTableRow from './DataConnectionsTableRow';
 import { getDataConnectionId } from './utils';
 import DeleteDataConnectionModal from './DeleteDataConnectionModal';
 import ChangeDataConnectionWorkbenchModal from './ChangeDataConnectionWorkbenchModal';
+import ManageDataConnectionModal from './ManageDataConnectionModal';
 
 type DataConnectionsTableProps = {
   connections: DataConnection[];
@@ -17,6 +18,7 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
   connections: unsortedDataConnections,
   refreshData,
 }) => {
+  const [editDataConnection, setEditDataConnection] = React.useState<DataConnection | undefined>();
   const [deleteDataConnection, setDeleteDataConnection] = React.useState<
     DataConnection | undefined
   >();
@@ -43,12 +45,23 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
             <DataConnectionsTableRow
               key={getDataConnectionId(dataConnection)}
               obj={dataConnection}
+              onEditDataConnection={setEditDataConnection}
               onDeleteDataConnection={setDeleteDataConnection}
               onConnectExistingWorkbench={setConnectExistingWorkbench}
             />
           ))}
         </Tbody>
       </TableComposable>
+      <ManageDataConnectionModal
+        isOpen={!!editDataConnection}
+        existingData={editDataConnection}
+        onClose={(updated) => {
+          if (updated) {
+            refreshData();
+          }
+          setEditDataConnection(undefined);
+        }}
+      />
       <ChangeDataConnectionWorkbenchModal
         dataConnection={connectExistingWorkbench}
         onClose={(successfulConnect) => {
