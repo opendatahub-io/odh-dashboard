@@ -1,16 +1,15 @@
 import * as React from 'react';
 import DeleteModal from '../../../projects/components/DeleteModal';
-import { getInferenceServiceDisplayName } from './utils';
-import { InferenceServiceKind } from '../../../../k8sTypes';
-import { deleteInferenceService } from '../../../../api';
+import { ServingRuntimeKind } from '../../../../k8sTypes';
+import { deleteServingRuntime } from '../../../../api';
 
-type DeleteInferenceServiceModalProps = {
-  inferenceService?: InferenceServiceKind;
+type DeleteServingRuntimeModalProps = {
+  servingRuntime?: ServingRuntimeKind;
   onClose: (deleted: boolean) => void;
 };
 
-const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = ({
-  inferenceService,
+const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
+  servingRuntime,
   onClose,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -22,23 +21,16 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
     setError(undefined);
   };
 
-  const displayName = inferenceService
-    ? getInferenceServiceDisplayName(inferenceService)
-    : 'this deployed model';
-
   return (
     <DeleteModal
-      title="Delete deployed model?"
-      isOpen={!!inferenceService}
+      title="Delete model server?"
+      isOpen={!!servingRuntime}
       onClose={() => onBeforeClose(false)}
-      submitButtonLabel="Delete deployed model"
+      submitButtonLabel="Delete model server"
       onDelete={() => {
-        if (inferenceService) {
+        if (servingRuntime) {
           setIsDeleting(true);
-          deleteInferenceService(
-            inferenceService.metadata.name,
-            inferenceService.metadata.namespace,
-          )
+          deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace)
             .then(() => {
               onBeforeClose(true);
             })
@@ -50,11 +42,11 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
       }}
       deleting={isDeleting}
       error={error}
-      deleteName={displayName}
+      deleteName={servingRuntime?.metadata.name || 'this model server'}
     >
       This action cannot be undone.
     </DeleteModal>
   );
 };
 
-export default DeleteInferenceServiceModal;
+export default DeleteServingRuntimeModal;

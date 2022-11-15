@@ -42,14 +42,10 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) =>
           </List>
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {/* TODO: fetch GPUs, get Server path, get metrics data */}
+      {/* TODO: fetch GPUs, get metrics data */}
       <DescriptionListGroup>
         <DescriptionListTerm>Number of GPUs</DescriptionListTerm>
         <DescriptionListDescription>0</DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Server path</DescriptionListTerm>
-        <DescriptionListDescription>Unknown</DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
   );

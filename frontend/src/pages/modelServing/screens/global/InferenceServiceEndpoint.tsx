@@ -1,5 +1,5 @@
-import { ClipboardCopy, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
 import * as React from 'react';
+import { ClipboardCopy, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
 import { InferenceServiceKind } from '../../../../k8sTypes';
 import useRouteForInferenceService from './useRouteForInferenceService';
 

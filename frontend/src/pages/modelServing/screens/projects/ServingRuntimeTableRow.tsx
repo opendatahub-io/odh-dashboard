@@ -11,9 +11,13 @@ import { Link } from 'react-router-dom';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
+  onDeleteServingRuntime: (obj: ServingRuntimeKind) => void;
 };
 
-const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({ obj }) => {
+const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
+  obj,
+  onDeleteServingRuntime,
+}) => {
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
   const isRowExpanded = !!expandedColumn;
   const {
@@ -107,7 +111,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({ obj }) 
               },
               {
                 title: 'Delete model server',
-                onClick: () => alert('Not implemented'),
+                onClick: () => onDeleteServingRuntime(obj),
               },
             ]}
           />
