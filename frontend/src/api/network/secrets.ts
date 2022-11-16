@@ -16,6 +16,7 @@ export const assembleSecret = (
   projectName: string,
   data: Record<string, string>,
   type: 'aws' | 'generic' = 'generic',
+  secretName?: string,
 ): SecretKind => {
   const labels = {
     'opendatahub.io/dashboard': 'true',
@@ -37,7 +38,7 @@ export const assembleSecret = (
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name,
+      name: secretName || name,
       namespace: projectName,
       annotations,
       labels,

@@ -7,6 +7,7 @@ import {
 } from '../../types';
 import { ValueOf } from '../../typeHelpers';
 import { AWSSecretKind } from '../../k8sTypes';
+import { AWS_KEYS } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
@@ -97,6 +98,8 @@ export type DataConnection = {
   type: DataConnectionType;
   data: Record<string, unknown>; // likely will be a unified CR at some point
 } & DataConnectionAWS;
+
+export type AWSDataEntry = { key: AWS_KEYS; value: string }[];
 
 export type EnvVariableDataEntry = {
   key: string;

@@ -1,3 +1,5 @@
+import { AWSDataEntry } from '../types';
+
 export enum AWS_KEYS {
   NAME = 'Name',
   ACCESS_KEY_ID = 'AWS_ACCESS_KEY_ID',
@@ -12,7 +14,7 @@ export const AWS_REQUIRED_KEYS: AWS_KEYS[] = [
   AWS_KEYS.SECRET_ACCESS_KEY,
 ];
 
-export const EMPTY_AWS_SECRET_DATA: { key: AWS_KEYS; value: string }[] = [
+export const EMPTY_AWS_SECRET_DATA: AWSDataEntry = [
   {
     key: AWS_KEYS.NAME,
     value: '',
