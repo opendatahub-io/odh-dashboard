@@ -114,10 +114,10 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
 
   return (
     <Modal
-      title={existingData ? 'Edit storage' : 'Add storage'}
+      title={existingData ? 'Update cluster storage' : 'Add storage'}
       description={
         existingData
-          ? 'Edit storage and optionally connect it to another existing workbench.'
+          ? 'Make changes to cluster storage, or connect it to additional workspaces.'
           : 'Add a storage and optionally connect it with an existing workbench.'
       }
       variant="medium"
@@ -126,7 +126,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       showClose
       actions={[
         <Button key="submit-storage" variant="primary" isDisabled={!canCreate} onClick={submit}>
-          {existingData ? 'Update' : 'Add'} storage
+          {existingData ? 'Update' : 'Add storage'}
         </Button>,
         <Button key="cancel-storage" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel
@@ -145,6 +145,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
               data={createData}
               setData={(key, value) => setCreateData(key, value)}
               disableSize={!!existingData}
+              autoFocusName
             />
             {createData.hasExistingNotebookConnections && (
               <ExistingConnectedNotebooks

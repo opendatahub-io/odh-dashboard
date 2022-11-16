@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
+import {
+  Alert,
+  Breadcrumb,
+  BreadcrumbItem,
+  Form,
+  FormSection,
+  PageSection,
+} from '@patternfly/react-core';
 import ApplicationsPage from '../../../../pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '../../../../types';
 import GenericSidebar from '../../components/GenericSidebar';
@@ -21,6 +28,7 @@ import GPUSelectField from '../../../notebookController/screens/server/GPUSelect
 import { NotebookKind } from '../../../../k8sTypes';
 import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
+import { useMergeDefaultPVCName } from './spawnerUtils';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -41,7 +49,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   });
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
-  const [storageData, setStorageData] = useStorageDataObject(StorageType.EPHEMERAL);
+  const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(StorageType.NEW_PVC);
+  const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
 
   React.useEffect(() => {
@@ -172,6 +181,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   id={SpawnerPageSectionID.CLUSTER_STORAGE}
                   aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
                 >
+                  <Alert variant="info" isPlain isInline title="Cluster storages will mount to /" />
                   <StorageField storageData={storageData} setStorageData={setStorageData} />
                 </FormSection>
               </>

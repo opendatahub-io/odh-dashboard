@@ -248,7 +248,7 @@ const ClusterSettings: React.FC = () => {
               fieldId="culler-timeout"
               label="Stop idle notebooks"
               helperText="All idle notebooks are stopped at cluster log out. To edit the cluster log
-                out time, discuss with your OpenShift Administrator to see if the OpenShift Authentication Timeout value can be modified."
+                out time, discuss with your OpenShift administrator to see if the OpenShift Authentication Timeout value can be modified."
             >
               <Text>Set the time limit for idle notebooks to be stopped.</Text>
               <Radio

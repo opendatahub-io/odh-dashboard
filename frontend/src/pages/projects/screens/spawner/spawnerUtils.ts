@@ -1,3 +1,4 @@
+import * as React from 'react';
 import compareVersions from 'compare-versions';
 import { NotebookSize, Volume, VolumeMount } from '../../../../types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '../../../../k8sTypes';
@@ -21,6 +22,29 @@ import { ROOT_MOUNT_PATH } from '../../pvc/const';
 import { AWS_KEYS, AWS_REQUIRED_KEYS } from '../../dataConnections/const';
 
 /******************* Common utils *******************/
+export const useMergeDefaultPVCName = (
+  storageData: StorageData,
+  defaultPVCName: string,
+): StorageData => {
+  const modifiedRef = React.useRef(false);
+
+  if (modifiedRef.current || storageData.creating.nameDesc.name) {
+    modifiedRef.current = true;
+    return storageData;
+  }
+
+  return {
+    ...storageData,
+    creating: {
+      ...storageData.creating,
+      nameDesc: {
+        ...storageData.creating.nameDesc,
+        name: storageData.creating.nameDesc.name || defaultPVCName,
+      },
+    },
+  };
+};
+
 export const getVersion = (version?: string, prefix?: string): string => {
   if (!version) {
     return '';
@@ -218,11 +242,7 @@ export const getVolumesByStorageData = (
   const volumes: Volume[] = [];
   const volumeMounts: VolumeMount[] = [];
 
-  if (storageType === StorageType.EPHEMERAL) {
-    volumes.push({ name: 'cache-volume', emptyDir: {} });
-    volumeMounts.push({ mountPath: '/cache', name: 'cache-volume' });
-    return { volumes, volumeMounts };
-  } else if (storageType === StorageType.EXISTING_PVC) {
+  if (storageType === StorageType.EXISTING_PVC) {
     const { storage } = existing;
     if (storage) {
       volumes.push({ name: storage, persistentVolumeClaim: { claimName: storage } });
