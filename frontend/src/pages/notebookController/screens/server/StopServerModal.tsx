@@ -6,11 +6,16 @@ import useNotification from '../../../../utilities/useNotification';
 import { allSettledPromises } from '../../../../utilities/allSettledPromises';
 
 type StopServerModalProps = {
+  impersonatedUsername?: string;
   notebooksToStop: Notebook[];
   onNotebooksStop: (didStop: boolean) => void;
 };
 
-const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNotebooksStop }) => {
+const StopServerModal: React.FC<StopServerModalProps> = ({
+  impersonatedUsername,
+  notebooksToStop,
+  onNotebooksStop,
+}) => {
   const notification = useNotification();
   const [isDeleting, setDeleting] = React.useState(false);
 
@@ -29,7 +34,9 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
       notebooksToStop.map((notebook) => {
         const notebookName = notebook.metadata.name || '';
         if (!notebookName) return Promise.resolve();
-        return stopNotebook();
+        return stopNotebook(
+          impersonatedUsername ?? notebook.metadata.labels['opendatahub.io/user'],
+        );
       }),
     )
       .then(() => {
@@ -68,8 +75,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
       onClose={onClose}
       actions={modalActions}
     >
-      Are you sure you want to stop {hasMultipleServers ? 'all servers' : 'the server'}? Any changes
-      made without saving will be lost.
+      Are you sure you want to stop {textToShow}? Any changes made without saving will be lost.
     </Modal>
   );
 };

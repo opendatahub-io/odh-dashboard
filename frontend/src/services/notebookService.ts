@@ -57,11 +57,12 @@ export const enableNotebook = async (notebookData: NotebookData): Promise<Notebo
     });
 };
 
-export const stopNotebook = (): Promise<Notebook> => {
+export const stopNotebook = (username?: string): Promise<Notebook> => {
   const url = `/api/notebooks`;
 
   const patch: RecursivePartial<NotebookData> = {
     state: NotebookState.Stopped,
+    username: username,
   };
 
   return axios
