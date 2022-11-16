@@ -6,7 +6,7 @@ import useNotification from '../../../../utilities/useNotification';
 import { allSettledPromises } from '../../../../utilities/allSettledPromises';
 
 type StopServerModalProps = {
-  impersonatedUsername: string | undefined;
+  impersonatedUsername?: string;
   notebooksToStop: Notebook[];
   onNotebooksStop: (didStop: boolean) => void;
 };
@@ -34,10 +34,9 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       notebooksToStop.map((notebook) => {
         const notebookName = notebook.metadata.name || '';
         if (!notebookName) return Promise.resolve();
-        if (!impersonatedUsername) {
-          impersonatedUsername = notebook.metadata.labels['opendatahub.io/user'];
-        }
-        return stopNotebook(impersonatedUsername);
+        return stopNotebook(
+          impersonatedUsername ?? notebook.metadata.labels['opendatahub.io/user'],
+        );
       }),
     )
       .then(() => {

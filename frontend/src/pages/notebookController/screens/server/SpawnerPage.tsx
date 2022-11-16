@@ -258,7 +258,7 @@ const SpawnerPage: React.FC = () => {
         setSubmitError(e);
         setCreateInProgress(false);
         // We had issues spawning the notebook -- try to stop it
-        stopNotebook(impersonatedUsername != null ? impersonatedUsername : undefined).catch(() =>
+        stopNotebook(impersonatedUsername ? impersonatedUsername : undefined).catch(() =>
           notification.error(
             'Error creating notebook',
             'Error spawning notebook and unable to properly stop it',
@@ -365,7 +365,7 @@ const SpawnerPage: React.FC = () => {
           onClose={() => {
             if (currentUserNotebook) {
               const notebookName = currentUserNotebook.metadata.name;
-              stopNotebook(impersonatedUsername != null ? impersonatedUsername : undefined)
+              stopNotebook(impersonatedUsername ? impersonatedUsername : undefined)
                 .then(() => requestNotebookRefresh())
                 .catch((e) => notification.error(`Error stop notebook ${notebookName}`, e.message));
             } else {
