@@ -15,7 +15,6 @@ const useRouteForNotebook = (
   React.useEffect(() => {
     let watchHandle;
     const watchRoute = () => {
-      setLoaded(false);
       getRoute(routeName, routeNamespace)
         .then((route) => {
           setRoute(`https://${route.spec.host}/notebook/${routeNamespace}/${routeName}`);
@@ -23,7 +22,6 @@ const useRouteForNotebook = (
         })
         .catch((e) => {
           setLoadError(e);
-          setLoaded(true);
           watchHandle = setTimeout(watchRoute, 1000);
         });
     };
