@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
+import {
+  Alert,
+  Breadcrumb,
+  BreadcrumbItem,
+  Form,
+  FormSection,
+  PageSection,
+} from '@patternfly/react-core';
 import ApplicationsPage from '../../../../pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '../../../../types';
 import GenericSidebar from '../../components/GenericSidebar';
@@ -174,6 +181,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   id={SpawnerPageSectionID.CLUSTER_STORAGE}
                   aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
                 >
+                  <Alert variant="info" isPlain isInline title="Cluster storages will mount to /" />
                   <StorageField storageData={storageData} setStorageData={setStorageData} />
                 </FormSection>
               </>
