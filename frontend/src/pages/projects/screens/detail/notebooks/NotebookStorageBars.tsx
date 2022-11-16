@@ -14,6 +14,7 @@ import { NotebookKind } from '../../../../../k8sTypes';
 import useNotebookPVCItems from '../../../pvc/useNotebookPVCItems';
 import { getPvcDisplayName } from '../../../utils';
 import StorageSizeBar from '../../../components/StorageSizeBars';
+import { getNotebookPVCMountPathMap } from '../../../notebook/utils';
 
 type NotebookStorageBarsProps = {
   notebook: NotebookKind;
@@ -22,6 +23,7 @@ type NotebookStorageBarsProps = {
 
 const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook, onAddStorage }) => {
   const [pvcs, loaded, loadError] = useNotebookPVCItems(notebook);
+  const mountFolderMap = getNotebookPVCMountPathMap(notebook);
 
   return (
     <Stack>
@@ -45,6 +47,14 @@ const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook, onA
                   </StackItem>
                   <StackItem>
                     <StorageSizeBar pvc={pvc} />
+                  </StackItem>
+                  <StackItem>
+                    <Text component="small">
+                      Mount path:{' '}
+                      {mountFolderMap[pvc.metadata.name]
+                        ? mountFolderMap[pvc.metadata.name]
+                        : 'Unknown'}
+                    </Text>
                   </StackItem>
                 </Stack>
               </ListItem>
