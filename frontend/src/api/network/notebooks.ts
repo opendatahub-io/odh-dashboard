@@ -392,19 +392,13 @@ export const removeNotebookPVC = (
           {
             op: 'replace',
             path: '/spec/template/spec/volumes',
-            value:
-              filteredVolumes.length === 0
-                ? [{ name: 'cache-volume', emptyDir: {} }]
-                : filteredVolumes,
+            value: filteredVolumes,
           },
           {
             op: 'replace',
             // TODO: can we assume first container?
             path: '/spec/template/spec/containers/0/volumeMounts',
-            value:
-              filteredVolumeMounts.length === 0
-                ? [{ mountPath: '/cache', name: 'cache-volume' }]
-                : filteredVolumeMounts,
+            value: filteredVolumeMounts,
           },
         ];
 

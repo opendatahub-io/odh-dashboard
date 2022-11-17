@@ -29,13 +29,19 @@ import { NotebookKind } from '../../../../k8sTypes';
 import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
 import { useMergeDefaultPVCName } from './spawnerUtils';
+import ExistingPVCField from '../../components/ExistingPVCField';
+import useAvailablePvcs from './storage/useAvailablePvcs';
+import useNotebookRootStorage from './storage/useNotebookRootStorage';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
 };
 
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const {
+    currentProject,
+    notebooks: { data: allNotebooks },
+  } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
 
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
@@ -52,6 +58,12 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(StorageType.NEW_PVC);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
+  const rootStorage = useNotebookRootStorage(existingNotebook);
+
+  const [availablePvcs, pvcLoaded, pvcLoadError] = useAvailablePvcs(
+    currentProject.metadata.name,
+    allNotebooks,
+  );
 
   React.useEffect(() => {
     if (existingNotebook) {
@@ -60,8 +72,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         k8sName: existingNotebook.metadata.name,
         description: getNotebookDescription(existingNotebook),
       });
+      setStorageData('existing', { storage: rootStorage?.metadata.name ?? '' });
     }
-  }, [existingNotebook]);
+  }, [existingNotebook, setStorageData, rootStorage]);
 
   const [data, loaded] = useNotebookImageData(existingNotebook);
   React.useEffect(() => {
@@ -84,11 +97,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   // TODO: Remove this after we support the related sections
   const filteredSectionIDs = existingNotebook
-    ? sectionIDs.filter(
-        (id) =>
-          id !== SpawnerPageSectionID.ENVIRONMENT_VARIABLES &&
-          id !== SpawnerPageSectionID.CLUSTER_STORAGE,
-      )
+    ? sectionIDs.filter((id) => id !== SpawnerPageSectionID.ENVIRONMENT_VARIABLES)
     : sectionIDs;
 
   return (
@@ -176,16 +185,27 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     setEnvVariables={setEnvVariables}
                   />
                 </FormSection>
-                <FormSection
-                  title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
-                  id={SpawnerPageSectionID.CLUSTER_STORAGE}
-                  aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
-                >
-                  <Alert variant="info" isPlain isInline title="Cluster storages will mount to /" />
-                  <StorageField storageData={storageData} setStorageData={setStorageData} />
-                </FormSection>
               </>
             )}
+            <FormSection
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+              id={SpawnerPageSectionID.CLUSTER_STORAGE}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+            >
+              <Alert variant="info" isPlain isInline title="Cluster storages will mount to /" />
+              {existingNotebook ? (
+                <ExistingPVCField
+                  fieldId="edit-cluster-storage"
+                  storages={rootStorage ? [...availablePvcs, rootStorage] : availablePvcs}
+                  loaded={pvcLoaded}
+                  loadError={pvcLoadError}
+                  selectedStorage={storageData.existing.storage}
+                  setStorage={(storage) => setStorageData('existing', { storage: storage || '' })}
+                />
+              ) : (
+                <StorageField storageData={storageData} setStorageData={setStorageData} />
+              )}
+            </FormSection>
           </Form>
         </GenericSidebar>
       </PageSection>

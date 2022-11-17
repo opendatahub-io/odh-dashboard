@@ -1,7 +1,12 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
 import { NotebookSize, Volume, VolumeMount } from '../../../../types';
-import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '../../../../k8sTypes';
+import {
+  BuildKind,
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+  NotebookKind,
+} from '../../../../k8sTypes';
 import { FAILED_PHASES, PENDING_PHASES } from './const';
 import {
   BuildStatus,
@@ -253,6 +258,42 @@ export const getVolumesByStorageData = (
   return { volumes, volumeMounts };
 };
 
+export const replaceRootVolumesByStorageData = (
+  notebook: NotebookKind,
+  storageData: StorageData,
+): { volumes: Volume[]; volumeMounts: VolumeMount[] } => {
+  const {
+    existing: { storage },
+  } = storageData;
+
+  const oldVolumes = notebook.spec.template.spec.volumes || [];
+  const oldVolumeMounts = notebook.spec.template.spec.containers[0].volumeMounts || [];
+
+  const replacedVolume: Volume = { name: storage, persistentVolumeClaim: { claimName: storage } };
+  const replacedVolumeMount: VolumeMount = { name: storage, mountPath: ROOT_MOUNT_PATH };
+
+  const rootVolumeMount = oldVolumeMounts.find(
+    (volumeMount) => volumeMount.mountPath === ROOT_MOUNT_PATH,
+  );
+
+  // if no root, add the replaced one as the root
+  if (!rootVolumeMount) {
+    return {
+      volumes: [...oldVolumes, replacedVolume],
+      volumeMounts: [...oldVolumeMounts, replacedVolumeMount],
+    };
+  }
+
+  const volumes = oldVolumes.map((volume) =>
+    volume.name === rootVolumeMount.name ? replacedVolume : volume,
+  );
+  const volumeMounts = oldVolumeMounts.map((volumeMount) =>
+    volumeMount.name === rootVolumeMount.name ? replacedVolumeMount : volumeMount,
+  );
+
+  return { volumes, volumeMounts };
+};
+
 /******************* Checking utils *******************/
 /**
  * Check if there is 1 or more versions available for an image stream
@@ -349,8 +390,8 @@ export const checkRequiredFieldsForNotebookStart = (
   );
 
   const newStorageFieldInvalid = storageType === StorageType.NEW_PVC && !creating.nameDesc.name;
-  const existingStorageFiledInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
-  const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFiledInvalid;
+  const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
+  const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
 
   return isNotebookDataValid && isStorageDataValid && isEnvVariableDataValid(envVariables);
 };

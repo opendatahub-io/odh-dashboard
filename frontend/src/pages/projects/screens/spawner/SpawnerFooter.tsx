@@ -9,7 +9,10 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { createNotebook, updateNotebook } from '../../../../api';
-import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
+import {
+  checkRequiredFieldsForNotebookStart,
+  replaceRootVolumesByStorageData,
+} from './spawnerUtils';
 import { StartNotebookData, StorageData, EnvVariable } from '../../types';
 import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
 import { useUser } from '../../../../redux/selectors';
@@ -55,7 +58,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const onUpdateNotebook = async () => {
     handleStart();
     if (editNotebook) {
-      updateNotebook(editNotebook, startNotebookData, username).then(redirect);
+      const { volumes, volumeMounts } = replaceRootVolumesByStorageData(editNotebook, storageData);
+      const newStartNotebookData = { ...startNotebookData, volumes, volumeMounts };
+      updateNotebook(editNotebook, newStartNotebookData, username).then(redirect);
     }
   };
 
