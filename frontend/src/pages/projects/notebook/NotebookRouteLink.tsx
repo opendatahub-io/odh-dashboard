@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, ButtonVariant } from '@patternfly/react-core';
+import { Button, ButtonVariant, Flex, FlexItem, Icon, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '../../../k8sTypes';
 import useRouteForNotebook from './useRouteForNotebook';
@@ -23,32 +23,38 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
 }) => {
   const [routeLink, loaded, error] = useRouteForNotebook(notebook);
   const isStopped = hasStopAnnotation(notebook);
-  const canLink = !!routeLink && !error && !isStopped && isRunning;
+  const canLink = loaded && !!routeLink && !error && !isStopped && isRunning;
 
   return (
-    <Button
-      component="a"
-      isInline
-      isDisabled={!canLink}
-      isLoading={!loaded}
-      href={error || !routeLink ? undefined : routeLink}
-      target="_blank"
-      variant={variant || 'link'}
-      icon={
-        error ? (
-          <ExclamationCircleIcon title="Error getting link for notebook" />
-        ) : (
-          <ExternalLinkAltIcon />
-        )
-      }
-      iconPosition="right"
-      style={{
-        whiteSpace: 'nowrap',
-        fontSize: isLarge ? 'var(--pf-global--FontSize--md)' : 'var(--pf-global--FontSize--sm)',
-      }}
-    >
-      {label ?? getNotebookDisplayName(notebook)}
-    </Button>
+    <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+      <FlexItem>
+        <Button
+          component="a"
+          isInline
+          isDisabled={!canLink}
+          href={error || !routeLink ? undefined : routeLink}
+          target="_blank"
+          variant={variant || 'link'}
+          icon={!error && <ExternalLinkAltIcon />}
+          iconPosition="right"
+          style={{
+            whiteSpace: 'nowrap',
+            fontSize: isLarge ? 'var(--pf-global--FontSize--md)' : 'var(--pf-global--FontSize--sm)',
+          }}
+        >
+          {label ?? getNotebookDisplayName(notebook)}
+        </Button>
+      </FlexItem>
+      {error && (
+        <FlexItem>
+          <Tooltip content={error.message}>
+            <Icon status="danger">
+              <ExclamationCircleIcon />
+            </Icon>
+          </Tooltip>
+        </FlexItem>
+      )}
+    </Flex>
   );
 };
 

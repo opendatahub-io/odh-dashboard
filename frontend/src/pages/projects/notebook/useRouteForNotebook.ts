@@ -13,15 +13,20 @@ const useRouteForNotebook = (
   const routeNamespace = notebook.metadata.namespace;
 
   React.useEffect(() => {
-    getRoute(routeName, routeNamespace)
-      .then((route) => {
-        setRoute(`https://${route.spec.host}/notebook/${routeNamespace}/${routeName}`);
-        setLoaded(true);
-      })
-      .catch((e) => {
-        setLoadError(e);
-        setLoaded(true);
-      });
+    let watchHandle;
+    const watchRoute = () => {
+      getRoute(routeName, routeNamespace)
+        .then((route) => {
+          setRoute(`https://${route.spec.host}/notebook/${routeNamespace}/${routeName}`);
+          setLoaded(true);
+        })
+        .catch((e) => {
+          setLoadError(e);
+          watchHandle = setTimeout(watchRoute, 1000);
+        });
+    };
+    watchRoute();
+    return () => clearTimeout(watchHandle);
   }, [routeName, routeNamespace]);
 
   return [route, loaded, loadError];
