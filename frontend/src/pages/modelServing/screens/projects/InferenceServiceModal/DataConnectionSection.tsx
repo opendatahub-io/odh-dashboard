@@ -82,7 +82,12 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
                           removeFindDomNode
                           id="inference-service-data-connection"
                           isOpen={isOpen}
-                          placeholderText="Select..."
+                          placeholderText={
+                            dataConnections.length === 0
+                              ? 'No data connections available to select'
+                              : 'Select...'
+                          }
+                          isDisabled={dataConnections.length === 0}
                           onToggle={(open) => setOpen(open)}
                           onSelect={(_, option) => {
                             if (typeof option === 'string') {

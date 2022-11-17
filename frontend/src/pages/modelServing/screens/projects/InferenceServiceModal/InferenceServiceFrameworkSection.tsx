@@ -24,15 +24,6 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   );
   const models = modelContext || modelsContextLoaded;
 
-  const frameworkOptions = () =>
-    models?.map((framework) => {
-      const name = framework.version
-        ? `${framework.name} - ${framework.version}`
-        : `${framework.name}`;
-
-      return <SelectOption key={name} value={name} />;
-    });
-
   if (!modelContext && !loaded && data.project !== '') {
     return <Skeleton />;
   }
@@ -51,12 +42,15 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
         removeFindDomNode
         id="inference-service-framework-selection"
         isOpen={isOpen}
-        placeholderText="Select a framework"
+        placeholderText={
+          models.length === 0 ? 'No frameworks available to select' : 'Select a framework'
+        }
+        isDisabled={models.length === 0}
         onToggle={(open) => setOpen(open)}
         onSelect={(_, option) => {
           if (typeof option === 'string') {
             const [name, version] = option.split(' - ');
-            const valueSelected = models?.find((element) =>
+            const valueSelected = models.find((element) =>
               version
                 ? element.name === name && element.version === version
                 : element.name === name,
@@ -72,7 +66,12 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
           data.format.version ? `${data.format.name} - ${data.format.version}` : data.format.name
         }
       >
-        {frameworkOptions()}
+        {models.map((framework) => {
+          const name = framework.version
+            ? `${framework.name} - ${framework.version}`
+            : `${framework.name}`;
+          return <SelectOption key={name} value={name} />;
+        })}
       </Select>
     </FormGroup>
   );

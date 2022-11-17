@@ -8,15 +8,18 @@ import { ServingRuntimeTableTabs } from '../types';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import { isTokenEnabledServingRuntime } from './utils';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
   onDeleteServingRuntime: (obj: ServingRuntimeKind) => void;
+  onEditServingRuntime: (obj: ServingRuntimeKind) => void;
 };
 
 const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   obj,
   onDeleteServingRuntime,
+  onEditServingRuntime,
 }) => {
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
   const isRowExpanded = !!expandedColumn;
@@ -82,12 +85,12 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           dataLabel="Tokens"
           compoundExpand={compoundExpandParams(
             ServingRuntimeTableTabs.TOKENS,
-            secrets.length === 0,
+            secrets.length === 0 || isTokenEnabledServingRuntime(obj),
           )}
         >
           {secretsLoaded ? (
             <>
-              {secrets.length}{' '}
+              {isTokenEnabledServingRuntime(obj) ? 'Tokens disabled' : secrets.length}{' '}
               {secretsLoadError && (
                 <Tooltip
                   removeFindDomNode
@@ -112,7 +115,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             items={[
               {
                 title: 'Edit model server',
-                onClick: () => alert('Not implemented'),
+                onClick: () => onEditServingRuntime(obj),
               },
               {
                 title: 'Delete model server',

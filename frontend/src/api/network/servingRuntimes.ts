@@ -1,8 +1,10 @@
+import * as _ from 'lodash';
 import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
+  k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeModel } from '../models';
 import { ServingRuntimeKind } from '../../k8sTypes';
@@ -52,7 +54,7 @@ const assembleServingRuntime = (
       containers: [
         {
           name: 'ovms',
-          image: 'openvino/model_server:2022.2',
+          image: 'quay.io/modh/odh-openvino-servingruntime-container:v1.19.0-18',
           args: [
             '--port=8001',
             '--rest_port=8888',
@@ -104,14 +106,35 @@ export const getServingRuntime = (name: string, namespace: string): Promise<Serv
   });
 };
 
+export const updateServingRuntime = (
+  data: CreatingServingRuntimeObject,
+  existingData: ServingRuntimeKind,
+): Promise<ServingRuntimeKind> => {
+  const servingRuntime = assembleServingRuntime(data, existingData.metadata.namespace);
+  const updatedServingRuntime = _.merge(existingData, servingRuntime);
+
+  if (!data.tokenAuth) {
+    delete updatedServingRuntime?.metadata?.annotations?.['enable-auth'];
+  }
+
+  if (!data.externalRoute) {
+    delete updatedServingRuntime?.metadata?.annotations?.['enable-route'];
+  }
+
+  return k8sUpdateResource<ServingRuntimeKind>({
+    model: ServingRuntimeModel,
+    resource: updatedServingRuntime,
+  });
+};
+
 export const createServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
 ): Promise<ServingRuntimeKind> => {
-  const modelServer = assembleServingRuntime(data, namespace);
+  const servingRuntime = assembleServingRuntime(data, namespace);
   return k8sCreateResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,
-    resource: modelServer,
+    resource: servingRuntime,
   });
 };
 

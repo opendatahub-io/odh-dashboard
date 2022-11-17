@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { InferenceServiceKind, ServingRuntimeKind } from 'k8sTypes';
+import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from 'k8sTypes';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import useGenericObjectState from 'utilities/useGenericObjectState';
 import {
@@ -12,9 +12,9 @@ import {
 import { DashboardConfig } from 'types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '../const';
 import { useAppContext } from 'app/AppContext';
-import useNotification from 'utilities/useNotification';
 import { useDeepCompareMemoize } from 'utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from 'pages/projects/dataConnections/const';
+import { getDisplayNameFromK8sResource } from 'pages/projects/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -24,16 +24,22 @@ export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeS
   return sizes;
 };
 
-export const useCreateServingRuntimeObject = (
-  existingData?: ServingRuntimeKind,
-): [
+export const isTokenEnabledServingRuntime = (servingRuntime: ServingRuntimeKind): boolean =>
+  servingRuntime.metadata.annotations?.['enable-auth'] === undefined;
+
+export const isRoutesEnabledServingRuntime = (servingRuntime: ServingRuntimeKind): boolean =>
+  servingRuntime.metadata.annotations?.['enable-route'] === undefined;
+
+export const useCreateServingRuntimeObject = (existingData?: {
+  servingRuntime?: ServingRuntimeKind;
+  secrets: SecretKind[];
+}): [
   data: CreatingServingRuntimeObject,
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>,
   resetDefaults: () => void,
   sizes: ServingRuntimeSize[],
 ] => {
   const { dashboardConfig } = useAppContext();
-  const notification = useNotification();
   const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
 
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
@@ -47,40 +53,53 @@ export const useCreateServingRuntimeObject = (
 
   const [, setCreateData] = createModelState;
 
-  const existingNumReplicas = parseInt(
-    existingData?.metadata.annotations?.maxLoadingConcurrency || '1',
-  );
-  const existingResources = existingData?.spec?.containers[0]?.resources || sizes[0].resources;
+  const existingServingRuntimeName = existingData?.servingRuntime?.metadata.name || '';
 
-  //const existingGpus = existingData ? existingData.spec?.containers[0]?.resources?.limits.?["nvidia.com/gpu"] : 0;
+  const existingNumReplicas = existingData?.servingRuntime?.spec.replicas || 1;
 
-  const existingExternalRoute = !!existingData?.metadata.annotations?.externalRoute;
+  const existingResources =
+    existingData?.servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
+
+  const existingExternalRoute =
+    !!existingData?.servingRuntime?.metadata.annotations?.['enable-route'];
+  const existingTokenAuth = !!existingData?.servingRuntime?.metadata.annotations?.['enable-auth'];
 
   React.useEffect(() => {
-    if (existingNumReplicas) {
+    if (existingServingRuntimeName) {
       setCreateData('numReplicas', existingNumReplicas);
-    }
-    if (existingResources) {
       let foundSize = sizes.find((size) => _.isEqual(size.resources, existingResources));
       if (!foundSize) {
-        foundSize = sizes[0];
-        notification.warning(
-          'The size you select is no longer available, we have set the size to the default one.',
-        );
+        foundSize = {
+          name: 'Custom',
+          resources: existingResources,
+        };
       }
       setCreateData('modelSize', foundSize);
-    }
-    if (existingExternalRoute) {
       setCreateData('externalRoute', existingExternalRoute);
+      setCreateData('tokenAuth', existingTokenAuth);
     }
   }, [
+    existingServingRuntimeName,
     existingNumReplicas,
     existingResources,
     existingExternalRoute,
+    existingTokenAuth,
     setCreateData,
-    notification,
     sizes,
   ]);
+
+  React.useEffect(() => {
+    if (existingData?.secrets) {
+      const secretTokens = existingData?.secrets || [];
+      const existingTokens = secretTokens.map((secret) => ({
+        name: getDisplayNameFromK8sResource(secret) || secret.metadata.name,
+        editName: secret.metadata.name,
+        uuid: secret.metadata.name,
+        error: '',
+      }));
+      setCreateData('tokens', existingTokens);
+    }
+  }, [existingData?.secrets, setCreateData]);
 
   return [...createModelState, sizes];
 };
@@ -124,23 +143,20 @@ export const useCreateInferenceServiceObject = (
   React.useEffect(() => {
     if (existingName) {
       setCreateData('name', existingName);
-    }
-    if (existingServingRuntime) {
       setCreateData('servingRuntimeName', existingServingRuntime);
-    }
-    if (existingProject) {
       setCreateData('project', existingProject);
-    }
-    if (existingStorage) {
       setCreateData('storage', {
         type: InferenceServiceStorageType.EXISTING_STORAGE,
-        path: existingStorage.path,
-        dataConnection: existingStorage.key,
+        path: existingStorage?.path || '',
+        dataConnection: existingStorage?.key || '',
         awsData: EMPTY_AWS_SECRET_DATA,
       });
-    }
-    if (existingFormat) {
-      setCreateData('format', existingFormat);
+      setCreateData(
+        'format',
+        existingFormat || {
+          name: '',
+        },
+      );
     }
   }, [
     existingName,
