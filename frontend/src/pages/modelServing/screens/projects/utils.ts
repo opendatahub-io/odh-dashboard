@@ -64,6 +64,18 @@ export const useCreateServingRuntimeObject = (existingData?: {
     !!existingData?.servingRuntime?.metadata.annotations?.['enable-route'];
   const existingTokenAuth = !!existingData?.servingRuntime?.metadata.annotations?.['enable-auth'];
 
+  const secretTokens = existingData?.secrets;
+  const existingTokens = React.useMemo(
+    () =>
+      (secretTokens || []).map((secret) => ({
+        name: getDisplayNameFromK8sResource(secret) || secret.metadata.name,
+        editName: secret.metadata.name,
+        uuid: secret.metadata.name,
+        error: '',
+      })),
+    [secretTokens],
+  );
+
   React.useEffect(() => {
     if (existingServingRuntimeName) {
       setCreateData('numReplicas', existingNumReplicas);
@@ -89,17 +101,10 @@ export const useCreateServingRuntimeObject = (existingData?: {
   ]);
 
   React.useEffect(() => {
-    if (existingData?.secrets) {
-      const secretTokens = existingData?.secrets || [];
-      const existingTokens = secretTokens.map((secret) => ({
-        name: getDisplayNameFromK8sResource(secret) || secret.metadata.name,
-        editName: secret.metadata.name,
-        uuid: secret.metadata.name,
-        error: '',
-      }));
+    if (existingTokens.length > 0) {
       setCreateData('tokens', existingTokens);
     }
-  }, [existingData?.secrets, setCreateData]);
+  }, [existingTokens, setCreateData]);
 
   return [...createModelState, sizes];
 };
