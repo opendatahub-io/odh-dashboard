@@ -86,13 +86,18 @@ export const assembleSecretISStorage = (
   ];
 };
 
-export const assembleSecretSA = (name: string, namespace: string): SecretKind => {
+export const assembleSecretSA = (
+  name: string,
+  namespace: string,
+  editName?: string,
+): SecretKind => {
   const saName = getModelServiceAccountName(namespace);
+  const k8Name = editName || translateDisplayNameForK8s(name);
   return {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: translateDisplayNameForK8s(name),
+      name: k8Name,
       namespace,
       annotations: {
         'kubernetes.io/service-account.name': saName,

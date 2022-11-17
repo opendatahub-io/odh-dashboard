@@ -19,6 +19,7 @@ export type ServingRuntimeToken = {
   uuid: string;
   name: string;
   error: string;
+  editName?: string;
 };
 
 export type ServingRuntimeResources = {

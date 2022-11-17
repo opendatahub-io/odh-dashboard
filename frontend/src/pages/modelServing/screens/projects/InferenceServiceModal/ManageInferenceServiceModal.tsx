@@ -118,11 +118,17 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
     if (editInfo) {
       updateModel()
-        .then(() => onBeforeClose(true))
+        .then(() => {
+          setActionInProgress(false);
+          onBeforeClose(true);
+        })
         .catch(setErrorModal);
     } else {
       createModel()
-        .then(() => onBeforeClose(true))
+        .then(() => {
+          setActionInProgress(false);
+          onBeforeClose(true);
+        })
         .catch(setErrorModal);
     }
   };

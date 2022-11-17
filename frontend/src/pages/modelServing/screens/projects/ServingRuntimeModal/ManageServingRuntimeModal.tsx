@@ -18,8 +18,12 @@ import {
   createRoleBinding,
   createSecret,
   generateRoleBindingServingRuntime,
+  replaceSecret,
 } from '../../../../../api';
-import { createServingRuntime } from '../../../../../api/network/servingRuntimes';
+import {
+  createServingRuntime,
+  updateServingRuntime,
+} from '../../../../../api/network/servingRuntimes';
 import { ServingRuntimeKind, SecretKind } from '../../../../../k8sTypes';
 import {
   assembleServingRuntimeSA,
@@ -29,17 +33,24 @@ import { allSettledPromises } from '../../../../../utilities/allSettledPromises'
 import ModelServerReplicaSection from './ServingRuntimeReplicaSection';
 import ModelServerSizeSection from './ServingRuntimeSizeSection';
 import ModelServerTokenSection from './ServingRuntimeTokenSection';
+import { translateDisplayNameForK8s } from 'pages/projects/utils';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
+  editInfo?: {
+    servingRuntime?: ServingRuntimeKind;
+    secrets: SecretKind[];
+  };
 };
 
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   isOpen,
   onClose,
+  editInfo,
 }) => {
-  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject();
+  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
+
   const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -94,22 +105,60 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       });
   };
 
+  const updateSecrets = async (): Promise<void> => {
+    allSettledPromises<SecretKind, Error>(
+      createData.tokens
+        .filter((token) => translateDisplayNameForK8s(token.name) !== token.editName)
+        .map((token) => {
+          const secretToken = assembleSecretSA(token.name, namespace, token.editName);
+          if (token.editName) {
+            return replaceSecret(secretToken);
+          } else {
+            return createSecret(secretToken);
+          }
+        }),
+    )
+      .then(() => {
+        return Promise.resolve();
+      })
+      .catch((error) => {
+        return Promise.reject(error);
+      });
+  };
+
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
 
-    allSettledPromises<ServingRuntimeKind | string | void, Error>([
-      ...(currentProject.metadata.labels?.['modelmesh-enabled']
-        ? [addSupportModelMeshProject(currentProject.metadata.name)]
-        : []),
-      createServingRuntime(createData, namespace),
-      enableTokenAuth(),
-    ])
-      .then(() => {
-        setActionInProgress(false);
-        onBeforeClose(true);
-      })
-      .catch((e) => setErrorModal(e));
+    if (editInfo) {
+      // TODO: Delete secrets
+      updateSecrets()
+        .then(() => {
+          if (!editInfo?.servingRuntime) {
+            return;
+          }
+          updateServingRuntime(createData, editInfo.servingRuntime)
+            .then(() => {
+              setActionInProgress(false);
+              onBeforeClose(true);
+            })
+            .catch((e) => setErrorModal(e));
+        })
+        .catch((e) => setErrorModal(e));
+    } else {
+      allSettledPromises<ServingRuntimeKind | string | void, Error>([
+        ...(currentProject.metadata.labels?.['modelmesh-enabled']
+          ? [addSupportModelMeshProject(currentProject.metadata.name)]
+          : []),
+        createServingRuntime(createData, namespace),
+        enableTokenAuth(),
+      ])
+        .then(() => {
+          setActionInProgress(false);
+          onBeforeClose(true);
+        })
+        .catch((e) => setErrorModal(e));
+    }
   };
 
   return (

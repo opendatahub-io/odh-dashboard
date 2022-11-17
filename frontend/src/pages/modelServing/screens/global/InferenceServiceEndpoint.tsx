@@ -28,7 +28,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
 
   return (
     <ClipboardCopy hoverTip="Copy" clickTip="Copied" isReadOnly>
-      {routeLink}
+      {`${routeLink}/infer`}
     </ClipboardCopy>
   );
 };

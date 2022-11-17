@@ -19,7 +19,7 @@ const ServingRuntimeList: React.FC = () => {
       error: loadError,
       refresh: refreshServingRuntime,
     },
-    serverSecrets: { refresh: refreshTokens },
+    serverSecrets: { data: secrets, refresh: refreshTokens },
     dataConnections: { data: dataConnections },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
@@ -51,7 +51,13 @@ const ServingRuntimeList: React.FC = () => {
           />
         }
       >
-        <ServingRuntimeTable modelServers={modelServers} refresh={refreshServingRuntime} />
+        <ServingRuntimeTable
+          modelServers={modelServers}
+          modelSecrets={secrets}
+          refreshServingRuntime={refreshServingRuntime}
+          refreshTokens={refreshTokens}
+          refreshInferenceServices={refreshInferenceServices}
+        />
       </DetailsSection>{' '}
       {emptyModelServer && (
         <ManageServingRuntimeModal
@@ -60,6 +66,7 @@ const ServingRuntimeList: React.FC = () => {
             setOpen(false);
             if (submit) {
               refreshServingRuntime();
+              refreshInferenceServices();
               setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
             }
           }}
