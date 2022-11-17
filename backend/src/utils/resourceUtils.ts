@@ -282,7 +282,17 @@ export const fetchApplications = async (
     .catch(() => null);
   for (const appDef of applicationDefs) {
     appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
-    appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef);
+    appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef).catch((e) => {
+      fastify.log.warn(
+        `"${
+          appDef.metadata.name
+        }" OdhApplication is being disabled due to an error determining if it's enabled. ${
+          e.response?.body?.message || e.message
+        }`,
+      );
+
+      return false;
+    });
     if (appDef.spec.isEnabled) {
       if (!appDef.spec.shownOnEnabledPage) {
         changed = true;
