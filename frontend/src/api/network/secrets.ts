@@ -48,6 +48,44 @@ export const assembleSecret = (
   };
 };
 
+export const assembleISSecretBody = (
+  data: Record<string, string>,
+): [Record<string, string>, string] => {
+  const secretKey = `secret-${genRandomChars()}`;
+  delete data.path;
+  data['type'] = 's3';
+  return [
+    {
+      [secretKey]: JSON.stringify(data),
+    },
+    secretKey,
+  ];
+};
+
+export const assembleSecretISStorage = (
+  namespace: string,
+  data: Record<string, string>,
+): [SecretKind, string] => {
+  const labels = {
+    'opendatahub.io/dashboard': 'true',
+  };
+  const [stringData, secretKey] = assembleISSecretBody(data);
+
+  return [
+    {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: {
+        name: 'storage-config',
+        namespace,
+        labels,
+      },
+      stringData,
+    },
+    secretKey,
+  ];
+};
+
 export const assembleSecretSA = (name: string, namespace: string): SecretKind => {
   const saName = getModelServiceAccountName(namespace);
   return {

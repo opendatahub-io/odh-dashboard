@@ -26,6 +26,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
   return (
     <InputGroup>
       <Select
+        removeFindDomNode
         isOpen={typeOpen}
         onToggle={() => setTypeOpen(!typeOpen)}
         selections={searchType}

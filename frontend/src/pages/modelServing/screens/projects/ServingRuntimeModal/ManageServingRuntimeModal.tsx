@@ -7,6 +7,8 @@ import {
   FormGroup,
   FormSection,
   Modal,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import { useCreateServingRuntimeObject } from '../utils';
 import { ProjectDetailsContext } from '../../../../projects/ProjectDetailsContext';
@@ -18,7 +20,7 @@ import {
   generateRoleBindingServingRuntime,
 } from '../../../../../api';
 import { createServingRuntime } from '../../../../../api/network/servingRuntimes';
-import { ServingRuntimeKind, ProjectKind, SecretKind } from '../../../../../k8sTypes';
+import { ServingRuntimeKind, SecretKind } from '../../../../../k8sTypes';
 import {
   assembleServingRuntimeSA,
   createServiceAccount,
@@ -28,12 +30,15 @@ import ModelServerReplicaSection from './ServingRuntimeReplicaSection';
 import ModelServerSizeSection from './ServingRuntimeSizeSection';
 import ModelServerTokenSection from './ServingRuntimeTokenSection';
 
-type ManageModelServerModalProps = {
+type ManageServingRuntimeModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
 };
 
-const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen, onClose }) => {
+const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject();
   const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -93,8 +98,10 @@ const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen,
     setError(undefined);
     setActionInProgress(true);
 
-    allSettledPromises<ServingRuntimeKind | ProjectKind | void, Error>([
-      addSupportModelMeshProject(currentProject.metadata.name),
+    allSettledPromises<ServingRuntimeKind | string | void, Error>([
+      ...(currentProject.metadata.labels?.['modelmesh-enabled']
+        ? [addSupportModelMeshProject(currentProject.metadata.name)]
+        : []),
       createServingRuntime(createData, namespace),
       enableTokenAuth(),
     ])
@@ -127,23 +134,30 @@ const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen,
           submit();
         }}
       >
-        <ModelServerReplicaSection data={createData} setData={setCreateData} />
-
-        <ModelServerSizeSection data={createData} setData={setCreateData} sizes={sizes} />
-
-        <FormSection title="Model route" titleElement="div">
-          <FormGroup>
-            <Checkbox
-              label="Make deployed available via an external route"
-              id="alt-form-checkbox-route"
-              name="alt-form-checkbox-route"
-              isChecked={createData.externalRoute}
-              onChange={(check) => setCreateData('externalRoute', check)}
-            />
-          </FormGroup>
-        </FormSection>
-
-        <ModelServerTokenSection data={createData} setData={setCreateData} />
+        <Stack hasGutter>
+          <StackItem>
+            <ModelServerReplicaSection data={createData} setData={setCreateData} />
+          </StackItem>
+          <StackItem>
+            <ModelServerSizeSection data={createData} setData={setCreateData} sizes={sizes} />
+          </StackItem>
+          <StackItem>
+            <FormSection title="Model route" titleElement="div">
+              <FormGroup>
+                <Checkbox
+                  label="Make deployed available via an external route"
+                  id="alt-form-checkbox-route"
+                  name="alt-form-checkbox-route"
+                  isChecked={createData.externalRoute}
+                  onChange={(check) => setCreateData('externalRoute', check)}
+                />
+              </FormGroup>
+            </FormSection>
+          </StackItem>
+          <StackItem>
+            <ModelServerTokenSection data={createData} setData={setCreateData} />
+          </StackItem>
+        </Stack>
       </Form>
       {error && (
         <Alert isInline variant="danger" title="Error creating model server">
@@ -154,4 +168,4 @@ const ManageModelServerModal: React.FC<ManageModelServerModalProps> = ({ isOpen,
   );
 };
 
-export default ManageModelServerModal;
+export default ManageServingRuntimeModal;

@@ -27,7 +27,7 @@ const assembleServingRuntime = (
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        ...(externalRoute && { 'create-route': 'true' }),
+        ...(externalRoute && { 'enable-route': 'true' }),
         ...(tokenAuth && { 'enable-auth': 'true' }),
       },
     },

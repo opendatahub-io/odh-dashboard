@@ -6,6 +6,7 @@ export enum AWS_KEYS {
   SECRET_ACCESS_KEY = 'AWS_SECRET_ACCESS_KEY',
   S3_ENDPOINT = 'AWS_S3_ENDPOINT',
   DEFAULT_REGION = 'AWS_DEFAULT_REGION',
+  AWS_S3_BUCKET = 'AWS_S3_BUCKET',
 }
 
 export const AWS_REQUIRED_KEYS: AWS_KEYS[] = [
@@ -25,6 +26,10 @@ export const EMPTY_AWS_SECRET_DATA: AWSDataEntry = [
   },
   {
     key: AWS_KEYS.SECRET_ACCESS_KEY,
+    value: '',
+  },
+  {
+    key: AWS_KEYS.AWS_S3_BUCKET,
     value: '',
   },
   {

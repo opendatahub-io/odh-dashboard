@@ -13,11 +13,13 @@ type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
   isGlobal: boolean;
   onDeleteInferenceService: (obj: InferenceServiceKind) => void;
+  onEditInferenceService: (obj: InferenceServiceKind) => void;
 };
 
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   obj: inferenceService,
   onDeleteInferenceService,
+  onEditInferenceService,
   isGlobal,
 }) => {
   return (
@@ -54,7 +56,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
               {
                 title: 'Edit',
                 onClick: () => {
-                  alert('Not implemented');
+                  onEditInferenceService(inferenceService);
                 },
               },
               {

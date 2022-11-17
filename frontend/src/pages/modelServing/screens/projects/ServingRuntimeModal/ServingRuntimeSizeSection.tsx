@@ -47,6 +47,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
     <FormSection title="Compute resources per replica">
       <FormGroup label="Model server size">
         <Select
+          removeFindDomNode
           id="model-server-size-selection"
           isOpen={sizeDropdownOpen}
           placeholderText="Select a model server size"

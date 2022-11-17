@@ -237,7 +237,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
       Partial<{
-        ['create-route']: string;
+        ['enable-route']: string;
         ['enable-auth']: string;
       }>;
     name: string;
@@ -263,13 +263,15 @@ export type ServingRuntimeKind = K8sResourceCommon & {
         };
       };
     }[];
-    supportedModelFormats: {
-      name: string;
-      version: string;
-      autoSelect: boolean;
-    }[];
+    supportedModelFormats: SupportedModelFormats[];
     replicas: number;
   };
+};
+
+export type SupportedModelFormats = {
+  name: string;
+  version?: string;
+  autoSelect?: boolean;
 };
 
 export type InferenceServiceKind = K8sResourceCommon & {
@@ -288,9 +290,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
         storageUri?: string;
         storage?: {
           key: string;
-          parameters: Record<string, string>;
+          parameters?: Record<string, string>;
           path: string;
-          schemaPath: string;
+          schemaPath?: string;
         };
       };
     };

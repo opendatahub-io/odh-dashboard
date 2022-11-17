@@ -6,6 +6,7 @@ import { InferenceServiceKind } from '../../../../k8sTypes';
 import { columns } from './data';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
+import ManageInferenceServiceModal from '../projects/InferenceServiceModal/ManageInferenceServiceModal';
 
 type InferenceServiceTableProps = {
   clearFilters?: () => void;
@@ -22,6 +23,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
 }) => {
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
+  const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();
   const isGlobal = !!clearFilters;
   const mappedColumns = isGlobal ? columns : columns.filter((column) => column.field !== 'project');
   return (
@@ -54,6 +56,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
             obj={is}
             isGlobal={isGlobal}
             onDeleteInferenceService={setDeleteInferenceService}
+            onEditInferenceService={setEditInferenceService}
           />
         ))}
       </TableComposable>
@@ -64,6 +67,16 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
             refresh();
           }
           setDeleteInferenceService(undefined);
+        }}
+      />
+      <ManageInferenceServiceModal
+        isOpen={editInferenceService !== undefined}
+        editInfo={editInferenceService}
+        onClose={(edited) => {
+          if (edited) {
+            refresh();
+          }
+          setEditInferenceService(undefined);
         }}
       />
     </>

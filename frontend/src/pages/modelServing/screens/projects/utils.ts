@@ -1,14 +1,20 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { ServingRuntimeKind } from 'k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from 'k8sTypes';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import useGenericObjectState from 'utilities/useGenericObjectState';
-import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../types';
+import {
+  CreatingInferenceServiceObject,
+  CreatingServingRuntimeObject,
+  InferenceServiceStorageType,
+  ServingRuntimeSize,
+} from '../types';
 import { DashboardConfig } from 'types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '../const';
 import { useAppContext } from 'app/AppContext';
 import useNotification from 'utilities/useNotification';
 import { useDeepCompareMemoize } from 'utilities/useDeepCompareMemoize';
+import { EMPTY_AWS_SECRET_DATA } from 'pages/projects/dataConnections/const';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -77,4 +83,73 @@ export const useCreateServingRuntimeObject = (
   ]);
 
   return [...createModelState, sizes];
+};
+
+export const defaultInferenceService: CreatingInferenceServiceObject = {
+  name: '',
+  project: '',
+  servingRuntimeName: '',
+  storage: {
+    type: InferenceServiceStorageType.EXISTING_STORAGE,
+    path: '',
+    dataConnection: '',
+    awsData: EMPTY_AWS_SECRET_DATA,
+  },
+  format: {
+    name: '',
+  },
+};
+
+export const useCreateInferenceServiceObject = (
+  existingData?: InferenceServiceKind,
+): [
+  data: CreatingInferenceServiceObject,
+  setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
+  resetDefaults: () => void,
+] => {
+  const createInferenceServiceState =
+    useGenericObjectState<CreatingInferenceServiceObject>(defaultInferenceService);
+
+  const [, setCreateData] = createInferenceServiceState;
+
+  const existingName =
+    existingData?.metadata.annotations?.['openshift.io/display-name'] ||
+    existingData?.metadata.name ||
+    '';
+  const existingStorage = existingData?.spec?.predictor.model.storage || undefined;
+  const existingServingRuntime = existingData?.spec?.predictor.model.runtime || '';
+  const existingProject = existingData?.metadata.namespace || '';
+  const existingFormat = existingData?.spec?.predictor.model.modelFormat || undefined;
+
+  React.useEffect(() => {
+    if (existingName) {
+      setCreateData('name', existingName);
+    }
+    if (existingServingRuntime) {
+      setCreateData('servingRuntimeName', existingServingRuntime);
+    }
+    if (existingProject) {
+      setCreateData('project', existingProject);
+    }
+    if (existingStorage) {
+      setCreateData('storage', {
+        type: InferenceServiceStorageType.EXISTING_STORAGE,
+        path: existingStorage.path,
+        dataConnection: existingStorage.key,
+        awsData: EMPTY_AWS_SECRET_DATA,
+      });
+    }
+    if (existingFormat) {
+      setCreateData('format', existingFormat);
+    }
+  }, [
+    existingName,
+    existingStorage,
+    existingFormat,
+    existingServingRuntime,
+    existingProject,
+    setCreateData,
+  ]);
+
+  return createInferenceServiceState;
 };

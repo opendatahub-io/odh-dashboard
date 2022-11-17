@@ -46,6 +46,7 @@ const SelectNotebookField: React.FC<SelectNotebookFieldProps> = ({
       isRequired={isRequired}
     >
       <Select
+        removeFindDomNode
         variant="typeahead"
         selections={selection}
         isOpen={notebookSelectOpen}
