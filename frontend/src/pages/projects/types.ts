@@ -7,6 +7,7 @@ import {
 } from '../../types';
 import { ValueOf } from '../../typeHelpers';
 import { AWSSecretKind } from '../../k8sTypes';
+import { AWS_KEYS } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
@@ -45,7 +46,6 @@ export type ExistingStorageObject = {
 };
 
 export enum StorageType {
-  EPHEMERAL = 'ephemeral',
   NEW_PVC = 'new-persistent',
   EXISTING_PVC = 'existing-persistent',
 }
@@ -98,6 +98,8 @@ export type DataConnection = {
   data: Record<string, unknown>; // likely will be a unified CR at some point
 } & DataConnectionAWS;
 
+export type AWSDataEntry = { key: AWS_KEYS; value: string }[];
+
 export type EnvVariableDataEntry = {
   key: string;
   value: string;
@@ -118,10 +120,10 @@ export enum EnvironmentVariableType {
   SECRET = 'Secret',
 }
 export enum SecretCategory {
-  GENERIC = 'Key / value',
-  AWS = 'AWS',
+  GENERIC = 'secret key-value',
+  AWS = 'aws',
 }
 export enum ConfigMapCategory {
-  GENERIC = 'Key / value',
-  UPLOAD = 'Upload',
+  GENERIC = 'configmap key-value',
+  UPLOAD = 'upload',
 }

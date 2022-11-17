@@ -54,7 +54,7 @@ export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string
 
 export const getAllowedUsers = (notebookNamespace: string): Promise<AllowedUser[]> => {
   const url = `/api/status/${notebookNamespace}/allowedUsers`;
-  return axios.post(url).then((response) => response.data);
+  return axios.get(url).then((response) => response.data);
 };
 
 let notificationCount = 0;

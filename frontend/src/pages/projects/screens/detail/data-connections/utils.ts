@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { deleteSecret } from '../../../../../api';
 import { K8sStatus } from '../../../../../k8sTypes';
-import { DataConnection, DataConnectionAWS, DataConnectionType } from '../../../types';
+import { AWS_KEYS } from '../../../dataConnections/const';
+import {
+  AWSDataEntry,
+  DataConnection,
+  DataConnectionAWS,
+  DataConnectionType,
+} from '../../../types';
 import { getSecretDescription, getSecretDisplayName } from '../../../utils';
 import { DATA_CONNECTION_TYPES } from './connectionRenderers';
 
@@ -69,4 +75,22 @@ export const deleteDataConnection = (dataConnection: DataConnection): Promise<K8
     default:
       throw new Error('Invalid data connection type');
   }
+};
+
+export const convertAWSSecretData = (dataConnection: DataConnection): AWSDataEntry => {
+  const secretData = dataConnection.data.data;
+  const convertedData = Object.values(AWS_KEYS)
+    .filter((key) => key !== AWS_KEYS.NAME)
+    .map((key: AWS_KEYS) => ({
+      key,
+      value: secretData?.[key] ? atob(secretData?.[key]) : '',
+    }));
+  const convertedSecret: AWSDataEntry = [
+    {
+      key: AWS_KEYS.NAME,
+      value: getDataConnectionDisplayName(dataConnection),
+    },
+    ...convertedData,
+  ];
+  return convertedSecret;
 };

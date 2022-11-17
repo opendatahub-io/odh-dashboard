@@ -22,19 +22,25 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) =>
       selection={env.category || ''}
       onSelection={(value) => onUpdate({ ...env, category: value as SecretCategory, data: [] })}
       options={{
-        [SecretCategory.GENERIC]: (
-          <GenericKeyValuePairField
-            values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
-            onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
-            valueIsSecret
-          />
-        ),
-        [SecretCategory.AWS]: (
-          <AWSField
-            values={env.data.length === 0 ? EMPTY_AWS_SECRET_DATA : env.data}
-            onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
-          />
-        ),
+        [SecretCategory.GENERIC]: {
+          label: 'Key / value',
+          render: (
+            <GenericKeyValuePairField
+              values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
+              onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
+              valueIsSecret
+            />
+          ),
+        },
+        [SecretCategory.AWS]: {
+          label: 'AWS',
+          render: (
+            <AWSField
+              values={env.data.length === 0 ? EMPTY_AWS_SECRET_DATA : env.data}
+              onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
+            />
+          ),
+        },
       }}
     />
   );

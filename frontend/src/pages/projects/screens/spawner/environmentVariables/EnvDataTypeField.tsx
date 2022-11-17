@@ -3,7 +3,7 @@ import { Select, SelectOption, Stack, StackItem } from '@patternfly/react-core';
 import IndentSection from '../../../components/IndentSection';
 
 type EnvDataTypeFieldProps = {
-  options: { [optionLabel: string]: React.ReactNode };
+  options: { [value: string]: { label: string; render: React.ReactNode } };
   selection: string;
   onSelection: (value: string) => void;
 };
@@ -28,14 +28,14 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
         >
           {Object.keys(options).map((option) => (
             <SelectOption key={option} value={option}>
-              {option}
+              {options[option].label}
             </SelectOption>
           ))}
         </Select>
       </StackItem>
       {selection && (
         <StackItem>
-          <IndentSection>{options[selection]}</IndentSection>
+          <IndentSection>{options[selection].render}</IndentSection>
         </StackItem>
       )}
     </Stack>

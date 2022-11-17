@@ -46,6 +46,6 @@ export const replaceConfigMap = (data: ConfigMapKind): Promise<ConfigMapKind> =>
 export const deleteConfigMap = (projectName: string, configMapName: string): Promise<K8sStatus> => {
   return k8sDeleteResource<ConfigMapKind, K8sStatus>({
     model: ConfigMapModel,
-    queryOptions: { name: configMapName },
+    queryOptions: { name: configMapName, ns: projectName },
   });
 };

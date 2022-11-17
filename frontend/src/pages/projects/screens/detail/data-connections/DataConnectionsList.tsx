@@ -5,7 +5,7 @@ import { ProjectSectionID } from '../types';
 import DetailsSection from '../DetailsSection';
 import { ProjectSectionTitles } from '../const';
 import DataConnectionsTable from './DataConnectionsTable';
-import AddDataConnectionModal from './AddDataConnectionModal';
+import ManageDataConnectionModal from './ManageDataConnectionModal';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 
 const DataConnectionsList: React.FC = () => {
@@ -41,7 +41,7 @@ const DataConnectionsList: React.FC = () => {
       >
         <DataConnectionsTable connections={connections} refreshData={refreshAllProjectData} />
       </DetailsSection>
-      <AddDataConnectionModal
+      <ManageDataConnectionModal
         isOpen={open}
         onClose={(submitted) => {
           if (submitted) {

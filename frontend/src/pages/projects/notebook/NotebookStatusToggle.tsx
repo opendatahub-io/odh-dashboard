@@ -82,6 +82,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
                   setPopoverVisible((visible) => !visible);
                 }
               }}
+              style={isStarting ? { cursor: 'pointer' } : undefined}
             >
               {label}
             </Text>

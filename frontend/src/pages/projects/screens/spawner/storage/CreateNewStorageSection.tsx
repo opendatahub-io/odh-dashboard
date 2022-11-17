@@ -9,12 +9,14 @@ type CreateNewStorageSectionProps = {
   data: CreatingStorageObject;
   setData: UpdateObjectAtPropAndValue<CreatingStorageObject>;
   disableSize?: boolean;
+  autoFocusName?: boolean;
 };
 
 const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
   data,
   setData,
   disableSize,
+  autoFocusName,
 }) => {
   return (
     <Stack hasGutter>
@@ -24,7 +26,7 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
           descriptionFieldId="create-new-storage-description"
           data={data.nameDesc}
           setData={(newData) => setData('nameDesc', newData)}
-          autoFocusName
+          autoFocusName={autoFocusName}
         />
       </StackItem>
       <StackItem>

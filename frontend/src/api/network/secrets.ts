@@ -11,10 +11,13 @@ import { genRandomChars } from '../../utilities/string';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 import { getModelServiceAccountName } from '../../pages/modelServing/utils';
 
+export const DATA_CONNECTION_PREFIX = 'aws-connection';
+
 export const assembleSecret = (
   projectName: string,
   data: Record<string, string>,
   type: 'aws' | 'generic' = 'generic',
+  secretName?: string,
 ): SecretKind => {
   const labels = {
     'opendatahub.io/dashboard': 'true',
@@ -27,7 +30,7 @@ export const assembleSecret = (
   if (type === 'aws') {
     const { Name, ...secretBody } = data;
     stringData = secretBody;
-    name = `aws-connection-${translateDisplayNameForK8s(Name)}`;
+    name = `${DATA_CONNECTION_PREFIX}-${translateDisplayNameForK8s(Name)}`;
     annotations['openshift.io/display-name'] = Name;
     labels['opendatahub.io/managed'] = 'true';
   }
@@ -36,7 +39,7 @@ export const assembleSecret = (
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name,
+      name: secretName || name,
       namespace: projectName,
       annotations,
       labels,
