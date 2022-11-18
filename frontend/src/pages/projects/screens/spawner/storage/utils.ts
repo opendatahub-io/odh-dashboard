@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
@@ -7,7 +8,6 @@ import {
 } from '../../../types';
 import useGenericObjectState from '../../../useGenericObjectState';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
-import * as React from 'react';
 import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
