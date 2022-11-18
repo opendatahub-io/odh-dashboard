@@ -14,6 +14,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { getProjectDisplayName } from '../../utils';
+import { NotebookState } from '../../notebook/types';
 
 const EditSpawnerPage: React.FC = () => {
   const {
@@ -22,10 +23,12 @@ const EditSpawnerPage: React.FC = () => {
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const { notebookName } = useParams();
-
-  const relatedNotebookState = data.find(
-    (notebookState) => notebookState.notebook.metadata.name === notebookName,
-  );
+  const ref = React.useRef<NotebookState>();
+  if (!ref.current) {
+    ref.current = data.find(
+      (notebookState) => notebookState.notebook.metadata.name === notebookName,
+    );
+  }
 
   if (error) {
     return (
@@ -52,7 +55,7 @@ const EditSpawnerPage: React.FC = () => {
     );
   }
 
-  if (!relatedNotebookState) {
+  if (!ref.current) {
     return (
       <Bullseye>
         <EmptyState>
@@ -75,7 +78,7 @@ const EditSpawnerPage: React.FC = () => {
     );
   }
 
-  return <SpawnerPage existingNotebook={relatedNotebookState.notebook} />;
+  return <SpawnerPage existingNotebook={ref.current.notebook} />;
 };
 
 export default EditSpawnerPage;

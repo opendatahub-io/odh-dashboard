@@ -112,6 +112,7 @@ export type EnvVariableData = {
 
 export type EnvVariable = {
   type: EnvironmentVariableType | null;
+  existingName?: string;
   values?: EnvVariableData;
 };
 

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ActionList,
   ActionListItem,
@@ -11,26 +11,36 @@ import {
 import { createNotebook, updateNotebook } from '../../../../api';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData, EnvVariable } from '../../types';
-import { createPvcDataForNotebook, createConfigMapsAndSecretsForNotebook } from './service';
+import {
+  createPvcDataForNotebook,
+  createConfigMapsAndSecretsForNotebook,
+  replaceRootVolumesForNotebook,
+  updateConfigMapsAndSecretsForNotebook,
+} from './service';
 import { useUser } from '../../../../redux/selectors';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
-import { NotebookKind } from '../../../../k8sTypes';
 
 type SpawnerFooterProps = {
-  editNotebook?: NotebookKind;
   startNotebookData: StartNotebookData;
   storageData: StorageData;
   envVariables: EnvVariable[];
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
-  editNotebook,
   startNotebookData,
   storageData,
   envVariables,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState('');
-  const { refreshAllProjectData } = React.useContext(ProjectDetailsContext);
+  const {
+    notebooks: { data },
+    refreshAllProjectData,
+  } = React.useContext(ProjectDetailsContext);
+  const { notebookName } = useParams();
+  const notebookState = data.find(
+    (notebookState) => notebookState.notebook.metadata.name === notebookName,
+  );
+  const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
@@ -55,7 +65,25 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const onUpdateNotebook = async () => {
     handleStart();
     if (editNotebook) {
-      updateNotebook(editNotebook, startNotebookData, username).then(redirect);
+      const pvcDetails = await replaceRootVolumesForNotebook(
+        projectName,
+        editNotebook,
+        storageData,
+      ).catch(handleError);
+      const envFrom = await updateConfigMapsAndSecretsForNotebook(
+        projectName,
+        editNotebook,
+        envVariables,
+      ).catch(handleError);
+
+      if (!pvcDetails || !envFrom) {
+        return;
+      }
+      const { volumes, volumeMounts } = pvcDetails;
+      const newStartNotebookData = { ...startNotebookData, volumes, volumeMounts, envFrom };
+      updateNotebook(editNotebook, newStartNotebookData, username)
+        .then(redirect)
+        .catch(handleError);
     }
   };
 

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
@@ -6,13 +7,13 @@ import {
   UpdateObjectAtPropAndValue,
 } from '../../../types';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
-import * as React from 'react';
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
 import useDefaultPvcSize from './useAvailablePvcSize';
 import useGenericObjectState from '../../../../../utilities/useGenericObjectState';
+import { getRootVolumeName } from '../spawnerUtils';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,
@@ -83,7 +84,7 @@ export const useExistingStorageDataObjectForNotebook = (): [
   });
 
 export const useStorageDataObject = (
-  storageType: StorageType,
+  notebook?: NotebookKind,
 ): [
   data: StorageData,
   setData: UpdateObjectAtPropAndValue<StorageData>,
@@ -91,7 +92,7 @@ export const useStorageDataObject = (
 ] => {
   const defaultPvcSize = useDefaultPvcSize();
   return useGenericObjectState<StorageData>({
-    storageType,
+    storageType: notebook ? StorageType.EXISTING_PVC : StorageType.NEW_PVC,
     creating: {
       nameDesc: {
         name: '',
@@ -100,7 +101,7 @@ export const useStorageDataObject = (
       size: defaultPvcSize,
     },
     existing: {
-      storage: '',
+      storage: getRootVolumeName(notebook),
     },
   });
 };
