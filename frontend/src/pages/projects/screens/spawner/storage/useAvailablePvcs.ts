@@ -8,6 +8,7 @@ import { getNotebookPVCNames } from '../../../pvc/utils';
 const useAvailablePvcs = (
   projectName: string,
   notebooks: NotebookState[],
+  editStorage?: string,
 ): [pvcs: PersistentVolumeClaimKind[], loaded: boolean, loadError: Error | undefined] => {
   const [pvcs, setPvcs] = React.useState<PersistentVolumeClaimKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
@@ -20,7 +21,10 @@ const useAvailablePvcs = (
           const usedPvcs = _.uniq(
             notebooks.flatMap((notebook) => getNotebookPVCNames(notebook.notebook)),
           );
-          setPvcs(newPvcs.filter((pvc) => !usedPvcs.includes(pvc.metadata.name)));
+          const filteredPvc = editStorage
+            ? usedPvcs.filter((pvc) => pvc !== editStorage)
+            : usedPvcs;
+          setPvcs(newPvcs.filter((pvc) => !filteredPvc.includes(pvc.metadata.name)));
           setLoaded(true);
         })
         .catch((e) => {
@@ -28,7 +32,7 @@ const useAvailablePvcs = (
           setLoaded(true);
         });
     }
-  }, [projectName, notebooks]);
+  }, [projectName, notebooks, editStorage]);
 
   return [pvcs, loaded, loadError];
 };

@@ -1,7 +1,12 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
 import { NotebookSize, Volume, VolumeMount } from '../../../../types';
-import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '../../../../k8sTypes';
+import {
+  BuildKind,
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+  NotebookKind,
+} from '../../../../k8sTypes';
 import { FAILED_PHASES, PENDING_PHASES } from './const';
 import {
   BuildStatus,
@@ -253,6 +258,11 @@ export const getVolumesByStorageData = (
   return { volumes, volumeMounts };
 };
 
+export const getRootVolumeName = (notebook?: NotebookKind): string =>
+  notebook?.spec.template.spec.containers[0].volumeMounts?.find(
+    (volumeMount) => volumeMount.mountPath === ROOT_MOUNT_PATH,
+  )?.name || '';
+
 /******************* Checking utils *******************/
 /**
  * Check if there is 1 or more versions available for an image stream
@@ -349,8 +359,8 @@ export const checkRequiredFieldsForNotebookStart = (
   );
 
   const newStorageFieldInvalid = storageType === StorageType.NEW_PVC && !creating.nameDesc.name;
-  const existingStorageFiledInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
-  const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFiledInvalid;
+  const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
+  const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
 
   return isNotebookDataValid && isStorageDataValid && isEnvVariableDataValid(envVariables);
 };

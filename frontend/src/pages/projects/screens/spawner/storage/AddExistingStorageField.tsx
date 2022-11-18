@@ -7,6 +7,7 @@ import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 type AddExistingStorageFieldProps = {
   data: ExistingStorageObject;
   setData: (data: ExistingStorageObject) => void;
+  editStorage?: string;
   selectDirection?: 'up' | 'down';
   menuAppendTo?: HTMLElement | 'parent';
 };
@@ -14,6 +15,7 @@ type AddExistingStorageFieldProps = {
 const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   data,
   setData,
+  editStorage,
   selectDirection,
   menuAppendTo,
 }) => {
@@ -21,7 +23,11 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     currentProject,
     notebooks: { data: allNotebooks },
   } = React.useContext(ProjectDetailsContext);
-  const [pvcs, loaded, loadError] = useAvailablePvcs(currentProject.metadata.name, allNotebooks);
+  const [pvcs, loaded, loadError] = useAvailablePvcs(
+    currentProject.metadata.name,
+    allNotebooks,
+    editStorage,
+  );
 
   return (
     <ExistingPVCField

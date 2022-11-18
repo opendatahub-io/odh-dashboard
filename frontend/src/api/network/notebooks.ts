@@ -256,6 +256,9 @@ export const updateNotebook = (
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
 
+  // clean the envFrom array in case of merging the old value again
+  existingNotebook.spec.template.spec.containers[0].envFrom = [];
+
   return k8sUpdateResource<NotebookKind>({
     model: NotebookModel,
     resource: _.merge({}, existingNotebook, notebook),
@@ -392,19 +395,13 @@ export const removeNotebookPVC = (
           {
             op: 'replace',
             path: '/spec/template/spec/volumes',
-            value:
-              filteredVolumes.length === 0
-                ? [{ name: 'cache-volume', emptyDir: {} }]
-                : filteredVolumes,
+            value: filteredVolumes,
           },
           {
             op: 'replace',
             // TODO: can we assume first container?
             path: '/spec/template/spec/containers/0/volumeMounts',
-            value:
-              filteredVolumeMounts.length === 0
-                ? [{ mountPath: '/cache', name: 'cache-volume' }]
-                : filteredVolumeMounts,
+            value: filteredVolumeMounts,
           },
         ];
 
