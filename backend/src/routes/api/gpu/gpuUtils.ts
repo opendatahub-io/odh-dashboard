@@ -76,7 +76,10 @@ export const getGPUData = async (
     const options = {
       hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
       port: 9091,
-      path: `/api/v1/query?query=count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400"})+or+vector(0))-count+(count+by+(UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400",exported_pod=~".%2b"})+or+vector(0))`,
+      //Encode the raw prometheus query to remove any need for manual encoding
+      path: encodeURI(
+        `/api/v1/query?query=count (count by (UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400"}) or vector(0))-count (count by (UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400",exported_pod=~".+"}) or vector(0))`,
+      ),
       headers: {
         Authorization: `Bearer ${token}`,
       },
