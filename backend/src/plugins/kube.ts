@@ -32,6 +32,7 @@ export default fp(async (fastify: FastifyInstance) => {
   try {
     currentToken = await getCurrentToken(currentUser);
   } catch (e) {
+    currentToken = '';
     fastify.log.error(e, 'Failed to retrieve current token');
   }
 
@@ -116,19 +117,17 @@ const getCurrentNamespace = async () => {
 const getCurrentToken = async (currentUser: User) => {
   return new Promise((resolve, reject) => {
     if (currentContext === 'inClusterContext') {
-      fs.readFile(
-        // '/var/run/secrets/kubernetes.io/serviceaccount/token',
-        currentUser?.authProvider?.config?.tokenFile,
-        'utf8',
-        (err, data) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(data);
-        },
-      );
-    } else if (DEV_MODE) {
-      resolve(currentUser.token);
+      const location =
+        currentUser?.authProvider?.config?.tokenFile ||
+        '/var/run/secrets/kubernetes.io/serviceaccount/token';
+      fs.readFile(location, 'utf8', (err, data) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(data);
+      });
+    } else {
+      resolve(currentUser?.token);
     }
   });
 };

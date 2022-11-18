@@ -33,7 +33,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
       return { items: [] } as V1PodList;
     });
   const scalingLimit = await getGPUScaling(fastify);
-  if (gpuPodList.items.length != 0) {
+  if (gpuPodList.items.length != 0 && fastify.kube.currentToken) {
     areGpusConfigured = true;
     const gpuDataResponses = [];
     for (let i = 0; i < gpuPodList.items.length; i++) {
