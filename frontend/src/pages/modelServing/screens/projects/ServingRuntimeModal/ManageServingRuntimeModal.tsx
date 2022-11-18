@@ -17,6 +17,7 @@ import {
   assembleSecretSA,
   createRoleBinding,
   createSecret,
+  deleteSecret,
   generateRoleBindingServingRuntime,
   replaceSecret,
 } from '../../../../../api';
@@ -24,7 +25,7 @@ import {
   createServingRuntime,
   updateServingRuntime,
 } from '../../../../../api/network/servingRuntimes';
-import { ServingRuntimeKind, SecretKind } from '../../../../../k8sTypes';
+import { ServingRuntimeKind, SecretKind, K8sStatus } from '../../../../../k8sTypes';
 import {
   assembleServingRuntimeSA,
   createServiceAccount,
@@ -106,8 +107,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   };
 
   const updateSecrets = async (): Promise<void> => {
-    allSettledPromises<SecretKind, Error>(
-      createData.tokens
+    const deletedSecrets = (editInfo?.secrets || [])
+      .map((secret) => secret.metadata.name)
+      .filter((token) => !createData.tokens.some((tokenEdit) => tokenEdit.editName === token));
+    allSettledPromises<K8sStatus | SecretKind, Error>([
+      ...createData.tokens
         .filter((token) => translateDisplayNameForK8s(token.name) !== token.editName)
         .map((token) => {
           const secretToken = assembleSecretSA(token.name, namespace, token.editName);
@@ -117,7 +121,10 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             return createSecret(secretToken);
           }
         }),
-    )
+      ...deletedSecrets.map((secret) => {
+        return deleteSecret(namespace, secret);
+      }),
+    ])
       .then(() => {
         return Promise.resolve();
       })
