@@ -12,7 +12,7 @@ import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { useCreateStorageObjectForNotebook } from '../../spawner/storage/utils';
 import CreateNewStorageSection from '../../spawner/storage/CreateNewStorageSection';
-import ConnectExistingNotebook from './ConnectExistingNotebook';
+import StorageNotebookConnections from '../../../notebook/StorageNotebookConnections';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
@@ -37,7 +37,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     notebooks: connectedNotebooks,
     loaded: notebookLoaded,
     error: notebookError,
-  } = useRelatedNotebooks(ConnectedNotebookContext.PVC, existingData?.metadata.name);
+  } = useRelatedNotebooks(ConnectedNotebookContext.EXISTING_PVC, existingData?.metadata.name);
   const [removedNotebooks, setRemovedNotebooks] = React.useState<string[]>([]);
 
   const onBeforeClose = (submitted: boolean) => {
@@ -157,7 +157,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
                 error={notebookError}
               />
             )}
-            <ConnectExistingNotebook
+            <StorageNotebookConnections
               setForNotebookData={(forNotebookData) => {
                 setCreateData('forNotebook', forNotebookData);
               }}

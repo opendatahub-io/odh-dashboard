@@ -2,10 +2,15 @@ import { NotebookKind } from '../../../k8sTypes';
 import { getNotebookPVCNames, getNotebookSecretNames } from '../pvc/utils';
 import * as React from 'react';
 import { ProjectDetailsContext } from '../ProjectDetailsContext';
+import { DATA_CONNECTION_PREFIX } from '../../../api';
 
 export enum ConnectedNotebookContext {
-  PVC = 'pvc',
-  DATA_CONNECTION = 'data-connection',
+  /** What PVCs are already connected to notebooks */
+  EXISTING_PVC = 'pvc',
+  /** What Data Connections are already connected to notebooks */
+  EXISTING_DATA_CONNECTION = 'data-connection',
+  /** What Data Connections are possible to connect to notebooks */
+  POSSIBLE_DATA_CONNECTION = 'data-connection-possible',
 }
 
 const useRelatedNotebooks = (
@@ -21,7 +26,7 @@ const useRelatedNotebooks = (
       return [];
     }
     switch (context) {
-      case ConnectedNotebookContext.PVC:
+      case ConnectedNotebookContext.EXISTING_PVC:
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedPVCNames = getNotebookPVCNames(notebook);
           if (!relatedPVCNames.includes(resourceName)) {
@@ -30,10 +35,21 @@ const useRelatedNotebooks = (
 
           return [...acc, notebook];
         }, []);
-      case ConnectedNotebookContext.DATA_CONNECTION:
+      case ConnectedNotebookContext.EXISTING_DATA_CONNECTION:
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
-          const relatedEnvs = getNotebookSecretNames(notebook);
-          if (!relatedEnvs.includes(resourceName)) {
+          const relatedSecretNames = getNotebookSecretNames(notebook);
+          if (!relatedSecretNames.includes(resourceName)) {
+            return acc;
+          }
+
+          return [...acc, notebook];
+        }, []);
+      case ConnectedNotebookContext.POSSIBLE_DATA_CONNECTION:
+        return data.reduce<NotebookKind[]>((acc, { notebook }) => {
+          const relatedSecretNames = getNotebookSecretNames(notebook).filter((secretName) =>
+            secretName.startsWith(DATA_CONNECTION_PREFIX),
+          );
+          if (relatedSecretNames.length > 0) {
             return acc;
           }
 

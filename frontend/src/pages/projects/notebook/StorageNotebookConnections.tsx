@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { Alert } from '@patternfly/react-core';
-import { getNotebookMountPaths } from '../../../notebook/utils';
-import { ForNotebookSelection } from '../../../types';
-import MountPathField from '../../../pvc/MountPathField';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
-import SelectNotebookField from '../../../notebook/SelectNotebookField';
+import { getNotebookMountPaths } from './utils';
+import { ForNotebookSelection } from '../types';
+import MountPathField from '../pvc/MountPathField';
+import { ProjectDetailsContext } from '../ProjectDetailsContext';
+import ConnectedNotebookField from './ConnectedNotebookField';
 
-type ConnectExistingNotebookProps = {
+type StorageNotebookConnectionsProps = {
   forNotebookData: ForNotebookSelection;
   setForNotebookData: (value: ForNotebookSelection) => void;
   isDisabled: boolean;
 };
 
-const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
+const StorageNotebookConnections: React.FC<StorageNotebookConnectionsProps> = ({
   forNotebookData,
   setForNotebookData,
   isDisabled,
@@ -36,12 +36,13 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
 
   return (
     <>
-      <SelectNotebookField
+      <ConnectedNotebookField
         isDisabled={isDisabled}
         loaded={loaded}
         notebooks={notebooks}
-        selection={forNotebookData.name}
-        onSelect={(selection) => {
+        selections={[forNotebookData.name]}
+        onSelect={(selectionItems) => {
+          const selection = selectionItems[0];
           if (selection) {
             setForNotebookData({
               name: selection,
@@ -51,7 +52,6 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
             setForNotebookData({ name: '', mountPath: { value: '', error: '' } });
           }
         }}
-        selectionHelperText="Optionally connect it to an existing workbench"
       />
       {forNotebookData.name && (
         <MountPathField
@@ -66,4 +66,4 @@ const ConnectExistingNotebook: React.FC<ConnectExistingNotebookProps> = ({
   );
 };
 
-export default ConnectExistingNotebook;
+export default StorageNotebookConnections;

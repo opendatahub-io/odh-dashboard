@@ -6,23 +6,26 @@ import { NotebookKind } from '../../../k8sTypes';
 type SelectNotebookFieldProps = {
   loaded: boolean;
   notebooks: NotebookKind[];
-  selection: string;
-  onSelect: (selection?: string) => void;
   isRequired?: boolean;
   isDisabled?: boolean;
   selectionHelperText?: string;
-  label?: string;
+  placeholder?: string;
+  /* Selections will be considered always an array -- but will only be of 1 item when you don't set isMultiSelect */
+  selections: string[];
+  onSelect: (selection: string[]) => void;
+  isMultiSelect?: boolean;
 };
 
-const SelectNotebookField: React.FC<SelectNotebookFieldProps> = ({
+const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
   loaded,
   notebooks,
   isRequired,
-  selection,
+  selections,
   onSelect,
   isDisabled,
   selectionHelperText,
-  label = 'Workbench',
+  isMultiSelect,
+  placeholder = 'Select a workbench to connect',
 }) => {
   const [notebookSelectOpen, setNotebookSelectOpen] = React.useState<boolean>(false);
 
@@ -35,31 +38,39 @@ const SelectNotebookField: React.FC<SelectNotebookFieldProps> = ({
   } else if (noNotebooks) {
     placeholderText = 'No available workbenches';
   } else {
-    placeholderText = 'Choose an existing workbench';
+    placeholderText = placeholder;
   }
 
   return (
     <FormGroup
-      label={label}
+      label="Connected workbench"
       helperText={!noNotebooks && selectionHelperText}
       fieldId="connect-existing-workbench"
       isRequired={isRequired}
     >
       <Select
         removeFindDomNode
-        variant="typeahead"
-        selections={selection}
+        variant={isMultiSelect ? 'typeaheadmulti' : 'typeahead'}
+        selections={selections}
         isOpen={notebookSelectOpen}
         isDisabled={disabled}
         onClear={() => {
-          onSelect();
+          onSelect([]);
           setNotebookSelectOpen(false);
         }}
         onSelect={(e, selection) => {
-          if (typeof selection === 'string') {
-            onSelect(selection);
-            setNotebookSelectOpen(false);
+          if (typeof selection !== 'string') {
+            return;
           }
+
+          if (selections.includes(selection)) {
+            onSelect(selections.filter((f) => f !== selection));
+          } else if (isMultiSelect) {
+            onSelect([...selections, selection]);
+          } else {
+            onSelect([selection]);
+          }
+          setNotebookSelectOpen(false);
         }}
         onToggle={(isOpen) => setNotebookSelectOpen(isOpen)}
         placeholderText={placeholderText}
@@ -75,4 +86,4 @@ const SelectNotebookField: React.FC<SelectNotebookFieldProps> = ({
   );
 };
 
-export default SelectNotebookField;
+export default ConnectedNotebookField;

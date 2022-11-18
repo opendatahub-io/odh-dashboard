@@ -28,7 +28,7 @@ const DeleteDataConnectionModal: React.FC<DeleteDataConnectionModalProps> = ({
     notebooks: connectedNotebooks,
     loaded: notebookLoaded,
     error: notebookError,
-  } = useRelatedNotebooks(ConnectedNotebookContext.DATA_CONNECTION, resourceName);
+  } = useRelatedNotebooks(ConnectedNotebookContext.EXISTING_DATA_CONNECTION, resourceName);
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);

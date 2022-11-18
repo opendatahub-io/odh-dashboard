@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { Button, Form, Modal } from '@patternfly/react-core';
 import { DataConnection } from '../../../types';
-import SelectNotebookField from '../../../notebook/SelectNotebookField';
+import ConnectedNotebookField from '../../../notebook/ConnectedNotebookField';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
 import { getDataConnectionResourceName } from './utils';
-import useNonConnectedNotebooks from '../../../notebook/useNonConnectedNotebooks';
 import { attachNotebookSecret, replaceNotebookSecret } from '../../../../../api';
 import { getSecretsFromList, hasEnvFrom } from '../../../pvc/utils';
 import ExistingConnectedNotebooks from '../storage/ExistingConnectedNotebooks';
@@ -26,12 +25,12 @@ const ChangeDataConnectionWorkbenchModal: React.FC<ChangeDataConnectionWorkbench
   const [selectedNotebook, setSelectedNotebook] = React.useState<string>('');
   const resourceName = dataConnection ? getDataConnectionResourceName(dataConnection) : '';
   const { notebooks: connectedNotebooks, loaded: connectedLoaded } = useRelatedNotebooks(
-    ConnectedNotebookContext.DATA_CONNECTION,
+    ConnectedNotebookContext.EXISTING_DATA_CONNECTION,
     resourceName,
   );
   const [removedNotebooks, setRemovedNotebooks] = React.useState<string[]>([]);
-  const { notebooks: nonConnectedNotebooks, loaded: nonConnectedLoaded } = useNonConnectedNotebooks(
-    ConnectedNotebookContext.DATA_CONNECTION,
+  const { notebooks: nonConnectedNotebooks, loaded: nonConnectedLoaded } = useRelatedNotebooks(
+    ConnectedNotebookContext.POSSIBLE_DATA_CONNECTION,
     resourceName,
   );
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -121,12 +120,16 @@ const ChangeDataConnectionWorkbenchModal: React.FC<ChangeDataConnectionWorkbench
             }
           />
         )}
-        <SelectNotebookField
+        <ConnectedNotebookField
           loaded={nonConnectedLoaded}
           notebooks={nonConnectedNotebooks}
           isRequired={noExistingConnections}
-          selection={selectedNotebook}
-          onSelect={(selection) => setSelectedNotebook(selection || '')}
+          isMultiSelect
+          selections={selectedNotebook ? [selectedNotebook] : []}
+          onSelect={(selectionItems) => {
+            const selection = selectionItems[0];
+            setSelectedNotebook(selection || '');
+          }}
           selectionHelperText="Connect to an existing workbench that does not have this data connection"
         />
       </Form>
