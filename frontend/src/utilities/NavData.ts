@@ -1,4 +1,5 @@
 import { DashboardConfig } from '../types';
+import { featureFlagEnabled } from './utils';
 
 type NavDataCommon = {
   id: string;
@@ -31,21 +32,21 @@ const getSettingsNav = (
   if (!isAdmin) return null;
 
   const settingsNavs: NavDataHref[] = [];
-  if (!dashboardConfig.spec.dashboardConfig.disableBYONImageStream)
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableBYONImageStream))
     settingsNavs.push({
       id: 'settings-notebook-images',
       label: 'Notebook Images',
       href: '/notebookImages',
     });
 
-  if (!dashboardConfig.spec.dashboardConfig.disableClusterManager)
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableClusterManager))
     settingsNavs.push({
       id: 'settings-cluster-settings',
       label: 'Cluster settings',
       href: '/clusterSettings',
     });
 
-  if (!dashboardConfig.spec.dashboardConfig.disableUserManagement)
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableUserManagement))
     settingsNavs.push({
       id: 'settings-group-settings',
       label: 'User management',
@@ -76,11 +77,11 @@ export const getNavBarData = (
     ],
   });
 
-  if (!dashboardConfig.spec.dashboardConfig.disableProjects) {
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableProjects)) {
     navItems.push({ id: 'dsg', label: 'Data Science Projects', href: '/projects' });
   }
 
-  if (!dashboardConfig.spec.dashboardConfig.disableModelServing) {
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableModelServing)) {
     navItems.push({ id: 'modelServing', label: 'Model Serving', href: '/modelServing' });
   }
 

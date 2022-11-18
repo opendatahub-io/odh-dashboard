@@ -21,6 +21,10 @@ const useServingRuntimes = (
         setModelServers(newServingRuntimes);
       })
       .catch((e) => {
+        if (e.statusObject?.code === 404) {
+          setError(new Error('Model serving is not properly configured.'));
+          return;
+        }
         setError(e);
       });
   }, [namespace]);

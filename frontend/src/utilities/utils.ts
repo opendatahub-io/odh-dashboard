@@ -1,6 +1,13 @@
 import { OdhApplication, OdhDocument, OdhDocumentType } from '../types';
 import { CATEGORY_ANNOTATION, ODH_PRODUCT_NAME } from './const';
 
+/**
+ * Feature flags are required in the config -- but upgrades can be mixed and omission of the property
+ * usually ends up being enabled. This will prevent that as a general utility.
+ */
+export const featureFlagEnabled = (disabledSettingState?: boolean): boolean =>
+  disabledSettingState === false;
+
 export const makeCardVisible = (id: string): void => {
   setTimeout(() => {
     const element = document.getElementById(id);
