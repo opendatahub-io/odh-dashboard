@@ -12,6 +12,7 @@ import {
   getDataConnectionType,
 } from './utils';
 import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
+import EmptyTableCellForAlignment from '../../../components/EmptyTableCellForAlignment';
 
 type DataConnectionsTableRowProps = {
   obj: DataConnection;
@@ -28,10 +29,7 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
 }) => {
   return (
     <Tr>
-      {/* This cell is used to align with the other lists which have a toggle button */}
-      <Td className="pf-c-table__toggle">
-        <div style={{ width: 46 }} />
-      </Td>
+      <EmptyTableCellForAlignment />
       <Td dataLabel="Name">
         <Title headingLevel="h4">
           <ResourceNameTooltip resource={obj.data}>

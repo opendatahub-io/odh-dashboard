@@ -1,13 +1,15 @@
-import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
+import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '../../../ApplicationsPage';
-import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
+import { ProjectSectionTitles, ProjectSectionTitlesExtended } from './const';
 import GenericSidebar from '../../components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
-import NotebookList from './notebooks/NotebookList';
+import { useAppContext } from 'app/AppContext';
+import ServingRuntimeList from '../../../modelServing/screens/projects/ServingRuntimeList';
+import NotebooksList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
 
@@ -20,12 +22,17 @@ const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
+  const { dashboardConfig } = useAppContext();
+  const modelServingEnabled = !dashboardConfig.spec.dashboardConfig.disableModelServing;
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
-    { id: ProjectSectionID.WORKBENCHES, component: <NotebookList /> },
+    { id: ProjectSectionID.WORKBENCHES, component: <NotebooksList /> },
     { id: ProjectSectionID.CLUSTER_STORAGES, component: <StorageList /> },
     { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
+    ...(modelServingEnabled
+      ? [{ id: ProjectSectionID.MODEL_SERVER, component: <ServingRuntimeList /> }]
+      : []),
   ];
 
   return (
@@ -49,8 +56,12 @@ const ProjectDetails: React.FC = () => {
         variant="light"
       >
         <GenericSidebar
-          sections={Object.values(ProjectSectionID)}
-          titles={ProjectSectionTitles}
+          sections={Object.keys(
+            modelServingEnabled
+              ? { ...ProjectSectionTitles, ...ProjectSectionTitlesExtended }
+              : ProjectSectionTitles,
+          )}
+          titles={modelServingEnabled ? ProjectSectionTitlesExtended : ProjectSectionTitles}
           scrollableSelector={`#${scrollableSelectorID}`}
           maxWidth={175}
         >

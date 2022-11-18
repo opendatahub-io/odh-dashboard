@@ -19,7 +19,7 @@ const DataConnectionsList: React.FC = () => {
     <>
       <DetailsSection
         id={ProjectSectionID.DATA_CONNECTIONS}
-        title={ProjectSectionTitles[ProjectSectionID.DATA_CONNECTIONS]}
+        title={ProjectSectionTitles[ProjectSectionID.DATA_CONNECTIONS] || ''}
         actions={[
           <Button
             key={`action-${ProjectSectionID.DATA_CONNECTIONS}`}
@@ -29,7 +29,7 @@ const DataConnectionsList: React.FC = () => {
             Add data connection
           </Button>,
         ]}
-        isLoading={!loaded}
+        isLoading={!loaded && !connections}
         isEmpty={connections.length === 0}
         loadError={error}
         emptyState={

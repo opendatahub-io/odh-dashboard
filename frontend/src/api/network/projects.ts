@@ -12,6 +12,7 @@ import { ProjectKind } from '../../k8sTypes';
 import { ProjectModel } from '../models';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 import { ODH_PRODUCT_NAME } from '../../utilities/const';
+import { listServingRuntimes } from './servingRuntimes';
 
 export const getProject = (projectName: string): Promise<ProjectKind> => {
   return k8sGetResource<ProjectKind>({
@@ -90,6 +91,38 @@ export const createProject = (
           .catch(reject);
       })
       .catch(reject);
+  });
+};
+
+export const getModelServingProjects = (): Promise<ProjectKind[]> => {
+  return getProjects('modelmesh-enabled=true');
+};
+
+async function filter(arr, callback) {
+  const fail = Symbol();
+  return (
+    await Promise.all(arr.map(async (item) => ((await callback(item)) ? item : fail)))
+  ).filter((i) => i !== fail);
+}
+
+export const getModelServingProjectsAvailable = async (): Promise<ProjectKind[]> => {
+  return getModelServingProjects().then((projects) => {
+    return filter(projects, async (project) => {
+      const projectServing = await listServingRuntimes(project.metadata.name);
+      return projectServing.length !== 0;
+    });
+  });
+};
+
+export const addSupportModelMeshProject = (name: string): Promise<string> => {
+  return axios(`/api/namespaces/${name}/1`).then((response) => {
+    const applied = response.data?.applied ?? false;
+    if (!applied) {
+      throw new Error(
+        `Unable to enable model serving in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
+      );
+    }
+    return name;
   });
 };
 

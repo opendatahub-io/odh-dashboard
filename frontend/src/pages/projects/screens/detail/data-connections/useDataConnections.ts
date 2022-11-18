@@ -19,7 +19,8 @@ const useDataConnections = (
     if (!namespace) {
       return;
     }
-    getSecretsByLabel(`opendatahub.io/managed=true`, namespace)
+    setLoaded(false);
+    getSecretsByLabel(`opendatahub.io/managed=true, opendatahub.io/dashboard=true`, namespace)
       .then((secrets) => {
         const dataConnections = secrets
           .filter<AWSSecretKind>( // TODO: this will make more sense when we have more data connection types
@@ -35,6 +36,7 @@ const useDataConnections = (
       })
       .catch((e) => {
         setError(e);
+        setLoaded(true);
       });
   }, [namespace]);
 

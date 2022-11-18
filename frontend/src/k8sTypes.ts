@@ -222,9 +222,112 @@ export type ProjectKind = K8sResourceCommon & {
   };
 };
 
+export type ServiceAccountKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+    namespace: string;
+  };
+  secrets?: {
+    name: string;
+  }[];
+};
+
+export type ServingRuntimeKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        ['enable-route']: string;
+        ['enable-auth']: string;
+      }>;
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    builtInAdapter: {
+      serverType: string;
+      runtimeManagementPort: number;
+    };
+    containers: {
+      args: string[];
+      image: string;
+      name: string;
+      resources: {
+        limits: {
+          cpu: string;
+          memory: string;
+        };
+        requests: {
+          cpu: string;
+          memory: string;
+        };
+      };
+    }[];
+    supportedModelFormats: SupportedModelFormats[];
+    replicas: number;
+  };
+};
+
+export type SupportedModelFormats = {
+  name: string;
+  version?: string;
+  autoSelect?: boolean;
+};
+
+export type InferenceServiceKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    predictor: {
+      model: {
+        modelFormat: {
+          name: string;
+          version?: string;
+        };
+        runtime?: string;
+        storageUri?: string;
+        storage?: {
+          key: string;
+          parameters?: Record<string, string>;
+          path: string;
+          schemaPath?: string;
+        };
+      };
+    };
+  };
+  status?: {
+    components: {
+      predictor: {
+        grpcUrl: string;
+        restUrl: string;
+        url: string;
+      };
+    };
+    conditions: {
+      lastTransitionTime: string;
+      status: string;
+      type: string;
+    }[];
+    modelStatus: {
+      copies: {
+        failedCopies: number;
+        totalCopies: number;
+      };
+      states: {
+        activeModelState: string;
+        targetModelState: string;
+      };
+      transitionStatus: string;
+    };
+    url: string;
+  };
+};
+
 type RoleBindingSubject = {
   kind: string;
-  apiGroup: string;
+  apiGroup?: string;
   name: string;
 };
 
@@ -236,6 +339,7 @@ export type RoleBindingKind = K8sResourceCommon & {
 export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
+    path: string;
   };
 };
 

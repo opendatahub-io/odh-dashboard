@@ -7,7 +7,7 @@ import ProjectTable from './ProjectTable';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import { Link } from 'react-router-dom';
-import ProjectSearchField, { SearchType } from './ProjectSearchField';
+import SearchField, { SearchType } from '../../components/SearchField';
 
 const MIN_PAGE_SIZE = 10;
 
@@ -60,12 +60,15 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
       />
     );
 
+  const searchTypes = React.useMemo(() => Object.keys(SearchType), []);
+
   return (
     <>
       <Toolbar>
         <ToolbarContent>
           <ToolbarItem>
-            <ProjectSearchField
+            <SearchField
+              types={searchTypes}
               searchType={searchType}
               searchValue={search}
               onSearchTypeChange={(searchType) => {

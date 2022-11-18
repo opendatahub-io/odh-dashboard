@@ -7,9 +7,9 @@ import {
 } from '../../k8sTypes';
 import { NotebookState } from './notebook/types';
 
-const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
+export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name;
-const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
+export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/description'] || '';
 
 export const translateDisplayNameForK8s = (name: string): string => {

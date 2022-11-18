@@ -54,6 +54,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             label="Resource name"
             labelIcon={
               <Tooltip
+                removeFindDomNode
                 position="right"
                 content={
                   <Stack hasGutter>

@@ -6,14 +6,16 @@ export enum SearchType {
   USER = 'User',
 }
 
-type ProjectSearchFieldProps = {
+type SearchFieldProps = {
+  types: string[];
   searchType: SearchType;
   onSearchTypeChange: (searchType: SearchType) => void;
   searchValue: string;
   onSearchValueChange: (searchValue: string) => void;
 };
 
-const ProjectSearchField: React.FC<ProjectSearchFieldProps> = ({
+const SearchField: React.FC<SearchFieldProps> = ({
+  types,
   searchValue,
   searchType,
   onSearchValueChange,
@@ -24,6 +26,7 @@ const ProjectSearchField: React.FC<ProjectSearchFieldProps> = ({
   return (
     <InputGroup>
       <Select
+        removeFindDomNode
         isOpen={typeOpen}
         onToggle={() => setTypeOpen(!typeOpen)}
         selections={searchType}
@@ -34,7 +37,7 @@ const ProjectSearchField: React.FC<ProjectSearchFieldProps> = ({
           }
         }}
       >
-        {Object.keys(SearchType).map((key) => (
+        {types.map((key) => (
           <SelectOption key={key} value={key}>
             {SearchType[key]}
           </SelectOption>
@@ -53,4 +56,4 @@ const ProjectSearchField: React.FC<ProjectSearchFieldProps> = ({
   );
 };
 
-export default ProjectSearchField;
+export default SearchField;

@@ -6,13 +6,13 @@ import {
   StorageType,
   UpdateObjectAtPropAndValue,
 } from '../../../types';
-import useGenericObjectState from '../../../useGenericObjectState';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
 import useDefaultPvcSize from './useAvailablePvcSize';
+import useGenericObjectState from '../../../../../utilities/useGenericObjectState';
 import { getRootVolumeName } from '../spawnerUtils';
 
 export const useCreateStorageObjectForNotebook = (

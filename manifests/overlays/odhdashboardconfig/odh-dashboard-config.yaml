@@ -14,9 +14,35 @@ spec:
     disableTracking: true
     enablement: true
     disableProjects: true
+    disableModelServing: true
   notebookController:
     enabled: true
   notebookSizes:
+  - name: Small
+    resources:
+      limits:
+        cpu: "2"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 1Gi
+  - name: Medium
+    resources:
+      limits:
+        cpu: "4"
+        memory: 4Gi
+      requests:
+        cpu: "2"
+        memory: 2Gi
+  - name: Large
+    resources:
+      limits:
+        cpu: "8"
+        memory: 8Gi
+      requests:
+        cpu: "4"
+        memory: 4Gi
+  modelServerSizes:
   - name: Small
     resources:
       limits:
