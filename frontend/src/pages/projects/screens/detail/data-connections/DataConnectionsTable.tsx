@@ -25,7 +25,7 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
   const [connectExistingWorkbench, setConnectExistingWorkbench] = React.useState<
     DataConnection | undefined
   >();
-  const sort = useTableColumnSort<DataConnection>(columns, 0);
+  const sort = useTableColumnSort<DataConnection>(columns, 1);
   const sortedDataConnections = sort.transformData(unsortedDataConnections);
 
   return (

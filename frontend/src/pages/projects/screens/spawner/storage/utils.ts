@@ -46,7 +46,7 @@ export const useCreateStorageObjectForNotebook = (
   const existingDescription = existingData ? getPvcDescription(existingData) : '';
   const existingSize = existingData ? existingData.spec.resources.requests.storage : '';
   const { notebooks: relatedNotebooks } = useRelatedNotebooks(
-    ConnectedNotebookContext.PVC,
+    ConnectedNotebookContext.REMOVABLE_PVC,
     existingData ? existingData.metadata.name : undefined,
   );
   React.useEffect(() => {

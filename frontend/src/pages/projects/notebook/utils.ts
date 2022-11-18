@@ -22,6 +22,9 @@ export const getNotebookPVCVolumeNames = (notebook: NotebookKind): { [name: stri
     };
   }, {});
 
+const relativeMountPath = (mountPath: string): string =>
+  mountPath.slice(ROOT_MOUNT_PATH.length) || '/';
+
 export const getNotebookPVCMountPathMap = (
   notebook?: NotebookKind,
 ): { [claimName: string]: string } => {
@@ -40,7 +43,7 @@ export const getNotebookPVCMountPathMap = (
           return acc;
         }
 
-        return { ...acc, [claimName]: volumeMount.mountPath.slice(ROOT_MOUNT_PATH.length) || '/' };
+        return { ...acc, [claimName]: relativeMountPath(volumeMount.mountPath) };
       }, {}),
     };
   }, {});
@@ -52,7 +55,11 @@ export const getNotebookMountPaths = (notebook?: NotebookKind): string[] => {
   }
 
   return notebook.spec.template.spec.containers
-    .map((container) => container.volumeMounts?.map((volumeMount) => volumeMount.mountPath) || [])
+    .map(
+      (container) =>
+        container.volumeMounts?.map((volumeMount) => relativeMountPath(volumeMount.mountPath)) ||
+        [],
+    )
     .flat();
 };
 

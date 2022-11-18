@@ -35,7 +35,7 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
               error = 'Required';
             } else if (!/^[a-z-]+$/.test(value)) {
               error = 'Must only consist of lower case letters and dashes';
-            } else if (inUseMountPaths.includes(value)) {
+            } else if (inUseMountPaths.includes(`/${value}`)) {
               error = 'Mount folder is already in use for this workbench';
             }
             setMountPath({ value, error });

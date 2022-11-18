@@ -1,13 +1,21 @@
 import * as React from 'react';
-import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import {
+  ActionsColumn,
+  ExpandableRowContent,
+  IAction,
+  Tbody,
+  Td,
+  Tr,
+} from '@patternfly/react-table';
 import { Text, Title } from '@patternfly/react-core';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { HddIcon } from '@patternfly/react-icons';
 import StorageSizeBar from '../../../components/StorageSizeBars';
-import ConnectedNotebooks from '../../../notebook/ConnectedNotebooks';
+import ConnectedNotebookNames from '../../../notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
 import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
+import useIsRootVolume from './useIsRootVolume';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
@@ -17,6 +25,25 @@ type StorageTableRowProps = {
 
 const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onEditPVC }) => {
   const [isExpanded, setExpanded] = React.useState<boolean>(false);
+  const isRootVolume = useIsRootVolume(obj);
+
+  const actions: IAction[] = [
+    {
+      title: 'Edit storage',
+      onClick: () => {
+        onEditPVC(obj);
+      },
+    },
+  ];
+
+  if (!isRootVolume) {
+    actions.push({
+      title: 'Delete storage',
+      onClick: () => {
+        onDeletePVC(obj);
+      },
+    });
+  }
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -35,28 +62,13 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
           </Text>
         </Td>
         <Td dataLabel="Connected workbenches">
-          <ConnectedNotebooks
-            context={ConnectedNotebookContext.PVC}
+          <ConnectedNotebookNames
+            context={ConnectedNotebookContext.EXISTING_PVC}
             relatedResourceName={obj.metadata.name}
           />
         </Td>
         <Td isActionCell>
-          <ActionsColumn
-            items={[
-              {
-                title: 'Edit storage',
-                onClick: () => {
-                  onEditPVC(obj);
-                },
-              },
-              {
-                title: 'Delete storage',
-                onClick: () => {
-                  onDeletePVC(obj);
-                },
-              },
-            ]}
-          />
+          <ActionsColumn items={actions} />
         </Td>
       </Tr>
       <Tr isExpanded={isExpanded}>
