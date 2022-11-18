@@ -22,7 +22,7 @@ const ChangeDataConnectionWorkbenchModal: React.FC<ChangeDataConnectionWorkbench
   onClose,
 }) => {
   const [inProgress, setInProgress] = React.useState(false);
-  const [selectedNotebook, setSelectedNotebook] = React.useState<string>('');
+  const [selectedNotebooks, setSelectedNotebooks] = React.useState<string[]>([]);
   const resourceName = dataConnection ? getDataConnectionResourceName(dataConnection) : '';
   const { notebooks: connectedNotebooks, loaded: connectedLoaded } = useRelatedNotebooks(
     ConnectedNotebookContext.EXISTING_DATA_CONNECTION,
@@ -40,20 +40,29 @@ const ChangeDataConnectionWorkbenchModal: React.FC<ChangeDataConnectionWorkbench
   const changedExistingConnections = removedNotebooks.length > 0;
   const canSubmit =
     !inProgress &&
-    (noExistingConnections ? !!selectedNotebook : changedExistingConnections || !!selectedNotebook);
+    (noExistingConnections
+      ? selectedNotebooks.length > 0
+      : changedExistingConnections || selectedNotebooks.length > 0);
 
   const submit = () => {
     if (resourceName && namespace) {
       const promiseActions: Promise<K8sResourceCommon>[] = [];
 
-      if (selectedNotebook) {
-        const relatedNotebook = nonConnectedNotebooks.find(
-          (notebook) => notebook.metadata.name === selectedNotebook,
+      if (selectedNotebooks) {
+        const relatedNotebooks = nonConnectedNotebooks.filter((notebook) =>
+          selectedNotebooks.includes(notebook.metadata.name),
         );
-        if (relatedNotebook) {
-          const hasExistingEnvFrom = hasEnvFrom(relatedNotebook);
+        if (relatedNotebooks) {
           promiseActions.push(
-            attachNotebookSecret(selectedNotebook, namespace, resourceName, hasExistingEnvFrom),
+            ...relatedNotebooks.map((relatedNotebook) => {
+              const hasExistingEnvFrom = hasEnvFrom(relatedNotebook);
+              return attachNotebookSecret(
+                relatedNotebook.metadata.name,
+                namespace,
+                resourceName,
+                hasExistingEnvFrom,
+              );
+            }),
           );
         }
       }
@@ -90,7 +99,7 @@ const ChangeDataConnectionWorkbenchModal: React.FC<ChangeDataConnectionWorkbench
   };
   const onBeforeClose = (successfulConnection: boolean) => {
     onClose(successfulConnection);
-    setSelectedNotebook('');
+    setSelectedNotebooks([]);
     setInProgress(false);
   };
 
@@ -125,12 +134,11 @@ const ChangeDataConnectionWorkbenchModal: React.FC<ChangeDataConnectionWorkbench
           notebooks={nonConnectedNotebooks}
           isRequired={noExistingConnections}
           isMultiSelect
-          selections={selectedNotebook ? [selectedNotebook] : []}
+          selections={selectedNotebooks}
           onSelect={(selectionItems) => {
-            const selection = selectionItems[0];
-            setSelectedNotebook(selection || '');
+            setSelectedNotebooks(selectionItems);
           }}
-          selectionHelperText="Connect to an existing workbench that does not have this data connection"
+          selectionHelperText="Connect to workbenches that do not already have a data connection"
         />
       </Form>
     </Modal>
