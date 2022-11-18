@@ -210,6 +210,7 @@ export type KfDefResource = K8sResourceCommon & {
 export type KubeStatus = {
   currentContext: string;
   currentUser: User;
+  currentToken: string;
   namespace: string;
   userName: string | string[];
   clusterID: string;
