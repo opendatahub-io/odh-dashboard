@@ -119,6 +119,7 @@ const getCurrentToken = async (currentUser: User) => {
       fs.readFile(
         // '/var/run/secrets/kubernetes.io/serviceaccount/token',
         currentUser?.authProvider?.config?.tokenFile,
+        'utf8',
         (err, data) => {
           if (err) {
             reject(err);
