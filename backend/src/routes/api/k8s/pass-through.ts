@@ -74,10 +74,23 @@ export const passThrough = (
               try {
                 parsedData = JSON.parse(data);
               } catch (e) {
-                // Likely not JSON, print the error and return the content to the client
-                fastify.log.error(`Parsing response error: ${e}, ${data}`);
-                reject({ code: 500, response: data });
-                return;
+                if (data.trim() === '404 page not found') {
+                  // API on k8s doesn't exist, generate a status.
+                  parsedData = {
+                    kind: 'Status',
+                    apiVersion: 'v1',
+                    metadata: {},
+                    status: 'Failure',
+                    message: data,
+                    reason: 'NotFound',
+                    code: 404,
+                  };
+                } else {
+                  // Likely not JSON, print the error and return the content to the client
+                  fastify.log.error(`Parsing response error: ${e}, ${data}`);
+                  reject({ code: 500, response: data });
+                  return;
+                }
               }
 
               if (isK8sStatus(parsedData)) {

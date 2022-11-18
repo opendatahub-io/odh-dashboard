@@ -14,7 +14,7 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
         return response;
       }
 
-      const result = await response.text();
+      const result = await response.clone().text();
       let data: K8sStatus | unknown;
       try {
         data = JSON.parse(result);

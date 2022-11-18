@@ -12,6 +12,7 @@ import ServingRuntimeList from '../../../modelServing/screens/projects/ServingRu
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
+import { featureFlagEnabled } from '../../../../utilities/utils';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -23,7 +24,9 @@ const ProjectDetails: React.FC = () => {
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
   const { dashboardConfig } = useAppContext();
-  const modelServingEnabled = !dashboardConfig.spec.dashboardConfig.disableModelServing;
+  const modelServingEnabled = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableModelServing,
+  );
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
