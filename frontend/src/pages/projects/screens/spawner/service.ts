@@ -235,9 +235,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     Promise.all(creatingPromises),
     Promise.all(deletingPromises),
     Promise.all(updatingPromises),
-  ]).catch((e) => {
-    throw e;
-  });
+  ]);
 
   const deletingNames = deleteResources.map((resource) => resource.existingName || '');
 
