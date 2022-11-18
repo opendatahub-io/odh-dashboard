@@ -3,10 +3,13 @@ import { getNotebookPVCNames, getNotebookSecretNames } from '../pvc/utils';
 import * as React from 'react';
 import { ProjectDetailsContext } from '../ProjectDetailsContext';
 import { DATA_CONNECTION_PREFIX } from '../../../api';
+import { getNotebookPVCMountPathMap } from './utils';
 
 export enum ConnectedNotebookContext {
   /** What PVCs are already connected to notebooks */
   EXISTING_PVC = 'pvc',
+  /** What PVCs are allowed to be disconnected from notebooks */
+  REMOVABLE_PVC = 'removable-pvc',
   /** What Data Connections are already connected to notebooks */
   EXISTING_DATA_CONNECTION = 'data-connection',
   /** What Data Connections are possible to connect to notebooks */
@@ -30,6 +33,20 @@ const useRelatedNotebooks = (
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedPVCNames = getNotebookPVCNames(notebook);
           if (!relatedPVCNames.includes(resourceName)) {
+            return acc;
+          }
+
+          return [...acc, notebook];
+        }, []);
+      case ConnectedNotebookContext.REMOVABLE_PVC:
+        return data.reduce<NotebookKind[]>((acc, { notebook }) => {
+          const relatedPVCNames = getNotebookPVCNames(notebook);
+          if (!relatedPVCNames.includes(resourceName)) {
+            return acc;
+          }
+
+          const pvcMountPathMap = getNotebookPVCMountPathMap(notebook);
+          if (pvcMountPathMap[resourceName] === '/') {
             return acc;
           }
 

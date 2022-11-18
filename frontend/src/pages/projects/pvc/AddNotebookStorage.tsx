@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Modal } from '@patternfly/react-core';
+import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { NotebookKind } from '../../../k8sTypes';
 import { getNotebookDisplayName } from '../utils';
 import AddExistingStorageField from '../screens/spawner/storage/AddExistingStorageField';
@@ -16,6 +16,7 @@ type AddNotebookStorageProps = {
 const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClose }) => {
   const [existingData, setExistingData, resetDefaults] = useExistingStorageDataObjectForNotebook();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<Error | undefined>();
   const notebookDisplayName = notebook ? getNotebookDisplayName(notebook) : 'this notebook';
   const inUseMountPaths = getNotebookMountPaths(notebook);
 
@@ -43,8 +44,9 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
         .then(() => {
           beforeClose(true);
         })
-        .catch(() => {
-          // TODO: Support error path
+        .catch((e) => {
+          setError(e);
+          setIsSubmitting(false);
         });
     }
   };
@@ -64,22 +66,33 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
         </Button>,
       ]}
     >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <AddExistingStorageField
-          data={{ storage: existingData.name }}
-          setData={({ storage }) => setExistingData('name', storage)}
-        />
-        <MountPathField
-          inUseMountPaths={inUseMountPaths}
-          mountPath={existingData.mountPath}
-          setMountPath={(mountPath) => setExistingData('mountPath', mountPath)}
-        />
-      </Form>
+      <Stack hasGutter>
+        <StackItem>
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <AddExistingStorageField
+              data={{ storage: existingData.name }}
+              setData={({ storage }) => setExistingData('name', storage)}
+            />
+            <MountPathField
+              inUseMountPaths={inUseMountPaths}
+              mountPath={existingData.mountPath}
+              setMountPath={(mountPath) => setExistingData('mountPath', mountPath)}
+            />
+          </Form>
+        </StackItem>
+        {error && (
+          <StackItem>
+            <Alert isInline variant="danger" title="Error attaching storage">
+              {error.message}
+            </Alert>
+          </StackItem>
+        )}
+      </Stack>
     </Modal>
   );
 };
