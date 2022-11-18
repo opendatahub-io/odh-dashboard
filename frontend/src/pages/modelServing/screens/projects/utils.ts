@@ -86,6 +86,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
       setCreateData('modelSize', foundSize);
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
+      setCreateData('tokens', existingTokens);
     }
   }, [
     existingServingRuntimeName,
@@ -93,15 +94,10 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingResources,
     existingExternalRoute,
     existingTokenAuth,
+    existingTokens,
     setCreateData,
     sizes,
   ]);
-
-  React.useEffect(() => {
-    if (existingTokens) {
-      setCreateData('tokens', existingTokens);
-    }
-  }, [existingTokens, setCreateData]);
 
   return [...createModelState, sizes];
 };
