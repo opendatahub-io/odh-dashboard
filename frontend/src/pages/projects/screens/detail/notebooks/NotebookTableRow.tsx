@@ -65,6 +65,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           <ActionsColumn
             items={[
               {
+                isDisabled: obj.isStarting,
                 title: 'Edit workbench',
                 onClick: () => {
                   navigate(

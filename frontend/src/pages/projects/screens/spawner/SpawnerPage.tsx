@@ -13,7 +13,7 @@ import { ImageStreamAndVersion } from '../../../../types';
 import GenericSidebar from '../../components/GenericSidebar';
 import NameDescriptionField from '../../components/NameDescriptionField';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
-import { EnvVariable, NameDescType, StorageType } from '../../types';
+import { NameDescType } from '../../types';
 import { getNotebookDescription, getNotebookDisplayName, getProjectDisplayName } from '../../utils';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
@@ -28,20 +28,15 @@ import GPUSelectField from '../../../notebookController/screens/server/GPUSelect
 import { NotebookKind } from '../../../../k8sTypes';
 import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
-import { useMergeDefaultPVCName } from './spawnerUtils';
-import ExistingPVCField from '../../components/ExistingPVCField';
-import useAvailablePvcs from './storage/useAvailablePvcs';
-import useNotebookRootStorage from './storage/useNotebookRootStorage';
+import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
+import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
 };
 
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
-  const {
-    currentProject,
-    notebooks: { data: allNotebooks },
-  } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
 
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
@@ -55,15 +50,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   });
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
   const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
-  const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(StorageType.NEW_PVC);
+  const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
-  const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
-  const rootStorage = useNotebookRootStorage(existingNotebook);
-
-  const [availablePvcs, pvcLoaded, pvcLoadError] = useAvailablePvcs(
-    currentProject.metadata.name,
-    allNotebooks,
-  );
+  const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
 
   React.useEffect(() => {
     if (existingNotebook) {
@@ -72,9 +61,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         k8sName: existingNotebook.metadata.name,
         description: getNotebookDescription(existingNotebook),
       });
-      setStorageData('existing', { storage: rootStorage?.metadata.name ?? '' });
     }
-  }, [existingNotebook, setStorageData, rootStorage]);
+  }, [existingNotebook, setStorageData]);
 
   const [data, loaded] = useNotebookImageData(existingNotebook);
   React.useEffect(() => {
@@ -94,11 +82,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
 
   const sectionIDs = Object.values(SpawnerPageSectionID);
-
-  // TODO: Remove this after we support the related sections
-  const filteredSectionIDs = existingNotebook
-    ? sectionIDs.filter((id) => id !== SpawnerPageSectionID.ENVIRONMENT_VARIABLES)
-    : sectionIDs;
 
   return (
     <ApplicationsPage
@@ -131,7 +114,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         variant="light"
       >
         <GenericSidebar
-          sections={filteredSectionIDs}
+          sections={sectionIDs}
           titles={SpawnerPageSectionTitles}
           scrollableSelector={`#${ScrollableSelectorID}`}
         >
@@ -173,45 +156,30 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 setValue={(value: string) => setSelectedGpu(value)}
               />
             </FormSection>
-            {!existingNotebook && ( // TODO: Support these functionalities
-              <>
-                <FormSection
-                  title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
-                  id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
-                  aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
-                >
-                  <EnvironmentVariables
-                    envVariables={envVariables}
-                    setEnvVariables={setEnvVariables}
-                  />
-                </FormSection>
-              </>
-            )}
+            <FormSection
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
+              id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
+            >
+              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+            </FormSection>
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
             >
               <Alert variant="info" isPlain isInline title="Cluster storages will mount to /" />
-              {existingNotebook ? (
-                <ExistingPVCField
-                  fieldId="edit-cluster-storage"
-                  storages={rootStorage ? [...availablePvcs, rootStorage] : availablePvcs}
-                  loaded={pvcLoaded}
-                  loadError={pvcLoadError}
-                  selectedStorage={storageData.existing.storage}
-                  setStorage={(storage) => setStorageData('existing', { storage: storage || '' })}
-                />
-              ) : (
-                <StorageField storageData={storageData} setStorageData={setStorageData} />
-              )}
+              <StorageField
+                storageData={storageData}
+                setStorageData={setStorageData}
+                editStorage={getRootVolumeName(existingNotebook)}
+              />
             </FormSection>
           </Form>
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
         <SpawnerFooter
-          editNotebook={existingNotebook}
           startNotebookData={{
             notebookName: nameDesc.name,
             description: nameDesc.description,

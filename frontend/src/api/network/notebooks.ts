@@ -256,6 +256,9 @@ export const updateNotebook = (
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
 
+  // clean the envFrom array in case of merging the old value again
+  existingNotebook.spec.template.spec.containers[0].envFrom = [];
+
   return k8sUpdateResource<NotebookKind>({
     model: NotebookModel,
     resource: _.merge({}, existingNotebook, notebook),

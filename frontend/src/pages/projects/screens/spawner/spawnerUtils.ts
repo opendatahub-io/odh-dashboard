@@ -258,41 +258,10 @@ export const getVolumesByStorageData = (
   return { volumes, volumeMounts };
 };
 
-export const replaceRootVolumesByStorageData = (
-  notebook: NotebookKind,
-  storageData: StorageData,
-): { volumes: Volume[]; volumeMounts: VolumeMount[] } => {
-  const {
-    existing: { storage },
-  } = storageData;
-
-  const oldVolumes = notebook.spec.template.spec.volumes || [];
-  const oldVolumeMounts = notebook.spec.template.spec.containers[0].volumeMounts || [];
-
-  const replacedVolume: Volume = { name: storage, persistentVolumeClaim: { claimName: storage } };
-  const replacedVolumeMount: VolumeMount = { name: storage, mountPath: ROOT_MOUNT_PATH };
-
-  const rootVolumeMount = oldVolumeMounts.find(
+export const getRootVolumeName = (notebook?: NotebookKind): string =>
+  notebook?.spec.template.spec.containers[0].volumeMounts?.find(
     (volumeMount) => volumeMount.mountPath === ROOT_MOUNT_PATH,
-  );
-
-  // if no root, add the replaced one as the root
-  if (!rootVolumeMount) {
-    return {
-      volumes: [...oldVolumes, replacedVolume],
-      volumeMounts: [...oldVolumeMounts, replacedVolumeMount],
-    };
-  }
-
-  const volumes = oldVolumes.map((volume) =>
-    volume.name === rootVolumeMount.name ? replacedVolume : volume,
-  );
-  const volumeMounts = oldVolumeMounts.map((volumeMount) =>
-    volumeMount.name === rootVolumeMount.name ? replacedVolumeMount : volumeMount,
-  );
-
-  return { volumes, volumeMounts };
-};
+  )?.name || '';
 
 /******************* Checking utils *******************/
 /**
