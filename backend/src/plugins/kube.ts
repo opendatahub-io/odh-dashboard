@@ -127,7 +127,7 @@ const getCurrentToken = async (currentUser: User) => {
         resolve(data);
       });
     } else {
-      resolve(currentUser?.token);
+      resolve(currentUser?.token || '');
     }
   });
 };
