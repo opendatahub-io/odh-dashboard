@@ -3,11 +3,17 @@ import { DropdownDirection, Icon } from '@patternfly/react-core';
 import { InferenceServiceKind } from '../../../../k8sTypes';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import ResourceNameTooltip from '../../../projects/components/ResourceNameTooltip';
-import { checkInferenceServiceReady, getInferenceServiceDisplayName } from './utils';
+import { getInferenceServiceDisplayName, getInferenceServiceActiveModelState } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
-import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  OutlinedQuestionCircleIcon,
+  PendingIcon,
+} from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import InferenceServiceProject from './InferenceServiceProject';
+import { InferenceServiceModelState } from '../types';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -22,6 +28,43 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   onEditInferenceService,
   isGlobal,
 }) => {
+  const renderAlert = () => {
+    switch (getInferenceServiceActiveModelState(inferenceService)) {
+      case InferenceServiceModelState.LOADED:
+      case InferenceServiceModelState.STANDBY:
+        return (
+          <Icon status="success">
+            <CheckCircleIcon />
+          </Icon>
+        );
+      case InferenceServiceModelState.FAILED_TO_LOAD:
+        return (
+          <Icon status="danger">
+            <ExclamationCircleIcon />
+          </Icon>
+        );
+      case InferenceServiceModelState.PENDING:
+      case InferenceServiceModelState.LOADING:
+        return (
+          <Icon>
+            <PendingIcon />
+          </Icon>
+        );
+      case InferenceServiceModelState.UNKNOWN:
+        return (
+          <Icon status="warning">
+            <OutlinedQuestionCircleIcon />
+          </Icon>
+        );
+      default:
+        return (
+          <Icon status="warning">
+            <OutlinedQuestionCircleIcon />
+          </Icon>
+        );
+    }
+  };
+
   return (
     <Tbody>
       <Tr>
@@ -38,17 +81,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <Td dataLabel="Inference endpoint">
           <InferenceServiceEndpoint inferenceService={inferenceService} />
         </Td>
-        <Td dataLabel="Status">
-          {checkInferenceServiceReady(inferenceService) ? (
-            <Icon status="success">
-              <CheckCircleIcon />
-            </Icon>
-          ) : (
-            <Icon status="danger">
-              <ExclamationCircleIcon />
-            </Icon>
-          )}
-        </Td>
+        <Td dataLabel="Status">{renderAlert()}</Td>
         <Td isActionCell>
           <ActionsColumn
             dropdownDirection={isGlobal ? DropdownDirection.down : DropdownDirection.up}
