@@ -110,6 +110,17 @@ rules:
       - pods
       - serviceaccounts
       - services
+  - apiGroups:
+      - ''
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
       - namespaces
   - apiGroups:
       - rbac.authorization.k8s.io
