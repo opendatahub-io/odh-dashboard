@@ -27,6 +27,19 @@ export const movePVC = async (
       headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
     },
   );
+  // DEBUG PATCH, THIS SHOULD BE REMOVED BEFORE MERGING
+  fastify.kube.coreV1Api.patchNamespacedPersistentVolumeClaim(
+    PVC.metadata.name,
+    namespace,
+    { metadata: { finalizers: undefined}},
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    {
+      headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+    },
+  );
   fastify.kube.coreV1Api.deleteNamespacedPersistentVolumeClaim(pvcName, namespace);
   fastify.kube.coreV1Api.patchPersistentVolume(
     PVC.spec.volumeName,
