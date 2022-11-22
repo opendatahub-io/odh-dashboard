@@ -6,6 +6,15 @@ export enum ServingRuntimeTableTabs {
   TOKENS = 3,
 }
 
+export enum InferenceServiceModelState {
+  PENDING = 'Pending',
+  STANDBY = 'Standby',
+  FAILED_TO_LOAD = 'FailedToLoad',
+  LOADING = 'Loading',
+  LOADED = 'Loaded',
+  UNKNOWN = 'Unknown',
+}
+
 export type CreatingServingRuntimeObject = {
   numReplicas: number;
   modelSize: ServingRuntimeSize;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, FormSection, NumberInput, Select, SelectOption } from '@patternfly/react-core';
+import { FormGroup, FormSection, Select, SelectOption } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../../types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
@@ -17,10 +17,11 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
 
-  const onChangeGPU = (event: React.FormEvent<HTMLInputElement>) => {
-    const target = event.target as HTMLInputElement;
-    setData('gpus', parseInt(target.value));
-  };
+  // Leaving this to enable GPU in next release
+  // const onChangeGPU = (event: React.FormEvent<HTMLInputElement>) => {
+  //   const target = event.target as HTMLInputElement;
+  //   setData('gpus', parseInt(target.value));
+  // };
 
   const sizeCustom = [
     ...sizes,
@@ -67,7 +68,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
           <ServingRuntimeSizeExpandedField data={data} setData={setData} />
         )}
       </FormGroup>
-      <FormGroup label="Number of GPUs (Not implemented)">
+      {/* // Leaving this to enable GPU in next release <FormGroup label="Number of GPUs (Not implemented)">
         <NumberInput
           isDisabled
           value={data.gpus}
@@ -77,7 +78,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
           onMinus={() => setData('gpus', data.gpus - 1)}
           onPlus={() => setData('gpus', data.gpus + 1)}
         />
-      </FormGroup>
+      </FormGroup> */}
     </FormSection>
   );
 };

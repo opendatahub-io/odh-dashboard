@@ -3,8 +3,6 @@ import {
   Alert,
   FormGroup,
   Radio,
-  Select,
-  SelectOption,
   Skeleton,
   Stack,
   StackItem,
@@ -14,8 +12,8 @@ import { DataConnection, UpdateObjectAtPropAndValue } from 'pages/projects/types
 import { CreatingInferenceServiceObject, InferenceServiceStorageType } from '../../types';
 import AWSField from 'pages/projects/dataConnections/AWSField';
 import useDataConnections from 'pages/projects/screens/detail/data-connections/useDataConnections';
-import { getDataConnectionDisplayName } from 'pages/projects/screens/detail/data-connections/utils';
 import '../../../../projects/screens/detail/storage/ManageStorageModal.scss';
+import DataConnectionExistingField from './DataConnectionExistingField';
 
 type DataConnectionSectionType = {
   data: CreatingInferenceServiceObject;
@@ -32,7 +30,6 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
     dataConnectionContext ? undefined : data.project,
   );
   const dataConnections = dataConnectionContext || dataContext;
-  const [isOpen, setOpen] = React.useState<boolean>(false);
 
   if (loadError) {
     return (
@@ -41,18 +38,6 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
       </Alert>
     );
   }
-
-  const pathField = () => {
-    return (
-      <FormGroup label="Folder path">
-        <TextInput
-          id="storage-path"
-          value={data.storage.path}
-          onChange={(path) => setData('storage', { ...data.storage, path })}
-        />
-      </FormGroup>
-    );
-  };
 
   return (
     <FormGroup fieldId="data-connection" role="radiogroup">
@@ -76,43 +61,11 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
                   {!dataConnectionContext && !loaded && data.project !== '' ? (
                     <Skeleton />
                   ) : (
-                    <>
-                      <FormGroup label="Name" required>
-                        <Select
-                          removeFindDomNode
-                          id="inference-service-data-connection"
-                          isOpen={isOpen}
-                          placeholderText={
-                            dataConnections.length === 0
-                              ? 'No data connections available to select'
-                              : 'Select...'
-                          }
-                          isDisabled={dataConnections.length === 0}
-                          onToggle={(open) => setOpen(open)}
-                          onSelect={(_, option) => {
-                            if (typeof option === 'string') {
-                              setData('storage', {
-                                ...data.storage,
-                                dataConnection: option,
-                              });
-                              setOpen(false);
-                            }
-                          }}
-                          selections={data.storage.dataConnection}
-                          menuAppendTo="parent"
-                        >
-                          {dataConnections.map((connection) => (
-                            <SelectOption
-                              key={connection.data.metadata.name}
-                              value={connection.data.metadata.name}
-                            >
-                              {getDataConnectionDisplayName(connection)}
-                            </SelectOption>
-                          ))}
-                        </Select>
-                      </FormGroup>
-                      {pathField()}
-                    </>
+                    <DataConnectionExistingField
+                      data={data}
+                      setData={setData}
+                      dataConnections={dataConnections}
+                    />
                   )}
                 </>
               )
@@ -131,13 +84,23 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
             }
             body={
               data.storage.type === InferenceServiceStorageType.NEW_STORAGE && (
-                <>
-                  <AWSField
-                    values={data.storage.awsData}
-                    onUpdate={(awsData) => setData('storage', { ...data.storage, awsData })}
-                  />
-                  {pathField()}
-                </>
+                <Stack hasGutter>
+                  <StackItem>
+                    <AWSField
+                      values={data.storage.awsData}
+                      onUpdate={(awsData) => setData('storage', { ...data.storage, awsData })}
+                    />
+                  </StackItem>
+                  <StackItem>
+                    <FormGroup label="Folder path">
+                      <TextInput
+                        id="storage-path"
+                        value={data.storage.path}
+                        onChange={(path) => setData('storage', { ...data.storage, path })}
+                      />
+                    </FormGroup>
+                  </StackItem>
+                </Stack>
               )
             }
           />
