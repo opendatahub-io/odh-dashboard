@@ -25,7 +25,10 @@ const useNotebookImageData = (
     const container: NotebookContainer | undefined = notebook.spec.template.spec.containers.find(
       (container) => container.name === notebook.metadata.name,
     );
-    const imageTag = container?.image.split('/').at(-1)?.split(':');
+
+    const imageStreamTagAndName =
+      container?.env?.find((i) => i?.name === 'JUPYTER_IMAGE')?.value ?? '';
+    const imageTag = imageStreamTagAndName.toString().split('/').at(-1)?.split(':');
 
     if (!imageTag || imageTag.length < 2 || !container) {
       return [null, true];

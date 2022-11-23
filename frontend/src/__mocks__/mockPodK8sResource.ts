@@ -202,7 +202,7 @@ export const mockPodK8sResource = ({
         },
         terminationMessagePath: '/dev/termination-log',
         terminationMessagePolicy: 'File',
-        imagePullPolicy: 'Always',
+        imagePullPolicy: 'IfNotPresent',
         securityContext: {
           capabilities: {
             drop: ['ALL'],
@@ -302,7 +302,7 @@ export const mockPodK8sResource = ({
         },
         terminationMessagePath: '/dev/termination-log',
         terminationMessagePolicy: 'File',
-        imagePullPolicy: 'Always',
+        imagePullPolicy: 'IfNotPresent',
         securityContext: {
           capabilities: {
             drop: ['ALL'],
