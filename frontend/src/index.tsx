@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { store } from './redux/store/store';
 import App from './app/App';
 import SDKInitialize from './SDKInitialize';
+import { BrowserStorageContextProvider } from './components/browserStorage/BrowserStorageContext';
 
 /**
 /**
@@ -19,7 +20,9 @@ root.render(
     <Provider store={store}>
       <Router>
         <SDKInitialize>
-          <App />
+          <BrowserStorageContextProvider>
+            <App />
+          </BrowserStorageContextProvider>
         </SDKInitialize>
       </Router>
     </Provider>

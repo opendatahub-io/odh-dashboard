@@ -6,7 +6,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '../../types';
 import { useWatchComponents } from '../../utilities/useWatchComponents';
 import { useWatchDocs } from '../../utilities/useWatchDocs';
-import { useLocalStorage } from '../../components/localStorage';
+import { useBrowserStorage } from '../../components/browserStorage';
 import { useQueryParams } from '../../utilities/useQueryParams';
 import ApplicationsPage from '../ApplicationsPage';
 import QuickStarts from '../../app/QuickStarts';
@@ -45,10 +45,10 @@ export const LearningCenter: React.FC = () => {
   const queryParams = useQueryParams();
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
   const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
-  const [favourites, setFavorites] = useLocalStorage<string[]>(FAVORITE_RESOURCES, []);
+  const [favourites, setFavorites] = useBrowserStorage<string[]>(FAVORITE_RESOURCES, []);
   const favoriteResources = useDeepCompareMemoize(favourites);
   const docFilterer = useDocFilterer(favoriteResources);
-  const [viewType, setViewType] = useLocalStorage<string>(VIEW_TYPE, '', false);
+  const [viewType, setViewType] = useBrowserStorage<string>(VIEW_TYPE, '', false);
   const [filtersCollapsed, setFiltersCollapsed] = React.useState<boolean>(false);
   const [filtersCollapsible, setFiltersCollapsible] = React.useState<boolean>(false);
   const { observe } = useDimensions({
