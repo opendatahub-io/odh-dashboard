@@ -1,7 +1,7 @@
-import { useLocalStorage } from '../../../components/localStorage';
+import { useBrowserStorage } from '../../../components/browserStorage';
 
 const useStopNotebookModalAvailability = (): [boolean, (v: boolean) => void] => {
-  return useLocalStorage<boolean>('odh.dashboard.dsg.stop.modal.preference', false);
+  return useBrowserStorage<boolean>('odh.dashboard.dsg.stop.modal.preference', false);
 };
 
 export default useStopNotebookModalAvailability;

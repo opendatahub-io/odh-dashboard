@@ -22,7 +22,6 @@ import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
 import { AppContext } from './AppContext';
 import { useApplicationSettings } from './useApplicationSettings';
 import { useUser } from '../redux/selectors';
-import { LocalStorageContextProvider } from '../components/localStorage/LocalStorageContext';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
 import { useAppDispatch } from '../redux/hooks';
@@ -95,30 +94,28 @@ const App: React.FC = () => {
   }
 
   return (
-    <LocalStorageContextProvider>
-      <AppContext.Provider
-        value={{
-          isNavOpen,
-          setIsNavOpen,
-          onNavToggle,
-          buildStatuses,
-          dashboardConfig,
-        }}
+    <AppContext.Provider
+      value={{
+        isNavOpen,
+        setIsNavOpen,
+        onNavToggle,
+        buildStatuses,
+        dashboardConfig,
+      }}
+    >
+      <Page
+        className="odh-dashboard"
+        header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
+        sidebar={isAllowed ? <NavSidebar /> : undefined}
+        notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
+        isNotificationDrawerExpanded={notificationsOpen}
+        mainContainerId="dashboard-page-main"
       >
-        <Page
-          className="odh-dashboard"
-          header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
-          sidebar={isAllowed ? <NavSidebar /> : undefined}
-          notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
-          isNotificationDrawerExpanded={notificationsOpen}
-          mainContainerId="dashboard-page-main"
-        >
-          <AppRoutes />
-          <ToastNotifications />
-          <TelemetrySetup />
-        </Page>
-      </AppContext.Provider>
-    </LocalStorageContextProvider>
+        <AppRoutes />
+        <ToastNotifications />
+        <TelemetrySetup />
+      </Page>
+    </AppContext.Provider>
   );
 };
 
