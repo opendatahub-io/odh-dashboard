@@ -36,6 +36,15 @@ We have set up a pass through API that will effectively take the path built by t
 
 See the [k8s pass through API](../backend/src/routes/api/k8s/pass-through.ts) here.
 
+### Pass Through Faker Token Dev Mode
+
+In order to check regular user permissions without disabling the rest of the backend functionality in `dev mode`, you can add the `DEV_TOKEN_AUTH` environment variable to your local setup with a valid k8s token for user in your cluster. This will bypass the regular pass-through flow and will add that specific token to the calls. The steps to obtain this token will be:
+
+1. Log in in your OpenShift cluster with the user you want to obtain the token.
+2. Click in the your username in the right corner of the console > *Copy login command*
+3. Copy the login command, should have the following format `sha256~<token>`
+4. Create a new env variable in your `.env.local` file with this format `DEV_TOKEN_AUTH=sha256~<token>`
+
 ## Patches
 
 Patches are based on [jsonpatch](https://jsonpatch.com/). For those who are unaware of the details let's do a quick breakdown on how they work. When making a `k8sPatchResource` call, it will ask for `Patches[]`. A `Patch` is just simply a straight forward operation on the existing resource.

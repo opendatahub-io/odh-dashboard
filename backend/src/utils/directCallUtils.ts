@@ -1,5 +1,5 @@
 import { RequestOptions } from 'https';
-import { DEV_MODE, USER_ACCESS_TOKEN } from './constants';
+import { DEV_MODE, DEV_TOKEN_AUTH, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 
 export const getDirectCallOptions = async (
@@ -18,6 +18,13 @@ export const getDirectCallOptions = async (
   if (DEV_MODE) {
     // In dev mode, we always are logged in fully -- no service accounts
     headers = kubeHeaders;
+    // Fakes the call as another user to test permissions
+    if (DEV_TOKEN_AUTH) {
+      headers = {
+        ...headers,
+        Authorization: `Bearer ${DEV_TOKEN_AUTH}`,
+      };
+    }
   } else {
     // When not in dev mode, we want to switch the token from the service account to the user
     const accessToken = request.headers[USER_ACCESS_TOKEN];

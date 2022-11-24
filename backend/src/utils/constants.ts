@@ -7,6 +7,8 @@ export const IP = process.env.IP || '0.0.0.0';
 export const LOG_LEVEL = process.env.FASTIFY_LOG_LEVEL || process.env.LOG_LEVEL || 'info';
 export const LOG_DIR = path.join(__dirname, '../../../logs');
 export const DEV_MODE = process.env.APP_ENV === 'development';
+/** Allows a user token to be used in place of the actual token for testing purposes */
+export const DEV_TOKEN_AUTH =  DEV_MODE ? process.env.DEV_TOKEN_AUTH : undefined;
 export const APP_ENV = process.env.APP_ENV;
 
 export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
