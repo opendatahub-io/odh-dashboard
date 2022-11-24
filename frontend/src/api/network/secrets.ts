@@ -32,6 +32,7 @@ export const assembleSecret = (
     stringData = secretBody;
     name = `${DATA_CONNECTION_PREFIX}-${translateDisplayNameForK8s(Name)}`;
     annotations['openshift.io/display-name'] = Name;
+    annotations['opendatahub.io/connection-type'] = 's3';
     labels['opendatahub.io/managed'] = 'true';
   }
 
