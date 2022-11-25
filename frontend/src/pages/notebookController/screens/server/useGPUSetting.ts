@@ -10,9 +10,9 @@ const useGPUSetting = (): {
   untrustedGPUs: boolean;
 } => {
   const { dashboardConfig } = useAppContext();
-  const [gpuSize, setGpuSize] = React.useState<number>(0);
+  const [gpuSize, setGpuSize] = React.useState(0);
   const [isFetching, setFetching] = React.useState(true);
-  const [areGpusAvailable, setAreGpusAvailable] = React.useState<boolean>(false);
+  const [areGpusAvailable, setAreGpusAvailable] = React.useState(false);
   const notification = useNotification();
 
   const setting = dashboardConfig.spec.notebookController?.gpuSetting || 'autodetect';

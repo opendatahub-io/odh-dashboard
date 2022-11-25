@@ -18,7 +18,7 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
   categories,
   onUpdate,
 }) => {
-  const [typeDropdownOpen, setTypeDropdownOpen] = React.useState<boolean>(false);
+  const [typeDropdownOpen, setTypeDropdownOpen] = React.useState(false);
   const categoryOptions = categories.map((category) => (
     <SelectOption value={category.name} key={category.name} />
   ));

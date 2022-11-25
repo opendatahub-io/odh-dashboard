@@ -28,7 +28,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
-  const [isExpanded, setExpanded] = React.useState<boolean>(false);
+  const [isExpanded, setExpanded] = React.useState(false);
   const notebookSize = useNotebookDeploymentSize(obj.notebook);
   const [notebookImage, loaded] = useNotebookImage(obj.notebook);
 

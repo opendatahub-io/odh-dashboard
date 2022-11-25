@@ -26,8 +26,8 @@ type EnableModalProps = {
 };
 
 const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }) => {
-  const [postError, setPostError] = React.useState<string>('');
-  const [validationInProgress, setValidationInProgress] = React.useState<boolean>(false);
+  const [postError, setPostError] = React.useState('');
+  const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
   const [validationStatus, validationErrorMessage] = useEnableApplication(
     validationInProgress,

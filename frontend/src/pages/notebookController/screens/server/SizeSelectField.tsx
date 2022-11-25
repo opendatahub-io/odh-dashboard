@@ -15,7 +15,7 @@ type SizeSelectFieldProps = {
 };
 
 const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, sizes }) => {
-  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
+  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
 
   const sizeOptions = () =>
     sizes.map((size) => {

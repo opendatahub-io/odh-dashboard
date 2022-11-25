@@ -17,10 +17,10 @@ const useWatchNotebooksForUsers = (
   setPollInterval: (interval?: number) => void;
 } => {
   const usernames = useDeepCompareMemoize(listOfUsers);
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [notebooks, setNotebooks] = React.useState<UsernameMap<NotebookRunningState>>({});
-  const [pollInterval, setPollInterval] = React.useState<number>(POLL_INTERVAL);
+  const [pollInterval, setPollInterval] = React.useState(POLL_INTERVAL);
 
   const getNotebooks = React.useCallback(
     (usernameList: string[]) => {

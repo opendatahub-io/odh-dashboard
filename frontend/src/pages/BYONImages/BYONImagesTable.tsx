@@ -88,9 +88,9 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
   }, [images]);
 
   const [currentImage, setcurrentImage] = React.useState<BYONImage>(images[0]);
-  const [deleteImageModalVisible, setDeleteImageModalVisible] = React.useState<boolean>(false);
-  const [importImageModalVisible, setImportImageModalVisible] = React.useState<boolean>(false);
-  const [updateImageModalVisible, setUpdateImageModalVisible] = React.useState<boolean>(false);
+  const [deleteImageModalVisible, setDeleteImageModalVisible] = React.useState(false);
+  const [importImageModalVisible, setImportImageModalVisible] = React.useState(false);
+  const [updateImageModalVisible, setUpdateImageModalVisible] = React.useState(false);
 
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(0);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | undefined>(
@@ -179,8 +179,8 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
     option: 'name',
     count: images.length,
   });
-  const [selected, setSelected] = React.useState<string>('name');
-  const [tableSelectIsOpen, setTableSelectIsOpen] = React.useState<boolean>(false);
+  const [selected, setSelected] = React.useState('name');
+  const [tableSelectIsOpen, setTableSelectIsOpen] = React.useState(false);
 
   const items = (
     <React.Fragment>

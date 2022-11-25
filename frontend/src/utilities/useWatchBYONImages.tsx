@@ -9,7 +9,7 @@ export const useWatchBYONImages = (): {
   loadError: Error | undefined;
   forceUpdate: () => void;
 } => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [images, setImages] = React.useState<BYONImage[]>([]);
   const forceUpdate = () => {

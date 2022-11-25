@@ -14,7 +14,7 @@ type MultiSelectionProps = {
 };
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue }) => {
-  const [showMenu, setShowMenu] = React.useState<boolean>(false);
+  const [showMenu, setShowMenu] = React.useState(false);
 
   const toggleMenu = (isOpen: React.SetStateAction<boolean>) => {
     setShowMenu(isOpen);

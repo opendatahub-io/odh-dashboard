@@ -6,7 +6,7 @@ const useConnectedProject = (
   name: string,
 ): [project: ProjectKind | undefined, loaded: boolean, error?: Error] => {
   const [project, setProject] = React.useState<ProjectKind>();
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error>();
 
   React.useEffect(() => {

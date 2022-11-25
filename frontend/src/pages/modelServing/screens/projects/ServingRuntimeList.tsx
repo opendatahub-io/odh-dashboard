@@ -11,7 +11,7 @@ import ManageInferenceServiceModal from './InferenceServiceModal/ManageInference
 import ServingRuntimeTable from './ServingRuntimeTable';
 
 const ServingRuntimeList: React.FC = () => {
-  const [isOpen, setOpen] = React.useState<boolean>(false);
+  const [isOpen, setOpen] = React.useState(false);
   const {
     servingRuntimes: {
       data: modelServers,

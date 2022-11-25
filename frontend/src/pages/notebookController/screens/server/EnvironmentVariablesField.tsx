@@ -27,7 +27,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   onUpdateVariable,
   variableRow,
 }) => {
-  const [showPassword, setShowPassword] = React.useState<boolean>(false);
+  const [showPassword, setShowPassword] = React.useState(false);
   const [variableType, setVariableType] = React.useState<string>(variable.type);
 
   React.useEffect(() => {

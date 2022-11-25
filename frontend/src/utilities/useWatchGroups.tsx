@@ -13,10 +13,10 @@ export const useWatchGroups = (): {
   setGroupSettings: (group: GroupsConfig) => void;
   setIsGroupSettingsChanged: (changed: boolean) => void;
 } => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [isGroupSettingsChanged, setIsGroupSettingsChanged] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isGroupSettingsChanged, setIsGroupSettingsChanged] = React.useState(false);
   const notification = useNotification();
   const [groupSettings, setGroupSettings] = React.useState<GroupsConfig>({
     adminGroups: [],

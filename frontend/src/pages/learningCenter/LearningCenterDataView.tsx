@@ -39,7 +39,7 @@ type LearningCenterDataViewProps = {
 const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo(
   ({ filteredDocApps, favorites, updateFavorite, viewType }) => {
     const navigate = useNavigate();
-    const [sizeClass, setSizeClass] = React.useState<string>('m-ods-size-lg');
+    const [sizeClass, setSizeClass] = React.useState('m-ods-size-lg');
     const { observe } = useDimensions({
       breakpoints: { sm: 0, md: 600, lg: 750 },
       onResize: ({ currentBreakpoint }) => {

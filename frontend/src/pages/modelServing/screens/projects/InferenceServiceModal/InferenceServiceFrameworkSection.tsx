@@ -16,7 +16,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   setData,
   modelContext,
 }) => {
-  const [isOpen, setOpen] = React.useState<boolean>(false);
+  const [isOpen, setOpen] = React.useState(false);
 
   const [modelsContextLoaded, loaded, loadError] = useModelFramework(
     modelContext ? undefined : data.servingRuntimeName,

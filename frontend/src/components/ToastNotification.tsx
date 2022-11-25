@@ -12,8 +12,8 @@ interface ToastNotificationProps {
 
 const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) => {
   const dispatch = useAppDispatch();
-  const [timedOut, setTimedOut] = React.useState<boolean>(false);
-  const [mouseOver, setMouseOver] = React.useState<boolean>(false);
+  const [timedOut, setTimedOut] = React.useState(false);
+  const [mouseOver, setMouseOver] = React.useState(false);
 
   React.useEffect(() => {
     const handle = setTimeout(() => {

@@ -22,7 +22,7 @@ type ImageVersionsProps = {
 
 const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag, onSelect }) => {
   const { buildStatuses } = useAppContext();
-  const [isExpanded, setExpanded] = React.useState<boolean>(false);
+  const [isExpanded, setExpanded] = React.useState(false);
   if (!image.tags || image.tags.length < 2) {
     return null;
   }

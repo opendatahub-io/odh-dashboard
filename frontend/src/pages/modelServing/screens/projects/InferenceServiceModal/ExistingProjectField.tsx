@@ -20,7 +20,7 @@ const ExistingProjectField: React.FC<ExistingProjectFieldProps> = ({
   selectDirection = 'down',
   menuAppendTo = 'parent',
 }) => {
-  const [isOpen, setOpen] = React.useState<boolean>(false);
+  const [isOpen, setOpen] = React.useState(false);
 
   const [projects, loaded, loadError] = useModelServingProjects();
 

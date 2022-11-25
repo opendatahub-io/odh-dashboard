@@ -43,7 +43,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   onClose,
 }) => {
   const { notebook, isRunning, isStarting } = notebookState;
-  const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
+  const [spawnPercentile, setSpawnPercentile] = React.useState(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
 
   const spawnFailed = spawnStatus?.status === AlertVariant.danger;

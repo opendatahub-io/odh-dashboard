@@ -9,10 +9,10 @@ type ConfigMapUploadFieldProps = {
 };
 
 const ConfigMapUploadField: React.FC<ConfigMapUploadFieldProps> = ({ onUpdate }) => {
-  const [fileValue, setFileValue] = React.useState<string>('');
-  const [filename, setFilename] = React.useState<string>('');
-  const [isLoading, setLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string>('');
+  const [fileValue, setFileValue] = React.useState('');
+  const [filename, setFilename] = React.useState('');
+  const [isLoading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
 
   return (
     <FormGroup

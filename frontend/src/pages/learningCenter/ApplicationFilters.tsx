@@ -15,7 +15,7 @@ type ApplicationFiltersProps = {
 const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, categoryApps }) => {
   const navigate = useNavigate();
   const providerFilters = useQueryFilters(APPLICATION_FILTER_KEY);
-  const [showAll, setShowAll] = React.useState<boolean>(false);
+  const [showAll, setShowAll] = React.useState(false);
 
   const applications = React.useMemo(() => {
     const allApplications = {};

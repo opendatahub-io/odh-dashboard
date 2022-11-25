@@ -29,7 +29,7 @@ type AddStorageModalProps = {
 
 const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOpen, onClose }) => {
   const [createData, setCreateData, resetData] = useCreateStorageObjectForNotebook(existingData);
-  const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
+  const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;

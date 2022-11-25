@@ -47,8 +47,8 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
   const [software, setSoftware] = React.useState<BYONImagePackage[]>(
     image.software != undefined ? image.software : [],
   );
-  const [activeTabKey, setActiveTabKey] = React.useState<number>(0);
-  const [validName, setValidName] = React.useState<boolean>(true);
+  const [activeTabKey, setActiveTabKey] = React.useState(0);
+  const [validName, setValidName] = React.useState(true);
   const dispatch = useAppDispatch();
 
   React.useEffect(() => {

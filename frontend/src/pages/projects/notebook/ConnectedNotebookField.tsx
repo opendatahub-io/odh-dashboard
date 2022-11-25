@@ -27,7 +27,7 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
   isMultiSelect,
   placeholder = 'Select a workbench to connect',
 }) => {
-  const [notebookSelectOpen, setNotebookSelectOpen] = React.useState<boolean>(false);
+  const [notebookSelectOpen, setNotebookSelectOpen] = React.useState(false);
 
   const noNotebooks = notebooks.length === 0;
   const disabled = !!isDisabled || !loaded || noNotebooks;

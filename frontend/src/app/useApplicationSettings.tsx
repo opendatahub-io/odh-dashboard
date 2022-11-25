@@ -10,7 +10,7 @@ export const useApplicationSettings = (): {
   loaded: boolean;
   loadError: Error | undefined;
 } => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfig | null>(null);
   const setRefreshMarker = useTimeBasedRefresh();

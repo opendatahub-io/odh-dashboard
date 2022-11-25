@@ -3,7 +3,7 @@ import * as React from 'react';
 const breakpointMD = 768;
 
 export const useDesktopWidth = (): boolean => {
-  const [width, setWidth] = React.useState<number>(window.innerWidth);
+  const [width, setWidth] = React.useState(window.innerWidth);
 
   React.useEffect(() => {
     const handleResize = () => setWidth(window.innerWidth);

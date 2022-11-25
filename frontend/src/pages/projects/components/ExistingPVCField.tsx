@@ -24,7 +24,7 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
   selectDirection = 'down',
   menuAppendTo = 'parent',
 }) => {
-  const [isOpen, setOpen] = React.useState<boolean>(false);
+  const [isOpen, setOpen] = React.useState(false);
 
   if (loadError) {
     return (

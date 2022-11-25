@@ -9,7 +9,7 @@ import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import StorageTable from './StorageTable';
 
 const StorageList: React.FC = () => {
-  const [isOpen, setOpen] = React.useState<boolean>(false);
+  const [isOpen, setOpen] = React.useState(false);
   const {
     pvcs: { data: pvcs, loaded, error: loadError },
     refreshAllProjectData: refresh,

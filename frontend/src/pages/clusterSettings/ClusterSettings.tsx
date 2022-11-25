@@ -55,16 +55,16 @@ const TOLERATION_FORMAT_ERROR =
 
 const ClusterSettings: React.FC = () => {
   const isEmpty = false;
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [clusterSettings, setClusterSettings] = React.useState(DEFAULT_CONFIG);
   const [pvcSize, setPvcSize] = React.useState<number | string>(DEFAULT_PVC_SIZE);
-  const [userTrackingEnabled, setUserTrackingEnabled] = React.useState<boolean>(false);
+  const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeoutChecked, setCullerTimeoutChecked] =
     React.useState<string>(CULLER_TIMEOUT_UNLIMITED);
-  const [cullerTimeout, setCullerTimeout] = React.useState<number>(DEFAULT_CULLER_TIMEOUT);
-  const [hour, setHour] = React.useState<number>(DEFAULT_HOUR);
-  const [minute, setMinute] = React.useState<number>(0);
+  const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
+  const [hour, setHour] = React.useState(DEFAULT_HOUR);
+  const [minute, setMinute] = React.useState(0);
   const pvcDefaultBtnRef = React.useRef<HTMLButtonElement>();
   const { dashboardConfig } = useAppContext();
   const isJupyterEnabled = useCheckJupyterEnabled();

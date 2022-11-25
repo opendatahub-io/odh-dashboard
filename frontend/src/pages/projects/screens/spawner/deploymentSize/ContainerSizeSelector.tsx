@@ -20,7 +20,7 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
   setValue,
   sizes,
 }) => {
-  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
+  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
 
   return (
     <FormGroup

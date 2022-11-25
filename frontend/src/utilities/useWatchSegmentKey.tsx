@@ -8,9 +8,9 @@ export const useWatchSegmentKey = (): {
   loaded: boolean;
   loadError: Error | undefined;
 } => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [segmentKey, setSegmentKey] = React.useState<string>('');
+  const [segmentKey, setSegmentKey] = React.useState('');
 
   React.useEffect(() => {
     let watchHandle;

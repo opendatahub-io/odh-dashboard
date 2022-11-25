@@ -24,7 +24,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
   setSelectedImageVersion,
   data,
 }) => {
-  const [versionSelectionOpen, setVersionSelectionOpen] = React.useState<boolean>(false);
+  const [versionSelectionOpen, setVersionSelectionOpen] = React.useState(false);
 
   const { imageStream, buildStatuses, imageVersions } = data;
 
