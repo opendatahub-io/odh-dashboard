@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { listInferenceService } from '../../api';
+import { getInferenceServiceContext } from '../../api';
 import { InferenceServiceKind } from '../../k8sTypes';
 
 const useInferenceServices = (
@@ -15,7 +15,7 @@ const useInferenceServices = (
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
   const fetchInferenceServices = React.useCallback(() => {
-    return listInferenceService(namespace)
+    return getInferenceServiceContext(namespace, 'opendatahub.io/dashboard=true')
       .then((newInferenceServices) => {
         setInferenceServices(newInferenceServices);
       })

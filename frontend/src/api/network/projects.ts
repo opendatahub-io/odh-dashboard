@@ -95,7 +95,7 @@ export const createProject = (
 };
 
 export const getModelServingProjects = (): Promise<ProjectKind[]> => {
-  return getProjects('modelmesh-enabled=true');
+  return getProjects('opendatahub.io/dashboard=true,modelmesh-enabled=true');
 };
 
 async function filter(arr, callback) {
