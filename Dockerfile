@@ -1,20 +1,22 @@
 # Build arguments
 ARG SOURCE_CODE=.
+ARG EXPIRATION=""
 
 # Use ubi8/nodejs-14 as default base image
 ARG BASE_IMAGE="registry.access.redhat.com/ubi8/nodejs-14:latest"
-
 
 FROM ${BASE_IMAGE}
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
+ARG EXPIRATION
 
 LABEL io.opendatahub.component="odh-dashboard" \
       io.k8s.display-name="odh-dashboard" \
       name="open-data-hub/odh-dashboard-ubi8" \
       summary="odh-dashboard" \
-      description="Open Data Hub Dashboard"
+      description="Open Data Hub Dashboard" \
+      quay.expires-after=${EXPIRATION}
 
 
 ## Switch to root as required for some operations
