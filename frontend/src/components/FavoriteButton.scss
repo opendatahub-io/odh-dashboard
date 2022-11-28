@@ -1,0 +1,12 @@
+.favorite-button {
+  fill: var(--pf-global--palette--black-400);
+  &:hover {
+    fill: var(--pf-global--palette--black-500);
+  }
+  &.m-selected {
+    fill: var(--pf-global--palette--gold-300);
+    &:hover {
+      fill: var(--pf-global--palette--gold-400);
+    }
+  }
+}

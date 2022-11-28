@@ -1,15 +1,13 @@
 import * as React from 'react';
-import classNames from 'classnames';
 import { Brand, Skeleton } from '@patternfly/react-core';
 import { RocketIcon } from '@patternfly/react-icons';
 
 type BrandImageProps = {
   src: string;
-  className?: string;
   alt: string;
 };
 
-const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => {
+const BrandImage: React.FC<BrandImageProps> = ({ src, ...props }) => {
   const [image, setImage] = React.useState<{ imgSrc: string; isValid: boolean }>({
     imgSrc: '',
     isValid: false,
@@ -29,22 +27,18 @@ const BrandImage: React.FC<BrandImageProps> = ({ src, className, ...props }) => 
     return <Skeleton shape="square" width="40px" screenreaderText="Brand image loading" />;
   }
 
-  const brandClasses = classNames('odh-card__header-brand', className, {
-    'pf-c-brand': !image.isValid,
-    'odh-card__header-fallback-img': !image.isValid,
-  });
-
   if (!image.isValid) {
-    return <RocketIcon className={brandClasses} {...props} />;
+    return <RocketIcon height={40} width={40} {...props} />;
   }
 
   return (
     <Brand
       {...props}
-      className={brandClasses}
-      src={image.imgSrc}
+      heights={{ default: '40px' }}
       onError={() => setImage((prevImage) => ({ imgSrc: prevImage.imgSrc, isValid: false }))}
-    />
+    >
+      <source srcSet={image.imgSrc} />
+    </Brand>
   );
 };
 

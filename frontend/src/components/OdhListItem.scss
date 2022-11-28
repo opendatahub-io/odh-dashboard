@@ -38,23 +38,10 @@
       margin-left: var(--pf-global--spacer--xs);
     }
   }
-  &__header-brand {
-    display: flex;
-    height: 50px;
-    max-width: 33%;
-  }
 
   &__header-fallback-img {
     height: 40px;
     width: 40px;
-  }
-
-  &__supported-image {
-    margin-left: var(--pf-global--spacer--sm);
-    color: var(--pf-global--primary-color--100);
-    &.m-hidden {
-      visibility: hidden;
-    }
   }
 
   &__partner-badge-container {
@@ -141,46 +128,8 @@
     }
   }
 
-  &__doc-badges {
-    display: flex;
-    flex-wrap: wrap;
-    margin-top: var(--pf-global--spacer--sm);
-    .odh-card__partner-badge:not(:last-of-type) {
-      margin-right: var(--pf-global--spacer--xs);
-    }
-  }
-
-  &__coming-soon {
-    color: var(--pf-global--disabled-color--100);
-    font-size: var(--pf-global--FontSize--md);
-  }
-
   .pf-c-card__header {
     align-items: flex-start;
     justify-content: space-between;
-  }
-
-  &__provider {
-    color: var(--pf-global--Color--200);
-    font-size: var(--pf-global--FontSize--sm);
-    font-weight: var(--pf-global--FontWeight--normal);
-  }
-
-  &__footer {
-    display: flex;
-    justify-content: space-between;
-    &.m-right-justified {
-      justify-content: flex-end;
-    }
-
-    &__link {
-      padding: 0;
-      > svg {
-        margin-left: var(--pf-global--spacer--xs);
-      }
-      &.m-hidden {
-        visibility: hidden;
-      }
-    }
   }
 }

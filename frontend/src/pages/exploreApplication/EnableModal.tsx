@@ -116,14 +116,8 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       {enable.link ? (
         <div className="odh-enable-modal__enable-link">
           {enable.linkPreface ? <div>{enable.linkPreface}</div> : null}
-          <a
-            className="odh-dashboard__external-link"
-            href={enable.link}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {enable.link}
-            <ExternalLinkAltIcon />
+          <a href={enable.link} target="_blank" rel="noopener noreferrer">
+            {enable.link} <ExternalLinkAltIcon />
           </a>
         </div>
       ) : null}
