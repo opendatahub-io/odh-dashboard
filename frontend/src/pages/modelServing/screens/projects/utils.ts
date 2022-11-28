@@ -24,11 +24,11 @@ export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeS
   return sizes;
 };
 
-export const isTokenEnabledServingRuntime = (servingRuntime: ServingRuntimeKind): boolean =>
-  servingRuntime.metadata.annotations?.['enable-auth'] === undefined;
+export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
+  servingRuntime.metadata.annotations?.['enable-auth'] === 'true';
 
-export const isRoutesEnabledServingRuntime = (servingRuntime: ServingRuntimeKind): boolean =>
-  servingRuntime.metadata.annotations?.['enable-route'] === undefined;
+export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
+  servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
 export const useCreateServingRuntimeObject = (existingData?: {
   servingRuntime?: ServingRuntimeKind;

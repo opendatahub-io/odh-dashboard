@@ -47,7 +47,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
     <Stack hasGutter>
       <StackItem>
         <FormGroup
-          label="Token secret"
+          label="Service account name"
           helperText="Enter the service account name for which the token will be generated"
           helperTextInvalid={token.error}
           helperTextInvalidIcon={<ExclamationCircleIcon />}

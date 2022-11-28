@@ -31,9 +31,9 @@ import {
   createServiceAccount,
 } from '../../../../../api/network/serviceAccounts';
 import { allSettledPromises } from '../../../../../utilities/allSettledPromises';
-import ModelServerReplicaSection from './ServingRuntimeReplicaSection';
-import ModelServerSizeSection from './ServingRuntimeSizeSection';
-import ModelServerTokenSection from './ServingRuntimeTokenSection';
+import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
+import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
+import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import { translateDisplayNameForK8s } from 'pages/projects/utils';
 
 type ManageServingRuntimeModalProps = {
@@ -60,7 +60,18 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
 
-  const canCreate = !actionInProgress && !tokenErrors;
+  const inputValueValid =
+    createData.numReplicas > 0 &&
+    parseInt(createData.modelSize.resources.limits.cpu) > 0 &&
+    parseInt(createData.modelSize.resources.limits.memory) > 0 &&
+    parseInt(createData.modelSize.resources.requests.cpu) > 0 &&
+    parseInt(createData.modelSize.resources.requests.memory) > 0 &&
+    parseInt(createData.modelSize.resources.limits.cpu) >
+      parseInt(createData.modelSize.resources.requests.cpu) &&
+    parseInt(createData.modelSize.resources.limits.memory) >
+      parseInt(createData.modelSize.resources.requests.memory);
+
+  const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -192,10 +203,10 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <ModelServerReplicaSection data={createData} setData={setCreateData} />
+            <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
           </StackItem>
           <StackItem>
-            <ModelServerSizeSection data={createData} setData={setCreateData} sizes={sizes} />
+            <ServingRuntimeSizeSection data={createData} setData={setCreateData} sizes={sizes} />
           </StackItem>
           <StackItem>
             <FormSection title="Model route" titleElement="div">
@@ -211,7 +222,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             </FormSection>
           </StackItem>
           <StackItem>
-            <ModelServerTokenSection data={createData} setData={setCreateData} />
+            <ServingRuntimeTokenSection data={createData} setData={setCreateData} />
           </StackItem>
         </Stack>
       </Form>

@@ -7,7 +7,7 @@ import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '../types';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { isTokenEnabledServingRuntime } from './utils';
+import { isServingRuntimeTokenEnabled } from './utils';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
@@ -84,12 +84,12 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           dataLabel="Tokens"
           compoundExpand={compoundExpandParams(
             ServingRuntimeTableTabs.TOKENS,
-            secrets.length === 0 || isTokenEnabledServingRuntime(obj),
+            secrets.length === 0 || !isServingRuntimeTokenEnabled(obj),
           )}
         >
           {secretsLoaded ? (
             <>
-              {isTokenEnabledServingRuntime(obj) ? 'Tokens disabled' : secrets.length}{' '}
+              {!isServingRuntimeTokenEnabled(obj) ? 'Tokens disabled' : secrets.length}{' '}
               {secretsLoadError && (
                 <Tooltip
                   removeFindDomNode

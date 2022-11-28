@@ -1,8 +1,8 @@
-import { InferenceServiceKind } from '../../../../k8sTypes';
+import { InferenceServiceKind, SecretKind } from '../../../../k8sTypes';
 import { SortableData } from '../../../../utilities/useTableColumnSort';
-import { getInferenceServiceDisplayName } from './utils';
+import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
 
-export const columns: SortableData<InferenceServiceKind>[] = [
+export const inferenceServiceColumns: SortableData<InferenceServiceKind>[] = [
   {
     field: 'name',
     label: 'Model name',
@@ -31,6 +31,21 @@ export const columns: SortableData<InferenceServiceKind>[] = [
   {
     field: 'kebab',
     label: '',
+    sortable: false,
+  },
+];
+
+export const tokenColumns: SortableData<SecretKind>[] = [
+  {
+    field: 'name',
+    label: 'Token name',
+    width: 20,
+    sortable: (a, b) => getTokenDisplayName(a).localeCompare(getTokenDisplayName(b)),
+  },
+  {
+    field: 'token',
+    label: 'Token secret',
+    width: 80,
     sortable: false,
   },
 ];

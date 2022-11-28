@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, FormSection, NumberInput } from '@patternfly/react-core';
+import { FormGroup, FormSection, NumberInput, ValidatedOptions } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject } from '../../types';
 
@@ -16,6 +16,8 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
     const target = event.target as HTMLInputElement;
     setData('numReplicas', parseInt(target.value));
   };
+  const validate = data.numReplicas >= 0 ? ValidatedOptions.default : ValidatedOptions.error;
+
   return (
     <FormSection title="Model server replicas">
       <FormGroup label="Number of model server replicas to deploy">
@@ -23,6 +25,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
           value={data.numReplicas}
           widthChars={10}
           min={1}
+          validated={validate}
           onChange={onChangeReplicas}
           onMinus={() => setData('numReplicas', data.numReplicas - 1)}
           onPlus={() => setData('numReplicas', data.numReplicas + 1)}

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
-import { InferenceServiceKind } from '../../../../k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { getInferenceServiceDisplayName } from './utils';
 import ServeModelButton from './ServeModelButton';
-import { columns } from './data';
+import { inferenceServiceColumns } from './data';
 import SearchField, { SearchType } from '../../../projects/components/SearchField';
 import InferenceServiceTable from './InferenceServiceTable';
 import { ModelServingContext } from '../../ModelServingContext';
@@ -13,10 +13,12 @@ const MIN_PAGE_SIZE = 10;
 
 type InferenceServiceListViewProps = {
   inferenceServices: InferenceServiceKind[];
+  servingRuntimes: ServingRuntimeKind[];
 };
 
 const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   inferenceServices: unfilteredInferenceServices,
+  servingRuntimes,
 }) => {
   const {
     inferenceServices: { refresh },
@@ -25,8 +27,8 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
-  const sort = useTableColumnSort<InferenceServiceKind>(columns, 0);
-  const filteredInferenceServices = sort
+  const sortInferenceService = useTableColumnSort<InferenceServiceKind>(inferenceServiceColumns, 0);
+  const filteredInferenceServices = sortInferenceService
     .transformData(unfilteredInferenceServices)
     .filter((project) => {
       if (!search) return true;
@@ -96,8 +98,9 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       </Toolbar>
       <InferenceServiceTable
         clearFilters={resetFilters}
+        servingRuntimes={servingRuntimes}
         inferenceServices={filteredInferenceServices.slice(pageSize * (page - 1))}
-        getColumnSort={sort.getColumnSort}
+        getColumnSort={sortInferenceService.getColumnSort}
         refresh={refresh}
       />
       {showPagination && (

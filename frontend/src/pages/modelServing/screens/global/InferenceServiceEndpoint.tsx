@@ -1,18 +1,50 @@
 import * as React from 'react';
-import { ClipboardCopy, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
-import { InferenceServiceKind } from '../../../../k8sTypes';
+import {
+  Button,
+  ClipboardCopy,
+  HelperText,
+  HelperTextItem,
+  Popover,
+  Skeleton,
+} from '@patternfly/react-core';
+import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import useRouteForInferenceService from './useRouteForInferenceService';
+import { isServingRuntimeRouteEnabled } from '../projects/utils';
+import InternalServicePopoverContent from './InternalServicePopoverContent';
 
 type InferenceServiceEndpointProps = {
   inferenceService: InferenceServiceKind;
+  servingRuntime?: ServingRuntimeKind;
 };
 
 const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   inferenceService,
+  servingRuntime,
 }) => {
-  const [routeLink, loaded, loadError] = useRouteForInferenceService(inferenceService);
+  const isRouteEnabled =
+    servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime);
 
-  if (!loaded) {
+  const [routeLink, loaded, loadError] = useRouteForInferenceService(
+    inferenceService,
+    isRouteEnabled,
+  );
+
+  if (!isRouteEnabled) {
+    return (
+      <Popover
+        removeFindDomNode
+        headerContent="Internal Service can be accessed inside the cluster"
+        aria-label="Internal Service Info"
+        bodyContent={<InternalServicePopoverContent inferenceService={inferenceService} />}
+      >
+        <Button isInline variant="link">
+          Internal Service
+        </Button>
+      </Popover>
+    );
+  }
+
+  if (!routeLink || !loaded) {
     return <Skeleton />;
   }
 
