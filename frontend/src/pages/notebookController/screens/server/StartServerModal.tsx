@@ -41,8 +41,8 @@ type SpawnStatus = {
 const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgress, onClose }) => {
   const { currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
-  const [logsExpanded, setLogsExpanded] = React.useState<boolean>(false);
-  const [spawnPercentile, setSpawnPercentile] = React.useState<number>(0);
+  const [logsExpanded, setLogsExpanded] = React.useState(false);
+  const [spawnPercentile, setSpawnPercentile] = React.useState(0);
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const [unstableNotebookStatus, events] = useNotebookStatus(spawnInProgress, open);
   const [isUsingCurrentTab] = useBrowserTabPreference();

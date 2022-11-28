@@ -49,8 +49,8 @@ export const LearningCenter: React.FC = () => {
   const favoriteResources = useDeepCompareMemoize(favourites);
   const docFilterer = useDocFilterer(favoriteResources);
   const [viewType, setViewType] = useBrowserStorage<string>(VIEW_TYPE, '', false);
-  const [filtersCollapsed, setFiltersCollapsed] = React.useState<boolean>(false);
-  const [filtersCollapsible, setFiltersCollapsible] = React.useState<boolean>(false);
+  const [filtersCollapsed, setFiltersCollapsed] = React.useState(false);
+  const [filtersCollapsible, setFiltersCollapsible] = React.useState(false);
   const { observe } = useDimensions({
     breakpoints: { sm: 0, md: 600 },
     onResize: ({ currentBreakpoint }) => {

@@ -9,7 +9,7 @@ export const useWatchQuickStarts = (): {
   loaded: boolean;
   loadError: Error | undefined;
 } => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [quickStarts, setQuickStarts] = React.useState<QuickStart[]>([]);
 

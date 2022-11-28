@@ -38,7 +38,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   projectContext,
 }) => {
   const [createData, setCreateData, resetData] = useCreateInferenceServiceObject(editInfo);
-  const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
+  const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   React.useEffect(() => {

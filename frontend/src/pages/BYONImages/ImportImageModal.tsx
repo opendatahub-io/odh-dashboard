@@ -35,14 +35,14 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
   onImportHandler,
   onCloseHandler,
 }) => {
-  const [repository, setRepository] = React.useState<string>('');
-  const [name, setName] = React.useState<string>('');
-  const [description, setDescription] = React.useState<string>('');
+  const [repository, setRepository] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [description, setDescription] = React.useState('');
   const [software, setSoftware] = React.useState<BYONImagePackage[]>([]);
   const [packages, setPackages] = React.useState<BYONImagePackage[]>([]);
-  const [activeTabKey, setActiveTabKey] = React.useState<number>(0);
-  const [validName, setValidName] = React.useState<boolean>(true);
-  const [validRepo, setValidRepo] = React.useState<boolean>(true);
+  const [activeTabKey, setActiveTabKey] = React.useState(0);
+  const [validName, setValidName] = React.useState(true);
+  const [validRepo, setValidRepo] = React.useState(true);
   const userName = useAppSelector((state) => state.user || '');
   const dispatch = useAppDispatch();
 

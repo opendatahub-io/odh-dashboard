@@ -68,7 +68,7 @@ const sectionSortValue = (section: Section): number => {
 };
 
 const AppLauncher: React.FC = () => {
-  const [isOpen, setIsOpen] = React.useState<boolean>(false);
+  const [isOpen, setIsOpen] = React.useState(false);
   const [clusterID, clusterBranding] = useAppSelector((state) => [
     state.clusterID,
     state.clusterBranding,

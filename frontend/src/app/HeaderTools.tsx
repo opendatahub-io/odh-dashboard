@@ -22,8 +22,8 @@ interface HeaderToolsProps {
 }
 
 const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
-  const [userMenuOpen, setUserMenuOpen] = React.useState<boolean>(false);
-  const [helpMenuOpen, setHelpMenuOpen] = React.useState<boolean>(false);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
   const userName: string = useAppSelector((state) => state.user || '');
   const { dashboardConfig } = useAppContext();

@@ -60,7 +60,7 @@ const SpawnerPage: React.FC = () => {
   const { notebookNamespace: projectName } = useNamespaces();
   const currentUserState = useNotebookUserState();
   const username = currentUserState.user;
-  const [createInProgress, setCreateInProgress] = React.useState<boolean>(false);
+  const [createInProgress, setCreateInProgress] = React.useState(false);
   const { startShown, hideStartShown, refreshNotebookForStart } =
     useSpawnerNotebookModalState(createInProgress);
   const [selectedImageTag, setSelectedImageTag] = React.useState<ImageTag>({
@@ -68,7 +68,7 @@ const SpawnerPage: React.FC = () => {
     tag: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
-  const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
+  const [selectedGpu, setSelectedGpu] = React.useState('0');
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 

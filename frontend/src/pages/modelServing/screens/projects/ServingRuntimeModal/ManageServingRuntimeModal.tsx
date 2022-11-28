@@ -52,7 +52,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
 
-  const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
+  const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   const { currentProject } = React.useContext(ProjectDetailsContext);

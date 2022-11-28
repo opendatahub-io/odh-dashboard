@@ -49,7 +49,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageVersion: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
-  const [selectedGpu, setSelectedGpu] = React.useState<string>('0');
+  const [selectedGpu, setSelectedGpu] = React.useState('0');
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);

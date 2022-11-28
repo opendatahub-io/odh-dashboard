@@ -21,7 +21,7 @@ import { BYONImagesTable } from './BYONImagesTable';
 const description = `Import, delete, and modify notebook images.`;
 
 const BYONImages: React.FC = () => {
-  const [importImageModalVisible, setImportImageModalVisible] = React.useState<boolean>(false);
+  const [importImageModalVisible, setImportImageModalVisible] = React.useState(false);
 
   const { images, loaded, loadError, forceUpdate } = useWatchBYONImages();
   const isEmpty = !images || images.length === 0;

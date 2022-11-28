@@ -16,7 +16,7 @@ type ProviderTypeFiltersProps = {
 const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, categoryApps }) => {
   const navigate = useNavigate();
   const providerTypeFilters = useQueryFilters(PROVIDER_TYPE_FILTER_KEY);
-  const [showAll, setShowAll] = React.useState<boolean>(false);
+  const [showAll, setShowAll] = React.useState(false);
 
   const providerTypes = React.useMemo(() => {
     const allTypes = {};

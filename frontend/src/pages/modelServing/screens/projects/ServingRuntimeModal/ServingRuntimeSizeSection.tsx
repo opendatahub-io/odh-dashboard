@@ -15,7 +15,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   setData,
   sizes,
 }) => {
-  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState<boolean>(false);
+  const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
 
   // Leaving this to enable GPU in next release
   // const onChangeGPU = (event: React.FormEvent<HTMLInputElement>) => {

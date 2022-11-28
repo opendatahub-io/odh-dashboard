@@ -9,7 +9,7 @@ type GPUSelectFieldProps = {
 };
 
 const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
-  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState<boolean>(false);
+  const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
   const { available, count: gpuSize, loaded, untrustedGPUs } = useGPUSetting();
 
   if (!available) {

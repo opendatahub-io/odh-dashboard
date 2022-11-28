@@ -8,7 +8,7 @@ import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 export const useWatchComponents = (
   installed: boolean,
 ): { components: OdhApplication[]; loaded: boolean; loadError: Error | undefined } => {
-  const [loaded, setLoaded] = React.useState<boolean>(false);
+  const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [components, setComponents] = React.useState<OdhApplication[]>([]);
   const forceUpdate = useAppSelector((state) => state.forceComponentsUpdate);

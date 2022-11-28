@@ -19,7 +19,7 @@ type EnableVariableProps = {
 
 const EnableVariable = React.forwardRef<HTMLInputElement, EnableVariableProps>(
   ({ label, inputType, helperText, validationInProgress, value, updateValue }, ref) => {
-    const [showPassword, setShowPassword] = React.useState<boolean>(false);
+    const [showPassword, setShowPassword] = React.useState(false);
 
     return (
       <FormGroup fieldId={label} label={label} helperText={helperText}>

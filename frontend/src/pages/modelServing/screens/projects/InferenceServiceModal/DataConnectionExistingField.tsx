@@ -10,7 +10,7 @@ import {
 import { DataConnection, UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingInferenceServiceObject } from '../../types';
 import { getDataConnectionDisplayName } from 'pages/projects/screens/detail/data-connections/utils';
-import '../../../../projects/screens/detail/storage/ManageStorageModal.scss';
+import './DataConnectionExistingField.scss';
 
 type DataConnectionExistingFieldType = {
   data: CreatingInferenceServiceObject;
@@ -23,7 +23,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
   setData,
   dataConnections,
 }) => {
-  const [isOpen, setOpen] = React.useState<boolean>(false);
+  const [isOpen, setOpen] = React.useState(false);
   return (
     <Stack hasGutter>
       <StackItem>

@@ -24,7 +24,7 @@ type StorageTableRowProps = {
 };
 
 const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onEditPVC }) => {
-  const [isExpanded, setExpanded] = React.useState<boolean>(false);
+  const [isExpanded, setExpanded] = React.useState(false);
   const isRootVolume = useIsRootVolume(obj);
 
   const actions: IAction[] = [

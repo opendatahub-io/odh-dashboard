@@ -22,7 +22,7 @@ const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, path
 const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pathname }) => {
   const { group, children } = item;
   const isActive = !!children.find((c) => pathname === c.href);
-  const [expanded, setExpanded] = React.useState<boolean>(isActive);
+  const [expanded, setExpanded] = React.useState(isActive);
 
   return (
     <NavExpandable

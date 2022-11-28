@@ -23,7 +23,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   onImageStreamSelect,
   buildStatuses,
 }) => {
-  const [imageSelectionOpen, setImageSelectionOpen] = React.useState<boolean>(false);
+  const [imageSelectionOpen, setImageSelectionOpen] = React.useState(false);
 
   const selectOptionObjects = [...imageStreams]
     .sort(compareImageStreamOrder)

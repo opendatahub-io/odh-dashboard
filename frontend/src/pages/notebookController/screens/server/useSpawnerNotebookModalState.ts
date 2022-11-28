@@ -37,7 +37,7 @@ const useSpawnerNotebookModalState = (
     React.useContext(NotebookControllerContext);
   const { notebookNamespace } = useNamespaces();
   const navigate = useNavigate();
-  const [startShown, setStartShown] = React.useState<boolean>(false);
+  const [startShown, setStartShown] = React.useState(false);
 
   React.useEffect(() => {
     if (notebook) {
