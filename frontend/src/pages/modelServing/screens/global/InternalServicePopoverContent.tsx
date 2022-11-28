@@ -4,8 +4,6 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Stack,
-  StackItem,
 } from '@patternfly/react-core';
 import { InferenceServiceKind } from 'k8sTypes';
 
@@ -19,11 +17,7 @@ const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps
   const isInternalServiceEnabled = inferenceService.status?.components?.predictor;
 
   if (!isInternalServiceEnabled) {
-    return (
-      <Stack hasGutter>
-        <StackItem>Could not find any internal service enabled</StackItem>
-      </Stack>
-    );
+    return <>Could not find any internal service enabled</>;
   }
 
   return (
