@@ -143,7 +143,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       showClose
       actions={[
         <Button key="submit-model" variant="primary" isDisabled={!canCreate} onClick={submit}>
-          Configure
+          Deploy
         </Button>,
         <Button key="cancel-model" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel

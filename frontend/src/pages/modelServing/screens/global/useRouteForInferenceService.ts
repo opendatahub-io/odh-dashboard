@@ -4,6 +4,7 @@ import { getRoute } from '../../../../api';
 
 const useRouteForInferenceService = (
   inferenceService: InferenceServiceKind,
+  isRouteEnabled: boolean,
 ): [routeLink: string | null, loaded: boolean, loadError: Error | null] => {
   const [route, setRoute] = React.useState<string | null>(null);
   const [loaded, setLoaded] = React.useState(false);
@@ -13,6 +14,11 @@ const useRouteForInferenceService = (
   const routeNamespace = inferenceService.metadata.namespace;
 
   React.useEffect(() => {
+    if (!isRouteEnabled) {
+      setLoadError(null);
+      setLoaded(true);
+      return;
+    }
     getRoute(routeName, routeNamespace)
       .then((route) => {
         setRoute(`https://${route.spec.host}${route.spec.path}`);
@@ -22,7 +28,7 @@ const useRouteForInferenceService = (
         setLoadError(e);
         setLoaded(true);
       });
-  }, [routeName, routeNamespace]);
+  }, [routeName, routeNamespace, isRouteEnabled]);
 
   return [route, loaded, loadError];
 };

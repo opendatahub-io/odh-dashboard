@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
+import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import EmptyTableCellForAlignment from '../../../projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
-import { columns } from '../global/data';
+import { inferenceServiceColumns, tokenColumns } from '../global/data';
 import InferenceServiceTable from '../global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '../types';
-import ServingRuntimeTokens from './ServingRuntimeTokens';
+import ServingRumtimeTokensTable from './ServingRuntimeTokensTable';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
+import { isServingRuntimeTokenEnabled } from './utils';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
@@ -26,7 +27,8 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
 
-  const inferenceServiceSort = useTableColumnSort<InferenceServiceKind>(columns, 0);
+  const inferenceServiceSort = useTableColumnSort<InferenceServiceKind>(inferenceServiceColumns, 0);
+  const tokenSort = useTableColumnSort<SecretKind>(tokenColumns, 0);
 
   if (activeColumn === ServingRuntimeTableTabs.TYPE) {
     return (
@@ -46,6 +48,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
         <ExpandableRowContent>
           <InferenceServiceTable
             inferenceServices={inferenceServices}
+            servingRuntimes={[obj]}
             getColumnSort={inferenceServiceSort.getColumnSort}
             refresh={() => {
               refreshAllProjectData();
@@ -58,14 +61,14 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
   }
   if (activeColumn === ServingRuntimeTableTabs.TOKENS) {
     return (
-      <>
-        <EmptyTableCellForAlignment />
-        <Td dataLabel="Tokens expansion" colSpan={6}>
-          <ExpandableRowContent>
-            <ServingRuntimeTokens />
-          </ExpandableRowContent>
-        </Td>
-      </>
+      <Td dataLabel="Tokens expansion" colSpan={6}>
+        <ExpandableRowContent>
+          <ServingRumtimeTokensTable
+            getColumnSort={tokenSort.getColumnSort}
+            isTokenEnabled={isServingRuntimeTokenEnabled(obj)}
+          />
+        </ExpandableRowContent>
+      </Td>
     );
   }
 

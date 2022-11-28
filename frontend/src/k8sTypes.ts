@@ -299,7 +299,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   status?: {
     components: {
-      predictor: {
+      predictor?: {
         grpcUrl: string;
         restUrl: string;
         url: string;
@@ -314,6 +314,13 @@ export type InferenceServiceKind = K8sResourceCommon & {
       copies: {
         failedCopies: number;
         totalCopies: number;
+      };
+      lastFailureInfo?: {
+        location: string;
+        message: string;
+        modelRevisionName: string;
+        reason: string;
+        time: string;
       };
       states: {
         activeModelState: string;

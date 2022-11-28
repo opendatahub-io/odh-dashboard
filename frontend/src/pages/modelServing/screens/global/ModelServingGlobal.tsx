@@ -19,7 +19,10 @@ const ModelServingGlobal: React.FC = () => {
       emptyStatePage={<EmptyModelServing />}
       provideChildrenPadding
     >
-      <InferenceServiceListView inferenceServices={inferenceServices} />
+      <InferenceServiceListView
+        inferenceServices={inferenceServices}
+        servingRuntimes={servingRuntimes}
+      />
     </ApplicationsPage>
   );
 };

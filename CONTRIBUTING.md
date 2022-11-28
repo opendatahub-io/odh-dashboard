@@ -111,9 +111,6 @@ Customize `.env.local` file to image and source information as desired. `npm` an
 
 ```.env.local
 IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
-SOURCE_REPOSITORY_URL=git@github.com:my-org/odh-dashboard.git
-SOURCE_REPOSITORY_REF=my-branch
-
 OC_URL=https://specify.in.env:6443
 OC_PROJECT=specify_in_.env
 
