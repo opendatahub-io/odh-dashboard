@@ -33,7 +33,7 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
         empty={isEmpty}
         loadError={loadError}
       >
-        <PageSection isFilled>
+        <PageSection isFilled data-id="page-content">
           <Gallery
             maxWidths={{ default: '330px' }}
             role="list"

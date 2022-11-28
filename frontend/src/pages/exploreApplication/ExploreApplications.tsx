@@ -66,28 +66,26 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               empty={isEmpty}
               loadError={loadError}
             >
-              {!isEmpty ? (
-                <PageSection isFilled>
-                  <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
-                    {exploreComponents.map((c) => (
-                      <OdhExploreCard
-                        key={c.metadata.name}
-                        odhApp={c}
-                        isSelected={selectedComponent?.metadata.name === c.metadata.name}
-                        onSelect={() => {
-                          updateSelection(c.metadata.name);
-                          fireTrackingEvent('Explore card clicked', {
-                            name: c.metadata.name,
-                          });
-                        }}
-                        disableInfo={disableInfo}
-                        enableOpen={c.metadata.name === enableApp?.metadata.name}
-                        onEnableClose={() => setEnableApp(undefined)}
-                      />
-                    ))}
-                  </Gallery>
-                </PageSection>
-              ) : null}
+              <PageSection isFilled data-id="page-content">
+                <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
+                  {exploreComponents.map((c) => (
+                    <OdhExploreCard
+                      key={c.metadata.name}
+                      odhApp={c}
+                      isSelected={selectedComponent?.metadata.name === c.metadata.name}
+                      onSelect={() => {
+                        updateSelection(c.metadata.name);
+                        fireTrackingEvent('Explore card clicked', {
+                          name: c.metadata.name,
+                        });
+                      }}
+                      disableInfo={disableInfo}
+                      enableOpen={c.metadata.name === enableApp?.metadata.name}
+                      onEnableClose={() => setEnableApp(undefined)}
+                    />
+                  ))}
+                </Gallery>
+              </PageSection>
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>
