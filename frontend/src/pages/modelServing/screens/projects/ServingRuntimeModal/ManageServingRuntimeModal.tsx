@@ -60,7 +60,18 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
 
-  const canCreate = !actionInProgress && !tokenErrors;
+  const inputValueValid =
+    createData.numReplicas > 0 &&
+    parseInt(createData.modelSize.resources.limits.cpu) > 0 &&
+    parseInt(createData.modelSize.resources.limits.memory) > 0 &&
+    parseInt(createData.modelSize.resources.requests.cpu) > 0 &&
+    parseInt(createData.modelSize.resources.requests.memory) > 0 &&
+    parseInt(createData.modelSize.resources.limits.cpu) >
+      parseInt(createData.modelSize.resources.requests.cpu) &&
+    parseInt(createData.modelSize.resources.limits.memory) >
+      parseInt(createData.modelSize.resources.requests.memory);
+
+  const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);

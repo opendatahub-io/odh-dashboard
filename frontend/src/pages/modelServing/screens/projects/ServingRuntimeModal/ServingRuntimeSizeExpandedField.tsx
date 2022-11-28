@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Grid, NumberInput } from '@patternfly/react-core';
+import { FormGroup, Grid, NumberInput, ValidatedOptions } from '@patternfly/react-core';
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject, ServingRuntimeResources } from '../../types';
@@ -32,16 +32,22 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
       resources: {
         ...data.modelSize.resources,
         [resourceKey]: {
-          ...data.modelSize[resourceKey],
+          ...data.modelSize.resources[resourceKey],
           [resourceAttribute]: `${target.value}${suffix}`,
         },
       },
     });
   };
 
-  const parseResourceInput = (resourceValue: string): number => {
+  const parseResourceInput = (resourceValue: string | undefined): number => {
+    if (!resourceValue) {
+      return 0;
+    }
     return parseInt(resourceValue.split('Gi')[0]);
   };
+
+  const validateInput = (value: string): ValidatedOptions =>
+    parseInt(value) >= 0 ? ValidatedOptions.default : ValidatedOptions.error;
 
   return (
     <IndentSection>
@@ -51,6 +57,7 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             value={parseResourceInput(data.modelSize?.resources.requests.cpu)}
             widthChars={10}
             min={1}
+            validated={validateInput(data.modelSize?.resources.requests.cpu)}
             onChange={(event) => onChangeResources(event, 'requests', ResourceAttributes.CPU)}
             onMinus={() =>
               setData('modelSize', {
@@ -83,6 +90,7 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             value={parseResourceInput(data.modelSize?.resources.requests.memory)}
             widthChars={10}
             min={1}
+            validated={validateInput(data.modelSize?.resources.requests.memory)}
             onChange={(event) => onChangeResources(event, 'requests', ResourceAttributes.MEMORY)}
             onMinus={() =>
               setData('modelSize', {
@@ -115,6 +123,7 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             value={parseResourceInput(data.modelSize?.resources.limits.cpu)}
             widthChars={10}
             min={1}
+            validated={validateInput(data.modelSize?.resources.limits.cpu)}
             onChange={(event) => onChangeResources(event, 'limits', ResourceAttributes.CPU)}
             onMinus={() =>
               setData('modelSize', {
@@ -147,6 +156,7 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             value={parseResourceInput(data.modelSize?.resources.limits.memory)}
             widthChars={10}
             min={1}
+            validated={validateInput(data.modelSize?.resources.limits.memory)}
             onChange={(event) => onChangeResources(event, 'limits', ResourceAttributes.MEMORY)}
             onMinus={() =>
               setData('modelSize', {
