@@ -10,6 +10,7 @@ import { InferenceServiceModel } from 'api/models';
 import { InferenceServiceKind, K8sStatus } from 'k8sTypes';
 import { CreatingInferenceServiceObject } from 'pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from 'pages/projects/utils';
+import { getModelServingProjects } from './projects';
 
 const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
@@ -54,11 +55,39 @@ const assembleInferenceService = (
   };
 };
 
-export const listInferenceService = (namespace?: string): Promise<InferenceServiceKind[]> => {
+export const listInferenceService = (
+  namespace?: string,
+  labelSelector?: string,
+): Promise<InferenceServiceKind[]> => {
+  const queryOptions = {
+    ...(namespace && { ns: namespace }),
+    ...(labelSelector && { queryParams: { labelSelector } }),
+  };
   return k8sListResource<InferenceServiceKind>({
     model: InferenceServiceModel,
-    ...(namespace && { queryOptions: { ns: namespace } }),
+    queryOptions,
   }).then((listResource) => listResource.items);
+};
+
+export const listScopedInferenceService = (
+  labelSelector?: string,
+): Promise<InferenceServiceKind[]> => {
+  return getModelServingProjects().then((projects) => {
+    return Promise.all(
+      projects.map((project) => listInferenceService(project.metadata.name, labelSelector)),
+    ).then((listInferenceService) => _.uniq(_.flatten(listInferenceService)));
+  });
+};
+
+export const getInferenceServiceContext = (
+  namespace?: string,
+  labelSelector?: string,
+): Promise<InferenceServiceKind[]> => {
+  if (namespace) {
+    return listInferenceService(namespace, labelSelector);
+  } else {
+    return listScopedInferenceService(labelSelector);
+  }
 };
 
 export const getInferenceService = (

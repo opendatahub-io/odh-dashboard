@@ -10,6 +10,7 @@ import { ServingRuntimeModel } from '../models';
 import { ServingRuntimeKind } from '../../k8sTypes';
 import { CreatingServingRuntimeObject } from 'pages/modelServing/screens/types';
 import { getModelServingRuntimeName } from 'pages/modelServing/utils';
+import { getModelServingProjects } from './projects';
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
@@ -97,6 +98,27 @@ export const listServingRuntimes = (
     model: ServingRuntimeModel,
     queryOptions,
   }).then((listResource) => listResource.items);
+};
+
+export const listScopedServingRuntimes = (
+  labelSelector?: string,
+): Promise<ServingRuntimeKind[]> => {
+  return getModelServingProjects().then((projects) => {
+    return Promise.all(
+      projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector)),
+    ).then((listServingRuntimes) => _.uniq(_.flatten(listServingRuntimes)));
+  });
+};
+
+export const getServingRuntimeContext = (
+  namespace?: string,
+  labelSelector?: string,
+): Promise<ServingRuntimeKind[]> => {
+  if (namespace) {
+    return listServingRuntimes(namespace, labelSelector);
+  } else {
+    return listScopedServingRuntimes(labelSelector);
+  }
 };
 
 export const getServingRuntime = (name: string, namespace: string): Promise<ServingRuntimeKind> => {
