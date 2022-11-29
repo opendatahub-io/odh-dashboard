@@ -30,12 +30,18 @@ import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
 import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
+import { AppContext } from '../../../../app/AppContext';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
 };
 
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
+  const {
+    dashboardConfig: {
+      spec: { notebookController },
+    },
+  } = React.useContext(AppContext);
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
 
@@ -189,6 +195,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             gpus: parseInt(selectedGpu),
             volumes: [],
             volumeMounts: [],
+            tolerationSettings: notebookController?.notebookTolerationSettings,
           }}
           storageData={storageData}
           envVariables={envVariables}
