@@ -6,7 +6,7 @@ import { fetchBuildStatuses } from '../services/buildsService';
 import { addNotification } from '../redux/actions/actions';
 import { AppNotificationStatus } from '../redux/types';
 import { useAppDispatch } from '../redux/hooks';
-import { List, ListItem } from '@patternfly/react-core';
+import { List, ListItem, Stack, StackItem } from '@patternfly/react-core';
 
 const runningStatuses = [
   BUILD_PHASE.new,
@@ -85,16 +85,16 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
           status: 'danger',
           title: 'These notebook image builds have not started:',
           message: (
-            <List isPlain>
-              <ListItem>
+            <Stack hasGutter>
+              <StackItem>
                 <List>
                   {notStarted.map((build) => (
                     <ListItem key={build.name}>{build.name}</ListItem>
                   ))}
                 </List>
-              </ListItem>
-              <ListItem>Contact your administrator to start the builds.</ListItem>
-            </List>
+              </StackItem>
+              <StackItem>Contact your administrator to start the builds.</StackItem>
+            </Stack>
           ),
           timestamp: new Date(),
         }),
@@ -124,19 +124,19 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
       if (failed.length) {
         status = complete.length ? 'warning' : 'danger';
         message = (
-          <List isPlain>
-            <ListItem>
+          <Stack hasGutter>
+            <StackItem>
               {complete.length} of {failed.length + complete.length} builds completed successfully.
-            </ListItem>
-            <ListItem>
+            </StackItem>
+            <StackItem>
               <List>
                 {failed.map((build) => (
                   <ListItem key={build.name}>{build.name} build image failed.</ListItem>
                 ))}
               </List>
-            </ListItem>
-            <ListItem>Contact your administrator to retry failed images.</ListItem>
-          </List>
+            </StackItem>
+            <StackItem>Contact your administrator to retry failed images.</StackItem>
+          </Stack>
         );
       }
       dispatch(

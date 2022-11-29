@@ -35,7 +35,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   const label = DOC_TYPE_LABEL[docType] || 'Documentation';
 
   return (
-    <LabelGroup defaultIsOpen numLabels={5}>
+    <LabelGroup defaultIsOpen numLabels={3}>
       <Tooltip removeFindDomNode content={DOC_TYPE_TOOLTIPS[docType]}>
         <Label color={getLabelColorForDocType(docType)}>{label}</Label>
       </Tooltip>

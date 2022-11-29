@@ -77,7 +77,7 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
                 <NotificationDrawerListItemBody
                   timestamp={calculateRelativeTime(notification.timestamp, currentTime)}
                 >
-                  {notification.message ?? undefined}
+                  {notification.message}
                 </NotificationDrawerListItemBody>
               </NotificationDrawerListItem>
             ))}

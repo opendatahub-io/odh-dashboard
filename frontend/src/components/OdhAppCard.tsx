@@ -97,7 +97,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   if (odhApp.spec.quickStart) {
     dropdownItems.push(
-      <DropdownItem key="quick-start" href="#" onClick={onQuickStart}>
+      <DropdownItem key="quick-start" onClick={onQuickStart}>
         {`${getLaunchStatus(odhApp.spec.quickStart || '', qsContext)} quick start`}
       </DropdownItem>,
     );

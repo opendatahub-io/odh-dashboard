@@ -12,10 +12,10 @@ type FavoriteButtonProps = {
 
 const FavoriteButton: React.FC<FavoriteButtonProps> = ({ isFavorite, onClick }) => {
   return (
-    <Button variant="plain" style={{ padding: 0 }} onClick={onClick}>
+    <Button variant="plain" className="odh-favorite-button" onClick={onClick}>
       <StarIcon
-        className={classNames('favorite-button', {
-          'm-selected': isFavorite,
+        className={classNames('odh-favorite-button__star-icon', {
+          'odh-favorite-button__star-icon--is-selected': isFavorite,
         })}
       />
     </Button>
