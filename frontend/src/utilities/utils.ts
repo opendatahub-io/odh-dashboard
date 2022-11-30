@@ -126,7 +126,7 @@ export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean 
 
 export const isRedHatSupported = (app: OdhApplication): boolean => {
   const support = (app.spec.support || '').toLowerCase();
-  return support === ODH_PRODUCT_NAME || support === 'redhat';
+  return support === ODH_PRODUCT_NAME || support === 'redhat' || support === 'red hat';
 };
 
 export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minute: number } => {

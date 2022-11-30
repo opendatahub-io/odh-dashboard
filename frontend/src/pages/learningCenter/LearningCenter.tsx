@@ -45,8 +45,8 @@ export const LearningCenter: React.FC = () => {
   const queryParams = useQueryParams();
   const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
   const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
-  const [favourites, setFavorites] = useBrowserStorage<string[]>(FAVORITE_RESOURCES, []);
-  const favoriteResources = useDeepCompareMemoize(favourites);
+  const [favorites, setFavorites] = useBrowserStorage<string[]>(FAVORITE_RESOURCES, []);
+  const favoriteResources = useDeepCompareMemoize(favorites);
   const docFilterer = useDocFilterer(favoriteResources);
   const [viewType, setViewType] = useBrowserStorage<string>(VIEW_TYPE, '', false);
   const [filtersCollapsed, setFiltersCollapsed] = React.useState(false);
@@ -182,14 +182,8 @@ export const LearningCenter: React.FC = () => {
   const docLink = DOC_LINK ? (
     <>
       {docText}
-      <a
-        className="odh-dashboard__external-link"
-        href={DOC_LINK}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        view the documentation.
-        <ExternalLinkAltIcon />
+      <a href={DOC_LINK} target="_blank" rel="noopener noreferrer">
+        view the documentation. <ExternalLinkAltIcon />
       </a>
     </>
   ) : null;

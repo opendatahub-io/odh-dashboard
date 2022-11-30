@@ -1,39 +1,45 @@
 import React from 'react';
-import { Brand, PageHeader } from '@patternfly/react-core';
+import {
+  Brand,
+  Masthead,
+  MastheadBrand,
+  MastheadContent,
+  MastheadMain,
+  MastheadToggle,
+  PageToggleButton,
+} from '@patternfly/react-core';
 import HeaderTools from './HeaderTools';
 import { ODH_LOGO, ODH_PRODUCT_NAME } from '../utilities/const';
-import { useAppContext } from './AppContext';
 import { useUser } from '../redux/selectors';
-import { useNavigate } from 'react-router-dom';
+import { BarsIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 
 type HeaderProps = {
   onNotificationsClick: () => void;
 };
 
 const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
-  const { isNavOpen, onNavToggle } = useAppContext();
   const { isAllowed } = useUser();
-  const navigate = useNavigate();
   return (
-    <PageHeader
-      logo={
-        <Brand
-          src={`${window.location.origin}/images/${ODH_LOGO}`}
-          alt={`${ODH_PRODUCT_NAME} Logo`}
-        />
-      }
-      logoProps={{
-        onClick: (e: MouseEvent) => {
-          e.preventDefault();
-          navigate('/');
-        },
-        href: '/',
-      }}
-      headerTools={<HeaderTools onNotificationsClick={onNotificationsClick} />}
-      showNavToggle={isAllowed}
-      isNavOpen={isNavOpen}
-      onNavToggle={onNavToggle}
-    />
+    <Masthead>
+      {isAllowed && (
+        <MastheadToggle>
+          <PageToggleButton id="page-nav-toggle" variant="plain" aria-label="Dashboard navigation">
+            <BarsIcon />
+          </PageToggleButton>
+        </MastheadToggle>
+      )}
+      <MastheadMain>
+        <MastheadBrand component={(props) => <Link {...props} to="/" />}>
+          <Brand heights={{ default: '36px' }} alt={`${ODH_PRODUCT_NAME} Logo`}>
+            <source srcSet={`${window.location.origin}/images/${ODH_LOGO}`} />
+          </Brand>
+        </MastheadBrand>
+      </MastheadMain>
+      <MastheadContent>
+        <HeaderTools onNotificationsClick={onNotificationsClick} />
+      </MastheadContent>
+    </Masthead>
   );
 };
 

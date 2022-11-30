@@ -1,7 +1,20 @@
 import React from 'react';
 import classNames from 'classnames';
-import { Card, CardBody, CardFooter, CardHeader, CardTitle, Tooltip } from '@patternfly/react-core';
-import { ExternalLinkAltIcon, StarIcon } from '@patternfly/react-icons';
+import {
+  Card,
+  CardActions,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  CardHeaderMain,
+  CardTitle,
+  Stack,
+  StackItem,
+  Text,
+  TextContent,
+  Tooltip,
+} from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '../types';
 import {
   getLaunchStatus,
@@ -13,9 +26,10 @@ import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { fireTrackingEvent } from '../utilities/segmentIOUtils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
+import { QuickStartContextValues } from '@patternfly/quickstarts';
+import FavoriteButton from './FavoriteButton';
 
 import './OdhCard.scss';
-import { QuickStartContextValues } from '@patternfly/quickstarts';
 
 type OdhDocCardProps = {
   odhDoc: OdhDocument;
@@ -116,7 +130,6 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     return null;
   };
 
-  const favoriteClasses = classNames('odh-dashboard__favorite', { 'm-is-favorite': favorite });
   return (
     <Card
       data-id={odhDoc.metadata.name}
@@ -128,21 +141,36 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       isSelectable
     >
       <CardHeader>
-        <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
-        <span className={favoriteClasses} onClick={() => updateFavorite(!favorite)}>
-          <StarIcon className="odh-dashboard__favorite__outer" />
-          <StarIcon className="odh-dashboard__favorite__inner" />
-        </span>
+        <CardHeaderMain style={{ maxWidth: '33%' }}>
+          <BrandImage
+            src={odhDoc.spec.img || odhDoc.spec.icon || ''}
+            alt={odhDoc.spec.displayName}
+          />
+        </CardHeaderMain>
+        <CardActions hasNoOffset>
+          <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
+        </CardActions>
       </CardHeader>
-      <CardTitle className="odh-card__doc-title">
-        {odhDoc.spec.displayName}
-        <div className="odh-card__provider">by {odhDoc.spec.appDisplayName}</div>
-        <DocCardBadges odhDoc={odhDoc} />
+      <CardTitle>
+        <TextContent>
+          {odhDoc.spec.displayName}
+          {/* Override the bold font in the title, make the subtitle lighter */}
+          <Text component="small" style={{ fontWeight: 'var(--pf-global--FontWeight--normal)' }}>
+            by {odhDoc.spec.appDisplayName}
+          </Text>
+        </TextContent>
       </CardTitle>
       <CardBody>
-        <Tooltip removeFindDomNode content={odhDoc.spec.description}>
-          <span className="odh-card__body-text">{odhDoc.spec.description}</span>
-        </Tooltip>
+        <Stack hasGutter>
+          <StackItem>
+            <DocCardBadges odhDoc={odhDoc} />
+          </StackItem>
+          <StackItem>
+            <Tooltip removeFindDomNode content={odhDoc.spec.description}>
+              <span className="odh-card__body-text">{odhDoc.spec.description}</span>
+            </Tooltip>
+          </StackItem>
+        </Stack>
       </CardBody>
       <CardFooter className={footerClassName}>{renderDocLink()}</CardFooter>
     </Card>

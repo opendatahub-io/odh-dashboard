@@ -1,12 +1,13 @@
 import React from 'react';
 import classNames from 'classnames';
 import { Tooltip } from '@patternfly/react-core';
-import { ExternalLinkAltIcon, StarIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '../types';
 import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
 import { getDuration } from '../utilities/utils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
+import FavoriteButton from './FavoriteButton';
 
 import './OdhListItem.scss';
 
@@ -75,16 +76,9 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
     );
   };
 
-  const favoriteClasses = classNames('odh-dashboard__favorite', {
-    'm-is-favorite': favorite,
-  });
-
   return (
     <>
-      <div className={favoriteClasses} onClick={() => updateFavorite(!favorite)}>
-        <StarIcon className="odh-dashboard__favorite__outer" />
-        <StarIcon className="odh-dashboard__favorite__inner" />
-      </div>
+      <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
       <div className="odh-list-item__doc-text">
         <div id={odhDoc.metadata.name} className="odh-list-item__doc-title">
           <Tooltip removeFindDomNode content={odhDoc.spec.displayName}>

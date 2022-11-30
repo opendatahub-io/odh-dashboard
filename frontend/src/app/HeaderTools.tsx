@@ -4,12 +4,13 @@ import {
   DropdownPosition,
   DropdownToggle,
   NotificationBadge,
-  PageHeaderTools,
-  PageHeaderToolsGroup,
-  PageHeaderToolsItem,
   DropdownItem,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
 } from '@patternfly/react-core';
-import { CaretDownIcon, ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
 import { AppNotification } from '../redux/types';
 import AppLauncher from './AppLauncher';
@@ -56,13 +57,11 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="documentation"
         onClick={handleHelpClick}
-        className="odh-dashboard__external-link"
         href={DOC_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
-        Documentation
-        <ExternalLinkAltIcon />
+        Documentation <ExternalLinkAltIcon />
       </DropdownItem>,
     );
   }
@@ -71,13 +70,11 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="support"
         onClick={handleHelpClick}
-        className="odh-dashboard__external-link"
         href={SUPPORT_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
-        Support
-        <ExternalLinkAltIcon />
+        Support <ExternalLinkAltIcon />
       </DropdownItem>,
     );
   }
@@ -86,62 +83,64 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="community"
         onClick={handleHelpClick}
-        className="odh-dashboard__external-link"
         href={COMMUNITY_LINK}
         target="_blank"
         rel="noopener noreferrer"
       >
-        Community
-        <ExternalLinkAltIcon />
+        Community <ExternalLinkAltIcon />
       </DropdownItem>,
     );
   }
 
   return (
-    <PageHeaderTools>
-      <PageHeaderToolsGroup className="hidden-xs">
-        {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? <AppLauncher /> : null}
-        <PageHeaderToolsItem>
-          <NotificationBadge isRead count={newNotifications} onClick={onNotificationsClick} />
-        </PageHeaderToolsItem>
-        {helpMenuItems.length > 0 ? (
-          <PageHeaderToolsItem>
-            <Dropdown
-              removeFindDomNode
-              position={DropdownPosition.right}
-              toggle={
-                <DropdownToggle
-                  id="toggle-id"
-                  onToggle={() => setHelpMenuOpen(!helpMenuOpen)}
-                  toggleIndicator={CaretDownIcon}
-                >
-                  <QuestionCircleIcon />
-                </DropdownToggle>
-              }
-              isOpen={helpMenuOpen}
-              dropdownItems={helpMenuItems}
-            />
-          </PageHeaderToolsItem>
-        ) : null}
-        <PageHeaderToolsItem>
+    <Toolbar isFullHeight>
+      <ToolbarContent>
+        <ToolbarGroup variant="icon-button-group" alignment={{ default: 'alignRight' }}>
+          {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
+            <ToolbarItem>
+              <AppLauncher />
+            </ToolbarItem>
+          ) : null}
+          <ToolbarItem>
+            <NotificationBadge isRead count={newNotifications} onClick={onNotificationsClick} />
+          </ToolbarItem>
+          {helpMenuItems.length > 0 ? (
+            <ToolbarItem>
+              <Dropdown
+                removeFindDomNode
+                isPlain
+                position={DropdownPosition.right}
+                toggle={
+                  <DropdownToggle
+                    toggleIndicator={null}
+                    id="help-icon-toggle"
+                    onToggle={() => setHelpMenuOpen(!helpMenuOpen)}
+                  >
+                    <QuestionCircleIcon />
+                  </DropdownToggle>
+                }
+                isOpen={helpMenuOpen}
+                dropdownItems={helpMenuItems}
+              />
+            </ToolbarItem>
+          ) : null}
+        </ToolbarGroup>
+        <ToolbarItem>
           <Dropdown
             removeFindDomNode
+            isPlain
             position={DropdownPosition.right}
             toggle={
-              <DropdownToggle
-                id="toggle-id"
-                onToggle={() => setUserMenuOpen(!userMenuOpen)}
-                toggleIndicator={CaretDownIcon}
-              >
+              <DropdownToggle id="user-menu-toggle" onToggle={() => setUserMenuOpen(!userMenuOpen)}>
                 {userName}
               </DropdownToggle>
             }
             isOpen={userMenuOpen}
             dropdownItems={userMenuItems}
           />
-        </PageHeaderToolsItem>
-      </PageHeaderToolsGroup>
-    </PageHeaderTools>
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
   );
 };
 

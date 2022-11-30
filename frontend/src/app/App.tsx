@@ -12,7 +12,6 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { detectUser } from '../redux/actions/actions';
-import { useDesktopWidth } from '../utilities/useDesktopWidth';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -29,8 +28,6 @@ import { useAppDispatch } from '../redux/hooks';
 import './App.scss';
 
 const App: React.FC = () => {
-  const isDeskTop = useDesktopWidth();
-  const [isNavOpen, setIsNavOpen] = React.useState(isDeskTop);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
   const dispatch = useAppDispatch();
@@ -45,14 +42,6 @@ const App: React.FC = () => {
   React.useEffect(() => {
     dispatch(detectUser());
   }, [dispatch]);
-
-  React.useEffect(() => {
-    setIsNavOpen(isDeskTop);
-  }, [isDeskTop]);
-
-  const onNavToggle = () => {
-    setIsNavOpen(!isNavOpen);
-  };
 
   if (!username || !configLoaded || !dashboardConfig) {
     // We lack the critical data to startup the app
@@ -96,15 +85,13 @@ const App: React.FC = () => {
   return (
     <AppContext.Provider
       value={{
-        isNavOpen,
-        setIsNavOpen,
-        onNavToggle,
         buildStatuses,
         dashboardConfig,
       }}
     >
       <Page
         className="odh-dashboard"
+        isManagedSidebar
         header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
         sidebar={isAllowed ? <NavSidebar /> : undefined}
         notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}

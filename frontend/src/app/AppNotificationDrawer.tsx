@@ -49,12 +49,9 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
     dispatch(removeNotification(notification));
   };
 
-  // FIXME: Remove blank item from NotificationDrawerHeader when https://github.com/patternfly/patternfly-react/issues/5924 is resolved
   return (
-    <NotificationDrawer className="odh-dashboard__notification-drawer">
-      <NotificationDrawerHeader count={newNotifications} onClose={onClose}>
-        {` `}
-      </NotificationDrawerHeader>
+    <NotificationDrawer>
+      <NotificationDrawerHeader count={newNotifications} onClose={onClose} />
       <NotificationDrawerBody>
         {notifications.length ? (
           <NotificationDrawerList>
@@ -69,20 +66,16 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
                   variant={notification.status}
                   title={notification.title}
                 >
-                  <div>
-                    <Button
-                      className="odh-dashboard__notification-drawer__item-remove"
-                      variant={ButtonVariant.plain}
-                      aria-label="remove notification"
-                      onClick={() => onRemoveNotification(notification)}
-                    >
-                      <TimesIcon aria-hidden="true" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant={ButtonVariant.plain}
+                    aria-label="remove notification"
+                    onClick={() => onRemoveNotification(notification)}
+                  >
+                    <TimesIcon aria-hidden="true" />
+                  </Button>
                 </NotificationDrawerListItemHeader>
                 <NotificationDrawerListItemBody
                   timestamp={calculateRelativeTime(notification.timestamp, currentTime)}
-                  className={notification.message ? '' : 'm-is-hidden'}
                 >
                   {notification.message}
                 </NotificationDrawerListItemBody>

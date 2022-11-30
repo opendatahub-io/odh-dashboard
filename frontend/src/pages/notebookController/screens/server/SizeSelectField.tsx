@@ -45,6 +45,7 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
     >
       <Select
         removeFindDomNode
+        width="70%"
         isOpen={sizeDropdownOpen}
         onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
         aria-labelledby="container-size"
