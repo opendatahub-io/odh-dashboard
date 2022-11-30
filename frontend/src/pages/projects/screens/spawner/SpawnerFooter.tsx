@@ -19,6 +19,7 @@ import {
 } from './service';
 import { useUser } from '../../../../redux/selectors';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
+import { AppContext } from '../../../../app/AppContext';
 import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 
 type SpawnerFooterProps = {
@@ -33,6 +34,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   envVariables,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState('');
+  const {
+    dashboardConfig: {
+      spec: { notebookController },
+    },
+  } = React.useContext(AppContext);
+  const tolerationSettings = notebookController?.notebookTolerationSettings;
   const {
     notebooks: { data },
     refreshAllProjectData,
@@ -88,7 +95,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         return;
       }
       const { volumes, volumeMounts } = pvcDetails;
-      const newStartNotebookData = { ...startNotebookData, volumes, volumeMounts, envFrom };
+      const newStartNotebookData = {
+        ...startNotebookData,
+        volumes,
+        volumeMounts,
+        envFrom,
+        tolerationSettings,
+      };
       updateNotebook(editNotebook, newStartNotebookData, username)
         .then(() => afterStart('updated'))
         .catch(handleError);
@@ -109,7 +122,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcDetails;
-    const newStartData = { ...startNotebookData, volumes, volumeMounts, envFrom };
+    const newStartData = {
+      ...startNotebookData,
+      volumes,
+      volumeMounts,
+      envFrom,
+      tolerationSettings,
+    };
 
     createNotebook(newStartData, username)
       .then(() => afterStart('created'))
