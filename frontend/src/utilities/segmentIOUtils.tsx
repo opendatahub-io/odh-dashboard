@@ -1,4 +1,3 @@
-import { stringify } from 'yaml';
 import { TrackingEventProperties } from '../types';
 import { DEV_MODE } from './const';
 
@@ -8,7 +7,11 @@ export const fireTrackingEvent = (
 ): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
-    console.log(`Telemetry event triggered: ${eventType} - ${stringify(properties)}`);
+    console.log(
+      `Telemetry event triggered: ${eventType}${
+        properties ? ` - ${JSON.stringify(properties)}` : ''
+      }`,
+    );
   } else {
     if (window.analytics) {
       switch (eventType) {
