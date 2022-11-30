@@ -1,20 +1,29 @@
 import { TrackingEventProperties } from '../types';
+import { DEV_MODE } from './const';
 
 export const fireTrackingEvent = (
   eventType: string,
   properties?: TrackingEventProperties,
 ): void => {
   const clusterID = window.clusterID ?? '';
-  if (window.analytics) {
-    switch (eventType) {
-      case 'identify':
-        window.analytics.identify(properties?.anonymousID, { clusterID });
-        break;
-      case 'page':
-        window.analytics.page(undefined, { clusterID });
-        break;
-      default:
-        window.analytics.track(eventType, { ...properties, clusterID });
+  if (DEV_MODE) {
+    console.log(
+      `Telemetry event triggered: ${eventType}${
+        properties ? ` - ${JSON.stringify(properties)}` : ''
+      }`,
+    );
+  } else {
+    if (window.analytics) {
+      switch (eventType) {
+        case 'identify':
+          window.analytics.identify(properties?.anonymousID, { clusterID });
+          break;
+        case 'page':
+          window.analytics.page(undefined, { clusterID });
+          break;
+        default:
+          window.analytics.track(eventType, { ...properties, clusterID });
+      }
     }
   }
 };
