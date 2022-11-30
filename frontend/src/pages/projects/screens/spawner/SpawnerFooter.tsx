@@ -56,6 +56,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       GPU: gpus,
       lastSelectedSize: notebookSize.name,
       lastSelectedImage: `${image.imageVersion?.from.name}`,
+      projectName,
     });
     refreshAllProjectData();
     navigate(`/projects/${projectName}`);
