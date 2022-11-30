@@ -42,11 +42,12 @@ export const NotebookServer: React.FC = () => {
         title="Notebook server control panel"
         description={null}
         loaded
+        provideChildrenPadding
         empty={!currentUserNotebookIsRunning}
-        emptyStatePage={<Navigate to={`/notebookController/spawner`} />}
+        emptyStatePage={<Navigate to="/notebookController/spawner" />}
       >
         {notebook && (
-          <Stack hasGutter className="odh-notebook-controller__page">
+          <Stack hasGutter>
             <StackItem>
               <StopServerModal
                 impersonatedUsername={impersonatedUsername ? impersonatedUsername : undefined}

@@ -3,129 +3,15 @@ html, body, #root {
 }
 
 .odh-dashboard {
-  &__error-body {
-    text-align: left;
-    white-space: pre;
-  }
-
-  &__display-error {
-    white-space: pre-wrap;
-  }
-
-  &__external-link {
-    > svg {
-      margin-left: var(--pf-global--spacer--xs);
-    }
-  }
-
-  &__notification-drawer {
-    .pf-c-notification-drawer__list-item-header-title {
-      font-size: 1em;
-    }
-    &__item-remove {
-      padding-bottom: 0;
-      padding-top: 0;
-    }
-    .pf-c-notification-drawer__list-item-description.m-is-hidden {
-      display: none;
-    }
-  }
-
-  &__notifications {
-    position: fixed;
-    right: var(--pf-global--spacer--sm);
-    z-index: 2000;
-    .pf-c-alert {
-      margin-top: var(--pf-global--spacer--sm);
-      .pf-c-alert__action .pf-c-button {
-        padding-top: 0;
-        padding-bottom: 0;
-      }
-    }
-    &__message {
-      .pf-c-notification-drawer__list & {
-        margin-left: var(--pf-global--spacer--lg);
-      }
-    }
-    &__list {
-      list-style: disc;
-      margin-left: 20px;
-      margin-bottom: var(--pf-global--spacer--sm);
-    }
-  }
-  &__favorite {
-    cursor: pointer;
-    position: relative;
-    &__outer {
-      fill: var(--pf-global--disabled-color--100);
-      .m-is-favorite & {
-        fill: var(--pf-global--palette--gold-200);
-      }
-    }
-    &__inner {
-      fill: var(--pf-global--BackgroundColor--100);
-      position: absolute;
-      top: 5px;
-      left: 2px;
-      width: calc(1em - 4px);
-      height: calc(1em - 4px);
-      .m-is-favorite & {
-        fill: var(--pf-global--palette--gold-200);
-      }
-    }
-  }
-  .pf-c-page__main {
-    height: 100%;
-  }
-  .pf-c-drawer__content {
-    overflow-y: auto;
-  }
-  .pf-c-page__main-section {
-    .pf-l-gallery {
-      --pf-l-gallery--GridTemplateColumns--max-on-xl: 330px;
-      --pf-l-gallery--GridTemplateColumns--max-on-lg: 330px;
-      --pf-l-gallery--GridTemplateColumns--max-on-md: 330px;
-      --pf-l-gallery--GridTemplateColumns--max-on-sm: 330px;
-      --pf-l-gallery--GridTemplateColumns--max: 330px;
-    }
-  }
-  // PF Overrides
-  .pf-c-page__header {
-    .pf-c-brand {
-      height: 36px;
-    }
-    .pf-c-dropdown__toggle {
-      .pf-c-dropdown__toggle-icon {
-        margin-left: var(--pf-global--spacer--xs);
-      }
-      &:before {
-        visibility: hidden;
-      }
-    }
-  }
-  .pf-c-drawer.pf-m-inline {
+  &__page-content {
+    border: 1px solid var(--pf-global--BorderColor--100);
+    display: flex;
     flex: 1;
+    margin: var(--pf-global--spacer--md);
   }
-  // Bootstrap Overrides (Bootstrap pulled in by @cloudmosaic/quickstarts)
-  code {
-    color: initial;
-    background-color: initial;
-  }
-
-  // PF Overrides
-  &.pf-c-page {
-    // TODO: Using the PF var doesn't work for some reason.
-    // @media (min-width: var(--pf-global--breakpoint--md)) {
-    @media (min-width: 768px) {
-      grid-template-columns: max-content 1fr;
-      grid-template-areas: "header header" "nav main";
-    }
-  }
-
   .pf-c-app-launcher__group-title {
     font-size: 13px;
   }
-
   .pf-c-app-launcher__menu-item-external-icon {
     opacity: 1;
     color: var(--pf-global--icon--Color--light);
@@ -138,10 +24,12 @@ html, body, #root {
   .pf-c-dropdown,
   .pf-c-dropdown__menu-item,
   .pf-c-dropdown__toggle,
+  .pf-c-select,
+  .pf-c-select__menu-item,
+  .pf-c-select__toggle,
+  .pf-c-text-input-group,
   .pf-c-form-control {
-    font-size: 14px;
+    font-size: var(--pf-global--FontSize--sm);
     height: auto;
   }
 }
-
-

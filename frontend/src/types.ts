@@ -277,6 +277,7 @@ export type TrackingEventProperties = {
   GPU?: number;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
+  projectName?: string;
 };
 
 export type NotebookPort = {

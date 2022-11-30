@@ -273,11 +273,12 @@ const SpawnerPage: React.FC = () => {
       <ApplicationsPage
         title="Start a notebook server"
         description="Select options for your notebook server."
+        provideChildrenPadding
         loaded={loaded}
         loadError={loadError}
         empty={!images || images.length === 0}
       >
-        <Form maxWidth="1000px" className="odh-notebook-controller__page">
+        <Form maxWidth="1000px">
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>

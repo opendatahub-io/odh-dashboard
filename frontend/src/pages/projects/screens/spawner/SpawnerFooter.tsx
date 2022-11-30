@@ -20,6 +20,7 @@ import {
 import { useUser } from '../../../../redux/selectors';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { AppContext } from '../../../../app/AppContext';
+import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -56,7 +57,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     !checkRequiredFieldsForNotebookStart(startNotebookData, storageData, envVariables);
   const { username } = useUser();
 
-  const redirect = () => {
+  const afterStart = (type: 'created' | 'updated') => {
+    const { gpus, notebookSize, image } = startNotebookData;
+    fireTrackingEvent(`Workbench ${type}`, {
+      GPU: gpus,
+      lastSelectedSize: notebookSize.name,
+      lastSelectedImage: `${image.imageVersion?.from.name}`,
+      projectName,
+    });
     refreshAllProjectData();
     navigate(`/projects/${projectName}`);
   };
@@ -95,7 +103,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         tolerationSettings,
       };
       updateNotebook(editNotebook, newStartNotebookData, username)
-        .then(redirect)
+        .then(() => afterStart('updated'))
         .catch(handleError);
     }
   };
@@ -122,7 +130,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       tolerationSettings,
     };
 
-    createNotebook(newStartData, username).then(redirect).catch(handleError);
+    createNotebook(newStartData, username)
+      .then(() => afterStart('created'))
+      .catch(handleError);
   };
 
   return (

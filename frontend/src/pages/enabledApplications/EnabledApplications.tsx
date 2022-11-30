@@ -33,17 +33,18 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
         empty={isEmpty}
         loadError={loadError}
       >
-        {!isEmpty ? (
-          <div className="odh-dashboard__page-content" data-id="page-content">
-            <PageSection>
-              <Gallery role="list" className="odh-installed-apps__gallery" hasGutter>
-                {components.map((c) => (
-                  <OdhAppCard key={c.metadata.name} odhApp={c} />
-                ))}
-              </Gallery>
-            </PageSection>
-          </div>
-        ) : null}
+        <PageSection isFilled data-id="page-content">
+          <Gallery
+            maxWidths={{ default: '330px' }}
+            role="list"
+            className="odh-installed-apps__gallery"
+            hasGutter
+          >
+            {components.map((c) => (
+              <OdhAppCard key={c.metadata.name} odhApp={c} />
+            ))}
+          </Gallery>
+        </PageSection>
       </ApplicationsPage>
     );
   },

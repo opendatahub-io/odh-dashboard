@@ -6,6 +6,7 @@ import { fetchBuildStatuses } from '../services/buildsService';
 import { addNotification } from '../redux/actions/actions';
 import { AppNotificationStatus } from '../redux/types';
 import { useAppDispatch } from '../redux/hooks';
+import { List, ListItem, Stack, StackItem } from '@patternfly/react-core';
 
 const runningStatuses = [
   BUILD_PHASE.new,
@@ -84,14 +85,16 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
           status: 'danger',
           title: 'These notebook image builds have not started:',
           message: (
-            <div className="odh-dashboard__notifications__message">
-              <ul className="odh-dashboard__notifications__list">
-                {notStarted.map((build) => (
-                  <li key={build.name}>{build.name}</li>
-                ))}
-              </ul>
-              Contact your administrator to start the builds.
-            </div>
+            <Stack hasGutter>
+              <StackItem>
+                <List>
+                  {notStarted.map((build) => (
+                    <ListItem key={build.name}>{build.name}</ListItem>
+                  ))}
+                </List>
+              </StackItem>
+              <StackItem>Contact your administrator to start the builds.</StackItem>
+            </Stack>
           ),
           timestamp: new Date(),
         }),
@@ -121,15 +124,19 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
       if (failed.length) {
         status = complete.length ? 'warning' : 'danger';
         message = (
-          <div className="odh-dashboard__notifications__message">
-            {complete.length} of {failed.length + complete.length} builds completed successfully.
-            <ul className="odh-dashboard__notifications__list">
-              {failed.map((build) => (
-                <li key={build.name}>{build.name} build image failed.</li>
-              ))}
-            </ul>
-            Contact your administrator to retry failed images.
-          </div>
+          <Stack hasGutter>
+            <StackItem>
+              {complete.length} of {failed.length + complete.length} builds completed successfully.
+            </StackItem>
+            <StackItem>
+              <List>
+                {failed.map((build) => (
+                  <ListItem key={build.name}>{build.name} build image failed.</ListItem>
+                ))}
+              </List>
+            </StackItem>
+            <StackItem>Contact your administrator to retry failed images.</StackItem>
+          </Stack>
         );
       }
       dispatch(

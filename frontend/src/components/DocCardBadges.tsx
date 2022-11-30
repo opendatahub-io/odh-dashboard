@@ -1,5 +1,5 @@
 import React from 'react';
-import { Label, Tooltip } from '@patternfly/react-core';
+import { Label, LabelGroup, Tooltip } from '@patternfly/react-core';
 import { SyncAltIcon, CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { OdhDocument, OdhDocumentType } from '../types';
@@ -35,7 +35,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
   const label = DOC_TYPE_LABEL[docType] || 'Documentation';
 
   return (
-    <div className="odh-card__doc-badges">
+    <LabelGroup defaultIsOpen numLabels={3}>
       <Tooltip removeFindDomNode content={DOC_TYPE_TOOLTIPS[docType]}>
         <Label color={getLabelColorForDocType(docType)}>{label}</Label>
       </Tooltip>
@@ -59,7 +59,7 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
           Failed
         </Label>
       ) : null}
-    </div>
+    </LabelGroup>
   );
 };
 

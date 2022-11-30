@@ -9,7 +9,6 @@ const ImpersonateAlert: React.FC = () => {
 
   return (
     <Alert
-      className="odh-notebook-controller__page-content"
       variant="info"
       title={`This notebook server is being created for "${impersonatedUsername}"`}
       isInline

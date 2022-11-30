@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import {
   Button,
   Card,
+  CardActions,
   CardBody,
   CardFooter,
   CardHeader,
+  CardHeaderMain,
   Dropdown,
   DropdownItem,
   KebabToggle,
@@ -14,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../types';
-import { getLaunchStatus, launchQuickStart, LaunchStatusEnum } from '../utilities/quickStartUtils';
+import { getLaunchStatus, launchQuickStart } from '../utilities/quickStartUtils';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
@@ -84,15 +86,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   };
 
   const dropdownItems = [
-    <DropdownItem
-      key="docs"
-      className="odh-dashboard__external-link"
-      href={odhApp.spec.docsLink}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      View documentation
-      <ExternalLinkAltIcon />
+    <DropdownItem key="docs" href={odhApp.spec.docsLink} target="_blank" rel="noopener noreferrer">
+      View documentation <ExternalLinkAltIcon />
     </DropdownItem>,
   ];
 
@@ -100,15 +95,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     'm-warning': odhApp.spec.category === 'Third party support',
   });
 
-  const quickStartClasses = classNames('odh-dashboard__external-link', {
-    'm-hidden': !odhApp.spec.quickStart,
-    'm-disabled':
-      getLaunchStatus(odhApp.spec.quickStart || '', qsContext) === LaunchStatusEnum.Close,
-  });
-
   if (odhApp.spec.quickStart) {
     dropdownItems.push(
-      <DropdownItem key="quick-start" className={quickStartClasses} href="#" onClick={onQuickStart}>
+      <DropdownItem key="quick-start" onClick={onQuickStart}>
         {`${getLaunchStatus(odhApp.spec.quickStart || '', qsContext)} quick start`}
       </DropdownItem>,
     );
@@ -141,7 +130,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </CardFooter>
   );
 
-  const cardClasses = classNames('odh-card odh-tourable-card', {
+  const cardClasses = classNames('odh-card', {
     'm-disabled': disabled,
   });
 
@@ -195,8 +184,10 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       isSelectable={!disabled}
     >
       <CardHeader>
-        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
-        <div className="odh-card__enabled-controls">
+        <CardHeaderMain style={{ maxWidth: '33%' }}>
+          <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
+        </CardHeaderMain>
+        <CardActions hasNoOffset>
           {disabled ? disabledPopover : null}
           <Dropdown
             removeFindDomNode
@@ -207,7 +198,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
             dropdownItems={dropdownItems}
             position={'right'}
           />
-        </div>
+        </CardActions>
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>

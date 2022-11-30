@@ -66,30 +66,26 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               empty={isEmpty}
               loadError={loadError}
             >
-              {!isEmpty ? (
-                <div className="odh-dashboard__page-content" data-id="page-content">
-                  <PageSection>
-                    <Gallery role="list" className="odh-explore-apps__gallery" hasGutter>
-                      {exploreComponents.map((c) => (
-                        <OdhExploreCard
-                          key={c.metadata.name}
-                          odhApp={c}
-                          isSelected={selectedComponent?.metadata.name === c.metadata.name}
-                          onSelect={() => {
-                            updateSelection(c.metadata.name);
-                            fireTrackingEvent('Explore card clicked', {
-                              name: c.metadata.name,
-                            });
-                          }}
-                          disableInfo={disableInfo}
-                          enableOpen={c.metadata.name === enableApp?.metadata.name}
-                          onEnableClose={() => setEnableApp(undefined)}
-                        />
-                      ))}
-                    </Gallery>
-                  </PageSection>
-                </div>
-              ) : null}
+              <PageSection isFilled data-id="page-content">
+                <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
+                  {exploreComponents.map((c) => (
+                    <OdhExploreCard
+                      key={c.metadata.name}
+                      odhApp={c}
+                      isSelected={selectedComponent?.metadata.name === c.metadata.name}
+                      onSelect={() => {
+                        updateSelection(c.metadata.name);
+                        fireTrackingEvent('Explore card clicked', {
+                          name: c.metadata.name,
+                        });
+                      }}
+                      disableInfo={disableInfo}
+                      enableOpen={c.metadata.name === enableApp?.metadata.name}
+                      onEnableClose={() => setEnableApp(undefined)}
+                    />
+                  ))}
+                </Gallery>
+              </PageSection>
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { QuestionCircleIcon, WarningTriangleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import {
   PageSection,
   PageSectionVariants,
@@ -66,17 +66,13 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   const renderContents = () => {
     if (loadError) {
       return (
-        <PageSection>
-          <EmptyState variant={EmptyStateVariant.full} data-id="error-empty-state">
-            <EmptyStateIcon icon={WarningTriangleIcon} />
-            <Title headingLevel="h5" size="lg">
+        <PageSection isFilled>
+          <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
+            <EmptyStateIcon icon={ExclamationCircleIcon} />
+            <Title headingLevel="h4" size="lg">
               {errorMessage !== undefined ? errorMessage : 'Error loading components'}
             </Title>
-            <EmptyStateBody className="odh-dashboard__error-body">
-              <div>
-                <code className="odh-dashboard__display-error">{loadError.message}</code>
-              </div>
-            </EmptyStateBody>
+            <EmptyStateBody>{loadError.message}</EmptyStateBody>
           </EmptyState>
         </PageSection>
       );
@@ -85,9 +81,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (!loaded) {
       return (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.full} data-id="loading-empty-state">
+          <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
             <Spinner size="xl" />
-            <Title headingLevel="h5" size="lg">
+            <Title headingLevel="h4" size="lg">
               Loading
             </Title>
           </EmptyState>
@@ -98,9 +94,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (empty) {
       return !emptyStatePage ? (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state">
+          <EmptyState variant={EmptyStateVariant.large} data-id="empty-empty-state">
             <EmptyStateIcon icon={QuestionCircleIcon} />
-            <Title headingLevel="h5" size="lg">
+            <Title headingLevel="h4" size="lg">
               {emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
             </Title>
           </EmptyState>
