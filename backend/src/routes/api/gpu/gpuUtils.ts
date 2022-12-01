@@ -8,6 +8,7 @@ import {
 } from '../../../types';
 import { V1PodList } from '@kubernetes/client-node';
 import https from 'https';
+import { DEV_MODE } from '../../../utils/constants';
 
 /** Storage to prevent heavy calls from being performed for EVERY user */
 const storage: { lastFetch: number; lastValue: GPUInfo } = {
@@ -38,7 +39,10 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
     const gpuDataResponses = [];
     for (let i = 0; i < gpuPodList.items.length; i++) {
       gpuDataResponses.push(
-        getGPUData(gpuPodList.items[i].status.podIP, fastify.kube.currentToken),
+        //TODO: Replace with a generic callPrometheus method that can query gpu metrics
+        //  using a token with valid credentials
+        // This query requires a token with cluster-monitoring-view rolebinding
+        getGPUData(fastify, gpuPodList.items[i].status.podIP, fastify.kube.currentToken),
       );
     }
 
@@ -69,17 +73,32 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
 };
 
 export const getGPUData = async (
+  fastify: KubeFastifyInstance,
   podIP: string,
   token: string,
 ): Promise<{ code: number; response: number | any }> => {
+  // Use a local path to the thanos querier; only works on-cluster
+  let host = `https://thanos-querier.openshift-monitoring.svc.cluster.local:9091`;
+  if (DEV_MODE) {
+    const apiPath = fastify.kube.config.getCurrentCluster().server;
+    const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
+    host = `https://thanos-querier-openshift-monitoring.apps.${namedHost}`;
+  }
+
+  //For each gpu node,  query Prometheus for (Max number of gpus) - (Number of gpus assigned to running pods)
+  //Each gpu node will have an nvidia-dcgm-export daemon pod (DCGM_FI_PROF_GR_ENGINE_ACTIVE) running
+  // that will return a list of enabled gpus on the host (DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance}) and
+  // any pods (exported_pod) assigned to a gpu
+  const query = encodeURIComponent(
+    'count (count by (UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="' +
+      podIP +
+      ':9400"}) or vector(0))-count (count by (UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="' +
+      podIP +
+      ':9400",exported_pod=~".+"}) or vector(0))',
+  );
+  const url = `${host}/api/v1/query?query=${query}`;
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'thanos-querier.openshift-monitoring.svc.cluster.local',
-      port: 9091,
-      //Encode the raw prometheus query to remove any need for manual encoding
-      path: encodeURI(
-        `/api/v1/query?query=count (count by (UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400"}) or vector(0))-count (count by (UUID,GPU_I_ID)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{instance="${podIP}:9400",exported_pod=~".+"}) or vector(0))`,
-      ),
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -87,7 +106,7 @@ export const getGPUData = async (
       rejectUnauthorized: false,
     };
     const httpsRequest = https
-      .get(options, (res) => {
+      .get(url, options, (res) => {
         res.setEncoding('utf8');
         let rawData = '';
         res.on('data', (chunk: any) => {
