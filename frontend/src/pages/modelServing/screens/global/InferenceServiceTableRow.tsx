@@ -7,11 +7,12 @@ import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
+import { Link } from 'react-router-dom';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
   isGlobal: boolean;
-  servingRuntime?: ServingRuntimeKind;
+  servingRuntime: ServingRuntimeKind;
   onDeleteInferenceService: (obj: InferenceServiceKind) => void;
   onEditInferenceService: (obj: InferenceServiceKind) => void;
 };
@@ -28,8 +29,17 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       <Tr>
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={inferenceService}>
-            {/* Disabling link until implementing metrics <Link to="/modelServing">{}</Link> */}
-            {getInferenceServiceDisplayName(inferenceService)}
+            {servingRuntime && (
+              <Link
+                to={
+                  isGlobal
+                    ? `/modelServing/metrics/${servingRuntime.metadata.name}/${inferenceService.metadata.name}`
+                    : `/projects/${inferenceService.metadata.namespace}/metrics/${servingRuntime.metadata.name}/${inferenceService.metadata.name}`
+                }
+              >
+                {getInferenceServiceDisplayName(inferenceService)}
+              </Link>
+            )}
           </ResourceNameTooltip>
         </Td>
         {isGlobal && (

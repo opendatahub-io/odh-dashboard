@@ -8,6 +8,7 @@ import { ServingRuntimeTableTabs } from '../types';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { isServingRuntimeTokenEnabled } from './utils';
+import { Link } from 'react-router-dom';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
@@ -107,7 +108,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           )}
         </Td>
         <Td style={{ textAlign: 'end' }}>
-          {/* //Hiding this for next release <Link to={'#'}>View metrics</Link> */}
+          <Link to={`/projects/${obj.metadata.namespace}/metrics/${obj.metadata.name}`}>
+            View metrics
+          </Link>
         </Td>
         <Td isActionCell>
           <ActionsColumn
