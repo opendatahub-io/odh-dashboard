@@ -1,6 +1,6 @@
+import * as React from 'react';
 import { NotebookKind } from '../../../k8sTypes';
 import { getNotebookPVCNames, getNotebookSecretNames } from '../pvc/utils';
-import * as React from 'react';
 import { ProjectDetailsContext } from '../ProjectDetailsContext';
 import { DATA_CONNECTION_PREFIX } from '../../../api';
 import { getNotebookPVCMountPathMap } from './utils';
@@ -25,6 +25,18 @@ const useRelatedNotebooks = (
   } = React.useContext(ProjectDetailsContext);
 
   const connectedNotebooks = React.useMemo(() => {
+    if (context === ConnectedNotebookContext.POSSIBLE_DATA_CONNECTION) {
+      return data.reduce<NotebookKind[]>((acc, { notebook }) => {
+        const relatedSecretNames = getNotebookSecretNames(notebook).filter((secretName) =>
+          secretName.startsWith(DATA_CONNECTION_PREFIX),
+        );
+        if (relatedSecretNames.length > 0) {
+          return acc;
+        }
+
+        return [...acc, notebook];
+      }, []);
+    }
     if (!resourceName) {
       return [];
     }
@@ -56,17 +68,6 @@ const useRelatedNotebooks = (
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedSecretNames = getNotebookSecretNames(notebook);
           if (!relatedSecretNames.includes(resourceName)) {
-            return acc;
-          }
-
-          return [...acc, notebook];
-        }, []);
-      case ConnectedNotebookContext.POSSIBLE_DATA_CONNECTION:
-        return data.reduce<NotebookKind[]>((acc, { notebook }) => {
-          const relatedSecretNames = getNotebookSecretNames(notebook).filter((secretName) =>
-            secretName.startsWith(DATA_CONNECTION_PREFIX),
-          );
-          if (relatedSecretNames.length > 0) {
             return acc;
           }
 

@@ -6,7 +6,6 @@ import { columns } from './data';
 import DataConnectionsTableRow from './DataConnectionsTableRow';
 import { getDataConnectionId } from './utils';
 import DeleteDataConnectionModal from './DeleteDataConnectionModal';
-import ChangeDataConnectionWorkbenchModal from './ChangeDataConnectionWorkbenchModal';
 import ManageDataConnectionModal from './ManageDataConnectionModal';
 
 type DataConnectionsTableProps = {
@@ -20,9 +19,6 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
 }) => {
   const [editDataConnection, setEditDataConnection] = React.useState<DataConnection | undefined>();
   const [deleteDataConnection, setDeleteDataConnection] = React.useState<
-    DataConnection | undefined
-  >();
-  const [connectExistingWorkbench, setConnectExistingWorkbench] = React.useState<
     DataConnection | undefined
   >();
   const sort = useTableColumnSort<DataConnection>(columns, 1);
@@ -47,7 +43,6 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
               obj={dataConnection}
               onEditDataConnection={setEditDataConnection}
               onDeleteDataConnection={setDeleteDataConnection}
-              onConnectExistingWorkbench={setConnectExistingWorkbench}
             />
           ))}
         </Tbody>
@@ -60,15 +55,6 @@ const DataConnectionsTable: React.FC<DataConnectionsTableProps> = ({
             refreshData();
           }
           setEditDataConnection(undefined);
-        }}
-      />
-      <ChangeDataConnectionWorkbenchModal
-        dataConnection={connectExistingWorkbench}
-        onClose={(successfulConnect) => {
-          if (successfulConnect) {
-            refreshData();
-          }
-          setConnectExistingWorkbench(undefined);
         }}
       />
       <DeleteDataConnectionModal
