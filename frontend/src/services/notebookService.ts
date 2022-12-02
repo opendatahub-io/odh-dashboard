@@ -62,6 +62,7 @@ export const stopNotebook = (username?: string): Promise<Notebook> => {
 
   const patch: RecursivePartial<NotebookData> = {
     state: NotebookState.Stopped,
+    // only used for admin calls
     username: username,
   };
 

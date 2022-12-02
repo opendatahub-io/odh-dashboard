@@ -34,9 +34,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       notebooksToStop.map((notebook) => {
         const notebookName = notebook.metadata.name || '';
         if (!notebookName) return Promise.resolve();
-        return stopNotebook(
-          impersonatedUsername ?? notebook.metadata.labels['opendatahub.io/user'],
-        );
+        return stopNotebook(impersonatedUsername);
       }),
     )
       .then(() => {
