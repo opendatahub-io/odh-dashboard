@@ -12,6 +12,7 @@
       - --client-secret-file=/etc/oauth/client/secret
       - --scope=user:full
       - --cookie-secret-file=/etc/oauth/config/cookie_secret
+      - --cookie-expire=23h0m0s
       - --pass-access-token
       - '--openshift-delegate-urls={"/": {"resource": "services", "verb": "get", "name": "odh-dashboard"}}'
       - --skip-auth-regex=^/metrics
@@ -53,7 +54,7 @@
         name: oauth-config
       - mountPath: /etc/oauth/client
         name: oauth-client
-        
+
 - op: add
   path: /spec/template/spec/volumes
   value:
