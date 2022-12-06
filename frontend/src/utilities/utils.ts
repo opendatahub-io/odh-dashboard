@@ -28,6 +28,7 @@ export const getDuration = (minutes = 0): string => {
   return mins > 0 ? `${mins} ${mins > 1 ? 'minutes' : 'minute'}` : '';
 };
 
+/** @deprecated - use relativeTime method */
 export const calculateRelativeTime = (startTime: Date, endTime: Date): string => {
   const start = startTime.getTime();
   const end = endTime.getTime();
