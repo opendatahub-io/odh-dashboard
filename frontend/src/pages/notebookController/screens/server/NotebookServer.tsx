@@ -18,7 +18,6 @@ export const NotebookServer: React.FC = () => {
     currentUserNotebook: notebook,
     currentUserNotebookIsRunning,
     requestNotebookRefresh,
-    impersonatedUsername,
   } = React.useContext(NotebookControllerContext);
   const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
 
@@ -50,7 +49,6 @@ export const NotebookServer: React.FC = () => {
           <Stack hasGutter>
             <StackItem>
               <StopServerModal
-                impersonatedUsername={impersonatedUsername ? impersonatedUsername : undefined}
                 notebooksToStop={notebooksToStop}
                 onNotebooksStop={onNotebooksStop}
               />
