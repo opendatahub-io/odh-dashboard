@@ -7,6 +7,7 @@ import {
   removeNotebookPVC,
   updatePvcDescription,
   updatePvcDisplayName,
+  updatePvcSize,
 } from '../../../../../api';
 import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
@@ -17,7 +18,7 @@ import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
-import { getPvcDescription, getPvcDisplayName } from '../../../utils';
+import { getPvcDescription, getPvcDisplayName, getPvcTotalSize } from '../../../utils';
 
 import './ManageStorageModal.scss';
 
@@ -105,6 +106,9 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
         return;
       }
       handleNotebookNameConnection(pvcName);
+      if (parseInt(getPvcTotalSize(existingData)) !== createData.size) {
+        await updatePvcSize(pvcName, namespace, `${createData.size}Gi`);
+      }
     } else {
       createPvc(pvc)
         .then((createdPvc) => handleNotebookNameConnection(createdPvc.metadata.name))
@@ -144,7 +148,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
             <CreateNewStorageSection
               data={createData}
               setData={(key, value) => setCreateData(key, value)}
-              disableSize={!!existingData}
+              currentSize={existingData?.status?.capacity?.storage}
               autoFocusName
             />
             {createData.hasExistingNotebookConnections && (
