@@ -9,13 +9,13 @@ import { EventStatus } from '../../../types';
 
 import './NotebookStatusText.scss';
 
-type NotebookStatusPopoverProps = {
+type NotebookStatusTextProps = {
   notebookState: NotebookState;
   stopNotebook: () => void;
   labelText: string;
 };
 
-const NotebookStatusPopover: React.FC<NotebookStatusPopoverProps> = ({
+const NotebookStatusText: React.FC<NotebookStatusTextProps> = ({
   notebookState,
   stopNotebook,
   labelText,
@@ -26,13 +26,11 @@ const NotebookStatusPopover: React.FC<NotebookStatusPopoverProps> = ({
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
   const [isPopoverVisible, setPopoverVisible] = React.useState(false);
 
-  const onClose = () => setPopoverVisible(false);
-
   return (
     <>
       <Popover
         removeFindDomNode
-        shouldClose={onClose}
+        shouldClose={() => setPopoverVisible(false)}
         isVisible={isPopoverVisible}
         headerContent="Notebook status"
         bodyContent={
@@ -47,8 +45,8 @@ const NotebookStatusPopover: React.FC<NotebookStatusPopoverProps> = ({
             variant="link"
             isInline
             onClick={() => {
+              setPopoverVisible(false);
               setStartModalOpen(true);
-              onClose();
             }}
           >
             Event log
@@ -89,4 +87,4 @@ const NotebookStatusPopover: React.FC<NotebookStatusPopoverProps> = ({
   );
 };
 
-export default NotebookStatusPopover;
+export default NotebookStatusText;

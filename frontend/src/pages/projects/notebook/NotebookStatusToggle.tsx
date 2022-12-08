@@ -5,7 +5,7 @@ import { NotebookState } from './types';
 import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
-import NotebookStatusPopover from './NotebookStatusPopover';
+import NotebookStatusText from './NotebookStatusText';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
@@ -69,7 +69,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
           />
         </FlexItem>
         <FlexItem>
-          <NotebookStatusPopover
+          <NotebookStatusText
             notebookState={notebookState}
             stopNotebook={handleStop}
             labelText={label}
