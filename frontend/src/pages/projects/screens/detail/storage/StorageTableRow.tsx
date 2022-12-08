@@ -7,7 +7,7 @@ import {
   Td,
   Tr,
 } from '@patternfly/react-table';
-import { Text, Title } from '@patternfly/react-core';
+import { Flex, FlexItem, Text, Title } from '@patternfly/react-core';
 import { getPvcDescription, getPvcDisplayName } from '../../../utils';
 import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { HddIcon } from '@patternfly/react-icons';
@@ -16,14 +16,21 @@ import ConnectedNotebookNames from '../../../notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
 import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
 import useIsRootVolume from './useIsRootVolume';
+import StorageWarningStatus from './StorageWarningStatus';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
+  onAddPVC: () => void;
 };
 
-const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onEditPVC }) => {
+const StorageTableRow: React.FC<StorageTableRowProps> = ({
+  obj,
+  onDeletePVC,
+  onEditPVC,
+  onAddPVC,
+}) => {
   const [isExpanded, setExpanded] = React.useState(false);
   const isRootVolume = useIsRootVolume(obj);
 
@@ -50,9 +57,19 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({ obj, onDeletePVC, onE
       <Tr>
         <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
         <Td dataLabel="Name">
-          <Title headingLevel="h4">
-            <ResourceNameTooltip resource={obj}>{getPvcDisplayName(obj)}</ResourceNameTooltip>
-          </Title>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Title headingLevel="h4">
+                <ResourceNameTooltip resource={obj}>{getPvcDisplayName(obj)}</ResourceNameTooltip>
+              </Title>
+            </FlexItem>
+            <FlexItem>
+              <StorageWarningStatus obj={obj} onEditPVC={onEditPVC} onAddPVC={onAddPVC} />
+            </FlexItem>
+          </Flex>
           <Text>{getPvcDescription(obj)}</Text>
         </Td>
         <Td dataLabel="Type">

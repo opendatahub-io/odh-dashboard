@@ -118,3 +118,23 @@ export const deletePvc = (pvcName: string, namespace: string): Promise<K8sStatus
     queryOptions: { name: pvcName, ns: namespace },
   });
 };
+
+export const updatePvcSize = (
+  pvcName: string,
+  namespace: string,
+  size: string,
+): Promise<PersistentVolumeClaimKind> => {
+  return k8sPatchResource({
+    model: PVCModel,
+    queryOptions: { name: pvcName, ns: namespace },
+    patches: [
+      {
+        op: 'replace',
+        path: '/spec/resources/requests',
+        value: {
+          storage: size,
+        },
+      },
+    ],
+  });
+};
