@@ -115,7 +115,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
       annotations: {
         'openshift.io/display-name': notebookName,
         'openshift.io/description': description || '',
-        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebook_logout=${notebookName}`,
+        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookName}`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',

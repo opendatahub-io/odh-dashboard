@@ -13,8 +13,7 @@ import NotebooksList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
 import { featureFlagEnabled } from '../../../../utilities/utils';
-import { useQueryParams } from '../../../../utilities/useQueryParams';
-import useNotification from '../../../../utilities/useNotification';
+import useCheckLogoutParams from './useCheckLogoutParams';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -29,16 +28,7 @@ const ProjectDetails: React.FC = () => {
   const modelServingEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableModelServing,
   );
-  const queryParams = useQueryParams();
-  const notebookLogout = queryParams.get('notebook_logout');
-  const notification = useNotification();
-
-  // TODO: this will be triggered twice, don't know why
-  React.useEffect(() => {
-    if (notebookLogout) {
-      notification.success(`Logout workbench successfully`);
-    }
-  }, [notebookLogout, notification]);
+  useCheckLogoutParams();
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
