@@ -7,10 +7,10 @@ metadata:
   name: odh-dashboard
 spec:
   port:
-    targetPort: 8080
+    targetPort: 8443
   tls:
     insecureEdgeTerminationPolicy: Redirect
-    termination: edge
+    termination: Reencrypt
   to:
     kind: Service
     name: odh-dashboard

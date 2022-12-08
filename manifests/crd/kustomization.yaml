@@ -4,7 +4,7 @@ commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
 resources:
-- odh-dashboard-crd.yaml
-- odh-quick-start-crd.yaml
-- odh-document-crd.yaml
-- odh-application-crd.yaml
+- odhdashboardconfigs.opendatahub.io.crd.yaml
+- odhquickstarts.console.openshift.io.crd.yaml
+- odhdocuments.dashboard.opendatahub.io.crd.yaml
+- odhapplications.dashboard.opendatahub.io.crd.yaml
