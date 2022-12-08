@@ -252,6 +252,3 @@ export const useNotebookStatus = (
 
 export const getEventFullMessage = (event: EventKind): string =>
   `${getEventTimestamp(event)} [${event.type}] ${event.message}`;
-
-export const getNotebooksNames = (notebooks: NotebookKind[]): string[] =>
-  notebooks.map((notebook) => notebook.metadata.name);

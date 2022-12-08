@@ -25,23 +25,11 @@ const useRelatedNotebooks = (
   } = React.useContext(ProjectDetailsContext);
 
   const connectedNotebooks = React.useMemo(() => {
-    if (context === ConnectedNotebookContext.POSSIBLE_DATA_CONNECTION) {
-      return data.reduce<NotebookKind[]>((acc, { notebook }) => {
-        const relatedSecretNames = getNotebookSecretNames(notebook).filter((secretName) =>
-          secretName.startsWith(DATA_CONNECTION_PREFIX),
-        );
-        if (relatedSecretNames.length > 0) {
-          return acc;
-        }
-
-        return [...acc, notebook];
-      }, []);
-    }
-    if (!resourceName) {
-      return [];
-    }
     switch (context) {
       case ConnectedNotebookContext.EXISTING_PVC:
+        if (!resourceName) {
+          return [];
+        }
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedPVCNames = getNotebookPVCNames(notebook);
           if (!relatedPVCNames.includes(resourceName)) {
@@ -51,6 +39,9 @@ const useRelatedNotebooks = (
           return [...acc, notebook];
         }, []);
       case ConnectedNotebookContext.REMOVABLE_PVC:
+        if (!resourceName) {
+          return [];
+        }
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedPVCNames = getNotebookPVCNames(notebook);
           if (!relatedPVCNames.includes(resourceName)) {
@@ -65,12 +56,25 @@ const useRelatedNotebooks = (
           return [...acc, notebook];
         }, []);
       case ConnectedNotebookContext.EXISTING_DATA_CONNECTION:
+        if (!resourceName) {
+          return [];
+        }
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedSecretNames = getNotebookSecretNames(notebook);
           if (!relatedSecretNames.includes(resourceName)) {
             return acc;
           }
 
+          return [...acc, notebook];
+        }, []);
+      case ConnectedNotebookContext.POSSIBLE_DATA_CONNECTION:
+        return data.reduce<NotebookKind[]>((acc, { notebook }) => {
+          const relatedSecretNames = getNotebookSecretNames(notebook).filter((secretName) =>
+            secretName.startsWith(DATA_CONNECTION_PREFIX),
+          );
+          if (relatedSecretNames.length > 0) {
+            return acc;
+          }
           return [...acc, notebook];
         }, []);
       default:

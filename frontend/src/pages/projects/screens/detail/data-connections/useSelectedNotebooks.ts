@@ -4,7 +4,6 @@ import { useDeepCompareMemoize } from '../../../../../utilities/useDeepCompareMe
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
-import { getNotebooksNames } from '../../../notebook/utils';
 import { DataConnection } from '../../../types';
 import { getDataConnectionResourceName } from './utils';
 
@@ -25,7 +24,9 @@ const useSelectedNotebooks = (
     ConnectedNotebookContext.EXISTING_DATA_CONNECTION,
     resourceName,
   );
-  const connectedNotebookNames = useDeepCompareMemoize(getNotebooksNames(connectedNotebooks));
+  const connectedNotebookNames = useDeepCompareMemoize(
+    connectedNotebooks.map((notebook) => notebook.metadata.name),
+  );
   const { notebooks: nonConnectedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.POSSIBLE_DATA_CONNECTION,
     resourceName,

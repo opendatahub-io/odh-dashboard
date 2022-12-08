@@ -83,19 +83,17 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       const notebooksToDisconnect = allAvailableNotebooks.filter((notebook) =>
         removedConnections.includes(notebook.metadata.name),
       );
-      notebooksToDisconnect.forEach((notebook) => {
-        const secretEnvFroms = getSecretsFromList(notebook);
-        const newSecretEnvFroms = secretEnvFroms.filter(
-          ({ secretRef: { name } }) => name !== secretName,
-        );
-        if (secretEnvFroms.length === newSecretEnvFroms.length) {
-          // nothing changed, ignore -- shouldn't happen but no sense in patching
-          return;
-        }
-        promiseActions.push(
-          replaceNotebookSecret(notebook.metadata.name, projectName, newSecretEnvFroms),
-        );
-      });
+      notebooksToDisconnect.reduce(
+        (promises, notebook) => [
+          ...promises,
+          replaceNotebookSecret(
+            notebook.metadata.name,
+            projectName,
+            getSecretsFromList(notebook).filter(({ secretRef: { name } }) => name !== secretName),
+          ),
+        ],
+        promiseActions,
+      );
     } else {
       promiseActions.push(createSecret(assembledSecret));
     }
@@ -104,10 +102,12 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       addedConnections.includes(notebook.metadata.name),
     );
 
-    notebooksToConnect.forEach((notebook) =>
-      promiseActions.push(
+    notebooksToConnect.reduce(
+      (promises, notebook) => [
+        ...promises,
         attachNotebookSecret(notebook.metadata.name, projectName, secretName, hasEnvFrom(notebook)),
-      ),
+      ],
+      promiseActions,
     );
 
     if (promiseActions.length > 0) {
