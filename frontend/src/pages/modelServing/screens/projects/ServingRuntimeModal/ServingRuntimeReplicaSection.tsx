@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { FormGroup, FormSection, NumberInput, ValidatedOptions } from '@patternfly/react-core';
+import { FormGroup, FormSection, NumberInput } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject } from '../../types';
+import { isHTMLInputElement, normalizeBetween } from 'utilities/utils';
 
 type ServingRuntimeReplicaSectionProps = {
   data: CreatingServingRuntimeObject;
@@ -12,23 +13,31 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
   data,
   setData,
 }) => {
-  const onChangeReplicas = (event: React.FormEvent<HTMLInputElement>) => {
-    const target = event.target as HTMLInputElement;
-    setData('numReplicas', parseInt(target.value));
+  const MIN_SIZE = 1;
+
+  const onStep = (step: number) => {
+    setData('numReplicas', normalizeBetween(data.numReplicas + step, MIN_SIZE));
   };
-  const validate = data.numReplicas >= 0 ? ValidatedOptions.default : ValidatedOptions.error;
 
   return (
     <FormSection title="Model server replicas">
       <FormGroup label="Number of model server replicas to deploy">
         <NumberInput
+          id="num-replicas-serving-runtime"
           value={data.numReplicas}
           widthChars={10}
           min={1}
-          validated={validate}
-          onChange={onChangeReplicas}
-          onMinus={() => setData('numReplicas', data.numReplicas - 1)}
-          onPlus={() => setData('numReplicas', data.numReplicas + 1)}
+          onPlus={() => onStep(1)}
+          onMinus={() => onStep(-1)}
+          onChange={(event) => {
+            if (isHTMLInputElement(event.target)) {
+              const newSize = Number(event.target.value);
+              setData(
+                'numReplicas',
+                isNaN(newSize) ? MIN_SIZE : normalizeBetween(newSize, MIN_SIZE),
+              );
+            }
+          }}
         />
       </FormGroup>
     </FormSection>

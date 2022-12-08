@@ -3,6 +3,7 @@ import { FormGroup, Grid, NumberInput, ValidatedOptions } from '@patternfly/reac
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject, ServingRuntimeResources } from '../../types';
+import { isHTMLInputElement, normalizeBetween } from 'utilities/utils';
 
 type ServingRuntimeSizeExpandedFieldProps = {
   data: CreatingServingRuntimeObject;
@@ -19,12 +20,38 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
   data,
   setData,
 }) => {
+  const MIN_SIZE = 1;
+
   const onChangeResources = (
     event: React.FormEvent<HTMLInputElement>,
     resourceKey: ResourceKeys,
     resourceAttribute: ResourceAttributes,
   ) => {
-    const target = event.target as HTMLInputElement;
+    if (isHTMLInputElement(event.target)) {
+      const newSize = Number(event.target.value);
+      const suffix = resourceAttribute === 'memory' ? 'Gi' : '';
+
+      setData('modelSize', {
+        ...data.modelSize,
+        resources: {
+          ...data.modelSize.resources,
+          [resourceKey]: {
+            ...data.modelSize.resources[resourceKey],
+            [resourceAttribute]: `${
+              isNaN(newSize) ? MIN_SIZE : normalizeBetween(newSize, MIN_SIZE)
+            }${suffix}`,
+          },
+        },
+      });
+    }
+  };
+
+  const onStep = (
+    currentValue: number,
+    step: number,
+    resourceKey: ResourceKeys,
+    resourceAttribute: ResourceAttributes,
+  ) => {
     const suffix = resourceAttribute === 'memory' ? 'Gi' : '';
 
     setData('modelSize', {
@@ -33,7 +60,7 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
         ...data.modelSize.resources,
         [resourceKey]: {
           ...data.modelSize.resources[resourceKey],
-          [resourceAttribute]: `${target.value}${suffix}`,
+          [resourceAttribute]: `${normalizeBetween(currentValue + step, MIN_SIZE)}${suffix}`,
         },
       },
     });
@@ -60,28 +87,20 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             validated={validateInput(data.modelSize?.resources.requests.cpu)}
             onChange={(event) => onChangeResources(event, 'requests', ResourceAttributes.CPU)}
             onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    cpu: `${parseResourceInput(data.modelSize.resources.requests.cpu) - 1}`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.requests.cpu),
+                -1,
+                'requests',
+                ResourceAttributes.CPU,
+              )
             }
             onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    cpu: `${parseResourceInput(data.modelSize.resources.requests.cpu) + 1}`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.requests.cpu),
+                +1,
+                'requests',
+                ResourceAttributes.CPU,
+              )
             }
           />
         </FormGroup>
@@ -93,28 +112,20 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             validated={validateInput(data.modelSize?.resources.requests.memory)}
             onChange={(event) => onChangeResources(event, 'requests', ResourceAttributes.MEMORY)}
             onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    memory: `${parseResourceInput(data.modelSize.resources.requests.memory) - 1}Gi`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.requests.memory),
+                -1,
+                'requests',
+                ResourceAttributes.MEMORY,
+              )
             }
             onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    memory: `${parseResourceInput(data.modelSize.resources.requests.memory) + 1}Gi`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.requests.memory),
+                +1,
+                'requests',
+                ResourceAttributes.MEMORY,
+              )
             }
           />
         </FormGroup>
@@ -126,28 +137,20 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             validated={validateInput(data.modelSize?.resources.limits.cpu)}
             onChange={(event) => onChangeResources(event, 'limits', ResourceAttributes.CPU)}
             onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    cpu: `${parseResourceInput(data.modelSize.resources.limits.cpu) - 1}`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.limits.cpu),
+                -1,
+                'limits',
+                ResourceAttributes.CPU,
+              )
             }
             onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    cpu: `${parseResourceInput(data.modelSize.resources.limits.cpu) + 1}`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.limits.cpu),
+                +1,
+                'limits',
+                ResourceAttributes.CPU,
+              )
             }
           />
         </FormGroup>
@@ -159,28 +162,20 @@ const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldP
             validated={validateInput(data.modelSize?.resources.limits.memory)}
             onChange={(event) => onChangeResources(event, 'limits', ResourceAttributes.MEMORY)}
             onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    memory: `${parseResourceInput(data.modelSize.resources.limits.memory) - 1}Gi`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.limits.memory),
+                -1,
+                'limits',
+                ResourceAttributes.MEMORY,
+              )
             }
             onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    memory: `${parseResourceInput(data.modelSize.resources.limits.memory) + 1}Gi`,
-                  },
-                },
-              })
+              onStep(
+                parseResourceInput(data.modelSize?.resources.limits.memory),
+                +1,
+                'limits',
+                ResourceAttributes.MEMORY,
+              )
             }
           />
         </FormGroup>
