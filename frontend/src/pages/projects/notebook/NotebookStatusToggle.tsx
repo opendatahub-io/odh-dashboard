@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Flex, FlexItem, Switch, Text } from '@patternfly/react-core';
+import { Flex, FlexItem, Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '../../../api';
 import { NotebookState } from './types';
 import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
@@ -16,7 +16,6 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
   const { notebook, isStarting, isRunning, refresh } = notebookState;
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
-  const [isPopoverVisible, setPopoverVisible] = React.useState(false);
   const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState, doListen);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const notebookName = notebook.metadata.name;
@@ -71,22 +70,10 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
         </FlexItem>
         <FlexItem>
           <NotebookStatusPopover
-            isVisible={isPopoverVisible}
             notebookState={notebookState}
             stopNotebook={handleStop}
-            onClose={() => setPopoverVisible(false)}
-          >
-            <Text
-              onClick={() => {
-                if (isStarting) {
-                  setPopoverVisible((visible) => !visible);
-                }
-              }}
-              style={isStarting ? { cursor: 'pointer' } : undefined}
-            >
-              {label}
-            </Text>
-          </NotebookStatusPopover>
+            labelText={label}
+          />
         </FlexItem>
       </Flex>
       <StopNotebookConfirmModal
