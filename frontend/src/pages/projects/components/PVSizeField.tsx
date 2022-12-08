@@ -12,7 +12,7 @@ type PVSizeFieldProps = {
 };
 
 const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, currentSize }) => {
-  const minSize = parseInt(currentSize || 'NaN') || 1;
+  const minSize = parseInt(currentSize || '') || 1;
   const defaultSize = useDefaultPvcSize();
   const availableSize = defaultSize * 2;
 
