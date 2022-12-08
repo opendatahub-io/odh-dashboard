@@ -7,7 +7,7 @@ import { getFullStatusFromPercentage } from './utils';
 
 type PercentageStorageStatus = {
   [projectName: string]: {
-    /** string value is percentage full status of the PVC since last check */
+    /** string value is the last status that was used for this pvcName */
     [pvcName: string]: string;
   };
 };
@@ -42,7 +42,7 @@ const useStorageStatusAlert = (pvc: PersistentVolumeClaimKind, percentageFull: n
           };
           setPercentageStorageStatuses(newValue);
         } else if (lastStatus) {
-          const newValue = Object.assign({}, percentageStorageStatuses);
+          const newValue = { ...percentageStorageStatuses };
           delete newValue[pvc.metadata.namespace]?.[pvc.metadata.name];
           setPercentageStorageStatuses(newValue);
         }

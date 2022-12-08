@@ -12,12 +12,12 @@ type PVSizeFieldProps = {
 };
 
 const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, currentSize }) => {
-  const MIN_SIZE = currentSize ? (!isNaN(parseInt(currentSize)) ? parseInt(currentSize) : 1) : 1;
+  const minSize = parseInt(currentSize || 'NaN') || 1;
   const defaultSize = useDefaultPvcSize();
   const availableSize = defaultSize * 2;
 
   const onStep = (step: number) => {
-    setSize(normalizeBetween(size + step, MIN_SIZE, availableSize));
+    setSize(normalizeBetween(size + step, minSize, availableSize));
   };
   return (
     <FormGroup
@@ -37,13 +37,13 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, curre
           name={fieldID}
           value={size}
           max={availableSize}
-          min={MIN_SIZE}
+          min={minSize}
           onPlus={() => onStep(1)}
           onMinus={() => onStep(-1)}
           onChange={(event) => {
             if (isHTMLInputElement(event.target)) {
               const newSize = Number(event.target.value);
-              setSize(isNaN(newSize) ? size : normalizeBetween(newSize, MIN_SIZE, availableSize));
+              setSize(isNaN(newSize) ? size : normalizeBetween(newSize, minSize, availableSize));
             }
           }}
         />
