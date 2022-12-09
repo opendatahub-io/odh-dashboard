@@ -73,3 +73,7 @@ Contributing encompasses [repository specific requirements](./CONTRIBUTING.md)
 ## Documentation
 
 You can find more information about this project in the [document section](./docs/README.md)
+
+## Releases
+
+For more information on how, when, and what we do for releases, see our [releases.md](./docs/releases.md) 
