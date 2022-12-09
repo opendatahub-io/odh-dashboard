@@ -8,10 +8,14 @@ const useCheckLogoutParams = (): void => {
   const [queryParams, setQueryParams] = useSearchParams();
   const notification = useNotification();
   const {
-    notebooks: { data: notebooks },
+    notebooks: { data: notebooks, loaded },
   } = React.useContext(ProjectDetailsContext);
 
   React.useEffect(() => {
+    const deleteLogoutParam = () => {
+      queryParams.delete('notebookLogout');
+      setQueryParams(queryParams);
+    };
     const notebookLogout = queryParams.get('notebookLogout');
     if (notebookLogout) {
       const notebook = notebooks.find((n) => n.notebook.metadata.name === notebookLogout);
@@ -19,11 +23,13 @@ const useCheckLogoutParams = (): void => {
         notification.success(
           `Logout workbench "${getNotebookDisplayName(notebook.notebook)}" successfully`,
         );
-        queryParams.delete('notebookLogout');
-        setQueryParams(queryParams);
+        deleteLogoutParam();
+      } else if (loaded) {
+        notification.error('Error logging out', 'Unable to locate notebook to finalize logout');
+        deleteLogoutParam();
       }
     }
-  }, [notification, queryParams, setQueryParams, notebooks]);
+  }, [notification, notebooks, loaded, setQueryParams, queryParams]);
 };
 
 export default useCheckLogoutParams;
