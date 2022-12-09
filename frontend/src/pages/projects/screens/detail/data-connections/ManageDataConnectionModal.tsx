@@ -83,16 +83,14 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       const notebooksToDisconnect = allAvailableNotebooks.filter((notebook) =>
         removedConnections.includes(notebook.metadata.name),
       );
-      notebooksToDisconnect.reduce(
-        (promises, notebook) => [
-          ...promises,
+      promiseActions.push(
+        ...notebooksToDisconnect.map((notebook) =>
           replaceNotebookSecret(
             notebook.metadata.name,
             projectName,
             getSecretsFromList(notebook).filter(({ secretRef: { name } }) => name !== secretName),
           ),
-        ],
-        promiseActions,
+        ),
       );
     } else {
       promiseActions.push(createSecret(assembledSecret));
@@ -102,12 +100,10 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       addedConnections.includes(notebook.metadata.name),
     );
 
-    notebooksToConnect.reduce(
-      (promises, notebook) => [
-        ...promises,
+    promiseActions.push(
+      ...notebooksToConnect.map((notebook) =>
         attachNotebookSecret(notebook.metadata.name, projectName, secretName, hasEnvFrom(notebook)),
-      ],
-      promiseActions,
+      ),
     );
 
     if (promiseActions.length > 0) {
@@ -119,6 +115,8 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
           setErrorMessage(e.message || 'An unknown error occurred');
           setIsProgress(false);
         });
+    } else {
+      onBeforeClose(false);
     }
   };
 
