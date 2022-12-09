@@ -22,7 +22,7 @@ const useCheckLogoutParams = (): void => {
     if (notebookLogout) {
       if (notebook) {
         notification.success(
-          `Logout workbench "${getNotebookDisplayName(notebook.notebook)}" successfully`,
+          `Logged out of workbench "${getNotebookDisplayName(notebook.notebook)}" successfully`,
         );
         deleteLogoutParam();
       } else if (loaded) {
