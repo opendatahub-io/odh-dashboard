@@ -13,6 +13,7 @@ import NotebooksList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '../../ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '../../utils';
 import { featureFlagEnabled } from '../../../../utilities/utils';
+import useCheckLogoutParams from './useCheckLogoutParams';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -27,6 +28,7 @@ const ProjectDetails: React.FC = () => {
   const modelServingEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableModelServing,
   );
+  useCheckLogoutParams();
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [

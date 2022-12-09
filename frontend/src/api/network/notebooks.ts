@@ -115,7 +115,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
       annotations: {
         'openshift.io/display-name': notebookName,
         'openshift.io/description': description || '',
-        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/notebookController/${translatedUsername}/home`,
+        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
@@ -143,7 +143,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
                   --ServerApp.password=''
                   --ServerApp.base_url=/notebook/${projectName}/${notebookId}
                   --ServerApp.quit_button=False
-                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/notebookController/${translatedUsername}"}`,
+                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/projects/${projectName}"}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
