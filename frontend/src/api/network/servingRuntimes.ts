@@ -55,7 +55,8 @@ const assembleServingRuntime = (
       containers: [
         {
           name: 'ovms',
-          image: 'quay.io/modh/odh-openvino-servingruntime-container:v1.19.0-18',
+          image:
+            'quay.io/modh/odh-openvino-servingruntime-container@sha256:fb071e089463ec5fbe5076f012204eb2337e5edadbc84de8a40383c76ffd74b9',
           args: [
             '--port=8001',
             '--rest_port=8888',
