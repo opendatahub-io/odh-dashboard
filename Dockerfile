@@ -20,13 +20,6 @@ LABEL io.opendatahub.component="odh-dashboard" \
 ## Switch to root as required for some operations
 USER root
 
-## Install additional packages. Headers needed by node-gyp and node-sass,
-## the version of node-gyp (3.8.0) requires python 2 and update nodejs-nodemon
-## for vulnerability
-RUN dnf module install -y nodejs:14/development && \
-    dnf install -y python2 && \
-    dnf clean all && rm -rf /var/cache/yum
-
 ## Copying in source code
 RUN mkdir /tmp/src && chown -R 1001:0 /tmp/src
 COPY --chown=default:root ${SOURCE_CODE} /tmp/src
