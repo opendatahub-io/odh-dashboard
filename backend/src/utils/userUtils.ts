@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
-import { USER_ACCESS_TOKEN } from './constants';
+import { DEV_TOKEN_AUTH, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
@@ -55,14 +55,18 @@ export const getUser = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OpenShiftUser> => {
-  const accessToken = request.headers[USER_ACCESS_TOKEN] as string;
+  let accessToken = request.headers[USER_ACCESS_TOKEN] as string;
   if (!accessToken) {
-    const error = createCustomError(
-      'Unauthorized',
-      `Error, missing x-forwarded-access-token header`,
-      401,
-    );
-    throw error;
+    if(DEV_TOKEN_AUTH){
+      accessToken = DEV_TOKEN_AUTH;
+    } else {
+      const error = createCustomError(
+        'Unauthorized',
+        `Error, missing x-forwarded-access-token header`,
+        401,
+      );
+      throw error;
+    }
   }
   try {
     const customObjectApiNoAuth = _.cloneDeep(fastify.kube.customObjectsApi);
