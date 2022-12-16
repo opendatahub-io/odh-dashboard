@@ -25,18 +25,23 @@ module.exports = merge(
     mode: 'development',
     devtool: 'eval-source-map',
     devServer: {
-      contentBase: DIST_DIR,
       host: HOST,
       port: PORT,
       compress: true,
-      inline: true,
       historyApiFallback: true,
       hot: true,
-      overlay: false,
       open: true,
-      stats: 'errors-only',
       proxy: {
         '/api': `http://localhost:${BACKEND_PORT}`,
+      },
+      devMiddleware: {
+        stats: 'errors-only',
+      },
+      client: {
+        overlay: false,
+      },
+      static: {
+        directory: DIST_DIR,
       },
     },
     module: {
