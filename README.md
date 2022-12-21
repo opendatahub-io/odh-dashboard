@@ -70,6 +70,10 @@ The [manifests/kfdef](./manifests/kfdef) folder contains an example kfdef to dep
 ## Contributing
 Contributing encompasses [repository specific requirements](./CONTRIBUTING.md)
 
+### Triaging
+
+For information on how we triage tickets, see our [triage.md](./docs/triaging.md).
+
 ## Documentation
 
 You can find more information about this project in the [document section](./docs/README.md)
