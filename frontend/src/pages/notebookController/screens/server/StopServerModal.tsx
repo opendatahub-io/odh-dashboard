@@ -4,6 +4,7 @@ import { Notebook } from '../../../../types';
 import { stopNotebook } from '../../../../services/notebookService';
 import useNotification from '../../../../utilities/useNotification';
 import { allSettledPromises } from '../../../../utilities/allSettledPromises';
+import { useUser } from 'redux/selectors';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
@@ -19,6 +20,8 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
 
   const isModalShown = notebooksToStop.length !== 0;
 
+  const { isAdmin } = useUser();
+
   const onClose = () => {
     onNotebooksStop(false);
   };
@@ -29,6 +32,11 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
       notebooksToStop.map((notebook) => {
         const notebookName = notebook.metadata.name || '';
         if (!notebookName) return Promise.resolve();
+
+        if (!isAdmin) {
+          return stopNotebook();
+        }
+
         const notebookUser = notebook.metadata.annotations?.['opendatahub.io/username'];
         if (!notebookUser) return Promise.resolve();
 
