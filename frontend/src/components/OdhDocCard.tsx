@@ -141,7 +141,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       isSelectable
     >
       <CardHeader>
-        <CardHeaderMain style={{ maxWidth: '33%' }}>
+        <CardHeaderMain style={{ maxWidth: '33%', width: '100%' }}>
           <BrandImage
             src={odhDoc.spec.img || odhDoc.spec.icon || ''}
             alt={odhDoc.spec.displayName}
