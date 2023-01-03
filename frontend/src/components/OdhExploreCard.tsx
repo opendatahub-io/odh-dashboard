@@ -61,7 +61,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
       onClick={() => !disabled && onSelect()}
     >
       <CardHeader>
-        <CardHeaderMain style={{ maxWidth: '33%' }}>
+        <CardHeaderMain style={{ maxWidth: '33%', width: '100%' }}>
           <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
         </CardHeaderMain>
         {!dashboardConfig.spec.dashboardConfig.disableISVBadges && (

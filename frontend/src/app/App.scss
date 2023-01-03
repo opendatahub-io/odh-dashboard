@@ -16,6 +16,10 @@ html, body, #root {
     opacity: 1;
     color: var(--pf-global--icon--Color--light);
   }
+  &__brand {
+    height: 36px;
+    width: 100%;
+  }
 }
 // specificity targeting form elements to override --pf-global--FontSize--md
 .pf-c-page, .pf-c-modal-box {
