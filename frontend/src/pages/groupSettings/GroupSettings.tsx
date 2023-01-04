@@ -75,7 +75,6 @@ const GroupSettings: React.FC = () => {
                 setGroupSettings({ ...groupSettings, errorAdmin: undefined });
               }}
             />
-
             <FormGroupSettings
               title="Data Science user groups"
               body="Select the OpenShift groups that contain all Data Science users."
@@ -100,7 +99,7 @@ const GroupSettings: React.FC = () => {
                 isLoading={isLoading}
                 onClick={handleSaveButtonClicked}
               >
-                {`Save changes`}
+                Save changes
               </Button>
             </ActionGroup>
           </Form>

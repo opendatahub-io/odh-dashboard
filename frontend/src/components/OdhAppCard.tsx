@@ -183,7 +183,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       isSelected={selected}
       isSelectable={!disabled}
     >
-      <CardHeader>
+      <CardHeader style={{ paddingRight: 0 }}>
         <CardHeaderMain style={{ maxWidth: '33%', width: '100%' }}>
           <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
         </CardHeaderMain>
