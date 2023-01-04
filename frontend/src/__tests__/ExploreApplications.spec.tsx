@@ -110,22 +110,18 @@ describe('ExploreApplications', () => {
     const cards = screen.getAllByRole('article');
     const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
     await user.click(selectableCards[0]);
-    expect(
-      container.querySelector('.odh-get-started__button-panel .pf-c-button.pf-m-secondary'),
-    ).toBeNull();
+    expect(container.querySelector('.pf-c-action-list .pf-c-button.pf-m-secondary')).toBeNull();
 
     // Second app is enable-able, there should be an enable button
     await user.click(selectableCards[1]);
     expect(
-      container.querySelector('.odh-get-started__button-panel .pf-c-button.pf-m-secondary'),
+      container.querySelector('.pf-c-action-list .pf-c-button.pf-m-secondary'),
     ).toBeInTheDocument();
 
     // Click the enable button
     expect(screen.queryByTestId('enable-modal')).toBeNull();
     await user.click(
-      container.querySelector(
-        '.odh-get-started__button-panel .pf-c-button.pf-m-secondary',
-      ) as Element,
+      container.querySelector('.pf-c-action-list .pf-c-button.pf-m-secondary') as Element,
     );
     expect(screen.queryByTestId('enable-modal')).toBeInTheDocument();
 
@@ -175,8 +171,8 @@ describe('ExploreApplications', () => {
     const cards = screen.getAllByRole('article');
     const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
     await user.click(selectableCards[1]);
-    expect(
-      container.querySelector('.odh-get-started__button-panel .pf-c-button.pf-m-secondary'),
-    ).toHaveClass('pf-m-disabled');
+    expect(container.querySelector('.pf-c-action-list .pf-c-button.pf-m-secondary')).toHaveClass(
+      'pf-m-disabled',
+    );
   });
 });
