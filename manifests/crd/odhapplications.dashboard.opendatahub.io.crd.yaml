@@ -43,6 +43,10 @@ spec:
                   type: string
                 category:
                   type: string
+                  enum:
+                    - Red Hat managed
+                    - Partner managed
+                    - Self-managed
                 comingSoon:
                   type: boolean
                 consoleLink:
