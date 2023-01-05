@@ -92,7 +92,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   ];
 
   const badgeClasses = classNames('odh-card__partner-badge', {
-    'm-warning': odhApp.spec.category === 'Third party support',
+    'm-warning': odhApp.spec.support === 'third party support',
   });
 
   if (odhApp.spec.quickStart) {
@@ -205,7 +205,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       <CardBody>
         {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
         odhApp.spec.category &&
-        odhApp.spec.category !== ODH_PRODUCT_NAME ? (
+        odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
             <span className={badgeClasses}>{odhApp.spec.category}</span>
           </div>
