@@ -8,6 +8,11 @@ jobs:
   copy-tag-to-quay:
     runs-on: ubuntu-latest
     steps:
+      - name: Get dotenv
+        id: dotenv
+        uses: actions/dotenv-action@v1.0.2
+        with:
+          path: ./.github/workflows/.env
       - name: Git checkout
         uses: actions/checkout@v3
         with:
@@ -21,18 +26,19 @@ jobs:
         shell: bash
         env:
           QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
         run: |
-         skopeo login quay.io -u opendatahub+odh_dashboard -p ${QUAY_TOKEN}
+         skopeo login quay.io -u ${QUAY_ROBOT_USERNAME} -p ${QUAY_TOKEN}
       - name: Get latest tag name
         id: tag
-        run: echo "tag=$(git describe --tags)" >> $GITHUB_OUTPUT
+        run: echo "tag=$(git describe --tags)" >> ${GITHUB_OUTPUT}
       - name: Get latest hash
         id: hash
-        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "hash=$(git rev-parse --short HEAD)" >> ${GITHUB_OUTPUT}
       - name: Create new tag
         shell: bash
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           HASH: ${{ steps.hash.outputs.hash }}
         run: |
-          skopeo copy docker://quay.io/opedatahub/odh-dashboard:main-${{ env.HASH }} docker://quay.io/opendatahub/odh-dashboard:${{ env.TAG }}
+          skopeo copy docker://${QUAY_ODH_DASHBOARD_IMAGE_REPO}:main-${{ env.HASH }} docker://${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ env.TAG }}
