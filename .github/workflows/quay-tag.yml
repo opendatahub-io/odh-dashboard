@@ -4,15 +4,12 @@ on:
   push:
     tags:
       - '*'
+env:
+    QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO }}
 jobs:
   copy-tag-to-quay:
     runs-on: ubuntu-latest
     steps:
-      - name: Get dotenv
-        id: dotenv
-        uses: actions/dotenv-action@v1.0.2
-        with:
-          path: ./.github/workflows/.env
       - name: Git checkout
         uses: actions/checkout@v3
         with:
