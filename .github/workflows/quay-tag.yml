@@ -1,4 +1,9 @@
 name: quay.tag
+
+# This GitHub action activates whenever a new tag is created on the repo
+# and creates a copy of the image of the associated commit hash with the
+# appropriate tag name.
+
 run-name: Creating new tag in quay based on pushed tag in Github.
 on:
   push:
