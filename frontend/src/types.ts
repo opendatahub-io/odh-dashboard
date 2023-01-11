@@ -6,7 +6,6 @@ import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { EnvironmentFromVariable } from './pages/projects/types';
 import { ServingRuntimeSize } from 'pages/modelServing/screens/types';
-import { LIMIT_NOTEBOOK_IMAGE_GPU } from './utilities/const';
 
 export type PrometheusResponse = {
   data: {
@@ -69,12 +68,12 @@ export type NotebookResources = {
   requests?: {
     cpu?: string;
     memory?: string;
-    [LIMIT_NOTEBOOK_IMAGE_GPU]?: number;
+    'nvidia.com/gpu'?: number;
   };
   limits?: {
     cpu?: string;
     memory?: string;
-    [LIMIT_NOTEBOOK_IMAGE_GPU]?: number;
+    'nvidia.com/gpu'?: number;
   };
 };
 

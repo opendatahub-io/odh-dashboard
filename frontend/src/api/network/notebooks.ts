@@ -20,7 +20,6 @@ import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
-import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../../utilities/const';
 
 const assembleNotebookAffinityAndTolerations = (
   resources: NotebookResources,
@@ -36,16 +35,16 @@ const assembleNotebookAffinityAndTolerations = (
     if (!resources.requests) {
       resources.requests = {};
     }
-    resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
-    resources.requests[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
+    resources.limits['nvidia.com/gpu'] = gpus;
+    resources.requests['nvidia.com/gpu'] = gpus;
     tolerations.push({
       effect: 'NoSchedule',
-      key: LIMIT_NOTEBOOK_IMAGE_GPU,
+      key: 'nvidia.com/gpu',
       operator: 'Exists',
     });
   } else {
-    delete resources.limits?.[LIMIT_NOTEBOOK_IMAGE_GPU];
-    delete resources.requests?.[LIMIT_NOTEBOOK_IMAGE_GPU];
+    delete resources.limits?.['nvidia.com/gpu'];
+    delete resources.requests?.['nvidia.com/gpu'];
     affinity = {
       nodeAffinity: {
         preferredDuringSchedulingIgnoredDuringExecution: [
