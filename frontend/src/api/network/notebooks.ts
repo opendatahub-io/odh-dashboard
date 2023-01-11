@@ -20,6 +20,7 @@ import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
+import { LIMIT_NOTEBOOK_IMAGE_GPU } from '../../utilities/const';
 
 const assembleNotebookAffinityAndTolerations = (
   resources: NotebookResources,
@@ -35,14 +36,16 @@ const assembleNotebookAffinityAndTolerations = (
     if (!resources.requests) {
       resources.requests = {};
     }
-    resources.limits['nvidia.com/gpu'] = gpus;
-    resources.requests['nvidia.com/gpu'] = gpus;
+    resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
+    resources.requests[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
     tolerations.push({
       effect: 'NoSchedule',
-      key: 'nvidia.com/gpu',
+      key: LIMIT_NOTEBOOK_IMAGE_GPU,
       operator: 'Exists',
     });
   } else {
+    delete resources.limits?.[LIMIT_NOTEBOOK_IMAGE_GPU];
+    delete resources.requests?.[LIMIT_NOTEBOOK_IMAGE_GPU];
     affinity = {
       nodeAffinity: {
         preferredDuringSchedulingIgnoredDuringExecution: [
@@ -256,8 +259,14 @@ export const updateNotebook = (
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
 
+  const container = existingNotebook.spec.template.spec.containers[0];
+
   // clean the envFrom array in case of merging the old value again
-  existingNotebook.spec.template.spec.containers[0].envFrom = [];
+  container.envFrom = [];
+  // clean the resources, affinity and tolerations for GPU
+  existingNotebook.spec.template.spec.tolerations = [];
+  existingNotebook.spec.template.spec.affinity = {};
+  container.resources = {};
 
   return k8sUpdateResource<NotebookKind>({
     model: NotebookModel,

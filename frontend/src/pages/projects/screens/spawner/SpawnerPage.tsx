@@ -30,6 +30,7 @@ import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
 import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
+import useNotebookGPUNumber from '../detail/notebooks/useNotebookGPUNumber';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -78,6 +79,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       setSelectedSize(notebookSize.name);
     }
   }, [notebookSize, setSelectedSize]);
+
+  const notebookGPU = useNotebookGPUNumber(existingNotebook);
+  React.useEffect(() => {
+    setSelectedGpu(notebookGPU.toString());
+  }, [notebookGPU, setSelectedGpu]);
 
   const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
 
