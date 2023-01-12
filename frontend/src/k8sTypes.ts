@@ -247,6 +247,8 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     builtInAdapter: {
       serverType: string;
       runtimeManagementPort: number;
+      memBufferBytes?: number;
+      modelLoadingTimeoutMillis?: number;
     };
     containers: {
       args: string[];
