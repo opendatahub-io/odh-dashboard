@@ -28,9 +28,9 @@ const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({
         <DescriptionListTerm>{title || 'Packages'}</DescriptionListTerm>
         <DescriptionListDescription>
           {dependencies.map(getNameVersionString).map((pkg) => (
-            <div key={pkg}>
+            <p key={pkg}>
               <Truncate removeFindDomNode content={pkg} />
-            </div>
+            </p>
           ))}
         </DescriptionListDescription>
       </DescriptionListGroup>

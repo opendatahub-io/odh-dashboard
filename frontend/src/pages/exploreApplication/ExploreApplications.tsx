@@ -19,6 +19,8 @@ import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 import { ODH_PRODUCT_NAME } from '../../utilities/const';
 import { useAppContext } from '../../app/AppContext';
 
+import 'DrawerContentBody.scss';
+
 const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
 const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
 
@@ -52,7 +54,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
             />
           }
         >
-          <DrawerContentBody style={{ display: 'flex', flexDirection: 'column' }}>
+          <DrawerContentBody className="odh-explore-page__drawer-body-content">
             <ApplicationsPage
               title="Explore"
               description={disableInfo ? disabledDescription : description}
