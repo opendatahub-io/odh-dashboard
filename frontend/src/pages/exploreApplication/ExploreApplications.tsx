@@ -19,7 +19,7 @@ import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 import { ODH_PRODUCT_NAME } from '../../utilities/const';
 import { useAppContext } from '../../app/AppContext';
 
-import 'DrawerContentBody.scss';
+import './DrawerContentBody.scss';
 
 const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
 const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
