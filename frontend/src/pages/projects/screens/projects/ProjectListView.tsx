@@ -95,7 +95,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
       </Toolbar>
       <ProjectTable
         clearFilters={resetFilters}
-        projects={filteredProjects.slice(pageSize * (page - 1))}
+        projects={filteredProjects.slice(pageSize * (page - 1), pageSize * page)}
         getColumnSort={sort.getColumnSort}
         refreshProjects={refreshProjects}
       />
