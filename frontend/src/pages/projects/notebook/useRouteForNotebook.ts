@@ -16,6 +16,7 @@ const useRouteForNotebook = (
         getRoute(notebookName, projectName)
           .then((route) => {
             setRoute(`https://${route.spec.host}/notebook/${projectName}/${notebookName}`);
+            setLoadError(null);
             setLoaded(true);
           })
           .catch((e) => {
