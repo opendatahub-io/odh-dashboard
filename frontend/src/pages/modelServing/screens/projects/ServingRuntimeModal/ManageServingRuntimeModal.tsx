@@ -35,6 +35,7 @@ import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import { translateDisplayNameForK8s } from 'pages/projects/utils';
+import { useDashboardNamespace } from 'redux/selectors';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -56,6 +57,9 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const [error, setError] = React.useState<Error | undefined>();
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
+
+  const { dashboardNamespace } = useDashboardNamespace();
+
   const namespace = currentProject.metadata.name;
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
@@ -168,7 +172,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         ...(currentProject.metadata.labels?.['modelmesh-enabled']
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
-        createServingRuntime(createData, namespace),
+        createServingRuntime(createData, dashboardNamespace, namespace),
         enableTokenAuth(),
       ])
         .then(() => {

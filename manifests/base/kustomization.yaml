@@ -5,6 +5,7 @@ commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
 bases:
   - ../apps
+  - ../modelserving
 resources:
 - role.yaml
 - cluster-role.yaml
@@ -19,6 +20,8 @@ resources:
 - oauth.secret.yaml
 - fetch-builds-and-images.rbac.yaml
 - image-puller.clusterrolebinding.yaml
+- model-serving-role.yaml
+- model-serving-role-binding.yaml
 images:
 - name: odh-dashboard
   newName: quay.io/opendatahub/odh-dashboard

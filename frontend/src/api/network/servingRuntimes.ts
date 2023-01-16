@@ -11,80 +11,72 @@ import { ServingRuntimeKind } from '../../k8sTypes';
 import { CreatingServingRuntimeObject } from 'pages/modelServing/screens/types';
 import { getModelServingRuntimeName } from 'pages/modelServing/utils';
 import { getModelServingProjects } from './projects';
+import { getConfigMap } from './configMaps';
+import { DEFAULT_MODEL_SERVING_TEAMPLATE } from 'pages/modelServing/screens/const';
+import YAML from 'yaml';
+
+const fetchServingRuntime = (
+  data: CreatingServingRuntimeObject,
+  configNamespace: string,
+  namespace: string,
+): Promise<ServingRuntimeKind> => {
+  return getConfigMap(configNamespace, 'servingruntimes-config')
+    .then((configmap) => {
+      const servingRuntime = YAML.parse(configmap.data?.['default-config'] || '');
+      if (servingRuntime === null) {
+        throw new Error(
+          'servingruntimes-config is misconfigured or key might be missing from the ConfigMap',
+        );
+      }
+      return assembleServingRuntime(data, namespace, servingRuntime);
+    })
+    .catch((e) => {
+      console.error(`${e}, using default config.`);
+      const servingRuntime = DEFAULT_MODEL_SERVING_TEAMPLATE;
+      return assembleServingRuntime(data, namespace, servingRuntime);
+    });
+};
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
+  servingRuntime: ServingRuntimeKind,
 ): ServingRuntimeKind => {
   const { numReplicas, modelSize, externalRoute, tokenAuth } = data;
   const name = getModelServingRuntimeName(namespace);
+  const updatedServingRuntime = { ...servingRuntime };
 
-  return {
-    apiVersion: 'serving.kserve.io/v1alpha1',
-    kind: 'ServingRuntime',
-    metadata: {
+  updatedServingRuntime.metadata = {
+    name,
+    namespace,
+    labels: {
+      ...servingRuntime.metadata.labels,
       name,
-      namespace,
-      labels: {
-        name,
-        'opendatahub.io/dashboard': 'true',
-      },
-      annotations: {
-        ...(externalRoute && { 'enable-route': 'true' }),
-        ...(tokenAuth && { 'enable-auth': 'true' }),
-      },
+      'opendatahub.io/dashboard': 'true',
     },
-    spec: {
-      supportedModelFormats: [
-        {
-          name: 'openvino_ir',
-          version: 'opset1',
-          autoSelect: true,
-        },
-        {
-          name: 'onnx',
-          version: '1',
-          autoSelect: true,
-        },
-      ],
-      replicas: numReplicas,
-      protocolVersions: ['grpc-v1'],
-      multiModel: true,
-      grpcEndpoint: 'port:8085',
-      grpcDataEndpoint: 'port:8001',
-      containers: [
-        {
-          name: 'ovms',
-          image:
-            'quay.io/modh/odh-openvino-servingruntime-container@sha256:fb071e089463ec5fbe5076f012204eb2337e5edadbc84de8a40383c76ffd74b9',
-          args: [
-            '--port=8001',
-            '--rest_port=8888',
-            '--config_path=/models/model_config_list.json',
-            '--file_system_poll_wait_seconds=0',
-            '--grpc_bind_address=127.0.0.1',
-            '--rest_bind_address=127.0.0.1',
-          ],
-          resources: {
-            requests: {
-              cpu: modelSize.resources.requests.cpu,
-              memory: modelSize.resources.requests.memory,
-            },
-            limits: {
-              cpu: modelSize.resources.limits.cpu,
-              memory: modelSize.resources.limits.memory,
-            },
-          },
-        },
-      ],
-      builtInAdapter: {
-        serverType: 'ovms',
-        runtimeManagementPort: 8888,
-        memBufferBytes: 134217728,
-        modelLoadingTimeoutMillis: 90000,
-      },
+    annotations: {
+      ...servingRuntime.metadata.annotations,
+      ...(externalRoute && { 'enable-route': 'true' }),
+      ...(tokenAuth && { 'enable-auth': 'true' }),
     },
   };
+  updatedServingRuntime.spec.replicas = numReplicas;
+  updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => {
+    return {
+      ...container,
+      resources: {
+        requests: {
+          cpu: modelSize.resources.requests.cpu,
+          memory: modelSize.resources.requests.memory,
+        },
+        limits: {
+          cpu: modelSize.resources.limits.cpu,
+          memory: modelSize.resources.limits.memory,
+        },
+      },
+    };
+  });
+  return updatedServingRuntime;
 };
 
 export const listServingRuntimes = (
@@ -133,7 +125,12 @@ export const updateServingRuntime = (
   data: CreatingServingRuntimeObject,
   existingData: ServingRuntimeKind,
 ): Promise<ServingRuntimeKind> => {
-  const servingRuntime = assembleServingRuntime(data, existingData.metadata.namespace);
+  const servingRuntime = assembleServingRuntime(
+    data,
+    existingData.metadata.namespace,
+    existingData,
+  );
+
   const updatedServingRuntime = _.merge(existingData, servingRuntime);
 
   if (!data.tokenAuth) {
@@ -143,7 +140,6 @@ export const updateServingRuntime = (
   if (!data.externalRoute) {
     delete updatedServingRuntime?.metadata?.annotations?.['enable-route'];
   }
-
   return k8sUpdateResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,
     resource: updatedServingRuntime,
@@ -152,12 +148,14 @@ export const updateServingRuntime = (
 
 export const createServingRuntime = (
   data: CreatingServingRuntimeObject,
+  configNamespace: string,
   namespace: string,
 ): Promise<ServingRuntimeKind> => {
-  const servingRuntime = assembleServingRuntime(data, namespace);
-  return k8sCreateResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    resource: servingRuntime,
+  return fetchServingRuntime(data, configNamespace, namespace).then((servingRuntime) => {
+    return k8sCreateResource<ServingRuntimeKind>({
+      model: ServingRuntimeModel,
+      resource: servingRuntime,
+    });
   });
 };
 
