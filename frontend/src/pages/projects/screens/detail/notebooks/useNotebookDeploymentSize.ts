@@ -28,7 +28,7 @@ const useNotebookDeploymentSize = (
     return {
       size: null,
       error:
-        'Failed to get size information, the size might be changed after the workbench creation, please check your dashboard config.',
+        'Workbench size is currently unavailable. Check your dashboard configuration to view size information.',
     };
   }
 
