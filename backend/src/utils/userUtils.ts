@@ -1,9 +1,10 @@
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
-import { DEV_TOKEN_AUTH, USER_ACCESS_TOKEN } from './constants';
+import { DEV_IMPERSONATE_USER, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
+import { isImpersonating } from '../devFlags';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -55,18 +56,14 @@ export const getUser = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
 ): Promise<OpenShiftUser> => {
-  let accessToken = request.headers[USER_ACCESS_TOKEN] as string;
+  const accessToken = request.headers[USER_ACCESS_TOKEN] as string;
   if (!accessToken) {
-    if(DEV_TOKEN_AUTH){
-      accessToken = DEV_TOKEN_AUTH;
-    } else {
-      const error = createCustomError(
-        'Unauthorized',
-        `Error, missing x-forwarded-access-token header`,
-        401,
-      );
-      throw error;
-    }
+    const error = createCustomError(
+      'Unauthorized',
+      `Error, missing x-forwarded-access-token header`,
+      401,
+    );
+    throw error;
   }
   try {
     const customObjectApiNoAuth = _.cloneDeep(fastify.kube.customObjectsApi);
@@ -100,6 +97,9 @@ export const getUserName = async (
     return userOauth.metadata.name;
   } catch (e) {
     if (DEV_MODE) {
+      if (isImpersonating()) {
+        return DEV_IMPERSONATE_USER;
+      }
       return (currentUser.username || currentUser.name)?.split('/')[0];
     }
     fastify.log.error(`Failed to retrieve username: ${e.response?.body?.message || e.message}`);

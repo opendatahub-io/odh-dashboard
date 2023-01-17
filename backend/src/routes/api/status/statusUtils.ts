@@ -3,6 +3,8 @@ import { KubeFastifyInstance, KubeStatus } from '../../../types';
 import { getUserName } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isUserAdmin, isUserAllowed } from '../../../utils/adminUtils';
+import { DEV_MODE } from '../../../utils/constants';
+import { isImpersonating } from '../../../devFlags';
 
 export const status = async (
   fastify: KubeFastifyInstance,
@@ -16,6 +18,7 @@ export const status = async (
   const userName = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, userName, namespace);
   const isAllowed = isAdmin ? true : await isUserAllowed(fastify, userName);
+  const impersonating = DEV_MODE ? isImpersonating() : undefined;
 
   if (!kubeContext && !kubeContext.trim()) {
     const error = createCustomError(
@@ -36,6 +39,7 @@ export const status = async (
         isAdmin,
         isAllowed,
         serverURL: server,
+        isImpersonating: impersonating,
       },
     };
   }

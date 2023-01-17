@@ -12,6 +12,7 @@ const SUPPORT_LINK = process.env.SUPPORT_LINK;
 const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo.svg';
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const ODH_NOTEBOOK_REPO = process.env.ODH_NOTEBOOK_REPO;
+const DEV_IMPERSONATE_USER = DEV_MODE ? process.env.DEV_IMPERSONATE_USER : undefined;
 
 export {
   DEV_MODE,
@@ -24,6 +25,7 @@ export {
   ODH_LOGO,
   ODH_PRODUCT_NAME,
   ODH_NOTEBOOK_REPO,
+  DEV_IMPERSONATE_USER,
 };
 
 export const DOC_TYPE_TOOLTIPS = {

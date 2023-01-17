@@ -1,6 +1,7 @@
 import { RequestOptions } from 'https';
-import { DEV_MODE, DEV_TOKEN_AUTH, USER_ACCESS_TOKEN } from './constants';
+import { DEV_IMPERSONATE_USER, DEV_MODE, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
+import { isImpersonating } from '../devFlags';
 
 export const getDirectCallOptions = async (
   fastify: KubeFastifyInstance,
@@ -19,10 +20,16 @@ export const getDirectCallOptions = async (
     // In dev mode, we always are logged in fully -- no service accounts
     headers = kubeHeaders;
     // Fakes the call as another user to test permissions
-    if (DEV_TOKEN_AUTH) {
+    // if (DEV_TOKEN_AUTH) {
+    //   headers = {
+    //     ...headers,
+    //     Authorization: `Bearer ${DEV_TOKEN_AUTH}`,
+    //   };
+    // }
+    if (isImpersonating()) {
       headers = {
         ...headers,
-        Authorization: `Bearer ${DEV_TOKEN_AUTH}`,
+        'Impersonate-User': DEV_IMPERSONATE_USER,
       };
     }
   } else {
