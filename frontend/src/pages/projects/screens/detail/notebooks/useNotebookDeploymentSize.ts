@@ -1,33 +1,38 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { AppContext } from '../../../../../app/AppContext';
 import { NotebookContainer, NotebookSize } from '../../../../../types';
 import { getNotebookSizes } from '../../../../notebookController/screens/server/usePreferredNotebookSize';
 import { NotebookKind } from '../../../../../k8sTypes';
 
-const useNotebookDeploymentSize = (notebook?: NotebookKind): NotebookSize | null => {
+const useNotebookDeploymentSize = (
+  notebook?: NotebookKind,
+): { size: NotebookSize | null; error: string } => {
   const { dashboardConfig } = React.useContext(AppContext);
-
-  if (!notebook) {
-    return null;
-  }
 
   const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
   );
 
   if (!container) {
-    return null;
+    return { size: null, error: 'Failed to get workbench information.' };
   }
 
   const sizes = getNotebookSizes(dashboardConfig);
-  const size = sizes.find((size) => _.isEqual(size.resources.limits, container.resources?.limits));
+  const size = sizes.find(
+    (size) =>
+      size.resources.limits?.cpu === container.resources?.limits?.cpu &&
+      size.resources.limits?.memory === container.resources?.limits?.memory,
+  );
 
   if (!size) {
-    return null;
+    return {
+      size: null,
+      error:
+        'Workbench size is currently unavailable. Check your dashboard configuration to view size information.',
+    };
   }
 
-  return size;
+  return { size, error: '' };
 };
 
 export default useNotebookDeploymentSize;

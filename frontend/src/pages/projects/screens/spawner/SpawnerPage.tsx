@@ -72,7 +72,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [data, loaded]);
 
-  const notebookSize = useNotebookDeploymentSize(existingNotebook);
+  const { size: notebookSize } = useNotebookDeploymentSize(existingNotebook);
   React.useEffect(() => {
     if (notebookSize) {
       setSelectedSize(notebookSize.name);
