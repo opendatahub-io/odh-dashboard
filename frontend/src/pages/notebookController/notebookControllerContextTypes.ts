@@ -13,6 +13,8 @@ export type NotebookControllerContextProps = {
   requestNotebookRefresh: (changeSpeed?: number) => void;
   /** Status on if the current notebook is in a state we can consider it running */
   currentUserNotebookIsRunning: boolean;
+  /** The current pod associated with the running Notebook - empty string if not running -- assumes 1 pod */
+  currentUserNotebookPodUID: string;
 
   /**
    * Setup impersonating against a user's notebook & username (need both, see below)
@@ -37,6 +39,7 @@ export type NotebookContextStorage = {
    */
   current: Notebook | null | undefined;
   currentIsRunning: boolean;
+  currentPodUID: string;
   requestRefresh: NotebookControllerContextProps['requestNotebookRefresh'];
   former: Omit<NotebookContextStorage, 'former'> | null;
 };

@@ -28,6 +28,7 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
     : undefined;
   const notebook = notebookRunningState?.notebook;
   const isCurrentlyRunning = notebookRunningState?.isRunning;
+  const currentPodUID = notebookRunningState?.podUID;
 
   React.useEffect(() => {
     if (notebook !== undefined && isCurrentlyRunning !== undefined) {
@@ -35,6 +36,7 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
         ...prevState,
         current: notebook,
         currentIsRunning: isCurrentlyRunning,
+        currentPodUID: currentPodUID || '',
         requestRefresh: (speed?: number) => {
           forceRefresh();
           setPollInterval(speed);
@@ -48,6 +50,7 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
     setNotebookState,
     isCurrentlyRunning,
     setPollInterval,
+    currentPodUID,
   ]);
 
   if (currentNotebook === undefined || loadError) {

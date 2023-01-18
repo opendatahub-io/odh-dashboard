@@ -343,6 +343,7 @@ export type Notebook = K8sResourceCommon & {
 export type NotebookRunningState = {
   notebook: Notebook | null;
   isRunning: boolean;
+  podUID: string;
 };
 
 export type NotebookList = {
@@ -606,6 +607,9 @@ export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Pro
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
+  involvedObject: {
+    uid: string;
+  };
   metadata: K8sMetadata;
   eventTime: string;
   lastTimestamp: string | null; // if it never starts, the value is null
