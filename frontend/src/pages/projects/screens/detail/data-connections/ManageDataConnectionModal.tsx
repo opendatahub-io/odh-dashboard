@@ -18,6 +18,8 @@ import { convertAWSSecretData } from './utils';
 import ConnectedNotebookField from '../../../notebook/ConnectedNotebookField';
 import useSelectedNotebooks from './useSelectedNotebooks';
 import { getSecretsFromList, hasEnvFrom } from '../../../pvc/utils';
+import NotebookRestartAlert from '../../../components/NotebookRestartAlert';
+import useWillNotebooksRestart from '../../../notebook/useWillNotebooksRestart';
 
 type ManageDataConnectionModalProps = {
   existingData?: DataConnection;
@@ -45,6 +47,8 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
 
   const removedConnections = _.difference(connectedNotebooks, selectedNotebooks);
   const addedConnections = _.difference(selectedNotebooks, connectedNotebooks);
+
+  const restartNotebooks = useWillNotebooksRestart([...removedConnections, ...addedConnections]);
 
   const connectionChanged = removedConnections.length !== 0 || addedConnections.length !== 0;
 
@@ -166,6 +170,11 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
             />
           </Form>
         </StackItem>
+        {restartNotebooks.length !== 0 && (
+          <StackItem>
+            <NotebookRestartAlert notebooks={restartNotebooks} />
+          </StackItem>
+        )}
         {errorMessage && (
           <StackItem>
             <Alert isInline variant="danger" title="Error creating data connection">
