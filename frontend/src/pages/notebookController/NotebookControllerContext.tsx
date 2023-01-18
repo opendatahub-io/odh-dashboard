@@ -12,6 +12,7 @@ const defaultNotebookControllerContext: NotebookControllerContextProps = {
   currentUserNotebook: null,
   requestNotebookRefresh: () => undefined,
   currentUserNotebookIsRunning: false,
+  currentUserNotebookPodUID: '',
   setImpersonating: () => undefined,
   impersonatedUsername: null,
   setCurrentAdminTab: () => undefined,
@@ -30,6 +31,7 @@ export const NotebookControllerContextProvider: React.FC<
   const [notebookState, setNotebookState] = React.useState<NotebookContextStorage>({
     current: undefined,
     currentIsRunning: false,
+    currentPodUID: '',
     former: null,
     requestRefresh: () => undefined,
   });
@@ -47,6 +49,7 @@ export const NotebookControllerContextProvider: React.FC<
         // Don't return undefined -- that's for the loading
         currentUserNotebook: notebookState.current ?? null,
         currentUserNotebookIsRunning: notebookState.currentIsRunning,
+        currentUserNotebookPodUID: notebookState.currentPodUID,
       }}
     >
       <SetupCurrentNotebook

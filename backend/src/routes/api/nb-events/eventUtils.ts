@@ -4,7 +4,7 @@ import { KubeFastifyInstance } from '../../../types';
 export const getNotebookEvents = async (
   fastify: KubeFastifyInstance,
   namespace: string,
-  nbName: string,
+  podUID: string,
 ): Promise<V1Event[]> => {
   return fastify.kube.coreV1Api
     .listNamespacedEvent(
@@ -12,7 +12,7 @@ export const getNotebookEvents = async (
       undefined,
       undefined,
       undefined,
-      `involvedObject.kind=Pod,involvedObject.name=${nbName}-0`,
+      `involvedObject.kind=Pod,involvedObject.uid=${podUID}`,
     )
     .then((res) => {
       const body = res.body as V1EventList;
