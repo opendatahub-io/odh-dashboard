@@ -58,7 +58,7 @@ export const STORAGE_KEYS_REQUIRED: STORAGE_KEYS[] = [
   STORAGE_KEYS.S3_ENDPOINT,
 ];
 
-export const DEFAULT_MODEL_SERVING_TEAMPLATE: ServingRuntimeKind = {
+export const DEFAULT_MODEL_SERVING_TEMPLATE: ServingRuntimeKind = {
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
   metadata: {
