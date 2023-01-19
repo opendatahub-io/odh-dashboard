@@ -32,7 +32,7 @@ const assembleNotebookAffinityAndTolerations = (
 } => {
   let affinity: NotebookAffinity = {};
   const tolerations: NotebookToleration[] = [];
-  const resources = { ...notebookResources };
+  const resources = _.cloneDeep(notebookResources);
   if (gpus > 0) {
     if (!resources.limits) {
       resources.limits = {};
@@ -262,7 +262,7 @@ export const updateNotebook = (
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
 
-  const oldNotebook = { ...existingNotebook };
+  const oldNotebook = _.cloneDeep(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
 
   // clean the envFrom array in case of merging the old value again
