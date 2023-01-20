@@ -99,7 +99,9 @@ export const listScopedServingRuntimes = (
   return getModelServingProjects().then((projects) => {
     return Promise.all(
       projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector)),
-    ).then((listServingRuntimes) => _.uniq(_.flatten(listServingRuntimes)));
+    ).then((listServingRuntimes) =>
+      _.uniqBy(_.flatten(listServingRuntimes), (sr) => sr.metadata.name),
+    );
   });
 };
 
