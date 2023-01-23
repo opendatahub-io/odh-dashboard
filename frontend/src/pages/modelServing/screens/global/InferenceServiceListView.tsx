@@ -99,7 +99,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       <InferenceServiceTable
         clearFilters={resetFilters}
         servingRuntimes={servingRuntimes}
-        inferenceServices={filteredInferenceServices.slice(pageSize * (page - 1))}
+        inferenceServices={filteredInferenceServices.slice(pageSize * (page - 1), pageSize * page)}
         getColumnSort={sortInferenceService.getColumnSort}
         refresh={refresh}
       />
