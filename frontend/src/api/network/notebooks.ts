@@ -22,12 +22,17 @@ import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 
 const assembleNotebookAffinityAndTolerations = (
-  resources: NotebookResources,
+  notebookResources: NotebookResources,
   gpus: number,
   tolerationSettings?: NotebookTolerationSettings,
-): { affinity: NotebookAffinity; tolerations: NotebookToleration[] } => {
+): {
+  affinity: NotebookAffinity;
+  tolerations: NotebookToleration[];
+  resources: NotebookResources;
+} => {
   let affinity: NotebookAffinity = {};
   const tolerations: NotebookToleration[] = [];
+  const resources = structuredClone(notebookResources);
   if (gpus > 0) {
     if (!resources.limits) {
       resources.limits = {};
@@ -43,6 +48,8 @@ const assembleNotebookAffinityAndTolerations = (
       operator: 'Exists',
     });
   } else {
+    delete resources.limits?.['nvidia.com/gpu'];
+    delete resources.requests?.['nvidia.com/gpu'];
     affinity = {
       nodeAffinity: {
         preferredDuringSchedulingIgnoredDuringExecution: [
@@ -69,7 +76,7 @@ const assembleNotebookAffinityAndTolerations = (
       operator: 'Exists',
     });
   }
-  return { affinity, tolerations };
+  return { affinity, tolerations, resources };
 };
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
@@ -87,12 +94,11 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
     tolerationSettings,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
-  const resources: NotebookResources = { ...notebookSize.resources };
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
 
-  const { affinity, tolerations } = assembleNotebookAffinityAndTolerations(
-    resources,
+  const { affinity, tolerations, resources } = assembleNotebookAffinityAndTolerations(
+    notebookSize.resources,
     gpus,
     tolerationSettings,
   );
@@ -256,12 +262,19 @@ export const updateNotebook = (
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
 
+  const oldNotebook = structuredClone(existingNotebook);
+  const container = oldNotebook.spec.template.spec.containers[0];
+
   // clean the envFrom array in case of merging the old value again
-  existingNotebook.spec.template.spec.containers[0].envFrom = [];
+  container.envFrom = [];
+  // clean the resources, affinity and tolerations for GPU
+  oldNotebook.spec.template.spec.tolerations = [];
+  oldNotebook.spec.template.spec.affinity = {};
+  container.resources = {};
 
   return k8sUpdateResource<NotebookKind>({
     model: NotebookModel,
-    resource: _.merge({}, existingNotebook, notebook),
+    resource: _.merge({}, oldNotebook, notebook),
   });
 };
 

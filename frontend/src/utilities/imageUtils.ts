@@ -2,13 +2,13 @@ import compareVersions from 'compare-versions';
 import {
   BuildStatus,
   BUILD_PHASE,
+  GPUCount,
   ImageInfo,
   ImageSoftwareType,
   ImageTag,
   ImageTagInfo,
   NotebookContainer,
 } from '../types';
-import { LIMIT_NOTEBOOK_IMAGE_GPU } from './const';
 
 const PENDING_PHASES = [
   BUILD_PHASE.new,
@@ -65,8 +65,8 @@ export const getVersion = (version?: string, prefix?: string): string => {
 export const getNameVersionString = (software: ImageSoftwareType): string =>
   `${software.name}${getVersion(software.version, ' v')}`;
 
-export const getNumGpus = (container?: NotebookContainer): number => {
-  return container?.resources?.limits?.[LIMIT_NOTEBOOK_IMAGE_GPU] || 0;
+export const getNumGpus = (container?: NotebookContainer): GPUCount => {
+  return container?.resources?.limits?.['nvidia.com/gpu'] || 0;
 };
 
 export const getDefaultTag = (
