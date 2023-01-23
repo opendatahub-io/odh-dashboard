@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { getRoute } from '../../../api';
+import { FAST_POLL_INTERVAL } from '../../../utilities/const';
 
 const useRouteForNotebook = (
   notebookName?: string,
@@ -11,22 +12,35 @@ const useRouteForNotebook = (
 
   React.useEffect(() => {
     let watchHandle;
+    let cancelled = false;
     const watchRoute = () => {
+      if (cancelled) {
+        return;
+      }
       if (notebookName && projectName) {
         getRoute(notebookName, projectName)
           .then((route) => {
+            if (cancelled) {
+              return;
+            }
             setRoute(`https://${route.spec.host}/notebook/${projectName}/${notebookName}`);
             setLoadError(null);
             setLoaded(true);
           })
           .catch((e) => {
+            if (cancelled) {
+              return;
+            }
             setLoadError(e);
-            watchHandle = setTimeout(watchRoute, 1000);
+            watchHandle = setTimeout(watchRoute, FAST_POLL_INTERVAL);
           });
       }
     };
     watchRoute();
-    return () => clearTimeout(watchHandle);
+    return () => {
+      cancelled = true;
+      clearTimeout(watchHandle);
+    };
   }, [notebookName, projectName]);
 
   return [route, loaded, loadError];
