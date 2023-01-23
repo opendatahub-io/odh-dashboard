@@ -20,11 +20,17 @@ const useRouteForNotebook = (
       if (notebookName && projectName) {
         getRoute(notebookName, projectName)
           .then((route) => {
+            if (cancelled) {
+              return;
+            }
             setRoute(`https://${route.spec.host}/notebook/${projectName}/${notebookName}`);
             setLoadError(null);
             setLoaded(true);
           })
           .catch((e) => {
+            if (cancelled) {
+              return;
+            }
             setLoadError(e);
             watchHandle = setTimeout(watchRoute, FAST_POLL_INTERVAL);
           });
