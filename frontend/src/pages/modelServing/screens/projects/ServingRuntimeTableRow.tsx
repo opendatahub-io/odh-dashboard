@@ -52,7 +52,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           dataLabel="Type"
           compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.TYPE, false)}
         >
-          {obj.spec.builtInAdapter.serverType}
+          {obj.metadata.annotations?.['openshift.io/display-name'] ||
+            obj.spec.builtInAdapter?.serverType ||
+            'Custom Runtime'}
         </Td>
         <Td
           dataLabel="Deployed models"

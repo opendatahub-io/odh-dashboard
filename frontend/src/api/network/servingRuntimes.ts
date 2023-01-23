@@ -12,7 +12,7 @@ import { CreatingServingRuntimeObject } from 'pages/modelServing/screens/types';
 import { getModelServingRuntimeName } from 'pages/modelServing/utils';
 import { getModelServingProjects } from './projects';
 import { getConfigMap } from './configMaps';
-import { DEFAULT_MODEL_SERVING_TEAMPLATE } from 'pages/modelServing/screens/const';
+import { DEFAULT_MODEL_SERVING_TEMPLATE } from 'pages/modelServing/screens/const';
 import YAML from 'yaml';
 
 const fetchServingRuntime = (
@@ -22,17 +22,21 @@ const fetchServingRuntime = (
 ): Promise<ServingRuntimeKind> => {
   return getConfigMap(configNamespace, 'servingruntimes-config')
     .then((configmap) => {
-      const servingRuntime = YAML.parse(configmap.data?.['default-config'] || '');
-      if (servingRuntime === null) {
+      const overrideServingRuntime = YAML.parse(configmap.data?.['override-config'] || '');
+      if (overrideServingRuntime) {
+        return assembleServingRuntime(data, namespace, overrideServingRuntime);
+      }
+      const defaultServingRuntime = YAML.parse(configmap.data?.['default-config'] || '');
+      if (defaultServingRuntime === null) {
         throw new Error(
           'servingruntimes-config is misconfigured or key might be missing from the ConfigMap',
         );
       }
-      return assembleServingRuntime(data, namespace, servingRuntime);
+      return assembleServingRuntime(data, namespace, defaultServingRuntime);
     })
     .catch((e) => {
       console.error(`${e}, using default config.`);
-      const servingRuntime = DEFAULT_MODEL_SERVING_TEAMPLATE;
+      const servingRuntime = DEFAULT_MODEL_SERVING_TEMPLATE;
       return assembleServingRuntime(data, namespace, servingRuntime);
     });
 };
