@@ -282,7 +282,7 @@ export type TrackingEventProperties = {
   anonymousID?: string;
   type?: string;
   term?: string;
-  GPU?: number | string;
+  GPU?: GPUCount;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
   projectName?: string;
