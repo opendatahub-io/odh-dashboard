@@ -64,6 +64,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       lastSelectedSize: notebookSize.name,
       lastSelectedImage: `${image.imageVersion?.from.name}`,
       projectName,
+      notebookName,
     });
     refreshAllProjectData();
     navigate(`/projects/${projectName}`);
