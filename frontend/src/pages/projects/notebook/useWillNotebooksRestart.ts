@@ -7,18 +7,11 @@ const useWillNotebooksRestart = (notebookNames: string[]): NotebookState[] => {
     notebooks: { data: notebookStates },
   } = React.useContext(ProjectDetailsContext);
 
-  const notebookList = notebookNames.reduce<NotebookState[]>(
-    (prev: NotebookState[], curr: string) => {
-      const notebookState = notebookStates.find((state) => state.notebook.metadata.name === curr);
-      if (notebookState?.isRunning || notebookState?.isStarting) {
-        prev.push(notebookState);
-      }
-      return prev;
-    },
-    [],
+  return notebookStates.filter(
+    (notebookState) =>
+      notebookNames.includes(notebookState.notebook.metadata.name) &&
+      (notebookState.isRunning || notebookState.isStarting),
   );
-
-  return notebookList;
 };
 
 export default useWillNotebooksRestart;
