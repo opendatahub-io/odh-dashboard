@@ -6,6 +6,9 @@ import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import NotebookStatusText from './NotebookStatusText';
+import { fireTrackingEvent } from '../../../utilities/segmentIOUtils';
+import useNotebookGPUNumber from '../screens/detail/notebooks/useNotebookGPUNumber';
+import useNotebookDeploymentSize from '../screens/detail/notebooks/useNotebookDeploymentSize';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
@@ -14,6 +17,8 @@ type NotebookStatusToggleProps = {
 
 const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookState, doListen }) => {
   const { notebook, isStarting, isRunning, refresh } = notebookState;
+  const gpuNumber = useNotebookGPUNumber(notebook);
+  const { size } = useNotebookDeploymentSize(notebook);
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState, doListen);
@@ -34,13 +39,33 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
     label = isRunning ? 'Running' : 'Stopped';
   }
 
+  const fireNotebookTrackingEvent = React.useCallback(
+    (action: 'started' | 'stopped') => {
+      fireTrackingEvent(`Workbench ${action}`, {
+        GPU: gpuNumber,
+        lastSelectedSize:
+          size?.name ||
+          notebook.metadata.annotations?.['notebooks.opendatahub.io/last-size-selection'],
+        lastSelectedImage:
+          notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection'],
+        projectName: notebook.metadata.namespace,
+        notebookName: notebook.metadata.name,
+        ...(action === 'stopped' && {
+          lastActivity: notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
+        }),
+      });
+    },
+    [gpuNumber, notebook, size],
+  );
+
   const handleStop = React.useCallback(() => {
+    fireNotebookTrackingEvent('stopped');
     setInProgress(true);
     stopNotebook(notebookName, notebookNamespace).then(() => {
       refresh().then(() => setInProgress(false));
       listenToNotebookStart(false);
     });
-  }, [notebookName, notebookNamespace, refresh, listenToNotebookStart]);
+  }, [notebookName, notebookNamespace, refresh, listenToNotebookStart, fireNotebookTrackingEvent]);
 
   return (
     <>
@@ -61,6 +86,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
               } else {
                 setInProgress(true);
                 startNotebook(notebookName, notebookNamespace).then(() => {
+                  fireNotebookTrackingEvent('started');
                   refresh().then(() => setInProgress(false));
                   listenToNotebookStart(true);
                 });

@@ -57,13 +57,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     !checkRequiredFieldsForNotebookStart(startNotebookData, storageData, envVariables);
   const { username } = useUser();
 
-  const afterStart = (type: 'created' | 'updated') => {
+  const afterStart = (name: string, type: 'created' | 'updated') => {
     const { gpus, notebookSize, image } = startNotebookData;
     fireTrackingEvent(`Workbench ${type}`, {
       GPU: gpus,
       lastSelectedSize: notebookSize.name,
       lastSelectedImage: `${image.imageVersion?.from.name}`,
       projectName,
+      notebookName: name,
     });
     refreshAllProjectData();
     navigate(`/projects/${projectName}`);
@@ -103,7 +104,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         tolerationSettings,
       };
       updateNotebook(editNotebook, newStartNotebookData, username)
-        .then(() => afterStart('updated'))
+        .then((notebook) => afterStart(notebook.metadata.name, 'updated'))
         .catch(handleError);
     }
   };
@@ -131,7 +132,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     };
 
     createNotebook(newStartData, username)
-      .then(() => afterStart('created'))
+      .then((notebook) => afterStart(notebook.metadata.name, 'created'))
       .catch(handleError);
   };
 

@@ -282,10 +282,12 @@ export type TrackingEventProperties = {
   anonymousID?: string;
   type?: string;
   term?: string;
-  GPU?: number;
+  GPU?: GPUCount;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
   projectName?: string;
+  notebookName?: string;
+  lastActivity?: string;
 };
 
 export type NotebookPort = {
