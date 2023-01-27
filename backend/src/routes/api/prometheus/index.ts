@@ -1,6 +1,7 @@
 import { KubeFastifyInstance, OauthFastifyRequest, PrometheusResponse } from '../../../types';
 import { callPrometheus } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
+import { logRequestDetails } from '../../../utils/fileUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   /**
@@ -12,6 +13,8 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     async (
       request: OauthFastifyRequest<{ Body: { query: string; namespace: string } }>,
     ): Promise<{ code: number; response: PrometheusResponse }> => {
+      logRequestDetails(fastify, request);
+
       const { query, namespace } = request.body;
 
       return callPrometheus(fastify, request, query, namespace).catch((e) => {
