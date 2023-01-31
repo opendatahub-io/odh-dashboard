@@ -39,6 +39,18 @@ Every ticket should have a priority -- basic rules for priority are our immediat
 
 Take a look at [the priority labels](https://github.com/opendatahub-io/odh-dashboard/labels?q=priority) to read the description.
 
+#### Tracking For UX
+
+We have a UX team that helps us make clean and clear user interface and user experience decisions. They should be able to quickly find issues as we go through. Naturally we loop them in when we do major UX/UI changes, but for smaller things, it's easier for them to be able to track it themselves.
+
+To that extent, we want to use the `viusal changes` label to track any issue that will change the flow for the user (or fix a flow). Here are some broad strokes to when we want to label the issue with this label:
+
+- If there is a UI shift -- new section, moving something around (indenting, etc)
+- If there is a change to the UX -- the user couldn't do something before, now they can
+- If we add new UI - new modals, new actions to get to modals, etc
+
+Under the hood changes to resource creation that doesn't impact the user's ability to use it, should not have this label to avoid clutter. Obviously any internal code changes to improve things or clean up data that doesn't impact the user -- that also shouldn't have this label.
+
 #### Other labels
 
 Any other labels are used for additional filtering of the ticket. They are optional and should be used when necessary by reading the description and applying to that use-case.
