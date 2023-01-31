@@ -1,7 +1,7 @@
 const path = require('path');
 const { merge } = require('webpack-merge');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const TerserJSPlugin = require('terser-webpack-plugin');
 const rimraf = require('rimraf');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
@@ -33,7 +33,8 @@ module.exports = merge(
     mode: 'production',
     devtool: 'source-map',
     optimization: {
-      minimizer: [new TerserJSPlugin({}), new OptimizeCSSAssetsPlugin({})]
+      minimize: true,
+      minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()]
     },
     plugins: [
       new MiniCssExtractPlugin({
@@ -48,13 +49,7 @@ module.exports = merge(
           include: [
             SRC_DIR,
             COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-catalog-view-extension'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/styles/base.css'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/quickstarts')
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
           ],
           use: [MiniCssExtractPlugin.loader, 'css-loader']
         },
