@@ -12,7 +12,7 @@ The following are a list of features that are supported, along with there defaul
 |  disableInfo| false | Removes the information panel in Explore Application section |
 |  disableSupport| false | Disables components related to support. |
 |  disableClusterManager | false | Disables cluster management section for admins
-|  disableTracking | false | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured
+|  disableTracking | true | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured
 |  disableBYONImageStream| false | Disables custom notebook images that are created via image streams
 |  disableISVBadges | false | Removes the badge that indicate if a product is ISV or not.
 |  disableAppLauncher | false | Removes the application launcher that is used in OKD environments
@@ -30,7 +30,7 @@ spec:
     disableISVBadges: false
     disableInfo: false
     disableSupport: false
-    disableTracking: false
+    disableTracking: true
     disableAppLauncher: false
     disableUserManagement: false
     enablement: true
@@ -112,7 +112,7 @@ spec:
     disableISVBadges: false
     disableInfo: false
     disableSupport: false
-    disableTracking: false
+    disableTracking: true
     disableAppLauncher: false
     disableUserManagement: false
     enablement: true
