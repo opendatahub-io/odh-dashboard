@@ -68,7 +68,7 @@ describe('ExploreApplications', () => {
         </Router>
       </Provider>,
     );
-    const cards = screen.getAllByRole('article');
+    const cards = screen.getAllByRole('listitem');
     expect(cards.length).toBe(3);
     expect(cards.filter((card) => card.classList.contains('pf-m-selectable')).length).toBe(2);
   });
@@ -85,7 +85,7 @@ describe('ExploreApplications', () => {
     expect(screen.queryByTestId('explore-drawer-panel')).toBeNull();
 
     // Click on the selectable card, check whether it opens the drawer panel
-    const cards = screen.getAllByRole('article');
+    const cards = screen.getAllByRole('listitem');
     const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
     await user.click(selectableCards[0]);
     expect(screen.queryByTestId('explore-drawer-panel')).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe('ExploreApplications', () => {
     );
 
     // First app is enabled, there should be no enable button
-    const cards = screen.getAllByRole('article');
+    const cards = screen.getAllByRole('listitem');
     const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
     await user.click(selectableCards[0]);
     expect(container.querySelector('.pf-c-action-list .pf-c-button.pf-m-secondary')).toBeNull();
@@ -148,7 +148,7 @@ describe('ExploreApplications', () => {
     );
 
     // Cards should be disabled
-    const cards = screen.getAllByRole('article');
+    const cards = screen.getAllByRole('listitem');
     expect(cards.filter((card) => card.classList.contains('pf-m-selectable')).length).toBe(0);
 
     // First app is enabled, but clicking should have no effect
@@ -168,7 +168,7 @@ describe('ExploreApplications', () => {
     );
 
     // Second app is enable-able, there would be an enable button if enablement is allowed
-    const cards = screen.getAllByRole('article');
+    const cards = screen.getAllByRole('listitem');
     const selectableCards = cards.filter((card) => card.classList.contains('pf-m-selectable'));
     await user.click(selectableCards[1]);
     expect(container.querySelector('.pf-c-action-list .pf-c-button.pf-m-secondary')).toHaveClass(
