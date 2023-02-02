@@ -1,12 +1,12 @@
 import { NotebookKind } from '../../../../../k8sTypes';
-import { GPUCount, NotebookContainer } from '../../../../../types';
+import { ContainerResourceAttributes, GPUCount, NotebookContainer } from '../../../../../types';
 
 const useNotebookGPUNumber = (notebook?: NotebookKind): GPUCount => {
   const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
   );
 
-  const gpuNumbers = container?.resources?.limits?.['nvidia.com/gpu'];
+  const gpuNumbers = container?.resources?.limits?.[ContainerResourceAttributes.NVIDIA_GPU];
 
   return gpuNumbers || 0;
 };

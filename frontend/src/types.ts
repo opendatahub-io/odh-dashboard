@@ -22,6 +22,7 @@ export type PrometheusResponse = {
  * "any string" as a documentation touch point. Has no baring on the type checking.
  */
 type NumberString = string;
+export type GpuSettingString = 'autodetect' | 'hidden' | NumberString | undefined;
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
@@ -36,8 +37,8 @@ export type DashboardConfig = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
-      gpuSetting?: 'autodetect' | 'hidden' | NumberString;
-      notebookTolerationSettings?: NotebookTolerationSettings;
+      gpuSetting?: GpuSettingString;
+      notebookTolerationSettings?: TolerationSettings;
     };
   };
 };
@@ -70,7 +71,13 @@ export type NotebookControllerUserState = {
  */
 export type GPUCount = string | number;
 
-export type NotebookResources = {
+export enum ContainerResourceAttributes {
+  CPU = 'cpu',
+  MEMORY = 'memory',
+  NVIDIA_GPU = 'nvidia.com/gpu',
+}
+
+export type ContainerResources = {
   requests?: {
     cpu?: string;
     memory?: string;
@@ -97,15 +104,15 @@ export type EnvVarReducedTypeKeyValues = {
 
 export type NotebookSize = {
   name: string;
-  resources: NotebookResources;
+  resources: ContainerResources;
   notUserDefined?: boolean;
 };
 
-export type NotebookTolerationSettings = {
+export type TolerationSettings = {
   enabled: boolean;
   key: string;
 };
-export type NotebookTolerationFormSettings = NotebookTolerationSettings & {
+export type NotebookTolerationFormSettings = TolerationSettings & {
   error?: string;
 };
 
@@ -113,7 +120,7 @@ export type ClusterSettings = {
   userTrackingEnabled: boolean;
   pvcSize: number | string;
   cullerTimeout: number;
-  notebookTolerationSettings: NotebookTolerationSettings | null;
+  notebookTolerationSettings: TolerationSettings | null;
 };
 
 /** @deprecated -- use SDK type */
@@ -296,7 +303,7 @@ export type NotebookPort = {
   protocol: string;
 };
 
-export type NotebookToleration = {
+export type PodToleration = {
   effect: string;
   key: string;
   operator: string;
@@ -310,13 +317,13 @@ export type NotebookContainer = {
   env: EnvironmentVariable[];
   envFrom?: EnvironmentFromVariable[];
   ports?: NotebookPort[];
-  resources?: NotebookResources;
+  resources?: ContainerResources;
   livenessProbe?: Record<string, unknown>;
   readinessProbe?: Record<string, unknown>;
   volumeMounts?: VolumeMount[];
 };
 
-export type NotebookAffinity = {
+export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };
 
@@ -337,11 +344,11 @@ export type Notebook = K8sResourceCommon & {
   spec: {
     template: {
       spec: {
-        affinity?: NotebookAffinity;
+        affinity?: PodAffinity;
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
         volumes?: Volume[];
-        tolerations?: NotebookToleration[];
+        tolerations?: PodToleration[];
       };
     };
   };
