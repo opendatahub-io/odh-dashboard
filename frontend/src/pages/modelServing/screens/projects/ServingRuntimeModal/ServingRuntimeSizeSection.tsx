@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { FormGroup, FormSection, NumberInput, Select, SelectOption } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormSection,
+  NumberInput,
+  Select,
+  SelectOption,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../../types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
@@ -21,11 +29,6 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
   const { available: gpuAvailable, count: gpuCount } = useGPUSetting(gpuSetting || 'hidden');
-
-  const onChangeGPU = (event: React.FormEvent<HTMLInputElement>) => {
-    const target = event.target as HTMLInputElement;
-    setData('gpus', parseInt(target.value) || 0);
-  };
 
   const sizeCustom = [
     ...sizes,
@@ -51,26 +54,33 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   return (
     <FormSection title="Compute resources per replica">
       <FormGroup label="Model server size">
-        <Select
-          removeFindDomNode
-          id="model-server-size-selection"
-          isOpen={sizeDropdownOpen}
-          placeholderText="Select a model server size"
-          onToggle={(open) => setSizeDropdownOpen(open)}
-          onSelect={(_, option) => {
-            const valuesSelected = sizeCustom.find((element) => element.name === option);
-            if (valuesSelected) {
-              setData('modelSize', valuesSelected);
-            }
-            setSizeDropdownOpen(false);
-          }}
-          selections={data.modelSize.name}
-        >
-          {sizeOptions()}
-        </Select>
-        {data.modelSize.name === 'Custom' && (
-          <ServingRuntimeSizeExpandedField data={data} setData={setData} />
-        )}
+        <Stack hasGutter>
+          <StackItem>
+            <Select
+              removeFindDomNode
+              id="model-server-size-selection"
+              isOpen={sizeDropdownOpen}
+              placeholderText="Select a model server size"
+              onToggle={(open) => setSizeDropdownOpen(open)}
+              onSelect={(_, option) => {
+                const valuesSelected = sizeCustom.find((element) => element.name === option);
+                if (valuesSelected) {
+                  setData('modelSize', valuesSelected);
+                }
+                setSizeDropdownOpen(false);
+              }}
+              selections={data.modelSize.name}
+              menuAppendTo={() => document.body}
+            >
+              {sizeOptions()}
+            </Select>
+          </StackItem>
+          {data.modelSize.name === 'Custom' && (
+            <StackItem>
+              <ServingRuntimeSizeExpandedField data={data} setData={setData} />
+            </StackItem>
+          )}
+        </Stack>
       </FormGroup>
       {gpuAvailable && (
         <FormGroup label="Model server gpus">
@@ -80,7 +90,10 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             widthChars={10}
             min={0}
             max={gpuCount}
-            onChange={onChangeGPU}
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const target = event.currentTarget;
+              setData('gpus', parseInt(target.value) || 0);
+            }}
             onMinus={() => setData('gpus', data.gpus - 1)}
             onPlus={() => setData('gpus', data.gpus + 1)}
           />

@@ -37,7 +37,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   }
 
   return (
-    <FormGroup label="Model framework">
+    <FormGroup label="Model framework" isRequired>
       <Select
         removeFindDomNode
         id="inference-service-framework-selection"

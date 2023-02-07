@@ -4,7 +4,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { getInferenceServiceDisplayName } from './utils';
 import ServeModelButton from './ServeModelButton';
-import { inferenceServiceColumns } from './data';
+import { getGlobalInferenceServiceColumns } from './data';
 import SearchField, { SearchType } from '../../../projects/components/SearchField';
 import InferenceServiceTable from './InferenceServiceTable';
 import { ModelServingContext } from '../../ModelServingContext';
@@ -22,12 +22,16 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
 }) => {
   const {
     inferenceServices: { refresh },
+    projects: { data: projects },
   } = React.useContext(ModelServingContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
-  const sortInferenceService = useTableColumnSort<InferenceServiceKind>(inferenceServiceColumns, 0);
+  const sortInferenceService = useTableColumnSort<InferenceServiceKind>(
+    getGlobalInferenceServiceColumns(projects),
+    0,
+  );
   const filteredInferenceServices = sortInferenceService
     .transformData(unfilteredInferenceServices)
     .filter((project) => {

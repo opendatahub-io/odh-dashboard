@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Skeleton, Tooltip } from '@patternfly/react-core';
+import { Button, Icon, Skeleton, Tooltip } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ServingRuntimeKind } from '../../../../k8sTypes';
 import EmptyTableCellForAlignment from '../../../projects/components/EmptyTableCellForAlignment';
@@ -8,19 +8,25 @@ import { ServingRuntimeTableTabs } from '../types';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { isServingRuntimeTokenEnabled } from './utils';
+import { ProjectSectionID } from '../../../projects/screens/detail/types';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
   onDeleteServingRuntime: (obj: ServingRuntimeKind) => void;
   onEditServingRuntime: (obj: ServingRuntimeKind) => void;
+  onDeployModal: () => void;
+  onExpandColumn: (columnIndex?: ServingRuntimeTableTabs) => void;
+  expandedColumn?: ServingRuntimeTableTabs;
 };
 
 const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   obj,
   onDeleteServingRuntime,
   onEditServingRuntime,
+  onDeployModal,
+  expandedColumn,
+  onExpandColumn,
 }) => {
-  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
   const isRowExpanded = !!expandedColumn;
   const {
     inferenceServices: {
@@ -31,8 +37,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
     serverSecrets: { data: secrets, loaded: secretsLoaded, error: secretsLoadError },
   } = React.useContext(ProjectDetailsContext);
 
-  const onToggle = (_, __, colIndex: number) => {
-    setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
+  const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
+    onExpandColumn(expandedColumn === colIndex ? undefined : colIndex);
   };
 
   const compoundExpandParams = (col: ServingRuntimeTableTabs, isDisabled: boolean) =>
@@ -58,10 +64,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td
           dataLabel="Deployed models"
-          compoundExpand={compoundExpandParams(
-            ServingRuntimeTableTabs.DEPLOYED_MODELS,
-            inferenceServices.length === 0,
-          )}
+          compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)}
         >
           {inferenceServicesLoaded ? (
             <>
@@ -109,7 +112,13 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           )}
         </Td>
         <Td style={{ textAlign: 'end' }}>
-          {/* //Hiding this for next release <Link to={'#'}>View metrics</Link> */}
+          <Button
+            onClick={() => onDeployModal()}
+            key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
+            variant="secondary"
+          >
+            Deploy model
+          </Button>
         </Td>
         <Td isActionCell>
           <ActionsColumn
@@ -130,7 +139,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         <ServingRuntimeTableExpandedSection
           activeColumn={expandedColumn}
           obj={obj}
-          onClose={() => setExpandedColumn(undefined)}
+          onClose={() => onExpandColumn(undefined)}
+          onDeployModel={onDeployModal}
         />
       </Tr>
     </Tbody>

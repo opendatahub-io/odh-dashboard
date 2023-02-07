@@ -27,7 +27,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label="Name" required>
+        <FormGroup label="Name" isRequired>
           <Select
             removeFindDomNode
             id="inference-service-data-connection"
