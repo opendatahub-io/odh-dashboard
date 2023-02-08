@@ -35,7 +35,6 @@ import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import { translateDisplayNameForK8s } from 'pages/projects/utils';
-import { useDashboardNamespace } from 'redux/selectors';
 import { requestsUnderLimits, resourcesArePositive } from '../../../utils';
 
 type ManageServingRuntimeModalProps = {
@@ -58,23 +57,36 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-
-  const { dashboardNamespace } = useDashboardNamespace();
+  const {
+    currentProject,
+    servingRuntimesConfig: {
+      servingRuntimesConfig,
+      refresh: servingRuntimeConfigRefresh,
+      loaded: servingRuntimeConfigLoaded,
+    },
+  } = React.useContext(ProjectDetailsContext);
 
   const namespace = currentProject.metadata.name;
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
 
   const inputValueValid =
+    servingRuntimeConfigLoaded &&
     createData.numReplicas >= 0 &&
     resourcesArePositive(createData.modelSize.resources) &&
     requestsUnderLimits(createData.modelSize.resources);
 
   const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
 
+  React.useEffect(() => {
+    if (isOpen) {
+      servingRuntimeConfigRefresh();
+    }
+  }, [isOpen, servingRuntimeConfigRefresh]);
+
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
+    setError(undefined);
     setActionInProgress(false);
     resetData();
   };
@@ -121,7 +133,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     const deletedSecrets = (editInfo?.secrets || [])
       .map((secret) => secret.metadata.name)
       .filter((token) => !createData.tokens.some((tokenEdit) => tokenEdit.editName === token));
-    allSettledPromises<K8sStatus | SecretKind, Error>([
+    Promise.all<K8sStatus | SecretKind>([
       ...createData.tokens
         .filter((token) => translateDisplayNameForK8s(token.name) !== token.editName)
         .map((token) => {
@@ -164,11 +176,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         })
         .catch((e) => setErrorModal(e));
     } else {
-      allSettledPromises<ServingRuntimeKind | string | void, Error>([
+      Promise.all<ServingRuntimeKind | string | void>([
         ...(currentProject.metadata.labels?.['modelmesh-enabled']
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
-        createServingRuntime(createData, dashboardNamespace, namespace),
+        createServingRuntime(createData, servingRuntimesConfig, namespace),
         enableTokenAuth(),
       ])
         .then(() => {
@@ -187,7 +199,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       onClose={() => onBeforeClose(false)}
       showClose
       actions={[
-        <Button key="submit-model" variant="primary" isDisabled={!canCreate} onClick={submit}>
+        <Button
+          key="submit-model"
+          variant="primary"
+          isDisabled={!canCreate}
+          onClick={submit}
+          isLoading={actionInProgress}
+        >
           Configure
         </Button>,
         <Button key="cancel-model" variant="secondary" onClick={() => onBeforeClose(false)}>
@@ -195,47 +213,54 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         </Button>,
       ]}
     >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <Stack hasGutter>
-          <StackItem>
-            <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
-          </StackItem>
-          <StackItem>
-            <ServingRuntimeSizeSection
-              data={createData}
-              setData={setCreateData}
-              sizes={sizes}
-              gpuSetting={gpuSetting}
-            />
-          </StackItem>
-          <StackItem>
-            <FormSection title="Model route" titleElement="div">
-              <FormGroup>
-                <Checkbox
-                  label="Make deployed models available through an external route"
-                  id="alt-form-checkbox-route"
-                  name="alt-form-checkbox-route"
-                  isChecked={createData.externalRoute}
-                  onChange={(check) => setCreateData('externalRoute', check)}
+      <Stack hasGutter>
+        <StackItem>
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <Stack hasGutter>
+              <StackItem>
+                <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
+              </StackItem>
+              <StackItem>
+                <ServingRuntimeSizeSection
+                  data={createData}
+                  setData={setCreateData}
+                  sizes={sizes}
+                  gpuSetting={gpuSetting}
                 />
-              </FormGroup>
-            </FormSection>
-          </StackItem>
+              </StackItem>
+              <StackItem>
+                <FormSection title="Model route" titleElement="div">
+                  <FormGroup>
+                    <Checkbox
+                      label="Make deployed models available through an external route"
+                      id="alt-form-checkbox-route"
+                      name="alt-form-checkbox-route"
+                      isChecked={createData.externalRoute}
+                      onChange={(check) => setCreateData('externalRoute', check)}
+                    />
+                  </FormGroup>
+                </FormSection>
+              </StackItem>
+              <StackItem>
+                <ServingRuntimeTokenSection data={createData} setData={setCreateData} />
+              </StackItem>
+            </Stack>
+          </Form>
+        </StackItem>
+
+        {error && (
           <StackItem>
-            <ServingRuntimeTokenSection data={createData} setData={setCreateData} />
+            <Alert isInline variant="danger" title="Error creating model server">
+              {error.message}
+            </Alert>
           </StackItem>
-        </Stack>
-      </Form>
-      {error && (
-        <Alert isInline variant="danger" title="Error creating model server">
-          {error.message}
-        </Alert>
-      )}
+        )}
+      </Stack>
     </Modal>
   );
 };

@@ -32,22 +32,27 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
-const getDefaultServingRuntime = (servingRuntimesConfig?: ConfigMapKind): ServingRuntimeKind => {
+export const getDefaultServingRuntime = (
+  servingRuntimesConfig?: ConfigMapKind,
+): ServingRuntimeKind => {
   if (!servingRuntimesConfig) {
     return DEFAULT_MODEL_SERVING_TEMPLATE;
   }
+  try {
+    const overrideServingRuntime = YAML.parse(
+      servingRuntimesConfig?.data?.['override-config'] || '',
+    );
+    if (overrideServingRuntime) {
+      return overrideServingRuntime;
+    }
+    const defaultServingRuntime = YAML.parse(servingRuntimesConfig?.data?.['default-config'] || '');
+    if (defaultServingRuntime) {
+      return defaultServingRuntime;
+    }
+  } catch {
+    return DEFAULT_MODEL_SERVING_TEMPLATE;
+  }
 
-  const overrideServingRuntime = YAML.parse(servingRuntimesConfig?.data?.['override-config'] || '');
-  if (overrideServingRuntime) {
-    return overrideServingRuntime;
-  }
-  const defaultServingRuntime = YAML.parse(servingRuntimesConfig?.data?.['default-config'] || '');
-  if (defaultServingRuntime) {
-    return defaultServingRuntime;
-  }
-  console.error(
-    'servingruntimes-config is misconfigured or key might be missing from the ConfigMap, using default config.',
-  );
   return DEFAULT_MODEL_SERVING_TEMPLATE;
 };
 
