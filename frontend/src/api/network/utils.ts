@@ -5,6 +5,7 @@ import {
   TolerationSettings,
   ContainerResourceAttributes,
 } from '../../types';
+import { determineTolerations } from '../../utilities/tolerations';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
@@ -17,7 +18,6 @@ export const assemblePodSpecOptions = (
   resources: ContainerResources;
 } => {
   let affinity: PodAffinity = structuredClone(affinitySettings || {});
-  const tolerations: PodToleration[] = [];
   const resources = structuredClone(resourceSettings);
   if (gpus > 0) {
     if (!resources.limits) {
@@ -28,11 +28,6 @@ export const assemblePodSpecOptions = (
     }
     resources.limits[ContainerResourceAttributes.NVIDIA_GPU] = gpus;
     resources.requests[ContainerResourceAttributes.NVIDIA_GPU] = gpus;
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: 'nvidia.com/gpu',
-      operator: 'Exists',
-    });
   } else {
     delete resources.limits?.[ContainerResourceAttributes.NVIDIA_GPU];
     delete resources.requests?.[ContainerResourceAttributes.NVIDIA_GPU];
@@ -55,12 +50,7 @@ export const assemblePodSpecOptions = (
       },
     };
   }
-  if (tolerationSettings?.enabled) {
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: tolerationSettings.key,
-      operator: 'Exists',
-    });
-  }
+
+  const tolerations = determineTolerations(gpus > 0, tolerationSettings);
   return { affinity, tolerations, resources };
 };
