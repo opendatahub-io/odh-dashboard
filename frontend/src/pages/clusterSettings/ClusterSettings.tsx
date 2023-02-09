@@ -56,6 +56,7 @@ const TOLERATION_FORMAT_ERROR =
 const ClusterSettings: React.FC = () => {
   const isEmpty = false;
   const [loaded, setLoaded] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [clusterSettings, setClusterSettings] = React.useState(DEFAULT_CONFIG);
   const [pvcSize, setPvcSize] = React.useState<number | string>(DEFAULT_PVC_SIZE);
@@ -138,15 +139,17 @@ const ClusterSettings: React.FC = () => {
         Number(newClusterSettings?.pvcSize) !== 0 &&
         Number(newClusterSettings?.cullerTimeout) >= MIN_CULLER_TIMEOUT
       ) {
+        setSaving(true);
         updateClusterSettings(newClusterSettings)
           .then((response) => {
+            setSaving(false);
             if (response.success) {
               setClusterSettings(newClusterSettings);
               dispatch(
                 addNotification({
                   status: 'success',
-                  title: 'Settings changes saved',
-                  message: 'It takes a few seconds for configuration changes to be applied.',
+                  title: 'Cluster settings changes saved',
+                  message: 'It may take up to 2 minutes for configuration changes to be applied.',
                   timestamp: new Date(),
                 }),
               );
@@ -155,6 +158,7 @@ const ClusterSettings: React.FC = () => {
             }
           })
           .catch((e) => {
+            setSaving(false);
             dispatch(
               addNotification({
                 status: 'danger',
@@ -427,8 +431,9 @@ const ClusterSettings: React.FC = () => {
             <ActionGroup>
               <Button
                 data-id="submit-cluster-settings"
-                isDisabled={!isSettingsChanged || !!notebookTolerationSettings.error}
+                isDisabled={saving || !isSettingsChanged || !!notebookTolerationSettings.error}
                 variant="primary"
+                isLoading={saving}
                 onClick={handleSaveButtonClicked}
               >
                 Save changes
