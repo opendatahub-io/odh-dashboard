@@ -1,4 +1,5 @@
 import { EnvVariableDataEntry } from 'pages/projects/types';
+import { ContainerResources } from '../../../types';
 
 export enum ServingRuntimeTableTabs {
   TYPE = 1,
@@ -31,20 +32,9 @@ export type ServingRuntimeToken = {
   editName?: string;
 };
 
-export type ServingRuntimeResources = {
-  limits: {
-    cpu: string;
-    memory: string;
-  };
-  requests: {
-    cpu: string;
-    memory: string;
-  };
-};
-
 export type ServingRuntimeSize = {
   name: string;
-  resources: ServingRuntimeResources;
+  resources: ContainerResources;
 };
 
 export type CreatingInferenceServiceObject = {

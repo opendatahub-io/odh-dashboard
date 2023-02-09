@@ -11,6 +11,7 @@ import {
 import { ServingRuntimeKind } from '../../../../k8sTypes';
 import { AppContext } from '../../../../app/AppContext';
 import { getServingRuntimeSizes } from './utils';
+import { ContainerResourceAttributes } from '../../../../types';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -34,18 +35,19 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) =>
           <List isPlain>
             <ListItem>{size?.name || 'Custom'}</ListItem>
             <ListItem>
-              {`${container.resources.requests.cpu} CPUs, ${container.resources.requests.memory} Memory requested`}
+              {`${container.resources.requests?.cpu} CPUs, ${container.resources.requests?.memory} Memory requested`}
             </ListItem>
             <ListItem>
-              {`${container.resources.limits.cpu} CPUs, ${container.resources.limits.memory} Memory limit`}
+              {`${container.resources.limits?.cpu} CPUs, ${container.resources.limits?.memory} Memory limit`}
             </ListItem>
           </List>
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {/* TODO: fetch GPUs, get metrics data */}
       <DescriptionListGroup>
         <DescriptionListTerm>Number of GPUs</DescriptionListTerm>
-        <DescriptionListDescription>0</DescriptionListDescription>
+        <DescriptionListDescription>
+          {container.resources.limits?.[ContainerResourceAttributes.NVIDIA_GPU] || 0}
+        </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
   );

@@ -10,74 +10,11 @@ import {
 import * as _ from 'lodash';
 import { NotebookModel } from '../models';
 import { K8sStatus, NotebookKind } from '../../k8sTypes';
-import {
-  NotebookAffinity,
-  NotebookResources,
-  NotebookToleration,
-  NotebookTolerationSettings,
-} from '../../types';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
-
-const assembleNotebookAffinityAndTolerations = (
-  notebookResources: NotebookResources,
-  gpus: number,
-  tolerationSettings?: NotebookTolerationSettings,
-): {
-  affinity: NotebookAffinity;
-  tolerations: NotebookToleration[];
-  resources: NotebookResources;
-} => {
-  let affinity: NotebookAffinity = {};
-  const tolerations: NotebookToleration[] = [];
-  const resources = structuredClone(notebookResources);
-  if (gpus > 0) {
-    if (!resources.limits) {
-      resources.limits = {};
-    }
-    if (!resources.requests) {
-      resources.requests = {};
-    }
-    resources.limits['nvidia.com/gpu'] = gpus;
-    resources.requests['nvidia.com/gpu'] = gpus;
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: 'nvidia.com/gpu',
-      operator: 'Exists',
-    });
-  } else {
-    delete resources.limits?.['nvidia.com/gpu'];
-    delete resources.requests?.['nvidia.com/gpu'];
-    affinity = {
-      nodeAffinity: {
-        preferredDuringSchedulingIgnoredDuringExecution: [
-          {
-            preference: {
-              matchExpressions: [
-                {
-                  key: 'nvidia.com/gpu.present',
-                  operator: 'NotIn',
-                  values: ['true'],
-                },
-              ],
-            },
-            weight: 1,
-          },
-        ],
-      },
-    };
-  }
-  if (tolerationSettings?.enabled) {
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: tolerationSettings.key,
-      operator: 'Exists',
-    });
-  }
-  return { affinity, tolerations, resources };
-};
+import { assemblePodSpecOptions } from './utils';
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
   const {
@@ -97,7 +34,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
 
-  const { affinity, tolerations, resources } = assembleNotebookAffinityAndTolerations(
+  const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
     gpus,
     tolerationSettings,

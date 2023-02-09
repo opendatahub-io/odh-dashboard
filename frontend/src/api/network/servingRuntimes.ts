@@ -14,12 +14,16 @@ import { getModelServingProjects } from './projects';
 import { getConfigMap } from './configMaps';
 import { DEFAULT_MODEL_SERVING_TEMPLATE } from 'pages/modelServing/screens/const';
 import YAML from 'yaml';
+import { assemblePodSpecOptions } from './utils';
+import { ContainerResources } from '../../types';
 
 const fetchServingRuntime = (
   data: CreatingServingRuntimeObject,
   configNamespace: string,
   namespace: string,
 ): Promise<ServingRuntimeKind> => {
+  //TODO: remove fetch servingruntimes-config here and pass in the previously fetched valued.
+  // Leaving it in for now to keep the original behavior when no GPU is configured.
   return getConfigMap(configNamespace, 'servingruntimes-config')
     .then((configmap) => {
       const overrideServingRuntime = YAML.parse(configmap.data?.['override-config'] || '');
@@ -46,7 +50,7 @@ const assembleServingRuntime = (
   namespace: string,
   servingRuntime: ServingRuntimeKind,
 ): ServingRuntimeKind => {
-  const { numReplicas, modelSize, externalRoute, tokenAuth } = data;
+  const { numReplicas, modelSize, externalRoute, tokenAuth, gpus } = data;
   const name = getModelServingRuntimeName(namespace);
   const updatedServingRuntime = { ...servingRuntime };
 
@@ -65,19 +69,26 @@ const assembleServingRuntime = (
     },
   };
   updatedServingRuntime.spec.replicas = numReplicas;
+
+  const resourceSettings: ContainerResources = {
+    requests: {
+      cpu: modelSize.resources.requests?.cpu,
+      memory: modelSize.resources.requests?.memory,
+    },
+    limits: {
+      cpu: modelSize.resources.limits?.cpu,
+      memory: modelSize.resources.limits?.memory,
+    },
+  };
+
+  const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, gpus);
+
   updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => {
     return {
       ...container,
-      resources: {
-        requests: {
-          cpu: modelSize.resources.requests.cpu,
-          memory: modelSize.resources.requests.memory,
-        },
-        limits: {
-          cpu: modelSize.resources.limits.cpu,
-          memory: modelSize.resources.limits.memory,
-        },
-      },
+      resources,
+      affinity,
+      tolerations,
     };
   });
   return updatedServingRuntime;
