@@ -1,16 +1,17 @@
-import { DashboardConfig, NotebookToleration, NotebookTolerationSettings } from '../types';
+import { DashboardConfig, PodToleration, TolerationSettings } from '../types';
 import { NotebookKind } from '../k8sTypes';
+import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';
-  settings: NotebookToleration[];
+  settings: PodToleration[];
 };
 
 export const determineTolerations = (
   hasGpu: boolean,
-  tolerationSettings?: NotebookTolerationSettings,
-): NotebookToleration[] => {
-  const tolerations: NotebookToleration[] = [];
+  tolerationSettings?: TolerationSettings,
+): PodToleration[] => {
+  const tolerations: PodToleration[] = [];
 
   if (hasGpu) {
     tolerations.push({
@@ -66,4 +67,25 @@ export const computeNotebooksTolerations = (
     type,
     settings,
   };
+};
+
+export const getTolerationPatch = (tolerationChanges: TolerationChanges): Patch | null => {
+  const tolerationPath = '/spec/template/spec/tolerations';
+  switch (tolerationChanges.type) {
+    case 'remove':
+      return {
+        op: tolerationChanges.type,
+        path: tolerationPath,
+      };
+    case 'replace':
+    case 'add':
+      return {
+        op: tolerationChanges.type,
+        path: tolerationPath,
+        value: tolerationChanges.settings,
+      };
+    case 'nothing':
+    default:
+      return null;
+  }
 };
