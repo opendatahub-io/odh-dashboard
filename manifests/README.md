@@ -11,16 +11,13 @@ For more information, visit the project [GitHub repo](https://github.com/opendat
 
 ### Folders
 1. base: contains all the necessary yaml files to install the dashboard
-2. overlays/authentication: Contains the necessary yaml files to install the
-   Open Data Hub Dashboard configured to require users to authenticate to the
-   OpenShift cluster before they can access the service
 
 ##### Installation
 Use the `kustomize` tool to process the manifest for the `oc apply` command.
 
 ```
-# Parse the authentication overlays to deploy ODH Dashboard WITHOUT the required configs for groups
-cd manifests/overlays/authentication
+# Parse the base manifest to deploy ODH Dashboard WITHOUT the required configs for groups
+cd manifests/base
 kustomize edit set namespace <DESTINATION NAMESPACE>   # Set the namespace in the manifest where you want to deploy the dashboard
 kustomize build . | oc apply -f -
 ```

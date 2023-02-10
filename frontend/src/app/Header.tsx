@@ -31,9 +31,11 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
       )}
       <MastheadMain>
         <MastheadBrand component={(props) => <Link {...props} to="/" />}>
-          <Brand heights={{ default: '36px' }} alt={`${ODH_PRODUCT_NAME} Logo`}>
-            <source srcSet={`${window.location.origin}/images/${ODH_LOGO}`} />
-          </Brand>
+          <Brand
+            className="odh-dashboard__brand"
+            src={`${window.location.origin}/images/${ODH_LOGO}`}
+            alt={`${ODH_PRODUCT_NAME} Logo`}
+          />
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>

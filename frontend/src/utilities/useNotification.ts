@@ -18,11 +18,12 @@ enum NotificationTypes {
 const useNotification = (): NotificationFunc => {
   const dispatch = useAppDispatch();
   const success: NotificationProps = React.useCallback(
-    (title) => {
+    (title, message) => {
       dispatch(
         addNotification({
           status: 'success',
           title,
+          message,
           timestamp: new Date(),
         }),
       );

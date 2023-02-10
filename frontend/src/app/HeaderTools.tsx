@@ -102,7 +102,12 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
             </ToolbarItem>
           ) : null}
           <ToolbarItem>
-            <NotificationBadge isRead count={newNotifications} onClick={onNotificationsClick} />
+            <NotificationBadge
+              aria-label="Notification drawer"
+              variant="read"
+              count={newNotifications}
+              onClick={onNotificationsClick}
+            />
           </ToolbarItem>
           {helpMenuItems.length > 0 ? (
             <ToolbarItem>
@@ -112,6 +117,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
                 position={DropdownPosition.right}
                 toggle={
                   <DropdownToggle
+                    aria-label="Help items"
                     toggleIndicator={null}
                     id="help-icon-toggle"
                     onToggle={() => setHelpMenuOpen(!helpMenuOpen)}

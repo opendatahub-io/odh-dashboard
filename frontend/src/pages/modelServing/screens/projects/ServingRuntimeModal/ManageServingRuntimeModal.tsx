@@ -35,6 +35,8 @@ import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import { translateDisplayNameForK8s } from 'pages/projects/utils';
+import { useDashboardNamespace } from 'redux/selectors';
+import { requestsUnderLimits, resourcesArePositive } from '../../../utils';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -50,26 +52,24 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   onClose,
   editInfo,
 }) => {
-  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
+  const [createData, setCreateData, resetData, sizes, gpuSetting] =
+    useCreateServingRuntimeObject(editInfo);
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
+
+  const { dashboardNamespace } = useDashboardNamespace();
+
   const namespace = currentProject.metadata.name;
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
 
   const inputValueValid =
-    createData.numReplicas > 0 &&
-    parseInt(createData.modelSize.resources.limits.cpu) > 0 &&
-    parseInt(createData.modelSize.resources.limits.memory) > 0 &&
-    parseInt(createData.modelSize.resources.requests.cpu) > 0 &&
-    parseInt(createData.modelSize.resources.requests.memory) > 0 &&
-    parseInt(createData.modelSize.resources.limits.cpu) >
-      parseInt(createData.modelSize.resources.requests.cpu) &&
-    parseInt(createData.modelSize.resources.limits.memory) >
-      parseInt(createData.modelSize.resources.requests.memory);
+    createData.numReplicas >= 0 &&
+    resourcesArePositive(createData.modelSize.resources) &&
+    requestsUnderLimits(createData.modelSize.resources);
 
   const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
 
@@ -168,7 +168,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         ...(currentProject.metadata.labels?.['modelmesh-enabled']
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
-        createServingRuntime(createData, namespace),
+        createServingRuntime(createData, dashboardNamespace, namespace),
         enableTokenAuth(),
       ])
         .then(() => {
@@ -206,13 +206,18 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
           </StackItem>
           <StackItem>
-            <ServingRuntimeSizeSection data={createData} setData={setCreateData} sizes={sizes} />
+            <ServingRuntimeSizeSection
+              data={createData}
+              setData={setCreateData}
+              sizes={sizes}
+              gpuSetting={gpuSetting}
+            />
           </StackItem>
           <StackItem>
             <FormSection title="Model route" titleElement="div">
               <FormGroup>
                 <Checkbox
-                  label="Make deployed available via an external route"
+                  label="Make deployed models available through an external route"
                   id="alt-form-checkbox-route"
                   name="alt-form-checkbox-route"
                   isChecked={createData.externalRoute}

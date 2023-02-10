@@ -11,79 +11,87 @@ import { ServingRuntimeKind } from '../../k8sTypes';
 import { CreatingServingRuntimeObject } from 'pages/modelServing/screens/types';
 import { getModelServingRuntimeName } from 'pages/modelServing/utils';
 import { getModelServingProjects } from './projects';
+import { getConfigMap } from './configMaps';
+import { DEFAULT_MODEL_SERVING_TEMPLATE } from 'pages/modelServing/screens/const';
+import YAML from 'yaml';
+import { assemblePodSpecOptions } from './utils';
+import { ContainerResources } from '../../types';
+
+const fetchServingRuntime = (
+  data: CreatingServingRuntimeObject,
+  configNamespace: string,
+  namespace: string,
+): Promise<ServingRuntimeKind> => {
+  //TODO: remove fetch servingruntimes-config here and pass in the previously fetched valued.
+  // Leaving it in for now to keep the original behavior when no GPU is configured.
+  return getConfigMap(configNamespace, 'servingruntimes-config')
+    .then((configmap) => {
+      const overrideServingRuntime = YAML.parse(configmap.data?.['override-config'] || '');
+      if (overrideServingRuntime) {
+        return assembleServingRuntime(data, namespace, overrideServingRuntime);
+      }
+      const defaultServingRuntime = YAML.parse(configmap.data?.['default-config'] || '');
+      if (defaultServingRuntime === null) {
+        throw new Error(
+          'servingruntimes-config is misconfigured or key might be missing from the ConfigMap',
+        );
+      }
+      return assembleServingRuntime(data, namespace, defaultServingRuntime);
+    })
+    .catch((e) => {
+      console.error(`${e}, using default config.`);
+      const servingRuntime = DEFAULT_MODEL_SERVING_TEMPLATE;
+      return assembleServingRuntime(data, namespace, servingRuntime);
+    });
+};
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
+  servingRuntime: ServingRuntimeKind,
 ): ServingRuntimeKind => {
-  const { numReplicas, modelSize, externalRoute, tokenAuth } = data;
+  const { numReplicas, modelSize, externalRoute, tokenAuth, gpus } = data;
   const name = getModelServingRuntimeName(namespace);
+  const updatedServingRuntime = { ...servingRuntime };
 
-  return {
-    apiVersion: 'serving.kserve.io/v1alpha1',
-    kind: 'ServingRuntime',
-    metadata: {
+  updatedServingRuntime.metadata = {
+    name,
+    namespace,
+    labels: {
+      ...servingRuntime.metadata.labels,
       name,
-      namespace,
-      labels: {
-        name,
-        'opendatahub.io/dashboard': 'true',
-      },
-      annotations: {
-        ...(externalRoute && { 'enable-route': 'true' }),
-        ...(tokenAuth && { 'enable-auth': 'true' }),
-      },
+      'opendatahub.io/dashboard': 'true',
     },
-    spec: {
-      supportedModelFormats: [
-        {
-          name: 'openvino_ir',
-          version: 'opset1',
-          autoSelect: true,
-        },
-        {
-          name: 'onnx',
-          version: '1',
-          autoSelect: true,
-        },
-      ],
-      replicas: numReplicas,
-      protocolVersions: ['grpc-v1'],
-      multiModel: true,
-      grpcEndpoint: 'port:8085',
-      grpcDataEndpoint: 'port:8001',
-      containers: [
-        {
-          name: 'ovms',
-          image: 'quay.io/modh/odh-openvino-servingruntime-container:v1.19.0-18',
-          args: [
-            '--port=8001',
-            '--rest_port=8888',
-            '--config_path=/models/model_config_list.json',
-            '--file_system_poll_wait_seconds=0',
-            '--grpc_bind_address=127.0.0.1',
-            '--rest_bind_address=127.0.0.1',
-          ],
-          resources: {
-            requests: {
-              cpu: modelSize.resources.requests.cpu,
-              memory: modelSize.resources.requests.memory,
-            },
-            limits: {
-              cpu: modelSize.resources.limits.cpu,
-              memory: modelSize.resources.limits.memory,
-            },
-          },
-        },
-      ],
-      builtInAdapter: {
-        serverType: 'ovms',
-        runtimeManagementPort: 8888,
-        memBufferBytes: 134217728,
-        modelLoadingTimeoutMillis: 90000,
-      },
+    annotations: {
+      ...servingRuntime.metadata.annotations,
+      ...(externalRoute && { 'enable-route': 'true' }),
+      ...(tokenAuth && { 'enable-auth': 'true' }),
     },
   };
+  updatedServingRuntime.spec.replicas = numReplicas;
+
+  const resourceSettings: ContainerResources = {
+    requests: {
+      cpu: modelSize.resources.requests?.cpu,
+      memory: modelSize.resources.requests?.memory,
+    },
+    limits: {
+      cpu: modelSize.resources.limits?.cpu,
+      memory: modelSize.resources.limits?.memory,
+    },
+  };
+
+  const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, gpus);
+
+  updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => {
+    return {
+      ...container,
+      resources,
+      affinity,
+      tolerations,
+    };
+  });
+  return updatedServingRuntime;
 };
 
 export const listServingRuntimes = (
@@ -106,7 +114,9 @@ export const listScopedServingRuntimes = (
   return getModelServingProjects().then((projects) => {
     return Promise.all(
       projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector)),
-    ).then((listServingRuntimes) => _.uniq(_.flatten(listServingRuntimes)));
+    ).then((listServingRuntimes) =>
+      _.uniqBy(_.flatten(listServingRuntimes), (sr) => sr.metadata.name),
+    );
   });
 };
 
@@ -132,7 +142,12 @@ export const updateServingRuntime = (
   data: CreatingServingRuntimeObject,
   existingData: ServingRuntimeKind,
 ): Promise<ServingRuntimeKind> => {
-  const servingRuntime = assembleServingRuntime(data, existingData.metadata.namespace);
+  const servingRuntime = assembleServingRuntime(
+    data,
+    existingData.metadata.namespace,
+    existingData,
+  );
+
   const updatedServingRuntime = _.merge(existingData, servingRuntime);
 
   if (!data.tokenAuth) {
@@ -142,7 +157,6 @@ export const updateServingRuntime = (
   if (!data.externalRoute) {
     delete updatedServingRuntime?.metadata?.annotations?.['enable-route'];
   }
-
   return k8sUpdateResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,
     resource: updatedServingRuntime,
@@ -151,12 +165,14 @@ export const updateServingRuntime = (
 
 export const createServingRuntime = (
   data: CreatingServingRuntimeObject,
+  configNamespace: string,
   namespace: string,
 ): Promise<ServingRuntimeKind> => {
-  const servingRuntime = assembleServingRuntime(data, namespace);
-  return k8sCreateResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    resource: servingRuntime,
+  return fetchServingRuntime(data, configNamespace, namespace).then((servingRuntime) => {
+    return k8sCreateResource<ServingRuntimeKind>({
+      model: ServingRuntimeModel,
+      resource: servingRuntime,
+    });
   });
 };
 

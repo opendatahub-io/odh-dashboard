@@ -8,8 +8,6 @@ import OdhAppCard from '../../components/OdhAppCard';
 import QuickStarts from '../../app/QuickStarts';
 import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 
-import './EnabledApplications.scss';
-
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 
 type EnabledApplicationsInnerProps = {
@@ -34,12 +32,7 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
         loadError={loadError}
       >
         <PageSection isFilled data-id="page-content">
-          <Gallery
-            maxWidths={{ default: '330px' }}
-            role="list"
-            className="odh-installed-apps__gallery"
-            hasGutter
-          >
+          <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
             {components.map((c) => (
               <OdhAppCard key={c.metadata.name} odhApp={c} />
             ))}

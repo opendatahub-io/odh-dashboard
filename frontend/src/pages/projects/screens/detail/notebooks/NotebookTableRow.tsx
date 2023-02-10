@@ -1,6 +1,15 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Spinner, Text, TextVariants, Title } from '@patternfly/react-core';
+import {
+  Flex,
+  FlexItem,
+  Icon,
+  Spinner,
+  Text,
+  TextVariants,
+  Title,
+  Tooltip,
+} from '@patternfly/react-core';
 import { NotebookState } from '../../../notebook/types';
 import { getNotebookDescription, getNotebookDisplayName } from '../../../utils';
 import NotebookRouteLink from '../../../notebook/NotebookRouteLink';
@@ -14,6 +23,7 @@ import NotebookStorageBars from './NotebookStorageBars';
 import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
 import { useNavigate } from 'react-router-dom';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -29,7 +39,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
-  const notebookSize = useNotebookDeploymentSize(obj.notebook);
+  const { size: notebookSize, error: sizeError } = useNotebookDeploymentSize(obj.notebook);
   const [notebookImage, loaded] = useNotebookImage(obj.notebook);
 
   return (
@@ -54,7 +64,21 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             <Text component={TextVariants.small}>{notebookImage.tagSoftware}</Text>
           )}
         </Td>
-        <Td dataLabel="Container size">{notebookSize?.name ?? 'Unknown'}</Td>
+        <Td dataLabel="Container size">
+          <Flex
+            spaceItems={{ default: 'spaceItemsXs' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>{notebookSize?.name ?? 'Unknown'}</FlexItem>
+            {sizeError && (
+              <Tooltip removeFindDomNode content={sizeError}>
+                <Icon status="danger">
+                  <ExclamationCircleIcon />
+                </Icon>
+              </Tooltip>
+            )}
+          </Flex>
+        </Td>
         <Td dataLabel="Status">
           <NotebookStatusToggle notebookState={obj} doListen={false} />
         </Td>

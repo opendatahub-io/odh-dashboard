@@ -7,6 +7,8 @@ import {
   Form,
   FormSection,
   PageSection,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import ApplicationsPage from '../../../../pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '../../../../types';
@@ -30,6 +32,9 @@ import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
 import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
+import useNotebookGPUNumber from '../detail/notebooks/useNotebookGPUNumber';
+import NotebookRestartAlert from '../../components/NotebookRestartAlert';
+import useWillNotebooksRestart from '../../notebook/useWillNotebooksRestart';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -54,6 +59,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
 
+  const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
+
   React.useEffect(() => {
     if (existingNotebook) {
       setNameDesc({
@@ -72,12 +79,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [data, loaded]);
 
-  const notebookSize = useNotebookDeploymentSize(existingNotebook);
+  const { size: notebookSize } = useNotebookDeploymentSize(existingNotebook);
   React.useEffect(() => {
     if (notebookSize) {
       setSelectedSize(notebookSize.name);
     }
   }, [notebookSize, setSelectedSize]);
+
+  const notebookGPU = useNotebookGPUNumber(existingNotebook);
+  React.useEffect(() => {
+    setSelectedGpu(notebookGPU.toString());
+  }, [notebookGPU, setSelectedGpu]);
 
   const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
 
@@ -179,20 +191,29 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-        <SpawnerFooter
-          startNotebookData={{
-            notebookName: nameDesc.name,
-            description: nameDesc.description,
-            projectName: currentProject.metadata.name,
-            image: selectedImage,
-            notebookSize: selectedSize,
-            gpus: parseInt(selectedGpu),
-            volumes: [],
-            volumeMounts: [],
-          }}
-          storageData={storageData}
-          envVariables={envVariables}
-        />
+        <Stack hasGutter>
+          {restartNotebooks.length !== 0 && (
+            <StackItem>
+              <NotebookRestartAlert notebooks={restartNotebooks} isCurrent />
+            </StackItem>
+          )}
+          <StackItem>
+            <SpawnerFooter
+              startNotebookData={{
+                notebookName: nameDesc.name,
+                description: nameDesc.description,
+                projectName: currentProject.metadata.name,
+                image: selectedImage,
+                notebookSize: selectedSize,
+                gpus: parseInt(selectedGpu),
+                volumes: [],
+                volumeMounts: [],
+              }}
+              storageData={storageData}
+              envVariables={envVariables}
+            />
+          </StackItem>
+        </Stack>
       </PageSection>
     </ApplicationsPage>
   );

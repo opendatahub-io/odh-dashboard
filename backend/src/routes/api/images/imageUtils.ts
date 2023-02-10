@@ -92,7 +92,7 @@ const getImageStreams = async (
 };
 
 export const processImageInfo = (imageStream: ImageStream): ImageInfo => {
-  const annotations = imageStream.metadata.annotations;
+  const annotations = imageStream.metadata.annotations || {};
 
   const imageInfo: ImageInfo = {
     name: imageStream.metadata.name,

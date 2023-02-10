@@ -1,7 +1,7 @@
 import {
   ImageStreamAndVersion,
   NotebookSize,
-  NotebookTolerationSettings,
+  TolerationSettings,
   Volume,
   VolumeMount,
 } from '../../types';
@@ -64,7 +64,7 @@ export type StartNotebookData = {
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
-  tolerationSettings?: NotebookTolerationSettings;
+  tolerationSettings?: TolerationSettings;
   envFrom?: EnvironmentFromVariable[];
   description?: string;
   /** An override for the assembleNotebook so it doesn't regen an id */

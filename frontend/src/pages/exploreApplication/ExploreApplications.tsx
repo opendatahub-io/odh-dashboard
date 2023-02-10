@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import classNames from 'classnames';
 import * as _ from 'lodash';
 import {
   Drawer,
@@ -20,7 +19,7 @@ import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 import { ODH_PRODUCT_NAME } from '../../utilities/const';
 import { useAppContext } from '../../app/AppContext';
 
-import './ExploreApplications.scss';
+import './DrawerContentBody.scss';
 
 const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
 const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
@@ -38,9 +37,6 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
     const { dashboardConfig } = useAppContext();
     const disableInfo = dashboardConfig.spec.dashboardConfig.disableInfo;
-    const bodyClasses = classNames('odh-explore-apps__body', {
-      'm-side-panel-open': !!selectedComponent,
-    });
     const [enableApp, setEnableApp] = React.useState<OdhApplication>();
 
     return (
@@ -58,7 +54,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
             />
           }
         >
-          <DrawerContentBody className={bodyClasses}>
+          <DrawerContentBody className="odh-explore-page__drawer-body-content">
             <ApplicationsPage
               title="Explore"
               description={disableInfo ? disabledDescription : description}

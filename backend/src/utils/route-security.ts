@@ -10,6 +10,7 @@ import { createCustomError } from './requestUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { isUserAdmin } from './adminUtils';
 import { getNamespaces } from './notebookUtils';
+import { logRequestDetails } from './fileUtils';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -153,6 +154,8 @@ const handleSecurityOnRouteData = async (
   request: OauthFastifyRequest,
   needsAdmin: boolean,
 ): Promise<void> => {
+  logRequestDetails(fastify, request, needsAdmin);
+
   if (isRequestBody(request)) {
     await requestSecurityGuard(
       fastify,

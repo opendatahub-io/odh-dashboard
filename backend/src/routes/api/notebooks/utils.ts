@@ -17,10 +17,12 @@ export const getNotebookStatus = async (
   fastify: KubeFastifyInstance,
   namespace: string,
   name: string,
-): Promise<{ notebook: Notebook; isRunning: boolean }> => {
+): Promise<{ notebook: Notebook; isRunning: boolean; podUID: string }> => {
   const notebook = await getNotebook(fastify, namespace, name);
   const hasStopAnnotation = !!notebook?.metadata.annotations?.['kubeflow-resource-stopped'];
-  const isRunning = hasStopAnnotation ? false : await listNotebookStatus(fastify, namespace, name);
+  const [isRunning, podUID] = hasStopAnnotation
+    ? [false, '']
+    : await listNotebookStatus(fastify, namespace, name);
 
   const notebookName = notebook?.metadata.name;
   let newNotebook: Notebook;
@@ -37,14 +39,14 @@ export const getNotebookStatus = async (
     }
   }
 
-  return { notebook: newNotebook || notebook, isRunning };
+  return { notebook: newNotebook || notebook, isRunning, podUID };
 };
 
 export const listNotebookStatus = async (
   fastify: KubeFastifyInstance,
   namespace: string,
   name: string,
-): Promise<boolean> => {
+): Promise<[boolean, string]> => {
   const response = await fastify.kube.coreV1Api.listNamespacedPod(
     namespace,
     undefined,
@@ -54,7 +56,7 @@ export const listNotebookStatus = async (
     `notebook-name=${name}`,
   );
   const pods = (response.body as V1PodList).items;
-  return pods.some((pod) => checkPodContainersReady(pod));
+  return [pods.some((pod) => checkPodContainersReady(pod)), pods[0]?.metadata.uid || ''];
 };
 
 export const checkPodContainersReady = (pod: V1Pod): boolean => {

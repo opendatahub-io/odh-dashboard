@@ -36,6 +36,7 @@ const useImpersonationForContext = (
           const currentState: NotebookContextStorage['former'] = {
             current: prevState.current,
             currentIsRunning: prevState.currentIsRunning,
+            currentPodUID: prevState.currentPodUID,
             requestRefresh: prevState.requestRefresh,
           };
           return {

@@ -309,14 +309,22 @@ export const useNotebookStatus = (
   open: boolean,
 ): [status: NotebookStatus | null, events: K8sEvent[]] => {
   const { notebookNamespace } = useNamespaces();
-  const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
-    React.useContext(NotebookControllerContext);
+  const {
+    currentUserNotebook: notebook,
+    currentUserNotebookIsRunning: isNotebookRunning,
+    currentUserNotebookPodUID,
+  } = React.useContext(NotebookControllerContext);
 
   const events = useWatchNotebookEvents(
     notebookNamespace,
-    notebook?.metadata.name || '',
+    currentUserNotebookPodUID,
     spawnInProgress && !isNotebookRunning,
-  );
+  ).filter((evt) => {
+    // Note: This looks redundant but is useful -- our state is stale when a new pod starts; this cleans that up
+    // This is not ideal, but the alternative is expose a reset function & thread it up to the stop call
+    // This is old code and needs to be removed in time, this will do for now.
+    return evt.involvedObject.uid === currentUserNotebookPodUID;
+  });
 
   const lastActivity = useLastActivity(
     open,

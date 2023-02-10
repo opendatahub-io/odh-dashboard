@@ -1,21 +1,22 @@
 import * as React from 'react';
 import useNotification from '../../../../utilities/useNotification';
 import { getGPU } from '../../../../services/gpuService';
-import { useAppContext } from '../../../../app/AppContext';
+import { GpuSettingString } from '../../../../types';
 
-const useGPUSetting = (): {
+const useGPUSetting = (
+  gpuSetting: GpuSettingString,
+): {
   available: boolean;
   loaded: boolean;
   count: number;
   untrustedGPUs: boolean;
 } => {
-  const { dashboardConfig } = useAppContext();
   const [gpuSize, setGpuSize] = React.useState(0);
   const [isFetching, setFetching] = React.useState(true);
   const [areGpusAvailable, setAreGpusAvailable] = React.useState(false);
   const notification = useNotification();
 
-  const setting = dashboardConfig.spec.notebookController?.gpuSetting || 'autodetect';
+  const setting = gpuSetting || 'autodetect';
   const autodetect = setting === 'autodetect';
   const hidden = setting === 'hidden';
   const staticCount = Math.max(parseInt(setting), 0);

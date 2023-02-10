@@ -5,13 +5,16 @@ import { getNavBarData, isNavDataGroup, NavDataGroup, NavDataHref } from '../uti
 import { useAppContext } from './AppContext';
 import { useUser } from '../redux/selectors';
 
+const checkLinkActiveStatus = (pathname: string, href: string) =>
+  href.split('/')[1] == pathname.split('/')[1];
+
 const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, pathname }) => (
   <NavItem
     removeFindDomNode
     key={item.id}
     data-id={item.id}
     itemId={item.id}
-    isActive={pathname === item.href}
+    isActive={checkLinkActiveStatus(pathname, item.href)}
   >
     <Link to={item.href} aria-label={item.label}>
       {item.label}
@@ -21,7 +24,7 @@ const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, path
 
 const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pathname }) => {
   const { group, children } = item;
-  const isActive = !!children.find((c) => pathname === c.href);
+  const isActive = !!children.find((c) => checkLinkActiveStatus(pathname, c.href));
   const [expanded, setExpanded] = React.useState(isActive);
 
   return (

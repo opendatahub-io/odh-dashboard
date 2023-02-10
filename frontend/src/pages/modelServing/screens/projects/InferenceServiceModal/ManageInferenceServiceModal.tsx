@@ -166,7 +166,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             />
           </StackItem>
           <StackItem>
-            <FormGroup label="Name" isRequired>
+            <FormGroup label="Model Name" isRequired>
               <TextInput
                 isRequired
                 id="inference-service-name-input"

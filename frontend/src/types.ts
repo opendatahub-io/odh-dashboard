@@ -22,6 +22,7 @@ export type PrometheusResponse = {
  * "any string" as a documentation touch point. Has no baring on the type checking.
  */
 type NumberString = string;
+export type GpuSettingString = 'autodetect' | 'hidden' | NumberString | undefined;
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
@@ -36,8 +37,8 @@ export type DashboardConfig = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
-      gpuSetting?: 'autodetect' | 'hidden' | NumberString;
-      notebookTolerationSettings?: NotebookTolerationSettings;
+      gpuSetting?: GpuSettingString;
+      notebookTolerationSettings?: TolerationSettings;
     };
   };
 };
@@ -64,14 +65,28 @@ export type NotebookControllerUserState = {
   lastActivity?: number;
 };
 
-export type NotebookResources = {
+/**
+ * OdhDashboardConfig contains gpuSetting as a string value override -- proper gpus return as numbers
+ * TODO: Look to make it just number by properly parsing the value
+ */
+export type GPUCount = string | number;
+
+export enum ContainerResourceAttributes {
+  CPU = 'cpu',
+  MEMORY = 'memory',
+  NVIDIA_GPU = 'nvidia.com/gpu',
+}
+
+export type ContainerResources = {
   requests?: {
     cpu?: string;
     memory?: string;
+    'nvidia.com/gpu'?: GPUCount;
   };
   limits?: {
     cpu?: string;
     memory?: string;
+    'nvidia.com/gpu'?: GPUCount;
   };
 };
 
@@ -89,15 +104,15 @@ export type EnvVarReducedTypeKeyValues = {
 
 export type NotebookSize = {
   name: string;
-  resources: NotebookResources;
+  resources: ContainerResources;
   notUserDefined?: boolean;
 };
 
-export type NotebookTolerationSettings = {
+export type TolerationSettings = {
   enabled: boolean;
   key: string;
 };
-export type NotebookTolerationFormSettings = NotebookTolerationSettings & {
+export type NotebookTolerationFormSettings = TolerationSettings & {
   error?: string;
 };
 
@@ -105,7 +120,7 @@ export type ClusterSettings = {
   userTrackingEnabled: boolean;
   pvcSize: number | string;
   cullerTimeout: number;
-  notebookTolerationSettings: NotebookTolerationSettings | null;
+  notebookTolerationSettings: TolerationSettings | null;
 };
 
 /** @deprecated -- use SDK type */
@@ -146,7 +161,7 @@ export type OdhApplication = {
     docsLink: string;
     getStartedLink: string;
     getStartedMarkDown: string;
-    category?: string;
+    category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
     support?: string;
     quickStart: string | null;
     comingSoon?: boolean | null;
@@ -174,6 +189,12 @@ export type OdhApplication = {
     internalRoute?: string;
   };
 };
+
+export enum OdhApplicationCategory {
+  RedHatManaged = 'Red Hat managed',
+  PartnerManaged = 'Partner managed',
+  SelfManaged = 'Self-managed',
+}
 
 export enum OdhDocumentType {
   Documentation = 'documentation',
@@ -274,10 +295,12 @@ export type TrackingEventProperties = {
   anonymousID?: string;
   type?: string;
   term?: string;
-  GPU?: number;
+  GPU?: GPUCount;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
   projectName?: string;
+  notebookName?: string;
+  lastActivity?: string;
 };
 
 export type NotebookPort = {
@@ -286,7 +309,7 @@ export type NotebookPort = {
   protocol: string;
 };
 
-export type NotebookToleration = {
+export type PodToleration = {
   effect: string;
   key: string;
   operator: string;
@@ -300,13 +323,13 @@ export type NotebookContainer = {
   env: EnvironmentVariable[];
   envFrom?: EnvironmentFromVariable[];
   ports?: NotebookPort[];
-  resources?: NotebookResources;
+  resources?: ContainerResources;
   livenessProbe?: Record<string, unknown>;
   readinessProbe?: Record<string, unknown>;
   volumeMounts?: VolumeMount[];
 };
 
-export type NotebookAffinity = {
+export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };
 
@@ -327,11 +350,11 @@ export type Notebook = K8sResourceCommon & {
   spec: {
     template: {
       spec: {
-        affinity?: NotebookAffinity;
+        affinity?: PodAffinity;
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
         volumes?: Volume[];
-        tolerations?: NotebookToleration[];
+        tolerations?: PodToleration[];
       };
     };
   };
@@ -343,6 +366,7 @@ export type Notebook = K8sResourceCommon & {
 export type NotebookRunningState = {
   notebook: Notebook | null;
   isRunning: boolean;
+  podUID: string;
 };
 
 export type NotebookList = {
@@ -606,6 +630,9 @@ export type ResourceReplacer<T extends K8sResourceCommon> = (resource: T) => Pro
 export type ResourceDeleter = (projectName: string, resourceName: string) => Promise<DeleteStatus>;
 
 export type K8sEvent = {
+  involvedObject: {
+    uid: string;
+  };
   metadata: K8sMetadata;
   eventTime: string;
   lastTimestamp: string | null; // if it never starts, the value is null

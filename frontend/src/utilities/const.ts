@@ -34,7 +34,6 @@ export const DOC_TYPE_TOOLTIPS = {
 };
 
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
-export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
 
 export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
   data: [],

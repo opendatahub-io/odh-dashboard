@@ -1,33 +1,47 @@
 import * as React from 'react';
 import { getRoute } from '../../../api';
-import { NotebookKind } from '../../../k8sTypes';
+import { FAST_POLL_INTERVAL } from '../../../utilities/const';
 
 const useRouteForNotebook = (
-  notebook: NotebookKind,
+  notebookName?: string,
+  projectName?: string,
 ): [routeLink: string | null, loaded: boolean, loadError: Error | null] => {
   const [route, setRoute] = React.useState<string | null>(null);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | null>(null);
 
-  const routeName = notebook.metadata.name;
-  const routeNamespace = notebook.metadata.namespace;
-
   React.useEffect(() => {
     let watchHandle;
+    let cancelled = false;
     const watchRoute = () => {
-      getRoute(routeName, routeNamespace)
-        .then((route) => {
-          setRoute(`https://${route.spec.host}/notebook/${routeNamespace}/${routeName}`);
-          setLoaded(true);
-        })
-        .catch((e) => {
-          setLoadError(e);
-          watchHandle = setTimeout(watchRoute, 1000);
-        });
+      if (cancelled) {
+        return;
+      }
+      if (notebookName && projectName) {
+        getRoute(notebookName, projectName)
+          .then((route) => {
+            if (cancelled) {
+              return;
+            }
+            setRoute(`https://${route.spec.host}/notebook/${projectName}/${notebookName}`);
+            setLoadError(null);
+            setLoaded(true);
+          })
+          .catch((e) => {
+            if (cancelled) {
+              return;
+            }
+            setLoadError(e);
+            watchHandle = setTimeout(watchRoute, FAST_POLL_INTERVAL);
+          });
+      }
     };
     watchRoute();
-    return () => clearTimeout(watchHandle);
-  }, [routeName, routeNamespace]);
+    return () => {
+      cancelled = true;
+      clearTimeout(watchHandle);
+    };
+  }, [notebookName, projectName]);
 
   return [route, loaded, loadError];
 };

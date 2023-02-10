@@ -1,0 +1,12 @@
+// This is an override provided by UX to set underline styles of starting text
+// Because this is not implemented in PF Card component
+.odh-notebook-status-popover {
+  &__starting-text {
+    cursor: pointer;
+    text-decoration: underline var(--pf-global--BorderWidth--sm) dashed var(--pf-global--BorderColor--200);
+    text-underline-offset: 0.25rem;
+    &:hover {
+      text-decoration-color: var(--pf-global--Color--100);
+    }
+  }
+}

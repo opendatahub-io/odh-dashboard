@@ -1,187 +1,67 @@
 import * as React from 'react';
-import { FormGroup, Grid, NumberInput, ValidatedOptions } from '@patternfly/react-core';
+import { FormGroup, Grid } from '@patternfly/react-core';
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingServingRuntimeObject, ServingRuntimeResources } from '../../types';
+import { CreatingServingRuntimeObject } from '../../types';
+import { ContainerResourceAttributes, ContainerResources } from '../../../../../types';
+import CPUField from '../../../../../components/CPUField';
+import MemoryField from '../../../../../components/MemoryField';
 
 type ServingRuntimeSizeExpandedFieldProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
 };
 
-type ResourceKeys = keyof ServingRuntimeResources;
-enum ResourceAttributes {
-  CPU = 'cpu',
-  MEMORY = 'memory',
-}
+type ResourceKeys = keyof ContainerResources;
 
 const ServingRuntimeSizeExpandedField: React.FC<ServingRuntimeSizeExpandedFieldProps> = ({
   data,
   setData,
 }) => {
-  const onChangeResources = (
-    event: React.FormEvent<HTMLInputElement>,
-    resourceKey: ResourceKeys,
-    resourceAttribute: ResourceAttributes,
+  const handleChange = (
+    type: ContainerResourceAttributes.CPU | ContainerResourceAttributes.MEMORY,
+    variant: ResourceKeys,
+    value: string,
   ) => {
-    const target = event.target as HTMLInputElement;
-    const suffix = resourceAttribute === 'memory' ? 'Gi' : '';
-
     setData('modelSize', {
       ...data.modelSize,
       resources: {
         ...data.modelSize.resources,
-        [resourceKey]: {
-          ...data.modelSize.resources[resourceKey],
-          [resourceAttribute]: `${target.value}${suffix}`,
+        [variant]: {
+          ...data.modelSize.resources[variant],
+          [type]: value,
         },
       },
     });
   };
 
-  const parseResourceInput = (resourceValue: string | undefined): number => {
-    if (!resourceValue) {
-      return 0;
-    }
-    return parseInt(resourceValue.split('Gi')[0]);
-  };
-
-  const validateInput = (value: string): ValidatedOptions =>
-    parseInt(value) >= 0 ? ValidatedOptions.default : ValidatedOptions.error;
-
   return (
     <IndentSection>
       <Grid hasGutter md={6}>
         <FormGroup label="CPUs requested">
-          <NumberInput
-            value={parseResourceInput(data.modelSize?.resources.requests.cpu)}
-            widthChars={10}
-            min={1}
-            validated={validateInput(data.modelSize?.resources.requests.cpu)}
-            onChange={(event) => onChangeResources(event, 'requests', ResourceAttributes.CPU)}
-            onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    cpu: `${parseResourceInput(data.modelSize.resources.requests.cpu) - 1}`,
-                  },
-                },
-              })
-            }
-            onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    cpu: `${parseResourceInput(data.modelSize.resources.requests.cpu) + 1}`,
-                  },
-                },
-              })
-            }
+          <CPUField
+            onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'requests', value)}
+            value={data.modelSize.resources?.requests?.cpu}
           />
         </FormGroup>
         <FormGroup label="Memory requested">
-          <NumberInput
-            value={parseResourceInput(data.modelSize?.resources.requests.memory)}
-            widthChars={10}
-            min={1}
-            validated={validateInput(data.modelSize?.resources.requests.memory)}
-            onChange={(event) => onChangeResources(event, 'requests', ResourceAttributes.MEMORY)}
-            onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    memory: `${parseResourceInput(data.modelSize.resources.requests.memory) - 1}Gi`,
-                  },
-                },
-              })
+          <MemoryField
+            onChange={(value) =>
+              handleChange(ContainerResourceAttributes.MEMORY, 'requests', value)
             }
-            onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  requests: {
-                    ...data.modelSize.resources.requests,
-                    memory: `${parseResourceInput(data.modelSize.resources.requests.memory) + 1}Gi`,
-                  },
-                },
-              })
-            }
+            value={data.modelSize.resources?.requests?.memory}
           />
         </FormGroup>
         <FormGroup label="CPU limit">
-          <NumberInput
-            value={parseResourceInput(data.modelSize?.resources.limits.cpu)}
-            widthChars={10}
-            min={1}
-            validated={validateInput(data.modelSize?.resources.limits.cpu)}
-            onChange={(event) => onChangeResources(event, 'limits', ResourceAttributes.CPU)}
-            onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    cpu: `${parseResourceInput(data.modelSize.resources.limits.cpu) - 1}`,
-                  },
-                },
-              })
-            }
-            onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    cpu: `${parseResourceInput(data.modelSize.resources.limits.cpu) + 1}`,
-                  },
-                },
-              })
-            }
+          <CPUField
+            onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'limits', value)}
+            value={data.modelSize.resources?.limits?.cpu}
           />
         </FormGroup>
         <FormGroup label="Memory limit">
-          <NumberInput
-            value={parseResourceInput(data.modelSize?.resources.limits.memory)}
-            widthChars={10}
-            min={1}
-            validated={validateInput(data.modelSize?.resources.limits.memory)}
-            onChange={(event) => onChangeResources(event, 'limits', ResourceAttributes.MEMORY)}
-            onMinus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    memory: `${parseResourceInput(data.modelSize.resources.limits.memory) - 1}Gi`,
-                  },
-                },
-              })
-            }
-            onPlus={() =>
-              setData('modelSize', {
-                ...data.modelSize,
-                resources: {
-                  ...data.modelSize.resources,
-                  limits: {
-                    ...data.modelSize.resources.limits,
-                    memory: `${parseResourceInput(data.modelSize.resources.limits.memory) + 1}Gi`,
-                  },
-                },
-              })
-            }
+          <MemoryField
+            onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'limits', value)}
+            value={data.modelSize.resources?.limits?.memory}
           />
         </FormGroup>
       </Grid>
