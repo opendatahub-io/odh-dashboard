@@ -16,8 +16,10 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ categ
   } else if (category === OdhApplicationCategory.SelfManaged) {
     content =
       'Self-managed software is installed to a RHODS cluster, but does not support upgrade testing, alerting, or other features of externally managed software';
-  } else {
-    return <>category</>;
+  }
+
+  if (!content) {
+    return <span>category</span>;
   }
 
   return (
