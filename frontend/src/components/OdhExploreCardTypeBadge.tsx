@@ -3,7 +3,7 @@ import { Tooltip } from '@patternfly/react-core';
 import { OdhApplicationCategory } from '../types';
 
 type OdhExploreCardTypeBadgeProps = {
-  category: OdhApplicationCategory;
+  category: OdhApplicationCategory | string;
 };
 
 const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ category }) => {
@@ -17,7 +17,7 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ categ
     content =
       'Self-managed software is installed to a RHODS cluster, but does not support upgrade testing, alerting, or other features of externally managed software';
   } else {
-    return category;
+    return <>category</>;
   }
 
   return (
