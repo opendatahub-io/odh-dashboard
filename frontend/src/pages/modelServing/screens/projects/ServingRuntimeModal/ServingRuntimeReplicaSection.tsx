@@ -13,7 +13,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
   data,
   setData,
 }) => {
-  const MIN_SIZE = 1;
+  const MIN_SIZE = 0;
 
   const onStep = (step: number) => {
     setData('numReplicas', normalizeBetween(data.numReplicas + step, MIN_SIZE));
@@ -26,7 +26,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
           id="num-replicas-serving-runtime"
           value={data.numReplicas}
           widthChars={10}
-          min={1}
+          min={MIN_SIZE}
           onPlus={() => onStep(1)}
           onMinus={() => onStep(-1)}
           onChange={(event) => {

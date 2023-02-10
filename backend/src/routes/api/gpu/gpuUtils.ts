@@ -2,7 +2,7 @@ import {
   MachineAutoscalerList,
   GPUInfo,
   KubeFastifyInstance,
-  PrometheusResponse,
+  PrometheusQueryResponse,
   MachineSet,
   gpuScale,
 } from '../../../types';
@@ -114,7 +114,7 @@ export const getGPUData = async (
         });
         res.on('end', () => {
           try {
-            const parsedData: PrometheusResponse = JSON.parse(rawData);
+            const parsedData: PrometheusQueryResponse = JSON.parse(rawData);
             resolve({ code: 200, response: Number(parsedData['data']['result'][0]['value'][1]) });
           } catch (e) {
             reject({ code: 500, response: rawData });

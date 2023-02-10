@@ -1,27 +1,34 @@
 import * as React from 'react';
-import { FormGroup, FormSection, Select, SelectOption } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormSection,
+  NumberInput,
+  Select,
+  SelectOption,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../../types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
+import useGPUSetting from '../../../../notebookController/screens/server/useGPUSetting';
+import { GpuSettingString } from '../../../../../types';
 
 type ServingRuntimeSizeSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   sizes: ServingRuntimeSize[];
+  gpuSetting: GpuSettingString;
 };
 
 const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   data,
   setData,
   sizes,
+  gpuSetting,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
-
-  // Leaving this to enable GPU in next release
-  // const onChangeGPU = (event: React.FormEvent<HTMLInputElement>) => {
-  //   const target = event.target as HTMLInputElement;
-  //   setData('gpus', parseInt(target.value));
-  // };
+  const { available: gpuAvailable, count: gpuCount } = useGPUSetting(gpuSetting || 'hidden');
 
   const sizeCustom = [
     ...sizes,
@@ -47,38 +54,51 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   return (
     <FormSection title="Compute resources per replica">
       <FormGroup label="Model server size">
-        <Select
-          removeFindDomNode
-          id="model-server-size-selection"
-          isOpen={sizeDropdownOpen}
-          placeholderText="Select a model server size"
-          onToggle={(open) => setSizeDropdownOpen(open)}
-          onSelect={(_, option) => {
-            const valuesSelected = sizeCustom.find((element) => element.name === option);
-            if (valuesSelected) {
-              setData('modelSize', valuesSelected);
-            }
-            setSizeDropdownOpen(false);
-          }}
-          selections={data.modelSize.name}
-        >
-          {sizeOptions()}
-        </Select>
-        {data.modelSize.name === 'Custom' && (
-          <ServingRuntimeSizeExpandedField data={data} setData={setData} />
-        )}
+        <Stack hasGutter>
+          <StackItem>
+            <Select
+              removeFindDomNode
+              id="model-server-size-selection"
+              isOpen={sizeDropdownOpen}
+              placeholderText="Select a model server size"
+              onToggle={(open) => setSizeDropdownOpen(open)}
+              onSelect={(_, option) => {
+                const valuesSelected = sizeCustom.find((element) => element.name === option);
+                if (valuesSelected) {
+                  setData('modelSize', valuesSelected);
+                }
+                setSizeDropdownOpen(false);
+              }}
+              selections={data.modelSize.name}
+              menuAppendTo={() => document.body}
+            >
+              {sizeOptions()}
+            </Select>
+          </StackItem>
+          {data.modelSize.name === 'Custom' && (
+            <StackItem>
+              <ServingRuntimeSizeExpandedField data={data} setData={setData} />
+            </StackItem>
+          )}
+        </Stack>
       </FormGroup>
-      {/* // Leaving this to enable GPU in next release <FormGroup label="Number of GPUs (Not implemented)">
-        <NumberInput
-          isDisabled
-          value={data.gpus}
-          widthChars={10}
-          min={0}
-          onChange={onChangeGPU}
-          onMinus={() => setData('gpus', data.gpus - 1)}
-          onPlus={() => setData('gpus', data.gpus + 1)}
-        />
-      </FormGroup> */}
+      {gpuAvailable && (
+        <FormGroup label="Model server gpus">
+          <NumberInput
+            isDisabled={!gpuCount}
+            value={data.gpus}
+            widthChars={10}
+            min={0}
+            max={gpuCount}
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const target = event.currentTarget;
+              setData('gpus', parseInt(target.value) || 0);
+            }}
+            onMinus={() => setData('gpus', data.gpus - 1)}
+            onPlus={() => setData('gpus', data.gpus + 1)}
+          />
+        </FormGroup>
+      )}
     </FormSection>
   );
 };

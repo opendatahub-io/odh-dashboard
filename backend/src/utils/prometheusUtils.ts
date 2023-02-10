@@ -1,30 +1,41 @@
-import { KubeFastifyInstance, OauthFastifyRequest, PrometheusResponse } from '../types';
+import {
+  KubeFastifyInstance,
+  OauthFastifyRequest,
+  PrometheusQueryRangeResponse,
+  PrometheusQueryResponse,
+  QueryType,
+} from '../types';
 import https from 'https';
 import { getDirectCallOptions } from './directCallUtils';
 import { DEV_MODE } from './constants';
 
-export const callPrometheus = async (
+const callPrometheus = async <T>(
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   query: string,
-  namespace: string,
-): Promise<{ code: number; response: PrometheusResponse }> => {
+  host: string,
+  queryType: QueryType,
+): Promise<{ code: number; response: T }> => {
   if (!query) {
     fastify.log.warn('Prometheus call was made without a query');
     return Promise.reject({ code: 400, response: 'Failed to provide a query' });
   }
 
-  // Use a local path to the thanos querier; only works on-cluster
-  let host = `https://thanos-querier.openshift-monitoring.svc.cluster.local:9091`;
-  if (DEV_MODE) {
-    const apiPath = fastify.kube.config.getCurrentCluster().server;
-    const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
-    host = `https://thanos-querier-openshift-monitoring.apps.${namedHost}`;
+  if (!host) {
+    fastify.log.warn('Prometheus call was made with a host that does not exist');
+    return Promise.reject({ code: 400, response: 'Failed to find the prometheus instance host' });
   }
 
-  const url = `${host}/api/v1/query?namespace=${namespace}&query=${query}`;
+  const url = `${host}/api/v1/${queryType}?${query}`;
   const rawOptions = await getDirectCallOptions(fastify, request, url);
-  const options = { ...rawOptions, rejectUnauthorized: false };
+  const options = {
+    ...rawOptions,
+    headers: {
+      ...rawOptions.headers,
+      Accept: 'application/json',
+    },
+    rejectUnauthorized: false,
+  };
 
   return new Promise((resolve, reject) => {
     fastify.log.info(`Making Prometheus call: ${url}`);
@@ -39,8 +50,12 @@ export const callPrometheus = async (
         });
         res.on('end', () => {
           try {
-            const parsedData: PrometheusResponse = JSON.parse(rawData);
+            const parsedData = JSON.parse(rawData);
             fastify.log.info('Successful response from Prometheus.');
+            if (parsedData.status === 'error') {
+              reject({ code: 400, response: parsedData.error });
+              return;
+            }
             resolve({ code: 200, response: parsedData });
           } catch (e) {
             const errorMessage = e.message || e.toString();
@@ -61,3 +76,43 @@ export const callPrometheus = async (
     httpsRequest.end();
   });
 };
+
+const generatePrometheusHostURL = (
+  fastify: KubeFastifyInstance,
+  instanceName: string,
+  namespace: string,
+  port: string,
+): string => {
+  if (DEV_MODE) {
+    const apiPath = fastify.kube.config.getCurrentCluster().server;
+    const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
+    return `https://${instanceName}-${namespace}.apps.${namedHost}`;
+  }
+  return `https://${instanceName}.${namespace}.svc.cluster.local:${port}`;
+};
+
+export const callPrometheusPVC = (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  query: string,
+): Promise<{ code: number; response: PrometheusQueryResponse }> =>
+  callPrometheus(
+    fastify,
+    request,
+    query,
+    generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', '9091'),
+    QueryType.QUERY,
+  );
+
+export const callPrometheusServing = (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  query: string,
+): Promise<{ code: number; response: PrometheusQueryRangeResponse }> =>
+  callPrometheus(
+    fastify,
+    request,
+    query,
+    generatePrometheusHostURL(fastify, 'rhods-model-monitoring', 'redhat-ods-monitoring', '443'),
+    QueryType.QUERY_RANGE,
+  );

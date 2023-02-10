@@ -13,7 +13,7 @@ import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
   id: ProjectSectionID;
-  actions: React.ReactNode[];
+  actions?: React.ReactNode[];
   title: string;
   isLoading: boolean;
   loadError?: Error;
@@ -65,7 +65,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
               {title}
             </Title>
           </FlexItem>
-          <FlexItem>{actions}</FlexItem>
+          {actions && <FlexItem>{actions}</FlexItem>}
         </Flex>
       </StackItem>
       <StackItem>{renderContent()}</StackItem>

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
 import useGPUSetting from './useGPUSetting';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { useAppContext } from '../../../../app/AppContext';
 
 type GPUSelectFieldProps = {
   value: string;
@@ -10,7 +11,8 @@ type GPUSelectFieldProps = {
 
 const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
   const [gpuDropdownOpen, setGpuDropdownOpen] = React.useState(false);
-  const { available, count: gpuSize, loaded, untrustedGPUs } = useGPUSetting();
+  const gpuSetting = useAppContext().dashboardConfig.spec.notebookController?.gpuSetting;
+  const { available, count: gpuSize, loaded, untrustedGPUs } = useGPUSetting(gpuSetting);
 
   if (!available) {
     return null;

@@ -3,10 +3,11 @@ import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-tab
 import { Button } from '@patternfly/react-core';
 import { GetColumnSort } from '../../../../utilities/useTableColumnSort';
 import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
-import { inferenceServiceColumns } from './data';
+import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
 import ManageInferenceServiceModal from '../projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { ModelServingContext } from '../../ModelServingContext';
 
 type InferenceServiceTableProps = {
   clearFilters?: () => void;
@@ -23,13 +24,16 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   getColumnSort,
   refresh,
 }) => {
+  const {
+    projects: { data: projects },
+  } = React.useContext(ModelServingContext);
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();
   const isGlobal = !!clearFilters;
   const mappedColumns = isGlobal
-    ? inferenceServiceColumns
-    : inferenceServiceColumns.filter((column) => column.field !== 'project');
+    ? getGlobalInferenceServiceColumns(projects)
+    : getProjectInferenceServiceColumns();
   return (
     <>
       <TableComposable variant={isGlobal ? undefined : 'compact'}>
@@ -45,7 +49,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         {isGlobal && inferenceServices.length === 0 && (
           <Tbody>
             <Tr>
-              <Td colSpan={inferenceServiceColumns.length} style={{ textAlign: 'center' }}>
+              <Td colSpan={mappedColumns.length} style={{ textAlign: 'center' }}>
                 No projects match your filters.{' '}
                 <Button variant="link" isInline onClick={clearFilters}>
                   Clear filters

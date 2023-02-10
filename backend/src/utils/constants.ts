@@ -39,7 +39,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableInfo: false,
       disableSupport: false,
       disableClusterManager: false,
-      disableTracking: false,
+      disableTracking: true,
       disableBYONImageStream: false,
       disableISVBadges: false,
       disableAppLauncher: false,
