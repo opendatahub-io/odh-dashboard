@@ -1,6 +1,19 @@
 import { EnvVariableDataEntry } from 'pages/projects/types';
 import { ContainerResources } from '../../../types';
 
+export enum TimeframeTitle {
+  FIVE_MINUTES = '5 minutes',
+  ONE_HOUR = '1 hour',
+  ONE_DAY = '24 hours',
+  ONE_WEEK = '1 week',
+}
+
+export type TimeframeTimeType = {
+  [key in TimeframeTitle]: number;
+};
+
+export type TimeframeStepType = TimeframeTimeType;
+
 export enum ServingRuntimeTableTabs {
   TYPE = 1,
   DEPLOYED_MODELS = 2,

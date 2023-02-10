@@ -1,26 +1,25 @@
 import * as React from 'react';
 import axios from 'axios';
-import { PrometheusResponse } from '../../types';
+import { PrometheusQueryResponse } from '../../types';
 
 const usePrometheusQuery = (
-  namespace: string,
+  apiPath: string,
   query: string,
 ): [
-  result: PrometheusResponse | null,
+  result: PrometheusQueryResponse | null,
   loaded: boolean,
   loadError: Error | undefined,
   refetch: () => void,
 ] => {
-  const [result, setResult] = React.useState<PrometheusResponse | null>(null);
+  const [result, setResult] = React.useState<PrometheusQueryResponse | null>(null);
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   const fetchData = React.useCallback(() => {
-    if (!namespace || !query) return;
+    if (!query) return;
 
-    const path = '/api/prometheus';
     axios
-      .post(path, { query, namespace })
+      .post<{ response: PrometheusQueryResponse }>(apiPath, { query })
       .then((response) => {
         setResult(response.data.response);
         setLoaded(true);
@@ -29,7 +28,7 @@ const usePrometheusQuery = (
       .catch((e) => {
         setError(e);
       });
-  }, [namespace, query]);
+  }, [query, apiPath]);
 
   React.useEffect(() => {
     fetchData();

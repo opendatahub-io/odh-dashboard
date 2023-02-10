@@ -7,8 +7,8 @@ export const usePVCFreeAmount = (
   pvc: PersistentVolumeClaimKind,
 ): [bytesInUse: number | typeof NaN, loaded: boolean, error: Error | undefined] => {
   const [result, loaded, loadError, refetch] = usePrometheusQuery(
-    pvc.metadata.namespace,
-    `kubelet_volume_stats_used_bytes{persistentvolumeclaim='${pvc.metadata.name}'}`,
+    '/api/prometheus/pvc',
+    `namespace=${pvc.metadata.namespace}&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='${pvc.metadata.name}'}`,
   );
 
   React.useEffect(() => {

@@ -1,5 +1,5 @@
 import { ServingRuntimeKind } from 'k8sTypes';
-import { ServingRuntimeSize } from './types';
+import { ServingRuntimeSize, TimeframeStepType, TimeframeTimeType, TimeframeTitle } from './types';
 
 export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [
   {
@@ -120,4 +120,20 @@ export const DEFAULT_MODEL_SERVING_TEMPLATE: ServingRuntimeKind = {
       modelLoadingTimeoutMillis: 90000,
     },
   },
+};
+
+// unit: seconds
+export const TimeframeTime: TimeframeTimeType = {
+  [TimeframeTitle.FIVE_MINUTES]: 5 * 60,
+  [TimeframeTitle.ONE_HOUR]: 60 * 60,
+  [TimeframeTitle.ONE_DAY]: 24 * 60 * 60,
+  [TimeframeTitle.ONE_WEEK]: 7 * 24 * 60 * 60,
+};
+
+// make sure we always get ~300 data points
+export const TimeframeStep: TimeframeStepType = {
+  [TimeframeTitle.FIVE_MINUTES]: 1,
+  [TimeframeTitle.ONE_HOUR]: 12,
+  [TimeframeTitle.ONE_DAY]: 24 * 12,
+  [TimeframeTitle.ONE_WEEK]: 7 * 24 * 12,
 };
