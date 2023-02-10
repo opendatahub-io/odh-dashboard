@@ -12,7 +12,7 @@ const ModelServingGlobal: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Deployed models"
+      title="Model serving"
       description="Manage and view the health and performance of your deployed models."
       loaded // already checked this in the context provider so loaded is always true here
       empty={servingRuntimes.length === 0 || inferenceServices.length === 0}

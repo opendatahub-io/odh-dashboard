@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ServingRuntimeKind, InferenceServiceKind } from '../../k8sTypes';
+import { ServingRuntimeKind, InferenceServiceKind, ProjectKind } from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -17,33 +17,39 @@ import useServingRuntimes from './useServingRuntimes';
 import useInferenceServices from './useInferenceServices';
 import { ContextResourceData } from '../../types';
 import { useContextResourceData } from '../../utilities/useContextResourceData';
+import useUserProjects from '../projects/screens/projects/useUserProjects';
 
 type ModelServingContextType = {
   refreshAllData: () => void;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
+  projects: ContextResourceData<ProjectKind>;
 };
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
   refreshAllData: () => undefined,
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
+  projects: DEFAULT_CONTEXT_DATA,
 });
 
 const ModelServingContextProvider: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
+  const projects = useContextResourceData<ProjectKind>(useUserProjects());
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
   );
 
+  const projectRefresh = projects.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
   const refreshAllData = React.useCallback(() => {
+    projectRefresh();
     servingRuntimeRefresh();
     inferenceServiceRefresh();
-  }, [servingRuntimeRefresh, inferenceServiceRefresh]);
+  }, [projectRefresh, servingRuntimeRefresh, inferenceServiceRefresh]);
 
   if (servingRuntimes.error || inferenceServices.error) {
     return (
@@ -75,6 +81,7 @@ const ModelServingContextProvider: React.FC = () => {
   return (
     <ModelServingContext.Provider
       value={{
+        projects,
         servingRuntimes,
         inferenceServices,
         refreshAllData,

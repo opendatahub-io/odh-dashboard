@@ -6,6 +6,9 @@ import { SecretKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import ServingRuntimeTableRow from './ServingRuntimeTableRow';
 import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
+import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
+import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
+import { ServingRuntimeTableTabs } from '../types';
 
 type ServingRuntimeTableProps = {
   modelServers: ServingRuntimeKind[];
@@ -13,6 +16,8 @@ type ServingRuntimeTableProps = {
   refreshServingRuntime: () => void;
   refreshTokens: () => void;
   refreshInferenceServices: () => void;
+  expandedColumn?: ServingRuntimeTableTabs;
+  updateExpandedColumn: (column?: ServingRuntimeTableTabs) => void;
 };
 
 const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
@@ -21,7 +26,16 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
   refreshServingRuntime,
   refreshTokens,
   refreshInferenceServices,
+  expandedColumn,
+  updateExpandedColumn,
 }) => {
+  const [isOpen, setOpen] = React.useState(false);
+  const {
+    servingRuntimes: { data: modelServers },
+    dataConnections: { data: dataConnections },
+    currentProject,
+  } = React.useContext(ProjectDetailsContext);
+
   const [deleteServingRuntime, setDeleteServingRuntime] = React.useState<ServingRuntimeKind>();
   const [editServingRuntime, setEditServingRuntime] = React.useState<ServingRuntimeKind>();
   const sort = useTableColumnSort<ServingRuntimeKind>(columns, 1);
@@ -45,6 +59,11 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             obj={modelServer}
             onDeleteServingRuntime={(obj) => setDeleteServingRuntime(obj)}
             onEditServingRuntime={(obj) => setEditServingRuntime(obj)}
+            onDeployModal={() => setOpen(true)}
+            onExpandColumn={(colIndex?: ServingRuntimeTableTabs) => {
+              updateExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
+            }}
+            expandedColumn={expandedColumn}
           />
         ))}
       </TableComposable>
@@ -70,6 +89,20 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             refreshInferenceServices();
             setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
           }
+        }}
+      />
+      <ManageInferenceServiceModal
+        isOpen={isOpen}
+        onClose={(submit: boolean) => {
+          setOpen(false);
+          if (submit) {
+            refreshInferenceServices();
+          }
+        }}
+        projectContext={{
+          currentProject,
+          currentServingRuntime: modelServers[0],
+          dataConnections,
         }}
       />
     </>

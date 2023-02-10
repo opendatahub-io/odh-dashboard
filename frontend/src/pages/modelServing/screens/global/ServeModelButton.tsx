@@ -12,7 +12,7 @@ const ServeModelButton: React.FC = () => {
   return (
     <>
       <Button variant="primary" onClick={() => setOpen(true)}>
-        Serve model
+        Deploy model
       </Button>
       <ManageInferenceServiceModal
         isOpen={open}

@@ -36,7 +36,7 @@ import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import { translateDisplayNameForK8s } from 'pages/projects/utils';
 import { useDashboardNamespace } from 'redux/selectors';
-import { ContainerResourceAttributes } from '../../../../../types';
+import { requestsUnderLimits, resourcesArePositive } from '../../../utils';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -66,17 +66,10 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
 
-  const resourceIsSet = (fieldName, min = 1) => {
-    const requests = createData.modelSize.resources.requests?.[fieldName];
-    const limits = createData.modelSize.resources.limits?.[fieldName];
-    return (
-      requests && limits && min <= parseInt(requests) && parseInt(requests) <= parseInt(limits)
-    );
-  };
-
   const inputValueValid =
-    resourceIsSet(ContainerResourceAttributes.CPU) &&
-    resourceIsSet(ContainerResourceAttributes.MEMORY);
+    createData.numReplicas >= 0 &&
+    resourcesArePositive(createData.modelSize.resources) &&
+    requestsUnderLimits(createData.modelSize.resources);
 
   const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
 
@@ -224,7 +217,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             <FormSection title="Model route" titleElement="div">
               <FormGroup>
                 <Checkbox
-                  label="Make deployed available via an external route"
+                  label="Make deployed models available through an external route"
                   id="alt-form-checkbox-route"
                   name="alt-form-checkbox-route"
                   isChecked={createData.externalRoute}

@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { Button, Checkbox, FormGroup, FormSection, getUniqueId } from '@patternfly/react-core';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  FormGroup,
+  FormSection,
+  getUniqueId,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import IndentSection from 'pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
 import { CreatingServingRuntimeObject } from '../../types';
@@ -48,25 +57,33 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
 
       {data.tokenAuth && (
         <IndentSection>
-          {data.tokens.map((token) => (
-            <ServingRuntimeTokenInput
-              key={token.uuid}
-              token={token}
-              data={data}
-              setData={setData}
-            />
-          ))}
-          <Button
-            onClick={() => {
-              createNewToken();
-            }}
-            isInline
-            iconPosition="left"
-            variant="link"
-            icon={<PlusCircleIcon />}
-          >
-            Add a service account
-          </Button>
+          <Stack hasGutter>
+            <StackItem>
+              <Alert
+                variant="info"
+                isInline
+                title="The actual tokens will be created and displayed when the model server is configured."
+              />
+            </StackItem>
+            {data.tokens.map((token) => (
+              <StackItem key={token.uuid}>
+                <ServingRuntimeTokenInput token={token} data={data} setData={setData} />
+              </StackItem>
+            ))}
+            <StackItem>
+              <Button
+                onClick={() => {
+                  createNewToken();
+                }}
+                isInline
+                iconPosition="left"
+                variant="link"
+                icon={<PlusCircleIcon />}
+              >
+                Add a service account
+              </Button>
+            </StackItem>
+          </Stack>
         </IndentSection>
       )}
     </FormSection>
