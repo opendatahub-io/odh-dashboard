@@ -1,3 +1,5 @@
+const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
+
 export const relativeTime = (current: number, previous: number): string => {
   const msPerMinute = 60 * 1000;
   const msPerHour = msPerMinute * 60;
@@ -53,5 +55,3 @@ export const relativeTime = (current: number, previous: number): string => {
     return `${date.getDate()} ${monthAsString} ${date.getFullYear()}`;
   }
 };
-
-const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;

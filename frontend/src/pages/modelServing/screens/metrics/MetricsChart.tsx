@@ -52,7 +52,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit
 
   React.useEffect(() => {
     const ref = bodyRef.current;
-    let observer: ReturnType<typeof getResizeObserver>;
+    let observer: ReturnType<typeof getResizeObserver> = () => undefined;
     if (ref) {
       const handleResize = () => {
         setChartWidth(ref.clientWidth);

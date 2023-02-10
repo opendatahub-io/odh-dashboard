@@ -715,6 +715,4 @@ export type ContextResourceData<T> = {
 
 export type BreadcrumbItemType = {
   label: string;
-  link?: string;
-  isActive?: boolean;
-};
+} & EitherNotBoth<{ link: string }, { isActive: boolean }>;

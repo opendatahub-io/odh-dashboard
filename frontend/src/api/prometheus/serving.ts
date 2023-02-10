@@ -15,10 +15,6 @@ export const useModelServingMetrics = (
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
 
-  React.useEffect(() => {
-    setEnd(Date.now());
-  }, []);
-
   const endpointHealth = useQueryRangeResourceData(
     queries[ModelServingMetricType.ENDPOINT_HEALTH],
     end,
