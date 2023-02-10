@@ -161,7 +161,7 @@ export type OdhApplication = {
     docsLink: string;
     getStartedLink: string;
     getStartedMarkDown: string;
-    category?: OdhApplicationCategory;
+    category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
     support?: string;
     quickStart: string | null;
     comingSoon?: boolean | null;
