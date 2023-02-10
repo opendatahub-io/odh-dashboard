@@ -15,6 +15,7 @@ import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 import { assemblePodSpecOptions } from './utils';
+import { getTolerationPatch, TolerationChanges } from '../../utilities/tolerations';
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
   const {
@@ -171,11 +172,23 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
   });
 };
 
-export const startNotebook = (name: string, namespace: string): Promise<NotebookKind> => {
+export const startNotebook = (
+  name: string,
+  namespace: string,
+  tolerationChanges: TolerationChanges,
+): Promise<NotebookKind> => {
+  const patches: Patch[] = [];
+  patches.push(startPatch);
+
+  const tolerationPatch = getTolerationPatch(tolerationChanges);
+  if (tolerationPatch) {
+    patches.push(tolerationPatch);
+  }
+
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
     queryOptions: { name, ns: namespace },
-    patches: [startPatch],
+    patches,
   });
 };
 

@@ -9,6 +9,8 @@ import NotebookStatusText from './NotebookStatusText';
 import { fireTrackingEvent } from '../../../utilities/segmentIOUtils';
 import useNotebookGPUNumber from '../screens/detail/notebooks/useNotebookGPUNumber';
 import useNotebookDeploymentSize from '../screens/detail/notebooks/useNotebookDeploymentSize';
+import { computeNotebooksTolerations } from '../../../utilities/tolerations';
+import { useAppContext } from '../../../app/AppContext';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
@@ -23,6 +25,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
   const [inProgress, setInProgress] = React.useState(false);
   const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState, doListen);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
+  const { dashboardConfig } = useAppContext();
   const notebookName = notebook.metadata.name;
   const notebookNamespace = notebook.metadata.namespace;
   const isRunningOrStarting = isStarting || isRunning;
@@ -85,7 +88,11 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
                 }
               } else {
                 setInProgress(true);
-                startNotebook(notebookName, notebookNamespace).then(() => {
+                const tolerationSettings = computeNotebooksTolerations(
+                  dashboardConfig,
+                  notebookState.notebook,
+                );
+                startNotebook(notebookName, notebookNamespace, tolerationSettings).then(() => {
                   fireNotebookTrackingEvent('started');
                   refresh().then(() => setInProgress(false));
                   listenToNotebookStart(true);
