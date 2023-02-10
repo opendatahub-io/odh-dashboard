@@ -1,4 +1,4 @@
-import { OdhApplication } from '../src/types';
+import { OdhApplication, OdhApplicationCategory } from '../src/types';
 
 export const mockEnabledApplications: OdhApplication[] = [
   {
@@ -21,7 +21,7 @@ export const mockEnabledApplications: OdhApplication[] = [
       docsLink: 'https://jupyter.org/hub',
       getStartedLink: 'https://jupyterhub.readthedocs.io/en/stable/getting-started/index.html',
       getStartedMarkDown: '',
-      category: 'Red Hat managed',
+      category: OdhApplicationCategory.RedHatManaged,
       support: 'red hat',
       quickStart: 'create-jupyter-notebook',
       comingSoon: false,

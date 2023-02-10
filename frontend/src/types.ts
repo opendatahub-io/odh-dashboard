@@ -161,7 +161,7 @@ export type OdhApplication = {
     docsLink: string;
     getStartedLink: string;
     getStartedMarkDown: string;
-    category?: string;
+    category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
     support?: string;
     quickStart: string | null;
     comingSoon?: boolean | null;
@@ -189,6 +189,12 @@ export type OdhApplication = {
     internalRoute?: string;
   };
 };
+
+export enum OdhApplicationCategory {
+  RedHatManaged = 'Red Hat managed',
+  PartnerManaged = 'Partner managed',
+  SelfManaged = 'Self-managed',
+}
 
 export enum OdhDocumentType {
   Documentation = 'documentation',

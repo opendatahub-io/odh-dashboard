@@ -16,6 +16,7 @@ import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 import { ODH_PRODUCT_NAME } from '../utilities/const';
 import { useAppContext } from '../app/AppContext';
+import OdhExploreCardTypeBadge from './OdhExploreCardTypeBadge';
 
 import './OdhCard.scss';
 
@@ -45,8 +46,8 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   const disabled = odhApp.spec.comingSoon || disableInfo;
   const cardClasses = classNames('odh-card', { 'm-disabled': disabled });
   const badgeClasses = classNames('odh-card__partner-badge', {
-    'm-warning': odhApp.spec.category === 'Third party support',
-    'm-hidden': odhApp.spec.category === ODH_PRODUCT_NAME,
+    'm-warning': odhApp.spec.support === 'third party support',
+    'm-hidden': odhApp.spec.support === ODH_PRODUCT_NAME,
   });
 
   return (
@@ -76,7 +77,9 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
                 <FlexItem className="odh-card__coming-soon">Coming soon</FlexItem>
               )}
               {!odhApp.spec.comingSoon && odhApp.spec.category && (
-                <FlexItem className={badgeClasses}>{odhApp.spec.category}</FlexItem>
+                <FlexItem className={badgeClasses}>
+                  <OdhExploreCardTypeBadge category={odhApp.spec.category} />
+                </FlexItem>
               )}
               {odhApp.spec.beta && (
                 <FlexItem className="odh-card__partner-badge odh-m-beta">Beta</FlexItem>
