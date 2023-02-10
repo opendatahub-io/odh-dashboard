@@ -7,7 +7,7 @@ import { EitherNotBoth } from './typeHelpers';
 import { EnvironmentFromVariable } from './pages/projects/types';
 import { ServingRuntimeSize } from 'pages/modelServing/screens/types';
 
-export type PrometheusResponse = {
+export type PrometheusQueryResponse = {
   data: {
     result: {
       value: [number, string];
@@ -16,6 +16,22 @@ export type PrometheusResponse = {
   };
   status: string;
 };
+
+export type PrometheusQueryRangeResponse = {
+  data: {
+    result: [
+      {
+        // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
+        metric: unknown;
+        values: PrometheusQueryRangeResultValue[];
+      },
+    ];
+    resultType: string;
+  };
+  status: string;
+};
+
+export type PrometheusQueryRangeResultValue = [number, string];
 
 /**
  * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
@@ -696,3 +712,7 @@ export type ContextResourceData<T> = {
   error?: Error;
   refresh: () => void;
 };
+
+export type BreadcrumbItemType = {
+  label: string;
+} & EitherNotBoth<{ link: string }, { isActive: boolean }>;

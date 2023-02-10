@@ -601,7 +601,7 @@ export type PersistentVolumeClaimListKind = {
   items: PersistentVolumeClaimKind[];
 };
 
-export type PrometheusResponse = {
+export type PrometheusQueryResponse = {
   data: {
     result: [
       {
@@ -612,6 +612,25 @@ export type PrometheusResponse = {
   };
   status: string;
 };
+
+export type PrometheusQueryRangeResponse = {
+  data: {
+    result: [
+      {
+        // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
+        metric: unknown;
+        values: [number, string][];
+      },
+    ];
+    resultType: string;
+  };
+  status: string;
+};
+
+export enum QueryType {
+  QUERY = 'query',
+  QUERY_RANGE = 'query_range',
+}
 
 export type GroupsConfig = {
   adminGroups: GroupStatus[];

@@ -1,3 +1,5 @@
+const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
+
 export const relativeTime = (current: number, previous: number): string => {
   const msPerMinute = 60 * 1000;
   const msPerHour = msPerMinute * 60;
@@ -14,17 +16,13 @@ export const relativeTime = (current: number, previous: number): string => {
   if (elapsed < msPerMinute) {
     return 'Just now';
   } else if (elapsed < msPerHour) {
-    return `${Math.round(elapsed / msPerMinute)} minutes ago`;
+    return printAgo(Math.round(elapsed / msPerMinute), 'minute');
   } else if (elapsed < msPerDay) {
-    return `${Math.round(elapsed / msPerHour)} hours ago`;
+    return printAgo(Math.round(elapsed / msPerHour), 'hour');
   } else if (elapsed < msPerMonth) {
-    const days = Math.round(elapsed / msPerDay);
-    if (days > 1) return `${days} days ago`;
-    else return `${days} day`;
+    return printAgo(Math.round(elapsed / msPerDay), 'day');
   } else if (elapsed < msPerYear) {
-    const months = Math.round(elapsed / msPerMonth);
-    if (months > 1) return `${months} months ago`;
-    else return `${months} months`;
+    return printAgo(Math.round(elapsed / msPerMonth), 'month');
   } else {
     const date = new Date(previous);
 

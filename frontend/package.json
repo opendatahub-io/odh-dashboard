@@ -41,6 +41,7 @@
     "@patternfly/patternfly": "4.222.4",
     "@patternfly/quickstarts": "^2.3.1",
     "@patternfly/react-catalog-view-extension": "4.93.15",
+    "@patternfly/react-charts": "^6.94.15",
     "@patternfly/react-core": "4.267.6",
     "@patternfly/react-icons": "4.93.3",
     "@patternfly/react-styles": "4.92.3",

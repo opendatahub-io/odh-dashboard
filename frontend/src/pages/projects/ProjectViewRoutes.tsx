@@ -5,6 +5,7 @@ import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
 import SpawnerPage from './screens/spawner/SpawnerPage';
 import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
+import DetailsPageMetricsWrapper from '../modelServing/screens/projects/DetailsPageMetricsWrapper';
 
 const ProjectViewRoutes: React.FC = () => {
   return (
@@ -14,6 +15,7 @@ const ProjectViewRoutes: React.FC = () => {
         <Route index element={<ProjectDetails />} />
         <Route path="spawner" element={<SpawnerPage />} />
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
+        <Route path="metrics/model/:inferenceService" element={<DetailsPageMetricsWrapper />} />
         <Route path="*" element={<Navigate to="." />} />
       </Route>
       <Route path="*" element={<Navigate to="." />} />
