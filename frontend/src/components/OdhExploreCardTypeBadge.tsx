@@ -19,7 +19,7 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ categ
   }
 
   if (!content) {
-    return <span>category</span>;
+    return <span>{category}</span>;
   }
 
   return (
