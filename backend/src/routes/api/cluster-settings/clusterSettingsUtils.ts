@@ -131,11 +131,14 @@ export const getClusterSettings = async (
   };
   const dashConfig = getDashboardConfig();
   const isJupyterEnabled = checkJupyterEnabled();
-  try {
-    const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
-    clusterSettings.userTrackingEnabled = segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
-  } catch (e) {
-    fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
+  if (!dashConfig.spec.dashboardConfig.disableTracking) {
+    try {
+      const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
+      clusterSettings.userTrackingEnabled =
+        segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
+    } catch (e) {
+      fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
+    }
   }
   if (isJupyterEnabled) {
     clusterSettings.pvcSize = DEFAULT_PVC_SIZE;
