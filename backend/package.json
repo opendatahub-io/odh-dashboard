@@ -34,7 +34,7 @@
     "watch": "tsc -p . -w"
   },
   "dependencies": {
-    "@kubernetes/client-node": "^0.12.2",
+    "@kubernetes/client-node": "^0.18.1",
     "dotenv": "^8.2.0",
     "fastify": "^3.5.1",
     "fastify-autoload": "^3.3.0",
