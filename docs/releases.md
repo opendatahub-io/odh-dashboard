@@ -66,7 +66,13 @@ Once we reach a date in which we want to do a release (see other sections for mo
    - Set the date of the new Milestone out 3 weeks from the last release (we may release earlier, but we try not to release later)
    - Feel free to note in the description the next release will be either the next Patch version or the next Minor version as a hint to where we are going
 5. Mark the Release notes document you have as a full release and publish it
-6. Go to our [quay.io repo odh-dashboard](https://quay.io/repository/opendatahub/odh-dashboard?tab=tags)
-   - Assuming allowed permissions - if not, inform the ODH Dashboard admins of this gap
-   - Using the cog wheel on the right, create a tag off of the latest `main-#####` tagged image (note, check on your commit tied to your release to determine the right one)
-   - Type in the name of your release, and submit -- this will create a downloadable image for this release 
+6. Update the ODH Manifest with the release details so the Operator can collect our latest changes on release
+   - Navigate to the [odh-manifests](https://github.com/opendatahub-io/odh-manifests)
+   - Focusing on the `odh-dashboard` folder, we'll need to copy some files over to track the latest changes of this release
+   - Create a PR to include the following:
+      - First delete everything in the folder -- git will do the diff of what changed for us
+      - Copy all the child folders in the [manifest folder](../manifests)
+         - Exclude the `overlays` folder as this is for internal testing purposes
+      - Update the `./base/kustomization.yaml` so that the `odh-dashboard` images section has the `newTag` equal to the current release version (aka the tag we created earlier)
+      - In the `./base/deployment.yaml` we'll want to set the ODH replicas to `2`
+      - Update the top row of the component versions table on the root readme to have the latest release version (aka the tag we created earlier)
