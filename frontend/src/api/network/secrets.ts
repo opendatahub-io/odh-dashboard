@@ -5,11 +5,12 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sStatus, SecretKind } from '../../k8sTypes';
+import { K8sAPIOptions, K8sStatus, SecretKind } from '../../k8sTypes';
 import { SecretModel } from '../models';
 import { genRandomChars } from '../../utilities/string';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 import { getModelServiceAccountName } from '../../pages/modelServing/utils';
+import { mergeK8sQueryParams } from 'api/apiMergeUtils';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
 
@@ -126,12 +127,20 @@ export const getSecretsByLabel = (label: string, namespace: string): Promise<Sec
   }).then((result) => result.items);
 };
 
-export const createSecret = (data: SecretKind): Promise<SecretKind> => {
-  return k8sCreateResource<SecretKind>({ model: SecretModel, resource: data });
+export const createSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> => {
+  return k8sCreateResource<SecretKind>({
+    model: SecretModel,
+    resource: data,
+    queryOptions: { queryParams: mergeK8sQueryParams(opts) },
+  });
 };
 
-export const replaceSecret = (data: SecretKind): Promise<SecretKind> => {
-  return k8sUpdateResource<SecretKind>({ model: SecretModel, resource: data });
+export const replaceSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> => {
+  return k8sUpdateResource<SecretKind>({
+    model: SecretModel,
+    resource: data,
+    queryOptions: { queryParams: mergeK8sQueryParams(opts) },
+  });
 };
 
 export const deleteSecret = (projectName: string, secretName: string): Promise<K8sStatus> => {

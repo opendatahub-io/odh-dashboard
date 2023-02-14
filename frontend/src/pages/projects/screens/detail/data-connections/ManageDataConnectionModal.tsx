@@ -76,52 +76,66 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
       existingData?.data.metadata.name,
     );
 
-    const promiseActions: Promise<K8sResourceCommon>[] = [];
     const secretName = assembledSecret.metadata.name;
 
-    if (existingData) {
-      if (AWSDataChanged) {
-        promiseActions.push(replaceSecret(assembledSecret));
+    const runPromiseActions = async (dryRun: boolean) => {
+      const promiseActions: Promise<K8sResourceCommon>[] = [];
+
+      if (existingData) {
+        if (AWSDataChanged) {
+          promiseActions.push(replaceSecret(assembledSecret, { dryRun: dryRun }));
+        }
+
+        const notebooksToDisconnect = allAvailableNotebooks.filter((notebook) =>
+          removedConnections.includes(notebook.metadata.name),
+        );
+
+        promiseActions.push(
+          ...notebooksToDisconnect.map((notebook) =>
+            replaceNotebookSecret(
+              notebook.metadata.name,
+              projectName,
+              getSecretsFromList(notebook).filter(({ secretRef: { name } }) => name !== secretName),
+              { dryRun: dryRun },
+            ),
+          ),
+        );
+      } else {
+        promiseActions.push(createSecret(assembledSecret, { dryRun: dryRun }));
       }
 
-      const notebooksToDisconnect = allAvailableNotebooks.filter((notebook) =>
-        removedConnections.includes(notebook.metadata.name),
+      const notebooksToConnect = allAvailableNotebooks.filter((notebook) =>
+        addedConnections.includes(notebook.metadata.name),
       );
+
       promiseActions.push(
-        ...notebooksToDisconnect.map((notebook) =>
-          replaceNotebookSecret(
+        ...notebooksToConnect.map((notebook) =>
+          attachNotebookSecret(
             notebook.metadata.name,
             projectName,
-            getSecretsFromList(notebook).filter(({ secretRef: { name } }) => name !== secretName),
+            secretName,
+            hasEnvFrom(notebook),
+            { dryRun: dryRun },
           ),
         ),
       );
-    } else {
-      promiseActions.push(createSecret(assembledSecret));
-    }
 
-    const notebooksToConnect = allAvailableNotebooks.filter((notebook) =>
-      addedConnections.includes(notebook.metadata.name),
-    );
+      if (promiseActions.length > 0) {
+        setErrorMessage('');
+        setIsProgress(true);
+        return await Promise.all(promiseActions)
+          .then(() => Promise.resolve())
+          .catch((e) => {
+            setErrorMessage(e.message || 'An unknown error occurred');
+            setIsProgress(false);
+            return Promise.reject();
+          });
+      } else {
+        return Promise.reject();
+      }
+    };
 
-    promiseActions.push(
-      ...notebooksToConnect.map((notebook) =>
-        attachNotebookSecret(notebook.metadata.name, projectName, secretName, hasEnvFrom(notebook)),
-      ),
-    );
-
-    if (promiseActions.length > 0) {
-      setErrorMessage('');
-      setIsProgress(true);
-      Promise.all(promiseActions)
-        .then(() => onBeforeClose(true))
-        .catch((e) => {
-          setErrorMessage(e.message || 'An unknown error occurred');
-          setIsProgress(false);
-        });
-    } else {
-      onBeforeClose(false);
-    }
+    runPromiseActions(true).then(() => runPromiseActions(false).then(() => onBeforeClose(true)));
   };
 
   const onBeforeClose = (submitted: boolean) => {
