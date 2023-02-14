@@ -207,7 +207,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
           className="filter-search"
           aria-label="search input for image images table"
           value={tableFilter.filter}
-          onChange={(value) => {
+          onChange={(_, value) => {
             const newCount = getFilterCount(value, tableFilter.option);
             setTableFilter({
               filter: value,

@@ -46,7 +46,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
       <SearchInput
         placeholder={`Find by ${searchType.toLowerCase()}`}
         value={searchValue}
-        onChange={(newSearch) => {
+        onChange={(_, newSearch) => {
           onSearchValueChange(newSearch);
         }}
         onClear={() => onSearchValueChange('')}
