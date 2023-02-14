@@ -1,5 +1,5 @@
 import React from 'react';
-import { CardTitle, Tooltip } from '@patternfly/react-core';
+import { Button, CardTitle, Tooltip } from '@patternfly/react-core';
 import { OdhApplication } from '../types';
 import { isRedHatSupported } from '../utilities/utils';
 import { ODH_PRODUCT_NAME } from 'utilities/const';
@@ -18,15 +18,15 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
     title = `${splitTitle.slice(0, -1).join(' ')} `;
     icon = (
       <span style={{ whiteSpace: 'nowrap' }}>
-        <span aria-hidden style={{ verticalAlign: 'text-bottom' }}>
-          {splitTitle[splitTitle.length - 1]}
-        </span>
+        <span style={{ verticalAlign: 'text-bottom' }}>{splitTitle[splitTitle.length - 1]}</span>
         <Tooltip removeFindDomNode content={`${ODH_PRODUCT_NAME} certified and supported`}>
-          <img
-            style={{ marginLeft: 'var(--pf-global--spacer--xs)' }}
-            src="../images/CheckStar.svg"
-            alt={`${ODH_PRODUCT_NAME} certified and supported`}
-          />
+          <Button variant="plain" style={{ padding: 0 }}>
+            <img
+              style={{ marginLeft: 'var(--pf-global--spacer--xs)' }}
+              src="../images/CheckStar.svg"
+              alt={`${ODH_PRODUCT_NAME} certified and supported`}
+            />
+          </Button>
         </Tooltip>
       </span>
     );
@@ -34,9 +34,7 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
 
   return (
     <CardTitle>
-      <span aria-labelledby={odhApp.spec.displayName} style={{ verticalAlign: 'text-bottom' }}>
-        {title}
-      </span>
+      <span style={{ verticalAlign: 'text-bottom' }}>{title}</span>
       {icon}
       {showProvider && odhApp.spec.provider && (
         <div>
