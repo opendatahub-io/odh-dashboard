@@ -142,6 +142,10 @@ export type ImageStreamSpecTagType = {
   };
 };
 
+export type K8sAPIOptions = {
+  dryRun?: boolean;
+};
+
 /** A status object when Kube backend can't handle a request. */
 export type K8sStatus = {
   kind: string;

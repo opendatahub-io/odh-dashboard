@@ -9,13 +9,14 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash';
 import { NotebookModel } from '../models';
-import { K8sStatus, NotebookKind } from '../../k8sTypes';
+import { K8sAPIOptions, K8sStatus, NotebookKind } from '../../k8sTypes';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
 import { assemblePodSpecOptions } from './utils';
 import { getTolerationPatch, TolerationChanges } from '../../utilities/tolerations';
+import { mergeK8sQueryParams } from 'api/apiMergeUtils';
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
   const {
@@ -257,6 +258,7 @@ export const attachNotebookSecret = (
   namespace: string,
   secretName: string,
   hasExistingEnvFrom: boolean,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [];
 
@@ -283,7 +285,7 @@ export const attachNotebookSecret = (
 
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace },
+    queryOptions: { name: notebookName, ns: namespace, queryParams: mergeK8sQueryParams(opts) },
     patches,
   });
 };
@@ -292,6 +294,7 @@ export const replaceNotebookSecret = (
   notebookName: string,
   namespace: string,
   newEnvs: EnvironmentFromVariable[],
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [
     {
@@ -304,7 +307,7 @@ export const replaceNotebookSecret = (
 
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace },
+    queryOptions: { name: notebookName, ns: namespace, queryParams: mergeK8sQueryParams(opts) },
     patches,
   });
 };

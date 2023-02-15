@@ -25,8 +25,12 @@ const setupRequest = async (
     // Core SDK builds the wrong path for k8s -- can't post to a resource name; remove the name from the url
     // eg: POST /.../configmaps/my-config-map => POST /.../configmaps
     const urlParts = url.split('/');
+    const queryParams = urlParts[urlParts.length - 1].split('?');
     urlParts.pop();
+    queryParams.shift();
     safeURL = urlParts.join('/');
+    queryParams.unshift(safeURL);
+    safeURL = queryParams.join('?');
   }
 
   const requestOptions = await getDirectCallOptions(fastify, request, url);
