@@ -20,17 +20,8 @@ export const getDirectCallOptions = async (
     // In dev mode, we always are logged in fully -- no service accounts
     headers = kubeHeaders;
     // Fakes the call as another user to test permissions
-    // if (DEV_TOKEN_AUTH) {
-    //   headers = {
-    //     ...headers,
-    //     Authorization: `Bearer ${DEV_TOKEN_AUTH}`,
-    //   };
-    // }
     if (isImpersonating()) {
-      headers = {
-        ...headers,
-        'Impersonate-User': DEV_IMPERSONATE_USER,
-      };
+      headers['Impersonate-User'] = DEV_IMPERSONATE_USER;
     }
   } else {
     // When not in dev mode, we want to switch the token from the service account to the user

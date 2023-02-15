@@ -36,14 +36,14 @@ We have set up a pass through API that will effectively take the path built by t
 
 See the [k8s pass through API](../backend/src/routes/api/k8s/pass-through.ts) here.
 
-### Pass Through Faker Token Dev Mode
+### Pass Through Impersonate User Dev Mode
 
-In order to check regular user permissions without disabling the rest of the backend functionality in `dev mode`, you can add the `DEV_TOKEN_AUTH` environment variable to your local setup with a valid k8s token for user in your cluster. This will bypass the regular pass-through flow and will add that specific token to the calls. The steps to obtain this token will be:
+In order to check regular user permissions without disabling the rest of the backend functionality in `dev mode`, you can add the `DEV_IMPERSONATE_USER` environment variable to your local setup with a valid k8s username in your cluster. This will bypass the regular pass-through flow and will add that specific headers to the calls. The steps to impersonate another user are listed as follows:
 
-1. Log in in your OpenShift cluster with the user you want to obtain the token.
-2. Click in the your username in the right corner of the console > *Copy login command*
-3. Copy the login command, should have the following format `sha256~<token>`
-4. Create a new env variable in your `.env.local` file with this format `DEV_TOKEN_AUTH=sha256~<token>`
+1. Create a new env variable in your `.env.local` file with this format `DEV_IMPERSONATE_USER=<username>`
+2. Run the dev server for ODH dashboard. If you don't know how to run a local dev server, please refer to [CONTRIBUTING](../CONTRIBUTING.md) 
+3. Click on the username on the top right corner to open the dropdown menu, and choose `Start impersonate`, then the page will refresh and you will be impersonating as the user you set up in step 1
+4. To stop impersonating, click on the `Stop impersonate` button in the header toolbar
 
 ## Patches
 
