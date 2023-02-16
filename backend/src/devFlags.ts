@@ -1,9 +1,10 @@
 import { DEV_MODE } from './utils/constants';
 
-let impersonating = false;
+let accessToken = '';
 
-export const setImpersonate = (impersonate: boolean): void => {
-  impersonating = impersonate;
+export const setImpersonateAccessToken = (token?: string): void => {
+  accessToken = token || '';
 };
 
-export const isImpersonating = (): boolean => (DEV_MODE ? impersonating : false);
+export const isImpersonating = (): boolean => accessToken !== '';
+export const getImpersonateAccessToken = (): string => (DEV_MODE ? accessToken : '');

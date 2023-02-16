@@ -11,6 +11,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { isUserAdmin } from './adminUtils';
 import { getNamespaces } from './notebookUtils';
 import { logRequestDetails } from './fileUtils';
+import { DEV_MODE } from './constants';
 
 const testAdmin = async (
   fastify: KubeFastifyInstance,
@@ -221,3 +222,15 @@ export const secureRoute =
  */
 export const secureAdminRoute = (fastify: KubeFastifyInstance): ReturnType<typeof secureRoute> =>
   secureRoute(fastify, true);
+
+/**
+ * Make sure the route can only be called in DEV MODE
+ */
+export const devRoute =
+  <T>(requestCall: (request: FastifyRequest, reply: FastifyReply) => Promise<T>) =>
+  async (request: OauthFastifyRequest, reply: FastifyReply): Promise<T> => {
+    if (!DEV_MODE) {
+      throw createCustomError('404 Endpoint Not Found', 'Not Found', 404);
+    }
+    return requestCall(request, reply);
+  };

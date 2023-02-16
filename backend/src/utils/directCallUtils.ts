@@ -1,7 +1,7 @@
 import { RequestOptions } from 'https';
-import { DEV_IMPERSONATE_USER, DEV_MODE, USER_ACCESS_TOKEN } from './constants';
+import { DEV_MODE, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
-import { isImpersonating } from '../devFlags';
+import { getImpersonateAccessToken, isImpersonating } from '../devFlags';
 
 export const getDirectCallOptions = async (
   fastify: KubeFastifyInstance,
@@ -21,7 +21,10 @@ export const getDirectCallOptions = async (
     headers = kubeHeaders;
     // Fakes the call as another user to test permissions
     if (isImpersonating()) {
-      headers['Impersonate-User'] = DEV_IMPERSONATE_USER;
+      headers = {
+        ...kubeHeaders,
+        Authorization: `Bearer ${getImpersonateAccessToken()}`,
+      };
     }
   } else {
     // When not in dev mode, we want to switch the token from the service account to the user
