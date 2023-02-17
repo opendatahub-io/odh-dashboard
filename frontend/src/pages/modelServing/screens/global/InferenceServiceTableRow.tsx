@@ -8,9 +8,7 @@ import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
 import { Link } from 'react-router-dom';
-import { isModelMetricsEnabled } from '../metrics/utils';
-import { useDashboardNamespace } from 'redux/selectors';
-import { useAppContext } from 'app/AppContext';
+import useModelMetricsEnabled from 'pages/modelServing/useModelMetricsEnabled';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -27,15 +25,14 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   onEditInferenceService,
   isGlobal,
 }) => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const { dashboardConfig } = useAppContext();
+  const { modelMetricsEnabled } = useModelMetricsEnabled();
 
   return (
     <Tbody>
       <Tr>
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={inferenceService}>
-            {isModelMetricsEnabled(dashboardNamespace, dashboardConfig) ? (
+            {modelMetricsEnabled() ? (
               <Link
                 to={
                   isGlobal

@@ -3,13 +3,10 @@ import { Navigate, Routes, Route } from 'react-router-dom';
 import ModelServingContextProvider from './ModelServingContext';
 import ModelServingMetricsWrapper from './screens/metrics/ModelServingMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
-import { isModelMetricsEnabled } from './screens/metrics/utils';
-import { useDashboardNamespace } from 'redux/selectors';
-import { useAppContext } from 'app/AppContext';
+import useModelMetricsEnabled from './useModelMetricsEnabled';
 
 const ModelServingRoutes: React.FC = () => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const { dashboardConfig } = useAppContext();
+  const { modelMetricsEnabled } = useModelMetricsEnabled();
 
   return (
     <Routes>
@@ -18,11 +15,7 @@ const ModelServingRoutes: React.FC = () => {
         <Route
           path="/metrics/:project/:inferenceService"
           element={
-            isModelMetricsEnabled(dashboardNamespace, dashboardConfig) ? (
-              <ModelServingMetricsWrapper />
-            ) : (
-              <Navigate replace to="/" />
-            )
+            modelMetricsEnabled() ? <ModelServingMetricsWrapper /> : <Navigate replace to="/" />
           }
         />
         <Route path="*" element={<Navigate to="." />} />

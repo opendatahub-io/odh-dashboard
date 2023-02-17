@@ -6,13 +6,10 @@ import ProjectDetailsContextProvider from './ProjectDetailsContext';
 import SpawnerPage from './screens/spawner/SpawnerPage';
 import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
 import DetailsPageMetricsWrapper from '../modelServing/screens/projects/DetailsPageMetricsWrapper';
-import { isModelMetricsEnabled } from 'pages/modelServing/screens/metrics/utils';
-import { useDashboardNamespace } from 'redux/selectors';
-import { useAppContext } from 'app/AppContext';
+import useModelMetricsEnabled from 'pages/modelServing/useModelMetricsEnabled';
 
 const ProjectViewRoutes: React.FC = () => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const { dashboardConfig } = useAppContext();
+  const { modelMetricsEnabled } = useModelMetricsEnabled();
 
   return (
     <Routes>
@@ -24,11 +21,7 @@ const ProjectViewRoutes: React.FC = () => {
         <Route
           path="metrics/model/:inferenceService"
           element={
-            isModelMetricsEnabled(dashboardNamespace, dashboardConfig) ? (
-              <DetailsPageMetricsWrapper />
-            ) : (
-              <Navigate replace to="/" />
-            )
+            modelMetricsEnabled() ? <DetailsPageMetricsWrapper /> : <Navigate replace to="/" />
           }
         />
         <Route path="*" element={<Navigate to="." />} />
