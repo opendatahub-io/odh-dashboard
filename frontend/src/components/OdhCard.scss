@@ -29,11 +29,6 @@
     margin-bottom: var(--pf-global--spacer--sm);
     padding: 0 var(--pf-global--spacer--sm);
 
-    &.m-warning {
-      background-color: var(--pf-global--palette--red-50);
-      border-color: var(--pf-global--palette--red-100);
-    }
-
     &.m-hidden {
       visibility: hidden;
     }

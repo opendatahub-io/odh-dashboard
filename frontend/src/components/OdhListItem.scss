@@ -61,11 +61,6 @@
     padding: 0 var(--pf-global--spacer--sm);
     width: fit-content;
 
-    &.m-warning {
-      background-color: var(--pf-global--palette--red-50);
-      border-color: var(--pf-global--palette--red-100);
-    }
-
     &.m-hidden {
       visibility: hidden;
     }

@@ -91,10 +91,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </DropdownItem>,
   ];
 
-  const badgeClasses = classNames('odh-card__partner-badge', {
-    'm-warning': odhApp.spec.support === 'third party support',
-  });
-
   if (odhApp.spec.quickStart) {
     dropdownItems.push(
       <DropdownItem key="quick-start" onClick={onQuickStart}>
@@ -207,7 +203,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         odhApp.spec.category &&
         odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
-            <span className={badgeClasses}>{odhApp.spec.category}</span>
+            <span className="odh-card__partner-badge">{odhApp.spec.category}</span>
           </div>
         ) : null}
         {odhApp.spec.description}
