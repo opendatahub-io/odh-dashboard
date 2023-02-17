@@ -8,6 +8,9 @@ import {
 import https from 'https';
 import { getDirectCallOptions } from './directCallUtils';
 import { DEV_MODE } from './constants';
+import { getNamespaces } from './notebookUtils';
+import { getDashboardConfig } from './resourceUtils';
+import { createCustomError } from './requestUtils';
 
 const callPrometheus = async <T>(
   fastify: KubeFastifyInstance,
@@ -108,11 +111,34 @@ export const callPrometheusServing = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   query: string,
-): Promise<{ code: number; response: PrometheusQueryRangeResponse }> =>
-  callPrometheus(
-    fastify,
-    request,
-    query,
-    generatePrometheusHostURL(fastify, 'rhods-model-monitoring', 'redhat-ods-monitoring', '443'),
-    QueryType.QUERY_RANGE,
+): Promise<{ code: number; response: PrometheusQueryRangeResponse | undefined }> => {
+  const { dashboardNamespace } = getNamespaces(fastify);
+
+  const modelMetricsNamespace = getDashboardConfig().spec.dashboardConfig.modelMetricsNamespace;
+
+  if (dashboardNamespace !== 'redhat-ods-applications' && modelMetricsNamespace) {
+    return callPrometheus(
+      fastify,
+      request,
+      query,
+      generatePrometheusHostURL(fastify, 'odh-model-monitoring', modelMetricsNamespace, '443'),
+      QueryType.QUERY_RANGE,
+    );
+  }
+
+  if (dashboardNamespace === 'redhat-ods-applications' && !modelMetricsNamespace) {
+    return callPrometheus(
+      fastify,
+      request,
+      query,
+      generatePrometheusHostURL(fastify, 'rhods-model-monitoring', 'redhat-ods-monitoring', '443'),
+      QueryType.QUERY_RANGE,
+    );
+  }
+
+  throw createCustomError(
+    'Service Unavailable',
+    'Service Prometheus is down or misconfigured',
+    503,
   );
+};

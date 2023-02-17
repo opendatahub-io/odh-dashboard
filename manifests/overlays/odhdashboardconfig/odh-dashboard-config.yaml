@@ -15,6 +15,7 @@ spec:
     enablement: true
     disableProjects: true
     disableModelServing: true
+    modelMetricsNamespace: ''
   notebookController:
     enabled: true
   notebookSizes:

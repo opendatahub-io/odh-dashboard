@@ -71,6 +71,7 @@ export type DashboardCommonConfig = {
   disableUserManagement: boolean;
   disableProjects: boolean;
   disableModelServing: boolean;
+  modelMetricsNamespace: string;
 };
 
 export type NotebookControllerUserState = {
