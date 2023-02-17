@@ -45,7 +45,7 @@ In order to check regular user permissions without disabling the rest of the bac
 3. Click on the username on the top right corner to open the dropdown menu, and choose `Start impersonate`, then the page will refresh and you will be impersonating as the user you set up in step 1
 4. To stop impersonating, click on the `Stop impersonate` button in the header toolbar
 
-If you cannot enter impersonating mode, you may check your username and password in the local env file to see if they are set correctly.
+NOTE: You may not be able to read data from some Prometheus applications when impersonating another user. In the DEV_MODE, we use the external route to fetch Prometheus data, and the route might connect to a target port that's not accessible by a regular user even if the bearer token is set. To validate that, you may need to deploy the image to the cluster.
 
 ## Patches
 

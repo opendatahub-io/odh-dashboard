@@ -13,14 +13,9 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import {
-  COMMUNITY_LINK,
-  DOC_LINK,
-  SUPPORT_LINK,
-  DEV_MODE,
-  DEV_IMPERSONATE_USER,
-} from '~/utilities/const';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
+import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
 import AppLauncher from './AppLauncher';
@@ -65,14 +60,9 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <DropdownItem
         key="impersonate"
         onClick={() => {
-          if (!DEV_IMPERSONATE_USER) {
-            notification.error(
-              'Cannot impersonate user',
-              'Please check your .env or .env.local file to make sure you set DEV_IMPERSONATE_USER to the username you want to impersonate.',
-            );
-          } else {
-            updateImpersonateSettings(true).then(() => location.reload());
-          }
+          updateImpersonateSettings(true)
+            .then(() => location.reload())
+            .catch((e) => notification.error('Failed impersonating user', e.message));
         }}
       >
         Start impersonate
@@ -171,7 +161,11 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
               position="bottom"
             >
               <Button
-                onClick={() => updateImpersonateSettings(false).then(() => location.reload())}
+                onClick={() =>
+                  updateImpersonateSettings(false)
+                    .then(() => location.reload())
+                    .catch((e) => notification.error('Failed stopping impersonating', e.message))
+                }
               >
                 Stop impersonate
               </Button>
