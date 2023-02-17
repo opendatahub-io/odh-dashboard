@@ -100,7 +100,7 @@ export const callPrometheusPVC = (
     fastify,
     request,
     query,
-    generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', '9091'),
+    generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', '9092'),
     QueryType.QUERY,
   );
 
