@@ -3,6 +3,18 @@ import { SelectOptionObject } from '@patternfly/react-core';
 import { TimeframeTitle } from '../types';
 import { InferenceServiceKind } from '../../../../k8sTypes';
 import { ModelServingMetricType } from './ModelServingMetricsContext';
+import { DashboardConfig } from 'types';
+
+export const isModelMetricsEnabled = (
+  dashboardNamespace: string,
+  dashboardConfig: DashboardConfig,
+): boolean => {
+  if (dashboardNamespace === 'redhat-ods-applications') {
+    return true;
+  } else {
+    return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
+  }
+};
 
 export const getInferenceServiceMetricsQueries = (
   inferenceService: InferenceServiceKind,
