@@ -25,14 +25,14 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   onEditInferenceService,
   isGlobal,
 }) => {
-  const { modelMetricsEnabled } = useModelMetricsEnabled();
+  const [modelMetricsEnabled] = useModelMetricsEnabled();
 
   return (
     <Tbody>
       <Tr>
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={inferenceService}>
-            {modelMetricsEnabled() ? (
+            {modelMetricsEnabled ? (
               <Link
                 to={
                   isGlobal

@@ -6,7 +6,7 @@ import ModelServingGlobal from './screens/global/ModelServingGlobal';
 import useModelMetricsEnabled from './useModelMetricsEnabled';
 
 const ModelServingRoutes: React.FC = () => {
-  const { modelMetricsEnabled } = useModelMetricsEnabled();
+  const [modelMetricsEnabled] = useModelMetricsEnabled();
 
   return (
     <Routes>
@@ -15,7 +15,7 @@ const ModelServingRoutes: React.FC = () => {
         <Route
           path="/metrics/:project/:inferenceService"
           element={
-            modelMetricsEnabled() ? <ModelServingMetricsWrapper /> : <Navigate replace to="/" />
+            modelMetricsEnabled ? <ModelServingMetricsWrapper /> : <Navigate replace to="/" />
           }
         />
         <Route path="*" element={<Navigate to="." />} />

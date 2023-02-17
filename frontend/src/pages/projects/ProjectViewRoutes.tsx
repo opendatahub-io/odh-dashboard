@@ -9,7 +9,7 @@ import DetailsPageMetricsWrapper from '../modelServing/screens/projects/DetailsP
 import useModelMetricsEnabled from 'pages/modelServing/useModelMetricsEnabled';
 
 const ProjectViewRoutes: React.FC = () => {
-  const { modelMetricsEnabled } = useModelMetricsEnabled();
+  const [modelMetricsEnabled] = useModelMetricsEnabled();
 
   return (
     <Routes>
@@ -21,7 +21,7 @@ const ProjectViewRoutes: React.FC = () => {
         <Route
           path="metrics/model/:inferenceService"
           element={
-            modelMetricsEnabled() ? <DetailsPageMetricsWrapper /> : <Navigate replace to="/" />
+            modelMetricsEnabled ? <DetailsPageMetricsWrapper /> : <Navigate replace to="/" />
           }
         />
         <Route path="*" element={<Navigate to="." />} />
