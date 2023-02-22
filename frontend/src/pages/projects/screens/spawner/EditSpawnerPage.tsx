@@ -1,7 +1,7 @@
 import * as React from 'react';
 import SpawnerPage from './SpawnerPage';
 import { useParams } from 'react-router';
-import { ProjectDetailsContext } from '../../ProjectDetailsContext';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import {
   Bullseye,
   Button,
@@ -13,8 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { getProjectDisplayName } from '../../utils';
-import { NotebookState } from '../../notebook/types';
+import { getProjectDisplayName } from '~/pages/projects/utils';
+import { NotebookState } from '~/pages/projects/notebook/types';
 
 const EditSpawnerPage: React.FC = () => {
   const {

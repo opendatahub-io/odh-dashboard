@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { DATA_CONNECTION_PREFIX, getConfigMap, getSecret } from '../../../../../api';
-import { ConfigMapKind, NotebookKind, SecretKind } from '../../../../../k8sTypes';
-import { EnvVarResourceType } from '../../../../../types';
+import { DATA_CONNECTION_PREFIX, getConfigMap, getSecret } from '~/api';
+import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
+import { EnvVarResourceType } from '~/types';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
-} from '../../../types';
+} from '~/pages/projects/types';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];

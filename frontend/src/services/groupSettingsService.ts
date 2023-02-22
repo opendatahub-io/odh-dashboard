@@ -1,13 +1,11 @@
 import axios from 'axios';
-import { GroupsConfig } from '../pages/groupSettings/groupTypes';
+import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
 
 export const fetchGroupsSettings = (): Promise<GroupsConfig> => {
   const url = '/api/groups-config';
   return axios
     .get(url)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });
@@ -19,9 +17,7 @@ export const updateGroupsSettings = (
   const url = '/api/groups-config';
   return axios
     .put(url, settings)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });

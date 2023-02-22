@@ -8,29 +8,26 @@ import {
   K8sResourceCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ProjectKind } from '../../k8sTypes';
-import { ProjectModel } from '../models';
-import { translateDisplayNameForK8s } from '../../pages/projects/utils';
-import { ODH_PRODUCT_NAME } from '../../utilities/const';
+import { ProjectKind } from '~/k8sTypes';
+import { ProjectModel } from '~/api/models';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { listServingRuntimes } from './servingRuntimes';
 
-export const getProject = (projectName: string): Promise<ProjectKind> => {
-  return k8sGetResource<ProjectKind>({
+export const getProject = (projectName: string): Promise<ProjectKind> =>
+  k8sGetResource<ProjectKind>({
     model: ProjectModel,
     queryOptions: { name: projectName },
   });
-};
 
-export const getProjects = (withLabel?: string): Promise<ProjectKind[]> => {
-  return k8sListResource<ProjectKind>({
+export const getProjects = (withLabel?: string): Promise<ProjectKind[]> =>
+  k8sListResource<ProjectKind>({
     model: ProjectModel,
     queryOptions: withLabel ? { queryParams: { labelSelector: withLabel } } : undefined,
   }).then((listResource) => listResource.items);
-};
 
-export const getDSGProjects = (): Promise<ProjectKind[]> => {
-  return getProjects('opendatahub.io/dashboard=true');
-};
+export const getDSGProjects = (): Promise<ProjectKind[]> =>
+  getProjects('opendatahub.io/dashboard=true');
 
 export const createProject = (
   username: string,
@@ -94,9 +91,8 @@ export const createProject = (
   });
 };
 
-export const getModelServingProjects = (): Promise<ProjectKind[]> => {
-  return getProjects('opendatahub.io/dashboard=true,modelmesh-enabled=true');
-};
+export const getModelServingProjects = (): Promise<ProjectKind[]> =>
+  getProjects('opendatahub.io/dashboard=true,modelmesh-enabled=true');
 
 async function filter(arr, callback) {
   const fail = Symbol();
@@ -105,17 +101,16 @@ async function filter(arr, callback) {
   ).filter((i) => i !== fail);
 }
 
-export const getModelServingProjectsAvailable = async (): Promise<ProjectKind[]> => {
-  return getModelServingProjects().then((projects) => {
-    return filter(projects, async (project) => {
+export const getModelServingProjectsAvailable = async (): Promise<ProjectKind[]> =>
+  getModelServingProjects().then((projects) =>
+    filter(projects, async (project) => {
       const projectServing = await listServingRuntimes(project.metadata.name);
       return projectServing.length !== 0;
-    });
-  });
-};
+    }),
+  );
 
-export const addSupportModelMeshProject = (name: string): Promise<string> => {
-  return axios(`/api/namespaces/${name}/1`).then((response) => {
+export const addSupportModelMeshProject = (name: string): Promise<string> =>
+  axios(`/api/namespaces/${name}/1`).then((response) => {
     const applied = response.data?.applied ?? false;
     if (!applied) {
       throw new Error(
@@ -124,7 +119,6 @@ export const addSupportModelMeshProject = (name: string): Promise<string> => {
     }
     return name;
   });
-};
 
 export const updateProject = (
   editProjectData: ProjectKind,
@@ -149,9 +143,8 @@ export const updateProject = (
   });
 };
 
-export const deleteProject = (projectName: string): Promise<ProjectKind> => {
-  return k8sDeleteResource<ProjectKind>({
+export const deleteProject = (projectName: string): Promise<ProjectKind> =>
+  k8sDeleteResource<ProjectKind>({
     model: ProjectModel,
     queryOptions: { name: projectName },
   });
-};

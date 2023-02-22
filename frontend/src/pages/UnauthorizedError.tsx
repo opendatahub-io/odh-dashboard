@@ -8,7 +8,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { LockIcon } from '@patternfly/react-icons';
-import { ODH_PRODUCT_NAME } from '../utilities/const';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 const UnauthorizedError: React.FC = () => (
   <PageSection isFilled>

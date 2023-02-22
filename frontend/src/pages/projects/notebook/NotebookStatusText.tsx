@@ -3,9 +3,9 @@ import { Button, Icon, Popover, Text, Tooltip } from '@patternfly/react-core';
 import StartNotebookModal from './StartNotebookModal';
 import { NotebookState } from './types';
 import { getEventFullMessage, useNotebookStatus } from './utils';
-import { useDeepCompareMemoize } from '../../../utilities/useDeepCompareMemoize';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { EventStatus } from '../../../types';
+import { EventStatus } from '~/types';
 
 import './NotebookStatusText.scss';
 

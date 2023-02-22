@@ -1,6 +1,6 @@
-import { SortableData } from '../../../../../utilities/useTableColumnSort';
-import { getNotebookDisplayName, getNotebookStatusPriority } from '../../../utils';
-import { NotebookState } from '../../../notebook/types';
+import { SortableData } from '~/utilities/useTableColumnSort';
+import { getNotebookDisplayName, getNotebookStatusPriority } from '~/pages/projects/utils';
+import { NotebookState } from '~/pages/projects/notebook/types';
 
 export const columns: SortableData<NotebookState>[] = [
   {

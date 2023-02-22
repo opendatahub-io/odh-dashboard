@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { OdhApplication } from '../types';
+import { OdhApplication } from '~/types';
 
 export const fetchComponents = (installed: boolean): Promise<OdhApplication[]> => {
   const url = '/api/components';
@@ -10,9 +10,7 @@ export const fetchComponents = (installed: boolean): Promise<OdhApplication[]> =
   const options = { params: searchParams };
   return axios
     .get(url, options)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });
@@ -27,9 +25,7 @@ export const removeComponent = (appName: string): Promise<{ success: boolean; er
   const options = { params: searchParams };
   return axios
     .get(url, options)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.error);
     });

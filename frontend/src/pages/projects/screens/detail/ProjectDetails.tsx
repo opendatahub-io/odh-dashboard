@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '../../../ApplicationsPage';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 import DataConnectionsList from './data-connections/DataConnectionsList';
 import { ProjectSectionTitles, ProjectSectionTitlesExtended } from './const';
-import GenericSidebar from '../../components/GenericSidebar';
+import GenericSidebar from '~/pages/projects/components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
 import { useAppContext } from 'app/AppContext';
-import ServingRuntimeList from '../../../modelServing/screens/projects/ServingRuntimeList';
+import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
 import NotebooksList from './notebooks/NotebookList';
-import { ProjectDetailsContext } from '../../ProjectDetailsContext';
-import { getProjectDescription, getProjectDisplayName } from '../../utils';
-import { featureFlagEnabled } from '../../../../utilities/utils';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { getProjectDescription, getProjectDisplayName } from '~/pages/projects/utils';
+import { featureFlagEnabled } from '~/utilities/utils';
 import useCheckLogoutParams from './useCheckLogoutParams';
 
 type SectionType = {

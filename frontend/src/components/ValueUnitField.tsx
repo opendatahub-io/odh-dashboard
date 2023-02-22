@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Dropdown, DropdownItem, DropdownToggle, Split, SplitItem } from '@patternfly/react-core';
 import NumberInputWrapper from './NumberInputWrapper';
-import { splitValueUnit, UnitOption, ValueUnitString } from '../utilities/valueUnits';
+import { splitValueUnit, UnitOption, ValueUnitString } from '~/utilities/valueUnits';
 
 type ValueUnitFieldProps = {
   /** @defaults to unlimited pos/neg */

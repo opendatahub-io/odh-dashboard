@@ -1,4 +1,4 @@
-import { OdhApplication, OdhDocument, OdhDocumentType } from '../types';
+import { OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
 import { CATEGORY_ANNOTATION, ODH_PRODUCT_NAME } from './const';
 
 /**
@@ -140,16 +140,14 @@ export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minu
 export const getTimeoutByHourAndMinute = (hour: number, minute: number): number =>
   (hour * 60 + minute) * 60;
 
-export const isGroupEmpty = <T extends { enabled: boolean }>(groupList: Array<T>): boolean => {
-  return groupList.filter((element) => element.enabled).length === 0;
-};
+export const isGroupEmpty = <T extends { enabled: boolean }>(groupList: Array<T>): boolean =>
+  groupList.filter((element) => element.enabled).length === 0;
 
 export const getDashboardMainContainer = (): HTMLElement =>
   document.getElementById('dashboard-page-main') || document.body;
 
-export const isHTMLInputElement = (object: unknown): object is HTMLInputElement => {
-  return (object as HTMLInputElement).value !== undefined;
-};
+export const isHTMLInputElement = (object: unknown): object is HTMLInputElement =>
+  (object as HTMLInputElement).value !== undefined;
 
 export const normalizeBetween = (value: number, min?: number, max?: number): number => {
   let returnedValue = value;

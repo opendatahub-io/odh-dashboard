@@ -15,19 +15,17 @@ const EmptyDetailsList: React.FC<EmptyDetailsListProps> = ({
   description,
   includeDivider,
   icon,
-}) => {
-  return (
-    <>
-      <EmptyState variant="xs">
-        <EmptyStateIcon icon={icon ?? CubesIcon} />
-        <Title headingLevel="h5" size="lg">
-          {title}
-        </Title>
-        <EmptyStateBody>{description}</EmptyStateBody>
-      </EmptyState>
-      {includeDivider && <Divider />}
-    </>
-  );
-};
+}) => (
+  <>
+    <EmptyState variant="xs">
+      <EmptyStateIcon icon={icon ?? CubesIcon} />
+      <Title headingLevel="h5" size="lg">
+        {title}
+      </Title>
+      <EmptyStateBody>{description}</EmptyStateBody>
+    </EmptyState>
+    {includeDivider && <Divider />}
+  </>
+);
 
 export default EmptyDetailsList;

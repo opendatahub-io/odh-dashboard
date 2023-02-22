@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Text, Icon, Spinner, Tooltip } from '@patternfly/react-core';
-import { InferenceServiceKind } from '../../../../k8sTypes';
+import { InferenceServiceKind } from '~/k8sTypes';
 import { getInferenceServiceActiveModelState, getInferenceServiceErrorMessage } from './utils';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
-import { InferenceServiceModelState } from '../types';
+import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;

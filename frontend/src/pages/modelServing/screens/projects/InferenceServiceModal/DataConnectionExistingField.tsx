@@ -8,7 +8,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { DataConnection, UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingInferenceServiceObject } from '../../types';
+import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { getDataConnectionDisplayName } from 'pages/projects/screens/detail/data-connections/utils';
 import './DataConnectionExistingField.scss';
 

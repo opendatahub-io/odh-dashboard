@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { AppContext } from '../../../../../app/AppContext';
-import { NotebookContainer, NotebookSize } from '../../../../../types';
-import { getNotebookSizes } from '../../../../notebookController/screens/server/usePreferredNotebookSize';
-import { NotebookKind } from '../../../../../k8sTypes';
+import { AppContext } from '~/app/AppContext';
+import { NotebookContainer, NotebookSize } from '~/types';
+import { getNotebookSizes } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
+import { NotebookKind } from '~/k8sTypes';
 
 const useNotebookDeploymentSize = (
   notebook?: NotebookKind,

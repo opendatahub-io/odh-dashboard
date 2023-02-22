@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Tr, Td } from '@patternfly/react-table';
 import { Button, TextInput } from '@patternfly/react-core';
 import { PencilAltIcon, TimesIcon, CheckIcon, MinusCircleIcon } from '@patternfly/react-icons';
-import { BYONImagePackage } from '../../types';
+import { BYONImagePackage } from '~/types';
 
 interface EditStepTableRowProps {
   imagePackage: BYONImagePackage;

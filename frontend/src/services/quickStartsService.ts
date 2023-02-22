@@ -5,9 +5,7 @@ export const fetchQuickStarts = (): Promise<QuickStart[]> => {
   const url = '/api/quickstarts';
   return axios
     .get(url)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });

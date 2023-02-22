@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '../../types';
-import { ModelServingMetricType } from '../../pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { TimeframeTitle } from '../../pages/modelServing/screens/types';
+import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { ModelServingMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (

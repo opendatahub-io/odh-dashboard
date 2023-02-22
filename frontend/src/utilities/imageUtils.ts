@@ -9,7 +9,7 @@ import {
   ImageTagInfo,
   NotebookContainer,
   ContainerResourceAttributes,
-} from '../types';
+} from '~/types';
 
 const PENDING_PHASES = [
   BUILD_PHASE.new,
@@ -66,9 +66,8 @@ export const getVersion = (version?: string, prefix?: string): string => {
 export const getNameVersionString = (software: ImageSoftwareType): string =>
   `${software.name}${getVersion(software.version, ' v')}`;
 
-export const getNumGpus = (container?: NotebookContainer): GPUCount => {
-  return container?.resources?.limits?.[ContainerResourceAttributes.NVIDIA_GPU] || 0;
-};
+export const getNumGpus = (container?: NotebookContainer): GPUCount =>
+  container?.resources?.limits?.[ContainerResourceAttributes.NVIDIA_GPU] || 0;
 
 export const getDefaultTag = (
   buildStatuses: BuildStatus[],

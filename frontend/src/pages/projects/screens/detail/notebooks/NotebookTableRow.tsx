@@ -10,19 +10,19 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { NotebookState } from '../../../notebook/types';
-import { getNotebookDescription, getNotebookDisplayName } from '../../../utils';
-import NotebookRouteLink from '../../../notebook/NotebookRouteLink';
-import NotebookStatusToggle from '../../../notebook/NotebookStatusToggle';
-import { NotebookKind } from '../../../../../k8sTypes';
-import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
+import { NotebookState } from '~/pages/projects/notebook/types';
+import { getNotebookDescription, getNotebookDisplayName } from '~/pages/projects/utils';
+import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
+import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle';
+import { NotebookKind } from '~/k8sTypes';
+import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import NotebookStorageBars from './NotebookStorageBars';
-import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
+import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import { useNavigate } from 'react-router-dom';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 type NotebookTableRowProps = {

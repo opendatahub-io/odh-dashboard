@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ApplicationsPage from '../../../ApplicationsPage';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 import EmptyProjects from './EmptyProjects';
 import useUserProjects from './useUserProjects';
 import ProjectListView from './ProjectListView';

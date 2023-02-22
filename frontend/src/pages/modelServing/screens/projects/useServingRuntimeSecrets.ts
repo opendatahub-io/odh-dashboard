@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getSecretsByLabel } from '../../../../api';
-import { SecretKind } from '../../../../k8sTypes';
-import { getModelServiceAccountName } from '../../utils';
+import { getSecretsByLabel } from '~/api';
+import { SecretKind } from '~/k8sTypes';
+import { getModelServiceAccountName } from '~/pages/modelServing/utils';
 
 const useServingRuntimeSecrets = (
   namespace?: string,

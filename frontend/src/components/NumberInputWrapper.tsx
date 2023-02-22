@@ -10,18 +10,16 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   onChange,
   value,
   ...otherProps
-}) => {
-  return (
-    <NumberInput
-      {...otherProps}
-      value={value}
-      onChange={(e) => {
-        onChange(parseInt(e.currentTarget.value));
-      }}
-      onPlus={() => onChange(value + 1)}
-      onMinus={() => onChange(value - 1)}
-    />
-  );
-};
+}) => (
+  <NumberInput
+    {...otherProps}
+    value={value}
+    onChange={(e) => {
+      onChange(parseInt(e.currentTarget.value));
+    }}
+    onPlus={() => onChange(value + 1)}
+    onMinus={() => onChange(value - 1)}
+  />
+);
 
 export default NumberInputWrapper;

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { store } from '../redux/store/store';
-import { EnabledApplicationsInner } from '../pages/enabledApplications/EnabledApplications';
+import { store } from '~/redux/store/store';
+import { EnabledApplicationsInner } from '~/pages/enabledApplications/EnabledApplications';
 import { mockEnabledApplications } from '../../__mocks__/mockEnabledApplications';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';

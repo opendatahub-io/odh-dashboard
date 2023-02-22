@@ -1,4 +1,4 @@
-import { Notebook, UsernameMap } from '../../../../types';
+import { Notebook, UsernameMap } from '~/types';
 
 enum PrivilegeState {
   ADMIN = 'Admin',

@@ -1,4 +1,4 @@
-import { TrackingEventProperties } from '../types';
+import { TrackingEventProperties } from '~/types';
 import { DEV_MODE } from './const';
 
 export const fireTrackingEvent = (
@@ -61,13 +61,13 @@ export const initSegment = async (props) => {
       'setAnonymousId',
       'addDestinationMiddleware',
     ];
-    analytics.factory = (e: string) => {
-      return (...t) => {
+    analytics.factory =
+      (e: string) =>
+      (...t) => {
         t.unshift(e);
         analytics.push(t);
         return analytics;
       };
-    };
     for (let e = 0; e < analytics.methods.length; e++) {
       const key = analytics.methods[e];
       analytics[key] = analytics.factory(key);

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { DashboardConfig } from '../types';
-import { POLL_INTERVAL } from '../utilities/const';
-import { useDeepCompareMemoize } from '../utilities/useDeepCompareMemoize';
-import { fetchDashboardConfig } from '../services/dashboardConfigService';
+import { DashboardConfig } from '~/types';
+import { POLL_INTERVAL } from '~/utilities/const';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { fetchDashboardConfig } from '~/services/dashboardConfigService';
 import useTimeBasedRefresh from './useTimeBasedRefresh';
 
 export const useApplicationSettings = (): {

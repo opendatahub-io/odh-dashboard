@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { ExistingStorageObject } from '../../../types';
-import ExistingPVCField from '../../../components/ExistingPVCField';
+import { ExistingStorageObject } from '~/pages/projects/types';
+import ExistingPVCField from '~/pages/projects/components/ExistingPVCField';
 import useAvailablePvcs from './useAvailablePvcs';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
 type AddExistingStorageFieldProps = {
   data: ExistingStorageObject;

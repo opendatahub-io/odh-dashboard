@@ -1,8 +1,8 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import ApplicationsPage from '../pages/ApplicationsPage';
-import UnauthorizedError from '../pages/UnauthorizedError';
-import { useUser } from '../redux/selectors';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import UnauthorizedError from '~/pages/UnauthorizedError';
+import { useUser } from '~/redux/selectors';
 
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),

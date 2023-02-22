@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
 import useGPUSetting from './useGPUSetting';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { useAppContext } from '../../../../app/AppContext';
+import { useAppContext } from '~/app/AppContext';
 
 type GPUSelectFieldProps = {
   value: string;

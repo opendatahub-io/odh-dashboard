@@ -2,9 +2,9 @@ import * as React from 'react';
 import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
 import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
-import useTableColumnSort from '../../../../../utilities/useTableColumnSort';
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
-import DeletePVCModal from '../../../pvc/DeletePVCModal';
+import useTableColumnSort from '~/utilities/useTableColumnSort';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import DeletePVCModal from '~/pages/projects/pvc/DeletePVCModal';
 import ManageStorageModal from './ManageStorageModal';
 
 type StorageTableProps = {

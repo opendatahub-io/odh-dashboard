@@ -8,18 +8,16 @@ type EmptyInferenceServicesCellProps = {
 
 const EmptyInferenceServicesCell: React.FC<EmptyInferenceServicesCellProps> = ({
   onDeployModel,
-}) => {
-  return (
-    <EmptyState>
-      <EmptyStateIcon icon={PlusCircleIcon} />
-      <Title headingLevel="h4" size="lg">
-        No deployed models
-      </Title>
-      <Button variant="primary" onClick={onDeployModel}>
-        Deploy model
-      </Button>
-    </EmptyState>
-  );
-};
+}) => (
+  <EmptyState>
+    <EmptyStateIcon icon={PlusCircleIcon} />
+    <Title headingLevel="h4" size="lg">
+      No deployed models
+    </Title>
+    <Button variant="primary" onClick={onDeployModel}>
+      Deploy model
+    </Button>
+  </EmptyState>
+);
 
 export default EmptyInferenceServicesCell;

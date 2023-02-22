@@ -1,5 +1,5 @@
 import { AdminViewUserData } from './types';
-import { SortableData } from '../../../../utilities/useTableColumnSort';
+import { SortableData } from '~/utilities/useTableColumnSort';
 
 export const columns: SortableData<AdminViewUserData>[] = [
   { label: 'User', field: 'name', sortable: true },

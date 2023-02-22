@@ -6,7 +6,7 @@ import {
   PageSection,
   PageSectionVariants,
 } from '@patternfly/react-core';
-import ApplicationsPage from '../ApplicationsPage';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 import { GroupsConfigField, MenuItemStatus } from './groupTypes';
 import { useWatchGroups } from 'utilities/useWatchGroups';
 import { FormGroupSettings } from 'components/FormGroupSettings';
@@ -26,7 +26,9 @@ const GroupSettings: React.FC = () => {
   } = useWatchGroups();
 
   const handleSaveButtonClicked = async () => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
     updateGroups(groupSettings);
   };
 

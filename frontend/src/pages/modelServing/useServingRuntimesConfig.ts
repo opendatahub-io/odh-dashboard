@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { ConfigMapKind } from '../../k8sTypes';
-import { getConfigMap } from '../../api';
-import { useDashboardNamespace } from '../../redux/selectors';
+import { ConfigMapKind } from '~/k8sTypes';
+import { getConfigMap } from '~/api';
+import { useDashboardNamespace } from '~/redux/selectors';
 
 export type ServingRuntimesConfigResourceData = {
   servingRuntimesConfig: ConfigMapKind | undefined;
@@ -24,19 +24,21 @@ export const useServingRuntimesConfig = (): {
   const { dashboardNamespace } = useDashboardNamespace();
 
   // Now there's only one model server in the cluster, in the future, we may have multiple model servers
-  const fetchServingRuntimesConfig = React.useCallback(() => {
-    return getConfigMap(dashboardNamespace, 'servingruntimes-config')
-      .then((srcm) => {
-        setServingRuntimesConfig(srcm);
-      })
-      .catch((e) => {
-        if (e.statusObject?.code === 404) {
-          setError(new Error('Model Servers settings are not properly configured.'));
-          return;
-        }
-        setError(e);
-      });
-  }, [dashboardNamespace]);
+  const fetchServingRuntimesConfig = React.useCallback(
+    () =>
+      getConfigMap(dashboardNamespace, 'servingruntimes-config')
+        .then((srcm) => {
+          setServingRuntimesConfig(srcm);
+        })
+        .catch((e) => {
+          if (e.statusObject?.code === 404) {
+            setError(new Error('Model Servers settings are not properly configured.'));
+            return;
+          }
+          setError(e);
+        }),
+    [dashboardNamespace],
+  );
 
   React.useEffect(() => {
     if (!loaded) {

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getDSGProjects } from '../../../../api';
-import { ProjectKind } from '../../../../k8sTypes';
+import { getDSGProjects } from '~/api';
+import { ProjectKind } from '~/k8sTypes';
 
 const useUserProjects = (): [
   projects: ProjectKind[],
@@ -12,15 +12,17 @@ const useUserProjects = (): [
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
-  const fetchProjects = React.useCallback(() => {
-    return getDSGProjects()
-      .then((newProjects) => {
-        setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
-      })
-      .catch((e) => {
-        setLoadError(e);
-      });
-  }, []);
+  const fetchProjects = React.useCallback(
+    () =>
+      getDSGProjects()
+        .then((newProjects) => {
+          setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
+        })
+        .catch((e) => {
+          setLoadError(e);
+        }),
+    [],
+  );
 
   React.useEffect(() => {
     if (!loaded) {

@@ -4,8 +4,8 @@ import {
   PodToleration,
   TolerationSettings,
   ContainerResourceAttributes,
-} from '../../types';
-import { determineTolerations } from '../../utilities/tolerations';
+} from '~/types';
+import { determineTolerations } from '~/utilities/tolerations';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,

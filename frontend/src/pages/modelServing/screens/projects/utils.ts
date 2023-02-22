@@ -8,15 +8,18 @@ import {
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
   ServingRuntimeSize,
-} from '../types';
+} from '~/pages/modelServing/screens/types';
 import { ContainerResourceAttributes, DashboardConfig, GpuSettingString } from 'types';
-import { DEFAULT_MODEL_SERVER_SIZES, DEFAULT_MODEL_SERVING_TEMPLATE } from '../const';
+import {
+  DEFAULT_MODEL_SERVER_SIZES,
+  DEFAULT_MODEL_SERVING_TEMPLATE,
+} from '~/pages/modelServing/screens/const';
 import { useAppContext } from 'app/AppContext';
 import { useDeepCompareMemoize } from 'utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from 'pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from 'pages/projects/utils';
 import YAML from 'yaml';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];

@@ -10,8 +10,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { useCreateServingRuntimeObject } from '../utils';
-import { ProjectDetailsContext } from '../../../../projects/ProjectDetailsContext';
+import { useCreateServingRuntimeObject } from '~/pages/modelServing/screens/projects/utils';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import {
   addSupportModelMeshProject,
   assembleSecretSA,
@@ -20,22 +20,16 @@ import {
   deleteSecret,
   generateRoleBindingServingRuntime,
   replaceSecret,
-} from '../../../../../api';
-import {
-  createServingRuntime,
-  updateServingRuntime,
-} from '../../../../../api/network/servingRuntimes';
-import { ServingRuntimeKind, SecretKind, K8sStatus } from '../../../../../k8sTypes';
-import {
-  assembleServingRuntimeSA,
-  createServiceAccount,
-} from '../../../../../api/network/serviceAccounts';
-import { allSettledPromises } from '../../../../../utilities/allSettledPromises';
+} from '~/api';
+import { createServingRuntime, updateServingRuntime } from '~/api/network/servingRuntimes';
+import { ServingRuntimeKind, SecretKind, K8sStatus } from '~/k8sTypes';
+import { assembleServingRuntimeSA, createServiceAccount } from '~/api/network/serviceAccounts';
+import { allSettledPromises } from '~/utilities/allSettledPromises';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import { translateDisplayNameForK8s } from 'pages/projects/utils';
-import { requestsUnderLimits, resourcesArePositive } from '../../../utils';
+import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -113,20 +107,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 return createSecret(secretToken);
               }),
             )
-              .then(() => {
-                return Promise.resolve();
-              })
-              .catch((error) => {
-                return Promise.reject(error);
-              });
+              .then(() => Promise.resolve())
+              .catch((error) => Promise.reject(error));
           })
-          .catch((error) => {
-            return Promise.reject(error);
-          });
+          .catch((error) => Promise.reject(error));
       })
-      .catch((error) => {
-        return Promise.reject(error);
-      });
+      .catch((error) => Promise.reject(error));
   };
 
   const updateSecrets = async (): Promise<void> => {
@@ -144,16 +130,10 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             return createSecret(secretToken);
           }
         }),
-      ...deletedSecrets.map((secret) => {
-        return deleteSecret(namespace, secret);
-      }),
+      ...deletedSecrets.map((secret) => deleteSecret(namespace, secret)),
     ])
-      .then(() => {
-        return Promise.resolve();
-      })
-      .catch((error) => {
-        return Promise.reject(error);
-      });
+      .then(() => Promise.resolve())
+      .catch((error) => Promise.reject(error));
   };
 
   const submit = () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
-import { makeCardVisible } from '../utilities/utils';
+import { makeCardVisible } from '~/utilities/utils';
 
 export const useQuickStartCardSelected = (
   quickStartName: string | null | undefined,
@@ -8,9 +8,10 @@ export const useQuickStartCardSelected = (
 ): [QuickStartContextValues, boolean] => {
   const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
 
-  const selected = React.useMemo(() => {
-    return !!quickStartName && qsContext.activeQuickStartID === quickStartName;
-  }, [quickStartName, qsContext.activeQuickStartID]);
+  const selected = React.useMemo(
+    () => !!quickStartName && qsContext.activeQuickStartID === quickStartName,
+    [quickStartName, qsContext.activeQuickStartID],
+  );
 
   React.useEffect(() => {
     if (selected) {

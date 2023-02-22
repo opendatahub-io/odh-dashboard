@@ -1,8 +1,8 @@
 import React from 'react';
-import ApplicationsPage from '../../../ApplicationsPage';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 import EmptyModelServing from './EmptyModelServing';
 import InferenceServiceListView from './InferenceServiceListView';
-import { ModelServingContext } from '../../ModelServingContext';
+import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 
 const ModelServingGlobal: React.FC = () => {
   const {

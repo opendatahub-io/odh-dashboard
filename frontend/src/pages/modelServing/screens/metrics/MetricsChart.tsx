@@ -20,8 +20,8 @@ import {
 import { convertTimestamp, formatToShow, getThresholdData } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 import { CubesIcon } from '@patternfly/react-icons';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '../../../../types';
-import { TimeframeTime } from '../const';
+import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { TimeframeTime } from '~/pages/modelServing/screens/const';
 
 type MetricsChartProps = {
   title: string;

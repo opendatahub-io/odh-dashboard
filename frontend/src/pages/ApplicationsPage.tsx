@@ -47,22 +47,20 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerAction,
   provideChildrenPadding,
 }) => {
-  const renderHeader = () => {
-    return (
-      <PageSection variant={PageSectionVariants.light}>
-        <Split>
-          <SplitItem isFilled>
-            <TextContent>
-              <Text component="h1">{title}</Text>
-              <Text component="p">{description}</Text>
-            </TextContent>
-          </SplitItem>
-          {headerAction && <SplitItem>{headerAction}</SplitItem>}
-        </Split>
-        {toolbar}
-      </PageSection>
-    );
-  };
+  const renderHeader = () => (
+    <PageSection variant={PageSectionVariants.light}>
+      <Split>
+        <SplitItem isFilled>
+          <TextContent>
+            <Text component="h1">{title}</Text>
+            <Text component="p">{description}</Text>
+          </TextContent>
+        </SplitItem>
+        {headerAction && <SplitItem>{headerAction}</SplitItem>}
+      </Split>
+      {toolbar}
+    </PageSection>
+  );
 
   const renderContents = () => {
     if (loadError) {

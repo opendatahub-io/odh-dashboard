@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
-import { NameDescType } from '../types';
-import { isValidK8sName, translateDisplayNameForK8s } from '../utils';
+import { NameDescType } from '~/pages/projects/types';
+import { isValidK8sName, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { HelpIcon } from '@patternfly/react-icons';
 
 type NameDescriptionFieldProps = {

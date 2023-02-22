@@ -1,6 +1,6 @@
-import { AppState } from '../types';
+import { AppState } from '~/redux/types';
 import { UserState } from './types';
-import { useAppSelector } from '../hooks';
+import { useAppSelector } from '~/redux/hooks';
 
 const getUser = (state: AppState): UserState => ({
   username: state.user ?? '', // TODO: alternative?

@@ -6,7 +6,7 @@ import {
   Select,
   SelectOption,
 } from '@patternfly/react-core';
-import { NotebookSize } from '../../../../types';
+import { NotebookSize } from '~/types';
 
 type SizeSelectFieldProps = {
   value: NotebookSize;

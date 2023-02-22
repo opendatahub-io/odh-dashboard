@@ -18,8 +18,8 @@ import {
 import NotebookRouteLink from './NotebookRouteLink';
 import { NotebookState } from './types';
 import { getEventFullMessage } from './utils';
-import { EventStatus, NotebookStatus } from '../../../types';
-import { EventKind } from '../../../k8sTypes';
+import { EventStatus, NotebookStatus } from '~/types';
+import { EventKind } from '~/k8sTypes';
 
 type StartNotebookModalProps = {
   isOpen: boolean;

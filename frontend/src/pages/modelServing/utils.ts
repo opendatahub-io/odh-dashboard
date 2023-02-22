@@ -1,5 +1,5 @@
-import { isCpuLimitLarger, isMemoryLimitLarger } from '../../utilities/valueUnits';
-import { ContainerResources } from '../../types';
+import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
+import { ContainerResources } from '~/types';
 
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;

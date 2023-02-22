@@ -1,12 +1,12 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { Gallery, PageSection } from '@patternfly/react-core';
-import { useWatchComponents } from '../../utilities/useWatchComponents';
-import { OdhApplication } from '../../types';
-import ApplicationsPage from '../ApplicationsPage';
-import OdhAppCard from '../../components/OdhAppCard';
-import QuickStarts from '../../app/QuickStarts';
-import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
+import { useWatchComponents } from '~/utilities/useWatchComponents';
+import { OdhApplication } from '~/types';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import OdhAppCard from '~/components/OdhAppCard';
+import QuickStarts from '~/app/QuickStarts';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 
@@ -47,11 +47,11 @@ EnabledApplicationsInner.displayName = 'EnabledApplicationsInner';
 const EnabledApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(true);
 
-  const sortedComponents = React.useMemo(() => {
-    return _.cloneDeep(components).sort((a, b) =>
-      a.spec.displayName.localeCompare(b.spec.displayName),
-    );
-  }, [components]);
+  const sortedComponents = React.useMemo(
+    () =>
+      _.cloneDeep(components).sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
+    [components],
+  );
 
   React.useEffect(() => {
     /*

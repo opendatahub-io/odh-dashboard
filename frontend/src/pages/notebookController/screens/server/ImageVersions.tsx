@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { ExpandableSection, Flex, FlexItem, Label, Radio } from '@patternfly/react-core';
 import { StarIcon } from '@patternfly/react-icons';
-import { ImageInfo, ImageTagInfo } from '../../../../types';
+import { ImageInfo, ImageTagInfo } from '~/types';
 import ImageTagPopover from './ImageTagPopover';
 import {
   compareTagVersions,
   getDescriptionForTag,
   getVersion,
   isImageTagBuildValid,
-} from '../../../../utilities/imageUtils';
+} from '~/utilities/imageUtils';
 import { useAppContext } from 'app/AppContext';
 
-import '../../NotebookController.scss';
+import '~/pages/notebookController/NotebookController.scss';
 
 type ImageVersionsProps = {
   image: ImageInfo;

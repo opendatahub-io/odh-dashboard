@@ -10,11 +10,8 @@ import {
   TextInputTypes,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhApplication } from '../../types';
-import {
-  EnableApplicationStatus,
-  useEnableApplication,
-} from '../../utilities/useEnableApplication';
+import { OdhApplication } from '~/types';
+import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
 import EnableVariable from './EnableVariable';
 
 import './EnableModal.scss';

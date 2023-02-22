@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getServingRuntimeContext } from '../../api/network/servingRuntimes';
-import { ServingRuntimeKind } from '../../k8sTypes';
+import { getServingRuntimeContext } from '~/api/network/servingRuntimes';
+import { ServingRuntimeKind } from '~/k8sTypes';
 
 const useServingRuntimes = (
   namespace?: string,

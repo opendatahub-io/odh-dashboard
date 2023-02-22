@@ -1,5 +1,5 @@
-import { DashboardConfig, PodToleration, TolerationSettings } from '../types';
-import { NotebookKind } from '../k8sTypes';
+import { DashboardConfig, PodToleration, TolerationSettings } from '~/types';
+import { NotebookKind } from '~/k8sTypes';
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 
 export type TolerationChanges = {

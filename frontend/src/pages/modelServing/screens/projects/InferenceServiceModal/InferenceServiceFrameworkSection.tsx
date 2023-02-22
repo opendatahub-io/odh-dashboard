@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingInferenceServiceObject } from '../../types';
+import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import useModelFramework from './useModelFramework';
 import { SupportedModelFormats } from 'k8sTypes';
 

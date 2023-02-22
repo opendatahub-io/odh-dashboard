@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { OdhDocument, OdhDocumentType } from '../types';
+import { OdhDocument, OdhDocumentType } from '~/types';
 import { POLL_INTERVAL } from './const';
-import { fetchDocs } from '../services/docsService';
+import { fetchDocs } from '~/services/docsService';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchDocs = (

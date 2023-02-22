@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { List, ListItem, Spinner } from '@patternfly/react-core';
-import { getNotebookDisplayName } from '../utils';
+import { getNotebookDisplayName } from '~/pages/projects/utils';
 import useRelatedNotebooks, { ConnectedNotebookContext } from './useRelatedNotebooks';
 
 type ConnectedNotebookNamesProps = {

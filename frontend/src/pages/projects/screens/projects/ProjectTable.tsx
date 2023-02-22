@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
-import { GetColumnSort } from '../../../../utilities/useTableColumnSort';
-import { ProjectKind } from '../../../../k8sTypes';
+import { GetColumnSort } from '~/utilities/useTableColumnSort';
+import { ProjectKind } from '~/k8sTypes';
 import ProjectTableRow from './ProjectTableRow';
 import { columns } from './tableData';
 import ManageProjectModal from './ManageProjectModal';

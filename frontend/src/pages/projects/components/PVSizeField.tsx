@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormGroup, InputGroup, InputGroupText, NumberInput } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { isHTMLInputElement, normalizeBetween } from '../../../utilities/utils';
-import useDefaultPvcSize from '../screens/spawner/storage/useAvailablePvcSize';
+import { isHTMLInputElement, normalizeBetween } from '~/utilities/utils';
+import useDefaultPvcSize from '~/pages/projects/screens/spawner/storage/useAvailablePvcSize';
 
 type PVSizeFieldProps = {
   fieldID: string;

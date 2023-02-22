@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { CreatingStorageObject } from '../../../types';
-import PVSizeField from '../../../components/PVSizeField';
-import NameDescriptionField from '../../../components/NameDescriptionField';
-import { UpdateObjectAtPropAndValue } from '../../../types';
+import { CreatingStorageObject } from '~/pages/projects/types';
+import PVSizeField from '~/pages/projects/components/PVSizeField';
+import NameDescriptionField from '~/pages/projects/components/NameDescriptionField';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 
 type CreateNewStorageSectionProps = {
   data: CreatingStorageObject;
@@ -17,28 +17,26 @@ const CreateNewStorageSection: React.FC<CreateNewStorageSectionProps> = ({
   setData,
   currentSize,
   autoFocusName,
-}) => {
-  return (
-    <Stack hasGutter>
-      <StackItem>
-        <NameDescriptionField
-          nameFieldId="create-new-storage-name"
-          descriptionFieldId="create-new-storage-description"
-          data={data.nameDesc}
-          setData={(newData) => setData('nameDesc', newData)}
-          autoFocusName={autoFocusName}
-        />
-      </StackItem>
-      <StackItem>
-        <PVSizeField
-          fieldID="create-new-storage-size"
-          currentSize={currentSize}
-          size={data.size}
-          setSize={(size) => setData('size', size)}
-        />
-      </StackItem>
-    </Stack>
-  );
-};
+}) => (
+  <Stack hasGutter>
+    <StackItem>
+      <NameDescriptionField
+        nameFieldId="create-new-storage-name"
+        descriptionFieldId="create-new-storage-description"
+        data={data.nameDesc}
+        setData={(newData) => setData('nameDesc', newData)}
+        autoFocusName={autoFocusName}
+      />
+    </StackItem>
+    <StackItem>
+      <PVSizeField
+        fieldID="create-new-storage-size"
+        currentSize={currentSize}
+        size={data.size}
+        setSize={(size) => setData('size', size)}
+      />
+    </StackItem>
+  </Stack>
+);
 
 export default CreateNewStorageSection;

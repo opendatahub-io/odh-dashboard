@@ -11,19 +11,19 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { detectUser } from '../redux/actions/actions';
+import { detectUser } from '~/redux/actions/actions';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
-import ToastNotifications from '../components/ToastNotifications';
+import ToastNotifications from '~/components/ToastNotifications';
 import AppNotificationDrawer from './AppNotificationDrawer';
-import { useWatchBuildStatus } from '../utilities/useWatchBuildStatus';
+import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
 import { AppContext } from './AppContext';
 import { useApplicationSettings } from './useApplicationSettings';
-import { useUser } from '../redux/selectors';
+import { useUser } from '~/redux/selectors';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
-import { useAppDispatch } from '../redux/hooks';
+import { useAppDispatch } from '~/redux/hooks';
 
 import './App.scss';
 

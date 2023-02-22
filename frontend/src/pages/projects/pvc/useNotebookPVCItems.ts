@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { NotebookKind, PersistentVolumeClaimKind } from '../../../k8sTypes';
+import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { getNotebookPVCNames } from './utils';
-import { useDeepCompareMemoize } from '../../../utilities/useDeepCompareMemoize';
-import { ProjectDetailsContext } from '../ProjectDetailsContext';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
 const useNotebookPVCItems = (
   notebook: NotebookKind,

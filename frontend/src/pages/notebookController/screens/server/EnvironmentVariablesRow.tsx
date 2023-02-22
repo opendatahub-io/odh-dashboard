@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, Flex, Select, SelectOption } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from '../../const';
-import { EnvVarCategoryType, EnvVarType, VariableRow } from '../../../../types';
+import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
+import { EnvVarCategoryType, EnvVarType, VariableRow } from '~/types';
 import EnvironmentVariablesField from './EnvironmentVariablesField';
 
 type EnvironmentVariablesRowProps = {
@@ -48,13 +48,11 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
     const newCategory = categories.find((category) => category.name === newType);
     let variables: EnvVarType[] = [];
     if (newCategory) {
-      variables = newCategory.variables.map((variable) => {
-        return {
-          name: variable.name,
-          type: variable.type,
-          value: '',
-        };
-      });
+      variables = newCategory.variables.map((variable) => ({
+        name: variable.name,
+        type: variable.type,
+        value: '',
+      }));
     } else if (newType === CUSTOM_VARIABLE) {
       variables = [
         {

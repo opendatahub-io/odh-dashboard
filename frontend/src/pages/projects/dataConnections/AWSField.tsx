@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EnvVariableDataEntry } from '../types';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { AWS_KEYS, AWS_REQUIRED_KEYS } from './const';
 import AWSInputField from './AWSInputField';
 import { Stack, StackItem } from '@patternfly/react-core';

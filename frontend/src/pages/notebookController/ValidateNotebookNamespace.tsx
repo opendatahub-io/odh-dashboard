@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { validateNotebookNamespaceRoleBinding } from '../../utilities/notebookControllerUtils';
+import { validateNotebookNamespaceRoleBinding } from '~/utilities/notebookControllerUtils';
 import useNamespaces from './useNamespaces';
-import ApplicationsPage from '../ApplicationsPage';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 
 type ValidateNotebookNamespaceProps = {
   children: React.ReactNode;

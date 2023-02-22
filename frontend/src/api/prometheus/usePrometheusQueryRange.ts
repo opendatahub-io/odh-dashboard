@@ -1,6 +1,6 @@
 import * as React from 'react';
 import axios from 'axios';
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResultValue } from '../../types';
+import { PrometheusQueryRangeResponse, PrometheusQueryRangeResultValue } from '~/types';
 
 const usePrometheusQueryRange = (
   apiPath: string,

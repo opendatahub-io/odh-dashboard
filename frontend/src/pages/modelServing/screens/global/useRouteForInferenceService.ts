@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { InferenceServiceKind } from '../../../../k8sTypes';
-import { getRoute } from '../../../../api';
+import { InferenceServiceKind } from '~/k8sTypes';
+import { getRoute } from '~/api';
 
 const useRouteForInferenceService = (
   inferenceService: InferenceServiceKind,

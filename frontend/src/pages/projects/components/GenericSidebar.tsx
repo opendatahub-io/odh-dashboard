@@ -21,23 +21,21 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
   titles,
   scrollableSelector,
   maxWidth,
-}) => {
-  return (
-    <Sidebar hasGutter>
-      <SidebarPanel variant="sticky" style={{ maxWidth }}>
-        <JumpLinks isVertical label="Jump to section" scrollableSelector={scrollableSelector}>
-          {sections.map((section) => (
-            <JumpLinksItem key={section} href={`#${section}`}>
-              {titles[section]}
-            </JumpLinksItem>
-          ))}
-        </JumpLinks>
-      </SidebarPanel>
-      <SidebarContent style={{ paddingBottom: 'var(--pf-global--spacer--lg)' }}>
-        {children}
-      </SidebarContent>
-    </Sidebar>
-  );
-};
+}) => (
+  <Sidebar hasGutter>
+    <SidebarPanel variant="sticky" style={{ maxWidth }}>
+      <JumpLinks isVertical label="Jump to section" scrollableSelector={scrollableSelector}>
+        {sections.map((section) => (
+          <JumpLinksItem key={section} href={`#${section}`}>
+            {titles[section]}
+          </JumpLinksItem>
+        ))}
+      </JumpLinks>
+    </SidebarPanel>
+    <SidebarContent style={{ paddingBottom: 'var(--pf-global--spacer--lg)' }}>
+      {children}
+    </SidebarContent>
+  </Sidebar>
+);
 
 export default GenericSidebar;

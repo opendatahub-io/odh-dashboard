@@ -12,8 +12,8 @@ import {
   PageSectionVariants,
   Title,
 } from '@patternfly/react-core';
-import ApplicationsPage from '../ApplicationsPage';
-import { useWatchBYONImages } from '../../utilities/useWatchBYONImages';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import { useWatchBYONImages } from '~/utilities/useWatchBYONImages';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { ImportImageModal } from './ImportImageModal';
 import { BYONImagesTable } from './BYONImagesTable';

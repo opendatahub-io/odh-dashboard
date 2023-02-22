@@ -1,6 +1,6 @@
-import { SortableData } from '../../../../../utilities/useTableColumnSort';
-import { getPvcDisplayName } from '../../../utils';
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import { SortableData } from '~/utilities/useTableColumnSort';
+import { getPvcDisplayName } from '~/pages/projects/utils';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 
 export const columns: SortableData<PersistentVolumeClaimKind>[] = [
   {

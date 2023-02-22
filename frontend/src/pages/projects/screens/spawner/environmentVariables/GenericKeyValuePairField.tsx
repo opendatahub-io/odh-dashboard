@@ -9,11 +9,11 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { EnvVariableDataEntry } from '../../../types';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
 import { removeArrayItem, updateArrayValue } from './utils';
-import PasswordInput from '../../../components/PasswordInput';
+import PasswordInput from '~/pages/projects/components/PasswordInput';
 
 type GenericKeyValuePairFieldProps = {
   values: EnvVariableDataEntry[];

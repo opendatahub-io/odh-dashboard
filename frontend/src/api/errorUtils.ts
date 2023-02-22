@@ -1,4 +1,4 @@
-import { K8sStatus } from '../k8sTypes';
+import { K8sStatus } from '~/k8sTypes';
 
 export const isK8sStatus = (data: unknown): data is K8sStatus =>
   (data as K8sStatus).kind === 'Status';

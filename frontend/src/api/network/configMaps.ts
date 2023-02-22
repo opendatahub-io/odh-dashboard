@@ -4,9 +4,9 @@ import {
   k8sGetResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ConfigMapKind, K8sStatus } from '../../k8sTypes';
-import { ConfigMapModel } from '../models';
-import { genRandomChars } from '../../utilities/string';
+import { ConfigMapKind, K8sStatus } from '~/k8sTypes';
+import { ConfigMapModel } from '~/api/models';
+import { genRandomChars } from '~/utilities/string';
 
 export const assembleConfigMap = (
   projectName: string,
@@ -25,27 +25,20 @@ export const assembleConfigMap = (
   data: configMapData,
 });
 
-export const getConfigMap = (
-  projectName: string,
-  configMapName: string,
-): Promise<ConfigMapKind> => {
-  return k8sGetResource<ConfigMapKind>({
+export const getConfigMap = (projectName: string, configMapName: string): Promise<ConfigMapKind> =>
+  k8sGetResource<ConfigMapKind>({
     model: ConfigMapModel,
     queryOptions: { name: configMapName, ns: projectName },
   });
-};
 
-export const createConfigMap = (data: ConfigMapKind): Promise<ConfigMapKind> => {
-  return k8sCreateResource<ConfigMapKind>({ model: ConfigMapModel, resource: data });
-};
+export const createConfigMap = (data: ConfigMapKind): Promise<ConfigMapKind> =>
+  k8sCreateResource<ConfigMapKind>({ model: ConfigMapModel, resource: data });
 
-export const replaceConfigMap = (data: ConfigMapKind): Promise<ConfigMapKind> => {
-  return k8sUpdateResource<ConfigMapKind>({ model: ConfigMapModel, resource: data });
-};
+export const replaceConfigMap = (data: ConfigMapKind): Promise<ConfigMapKind> =>
+  k8sUpdateResource<ConfigMapKind>({ model: ConfigMapModel, resource: data });
 
-export const deleteConfigMap = (projectName: string, configMapName: string): Promise<K8sStatus> => {
-  return k8sDeleteResource<ConfigMapKind, K8sStatus>({
+export const deleteConfigMap = (projectName: string, configMapName: string): Promise<K8sStatus> =>
+  k8sDeleteResource<ConfigMapKind, K8sStatus>({
     model: ConfigMapModel,
     queryOptions: { name: configMapName, ns: projectName },
   });
-};

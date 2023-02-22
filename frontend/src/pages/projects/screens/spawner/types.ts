@@ -1,4 +1,4 @@
-import { BUILD_PHASE, ImageStreamKind, ImageStreamSpecTagType } from '../../../../k8sTypes';
+import { BUILD_PHASE, ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes';
 
 export enum SpawnerPageSectionID {
   NAME_DESCRIPTION = 'name-and-description',

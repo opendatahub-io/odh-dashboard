@@ -4,7 +4,7 @@ import {
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
-} from '../../k8sTypes';
+} from '~/k8sTypes';
 import { NotebookState } from './notebook/types';
 
 export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
@@ -12,16 +12,14 @@ export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string 
 export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/description'] || '';
 
-export const translateDisplayNameForK8s = (name: string): string => {
-  return name
+export const translateDisplayNameForK8s = (name: string): string =>
+  name
     .trim()
     .toLowerCase()
     .replace(/\s/g, '-')
     .replace(/[^A-Za-z0-9-]/g, '');
-};
-export const isValidK8sName = (name?: string): boolean => {
-  return name === undefined || (name.length > 0 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name));
-};
+export const isValidK8sName = (name?: string): boolean =>
+  name === undefined || (name.length > 0 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name));
 
 export const getProjectDisplayName = (project: ProjectKind): string =>
   getDisplayNameFromK8sResource(project);

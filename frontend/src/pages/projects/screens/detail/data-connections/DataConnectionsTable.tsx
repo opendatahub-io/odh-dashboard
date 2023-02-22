@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableComposable, Tbody, Th, Thead, Tr } from '@patternfly/react-table';
-import useTableColumnSort from '../../../../../utilities/useTableColumnSort';
-import { DataConnection } from '../../../types';
+import useTableColumnSort from '~/utilities/useTableColumnSort';
+import { DataConnection } from '~/pages/projects/types';
 import { columns } from './data';
 import DataConnectionsTableRow from './DataConnectionsTableRow';
 import { getDataConnectionId } from './utils';

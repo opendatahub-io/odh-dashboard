@@ -1,6 +1,6 @@
 import * as React from 'react';
 import axios from 'axios';
-import { PrometheusQueryResponse } from '../../types';
+import { PrometheusQueryResponse } from '~/types';
 
 const usePrometheusQuery = (
   apiPath: string,
@@ -16,7 +16,9 @@ const usePrometheusQuery = (
   const [error, setError] = React.useState<Error | undefined>();
 
   const fetchData = React.useCallback(() => {
-    if (!query) return;
+    if (!query) {
+      return;
+    }
 
     axios
       .post<{ response: PrometheusQueryResponse }>(apiPath, { query })

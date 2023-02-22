@@ -12,15 +12,17 @@ const useModelServingProjects = (): [
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
-  const fetchProjects = React.useCallback(() => {
-    return getModelServingProjectsAvailable()
-      .then((newProjects) => {
-        setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
-      })
-      .catch((e) => {
-        setLoadError(e);
-      });
-  }, []);
+  const fetchProjects = React.useCallback(
+    () =>
+      getModelServingProjectsAvailable()
+        .then((newProjects) => {
+          setProjects(newProjects.filter(({ status }) => status?.phase === 'Active'));
+        })
+        .catch((e) => {
+          setLoadError(e);
+        }),
+    [],
+  );
 
   React.useEffect(() => {
     if (!loaded) {

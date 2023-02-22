@@ -2,8 +2,8 @@ type TypedPromiseRejectedResult<R> = PromiseRejectedResult & { reason: R };
 
 export const allSettledPromises = <T, E extends unknown = undefined>(
   data: Promise<T>[],
-): Promise<[PromiseFulfilledResult<T>[], TypedPromiseRejectedResult<E>[]]> => {
-  return Promise.allSettled(data).then(
+): Promise<[PromiseFulfilledResult<T>[], TypedPromiseRejectedResult<E>[]]> =>
+  Promise.allSettled(data).then(
     (
       promiseStates: PromiseSettledResult<T>[],
     ): [PromiseFulfilledResult<T>[], TypedPromiseRejectedResult<E>[]] => {
@@ -20,4 +20,3 @@ export const allSettledPromises = <T, E extends unknown = undefined>(
       return [successes, fails];
     },
   );
-};

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getProject } from '../../api';
-import { ProjectKind } from '../../k8sTypes';
+import { getProject } from '~/api';
+import { ProjectKind } from '~/k8sTypes';
 
 const useProject = (
   projectName?: string,

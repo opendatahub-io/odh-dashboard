@@ -16,11 +16,11 @@ import {
   Divider,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhApplication } from '../../types';
-import MarkdownView from '../../components/MarkdownView';
-import { markdownConverter } from '../../utilities/markdown';
-import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
-import { useAppContext } from '../../app/AppContext';
+import { OdhApplication } from '~/types';
+import MarkdownView from '~/components/MarkdownView';
+import { markdownConverter } from '~/utilities/markdown';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { useAppContext } from '~/app/AppContext';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +

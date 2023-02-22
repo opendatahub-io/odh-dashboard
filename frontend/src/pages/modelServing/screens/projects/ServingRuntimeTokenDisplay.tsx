@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ClipboardCopy, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
-import { SecretKind } from '../../../../k8sTypes';
+import { SecretKind } from '~/k8sTypes';
 
 type ServingRuntimeTokenDisplayProps = {
   token: SecretKind;

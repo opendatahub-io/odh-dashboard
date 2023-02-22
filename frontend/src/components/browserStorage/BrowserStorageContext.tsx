@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEventListener } from '../../utilities/useEventListener';
+import { useEventListener } from '~/utilities/useEventListener';
 
 type ValueMap = { [storageKey: string]: unknown };
 export type BrowserStorageContext = {

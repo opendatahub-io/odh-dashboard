@@ -10,10 +10,10 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '../../../k8sTypes';
-import { getPvcTotalSize } from '../utils';
-import { usePVCFreeAmount } from '../../../api';
-import { bytesAsGB } from '../../../utilities/number';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { getPvcTotalSize } from '~/pages/projects/utils';
+import { usePVCFreeAmount } from '~/api';
+import { bytesAsGB } from '~/utilities/number';
 
 type StorageSizeBarProps = {
   pvc: PersistentVolumeClaimKind;

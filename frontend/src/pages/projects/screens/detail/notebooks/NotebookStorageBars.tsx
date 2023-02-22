@@ -10,11 +10,11 @@ import {
   Text,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { NotebookKind } from '../../../../../k8sTypes';
-import useNotebookPVCItems from '../../../pvc/useNotebookPVCItems';
-import { getPvcDisplayName } from '../../../utils';
-import StorageSizeBar from '../../../components/StorageSizeBars';
-import { getNotebookPVCMountPathMap } from '../../../notebook/utils';
+import { NotebookKind } from '~/k8sTypes';
+import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
+import { getPvcDisplayName } from '~/pages/projects/utils';
+import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
+import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
 
 type NotebookStorageBarsProps = {
   notebook: NotebookKind;

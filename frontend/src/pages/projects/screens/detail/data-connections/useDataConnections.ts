@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { DataConnection, DataConnectionAWS, DataConnectionType } from '../../../types';
-import { getSecretsByLabel } from '../../../../../api';
-import { AWSSecretKind } from '../../../../../k8sTypes';
+import { DataConnection, DataConnectionAWS, DataConnectionType } from '~/pages/projects/types';
+import { getSecretsByLabel } from '~/api';
+import { AWSSecretKind } from '~/k8sTypes';
 
 const useDataConnections = (
   namespace?: string,

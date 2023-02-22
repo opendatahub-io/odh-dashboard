@@ -11,16 +11,16 @@ import {
   Text,
   TextVariants,
 } from '@patternfly/react-core';
-import { NotebookContainer } from '../../../../types';
+import { NotebookContainer } from '~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
   getNumGpus,
-} from '../../../../utilities/imageUtils';
-import { useAppContext } from '../../../../app/AppContext';
-import { useWatchImages } from '../../../../utilities/useWatchImages';
-import { NotebookControllerContext } from '../../NotebookControllerContext';
+} from '~/utilities/imageUtils';
+import { useAppContext } from '~/app/AppContext';
+import { useWatchImages } from '~/utilities/useWatchImages';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {

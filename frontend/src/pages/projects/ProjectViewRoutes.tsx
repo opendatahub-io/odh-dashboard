@@ -5,7 +5,7 @@ import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
 import SpawnerPage from './screens/spawner/SpawnerPage';
 import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
-import DetailsPageMetricsWrapper from '../modelServing/screens/projects/DetailsPageMetricsWrapper';
+import DetailsPageMetricsWrapper from '~/pages/modelServing/screens/projects/DetailsPageMetricsWrapper';
 import useModelMetricsEnabled from 'pages/modelServing/useModelMetricsEnabled';
 
 const ProjectViewRoutes: React.FC = () => {

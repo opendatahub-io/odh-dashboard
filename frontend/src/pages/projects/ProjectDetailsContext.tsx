@@ -5,7 +5,7 @@ import {
   ProjectKind,
   InferenceServiceKind,
   SecretKind,
-} from '../../k8sTypes';
+} from '~/k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -24,16 +24,16 @@ import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import { DataConnection } from './types';
 import { NotebookState } from './notebook/types';
-import { DEFAULT_CONTEXT_DATA } from '../../utilities/const';
-import useServingRuntimes from '../modelServing/useServingRuntimes';
-import useInferenceServices from '../modelServing/useInferenceServices';
-import { ContextResourceData } from '../../types';
-import { useContextResourceData } from '../../utilities/useContextResourceData';
-import useServingRuntimeSecrets from '../modelServing/screens/projects/useServingRuntimeSecrets';
+import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import { ContextResourceData } from '~/types';
+import { useContextResourceData } from '~/utilities/useContextResourceData';
+import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import {
   useServingRuntimesConfig,
   ServingRuntimesConfigResourceData,
-} from '../modelServing/useServingRuntimesConfig';
+} from '~/pages/modelServing/useServingRuntimesConfig';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
