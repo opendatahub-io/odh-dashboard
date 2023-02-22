@@ -43,12 +43,8 @@ jest.mock('../utilities/useWatchComponents', () => ({
   }),
 }));
 jest.mock('../utilities/router', () => ({
-  setQueryArgument: () => {
-    return;
-  },
-  removeQueryArgument: () => {
-    return;
-  },
+  setQueryArgument: () => undefined,
+  removeQueryArgument: () => undefined,
 }));
 
 // scrollIntoView is not implemented in jsdom

@@ -53,12 +53,8 @@ jest.mock('../utilities/useWatchDocs', () => ({
   }),
 }));
 jest.mock('../utilities/router', () => ({
-  setQueryArgument: () => {
-    return;
-  },
-  removeQueryArgument: () => {
-    return;
-  },
+  setQueryArgument: () => undefined,
+  removeQueryArgument: () => undefined,
 }));
 
 describe('Resources page', () => {

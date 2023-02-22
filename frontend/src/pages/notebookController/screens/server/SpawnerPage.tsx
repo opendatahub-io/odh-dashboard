@@ -92,7 +92,7 @@ const SpawnerPage: React.FC = () => {
         }
       };
       if (currentUserState?.lastSelectedImage) {
-        const [imageName, tagName] = [...currentUserState?.lastSelectedImage.split(':')];
+        const [imageName, tagName] = [...currentUserState.lastSelectedImage.split(':')];
         const image = images.find((image) => image.name === imageName);
         const tag = image?.tags.find((tag) => tag.name === tagName);
         if (image && tag && isImageTagBuildValid(buildStatuses, image, tag)) {

@@ -131,9 +131,9 @@ export const isRedHatSupported = (app: OdhApplication): boolean => {
 };
 
 export const getHourAndMinuteByTimeout = (timeout: number): { hour: number; minute: number } => {
-  const total_minutes = timeout / 60;
-  const hour = Math.floor(total_minutes / 60);
-  const minute = total_minutes % 60;
+  const totalMinutes = timeout / 60;
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
   return { hour, minute };
 };
 
