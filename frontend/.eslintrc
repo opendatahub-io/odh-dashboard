@@ -50,6 +50,10 @@
     "arrow-body-style": "error",
     "curly": "error",
     "camelcase": "warn",
+    "no-else-return": "error",
+    "no-restricted-imports": ["error", {
+      "patterns": ["*/**", "!~/**", "!./**", "!@*/**", "!react*/**"]
+    }],
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/interface-name-prefix": "off",
     "@typescript-eslint/no-var-requires": "off",
