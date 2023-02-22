@@ -18,7 +18,12 @@ type OdhDocCardProps = {
   itemId: string;
 };
 
-const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorite, itemId }) => {
+const OdhDocListItem: React.FC<OdhDocCardProps> = ({
+  odhDoc,
+  favorite,
+  updateFavorite,
+  itemId,
+}) => {
   const [qsContext] = useQuickStartCardSelected(odhDoc.metadata.name, odhDoc.metadata.name);
 
   const onQuickStart = (e) => {
