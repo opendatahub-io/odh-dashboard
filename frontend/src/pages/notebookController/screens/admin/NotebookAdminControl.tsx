@@ -63,7 +63,7 @@ const NotebookAdminControl: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <Alert title="Manage users in OpenShift" isInline>
+            <Alert title="Manage users in OpenShift" titleHeadingLevel="h2" isInline>
               Create, delete, and manage permissions for Red Hat OpenShift Data Science users in
               OpenShift.{' '}
               <ExternalLink
@@ -80,7 +80,11 @@ const NotebookAdminControl: React.FC = () => {
               <Thead>
                 <Tr>
                   {columns.map((column, i) => (
-                    <Th key={column.field} sort={getColumnSort(i)}>
+                    <Th
+                      key={column.field}
+                      sort={getColumnSort(i)}
+                      role={!column.label ? 'presentation' : undefined}
+                    >
                       {column.label}
                     </Th>
                   ))}

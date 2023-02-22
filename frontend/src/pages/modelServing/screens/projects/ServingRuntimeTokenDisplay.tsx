@@ -21,13 +21,17 @@ const ServingRuntimeTokenDisplay: React.FC<ServingRuntimeTokenDisplayProps> = ({
     return (
       <HelperText>
         <HelperTextItem variant="warning" hasIcon>
-          Failed to get token. {error && error.message}
+          Failed to get token. {error?.message}
         </HelperTextItem>
       </HelperText>
     );
   }
 
-  return <ClipboardCopy isReadOnly>{atob(token.data.token)}</ClipboardCopy>;
+  return (
+    <ClipboardCopy removeFindDomNode isReadOnly>
+      {atob(token.data.token)}
+    </ClipboardCopy>
+  );
 };
 
 export default ServingRuntimeTokenDisplay;

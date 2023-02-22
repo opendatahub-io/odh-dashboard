@@ -1,4 +1,18 @@
 import { EnvVariableDataEntry } from 'pages/projects/types';
+import { ContainerResources } from '../../../types';
+
+export enum TimeframeTitle {
+  FIVE_MINUTES = '5 minutes',
+  ONE_HOUR = '1 hour',
+  ONE_DAY = '24 hours',
+  ONE_WEEK = '1 week',
+}
+
+export type TimeframeTimeType = {
+  [key in TimeframeTitle]: number;
+};
+
+export type TimeframeStepType = TimeframeTimeType;
 
 export enum ServingRuntimeTableTabs {
   TYPE = 1,
@@ -31,20 +45,9 @@ export type ServingRuntimeToken = {
   editName?: string;
 };
 
-export type ServingRuntimeResources = {
-  limits: {
-    cpu: string;
-    memory: string;
-  };
-  requests: {
-    cpu: string;
-    memory: string;
-  };
-};
-
 export type ServingRuntimeSize = {
   name: string;
-  resources: ServingRuntimeResources;
+  resources: ContainerResources;
 };
 
 export type CreatingInferenceServiceObject = {

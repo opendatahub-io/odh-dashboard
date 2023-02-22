@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { RecursivePartial } from 'typeHelpers';
-import { Notebook, NotebookState, NotebookData } from '../types';
+import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '../types';
 
 export const getNotebook = (namespace: string, name: string): Promise<Notebook> => {
   const url = `/api/notebooks/${namespace}/${name}`;
@@ -18,7 +18,7 @@ export const getNotebookAndStatus = (
   namespace: string,
   name: string,
   notebook: Notebook | null,
-): Promise<{ notebook: Notebook | null; isRunning: boolean }> => {
+): Promise<NotebookRunningState> => {
   const url = `/api/notebooks/${namespace}/${name}/status`;
 
   return axios

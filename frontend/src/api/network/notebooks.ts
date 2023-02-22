@@ -9,68 +9,14 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash';
 import { NotebookModel } from '../models';
-import { K8sStatus, NotebookKind } from '../../k8sTypes';
-import {
-  NotebookAffinity,
-  NotebookResources,
-  NotebookToleration,
-  NotebookTolerationSettings,
-} from '../../types';
+import { K8sAPIOptions, K8sStatus, NotebookKind } from '../../k8sTypes';
 import { usernameTranslate } from '../../utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
 import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '../../pages/projects/utils';
-
-const assembleNotebookAffinityAndTolerations = (
-  resources: NotebookResources,
-  gpus: number,
-  tolerationSettings?: NotebookTolerationSettings,
-): { affinity: NotebookAffinity; tolerations: NotebookToleration[] } => {
-  let affinity: NotebookAffinity = {};
-  const tolerations: NotebookToleration[] = [];
-  if (gpus > 0) {
-    if (!resources.limits) {
-      resources.limits = {};
-    }
-    if (!resources.requests) {
-      resources.requests = {};
-    }
-    resources.limits['nvidia.com/gpu'] = gpus;
-    resources.requests['nvidia.com/gpu'] = gpus;
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: 'nvidia.com/gpu',
-      operator: 'Exists',
-    });
-  } else {
-    affinity = {
-      nodeAffinity: {
-        preferredDuringSchedulingIgnoredDuringExecution: [
-          {
-            preference: {
-              matchExpressions: [
-                {
-                  key: 'nvidia.com/gpu.present',
-                  operator: 'NotIn',
-                  values: ['true'],
-                },
-              ],
-            },
-            weight: 1,
-          },
-        ],
-      },
-    };
-  }
-  if (tolerationSettings?.enabled) {
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: tolerationSettings.key,
-      operator: 'Exists',
-    });
-  }
-  return { affinity, tolerations };
-};
+import { assemblePodSpecOptions } from './utils';
+import { getTolerationPatch, TolerationChanges } from '../../utilities/tolerations';
+import { mergeK8sQueryParams } from 'api/apiMergeUtils';
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
   const {
@@ -87,12 +33,11 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
     tolerationSettings,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
-  const resources: NotebookResources = { ...notebookSize.resources };
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
   const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
 
-  const { affinity, tolerations } = assembleNotebookAffinityAndTolerations(
-    resources,
+  const { affinity, tolerations, resources } = assemblePodSpecOptions(
+    notebookSize.resources,
     gpus,
     tolerationSettings,
   );
@@ -115,7 +60,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
       annotations: {
         'openshift.io/display-name': notebookName,
         'openshift.io/description': description || '',
-        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/notebookController/${translatedUsername}/home`,
+        'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
@@ -143,7 +88,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
                   --ServerApp.password=''
                   --ServerApp.base_url=/notebook/${projectName}/${notebookId}
                   --ServerApp.quit_button=False
-                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/notebookController/${translatedUsername}"}`,
+                  --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/projects/${projectName}"}`,
                 },
                 {
                   name: 'JUPYTER_IMAGE',
@@ -228,11 +173,23 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
   });
 };
 
-export const startNotebook = (name: string, namespace: string): Promise<NotebookKind> => {
+export const startNotebook = (
+  name: string,
+  namespace: string,
+  tolerationChanges: TolerationChanges,
+): Promise<NotebookKind> => {
+  const patches: Patch[] = [];
+  patches.push(startPatch);
+
+  const tolerationPatch = getTolerationPatch(tolerationChanges);
+  if (tolerationPatch) {
+    patches.push(tolerationPatch);
+  }
+
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
     queryOptions: { name, ns: namespace },
-    patches: [startPatch],
+    patches,
   });
 };
 
@@ -256,12 +213,19 @@ export const updateNotebook = (
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
 
+  const oldNotebook = structuredClone(existingNotebook);
+  const container = oldNotebook.spec.template.spec.containers[0];
+
   // clean the envFrom array in case of merging the old value again
-  existingNotebook.spec.template.spec.containers[0].envFrom = [];
+  container.envFrom = [];
+  // clean the resources, affinity and tolerations for GPU
+  oldNotebook.spec.template.spec.tolerations = [];
+  oldNotebook.spec.template.spec.affinity = {};
+  container.resources = {};
 
   return k8sUpdateResource<NotebookKind>({
     model: NotebookModel,
-    resource: _.merge({}, existingNotebook, notebook),
+    resource: _.merge({}, oldNotebook, notebook),
   });
 };
 
@@ -294,6 +258,7 @@ export const attachNotebookSecret = (
   namespace: string,
   secretName: string,
   hasExistingEnvFrom: boolean,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [];
 
@@ -320,7 +285,7 @@ export const attachNotebookSecret = (
 
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace },
+    queryOptions: { name: notebookName, ns: namespace, queryParams: mergeK8sQueryParams(opts) },
     patches,
   });
 };
@@ -329,6 +294,7 @@ export const replaceNotebookSecret = (
   notebookName: string,
   namespace: string,
   newEnvs: EnvironmentFromVariable[],
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [
     {
@@ -341,7 +307,7 @@ export const replaceNotebookSecret = (
 
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace },
+    queryOptions: { name: notebookName, ns: namespace, queryParams: mergeK8sQueryParams(opts) },
     patches,
   });
 };

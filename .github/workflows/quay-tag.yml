@@ -1,0 +1,46 @@
+name: quay.tag
+
+# This GitHub action activates whenever a new tag is created on the repo
+# and creates a copy of the image of the associated commit hash with the
+# appropriate tag name.
+
+run-name: Creating new tag in quay based on pushed tag in Github.
+on:
+  push:
+    tags:
+      - '*'
+env:
+    QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO }}
+jobs:
+  copy-tag-to-quay:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
+      - name: Install skopeo
+        shell: bash
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install skopeo
+      - name: Login to quay.io
+        shell: bash
+        env:
+          QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
+        run: |
+         skopeo login quay.io -u ${QUAY_ROBOT_USERNAME} -p ${QUAY_TOKEN}
+      - name: Get latest tag name
+        id: tag
+        run: echo "tag=$(git describe --tags)" >> ${GITHUB_OUTPUT}
+      - name: Get latest hash
+        id: hash
+        run: echo "hash=$(git rev-parse --short HEAD)" >> ${GITHUB_OUTPUT}
+      - name: Create new tag
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          HASH: ${{ steps.hash.outputs.hash }}
+        run: |
+          skopeo copy docker://${QUAY_ODH_DASHBOARD_IMAGE_REPO}:main-${{ env.HASH }} docker://${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ env.TAG }}

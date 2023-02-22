@@ -91,10 +91,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </DropdownItem>,
   ];
 
-  const badgeClasses = classNames('odh-card__partner-badge', {
-    'm-warning': odhApp.spec.category === 'Third party support',
-  });
-
   if (odhApp.spec.quickStart) {
     dropdownItems.push(
       <DropdownItem key="quick-start" onClick={onQuickStart}>
@@ -175,16 +171,17 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   return (
     <Card
+      component="div"
       data-id={odhApp.metadata.name}
       id={odhApp.metadata.name}
-      role="article"
+      role="listitem"
       isHoverable={!disabled}
       className={cardClasses}
       isSelected={selected}
       isSelectable={!disabled}
     >
-      <CardHeader>
-        <CardHeaderMain style={{ maxWidth: '33%' }}>
+      <CardHeader style={{ paddingRight: 0 }}>
+        <CardHeaderMain style={{ maxWidth: '33%', width: '100%' }}>
           <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
         </CardHeaderMain>
         <CardActions hasNoOffset>
@@ -204,9 +201,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       <CardBody>
         {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
         odhApp.spec.category &&
-        odhApp.spec.category !== ODH_PRODUCT_NAME ? (
+        odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
-            <span className={badgeClasses}>{odhApp.spec.category}</span>
+            <span className="odh-card__partner-badge">{odhApp.spec.category}</span>
           </div>
         ) : null}
         {odhApp.spec.description}

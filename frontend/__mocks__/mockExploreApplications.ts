@@ -1,4 +1,4 @@
-import { OdhApplication } from '../src/types';
+import { OdhApplication, OdhApplicationCategory } from '../src/types';
 
 export const mockExploreApplications: OdhApplication[] = [
   {
@@ -14,7 +14,7 @@ export const mockExploreApplications: OdhApplication[] = [
       kfdefApplications: ['jupyterhub', 'notebook-images'],
       route: 'jupyterhub',
       img: 'images/jupyterhub.svg',
-      category: 'Red Hat managed',
+      category: OdhApplicationCategory.RedHatManaged,
       support: 'red hat',
       docsLink: 'https://jupyter.org/hub',
       quickStart: 'create-jupyter-notebook',
@@ -39,7 +39,7 @@ export const mockExploreApplications: OdhApplication[] = [
       kfdefApplications: ['jupyterhub', 'notebook-images'],
       route: 'jupyterhub',
       img: 'images/jupyterhub.svg',
-      category: 'Red Hat managed',
+      category: OdhApplicationCategory.RedHatManaged,
       support: 'red hat',
       docsLink: 'https://jupyter.org/hub',
       quickStart: 'create-jupyter-notebook',

@@ -8,8 +8,12 @@ import {
   DrawerPanelContent,
   DrawerActions,
   DrawerCloseButton,
-  Title,
   Tooltip,
+  Text,
+  TextContent,
+  ActionList,
+  ActionListItem,
+  Divider,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '../../types';
@@ -17,8 +21,6 @@ import MarkdownView from '../../components/MarkdownView';
 import { markdownConverter } from '../../utilities/markdown';
 import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
 import { useAppContext } from '../../app/AppContext';
-
-import './GetStartedPanel.scss';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -66,42 +68,44 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
         minSize="350px"
       >
         <DrawerHead>
-          <div className="odh-get-started__header">
-            <Title headingLevel="h1" size="xl">
+          <TextContent>
+            <Text component="h2" style={{ marginBottom: 0 }}>
               {selectedApp.spec.displayName}
-            </Title>
+            </Text>
             {selectedApp.spec.provider ? (
-              <div>
-                <span className="odh-get-started__header__provider">
-                  by {selectedApp.spec.provider}
-                </span>
-              </div>
+              <Text component="small">by {selectedApp.spec.provider}</Text>
             ) : null}
-          </div>
+          </TextContent>
           <DrawerActions>
             <DrawerCloseButton onClick={onClose} />
           </DrawerActions>
         </DrawerHead>
-        {selectedApp.spec.getStartedLink ? (
-          <DrawerPanelBody className="odh-get-started__button-panel">
-            <a
-              className="pf-c-button pf-m-primary"
-              href={selectedApp.spec.getStartedLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() =>
-                fireTrackingEvent('Explore card get started clicked', {
-                  name: selectedApp.metadata.name,
-                })
-              }
-            >
-              <span className="odh-get-started__get-started-text">Get started</span>
-              <ExternalLinkAltIcon />
-            </a>
-            {renderEnableButton()}
+        {selectedApp.spec.getStartedLink && (
+          <DrawerPanelBody>
+            <ActionList>
+              <ActionListItem>
+                <Button
+                  icon={<ExternalLinkAltIcon />}
+                  onClick={() =>
+                    fireTrackingEvent('Explore card get started clicked', {
+                      name: selectedApp.metadata.name,
+                    })
+                  }
+                  iconPosition="right"
+                  href={selectedApp.spec.getStartedLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  component="a"
+                >
+                  Get started
+                </Button>
+              </ActionListItem>
+              <ActionListItem>{renderEnableButton()}</ActionListItem>
+            </ActionList>
           </DrawerPanelBody>
-        ) : null}
-        <DrawerPanelBody className="odh-get-started__body">
+        )}
+        <Divider />
+        <DrawerPanelBody style={{ paddingTop: 0 }}>
           {selectedApp.spec.beta ? (
             <Alert
               variantLabel="error"

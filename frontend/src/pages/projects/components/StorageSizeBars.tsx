@@ -25,17 +25,19 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
 
   if (!error && isNaN(inUseInBytes)) {
     return (
-      <Tooltip
-        removeFindDomNode
-        content="No active storage information at this time, check back later"
-      >
-        <Text component="small">Max {maxValue}</Text>
-      </Tooltip>
+      <div>
+        <Tooltip
+          removeFindDomNode
+          content="No active storage information at this time, check back later"
+        >
+          <Text component="small">Max {maxValue}</Text>
+        </Tooltip>
+      </div>
     );
   }
 
   const inUseValue = `${bytesAsGB(inUseInBytes)}Gi`;
-  const percentage = (parseFloat(inUseValue) / parseFloat(maxValue)) * 100;
+  const percentage = ((parseFloat(inUseValue) / parseFloat(maxValue)) * 100).toFixed(2);
   const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
 
   let inUseRender: React.ReactNode;
@@ -55,7 +57,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
     <Progress
       aria-label={percentageLabel || 'Storage progress bar'}
       measureLocation={ProgressMeasureLocation.none}
-      value={percentage}
+      value={Number(percentage)}
       style={{ gridGap: 0 }} // PF issue with split & measureLocation
     />
   );

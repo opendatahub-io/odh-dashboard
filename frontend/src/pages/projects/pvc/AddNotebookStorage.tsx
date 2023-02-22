@@ -7,6 +7,8 @@ import { useExistingStorageDataObjectForNotebook } from '../screens/spawner/stor
 import MountPathField from './MountPathField';
 import { getNotebookMountPaths } from '../notebook/utils';
 import { attachNotebookPVC } from '../../../api';
+import NotebookRestartAlert from '../components/NotebookRestartAlert';
+import useWillNotebooksRestart from '../notebook/useWillNotebooksRestart';
 
 type AddNotebookStorageProps = {
   notebook?: NotebookKind;
@@ -19,6 +21,7 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
   const [error, setError] = React.useState<Error | undefined>();
   const notebookDisplayName = notebook ? getNotebookDisplayName(notebook) : 'this notebook';
   const inUseMountPaths = getNotebookMountPaths(notebook);
+  const restartNotebooks = useWillNotebooksRestart([notebook?.metadata.name || '']);
 
   const canSubmit =
     !isSubmitting &&
@@ -85,6 +88,11 @@ const AddNotebookStorage: React.FC<AddNotebookStorageProps> = ({ notebook, onClo
             />
           </Form>
         </StackItem>
+        {restartNotebooks.length !== 0 && (
+          <StackItem>
+            <NotebookRestartAlert notebooks={restartNotebooks} />
+          </StackItem>
+        )}
         {error && (
           <StackItem>
             <Alert isInline variant="danger" title="Error attaching storage">

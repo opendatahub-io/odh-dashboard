@@ -35,6 +35,7 @@ const BrandImage: React.FC<BrandImageProps> = ({ src, ...props }) => {
     <Brand
       {...props}
       heights={{ default: '40px' }}
+      widths={{ default: '100%' }}
       onError={() => setImage((prevImage) => ({ imgSrc: prevImage.imgSrc, isValid: false }))}
     >
       <source srcSet={image.imgSrc} />

@@ -18,14 +18,12 @@ type DataConnectionsTableRowProps = {
   obj: DataConnection;
   onEditDataConnection: (pvc: DataConnection) => void;
   onDeleteDataConnection: (dataConnection: DataConnection) => void;
-  onConnectExistingWorkbench: (dataConnection: DataConnection) => void;
 };
 
 const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
   obj,
   onEditDataConnection,
   onDeleteDataConnection,
-  onConnectExistingWorkbench,
 }) => {
   return (
     <Tr>
@@ -54,12 +52,6 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
               title: 'Edit data connection',
               onClick: () => {
                 onEditDataConnection(obj);
-              },
-            },
-            {
-              title: 'Change connected workbenches',
-              onClick: () => {
-                onConnectExistingWorkbench(obj);
               },
             },
             {

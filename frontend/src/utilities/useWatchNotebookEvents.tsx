@@ -6,7 +6,7 @@ import { FAST_POLL_INTERVAL } from './const';
 
 export const useWatchNotebookEvents = (
   projectName: string,
-  notebookName: string,
+  podUID: string,
   activeFetch: boolean,
 ): K8sEvent[] => {
   const [notebookEvents, setNoteBookEvents] = React.useState<K8sEvent[]>([]);
@@ -23,8 +23,8 @@ export const useWatchNotebookEvents = (
 
     if (activeFetch) {
       const watchNotebookEvents = () => {
-        if (projectName && notebookName) {
-          getNotebookEvents(projectName, notebookName)
+        if (projectName && podUID) {
+          getNotebookEvents(projectName, podUID)
             .then((data: K8sEvent[]) => {
               if (cancelled) {
                 return;
@@ -43,7 +43,7 @@ export const useWatchNotebookEvents = (
       watchNotebookEvents();
     }
     return clear;
-  }, [projectName, notebookName, notification, activeFetch]);
+  }, [projectName, podUID, notification, activeFetch]);
 
   return notebookEvents;
 };

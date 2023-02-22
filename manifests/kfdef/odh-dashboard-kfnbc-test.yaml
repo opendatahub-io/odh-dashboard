@@ -23,7 +23,6 @@ spec:
     name: odh-notebook-controller
   - kustomizeConfig:
       overlays:
-      - authentication
       # Uncomment the odhdashboard overlay below to have the operator deploy the configs
       # This should be removed from the deployed kfdef immediately after the operator deploys the configs
       # This will prevent the operator from reconciling the configs when they have been modified externally

@@ -13,13 +13,13 @@ import {
   EmptyStateBody,
   Split,
   SplitItem,
+  PageBreadcrumb,
 } from '@patternfly/react-core';
-
-import './ApplicationsPage.scss';
 
 type ApplicationsPageProps = {
   title: string;
   breadcrumb?: React.ReactNode;
+  toolbar?: React.ReactNode;
   description: React.ReactNode;
   loaded: boolean;
   empty: boolean;
@@ -35,6 +35,7 @@ type ApplicationsPageProps = {
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   title,
   breadcrumb,
+  toolbar,
   description,
   loaded,
   empty,
@@ -48,17 +49,17 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 }) => {
   const renderHeader = () => {
     return (
-      <PageSection className="odh-apps__heading" variant={PageSectionVariants.light}>
-        {breadcrumb}
+      <PageSection variant={PageSectionVariants.light}>
         <Split>
           <SplitItem isFilled>
-            <TextContent className="odh-apps__heading__text">
+            <TextContent>
               <Text component="h1">{title}</Text>
               <Text component="p">{description}</Text>
             </TextContent>
           </SplitItem>
           {headerAction && <SplitItem>{headerAction}</SplitItem>}
         </Split>
+        {toolbar}
       </PageSection>
     );
   };
@@ -119,6 +120,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   return (
     <>
+      {breadcrumb && <PageBreadcrumb>{breadcrumb}</PageBreadcrumb>}
       {renderHeader()}
       {renderContents()}
     </>

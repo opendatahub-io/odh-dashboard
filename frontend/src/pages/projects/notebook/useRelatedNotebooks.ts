@@ -1,6 +1,6 @@
+import * as React from 'react';
 import { NotebookKind } from '../../../k8sTypes';
 import { getNotebookPVCNames, getNotebookSecretNames } from '../pvc/utils';
-import * as React from 'react';
 import { ProjectDetailsContext } from '../ProjectDetailsContext';
 import { DATA_CONNECTION_PREFIX } from '../../../api';
 import { getNotebookPVCMountPathMap } from './utils';
@@ -25,11 +25,11 @@ const useRelatedNotebooks = (
   } = React.useContext(ProjectDetailsContext);
 
   const connectedNotebooks = React.useMemo(() => {
-    if (!resourceName) {
-      return [];
-    }
     switch (context) {
       case ConnectedNotebookContext.EXISTING_PVC:
+        if (!resourceName) {
+          return [];
+        }
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedPVCNames = getNotebookPVCNames(notebook);
           if (!relatedPVCNames.includes(resourceName)) {
@@ -39,6 +39,9 @@ const useRelatedNotebooks = (
           return [...acc, notebook];
         }, []);
       case ConnectedNotebookContext.REMOVABLE_PVC:
+        if (!resourceName) {
+          return [];
+        }
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedPVCNames = getNotebookPVCNames(notebook);
           if (!relatedPVCNames.includes(resourceName)) {
@@ -53,6 +56,9 @@ const useRelatedNotebooks = (
           return [...acc, notebook];
         }, []);
       case ConnectedNotebookContext.EXISTING_DATA_CONNECTION:
+        if (!resourceName) {
+          return [];
+        }
         return data.reduce<NotebookKind[]>((acc, { notebook }) => {
           const relatedSecretNames = getNotebookSecretNames(notebook);
           if (!relatedSecretNames.includes(resourceName)) {
@@ -69,7 +75,6 @@ const useRelatedNotebooks = (
           if (relatedSecretNames.length > 0) {
             return acc;
           }
-
           return [...acc, notebook];
         }, []);
       default:

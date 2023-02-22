@@ -7,6 +7,7 @@ import {
   removeNotebookPVC,
   updatePvcDescription,
   updatePvcDisplayName,
+  updatePvcSize,
 } from '../../../../../api';
 import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
@@ -17,7 +18,9 @@ import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '../../../notebook/useRelatedNotebooks';
-import { getPvcDescription, getPvcDisplayName } from '../../../utils';
+import { getPvcDescription, getPvcDisplayName, getPvcTotalSize } from '../../../utils';
+import NotebookRestartAlert from '../../../components/NotebookRestartAlert';
+import useWillNotebooksRestart from '../../../notebook/useWillNotebooksRestart';
 
 import './ManageStorageModal.scss';
 
@@ -39,6 +42,11 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     error: notebookError,
   } = useRelatedNotebooks(ConnectedNotebookContext.EXISTING_PVC, existingData?.metadata.name);
   const [removedNotebooks, setRemovedNotebooks] = React.useState<string[]>([]);
+
+  const restartNotebooks = useWillNotebooksRestart([
+    ...removedNotebooks,
+    createData.forNotebook.name,
+  ]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -105,6 +113,9 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
         return;
       }
       handleNotebookNameConnection(pvcName);
+      if (parseInt(getPvcTotalSize(existingData)) !== createData.size) {
+        await updatePvcSize(pvcName, namespace, `${createData.size}Gi`);
+      }
     } else {
       createPvc(pvc)
         .then((createdPvc) => handleNotebookNameConnection(createdPvc.metadata.name))
@@ -144,7 +155,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
             <CreateNewStorageSection
               data={createData}
               setData={(key, value) => setCreateData(key, value)}
-              disableSize={!!existingData}
+              currentSize={existingData?.status?.capacity?.storage}
               autoFocusName
             />
             {createData.hasExistingNotebookConnections && (
@@ -166,6 +177,11 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
             />
           </Form>
         </StackItem>
+        {restartNotebooks.length !== 0 && (
+          <StackItem>
+            <NotebookRestartAlert notebooks={restartNotebooks} />
+          </StackItem>
+        )}
         {error && (
           <StackItem>
             <Alert isInline variant="danger" title="Error creating storage">

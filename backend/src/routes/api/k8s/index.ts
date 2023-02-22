@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
 import { USER_ACCESS_TOKEN } from '../../../utils/constants';
 import { passThrough } from './pass-through';
+import { logRequestDetails } from '../../../utils/fileUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   const kc = fastify.kube.config;
@@ -23,6 +24,8 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       }>,
       reply: FastifyReply,
     ) => {
+      logRequestDetails(fastify, req);
+
       const data = JSON.stringify(req.body);
       const kubeUri = req.params['*'];
       let url = `${cluster.server}/${kubeUri}`;

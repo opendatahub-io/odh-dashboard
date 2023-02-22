@@ -61,7 +61,10 @@ export const useWatchGroups = (): {
       .then((response) => {
         if (response.success) {
           setGroupSettings(response.success);
-          notification.success('Group settings changes saved');
+          notification.success(
+            'Group settings changes saved',
+            'It may take up to 2 minutes for configuration changes to be applied.',
+          );
         }
       })
       .catch((error) => {

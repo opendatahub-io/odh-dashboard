@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { NotebookAffinity, NotebookContainer, NotebookToleration, Volume } from './types';
+import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
 
 /**
  * Annotations that we will use to allow the user flexibility in describing items outside of the
@@ -142,6 +142,10 @@ export type ImageStreamSpecTagType = {
   };
 };
 
+export type K8sAPIOptions = {
+  dryRun?: boolean;
+};
+
 /** A status object when Kube backend can't handle a request. */
 export type K8sStatus = {
   kind: string;
@@ -188,11 +192,11 @@ export type NotebookKind = K8sResourceCommon & {
   spec: {
     template: {
       spec: {
-        affinity?: NotebookAffinity;
+        affinity?: PodAffinity;
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
         volumes?: Volume[];
-        tolerations?: NotebookToleration[];
+        tolerations?: PodToleration[];
       };
     };
   };
@@ -247,21 +251,14 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     builtInAdapter: {
       serverType: string;
       runtimeManagementPort: number;
+      memBufferBytes?: number;
+      modelLoadingTimeoutMillis?: number;
     };
     containers: {
       args: string[];
       image: string;
       name: string;
-      resources: {
-        limits: {
-          cpu: string;
-          memory: string;
-        };
-        requests: {
-          cpu: string;
-          memory: string;
-        };
-      };
+      resources: ContainerResources;
     }[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
