@@ -49,6 +49,7 @@ const useSpawnerNotebookModalState = (
           if (!createInProgress) {
             // We are not creating, make sure the Notebook is stopped
             stopNotebook().catch(() => {
+              /* eslint-disable-next-line no-console */
               console.error('Failed to stop notebook on refresh');
             });
           } else {

@@ -30,6 +30,7 @@ export const useWatchNotebookEvents = (
               setNoteBookEvents(data);
             })
             .catch((e) => {
+              /* eslint-disable-next-line no-console */
               console.error('Error fetching notebook events', e);
               clear();
             });

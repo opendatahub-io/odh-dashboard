@@ -156,6 +156,7 @@ const SpawnerPage: React.FC = () => {
         setVariableRows([...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret]);
       }
     };
+    /* eslint-disable-next-line no-console */
     mapEnvironmentVariableRows().catch((e) => console.error(e));
     return () => {
       cancelled = true;
@@ -335,6 +336,7 @@ const SpawnerPage: React.FC = () => {
                   handleNotebookAction().catch((e) => {
                     setCreateInProgress(false);
                     hideStartShown();
+                    /* eslint-disable-next-line no-console */
                     console.error('Error submitting resources around starting a notebook', e);
                     setSubmitError(e);
                   });

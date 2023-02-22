@@ -176,6 +176,7 @@ export const createConfigMapsAndSecretsForNotebook = async (
   return Promise.all(creatingPromises)
     .then((results: (ConfigMapKind | SecretKind)[]) => getEnvFromList(results, []))
     .catch((e) => {
+      /* eslint-disable-next-line no-console */
       console.error('Creating environment variables failed: ', e);
       throw e;
     });

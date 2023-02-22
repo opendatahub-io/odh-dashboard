@@ -39,6 +39,7 @@ const ListNotebookState: React.FC<ListNotebookStateProps> = ({
       case 'status':
         return <NotebookStatusToggle notebookState={state} doListen />;
       default:
+        /* eslint-disable-next-line no-console */
         console.error('Unknown show type', show);
         return <>-</>;
     }

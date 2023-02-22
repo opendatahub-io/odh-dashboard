@@ -40,6 +40,7 @@ export const useBrowserStorage = <T,>(
         setStringValue(storageKey, value, isSessionStorage);
         return true;
       }
+      /* eslint-disable-next-line no-console */
       console.error('Was not a string value provided, cannot stringify');
       return false;
     },
@@ -96,6 +97,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
         try {
           return JSON.parse(value);
         } catch (e) {
+          /* eslint-disable-next-line no-console */
           console.warn(`Failed to parse storage value "${key}"`);
           return null;
         }
@@ -115,6 +117,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
 
         return true;
       } catch (e) {
+        /* eslint-disable-next-line no-console */
         console.warn(
           'Could not store a value because it was requested to be stringified but was an invalid value for stringification.',
         );

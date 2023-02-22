@@ -26,7 +26,7 @@ export const getNotebookAndStatus = (
       if (e.response.status === 404) {
         return { notebook, isRunning: false };
       }
-
+      /* eslint-disable-next-line no-console */
       console.error(
         'Checking notebook status failed, falling back on notebook check logic',
         e.response.data.message,

@@ -64,6 +64,7 @@ export const useNotebookEnvVariables = (
     if (notebook) {
       fetchNotebookEnvVariables(notebook)
         .then((envVars) => setEnvVariables(envVars))
+        /* eslint-disable-next-line no-console */
         .catch((e) => console.error('Reading environment variables failed: ', e));
     }
   }, [notebook]);

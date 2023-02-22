@@ -54,6 +54,7 @@
     "no-restricted-imports": ["error", {
       "patterns": ["*/**", "!~/**", "!./**", "!@*/**", "!react*/**"]
     }],
+    "no-console": "error",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/interface-name-prefix": "off",
     "@typescript-eslint/no-var-requires": "off",

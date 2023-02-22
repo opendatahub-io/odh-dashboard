@@ -72,7 +72,6 @@ const useGPUSetting = (
       setFetching(false);
       setAreGpusAvailable(false);
       setGpuSize(0);
-      console.error(e);
       notification.error('Failed to fetch GPU', e.message);
     };
 

@@ -70,6 +70,7 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
 
           refreshProjects()
             .then(() => setRefreshIds((ids) => ids.filter((id) => id !== refreshId)))
+            /* eslint-disable-next-line no-console */
             .catch((e) => console.error('Failed refresh', e));
         }}
         editProjectData={editData}
@@ -79,6 +80,7 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
         onClose={(deleted) => {
           setDeleteData(undefined);
           if (deleted) {
+            /* eslint-disable-next-line no-console */
             refreshProjects().catch((e) => console.error('Failed refresh', e));
           }
         }}

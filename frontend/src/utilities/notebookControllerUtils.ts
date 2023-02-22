@@ -113,6 +113,7 @@ export const getNotebookControllerUserState = (
     if (usernameTranslate(loggedInUser) === notebookLabelUser) {
       user = loggedInUser;
     } else {
+      /* eslint-disable-next-line no-console */
       console.error('Could not get full user data');
       return null;
     }
@@ -203,6 +204,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
     if (!routeName) {
       // At time of call, if we do not have a route name, we are too late
       // This should *never* happen, somehow the modal got here before the Notebook had a name!?
+      /* eslint-disable-next-line no-console */
       console.error('Unable to determine why there was no route -- notebook did not have a name');
       return Promise.reject();
     }
@@ -218,6 +220,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
               resolve(backupRoute);
               return;
             }
+            /* eslint-disable-next-line no-console */
             console.warn('Unable to get the route. Re-polling.', e);
             if (fetchCountRef.current <= 0) {
               fetchCountRef.current--;
@@ -229,6 +232,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
       };
 
       call(resolve, () => {
+        /* eslint-disable-next-line no-console */
         console.error(
           'Could not fetch route over several tries, See previous warnings for a history of why each failed call.',
         );

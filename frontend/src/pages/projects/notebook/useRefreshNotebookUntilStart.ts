@@ -17,6 +17,7 @@ const useRefreshNotebookUntilStart = (
         const { isRunning, refresh } = lastNotebookState.current;
         if (!isRunning) {
           refresh().catch((e) => {
+            /* eslint-disable-next-line no-console */
             console.error('Error refreshing, stopping notebook refresh', e);
             setWatchingForNotebook(false);
           });

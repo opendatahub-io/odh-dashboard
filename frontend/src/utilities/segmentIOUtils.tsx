@@ -7,6 +7,7 @@ export const fireTrackingEvent = (
 ): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
     console.log(
       `Telemetry event triggered: ${eventType}${
         properties ? ` - ${JSON.stringify(properties)}` : ''
@@ -36,6 +37,7 @@ export const initSegment = async (props) => {
     return;
   }
   if (analytics.invoked) {
+    /* eslint-disable-next-line no-console */
     window.console && console.error && console.error('Segment snippet included twice.');
   } else {
     analytics.invoked = true;

@@ -150,6 +150,7 @@ export const getImageVersionDependencies = (
   } catch (e) {
     if (depString.includes('[')) {
       // It was intended to be an array but failed to parse, log the error
+      /* eslint-disable-next-line no-console */
       console.error(`JSON parse error when parsing ${imageVersion.name}`);
     }
     dependencies = [];

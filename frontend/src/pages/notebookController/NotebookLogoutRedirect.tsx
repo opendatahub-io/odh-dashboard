@@ -36,6 +36,7 @@ const NotebookLogoutRedirect: React.FC = () => {
           if (cancelled) {
             return;
           }
+          /* eslint-disable-next-line no-console */
           console.error(e);
         });
     }
