@@ -1,4 +1,5 @@
-import { OdhApplication, OdhApplicationCategory } from '../src/types';
+/* eslint-disable camelcase */
+import { OdhApplication, OdhApplicationCategory } from '~/types';
 
 export const mockExploreApplications: OdhApplication[] = [
   {

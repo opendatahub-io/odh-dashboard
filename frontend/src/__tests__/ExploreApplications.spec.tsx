@@ -3,7 +3,7 @@ import { store } from '~/redux/store/store';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
 import ExploreApplications from '~/pages/exploreApplication/ExploreApplications';
-import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
+import { mockExploreApplications } from '~/__mocks__/mockExploreApplications';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
