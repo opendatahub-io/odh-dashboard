@@ -31,7 +31,7 @@ import {
   IAction,
 } from '@patternfly/react-table';
 import { CubesIcon, SearchIcon } from '@patternfly/react-icons';
-import { BYONImage } from 'types';
+import { BYONImage } from '~/types';
 import { ImportImageModal } from './ImportImageModal';
 import { relativeTime } from '~/utilities/time';
 import './BYONImagesTable.scss';

@@ -8,13 +8,13 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { DataConnection, UpdateObjectAtPropAndValue } from 'pages/projects/types';
+import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
 } from '~/pages/modelServing/screens/types';
-import AWSField from 'pages/projects/dataConnections/AWSField';
-import useDataConnections from 'pages/projects/screens/detail/data-connections/useDataConnections';
+import AWSField from '~/pages/projects/dataConnections/AWSField';
+import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import '~/pages/projects/screens/detail/storage/ManageStorageModal.scss';
 import DataConnectionExistingField from './DataConnectionExistingField';
 

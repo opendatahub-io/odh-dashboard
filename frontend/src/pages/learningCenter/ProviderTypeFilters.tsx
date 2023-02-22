@@ -6,7 +6,7 @@ import FilterSidePanelCategoryItem from '~/components/FilterSidePanelCategoryIte
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { PROVIDER_TYPE_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
-import { ODH_PRODUCT_NAME } from 'utilities/const';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 type ProviderTypeFiltersProps = {
   docApps: OdhDocument[];

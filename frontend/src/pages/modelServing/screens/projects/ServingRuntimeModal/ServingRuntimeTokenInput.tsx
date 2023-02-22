@@ -7,13 +7,13 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   CreatingServingRuntimeObject,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
-import { translateDisplayNameForK8s } from 'pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 
 type ServingRuntimeTokenInputProps = {
   data: CreatingServingRuntimeObject;

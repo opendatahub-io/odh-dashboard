@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup, Grid } from '@patternfly/react-core';
-import IndentSection from 'pages/projects/components/IndentSection';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
+import IndentSection from '~/pages/projects/components/IndentSection';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { ContainerResourceAttributes, ContainerResources } from '~/types';
 import CPUField from '~/components/CPUField';

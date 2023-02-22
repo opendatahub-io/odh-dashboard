@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GPUInfo } from 'types';
+import { GPUInfo } from '~/types';
 
 export const getGPU = (): Promise<GPUInfo> => {
   const url = '/api/gpu';

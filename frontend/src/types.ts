@@ -5,7 +5,7 @@
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { EnvironmentFromVariable } from './pages/projects/types';
-import { ServingRuntimeSize } from 'pages/modelServing/screens/types';
+import { ServingRuntimeSize } from '~/pages/modelServing/screens/types';
 
 export type PrometheusQueryResponse = {
   data: {

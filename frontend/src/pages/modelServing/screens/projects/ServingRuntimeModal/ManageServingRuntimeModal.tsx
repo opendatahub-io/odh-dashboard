@@ -28,7 +28,7 @@ import { allSettledPromises } from '~/utilities/allSettledPromises';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
-import { translateDisplayNameForK8s } from 'pages/projects/utils';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 
 type ManageServingRuntimeModalProps = {

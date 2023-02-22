@@ -4,7 +4,7 @@ import { Notebook } from '~/types';
 import { stopNotebook } from '~/services/notebookService';
 import useNotification from '~/utilities/useNotification';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
-import { useUser } from 'redux/selectors';
+import { useUser } from '~/redux/selectors';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];

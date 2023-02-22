@@ -1,5 +1,5 @@
-import { useAppContext } from 'app/AppContext';
-import { useDashboardNamespace } from 'redux/selectors';
+import { useAppContext } from '~/app/AppContext';
+import { useDashboardNamespace } from '~/redux/selectors';
 import { isModelMetricsEnabled } from './screens/metrics/utils';
 
 const useModelMetricsEnabled = (): [modelMetricsEnabled: boolean] => {

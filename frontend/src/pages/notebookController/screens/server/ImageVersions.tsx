@@ -9,7 +9,7 @@ import {
   getVersion,
   isImageTagBuildValid,
 } from '~/utilities/imageUtils';
-import { useAppContext } from 'app/AppContext';
+import { useAppContext } from '~/app/AppContext';
 
 import '~/pages/notebookController/NotebookController.scss';
 

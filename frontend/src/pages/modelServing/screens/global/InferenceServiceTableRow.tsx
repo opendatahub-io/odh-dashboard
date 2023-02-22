@@ -8,7 +8,7 @@ import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
 import { Link } from 'react-router-dom';
-import useModelMetricsEnabled from 'pages/modelServing/useModelMetricsEnabled';
+import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;

@@ -6,7 +6,7 @@ import {
   SelectOption,
   SelectVariant,
 } from '@patternfly/react-core';
-import { MenuItemStatus } from 'pages/groupSettings/groupTypes';
+import { MenuItemStatus } from '~/pages/groupSettings/groupTypes';
 
 type MultiSelectionProps = {
   value: MenuItemStatus[];

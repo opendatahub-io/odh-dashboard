@@ -7,7 +7,7 @@ import { ProjectSectionTitles, ProjectSectionTitlesExtended } from './const';
 import GenericSidebar from '~/pages/projects/components/GenericSidebar';
 import StorageList from './storage/StorageList';
 import { ProjectSectionID } from './types';
-import { useAppContext } from 'app/AppContext';
+import { useAppContext } from '~/app/AppContext';
 import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';

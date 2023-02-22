@@ -1,4 +1,4 @@
-import { ServingRuntimeKind } from 'k8sTypes';
+import { ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimeSize, TimeframeStepType, TimeframeTimeType, TimeframeTitle } from './types';
 
 export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [

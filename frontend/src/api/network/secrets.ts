@@ -10,7 +10,7 @@ import { SecretModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getModelServiceAccountName } from '~/pages/modelServing/utils';
-import { mergeK8sQueryParams } from 'api/apiMergeUtils';
+import { mergeK8sQueryParams } from '~/api/apiMergeUtils';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
 

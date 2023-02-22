@@ -10,7 +10,7 @@ import {
   HintBody,
 } from '@patternfly/react-core';
 import { MultiSelection } from './MultiSelection';
-import { GroupsConfigField, MenuItemStatus } from 'pages/groupSettings/groupTypes';
+import { GroupsConfigField, MenuItemStatus } from '~/pages/groupSettings/groupTypes';
 
 type FormGroupSettingsProps = {
   title: string;

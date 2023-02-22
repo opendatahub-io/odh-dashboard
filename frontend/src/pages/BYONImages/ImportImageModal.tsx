@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
 import { importBYONImage } from '~/services/imagesService';
-import { ResponseStatus, BYONImagePackage } from 'types';
+import { ResponseStatus, BYONImagePackage } from '~/types';
 import { EditStepTableRow } from './EditStepTableRow';
 import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { addNotification } from '~/redux/actions/actions';

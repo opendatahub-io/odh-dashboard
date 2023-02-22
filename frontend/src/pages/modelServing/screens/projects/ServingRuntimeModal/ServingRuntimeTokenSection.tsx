@@ -9,8 +9,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import IndentSection from 'pages/projects/components/IndentSection';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
+import IndentSection from '~/pages/projects/components/IndentSection';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';

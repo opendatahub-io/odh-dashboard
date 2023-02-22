@@ -8,7 +8,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   CreatingServingRuntimeObject,
   ServingRuntimeSize,

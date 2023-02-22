@@ -8,10 +8,11 @@ import {
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { GroupsConfigField, MenuItemStatus } from './groupTypes';
-import { useWatchGroups } from 'utilities/useWatchGroups';
-import { FormGroupSettings } from 'components/FormGroupSettings';
+import { useWatchGroups } from '~/utilities/useWatchGroups';
+import { FormGroupSettings } from '~/components/FormGroupSettings';
+import { isGroupEmpty } from '~/utilities/utils';
+
 import './GroupSettings.scss';
-import { isGroupEmpty } from 'utilities/utils';
 
 const GroupSettings: React.FC = () => {
   const {

@@ -12,13 +12,18 @@ import {
 } from '@patternfly/react-core';
 import { useCreateInferenceServiceObject } from '~/pages/modelServing/screens/projects/utils';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
-import { assembleSecret, createInferenceService, createSecret, updateInferenceService } from 'api';
-import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from 'k8sTypes';
+import {
+  assembleSecret,
+  createInferenceService,
+  createSecret,
+  updateInferenceService,
+} from '~/api';
+import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import ProjectSection from './ProjectSection';
-import { DataConnection } from 'pages/projects/types';
+import { DataConnection } from '~/pages/projects/types';
 import DataConnectionSection from './DataConnectionSection';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
-import { isAWSValid } from 'pages/projects/screens/spawner/spawnerUtils';
+import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 
 type ManageInferenceServiceModalProps = {
   isOpen: boolean;

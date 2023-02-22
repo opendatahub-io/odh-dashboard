@@ -1,4 +1,4 @@
-import { EnvVariableDataEntry } from 'pages/projects/types';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
 export enum TimeframeTitle {

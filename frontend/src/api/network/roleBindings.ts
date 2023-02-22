@@ -1,5 +1,5 @@
 import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { getModelRoleBinding, getModelServiceAccountName } from 'pages/modelServing/utils';
+import { getModelRoleBinding, getModelServiceAccountName } from '~/pages/modelServing/utils';
 import { RoleBindingKind } from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
 
