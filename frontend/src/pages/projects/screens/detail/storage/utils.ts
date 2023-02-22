@@ -5,7 +5,6 @@ export const getFullStatusFromPercentage = (percentageFull: number): string | nu
     return 'warning';
   } else if (percentageFull >= 90) {
     return 'info';
-  } else {
-    return null;
   }
+  return null;
 };

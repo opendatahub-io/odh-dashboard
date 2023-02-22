@@ -126,9 +126,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
           const secretToken = assembleSecretSA(token.name, namespace, token.editName);
           if (token.editName) {
             return replaceSecret(secretToken);
-          } else {
-            return createSecret(secretToken);
           }
+          return createSecret(secretToken);
         }),
       ...deletedSecrets.map((secret) => deleteSecret(namespace, secret)),
     ])

@@ -86,9 +86,8 @@ export const getInferenceServiceContext = (
 ): Promise<InferenceServiceKind[]> => {
   if (namespace) {
     return listInferenceService(namespace, labelSelector);
-  } else {
-    return listScopedInferenceService(labelSelector);
   }
+  return listScopedInferenceService(labelSelector);
 };
 
 export const getInferenceService = (

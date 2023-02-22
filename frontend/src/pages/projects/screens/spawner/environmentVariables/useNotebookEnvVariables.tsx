@@ -18,9 +18,8 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           return getConfigMap(notebook.metadata.namespace, envFrom.configMapRef.name);
         } else if (envFrom.secretRef) {
           return getSecret(notebook.metadata.namespace, envFrom.secretRef.name);
-        } else {
-          return Promise.resolve(undefined);
         }
+        return Promise.resolve(undefined);
       })
       .filter((v): v is Promise<SecretKind | ConfigMapKind> => !!v),
   ).then((results) =>

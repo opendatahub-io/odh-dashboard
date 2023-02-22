@@ -92,9 +92,8 @@ export const getServingRuntimeContext = (
 ): Promise<ServingRuntimeKind[]> => {
   if (namespace) {
     return listServingRuntimes(namespace, labelSelector);
-  } else {
-    return listScopedServingRuntimes(labelSelector);
   }
+  return listScopedServingRuntimes(labelSelector);
 };
 
 export const getServingRuntime = (name: string, namespace: string): Promise<ServingRuntimeKind> =>

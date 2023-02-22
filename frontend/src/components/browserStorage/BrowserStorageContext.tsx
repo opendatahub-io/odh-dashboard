@@ -39,10 +39,9 @@ export const useBrowserStorage = <T,>(
       } else if (typeof value === 'string') {
         setStringValue(storageKey, value, isSessionStorage);
         return true;
-      } else {
-        console.error('Was not a string value provided, cannot stringify');
-        return false;
       }
+      console.error('Was not a string value provided, cannot stringify');
+      return false;
     },
     [isSessionStorage, jsonify, setJSONValue, setStringValue, storageKey],
   );

@@ -130,9 +130,8 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
             setIsProgress(false);
             return Promise.reject();
           });
-      } else {
-        return Promise.reject();
       }
+      return Promise.reject();
     };
 
     runPromiseActions(true).then(() => runPromiseActions(false).then(() => onBeforeClose(true)));

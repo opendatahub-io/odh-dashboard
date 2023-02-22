@@ -106,9 +106,8 @@ export const getQuickStartCompletionStatus = (
       }
     }
     return qsStatus;
-  } else {
-    return CompletionStatusEnum.InProgress;
   }
+  return CompletionStatusEnum.InProgress;
 };
 
 export const launchQuickStart = (

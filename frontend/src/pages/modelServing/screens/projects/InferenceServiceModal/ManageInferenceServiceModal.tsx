@@ -57,9 +57,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const storageCanCreate = (): boolean => {
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createData.storage.dataConnection !== '';
-    } else {
-      return isAWSValid(createData.storage.awsData);
     }
+    return isAWSValid(createData.storage.awsData);
   };
 
   const canCreate =
@@ -96,11 +95,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const createModel = (): Promise<InferenceServiceKind> => {
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createInferenceService(createData);
-    } else {
-      return createAWSSecret().then((secret) =>
-        createInferenceService(createData, secret.metadata.name),
-      );
     }
+    return createAWSSecret().then((secret) =>
+      createInferenceService(createData, secret.metadata.name),
+    );
   };
 
   const updateModel = (): Promise<InferenceServiceKind> => {
@@ -109,11 +107,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     }
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return updateInferenceService(createData, editInfo);
-    } else {
-      return createAWSSecret().then((secret) =>
-        updateInferenceService(createData, editInfo, secret.metadata.name),
-      );
     }
+    return createAWSSecret().then((secret) =>
+      updateInferenceService(createData, editInfo, secret.metadata.name),
+    );
   };
 
   const submit = () => {

@@ -23,35 +23,34 @@ export const relativeTime = (current: number, previous: number): string => {
     return printAgo(Math.round(elapsed / msPerDay), 'day');
   } else if (elapsed < msPerYear) {
     return printAgo(Math.round(elapsed / msPerMonth), 'month');
-  } else {
-    const date = new Date(previous);
-
-    const month = date.getMonth();
-    let monthAsString = 'Jan';
-    if (month === 1) {
-      monthAsString = 'Feb';
-    } else if (month === 2) {
-      monthAsString = 'Mar';
-    } else if (month === 3) {
-      monthAsString = 'April';
-    } else if (month === 4) {
-      monthAsString = 'May';
-    } else if (month === 5) {
-      monthAsString = 'June';
-    } else if (month === 6) {
-      monthAsString = 'July';
-    } else if (month === 7) {
-      monthAsString = 'August';
-    } else if (month === 8) {
-      monthAsString = 'Sept';
-    } else if (month === 9) {
-      monthAsString = 'Oct';
-    } else if (month === 10) {
-      monthAsString = 'Nov';
-    } else if (month === 11) {
-      monthAsString = 'Dec';
-    }
-
-    return `${date.getDate()} ${monthAsString} ${date.getFullYear()}`;
   }
+  const date = new Date(previous);
+
+  const month = date.getMonth();
+  let monthAsString = 'Jan';
+  if (month === 1) {
+    monthAsString = 'Feb';
+  } else if (month === 2) {
+    monthAsString = 'Mar';
+  } else if (month === 3) {
+    monthAsString = 'April';
+  } else if (month === 4) {
+    monthAsString = 'May';
+  } else if (month === 5) {
+    monthAsString = 'June';
+  } else if (month === 6) {
+    monthAsString = 'July';
+  } else if (month === 7) {
+    monthAsString = 'August';
+  } else if (month === 8) {
+    monthAsString = 'Sept';
+  } else if (month === 9) {
+    monthAsString = 'Oct';
+  } else if (month === 10) {
+    monthAsString = 'Nov';
+  } else if (month === 11) {
+    monthAsString = 'Dec';
+  }
+
+  return `${date.getDate()} ${monthAsString} ${date.getFullYear()}`;
 };

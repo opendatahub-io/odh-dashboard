@@ -11,9 +11,8 @@ export const isModelMetricsEnabled = (
 ): boolean => {
   if (dashboardNamespace === 'redhat-ods-applications') {
     return true;
-  } else {
-    return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
   }
+  return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
 };
 
 export const getInferenceServiceMetricsQueries = (

@@ -64,9 +64,8 @@ export const verifyResource = async <T extends K8sResourceCommon>(
     if (e.response?.status === 404) {
       if (createFunc && createBody) {
         return await createFunc(createBody);
-      } else {
-        return undefined;
       }
+      return undefined;
     }
     throw e;
   });
