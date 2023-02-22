@@ -17,6 +17,9 @@ The following are a list of features that are supported, along with there defaul
 |  disableISVBadges | false | Removes the badge that indicate if a product is ISV or not.
 |  disableAppLauncher | false | Removes the application launcher that is used in OKD environments
 |  disableUserManagement | false | Removes the User Management panel in Settings.
+|  disableProjects | false | Disables Data Science Projects from the dashboard.
+|  disableModelServing | false | Disables Model Serving from the dashboard and from Data Science Projects.
+|  modelMetricsNamespace | false | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.
 
 ## Defaults
 
@@ -25,15 +28,18 @@ In its default state the Dashboard config is in this form:
 ```yaml
 spec:
   dashboardConfig:
-    disableBYONImageStream: false
-    disableClusterManager: false
-    disableISVBadges: false
-    disableInfo: false
+    enablement: true
+    disableInfo: fals
     disableSupport: false
+    disableClusterManager: false
     disableTracking: true
+    disableBYONImageStream: false
+    disableISVBadges: false
     disableAppLauncher: false
     disableUserManagement: false
-    enablement: true
+    disableProjects: false
+    disableModelServing: false
+    modelMetricsNamespace: ''
 ```
 
 ## Additional fields
@@ -75,13 +81,13 @@ The `notebookController` field controls the Notebook Controller options such as 
 
 ```yaml
 notebookController:
+  enabled: true
+  gpuSetting: autodetect
+  pvcSize: 20Gi
+  notebookNamespace: odh-notebooks
+  notebookTolerationSettings:
     enabled: true
-    envVarConfig:
-        enabled: true
-    gpuConfig:
-        enabled: true
-    pvcSize: 20Gi
-    notebookNamespace: odh-notebooks
+    key: NotebooksOnly
 ```
 
 ### Notebook Controller State
@@ -107,43 +113,69 @@ metadata:
   name: odh-dashboard-config
 spec:
   dashboardConfig:
+    enablement: true
     disableBYONImageStream: false
     disableClusterManager: false
     disableISVBadges: false
     disableInfo: false
     disableSupport: false
     disableTracking: true
-    disableAppLauncher: false
-    disableUserManagement: false
-    enablement: true
-  groupsConfig:
-    adminGroups: odh-admins
-    allowedGroups: system:authenticated
+    disableProjects: true
+    disableModelServing: true
+    modelMetricsNamespace: ''
   notebookController:
-    enabled: false
+    enabled: true
   notebookSizes:
   - name: Small
     resources:
-      requests:
-        memory: 1Gi
-        cpu: '1'
       limits:
+        cpu: "2"
         memory: 2Gi
-        cpu: '2'
+      requests:
+        cpu: "1"
+        memory: 1Gi
   - name: Medium
     resources:
-      requests:
-        memory: 2Gi
-        cpu: '2'
       limits:
+        cpu: "4"
         memory: 4Gi
-        cpu: '4'
+      requests:
+        cpu: "2"
+        memory: 2Gi
   - name: Large
     resources:
-      requests:
-        memory: 4Gi
-        cpu: '4'
       limits:
+        cpu: "8"
         memory: 8Gi
-        cpu: '8'
+      requests:
+        cpu: "4"
+        memory: 4Gi
+  modelServerSizes:
+  - name: Small
+    resources:
+      limits:
+        cpu: "2"
+        memory: 8Gi
+      requests:
+        cpu: "1"
+        memory: 4Gi
+  - name: Medium
+    resources:
+      limits:
+        cpu: "8"
+        memory: 10Gi
+      requests:
+        cpu: "4"
+        memory: 8Gi
+  - name: Large
+    resources:
+      limits:
+        cpu: "10"
+        memory: 20Gi
+      requests:
+        cpu: "6"
+        memory: 16Gi
+  groupsConfig:
+    adminGroups: 'odh-admins'
+    allowedGroups: 'system:authenticated'
 ```
