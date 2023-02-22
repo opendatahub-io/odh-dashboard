@@ -1,1 +1,1 @@
-export { PipelineContextProvider, usePipelinesAPI } from './PipelinesContext';
+export { CreateCR, PipelineContextProvider, usePipelinesAPI } from './PipelinesContext';

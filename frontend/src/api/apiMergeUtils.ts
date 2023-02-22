@@ -8,3 +8,11 @@ export const mergeK8sQueryParams = (
   ...specificOpts,
   ...(opts.dryRun && { dryRun: 'All' }),
 });
+
+export const mergeRequestInit = (
+  opts: K8sAPIOptions = {},
+  specificOpts: RequestInit = {},
+): RequestInit => ({
+  ...specificOpts,
+  ...(opts.signal && { signal: opts.signal }),
+});

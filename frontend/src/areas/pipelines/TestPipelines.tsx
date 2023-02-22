@@ -1,13 +1,20 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { Alert, Bullseye } from '@patternfly/react-core';
-import { PipelineContextProvider, usePipelinesAPI } from './context';
+import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
+import { PipelineContextProvider, usePipelinesAPI, CreateCR } from './context';
 
 const TestPipelines: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();
 
-  if (!pipelinesAPI.isLoaded) {
-    return <pipelinesAPI.loadingComponent />;
+  if (!pipelinesAPI.pipelinesEnabled) {
+    return <CreateCR />;
+  }
+  if (!pipelinesAPI.apiAvailable) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
   }
 
   const apis = Object.keys(pipelinesAPI.api);

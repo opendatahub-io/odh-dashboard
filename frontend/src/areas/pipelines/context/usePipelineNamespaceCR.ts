@@ -1,34 +1,26 @@
 import * as React from 'react';
 import { DSPipelineKind } from '../../../k8sTypes';
 import { getPipelinesCR } from '../../../api';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+} from '../../../concepts/generic/useFetchState';
 
-const usePipelineNamespaceCR = (
-  namespace: string,
-): [namespaceCR: DSPipelineKind | null, loaded: boolean, loadError: Error | undefined] => {
-  const [namespacedCR, setNamespacedCR] = React.useState<DSPipelineKind | null>(null);
-  const [loaded, setLoaded] = React.useState(false);
-  const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
-
-  React.useEffect(() => {
-    console.debug('Namespace', namespace);
-    getPipelinesCR(namespace)
-      .then((resource) => {
-        setLoadError(undefined);
-        setNamespacedCR(resource);
-        setLoaded(true);
-      })
-      .catch((e) => {
+const usePipelineNamespaceCR = (namespace: string): FetchState<DSPipelineKind> => {
+  const callback = React.useCallback<FetchStateCallbackPromise<DSPipelineKind>>(
+    (opts) => {
+      return getPipelinesCR(namespace, opts).catch((e) => {
         if (e.statusObject?.code === 404) {
           // Not finding is okay, not an error
-          setLoadError(undefined);
-          setLoaded(true);
-          return;
+          return null;
         }
-        setLoadError(e);
+        throw e;
       });
-  }, [namespace]);
+    },
+    [namespace],
+  );
 
-  return [namespacedCR, loaded, loadError];
+  return useFetchState<DSPipelineKind>(callback);
 };
 
 export default usePipelineNamespaceCR;
