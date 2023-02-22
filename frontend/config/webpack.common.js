@@ -183,6 +183,9 @@ module.exports = env => {
           configFile: path.resolve(RELATIVE_DIRNAME, './tsconfig.json')
         })
       ],
+      alias: {
+        "~": path.resolve(SRC_DIR)
+      },
       symlinks: false,
       cacheWithContext: false
     }
