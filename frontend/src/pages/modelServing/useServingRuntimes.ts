@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getServingRuntimeContext } from '~/api/network/servingRuntimes';
+import { getServingRuntimeContext } from '~/api';
 import { ServingRuntimeKind } from '~/k8sTypes';
 
 const useServingRuntimes = (

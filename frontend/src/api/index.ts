@@ -11,10 +11,12 @@ export * from './network/pvcs';
 export * from './network/roleBindings';
 export * from './network/routes';
 export * from './network/secrets';
+export * from './network/serviceAccounts';
 export * from './network/servingRuntimes';
 
 // Prometheus queries
 export * from './prometheus/pvcs';
+export * from './prometheus/serving';
 
 // Network error handling
 export * from './errorUtils';

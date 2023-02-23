@@ -21,9 +21,13 @@ import {
   generateRoleBindingServingRuntime,
   replaceSecret,
 } from '~/api';
-import { createServingRuntime, updateServingRuntime } from '~/api/network/servingRuntimes';
+import {
+  createServingRuntime,
+  updateServingRuntime,
+  assembleServingRuntimeSA,
+  createServiceAccount,
+} from '~/api';
 import { ServingRuntimeKind, SecretKind, K8sStatus } from '~/k8sTypes';
-import { assembleServingRuntimeSA, createServiceAccount } from '~/api/network/serviceAccounts';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
