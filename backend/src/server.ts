@@ -1,16 +1,19 @@
 import { fastify } from 'fastify';
-import Pino from 'pino';
+import pino from 'pino';
 import { APP_ENV, PORT, IP, LOG_LEVEL } from './utils/constants';
 import { initializeApp } from './app';
 import { AddressInfo } from 'net';
 
-const logOptions = {
-  level: LOG_LEVEL,
-  prettyPrint: APP_ENV === 'development' ? { translateTime: true } : false,
-};
+const transport =
+  APP_ENV === 'development'
+    ? pino.transport({
+        target: 'pino-pretty',
+        options: { colorize: true },
+      })
+    : undefined;
 
 const app = fastify({
-  logger: Pino(logOptions),
+  logger: pino({ level: LOG_LEVEL }, transport),
   pluginTimeout: 10000,
 });
 

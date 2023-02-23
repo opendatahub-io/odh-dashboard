@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { LOG_DIR } from './utils/constants';
-import fastifyStatic from 'fastify-static';
-import fastifyAutoload from 'fastify-autoload';
-import fastifySensible from 'fastify-sensible';
+import fastifyStatic from '@fastify/static';
+import fastifyAutoload from '@fastify/autoload';
+import fastifySensible from '@fastify/sensible';
 import { FastifyInstance } from 'fastify/types/instance';
 
 export const initializeApp = async (fastify: FastifyInstance, opts: any): Promise<void> => {

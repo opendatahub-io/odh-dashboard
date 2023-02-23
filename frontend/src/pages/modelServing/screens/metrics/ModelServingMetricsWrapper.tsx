@@ -9,8 +9,10 @@ import MetricsPage from './MetricsPage';
 import { getInferenceServiceMetricsQueries } from './utils';
 
 const ModelServingMetricsWrapper: React.FC = () => {
-  const { project: projectName, inferenceService: modelName } =
-    useParams<{ project: string; inferenceService: string }>();
+  const { project: projectName, inferenceService: modelName } = useParams<{
+    project: string;
+    inferenceService: string;
+  }>();
   const {
     inferenceServices: { data: models, loaded },
   } = React.useContext(ModelServingContext);

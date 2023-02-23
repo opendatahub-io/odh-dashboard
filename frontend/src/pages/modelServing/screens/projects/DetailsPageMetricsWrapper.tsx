@@ -10,8 +10,10 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 
 const DetailsPageMetricsWrapper: React.FC = () => {
-  const { namespace: projectName, inferenceService: modelName } =
-    useParams<{ namespace: string; inferenceService: string }>();
+  const { namespace: projectName, inferenceService: modelName } = useParams<{
+    namespace: string;
+    inferenceService: string;
+  }>();
   const {
     currentProject,
     inferenceServices: { data: models, loaded },
