@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Tbody, Td, Tr } from '@patternfly/react-table';
+import { Td, Tr } from '@patternfly/react-table';
 import { SecretKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import { getTokenDisplayName } from '~/pages/modelServing/screens/global/utils';
@@ -16,16 +16,14 @@ const ServingRuntimeTokenTableRow: React.FC<ServingRuntimeTokenTableRowProps> = 
   loaded,
   error,
 }) => (
-  <Tbody>
-    <Tr>
-      <Td dataLabel="Token Name">
-        <ResourceNameTooltip resource={token}>{getTokenDisplayName(token)}</ResourceNameTooltip>
-      </Td>
-      <Td dataLabel="Token Secret">
-        <ServingRuntimeTokenDisplay token={token} loaded={loaded} error={error} />
-      </Td>
-    </Tr>
-  </Tbody>
+  <Tr>
+    <Td dataLabel="Token Name">
+      <ResourceNameTooltip resource={token}>{getTokenDisplayName(token)}</ResourceNameTooltip>
+    </Td>
+    <Td dataLabel="Token Secret">
+      <ServingRuntimeTokenDisplay token={token} loaded={loaded} error={error} />
+    </Td>
+  </Tr>
 );
 
 export default ServingRuntimeTokenTableRow;

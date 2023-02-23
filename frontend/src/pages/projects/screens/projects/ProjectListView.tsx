@@ -1,15 +1,17 @@
 import * as React from 'react';
-import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import { Button, ToolbarItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { ProjectKind } from '~/k8sTypes';
+import Table from '~/components/Table';
+
 import useTableColumnSort from '~/utilities/useTableColumnSort';
-import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
-import ProjectTable from './ProjectTable';
+import { ProjectKind } from '~/k8sTypes';
+import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
-
-const MIN_PAGE_SIZE = 10;
+import ProjectTableRow from './ProjectTableRow';
+import DeleteProjectModal from './DeleteProjectModal';
+import ManageProjectModal from './ManageProjectModal';
 
 type ProjectListViewProps = {
   projects: ProjectKind[];
@@ -22,8 +24,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
 }) => {
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
-  const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
   const sort = useTableColumnSort<ProjectKind>(columns, 0);
   const filteredProjects = sort.transformData(unfilteredProjects).filter((project) => {
     if (!search) {
@@ -44,72 +44,87 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
     setSearch('');
   };
 
-  const showPagination = unfilteredProjects.length > MIN_PAGE_SIZE;
-  const pagination = (pageDirection: 'up' | 'down') =>
-    showPagination && (
-      <Pagination
-        dropDirection={pageDirection}
-        perPageComponent="button"
-        itemCount={filteredProjects.length}
-        perPage={pageSize}
-        page={page}
-        onSetPage={(e, newPage) => setPage(newPage)}
-        onPerPageSelect={(e, newSize, newPage) => {
-          setPageSize(newSize);
-          setPage(newPage);
-        }}
-        widgetId="table-pagination"
-      />
-    );
-
   const searchTypes = React.useMemo(() => Object.keys(SearchType), []);
+
+  const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
+  const [editData, setEditData] = React.useState<ProjectKind | undefined>();
+  const [refreshIds, setRefreshIds] = React.useState<string[]>([]);
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <SearchField
-              types={searchTypes}
-              searchType={searchType}
-              searchValue={search}
-              onSearchTypeChange={(searchType) => {
-                setSearchType(searchType);
-              }}
-              onSearchValueChange={(searchValue) => {
-                setPage(1);
-                setSearch(searchValue);
-              }}
-            />
-          </ToolbarItem>
-          <ToolbarItem>
-            <NewProjectButton />
-          </ToolbarItem>
-          <ToolbarItem>
-            <Button variant="link">
-              <Link to="/notebookController">Launch Jupyter</Link>
+      <Table
+        enablePagination
+        data={filteredProjects}
+        columns={columns}
+        emptyTableView={
+          <>
+            No projects match your filters.{' '}
+            <Button variant="link" isInline onClick={resetFilters}>
+              Clear filters
             </Button>
-          </ToolbarItem>
-          <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
-            {pagination('down')}
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-      <ProjectTable
-        clearFilters={resetFilters}
-        projects={filteredProjects.slice(pageSize * (page - 1), pageSize * page)}
-        getColumnSort={sort.getColumnSort}
-        refreshProjects={refreshProjects}
-      />
-      {showPagination && (
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
-              {pagination('up')}
+          </>
+        }
+        rowRenderer={(project) => (
+          <ProjectTableRow
+            key={project.metadata.uid}
+            obj={project}
+            isRefreshing={refreshIds.includes(project.metadata.uid || '')}
+            setEditData={(data) => setEditData(data)}
+            setDeleteData={(data) => setDeleteData(data)}
+          />
+        )}
+        toolbarContent={
+          <React.Fragment>
+            <ToolbarItem>
+              <SearchField
+                types={searchTypes}
+                searchType={searchType}
+                searchValue={search}
+                onSearchTypeChange={(searchType) => {
+                  setSearchType(searchType);
+                }}
+                onSearchValueChange={(searchValue) => {
+                  setSearch(searchValue);
+                }}
+              />
             </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-      )}
+            <ToolbarItem>
+              <NewProjectButton />
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button variant="link">
+                <Link to="/notebookController">Launch Jupyter</Link>
+              </Button>
+            </ToolbarItem>
+          </React.Fragment>
+        }
+      />
+      <ManageProjectModal
+        open={!!editData}
+        onClose={() => {
+          const refreshId = editData?.metadata.uid;
+          if (refreshId) {
+            setRefreshIds((otherIds) => [...otherIds, refreshId]);
+          }
+          setEditData(undefined);
+
+          refreshProjects()
+            .then(() => setRefreshIds((ids) => ids.filter((id) => id !== refreshId)))
+            /* eslint-disable-next-line no-console */
+            .catch((e) => console.error('Failed refresh', e));
+        }}
+        editProjectData={editData}
+      />
+      <DeleteProjectModal
+        deleteData={deleteData}
+        onClose={(deleted) => {
+          setDeleteData(undefined);
+          if (deleted) {
+            /* eslint-disable-next-line no-console */
+            refreshProjects().catch((e) => console.error('Failed refresh', e));
+          }
+        }}
+      />
     </>
   );
 };

@@ -1,20 +1,16 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
-import useTableColumnSort from '~/utilities/useTableColumnSort';
+import { ServingRuntimeKind } from '~/k8sTypes';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import {
-  getProjectInferenceServiceColumns,
-  tokenColumns,
-} from '~/pages/modelServing/screens/global/data';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import ScrollViewOnMount from '~/components/ScrollViewOnMount';
-import ServingRumtimeTokensTable from './ServingRuntimeTokensTable';
-import ServingRuntimeDetails from './ServingRuntimeDetails';
-import { isServingRuntimeTokenEnabled } from './utils';
+
 import EmptyInferenceServicesCell from './EmptyInferenceServicesCell';
+import { isServingRuntimeTokenEnabled } from './utils';
+import ServingRuntimeDetails from './ServingRuntimeDetails';
+import ServingRumtimeTokensTable from './ServingRuntimeTokensTable';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
@@ -33,12 +29,6 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     inferenceServices: { data: inferenceServices },
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
-
-  const inferenceServiceSort = useTableColumnSort<InferenceServiceKind>(
-    getProjectInferenceServiceColumns(),
-    0,
-  );
-  const tokenSort = useTableColumnSort<SecretKind>(tokenColumns, 0);
 
   if (activeColumn === ServingRuntimeTableTabs.TYPE) {
     return (
@@ -60,7 +50,6 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
             <InferenceServiceTable
               inferenceServices={inferenceServices}
               servingRuntimes={[obj]}
-              getColumnSort={inferenceServiceSort.getColumnSort}
               refresh={() => {
                 refreshAllProjectData();
                 onClose();
@@ -78,10 +67,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     return (
       <Td dataLabel="Tokens expansion" colSpan={6}>
         <ExpandableRowContent>
-          <ServingRumtimeTokensTable
-            getColumnSort={tokenSort.getColumnSort}
-            isTokenEnabled={isServingRuntimeTokenEnabled(obj)}
-          />
+          <ServingRumtimeTokensTable isTokenEnabled={isServingRuntimeTokenEnabled(obj)} />
         </ExpandableRowContent>
       </Td>
     );
