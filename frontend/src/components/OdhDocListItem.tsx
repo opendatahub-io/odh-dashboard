@@ -15,14 +15,12 @@ type OdhDocCardProps = {
   odhDoc: OdhDocument;
   favorite: boolean;
   updateFavorite: (isFavorite: boolean) => void;
-  itemId: string;
 };
 
 const OdhDocListItem: React.FC<OdhDocCardProps> = ({
   odhDoc,
   favorite,
   updateFavorite,
-  itemId,
 }) => {
   const [qsContext] = useQuickStartCardSelected(odhDoc.metadata.name, odhDoc.metadata.name);
 
@@ -99,7 +97,10 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({
       </div>
       <div className="odh-list-item__doc-text">
         {odhDoc.spec.appDisplayName ? (
-          <div id={itemId} className="odh-list-item__doc-title">
+          <div
+            id={`${odhDoc.spec.type}-${odhDoc.spec.displayName}`}
+            className="odh-list-item__doc-title"
+          >
             <Tooltip removeFindDomNode content={odhDoc.spec.appDisplayName}>
               <span>{odhDoc.spec.appDisplayName}</span>
             </Tooltip>

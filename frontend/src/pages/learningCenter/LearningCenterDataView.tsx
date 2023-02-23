@@ -98,10 +98,9 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
       return (
         <div className={listViewClasses} aria-label="Simple data list example">
           <LearningCenterListHeader />
-          {filteredDocApps.map((doc, idx) => (
+          {filteredDocApps.map((doc) => (
             <OdhDocListItem
-              key={`${doc.metadata.name}`}
-              itemId={`${doc.spec.appDisplayName}-${idx}`}
+              key={`${doc.spec.type}-${doc.spec.displayName}`}
               odhDoc={doc}
               favorite={favorites.includes(doc.metadata.name)}
               updateFavorite={(isFavorite) => updateFavorite(isFavorite, doc.metadata.name)}
