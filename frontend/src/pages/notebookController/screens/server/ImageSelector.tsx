@@ -7,9 +7,9 @@ import {
   getTagForImage,
   isImageTagBuildValid,
 } from '~/utilities/imageUtils';
+import { useAppContext } from '~/app/AppContext';
 import ImageTagPopover from './ImageTagPopover';
 import ImageVersions from './ImageVersions';
-import { useAppContext } from '~/app/AppContext';
 
 import '~/pages/notebookController/NotebookController.scss';
 

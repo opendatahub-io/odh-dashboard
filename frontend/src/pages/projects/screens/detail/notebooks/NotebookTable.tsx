@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
-import NotebookTableRow from './NotebookTableRow';
 import { NotebookState } from '~/pages/projects/notebook/types';
-import { columns } from './data';
 import useTableColumnSort from '~/utilities/useTableColumnSort';
 import { NotebookKind } from '~/k8sTypes';
 import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';
 import AddNotebookStorage from '~/pages/projects/pvc/AddNotebookStorage';
+import { columns } from './data';
+import NotebookTableRow from './NotebookTableRow';
 
 type NotebookTableProps = {
   notebookStates: NotebookState[];

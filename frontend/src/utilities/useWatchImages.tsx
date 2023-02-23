@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ImageInfo } from '~/types';
-import { POLL_INTERVAL } from './const';
 import { fetchImages } from '~/services/imagesService';
+import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchImages = (): {

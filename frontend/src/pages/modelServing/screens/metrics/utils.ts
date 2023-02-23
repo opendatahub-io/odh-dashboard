@@ -2,8 +2,8 @@ import * as _ from 'lodash';
 import { SelectOptionObject } from '@patternfly/react-core';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind } from '~/k8sTypes';
-import { ModelServingMetricType } from './ModelServingMetricsContext';
 import { DashboardConfig } from '~/types';
+import { ModelServingMetricType } from './ModelServingMetricsContext';
 
 export const isModelMetricsEnabled = (
   dashboardNamespace: string,

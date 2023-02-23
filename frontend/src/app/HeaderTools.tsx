@@ -13,10 +13,10 @@ import {
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '~/utilities/const';
 import { AppNotification } from '~/redux/types';
+import { useAppSelector } from '~/redux/hooks';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { logout } from './appUtils';
-import { useAppSelector } from '~/redux/hooks';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;

@@ -10,8 +10,8 @@ import {
   getImageVersionSoftwareString,
   isImageVersionSelectOptionObject,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
-import ImageVersionTooltip from './ImageVersionTooltip';
 import { ImageStreamSpecTagType } from '~/k8sTypes';
+import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {
   data: ImageVersionSelectDataType;

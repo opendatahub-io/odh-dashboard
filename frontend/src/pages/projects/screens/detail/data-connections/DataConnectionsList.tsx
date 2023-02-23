@@ -4,9 +4,9 @@ import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import DataConnectionsTable from './DataConnectionsTable';
 import ManageDataConnectionModal from './ManageDataConnectionModal';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
 const DataConnectionsList: React.FC = () => {
   const {

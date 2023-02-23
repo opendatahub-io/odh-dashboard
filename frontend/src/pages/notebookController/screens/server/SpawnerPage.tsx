@@ -9,7 +9,9 @@ import {
   Grid,
   GridItem,
 } from '@patternfly/react-core';
-import { checkOrder, getDefaultTag, isImageTagBuildValid } from '~/utilities/imageUtils';
+import { PlusCircleIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
+import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '~/pages/notebookController/const';
 import {
   ImageInfo,
   ImageTag,
@@ -20,11 +22,7 @@ import {
   EnvVarResourceType,
   NotebookState,
 } from '~/types';
-import ImageSelector from './ImageSelector';
-import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '~/pages/notebookController/const';
-import { PlusCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+import { checkOrder, getDefaultTag, isImageTagBuildValid } from '~/utilities/imageUtils';
 import { enableNotebook, stopNotebook } from '~/services/notebookService';
 import {
   generateEnvVarFileNameFromUsername,
@@ -35,18 +33,20 @@ import {
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import StartServerModal from './StartServerModal';
-import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import useNotification from '~/utilities/useNotification';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
 import GPUSelectField from './GPUSelectField';
 import SizeSelectField from './SizeSelectField';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
-import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
+import EnvironmentVariablesRow from './EnvironmentVariablesRow';
+import ImageSelector from './ImageSelector';
+import { usePreferredNotebookSize } from './usePreferredNotebookSize';
+import StartServerModal from './StartServerModal';
 
 import '~/pages/notebookController/NotebookController.scss';
 

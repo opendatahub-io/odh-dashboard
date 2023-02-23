@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
+import { Bullseye, Spinner } from '@patternfly/react-core';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
 import { ModelServingMetricsProvider } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
@@ -7,7 +8,6 @@ import { getInferenceServiceMetricsQueries } from '~/pages/modelServing/screens/
 import NotFound from '~/pages/NotFound';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import { Bullseye, Spinner } from '@patternfly/react-core';
 
 const DetailsPageMetricsWrapper: React.FC = () => {
   const { namespace: projectName, inferenceService: modelName } =

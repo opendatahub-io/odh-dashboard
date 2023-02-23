@@ -20,9 +20,9 @@ import {
   StorageData,
   StorageType,
 } from '~/pages/projects/types';
-import { getVolumesByStorageData } from './spawnerUtils';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { ConfigMapKind, K8sStatus, NotebookKind, SecretKind } from '~/k8sTypes';
+import { getVolumesByStorageData } from './spawnerUtils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 
 export const createPvcDataForNotebook = async (

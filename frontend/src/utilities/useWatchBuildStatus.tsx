@@ -1,12 +1,12 @@
 import * as React from 'react';
+import { List, ListItem, Stack, StackItem } from '@patternfly/react-core';
 import { BUILD_PHASE, BuildStatus } from '~/types';
-import { POLL_INTERVAL } from './const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { fetchBuildStatuses } from '~/services/buildsService';
 import { addNotification } from '~/redux/actions/actions';
 import { AppNotificationStatus } from '~/redux/types';
 import { useAppDispatch } from '~/redux/hooks';
-import { List, ListItem, Stack, StackItem } from '@patternfly/react-core';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
+import { POLL_INTERVAL } from './const';
 
 const runningStatuses = [
   BUILD_PHASE.new,

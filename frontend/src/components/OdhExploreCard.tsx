@@ -12,10 +12,10 @@ import {
 import { OdhApplication } from '~/types';
 import { makeCardVisible } from '~/utilities/utils';
 import EnableModal from '~/pages/exploreApplication/EnableModal';
-import BrandImage from './BrandImage';
-import SupportedAppTitle from './SupportedAppTitle';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
+import BrandImage from './BrandImage';
+import SupportedAppTitle from './SupportedAppTitle';
 import OdhExploreCardTypeBadge from './OdhExploreCardTypeBadge';
 
 import './OdhCard.scss';

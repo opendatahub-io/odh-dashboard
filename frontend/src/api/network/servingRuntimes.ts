@@ -10,11 +10,11 @@ import { ServingRuntimeModel } from '~/api/models';
 import { ConfigMapKind, ServingRuntimeKind } from '~/k8sTypes';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
-import { getModelServingProjects } from './projects';
-import { assemblePodSpecOptions } from './utils';
 import { ContainerResources } from '~/types';
 import { getDefaultServingRuntime } from '~/pages/modelServing/screens/projects/utils';
 import { DEFAULT_MODEL_SERVING_TEMPLATE } from '~/pages/modelServing/screens/const';
+import { assemblePodSpecOptions } from './utils';
+import { getModelServingProjects } from './projects';
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,

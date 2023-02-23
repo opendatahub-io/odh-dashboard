@@ -2,12 +2,12 @@ import * as React from 'react';
 import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import useTableColumnSort from '~/utilities/useTableColumnSort';
+import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
+import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import { getInferenceServiceDisplayName } from './utils';
 import ServeModelButton from './ServeModelButton';
 import { getGlobalInferenceServiceColumns } from './data';
-import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import InferenceServiceTable from './InferenceServiceTable';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 
 const MIN_PAGE_SIZE = 10;
 

@@ -8,8 +8,8 @@ import {
 import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useAppContext } from './AppContext';
 import { useAppSelector } from '~/redux/hooks';
+import { useAppContext } from './AppContext';
 
 type ApplicationAction = {
   label: string;

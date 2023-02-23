@@ -8,9 +8,9 @@ import {
   Tr,
 } from '@patternfly/react-table';
 import { Flex, FlexItem, Text, Title } from '@patternfly/react-core';
+import { HddIcon } from '@patternfly/react-icons';
 import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { HddIcon } from '@patternfly/react-icons';
 import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
 import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';

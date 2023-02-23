@@ -1,6 +1,6 @@
+import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { DashboardConfig, PodToleration, TolerationSettings } from '~/types';
 import { NotebookKind } from '~/k8sTypes';
-import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';

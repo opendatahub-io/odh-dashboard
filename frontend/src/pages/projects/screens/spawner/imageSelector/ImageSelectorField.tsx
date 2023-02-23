@@ -5,13 +5,13 @@ import {
   getDefaultVersionForImageStream,
   getExistingVersionsForImageStream,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
-import ImageStreamSelector from './ImageStreamSelector';
-import ImageVersionSelector from './ImageVersionSelector';
-import ImageStreamPopover from './ImageStreamPopover';
 import { ImageStreamAndVersion } from '~/types';
 import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useBuildStatuses from '~/pages/projects/screens/spawner/useBuildStatuses';
+import ImageStreamPopover from './ImageStreamPopover';
+import ImageVersionSelector from './ImageVersionSelector';
+import ImageStreamSelector from './ImageStreamSelector';
 
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;

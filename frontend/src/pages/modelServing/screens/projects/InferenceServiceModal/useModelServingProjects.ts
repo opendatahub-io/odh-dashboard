@@ -1,6 +1,6 @@
+import * as React from 'react';
 import { getModelServingProjectsAvailable } from '~/api';
 import { ProjectKind } from '~/k8sTypes';
-import * as React from 'react';
 
 const useModelServingProjects = (): [
   projects: ProjectKind[],

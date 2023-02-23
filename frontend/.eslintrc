@@ -95,6 +95,29 @@
     "react-hooks/rules-of-hooks": "error",
     "import/extensions": "off",
     "import/no-unresolved": "off",
+    "import/order": [
+      "error",
+      {
+        "pathGroups": [
+          {
+            "pattern": "~/**",
+            "group": "external",
+            "position": "after"
+          }
+        ],
+        "pathGroupsExcludedImportTypes": ["builtin"],
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          "index",
+          "sibling",
+          "parent",
+          "object",
+          "unknown"
+        ]
+      }
+    ],
     "no-relative-import-paths/no-relative-import-paths": [
       "warn",
       {

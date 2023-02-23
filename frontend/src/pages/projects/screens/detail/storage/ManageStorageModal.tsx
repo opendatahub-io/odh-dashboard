@@ -14,13 +14,13 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useCreateStorageObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
 import CreateNewStorageSection from '~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
 import StorageNotebookConnections from '~/pages/projects/notebook/StorageNotebookConnections';
-import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { getPvcDescription, getPvcDisplayName, getPvcTotalSize } from '~/pages/projects/utils';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 import './ManageStorageModal.scss';
 

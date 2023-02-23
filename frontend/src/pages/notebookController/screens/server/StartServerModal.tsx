@@ -13,6 +13,7 @@ import {
   Progress,
   ProgressVariant,
 } from '@patternfly/react-core';
+import { useNavigate } from 'react-router';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import {
   getEventTimestamp,
@@ -21,7 +22,6 @@ import {
 } from '~/utilities/notebookControllerUtils';
 import { EventStatus } from '~/types';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import { useNavigate } from 'react-router';
 import useBrowserTabPreference from './useBrowserTabPreference';
 
 import '~/pages/notebookController/NotebookController.scss';

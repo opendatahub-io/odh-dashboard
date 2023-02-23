@@ -1,8 +1,8 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import { OdhDocument } from '~/types';
 import { Button, ButtonVariant } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
+import { OdhDocument } from '~/types';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { matchesCategories } from '~/utilities/utils';
 import CategoryFilters from './CategoryFilters';

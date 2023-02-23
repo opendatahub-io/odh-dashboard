@@ -1,7 +1,7 @@
 import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
 import { SortableData } from '~/utilities/useTableColumnSort';
-import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
 import { getProjectDisplayName } from '~/pages/projects/utils';
+import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
 
 const COL_NAME: SortableData<InferenceServiceKind> = {
   field: 'name',

@@ -4,11 +4,11 @@ import { NotebookKind } from '~/k8sTypes';
 import { getNotebookDisplayName } from '~/pages/projects/utils';
 import AddExistingStorageField from '~/pages/projects/screens/spawner/storage/AddExistingStorageField';
 import { useExistingStorageDataObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
-import MountPathField from './MountPathField';
 import { getNotebookMountPaths } from '~/pages/projects/notebook/utils';
 import { attachNotebookPVC } from '~/api';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import MountPathField from './MountPathField';
 
 type AddNotebookStorageProps = {
   notebook?: NotebookKind;

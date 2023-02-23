@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { OdhDocument } from '~/types';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
+import { OdhDocument } from '~/types';
 import FilterSidePanelCategoryItem from '~/components/FilterSidePanelCategoryItem';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { APPLICATION_FILTER_KEY } from './const';

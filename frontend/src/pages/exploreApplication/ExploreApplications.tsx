@@ -12,12 +12,12 @@ import { useWatchComponents } from '~/utilities/useWatchComponents';
 import OdhExploreCard from '~/components/OdhExploreCard';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { OdhApplication } from '~/types';
-import GetStartedPanel from './GetStartedPanel';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
+import GetStartedPanel from './GetStartedPanel';
 
 import './DrawerContentBody.scss';
 

@@ -29,11 +29,11 @@ import {
 } from '~/api';
 import { ServingRuntimeKind, SecretKind, K8sStatus } from '~/k8sTypes';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;

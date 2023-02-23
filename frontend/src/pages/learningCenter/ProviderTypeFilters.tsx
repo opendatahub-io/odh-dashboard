@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { OdhDocument } from '~/types';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
+import { OdhDocument } from '~/types';
 import FilterSidePanelCategoryItem from '~/components/FilterSidePanelCategoryItem';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { PROVIDER_TYPE_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 type ProviderTypeFiltersProps = {
   docApps: OdhDocument[];

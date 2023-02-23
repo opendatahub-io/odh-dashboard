@@ -11,9 +11,9 @@ import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
-import useDefaultPvcSize from './useAvailablePvcSize';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { getRootVolumeName } from '~/pages/projects/screens/spawner/spawnerUtils';
+import useDefaultPvcSize from './useAvailablePvcSize';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,

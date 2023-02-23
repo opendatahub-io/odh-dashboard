@@ -32,12 +32,12 @@ import {
 } from '@patternfly/react-table';
 import { CubesIcon, SearchIcon } from '@patternfly/react-icons';
 import { BYONImage } from '~/types';
-import { ImportImageModal } from './ImportImageModal';
 import { relativeTime } from '~/utilities/time';
+import { updateBYONImage } from '~/services/imagesService';
+import { ImportImageModal } from './ImportImageModal';
 import './BYONImagesTable.scss';
 import { DeleteImageModal } from './DeleteBYONImageModal';
 import { UpdateImageModal } from './UpdateImageModal';
-import { updateBYONImage } from '~/services/imagesService';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];

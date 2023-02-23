@@ -14,12 +14,12 @@ import {
   replaceSecret,
 } from '~/api';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { convertAWSSecretData } from './utils';
 import ConnectedNotebookField from '~/pages/projects/notebook/ConnectedNotebookField';
-import useSelectedNotebooks from './useSelectedNotebooks';
 import { getSecretsFromList, hasEnvFrom } from '~/pages/projects/pvc/utils';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import useSelectedNotebooks from './useSelectedNotebooks';
+import { convertAWSSecretData } from './utils';
 
 type ManageDataConnectionModalProps = {
   existingData?: DataConnection;

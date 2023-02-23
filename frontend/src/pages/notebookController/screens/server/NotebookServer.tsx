@@ -5,9 +5,9 @@ import { Notebook } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
+import useNotification from '~/utilities/useNotification';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
-import useNotification from '~/utilities/useNotification';
 
 import '~/pages/notebookController/NotebookController.scss';
 

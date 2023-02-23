@@ -14,9 +14,9 @@ import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { assemblePodSpecOptions } from './utils';
 import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
 import { mergeK8sQueryParams } from '~/api/apiMergeUtils';
+import { assemblePodSpecOptions } from './utils';
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
   const {

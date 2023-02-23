@@ -1,6 +1,6 @@
 import * as React from 'react';
-import ValueUnitField from './ValueUnitField';
 import { CPU_UNITS } from '~/utilities/valueUnits';
+import ValueUnitField from './ValueUnitField';
 
 type CPUFieldProps = {
   onChange: (newValue: string) => void;

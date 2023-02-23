@@ -2,13 +2,6 @@ import * as React from 'react';
 import compareVersions from 'compare-versions';
 import { NotebookSize, Volume, VolumeMount } from '~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
-import { FAILED_PHASES, PENDING_PHASES } from './const';
-import {
-  BuildStatus,
-  ImageStreamSelectOptionObjectType,
-  ImageVersionDependencyType,
-  ImageVersionSelectOptionObjectType,
-} from './types';
 import {
   ConfigMapCategory,
   EnvVariable,
@@ -20,6 +13,13 @@ import {
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { AWS_KEYS, AWS_REQUIRED_KEYS } from '~/pages/projects/dataConnections/const';
+import {
+  BuildStatus,
+  ImageStreamSelectOptionObjectType,
+  ImageVersionDependencyType,
+  ImageVersionSelectOptionObjectType,
+} from './types';
+import { FAILED_PHASES, PENDING_PHASES } from './const';
 
 /******************* Common utils *******************/
 export const useMergeDefaultPVCName = (

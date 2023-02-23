@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { SecretKind } from '~/k8sTypes';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
+import { SecretKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import { getTokenDisplayName } from '~/pages/modelServing/screens/global/utils';
 import ServingRuntimeTokenDisplay from './ServingRuntimeTokenDisplay';

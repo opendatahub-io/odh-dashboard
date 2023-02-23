@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { StorageData, StorageType, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { getDashboardMainContainer } from '~/utilities/utils';
 import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageField from './AddExistingStorageField';
-import { getDashboardMainContainer } from '~/utilities/utils';
 
 import '~/pages/projects/screens/detail/storage/ManageStorageModal.scss';
 

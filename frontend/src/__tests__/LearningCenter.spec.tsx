@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { store } from '~/redux/store/store';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { LearningCenter } from '~/pages/learningCenter/LearningCenter';
-import { mockExploreApplications } from '~/__mocks__/mockExploreApplications';
-import { mockDocs } from '~/__mocks__/mockDocs';
 import { Options } from 'react-cool-dimensions';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { LearningCenter } from '~/pages/learningCenter/LearningCenter';
+import { mockExploreApplications } from '~/__mocks__/mockExploreApplications';
+import { mockDocs } from '~/__mocks__/mockDocs';
+import { store } from '~/redux/store/store';
 import '@testing-library/jest-dom';
 
 jest.mock('react-router-dom', () => {

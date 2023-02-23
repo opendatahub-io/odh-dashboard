@@ -8,8 +8,8 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import useRouteForInferenceService from './useRouteForInferenceService';
 import { isServingRuntimeRouteEnabled } from '~/pages/modelServing/screens/projects/utils';
+import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 
 type InferenceServiceEndpointProps = {

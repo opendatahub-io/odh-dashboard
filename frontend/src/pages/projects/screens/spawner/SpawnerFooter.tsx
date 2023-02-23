@@ -9,18 +9,18 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { createNotebook, updateNotebook } from '~/api';
-import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 import { StartNotebookData, StorageData, EnvVariable } from '~/pages/projects/types';
+import { useUser } from '~/redux/selectors';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { AppContext } from '~/app/AppContext';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import {
   createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
   replaceRootVolumesForNotebook,
   updateConfigMapsAndSecretsForNotebook,
 } from './service';
-import { useUser } from '~/redux/selectors';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { AppContext } from '~/app/AppContext';
-import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;

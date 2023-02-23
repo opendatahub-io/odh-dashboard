@@ -10,11 +10,11 @@ import {
 } from '~/pages/modelServing/screens/global/data';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import ScrollViewOnMount from '~/components/ScrollViewOnMount';
 import ServingRumtimeTokensTable from './ServingRuntimeTokensTable';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
 import { isServingRuntimeTokenEnabled } from './utils';
 import EmptyInferenceServicesCell from './EmptyInferenceServicesCell';
-import ScrollViewOnMount from '~/components/ScrollViewOnMount';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;

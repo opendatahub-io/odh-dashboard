@@ -1,7 +1,7 @@
 import { EventKind, NotebookKind } from '~/k8sTypes';
 import { EventStatus, NotebookStatus } from '~/types';
-import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
+import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
   !!(

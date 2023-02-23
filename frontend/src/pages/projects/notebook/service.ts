@@ -1,6 +1,6 @@
 import { NotebookKind, PodKind } from '~/k8sTypes';
-import { NotebookDataState } from './types';
 import { getPodsForNotebook } from '~/api';
+import { NotebookDataState } from './types';
 import { hasStopAnnotation } from './utils';
 
 const checkPodContainersReady = (pod: PodKind): boolean => {

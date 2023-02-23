@@ -4,6 +4,8 @@ import { DropdownDirection, Text, Title } from '@patternfly/react-core';
 import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { DataConnection } from '~/pages/projects/types';
+import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
+import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import {
   getDataConnectionDescription,
   getDataConnectionDisplayName,
@@ -11,8 +13,6 @@ import {
   getDataConnectionResourceName,
   getDataConnectionType,
 } from './utils';
-import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
-import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 
 type DataConnectionsTableRowProps = {
   obj: DataConnection;

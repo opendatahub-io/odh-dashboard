@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { EnvVariableData, SecretCategory } from '~/pages/projects/types';
+import AWSField from '~/pages/projects/dataConnections/AWSField';
+import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
-import AWSField from '~/pages/projects/dataConnections/AWSField';
-import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 
 type EnvSecretProps = {
   env?: EnvVariableData;

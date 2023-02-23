@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { useUser } from '~/redux/selectors';
-import { AdminViewUserData } from './types';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerTabTypes } from '~/pages/notebookController/const';
+import { AdminViewUserData } from './types';
 
 type ServerStatusProps = {
   data: AdminViewUserData['serverStatus'];

@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ExpandableSection, Flex, FlexItem, Label, Radio } from '@patternfly/react-core';
 import { StarIcon } from '@patternfly/react-icons';
 import { ImageInfo, ImageTagInfo } from '~/types';
-import ImageTagPopover from './ImageTagPopover';
 import {
   compareTagVersions,
   getDescriptionForTag,
@@ -10,6 +9,7 @@ import {
   isImageTagBuildValid,
 } from '~/utilities/imageUtils';
 import { useAppContext } from '~/app/AppContext';
+import ImageTagPopover from './ImageTagPopover';
 
 import '~/pages/notebookController/NotebookController.scss';
 

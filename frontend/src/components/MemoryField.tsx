@@ -1,6 +1,6 @@
 import * as React from 'react';
-import ValueUnitField from './ValueUnitField';
 import { MEMORY_UNITS } from '~/utilities/valueUnits';
+import ValueUnitField from './ValueUnitField';
 
 type MemoryFieldProps = {
   onChange: (newValue: string) => void;

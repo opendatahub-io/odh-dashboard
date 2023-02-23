@@ -1,8 +1,8 @@
 import React from 'react';
 import { useAppContext } from '~/app/AppContext';
 import { initSegment } from '~/utilities/segmentIOUtils';
-import { useWatchSegmentKey } from './useWatchSegmentKey';
 import { useAppSelector } from '~/redux/hooks';
+import { useWatchSegmentKey } from './useWatchSegmentKey';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();

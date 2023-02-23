@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { NotebookRunningState, UsernameMap } from '~/types';
-import { POLL_INTERVAL } from './const';
 import { getNotebookAndStatus } from '~/services/notebookService';
+import { POLL_INTERVAL } from './const';
 import { generateNotebookNameFromUsername } from './notebookControllerUtils';
 import { allSettledPromises } from './allSettledPromises';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';

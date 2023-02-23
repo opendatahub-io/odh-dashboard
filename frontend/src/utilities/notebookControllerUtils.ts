@@ -17,11 +17,11 @@ import {
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import { useUser } from '~/redux/selectors';
 import { EMPTY_USER_STATE } from '~/pages/notebookController/const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
-import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { useAppContext } from '~/app/AppContext';
 import { getRoute } from '~/services/routeService';
+import { useWatchNotebookEvents } from './useWatchNotebookEvents';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);

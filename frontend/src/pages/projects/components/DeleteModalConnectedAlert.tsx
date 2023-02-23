@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { NotebookKind } from '~/k8sTypes';
 import { Alert } from '@patternfly/react-core';
+import { NotebookKind } from '~/k8sTypes';
 import { getNotebookDisplayName } from '~/pages/projects/utils';
 
 type DeleteModalConnectedAlertProps = {

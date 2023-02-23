@@ -13,9 +13,9 @@ import {
   CreatingServingRuntimeObject,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 import useGPUSetting from '~/pages/notebookController/screens/server/useGPUSetting';
 import { GpuSettingString } from '~/types';
+import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
   data: CreatingServingRuntimeObject;

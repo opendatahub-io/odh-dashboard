@@ -21,6 +21,13 @@ import {
   getNotebookDisplayName,
   getProjectDisplayName,
 } from '~/pages/projects/utils';
+import GPUSelectField from '~/pages/notebookController/screens/server/GPUSelectField';
+import { NotebookKind } from '~/k8sTypes';
+import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
+import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
+import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useNotebookGPUNumber';
+import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
+import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -30,15 +37,8 @@ import { useNotebookSize } from './useNotebookSize';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
-import GPUSelectField from '~/pages/notebookController/screens/server/GPUSelectField';
-import { NotebookKind } from '~/k8sTypes';
-import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useNotebookGPUNumber';
-import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
-import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
