@@ -129,7 +129,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       description={
         existingData
           ? 'Make changes to cluster storage, or connect it to additional workspaces.'
-          : 'Add a storage and optionally connect it with an existing workbench.'
+          : 'Add storage and optionally connect it with an existing workbench.'
       }
       variant="medium"
       isOpen={isOpen}

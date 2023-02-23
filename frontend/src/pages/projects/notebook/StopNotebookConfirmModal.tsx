@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Checkbox, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Button, Checkbox, Flex, FlexItem, Modal, Stack, StackItem } from '@patternfly/react-core';
 import NotebookRouteLink from './NotebookRouteLink';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import { NotebookState } from './types';
@@ -47,8 +47,13 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
         </StackItem>
         {notebook && isRunning && (
           <StackItem>
-            To save changes, access your{' '}
-            <NotebookRouteLink label="workbench" notebook={notebook} isRunning isLarge />.
+            <Flex>
+              <FlexItem spacer={{ default: 'spacerXs' }}>To save changes, access your</FlexItem>
+              <FlexItem spacer={{ default: 'spacerNone' }}>
+                <NotebookRouteLink label="workbench" notebook={notebook} isRunning isLarge />
+              </FlexItem>
+              <FlexItem spacer={{ default: 'spacerNone' }}>.</FlexItem>
+            </Flex>
           </StackItem>
         )}
         <StackItem>
