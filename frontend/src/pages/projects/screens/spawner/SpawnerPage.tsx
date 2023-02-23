@@ -180,7 +180,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
             >
-              <Alert variant="info" isPlain isInline title="Cluster storages will mount to /" />
+              <Alert variant="info" isPlain isInline title="Cluster storage will mount to /" />
               <StorageField
                 storageData={storageData}
                 setStorageData={setStorageData}

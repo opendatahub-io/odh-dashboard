@@ -25,7 +25,7 @@ const StorageField: React.FC<StorageFieldType> = ({ storageData, setStorageData,
             name="persistent-new-storage-type-radio"
             id="persistent-new-storage-type-radio"
             label="Create new persistent storage"
-            description="This creates a storage that is retained when logged out."
+            description="This creates storage that is retained when logged out."
             isChecked={storageType === StorageType.NEW_PVC}
             onChange={() => setStorageData('storageType', StorageType.NEW_PVC)}
             body={
