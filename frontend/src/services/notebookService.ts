@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RecursivePartial } from 'typeHelpers';
+import { RecursivePartial } from '~/typeHelpers';
 import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '~/types';
 
 export const getNotebook = (namespace: string, name: string): Promise<Notebook> => {

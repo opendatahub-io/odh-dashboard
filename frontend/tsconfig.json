@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": "./src",
     "rootDir": ".",
     "outDir": "public",
     "module": "esnext",
@@ -18,7 +17,7 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "paths": {
-      "~/*": ["./*"]
+      "~/*": ["./src/*"]
     },
     "importHelpers": true,
     "skipLibCheck": true

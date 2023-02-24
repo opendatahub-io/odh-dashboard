@@ -57,23 +57,7 @@
     "no-restricted-imports": [
       "error",
       {
-        "paths": [
-          "types",
-          "k8sTypes"
-        ],
         "patterns": [
-          {
-            "group": [
-              "api/**",
-              "components/**",
-              "images/**",
-              "pages/**",
-              "services/**",
-              "utilities/**",
-              "redux/**"
-            ],
-            "message": "Avoid using absolute path, use '~/path/to/file' instead."
-          },
           {
             "group": [
               "~/api/**"
@@ -105,7 +89,9 @@
             "position": "after"
           }
         ],
-        "pathGroupsExcludedImportTypes": ["builtin"],
+        "pathGroupsExcludedImportTypes": [
+          "builtin"
+        ],
         "groups": [
           "builtin",
           "external",
@@ -144,25 +130,10 @@
       ],
       "rules": {
         "no-restricted-imports": [
-          "error",
+          "off",
           {
-            "paths": [
-              "types",
-              "k8sTypes"
-            ],
             "patterns": [
-              {
-                "group": [
-                  "api/**",
-                  "components/**",
-                  "images/**",
-                  "pages/**",
-                  "services/**",
-                  "utilities/**",
-                  "redux/**"
-                ],
-                "message": "Avoid using absolute path, use '~/path/to/file' instead."
-              }
+              "~/api/**"
             ]
           }
         ]
