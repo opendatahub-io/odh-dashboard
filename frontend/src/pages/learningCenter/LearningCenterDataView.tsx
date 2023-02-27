@@ -77,7 +77,11 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
 
       if (viewType !== LIST_VIEW) {
         return (
-          <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
+          <Gallery
+            maxWidths={{ default: '330px' }}
+            aria-label="Favoritable card container"
+            hasGutter
+          >
             {filteredDocApps.map((doc) => (
               <OdhDocCard
                 key={`${doc.metadata.name}`}
@@ -96,7 +100,7 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
           <LearningCenterListHeader />
           {filteredDocApps.map((doc) => (
             <OdhDocListItem
-              key={`${doc.metadata.name}`}
+              key={`${doc.spec.type}-${doc.spec.displayName}`}
               odhDoc={doc}
               favorite={favorites.includes(doc.metadata.name)}
               updateFavorite={(isFavorite) => updateFavorite(isFavorite, doc.metadata.name)}

@@ -134,8 +134,6 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     <Card
       data-id={odhDoc.metadata.name}
       id={odhDoc.metadata.name}
-      role="article"
-      isHoverable
       className="odh-card odh-tourable-card"
       isSelected={selected}
       isSelectable
