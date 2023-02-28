@@ -1,5 +1,5 @@
-import { NotebookKind } from '../../../k8sTypes';
-import { EnvironmentFromVariable, SecretRef } from '../types';
+import { NotebookKind } from '~/k8sTypes';
+import { EnvironmentFromVariable, SecretRef } from '~/pages/projects/types';
 
 export const getNotebookPVCNames = (notebook: NotebookKind): string[] => {
   const volumes = notebook.spec.template.spec.volumes || [];
@@ -16,8 +16,7 @@ export const getSecretsFromList = (notebook: NotebookKind): SecretRef[] =>
     (envFrom): envFrom is SecretRef => !!envFrom.secretRef?.name,
   );
 
-export const getNotebookSecretNames = (notebook: NotebookKind): string[] => {
-  return getSecretsFromList(notebook).map<string>(({ secretRef: { name } }) => name);
-};
+export const getNotebookSecretNames = (notebook: NotebookKind): string[] =>
+  getSecretsFromList(notebook).map<string>(({ secretRef: { name } }) => name);
 
 export const hasEnvFrom = (notebook: NotebookKind): boolean => getEnvFromList(notebook).length > 0;

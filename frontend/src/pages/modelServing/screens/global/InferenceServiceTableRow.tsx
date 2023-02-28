@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { DropdownDirection } from '@patternfly/react-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
-import ResourceNameTooltip from '../../../projects/components/ResourceNameTooltip';
+import { Link } from 'react-router-dom';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
+import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
-import { Link } from 'react-router-dom';
-import useModelMetricsEnabled from 'pages/modelServing/useModelMetricsEnabled';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;

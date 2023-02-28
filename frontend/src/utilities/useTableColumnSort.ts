@@ -40,7 +40,9 @@ const useTableColumnSort = <T>(
 
   return {
     transformData: (data: T[]): T[] => {
-      if (activeSortIndex === undefined) return data;
+      if (activeSortIndex === undefined) {
+        return data;
+      }
 
       return [...data].sort((a, b) => {
         const columnField = columns[activeSortIndex];

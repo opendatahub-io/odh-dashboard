@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { ProjectKind } from '../../../../k8sTypes';
-import { getProjectDisplayName } from '../../utils';
-import { deleteProject } from '../../../../api';
-import DeleteModal from '../../components/DeleteModal';
+import { ProjectKind } from '~/k8sTypes';
+import { getProjectDisplayName } from '~/pages/projects/utils';
+import { deleteProject } from '~/api';
+import DeleteModal from '~/pages/projects/components/DeleteModal';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;

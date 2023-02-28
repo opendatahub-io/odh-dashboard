@@ -17,11 +17,11 @@ import {
 } from '@patternfly/react-core';
 import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
 import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { updateBYONImage } from '../../services/imagesService';
+import { updateBYONImage } from '~/services/imagesService';
+import { BYONImage, BYONImagePackage } from '~/types';
+import { addNotification } from '~/redux/actions/actions';
+import { useAppDispatch } from '~/redux/hooks';
 import { EditStepTableRow } from './EditStepTableRow';
-import { BYONImage, BYONImagePackage } from 'types';
-import { addNotification } from '../../redux/actions/actions';
-import { useAppDispatch } from '../../redux/hooks';
 
 import './UpdateImageModal.scss';
 

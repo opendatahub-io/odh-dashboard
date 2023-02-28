@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ContextResourceData } from '../types';
+import { ContextResourceData } from '~/types';
 import { POLL_INTERVAL } from './const';
 
 export const useContextResourceData = <T,>(

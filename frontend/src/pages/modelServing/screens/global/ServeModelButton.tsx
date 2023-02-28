@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import ManageInferenceServiceModal from '../projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { ModelServingContext } from '../../ModelServingContext';
+import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 
 const ServeModelButton: React.FC = () => {
   const [open, setOpen] = React.useState(false);

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
-import { ProjectKind } from '../../../../k8sTypes';
-import useTableColumnSort from '../../../../utilities/useTableColumnSort';
-import { getProjectDisplayName, getProjectOwner } from '../../utils';
+import { Link } from 'react-router-dom';
+import { ProjectKind } from '~/k8sTypes';
+import useTableColumnSort from '~/utilities/useTableColumnSort';
+import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
+import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import ProjectTable from './ProjectTable';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
-import { Link } from 'react-router-dom';
-import SearchField, { SearchType } from '../../components/SearchField';
 
 const MIN_PAGE_SIZE = 10;
 
@@ -26,7 +26,9 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
   const sort = useTableColumnSort<ProjectKind>(columns, 0);
   const filteredProjects = sort.transformData(unfilteredProjects).filter((project) => {
-    if (!search) return true;
+    if (!search) {
+      return true;
+    }
 
     switch (searchType) {
       case SearchType.NAME:

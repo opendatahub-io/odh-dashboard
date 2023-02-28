@@ -1,7 +1,7 @@
 import * as React from 'react';
-import DeleteModal from '../../../projects/components/DeleteModal';
-import { ServingRuntimeKind } from '../../../../k8sTypes';
-import { deleteServingRuntime } from '../../../../api';
+import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { ServingRuntimeKind } from '~/k8sTypes';
+import { deleteServingRuntime } from '~/api';
 
 type DeleteServingRuntimeModalProps = {
   servingRuntime?: ServingRuntimeKind;

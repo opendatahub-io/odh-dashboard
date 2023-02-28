@@ -1,4 +1,4 @@
-import { TrackingEventProperties } from '../types';
+import { TrackingEventProperties } from '~/types';
 import { DEV_MODE } from './const';
 
 export const fireTrackingEvent = (
@@ -7,6 +7,7 @@ export const fireTrackingEvent = (
 ): void => {
   const clusterID = window.clusterID ?? '';
   if (DEV_MODE) {
+    /* eslint-disable-next-line no-console */
     console.log(
       `Telemetry event triggered: ${eventType}${
         properties ? ` - ${JSON.stringify(properties)}` : ''
@@ -36,6 +37,7 @@ export const initSegment = async (props) => {
     return;
   }
   if (analytics.invoked) {
+    /* eslint-disable-next-line no-console */
     window.console && console.error && console.error('Segment snippet included twice.');
   } else {
     analytics.invoked = true;
@@ -61,13 +63,13 @@ export const initSegment = async (props) => {
       'setAnonymousId',
       'addDestinationMiddleware',
     ];
-    analytics.factory = (e: string) => {
-      return (...t) => {
+    analytics.factory =
+      (e: string) =>
+      (...t) => {
         t.unshift(e);
         analytics.push(t);
         return analytics;
       };
-    };
     for (let e = 0; e < analytics.methods.length; e++) {
       const key = analytics.methods[e];
       analytics[key] = analytics.factory(key);

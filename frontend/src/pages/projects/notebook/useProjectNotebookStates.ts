@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getNotebook, getNotebooks } from '../../../api';
+import { getNotebook, getNotebooks } from '~/api';
 import { NotebookRefresh, NotebookState } from './types';
 import { getNotebooksStatus, getNotebookStatus } from './service';
 

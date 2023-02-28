@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, FormGroup, Select, SelectOption } from '@patternfly/react-core';
-import { getPvcDisplayName } from '../utils';
-import { PersistentVolumeClaimKind } from '../../../k8sTypes';
+import { getPvcDisplayName } from '~/pages/projects/utils';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 
 type ExistingPVCFieldProps = {
   fieldId: string;

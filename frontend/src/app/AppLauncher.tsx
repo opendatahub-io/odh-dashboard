@@ -5,11 +5,11 @@ import {
   ApplicationLauncherItem,
   ApplicationLauncherSeparator,
 } from '@patternfly/react-core';
-import openshiftLogo from '../images/openshift.svg';
-import { useWatchConsoleLinks } from '../utilities/useWatchConsoleLinks';
-import { ODH_PRODUCT_NAME } from '../utilities/const';
+import openshiftLogo from '~/images/openshift.svg';
+import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { useAppSelector } from '~/redux/hooks';
 import { useAppContext } from './AppContext';
-import { useAppSelector } from '../redux/hooks';
 
 type ApplicationAction = {
   label: string;

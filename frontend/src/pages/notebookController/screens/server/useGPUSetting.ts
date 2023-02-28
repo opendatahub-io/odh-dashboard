@@ -1,7 +1,7 @@
 import * as React from 'react';
-import useNotification from '../../../../utilities/useNotification';
-import { getGPU } from '../../../../services/gpuService';
-import { GpuSettingString } from '../../../../types';
+import useNotification from '~/utilities/useNotification';
+import { getGPU } from '~/services/gpuService';
+import { GpuSettingString } from '~/types';
 
 const useGPUSetting = (
   gpuSetting: GpuSettingString,
@@ -45,7 +45,9 @@ const useGPUSetting = (
     const fetchGPU = () => {
       lastCall = Date.now();
       return getGPU().then((gpuInfo) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setGpuSize(gpuInfo.available || 0);
         setAreGpusAvailable(gpuInfo.configured);
         setFetching(false);
@@ -64,11 +66,12 @@ const useGPUSetting = (
     };
 
     const errorCatch = (e: Error) => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
       setFetching(false);
       setAreGpusAvailable(false);
       setGpuSize(0);
-      console.error(e);
       notification.error('Failed to fetch GPU', e.message);
     };
 

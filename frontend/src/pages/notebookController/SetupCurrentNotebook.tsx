@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { NotebookRunningState } from '../../types';
-import useWatchNotebooksForUsers from '../../utilities/useWatchNotebooksForUsers';
-import ApplicationsPage from '../ApplicationsPage';
+import { NotebookRunningState } from '~/types';
+import useWatchNotebooksForUsers from '~/utilities/useWatchNotebooksForUsers';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import { useSpecificNotebookUserState } from '~/utilities/notebookControllerUtils';
 import { NotebookContextStorage, SetNotebookState } from './notebookControllerContextTypes';
 import useNamespaces from './useNamespaces';
-import { useSpecificNotebookUserState } from '../../utilities/notebookControllerUtils';
 
 type SetupCurrentNotebookProps = {
   children: React.ReactNode;

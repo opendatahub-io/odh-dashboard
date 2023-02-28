@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { ModelServingContext } from '../../ModelServingContext';
+import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import ServeModelButton from './ServeModelButton';
 
 const EmptyModelServing: React.FC = () => {

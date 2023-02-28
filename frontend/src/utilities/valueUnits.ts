@@ -54,7 +54,9 @@ export const isCpuLimitLarger = (
   limitCpu?: ValueUnitString,
   isEqualOkay = false,
 ): boolean => {
-  if (!requestCpu || !limitCpu) return true;
+  if (!requestCpu || !limitCpu) {
+    return true;
+  }
 
   return isLarger(limitCpu, requestCpu, CPU_UNITS, isEqualOkay);
 };
@@ -64,7 +66,9 @@ export const isMemoryLimitLarger = (
   limitMemory?: ValueUnitString,
   isEqualOkay = false,
 ): boolean => {
-  if (requestMemory == null || limitMemory == null) return true;
+  if (requestMemory == null || limitMemory == null) {
+    return true;
+  }
 
   return isLarger(limitMemory, requestMemory, MEMORY_UNITS, isEqualOkay);
 };

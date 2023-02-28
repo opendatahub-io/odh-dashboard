@@ -8,16 +8,16 @@ import {
   Gallery,
   PageSection,
 } from '@patternfly/react-core';
-import { useWatchComponents } from '../../utilities/useWatchComponents';
-import OdhExploreCard from '../../components/OdhExploreCard';
-import ApplicationsPage from '../ApplicationsPage';
-import { OdhApplication } from '../../types';
+import { useWatchComponents } from '~/utilities/useWatchComponents';
+import OdhExploreCard from '~/components/OdhExploreCard';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import { OdhApplication } from '~/types';
+import { useQueryParams } from '~/utilities/useQueryParams';
+import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { useAppContext } from '~/app/AppContext';
 import GetStartedPanel from './GetStartedPanel';
-import { useQueryParams } from '../../utilities/useQueryParams';
-import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
-import { fireTrackingEvent } from '../../utilities/segmentIOUtils';
-import { ODH_PRODUCT_NAME } from '../../utilities/const';
-import { useAppContext } from '../../app/AppContext';
 
 import './DrawerContentBody.scss';
 
@@ -115,11 +115,11 @@ const ExploreApplications: React.FC = () => {
     [components],
   );
 
-  const exploreComponents = React.useMemo<OdhApplication[]>(() => {
-    return _.cloneDeep(components).sort((a, b) =>
-      a.spec.displayName.localeCompare(b.spec.displayName),
-    );
-  }, [components]);
+  const exploreComponents = React.useMemo<OdhApplication[]>(
+    () =>
+      _.cloneDeep(components).sort((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
+    [components],
+  );
 
   React.useEffect(() => {
     if (components?.length > 0) {

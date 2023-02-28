@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Text, TextVariants, Timestamp } from '@patternfly/react-core';
-import { ProjectKind } from '../../../../k8sTypes';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ProjectKind } from '~/k8sTypes';
+import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebookStates';
+import ListNotebookState from '~/pages/projects/notebook/ListNotebookState';
+import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
+import { getProjectOwner } from '~/pages/projects/utils';
 import ProjectLink from './ProjectLink';
-import useProjectNotebookStates from '../../notebook/useProjectNotebookStates';
-import ListNotebookState from '../../notebook/ListNotebookState';
-import ResourceNameTooltip from '../../components/ResourceNameTooltip';
-import { getProjectOwner } from '../../utils';
 
 type ProjectTableRowProps = {
   obj: ProjectKind;

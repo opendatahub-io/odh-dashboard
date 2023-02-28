@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AppContext } from '../../../../../app/AppContext';
+import { AppContext } from '~/app/AppContext';
 
 const DEFAULT_PVC_SIZE = 20;
 

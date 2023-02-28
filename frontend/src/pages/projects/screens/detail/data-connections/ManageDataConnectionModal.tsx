@@ -2,24 +2,24 @@ import * as React from 'react';
 import * as _ from 'lodash';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import AWSField from '../../../dataConnections/AWSField';
-import { DataConnection, EnvVariableDataEntry } from '../../../types';
-import { EMPTY_AWS_SECRET_DATA } from '../../../dataConnections/const';
-import { isAWSValid } from '../../spawner/spawnerUtils';
+import AWSField from '~/pages/projects/dataConnections/AWSField';
+import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
+import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
+import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import {
   assembleSecret,
   attachNotebookSecret,
   createSecret,
   replaceNotebookSecret,
   replaceSecret,
-} from '../../../../../api';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
-import { convertAWSSecretData } from './utils';
-import ConnectedNotebookField from '../../../notebook/ConnectedNotebookField';
+} from '~/api';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import ConnectedNotebookField from '~/pages/projects/notebook/ConnectedNotebookField';
+import { getSecretsFromList, hasEnvFrom } from '~/pages/projects/pvc/utils';
+import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
+import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import useSelectedNotebooks from './useSelectedNotebooks';
-import { getSecretsFromList, hasEnvFrom } from '../../../pvc/utils';
-import NotebookRestartAlert from '../../../components/NotebookRestartAlert';
-import useWillNotebooksRestart from '../../../notebook/useWillNotebooksRestart';
+import { convertAWSSecretData } from './utils';
 
 type ManageDataConnectionModalProps = {
   existingData?: DataConnection;
@@ -130,9 +130,8 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
             setIsProgress(false);
             return Promise.reject();
           });
-      } else {
-        return Promise.reject();
       }
+      return Promise.reject();
     };
 
     runPromiseActions(true).then(() => runPromiseActions(false).then(() => onBeforeClose(true)));

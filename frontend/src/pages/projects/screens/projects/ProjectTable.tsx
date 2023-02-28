@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
-import { GetColumnSort } from '../../../../utilities/useTableColumnSort';
-import { ProjectKind } from '../../../../k8sTypes';
+import { GetColumnSort } from '~/utilities/useTableColumnSort';
+import { ProjectKind } from '~/k8sTypes';
 import ProjectTableRow from './ProjectTableRow';
 import { columns } from './tableData';
 import ManageProjectModal from './ManageProjectModal';
@@ -70,6 +70,7 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
 
           refreshProjects()
             .then(() => setRefreshIds((ids) => ids.filter((id) => id !== refreshId)))
+            /* eslint-disable-next-line no-console */
             .catch((e) => console.error('Failed refresh', e));
         }}
         editProjectData={editData}
@@ -79,6 +80,7 @@ const ProjectTable: React.FC<ProjectTableProps> = ({
         onClose={(deleted) => {
           setDeleteData(undefined);
           if (deleted) {
+            /* eslint-disable-next-line no-console */
             refreshProjects().catch((e) => console.error('Failed refresh', e));
           }
         }}

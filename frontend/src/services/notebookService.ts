@@ -1,14 +1,12 @@
 import axios from 'axios';
-import { RecursivePartial } from 'typeHelpers';
-import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '../types';
+import { RecursivePartial } from '~/typeHelpers';
+import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '~/types';
 
 export const getNotebook = (namespace: string, name: string): Promise<Notebook> => {
   const url = `/api/notebooks/${namespace}/${name}`;
   return axios
     .get(url)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });
@@ -28,7 +26,7 @@ export const getNotebookAndStatus = (
       if (e.response.status === 404) {
         return { notebook, isRunning: false };
       }
-
+      /* eslint-disable-next-line no-console */
       console.error(
         'Checking notebook status failed, falling back on notebook check logic',
         e.response.data.message,
@@ -49,9 +47,7 @@ export const enableNotebook = async (notebookData: NotebookData): Promise<Notebo
 
   return axios
     .post(url, notebookData)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });
@@ -68,9 +64,7 @@ export const stopNotebook = (username?: string): Promise<Notebook> => {
 
   return axios
     .patch(url, patch)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });

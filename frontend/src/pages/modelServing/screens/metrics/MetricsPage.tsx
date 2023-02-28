@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { BreadcrumbItemType } from '../../../../types';
-import ApplicationsPage from '../../../ApplicationsPage';
+import { BreadcrumbItemType } from '~/types';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 import MetricsChart from './MetricsChart';
 import MetricsPageToolbar from './MetricsPageToolbar';
 import { ModelServingMetricsContext, ModelServingMetricType } from './ModelServingMetricsContext';

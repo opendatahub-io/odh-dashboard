@@ -8,8 +8,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import NewProjectButton from './NewProjectButton';
 import { useNavigate } from 'react-router-dom';
+import NewProjectButton from './NewProjectButton';
 
 const EmptyProjects: React.FC = () => {
   const navigate = useNavigate();

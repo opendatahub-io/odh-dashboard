@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { DashboardConfig } from '../types';
-import { POLL_INTERVAL } from '../utilities/const';
-import { useDeepCompareMemoize } from '../utilities/useDeepCompareMemoize';
-import { fetchDashboardConfig } from '../services/dashboardConfigService';
+import { DashboardConfig } from '~/types';
+import { POLL_INTERVAL } from '~/utilities/const';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { fetchDashboardConfig } from '~/services/dashboardConfigService';
 import useTimeBasedRefresh from './useTimeBasedRefresh';
 
 export const useApplicationSettings = (): {
@@ -32,6 +32,7 @@ export const useApplicationSettings = (): {
           if (e?.message?.includes('Error getting Oauth Info for user')) {
             // NOTE: this endpoint only requests oauth because of the security layer, this is not an ironclad use-case
             // Something went wrong on the server with the Oauth, let us just log them out and refresh for them
+            /* eslint-disable-next-line no-console */
             console.error(
               'Something went wrong with the oauth token, please log out...',
               e.message,

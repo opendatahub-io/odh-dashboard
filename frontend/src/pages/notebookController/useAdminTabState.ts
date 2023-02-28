@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { useUser } from '~/redux/selectors';
 import { NotebookControllerTabTypes } from './const';
-import { useUser } from '../../redux/selectors';
 
 export type SetCurrentAdminTab = (newTab: NotebookControllerTabTypes) => void;
 
@@ -12,7 +12,9 @@ const useAdminTabState = (): [
   const { isAdmin } = useUser();
   const setCurrentAdminTab = React.useCallback(
     (newTab: NotebookControllerTabTypes) => {
-      if (!isAdmin) return; // cannot change tab as a non-admin
+      if (!isAdmin) {
+        return;
+      } // cannot change tab as a non-admin
 
       setCurrentTab(newTab);
     },

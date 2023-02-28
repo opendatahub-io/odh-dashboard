@@ -17,11 +17,11 @@ import {
   ChartVoronoiContainer,
   getResizeObserver,
 } from '@patternfly/react-charts';
-import { convertTimestamp, formatToShow, getThresholdData } from './utils';
-import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 import { CubesIcon } from '@patternfly/react-icons';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '../../../../types';
-import { TimeframeTime } from '../const';
+import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { TimeframeTime } from '~/pages/modelServing/screens/const';
+import { ModelServingMetricsContext } from './ModelServingMetricsContext';
+import { convertTimestamp, formatToShow, getThresholdData } from './utils';
 
 type MetricsChartProps = {
   title: string;

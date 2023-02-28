@@ -13,9 +13,7 @@ export const postValidateIsv = (
   const options = { params: searchParams };
   return axios
     .get(url, options)
-    .then((res) => {
-      return res.data;
-    })
+    .then((res) => res.data)
     .catch((e) => {
       throw new Error(e.response.data?.message || e.message);
     });
@@ -32,9 +30,7 @@ export const getValidationStatus = (
   const options = { params: searchParams };
   return axios
     .get(url, options)
-    .then((res) => {
-      return res.data;
-    })
+    .then((res) => res.data)
     .catch((e) => {
       throw new Error(e.response.data?.message || e.message);
     });

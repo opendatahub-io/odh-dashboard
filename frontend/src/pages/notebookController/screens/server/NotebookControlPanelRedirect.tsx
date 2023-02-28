@@ -1,13 +1,10 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '../../../../pages/ApplicationsPage';
-import {
-  useCheckJupyterEnabled,
-  usernameTranslate,
-} from '../../../../utilities/notebookControllerUtils';
-import { NotebookControllerContext } from '../../NotebookControllerContext';
-import { useUser } from '../../../../redux/selectors';
-import { NotebookControllerTabTypes } from '../../const';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import { useCheckJupyterEnabled, usernameTranslate } from '~/utilities/notebookControllerUtils';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
+import { useUser } from '~/redux/selectors';
+import { NotebookControllerTabTypes } from '~/pages/notebookController/const';
 
 const NotebookControlPanelRedirect: React.FC = () => {
   const navigate = useNavigate();

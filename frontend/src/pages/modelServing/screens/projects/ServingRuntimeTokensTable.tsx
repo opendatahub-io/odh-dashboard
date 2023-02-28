@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
 import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
-import { tokenColumns } from '../global/data';
-import { GetColumnSort } from '../../../../utilities/useTableColumnSort';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { tokenColumns } from '~/pages/modelServing/screens/global/data';
+import { GetColumnSort } from '~/utilities/useTableColumnSort';
 import ServingRuntimeTokenTableRow from './ServingRuntimeTokenTableRow';
 
 type ServingRumtimeTokensTableProps = {

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FileUpload, FormGroup } from '@patternfly/react-core';
 import { parse } from 'yaml';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { isConfigMapKind, isStringKeyValuePairObject } from './utils';
-import { EnvVariableDataEntry } from '../../../types';
 
 type ConfigMapUploadFieldProps = {
   onUpdate: (data: EnvVariableDataEntry[]) => void;

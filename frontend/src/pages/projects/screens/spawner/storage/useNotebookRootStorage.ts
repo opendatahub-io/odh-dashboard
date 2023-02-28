@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getPvc } from '../../../../../api';
-import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
-import { ROOT_MOUNT_PATH } from '../../../pvc/const';
+import { getPvc } from '~/api';
+import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 
 const useNotebookRootStorage = (notebook?: NotebookKind): PersistentVolumeClaimKind | undefined => {
   const [pvc, setPvc] = React.useState<PersistentVolumeClaimKind>();
@@ -13,6 +13,7 @@ const useNotebookRootStorage = (notebook?: NotebookKind): PersistentVolumeClaimK
         (volumeMount) => volumeMount.mountPath === ROOT_MOUNT_PATH,
       );
       if (!volumeMount) {
+        /* eslint-disable-next-line no-console */
         console.error('No storage mounted on root path');
         setPvc(undefined);
       } else {

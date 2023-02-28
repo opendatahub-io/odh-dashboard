@@ -1,7 +1,7 @@
-import { InferenceServiceKind, ProjectKind, SecretKind } from '../../../../k8sTypes';
-import { SortableData } from '../../../../utilities/useTableColumnSort';
+import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
+import { SortableData } from '~/utilities/useTableColumnSort';
+import { getProjectDisplayName } from '~/pages/projects/utils';
 import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
-import { getProjectDisplayName } from '../../../projects/utils';
 
 const COL_NAME: SortableData<InferenceServiceKind> = {
   field: 'name',
@@ -18,9 +18,15 @@ const buildProjectCol = (projects: ProjectKind[]): SortableData<InferenceService
     const projectA = projects.find(({ metadata: { name } }) => name === a.metadata.namespace);
     const projectB = projects.find(({ metadata: { name } }) => name === b.metadata.namespace);
     // These should never legit happen -- if they do, let us try to sort as smart as we can
-    if (!projectA && !projectB) return 0;
-    if (!projectA) return -1;
-    if (!projectB) return 1;
+    if (!projectA && !projectB) {
+      return 0;
+    }
+    if (!projectA) {
+      return -1;
+    }
+    if (!projectB) {
+      return 1;
+    }
 
     // Properly sort by display name
     return getProjectDisplayName(projectA).localeCompare(getProjectDisplayName(projectB));

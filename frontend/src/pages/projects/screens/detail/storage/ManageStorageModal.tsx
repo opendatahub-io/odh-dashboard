@@ -8,19 +8,19 @@ import {
   updatePvcDescription,
   updatePvcDisplayName,
   updatePvcSize,
-} from '../../../../../api';
-import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
-import { useCreateStorageObjectForNotebook } from '../../spawner/storage/utils';
-import CreateNewStorageSection from '../../spawner/storage/CreateNewStorageSection';
-import StorageNotebookConnections from '../../../notebook/StorageNotebookConnections';
-import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
+} from '~/api';
+import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { useCreateStorageObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
+import CreateNewStorageSection from '~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
+import StorageNotebookConnections from '~/pages/projects/notebook/StorageNotebookConnections';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
-} from '../../../notebook/useRelatedNotebooks';
-import { getPvcDescription, getPvcDisplayName, getPvcTotalSize } from '../../../utils';
-import NotebookRestartAlert from '../../../components/NotebookRestartAlert';
-import useWillNotebooksRestart from '../../../notebook/useWillNotebooksRestart';
+} from '~/pages/projects/notebook/useRelatedNotebooks';
+import { getPvcDescription, getPvcDisplayName, getPvcTotalSize } from '~/pages/projects/utils';
+import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
+import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 
 import './ManageStorageModal.scss';
 

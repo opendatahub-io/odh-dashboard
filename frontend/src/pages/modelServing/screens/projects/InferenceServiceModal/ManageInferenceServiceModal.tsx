@@ -10,15 +10,20 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { useCreateInferenceServiceObject } from '../utils';
-import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
-import { assembleSecret, createInferenceService, createSecret, updateInferenceService } from 'api';
-import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from 'k8sTypes';
-import ProjectSection from './ProjectSection';
-import { DataConnection } from 'pages/projects/types';
+import { useCreateInferenceServiceObject } from '~/pages/modelServing/screens/projects/utils';
+import {
+  assembleSecret,
+  createInferenceService,
+  createSecret,
+  updateInferenceService,
+} from '~/api';
+import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { DataConnection } from '~/pages/projects/types';
+import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
+import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import DataConnectionSection from './DataConnectionSection';
-import { InferenceServiceStorageType } from '../../types';
-import { isAWSValid } from 'pages/projects/screens/spawner/spawnerUtils';
+import ProjectSection from './ProjectSection';
+import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 
 type ManageInferenceServiceModalProps = {
   isOpen: boolean;
@@ -52,9 +57,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const storageCanCreate = (): boolean => {
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createData.storage.dataConnection !== '';
-    } else {
-      return isAWSValid(createData.storage.awsData);
     }
+    return isAWSValid(createData.storage.awsData);
   };
 
   const canCreate =
@@ -76,8 +80,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     setActionInProgress(false);
   };
 
-  const createAWSSecret = (): Promise<SecretKind> => {
-    return createSecret(
+  const createAWSSecret = (): Promise<SecretKind> =>
+    createSecret(
       assembleSecret(
         createData.project,
         createData.storage.awsData.reduce<Record<string, string>>(
@@ -87,16 +91,14 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
         'aws',
       ),
     );
-  };
 
   const createModel = (): Promise<InferenceServiceKind> => {
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createInferenceService(createData);
-    } else {
-      return createAWSSecret().then((secret) => {
-        return createInferenceService(createData, secret.metadata.name);
-      });
     }
+    return createAWSSecret().then((secret) =>
+      createInferenceService(createData, secret.metadata.name),
+    );
   };
 
   const updateModel = (): Promise<InferenceServiceKind> => {
@@ -105,11 +107,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     }
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return updateInferenceService(createData, editInfo);
-    } else {
-      return createAWSSecret().then((secret) => {
-        return updateInferenceService(createData, editInfo, secret.metadata.name);
-      });
     }
+    return createAWSSecret().then((secret) =>
+      updateInferenceService(createData, editInfo, secret.metadata.name),
+    );
   };
 
   const submit = () => {

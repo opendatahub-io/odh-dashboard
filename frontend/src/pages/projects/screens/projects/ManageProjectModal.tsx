@@ -1,12 +1,16 @@
 import * as React from 'react';
-import { createProject, updateProject } from '../../../../api';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../../../redux/selectors';
-import { ProjectKind } from '../../../../k8sTypes';
-import { getProjectDescription, getProjectDisplayName, isValidK8sName } from '../../utils';
-import NameDescriptionField from '../../components/NameDescriptionField';
-import { NameDescType } from '../../types';
+import { createProject, updateProject } from '~/api';
+import { useUser } from '~/redux/selectors';
+import { ProjectKind } from '~/k8sTypes';
+import {
+  getProjectDescription,
+  getProjectDisplayName,
+  isValidK8sName,
+} from '~/pages/projects/utils';
+import NameDescriptionField from '~/pages/projects/components/NameDescriptionField';
+import { NameDescType } from '~/pages/projects/types';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;

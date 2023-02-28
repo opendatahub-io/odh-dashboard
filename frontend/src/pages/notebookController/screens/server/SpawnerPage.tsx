@@ -9,7 +9,9 @@ import {
   Grid,
   GridItem,
 } from '@patternfly/react-core';
-import { checkOrder, getDefaultTag, isImageTagBuildValid } from '../../../../utilities/imageUtils';
+import { PlusCircleIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
+import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '~/pages/notebookController/const';
 import {
   ImageInfo,
   ImageTag,
@@ -19,36 +21,34 @@ import {
   Secret,
   EnvVarResourceType,
   NotebookState,
-} from '../../../../types';
-import ImageSelector from './ImageSelector';
-import EnvironmentVariablesRow from './EnvironmentVariablesRow';
-import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '../../const';
-import { PlusCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
-import { enableNotebook, stopNotebook } from '../../../../services/notebookService';
+} from '~/types';
+import { checkOrder, getDefaultTag, isImageTagBuildValid } from '~/utilities/imageUtils';
+import { enableNotebook, stopNotebook } from '~/services/notebookService';
 import {
   generateEnvVarFileNameFromUsername,
   verifyResource,
   useNotebookUserState,
   classifyEnvVars,
-} from '../../../../utilities/notebookControllerUtils';
-import { useAppContext } from '../../../../app/AppContext';
-import { useWatchImages } from '../../../../utilities/useWatchImages';
-import ApplicationsPage from '../../../ApplicationsPage';
-import StartServerModal from './StartServerModal';
-import { usePreferredNotebookSize } from './usePreferredNotebookSize';
-import useNotification from '../../../../utilities/useNotification';
-import { NotebookControllerContext } from '../../NotebookControllerContext';
-import ImpersonateAlert from '../admin/ImpersonateAlert';
-import useNamespaces from '../../useNamespaces';
+} from '~/utilities/notebookControllerUtils';
+import { useAppContext } from '~/app/AppContext';
+import { useWatchImages } from '~/utilities/useWatchImages';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import useNotification from '~/utilities/useNotification';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
+import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
+import useNamespaces from '~/pages/notebookController/useNamespaces';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
 import GPUSelectField from './GPUSelectField';
 import SizeSelectField from './SizeSelectField';
-import { fireTrackingEvent } from '../../../../utilities/segmentIOUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
-import { getEnvConfigMap, getEnvSecret } from '../../../../services/envService';
+import EnvironmentVariablesRow from './EnvironmentVariablesRow';
+import ImageSelector from './ImageSelector';
+import { usePreferredNotebookSize } from './usePreferredNotebookSize';
+import StartServerModal from './StartServerModal';
 
-import '../../NotebookController.scss';
+import '~/pages/notebookController/NotebookController.scss';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -92,7 +92,7 @@ const SpawnerPage: React.FC = () => {
         }
       };
       if (currentUserState?.lastSelectedImage) {
-        const [imageName, tagName] = [...currentUserState?.lastSelectedImage.split(':')];
+        const [imageName, tagName] = [...currentUserState.lastSelectedImage.split(':')];
         const image = images.find((image) => image.name === imageName);
         const tag = image?.tags.find((tag) => tag.name === tagName);
         if (image && tag && isImageTagBuildValid(buildStatuses, image, tag)) {
@@ -156,6 +156,7 @@ const SpawnerPage: React.FC = () => {
         setVariableRows([...fetchedVariableRowsConfigMap, ...fetchedVariableRowsSecret]);
       }
     };
+    /* eslint-disable-next-line no-console */
     mapEnvironmentVariableRows().catch((e) => console.error(e));
     return () => {
       cancelled = true;
@@ -335,6 +336,7 @@ const SpawnerPage: React.FC = () => {
                   handleNotebookAction().catch((e) => {
                     setCreateInProgress(false);
                     hideStartShown();
+                    /* eslint-disable-next-line no-console */
                     console.error('Error submitting resources around starting a notebook', e);
                     setSubmitError(e);
                   });

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBrowserStorage } from '../components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage';
 import { logout } from './appUtils';
 
 export type SetTime = (refreshDateMarker: Date) => void;
@@ -24,6 +24,7 @@ const useTimeBasedRefresh = (): SetTime => {
     const lastDate = new Date(ref.current.lastRefreshTimestamp);
     const setNewDateString = ref.current.setLastRefreshTimestamp;
 
+    /* eslint-disable no-console */
     // Print into the console in case we are not refreshing or the browser has preserve log enabled
     console.warn('Attempting to re-trigger an auto refresh');
     console.log('Last refresh was on:', lastDate);
@@ -39,6 +40,7 @@ const useTimeBasedRefresh = (): SetTime => {
         `We should have refreshed but it appears the last time we auto-refreshed was less than an hour ago. '${KEY_NAME}' session storage setting can be cleared for this to refresh again within the hour from the last refresh.`,
       );
     }
+    /* eslint-enable no-console */
   }, []);
 };
 

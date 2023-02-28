@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button, Modal, ModalVariant } from '@patternfly/react-core';
-import { Notebook } from '../../../../types';
-import { stopNotebook } from '../../../../services/notebookService';
-import useNotification from '../../../../utilities/useNotification';
-import { allSettledPromises } from '../../../../utilities/allSettledPromises';
-import { useUser } from 'redux/selectors';
+import { Notebook } from '~/types';
+import { stopNotebook } from '~/services/notebookService';
+import useNotification from '~/utilities/useNotification';
+import { allSettledPromises } from '~/utilities/allSettledPromises';
+import { useUser } from '~/redux/selectors';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
@@ -31,14 +31,18 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
     allSettledPromises<Notebook | void>(
       notebooksToStop.map((notebook) => {
         const notebookName = notebook.metadata.name || '';
-        if (!notebookName) return Promise.resolve();
+        if (!notebookName) {
+          return Promise.resolve();
+        }
 
         if (!isAdmin) {
           return stopNotebook();
         }
 
         const notebookUser = notebook.metadata.annotations?.['opendatahub.io/username'];
-        if (!notebookUser) return Promise.resolve();
+        if (!notebookUser) {
+          return Promise.resolve();
+        }
 
         return stopNotebook(notebookUser);
       }),

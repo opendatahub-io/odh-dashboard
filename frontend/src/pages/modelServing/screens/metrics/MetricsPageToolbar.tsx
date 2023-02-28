@@ -9,10 +9,10 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
+import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { relativeTime } from '~/utilities/time';
 import { isTimeframeTitle } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
-import { TimeframeTitle } from '../types';
-import { relativeTime } from '../../../../utilities/time';
 
 const MetricsPageToolbar: React.FC = () => {
   const [timeframeOpen, setTimeframeOpen] = React.useState(false);

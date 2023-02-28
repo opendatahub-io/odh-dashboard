@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getNotebookEvents } from '../services/notebookEventsService';
+import { getNotebookEvents } from '~/services/notebookEventsService';
+import { K8sEvent } from '~/types';
 import useNotification from './useNotification';
-import { K8sEvent } from '../types';
 import { FAST_POLL_INTERVAL } from './const';
 
 export const useWatchNotebookEvents = (

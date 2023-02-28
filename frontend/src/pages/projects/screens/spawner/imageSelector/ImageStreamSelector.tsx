@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
-import { BuildStatus } from '../types';
+import { BuildStatus } from '~/pages/projects/screens/spawner/types';
 import {
   checkImageStreamAvailability,
   compareImageStreamOrder,
   getImageStreamSelectOptionObject,
   getRelatedVersionDescription,
   isImageStreamSelectOptionObject,
-} from '../spawnerUtils';
-import { ImageStreamKind } from '../../../../../k8sTypes';
+} from '~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamKind } from '~/k8sTypes';
 
 type ImageStreamSelectorProps = {
   imageStreams: ImageStreamKind[];

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Button, ButtonVariant, Flex, FlexItem, Icon, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { NotebookKind } from '../../../k8sTypes';
+import { NotebookKind } from '~/k8sTypes';
+import { getNotebookDisplayName } from '~/pages/projects/utils';
 import useRouteForNotebook from './useRouteForNotebook';
-import { getNotebookDisplayName } from '../utils';
 import { hasStopAnnotation } from './utils';
 
 type NotebookRouteLinkProps = {

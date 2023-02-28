@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getServingRuntimeContext } from '../../api/network/servingRuntimes';
-import { ServingRuntimeKind } from '../../k8sTypes';
+import { getServingRuntimeContext } from '~/api';
+import { ServingRuntimeKind } from '~/k8sTypes';
 
 const useServingRuntimes = (
   namespace?: string,
@@ -15,19 +15,21 @@ const useServingRuntimes = (
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
   // Now there's only one model server in the cluster, in the future, we may have multiple model servers
-  const fetchServingRuntimes = React.useCallback(() => {
-    return getServingRuntimeContext(namespace, 'opendatahub.io/dashboard=true')
-      .then((newServingRuntimes) => {
-        setModelServers(newServingRuntimes);
-      })
-      .catch((e) => {
-        if (e.statusObject?.code === 404) {
-          setError(new Error('Model serving is not properly configured.'));
-          return;
-        }
-        setError(e);
-      });
-  }, [namespace]);
+  const fetchServingRuntimes = React.useCallback(
+    () =>
+      getServingRuntimeContext(namespace, 'opendatahub.io/dashboard=true')
+        .then((newServingRuntimes) => {
+          setModelServers(newServingRuntimes);
+        })
+        .catch((e) => {
+          if (e.statusObject?.code === 404) {
+            setError(new Error('Model serving is not properly configured.'));
+            return;
+          }
+          setError(e);
+        }),
+    [namespace],
+  );
 
   React.useEffect(() => {
     if (!loaded) {

@@ -1,15 +1,10 @@
 import * as React from 'react';
-import { K8sStatus, NotebookKind } from '../../../k8sTypes';
-import { getNotebookDisplayName } from '../utils';
-import {
-  DATA_CONNECTION_PREFIX,
-  deleteConfigMap,
-  deleteNotebook,
-  deleteSecret,
-} from '../../../api';
-import DeleteModal from '../components/DeleteModal';
-import { getEnvFromList } from '../pvc/utils';
-import { ConfigMapRef, SecretRef } from '../types';
+import { K8sStatus, NotebookKind } from '~/k8sTypes';
+import { getNotebookDisplayName } from '~/pages/projects/utils';
+import { DATA_CONNECTION_PREFIX, deleteConfigMap, deleteNotebook, deleteSecret } from '~/api';
+import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { getEnvFromList } from '~/pages/projects/pvc/utils';
+import { ConfigMapRef, SecretRef } from '~/pages/projects/types';
 
 type DeleteNotebookModalProps = {
   notebook?: NotebookKind;

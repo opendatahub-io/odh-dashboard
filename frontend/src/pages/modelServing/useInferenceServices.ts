@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getInferenceServiceContext } from '../../api';
-import { InferenceServiceKind } from '../../k8sTypes';
+import { getInferenceServiceContext } from '~/api';
+import { InferenceServiceKind } from '~/k8sTypes';
 
 const useInferenceServices = (
   namespace?: string,
@@ -14,15 +14,17 @@ const useInferenceServices = (
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
-  const fetchInferenceServices = React.useCallback(() => {
-    return getInferenceServiceContext(namespace, 'opendatahub.io/dashboard=true')
-      .then((newInferenceServices) => {
-        setInferenceServices(newInferenceServices);
-      })
-      .catch((e) => {
-        setLoadError(e);
-      });
-  }, [namespace]);
+  const fetchInferenceServices = React.useCallback(
+    () =>
+      getInferenceServiceContext(namespace, 'opendatahub.io/dashboard=true')
+        .then((newInferenceServices) => {
+          setInferenceServices(newInferenceServices);
+        })
+        .catch((e) => {
+          setLoadError(e);
+        }),
+    [namespace],
+  );
 
   React.useEffect(() => {
     if (!loaded) {

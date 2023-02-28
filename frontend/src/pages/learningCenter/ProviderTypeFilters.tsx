@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { OdhDocument } from '../../types';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
-import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
-import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
+import { OdhDocument } from '~/types';
+import FilterSidePanelCategoryItem from '~/components/FilterSidePanelCategoryItem';
+import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { PROVIDER_TYPE_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
-import { ODH_PRODUCT_NAME } from 'utilities/const';
 
 type ProviderTypeFiltersProps = {
   docApps: OdhDocument[];
@@ -75,20 +75,18 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
           }
           return a.localeCompare(b);
         })
-        .map((providerType) => {
-          return (
-            <FilterSidePanelCategoryItem
-              data-id={providerType}
-              id={providerType}
-              key={providerType}
-              checked={providerTypeFilters.includes(providerType)}
-              onClick={(e) => onFilterChange(providerType, e)}
-              title={providerType}
-            >
-              {`${providerType} (${providerTypes[providerType]})`}
-            </FilterSidePanelCategoryItem>
-          );
-        })}
+        .map((providerType) => (
+          <FilterSidePanelCategoryItem
+            data-id={providerType}
+            id={providerType}
+            key={providerType}
+            checked={providerTypeFilters.includes(providerType)}
+            onClick={(e) => onFilterChange(providerType, e)}
+            title={providerType}
+          >
+            {`${providerType} (${providerTypes[providerType]})`}
+          </FilterSidePanelCategoryItem>
+        ))}
     </FilterSidePanelCategory>
   );
 };

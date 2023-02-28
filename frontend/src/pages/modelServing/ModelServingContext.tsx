@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { ServingRuntimeKind, InferenceServiceKind, ProjectKind } from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -12,12 +11,13 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { DEFAULT_CONTEXT_DATA } from '../../utilities/const';
-import useServingRuntimes from './useServingRuntimes';
+import { ServingRuntimeKind, InferenceServiceKind, ProjectKind } from '~/k8sTypes';
+import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import { ContextResourceData } from '~/types';
+import { useContextResourceData } from '~/utilities/useContextResourceData';
+import useUserProjects from '~/pages/projects/screens/projects/useUserProjects';
 import useInferenceServices from './useInferenceServices';
-import { ContextResourceData } from '../../types';
-import { useContextResourceData } from '../../utilities/useContextResourceData';
-import useUserProjects from '../projects/screens/projects/useUserProjects';
+import useServingRuntimes from './useServingRuntimes';
 
 type ModelServingContextType = {
   refreshAllData: () => void;

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
-import { StorageData, StorageType, UpdateObjectAtPropAndValue } from '../../../types';
+import { StorageData, StorageType, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { getDashboardMainContainer } from '~/utilities/utils';
 import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageField from './AddExistingStorageField';
-import { getDashboardMainContainer } from '../../../../../utilities/utils';
 
-import '../../detail/storage/ManageStorageModal.scss';
+import '~/pages/projects/screens/detail/storage/ManageStorageModal.scss';
 
 type StorageFieldType = {
   storageData: StorageData;

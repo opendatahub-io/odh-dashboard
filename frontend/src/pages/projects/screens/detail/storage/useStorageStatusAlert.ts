@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { useBrowserStorage } from '../../../../../components/browserStorage';
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
-import useNotification from '../../../../../utilities/useNotification';
-import { getPvcDisplayName } from '../../../utils';
+import { useBrowserStorage } from '~/components/browserStorage';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import useNotification from '~/utilities/useNotification';
+import { getPvcDisplayName } from '~/pages/projects/utils';
 import { getFullStatusFromPercentage } from './utils';
 
 type PercentageStorageStatus = {

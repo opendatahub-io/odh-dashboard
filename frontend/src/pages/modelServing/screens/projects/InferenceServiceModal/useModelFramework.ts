@@ -1,6 +1,6 @@
-import { getServingRuntime } from 'api';
-import { SupportedModelFormats } from 'k8sTypes';
 import * as React from 'react';
+import { getServingRuntime } from '~/api';
+import { SupportedModelFormats } from '~/k8sTypes';
 
 const useModelFramework = (
   name?: string,

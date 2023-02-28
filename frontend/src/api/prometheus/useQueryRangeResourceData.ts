@@ -1,7 +1,7 @@
-import { TimeframeStep, TimeframeTime } from '../../pages/modelServing/screens/const';
-import { TimeframeTitle } from '../../pages/modelServing/screens/types';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '../../types';
-import { useContextResourceData } from '../../utilities/useContextResourceData';
+import { TimeframeStep, TimeframeTime } from '~/pages/modelServing/screens/const';
+import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { useContextResourceData } from '~/utilities/useContextResourceData';
 import usePrometheusQueryRange from './usePrometheusQueryRange';
 
 const useQueryRangeResourceData = (

@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { DATA_CONNECTION_PREFIX, getConfigMap, getSecret } from '../../../../../api';
-import { ConfigMapKind, NotebookKind, SecretKind } from '../../../../../k8sTypes';
-import { EnvVarResourceType } from '../../../../../types';
+import { DATA_CONNECTION_PREFIX, getConfigMap, getSecret } from '~/api';
+import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
+import { EnvVarResourceType } from '~/types';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
-} from '../../../types';
+} from '~/pages/projects/types';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
@@ -18,9 +18,8 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           return getConfigMap(notebook.metadata.namespace, envFrom.configMapRef.name);
         } else if (envFrom.secretRef) {
           return getSecret(notebook.metadata.namespace, envFrom.secretRef.name);
-        } else {
-          return Promise.resolve(undefined);
         }
+        return Promise.resolve(undefined);
       })
       .filter((v): v is Promise<SecretKind | ConfigMapKind> => !!v),
   ).then((results) =>
@@ -65,6 +64,7 @@ export const useNotebookEnvVariables = (
     if (notebook) {
       fetchNotebookEnvVariables(notebook)
         .then((envVars) => setEnvVariables(envVars))
+        /* eslint-disable-next-line no-console */
         .catch((e) => console.error('Reading environment variables failed: ', e));
     }
   }, [notebook]);

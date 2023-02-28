@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import NotFound from '../../../NotFound';
-import { ModelServingContext } from '../../ModelServingContext';
+import { Bullseye, Spinner } from '@patternfly/react-core';
+import NotFound from '~/pages/NotFound';
+import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import { ModelServingMetricsProvider } from './ModelServingMetricsContext';
-import { getInferenceServiceDisplayName } from '../global/utils';
 import MetricsPage from './MetricsPage';
 import { getInferenceServiceMetricsQueries } from './utils';
-import { Bullseye, Spinner } from '@patternfly/react-core';
 
 const ModelServingMetricsWrapper: React.FC = () => {
   const { project: projectName, inferenceService: modelName } =

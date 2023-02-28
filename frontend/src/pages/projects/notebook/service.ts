@@ -1,6 +1,6 @@
-import { NotebookKind, PodKind } from '../../../k8sTypes';
+import { NotebookKind, PodKind } from '~/k8sTypes';
+import { getPodsForNotebook } from '~/api';
 import { NotebookDataState } from './types';
-import { getPodsForNotebook } from '../../../api';
 import { hasStopAnnotation } from './utils';
 
 const checkPodContainersReady = (pod: PodKind): boolean => {
@@ -41,6 +41,5 @@ export const getNotebooksStatus = async (
   );
 };
 
-export const getNotebookStatus = async (notebook: NotebookKind): Promise<NotebookDataState> => {
-  return getNotebooksStatus([notebook]).then((states) => states[0]);
-};
+export const getNotebookStatus = async (notebook: NotebookKind): Promise<NotebookDataState> =>
+  getNotebooksStatus([notebook]).then((states) => states[0]);

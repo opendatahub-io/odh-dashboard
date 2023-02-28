@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormGroup, FormSection, NumberInput } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingServingRuntimeObject } from '../../types';
-import { isHTMLInputElement, normalizeBetween } from 'utilities/utils';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import { isHTMLInputElement, normalizeBetween } from '~/utilities/utils';
 
 type ServingRuntimeReplicaSectionProps = {
   data: CreatingServingRuntimeObject;

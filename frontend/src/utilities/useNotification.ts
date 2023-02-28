@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { addNotification } from '../redux/actions/actions';
-import { useAppDispatch } from '../redux/hooks';
+import { addNotification } from '~/redux/actions/actions';
+import { useAppDispatch } from '~/redux/hooks';
 
 type NotificationProps = (title: string, message?: React.ReactNode) => void;
 

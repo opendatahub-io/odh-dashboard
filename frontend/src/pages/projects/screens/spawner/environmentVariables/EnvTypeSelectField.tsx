@@ -8,10 +8,10 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { EnvironmentVariableType, EnvVariable } from '../../../types';
 import { MinusCircleIcon } from '@patternfly/react-icons';
+import { EnvironmentVariableType, EnvVariable } from '~/pages/projects/types';
+import IndentSection from '~/pages/projects/components/IndentSection';
 import EnvTypeSwitch from './EnvTypeSwitch';
-import IndentSection from '../../../components/IndentSection';
 
 type EnvTypeSelectFieldProps = {
   envVariable: EnvVariable;

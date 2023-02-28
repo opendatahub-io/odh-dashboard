@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { OdhDocument } from '../../types';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
-import FilterSidePanelCategoryItem from '../../components/FilterSidePanelCategoryItem';
-import { removeQueryArgument, setQueryArgument } from '../../utilities/router';
+import { OdhDocument } from '~/types';
+import FilterSidePanelCategoryItem from '~/components/FilterSidePanelCategoryItem';
+import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { APPLICATION_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
 
@@ -65,20 +65,18 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
     >
       {Object.keys(applications)
         .sort((a, b) => a.localeCompare(b))
-        .map((application) => {
-          return (
-            <FilterSidePanelCategoryItem
-              data-id={application}
-              id={application}
-              key={application}
-              checked={providerFilters.includes(application)}
-              onClick={(e) => onFilterChange(application, e)}
-              title={application}
-            >
-              {`${application} (${applications[application]})`}
-            </FilterSidePanelCategoryItem>
-          );
-        })}
+        .map((application) => (
+          <FilterSidePanelCategoryItem
+            data-id={application}
+            id={application}
+            key={application}
+            checked={providerFilters.includes(application)}
+            onClick={(e) => onFilterChange(application, e)}
+            title={application}
+          >
+            {`${application} (${applications[application]})`}
+          </FilterSidePanelCategoryItem>
+        ))}
     </FilterSidePanelCategory>
   );
 };

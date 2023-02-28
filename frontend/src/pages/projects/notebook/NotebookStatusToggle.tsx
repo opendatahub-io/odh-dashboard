@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Flex, FlexItem, Switch } from '@patternfly/react-core';
-import { startNotebook, stopNotebook } from '../../../api';
+import { startNotebook, stopNotebook } from '~/api';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useNotebookGPUNumber';
+import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
+import { computeNotebooksTolerations } from '~/utilities/tolerations';
+import { useAppContext } from '~/app/AppContext';
 import { NotebookState } from './types';
 import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import NotebookStatusText from './NotebookStatusText';
-import { fireTrackingEvent } from '../../../utilities/segmentIOUtils';
-import useNotebookGPUNumber from '../screens/detail/notebooks/useNotebookGPUNumber';
-import useNotebookDeploymentSize from '../screens/detail/notebooks/useNotebookDeploymentSize';
-import { computeNotebooksTolerations } from '../../../utilities/tolerations';
-import { useAppContext } from '../../../app/AppContext';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;

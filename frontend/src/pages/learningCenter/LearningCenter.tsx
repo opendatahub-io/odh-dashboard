@@ -3,13 +3,16 @@ import * as _ from 'lodash';
 import useDimensions from 'react-cool-dimensions';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhDocument, OdhDocumentType } from '../../types';
-import { useWatchComponents } from '../../utilities/useWatchComponents';
-import { useWatchDocs } from '../../utilities/useWatchDocs';
-import { useBrowserStorage } from '../../components/browserStorage';
-import { useQueryParams } from '../../utilities/useQueryParams';
-import ApplicationsPage from '../ApplicationsPage';
-import QuickStarts from '../../app/QuickStarts';
+import { OdhDocument, OdhDocumentType } from '~/types';
+import { useWatchComponents } from '~/utilities/useWatchComponents';
+import { useWatchDocs } from '~/utilities/useWatchDocs';
+import { useBrowserStorage } from '~/components/browserStorage';
+import { useQueryParams } from '~/utilities/useQueryParams';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import QuickStarts from '~/app/QuickStarts';
+import { DOC_LINK, ODH_PRODUCT_NAME } from '~/utilities/const';
+import { combineCategoryAnnotations } from '~/utilities/utils';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import {
   DOC_SORT_KEY,
   DOC_SORT_ORDER_KEY,
@@ -26,9 +29,6 @@ import {
 import LearningCenterToolbar from './LearningCenterToolbar';
 import LearningCenterFilters from './LearningCenterFilters';
 import { useDocFilterer } from './useDocFilterer';
-import { DOC_LINK, ODH_PRODUCT_NAME } from '../../utilities/const';
-import { combineCategoryAnnotations } from '../../utilities/utils';
-import { useDeepCompareMemoize } from '../../utilities/useDeepCompareMemoize';
 import LearningCenterDataView from './LearningCenterDataView';
 
 import './LearningCenter.scss';

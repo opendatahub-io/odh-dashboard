@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Chip, ChipGroup, FormGroup, Spinner, Text } from '@patternfly/react-core';
-import { getNotebookDisplayName } from '../../../utils';
-import { NotebookKind } from '../../../../../k8sTypes';
+import { getNotebookDisplayName } from '~/pages/projects/utils';
+import { NotebookKind } from '~/k8sTypes';
 
 type ExistingConnectedNotebooksProps = {
   connectedNotebooks: NotebookKind[];

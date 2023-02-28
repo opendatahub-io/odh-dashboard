@@ -1,5 +1,5 @@
-import { SortableData } from '../../../../../utilities/useTableColumnSort';
-import { DataConnection } from '../../../types';
+import { SortableData } from '~/utilities/useTableColumnSort';
+import { DataConnection } from '~/pages/projects/types';
 import { getDataConnectionDisplayName } from './utils';
 
 export const columns: SortableData<DataConnection>[] = [

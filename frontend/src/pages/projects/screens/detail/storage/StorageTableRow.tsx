@@ -8,13 +8,13 @@ import {
   Tr,
 } from '@patternfly/react-table';
 import { Flex, FlexItem, Text, Title } from '@patternfly/react-core';
-import { getPvcDescription, getPvcDisplayName } from '../../../utils';
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
 import { HddIcon } from '@patternfly/react-icons';
-import StorageSizeBar from '../../../components/StorageSizeBars';
-import ConnectedNotebookNames from '../../../notebook/ConnectedNotebookNames';
-import { ConnectedNotebookContext } from '../../../notebook/useRelatedNotebooks';
-import ResourceNameTooltip from '../../../components/ResourceNameTooltip';
+import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
+import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
+import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
+import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 

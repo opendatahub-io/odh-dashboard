@@ -1,5 +1,5 @@
-import { NotebookKind } from '../../../../../k8sTypes';
-import { ContainerResourceAttributes, GPUCount, NotebookContainer } from '../../../../../types';
+import { NotebookKind } from '~/k8sTypes';
+import { ContainerResourceAttributes, GPUCount, NotebookContainer } from '~/types';
 
 const useNotebookGPUNumber = (notebook?: NotebookKind): GPUCount => {
   const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(

@@ -8,11 +8,11 @@ import {
   MastheadToggle,
   PageToggleButton,
 } from '@patternfly/react-core';
-import HeaderTools from './HeaderTools';
-import { ODH_LOGO, ODH_PRODUCT_NAME } from '../utilities/const';
-import { useUser } from '../redux/selectors';
 import { BarsIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import { ODH_LOGO, ODH_PRODUCT_NAME } from '~/utilities/const';
+import { useUser } from '~/redux/selectors';
+import HeaderTools from './HeaderTools';
 
 type HeaderProps = {
   onNotificationsClick: () => void;

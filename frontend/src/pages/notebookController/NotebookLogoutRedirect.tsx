@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getNotebook } from '../../services/notebookService';
-import ApplicationsPage from '../../pages/ApplicationsPage';
-import useNotification from '../../utilities/useNotification';
-import useRouteForNotebook from '../projects/notebook/useRouteForNotebook';
+import { getNotebook } from '~/services/notebookService';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import useNotification from '~/utilities/useNotification';
+import useRouteForNotebook from '~/pages/projects/notebook/useRouteForNotebook';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -36,6 +36,7 @@ const NotebookLogoutRedirect: React.FC = () => {
           if (cancelled) {
             return;
           }
+          /* eslint-disable-next-line no-console */
           console.error(e);
         });
     }

@@ -1,6 +1,6 @@
-import { InferenceServiceKind, SecretKind } from '../../../../k8sTypes';
-import { getDisplayNameFromK8sResource } from '../../../projects/utils';
-import { InferenceServiceModelState } from '../types';
+import { InferenceServiceKind, SecretKind } from '~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 
 export const getInferenceServiceDisplayName = (is: InferenceServiceKind): string =>
   getDisplayNameFromK8sResource(is);

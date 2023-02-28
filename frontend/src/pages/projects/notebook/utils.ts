@@ -1,14 +1,13 @@
-import { EventKind, NotebookKind } from '../../../k8sTypes';
-import { EventStatus, NotebookStatus } from '../../../types';
+import { EventKind, NotebookKind } from '~/k8sTypes';
+import { EventStatus, NotebookStatus } from '~/types';
+import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
-import { ROOT_MOUNT_PATH } from '../pvc/const';
 
-export const hasStopAnnotation = (notebook: NotebookKind): boolean => {
-  return !!(
+export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
+  !!(
     notebook.metadata.annotations?.['kubeflow-resource-stopped'] &&
     notebook.metadata.annotations['kubeflow-resource-stopped'] !== 'odh-notebook-controller-lock'
   );
-};
 
 export const getNotebookPVCVolumeNames = (notebook: NotebookKind): { [name: string]: string } =>
   (notebook.spec.template.spec.volumes || []).reduce((acc, volume) => {
@@ -34,8 +33,8 @@ export const getNotebookPVCMountPathMap = (
 
   const pvcVolumeNames = getNotebookPVCVolumeNames(notebook);
 
-  return notebook.spec.template.spec.containers.reduce((acc, container) => {
-    return {
+  return notebook.spec.template.spec.containers.reduce(
+    (acc, container) => ({
       ...acc,
       ...(container.volumeMounts || []).reduce((acc, volumeMount) => {
         const claimName = pvcVolumeNames[volumeMount.name];
@@ -45,8 +44,9 @@ export const getNotebookPVCMountPathMap = (
 
         return { ...acc, [claimName]: relativeMountPath(volumeMount.mountPath) };
       }, {}),
-    };
-  }, {});
+    }),
+    {},
+  );
 };
 
 export const getNotebookMountPaths = (notebook?: NotebookKind): string[] => {

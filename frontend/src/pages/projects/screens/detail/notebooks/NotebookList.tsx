@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import EmptyDetailsList from '../EmptyDetailsList';
-import { ProjectSectionID } from '../types';
-import DetailsSection from '../DetailsSection';
-import { ProjectSectionTitles } from '../const';
-import { ProjectDetailsContext } from '../../../ProjectDetailsContext';
 import { useNavigate } from 'react-router-dom';
+import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
+import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import NotebookTable from './NotebookTable';
-import { FAST_POLL_INTERVAL } from '../../../../../utilities/const';
 
 const NotebookList: React.FC = () => {
   const {

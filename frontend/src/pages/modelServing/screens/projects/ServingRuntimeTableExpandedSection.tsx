@@ -1,17 +1,20 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '../../../../k8sTypes';
-import useTableColumnSort from '../../../../utilities/useTableColumnSort';
-import EmptyTableCellForAlignment from '../../../projects/components/EmptyTableCellForAlignment';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
-import { getProjectInferenceServiceColumns, tokenColumns } from '../global/data';
-import InferenceServiceTable from '../global/InferenceServiceTable';
-import { ServingRuntimeTableTabs } from '../types';
+import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import useTableColumnSort from '~/utilities/useTableColumnSort';
+import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import {
+  getProjectInferenceServiceColumns,
+  tokenColumns,
+} from '~/pages/modelServing/screens/global/data';
+import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
+import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import ScrollViewOnMount from '~/components/ScrollViewOnMount';
 import ServingRumtimeTokensTable from './ServingRuntimeTokensTable';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
 import { isServingRuntimeTokenEnabled } from './utils';
 import EmptyInferenceServicesCell from './EmptyInferenceServicesCell';
-import ScrollViewOnMount from '../../../../components/ScrollViewOnMount';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;

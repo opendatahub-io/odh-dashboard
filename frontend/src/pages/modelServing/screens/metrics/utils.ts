@@ -1,9 +1,9 @@
 import * as _ from 'lodash';
 import { SelectOptionObject } from '@patternfly/react-core';
-import { TimeframeTitle } from '../types';
-import { InferenceServiceKind } from '../../../../k8sTypes';
+import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { InferenceServiceKind } from '~/k8sTypes';
+import { DashboardConfig } from '~/types';
 import { ModelServingMetricType } from './ModelServingMetricsContext';
-import { DashboardConfig } from 'types';
 
 export const isModelMetricsEnabled = (
   dashboardNamespace: string,
@@ -11,9 +11,8 @@ export const isModelMetricsEnabled = (
 ): boolean => {
   if (dashboardNamespace === 'redhat-ods-applications') {
     return true;
-  } else {
-    return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
   }
+  return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
 };
 
 export const getInferenceServiceMetricsQueries = (

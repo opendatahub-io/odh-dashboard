@@ -8,15 +8,15 @@ import {
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash';
-import { NotebookModel } from '../models';
-import { K8sAPIOptions, K8sStatus, NotebookKind } from '../../k8sTypes';
-import { usernameTranslate } from '../../utilities/notebookControllerUtils';
-import { EnvironmentFromVariable, StartNotebookData } from '../../pages/projects/types';
-import { ROOT_MOUNT_PATH } from '../../pages/projects/pvc/const';
-import { translateDisplayNameForK8s } from '../../pages/projects/utils';
+import { NotebookModel } from '~/api/models';
+import { K8sAPIOptions, K8sStatus, NotebookKind } from '~/k8sTypes';
+import { usernameTranslate } from '~/utilities/notebookControllerUtils';
+import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
+import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
+import { mergeK8sQueryParams } from '~/api/apiMergeUtils';
 import { assemblePodSpecOptions } from './utils';
-import { getTolerationPatch, TolerationChanges } from '../../utilities/tolerations';
-import { mergeK8sQueryParams } from 'api/apiMergeUtils';
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
   const {
@@ -151,27 +151,24 @@ const getStopPatch = (): Patch => ({
   value: getStopPatchDataString(),
 });
 
-export const getNotebooks = (namespace: string): Promise<NotebookKind[]> => {
-  return k8sListResource<NotebookKind>({
+export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
+  k8sListResource<NotebookKind>({
     model: NotebookModel,
     queryOptions: { ns: namespace },
   }).then((listResource) => listResource.items);
-};
 
-export const getNotebook = (name: string, namespace: string): Promise<NotebookKind> => {
-  return k8sGetResource<NotebookKind>({
+export const getNotebook = (name: string, namespace: string): Promise<NotebookKind> =>
+  k8sGetResource<NotebookKind>({
     model: NotebookModel,
     queryOptions: { name, ns: namespace },
   });
-};
 
-export const stopNotebook = (name: string, namespace: string): Promise<NotebookKind> => {
-  return k8sPatchResource<NotebookKind>({
+export const stopNotebook = (name: string, namespace: string): Promise<NotebookKind> =>
+  k8sPatchResource<NotebookKind>({
     model: NotebookModel,
     queryOptions: { name, ns: namespace },
     patches: [getStopPatch()],
   });
-};
 
 export const startNotebook = (
   name: string,
@@ -232,8 +229,8 @@ export const updateNotebook = (
 export const createNotebookWithoutStarting = (
   data: StartNotebookData,
   username: string,
-): Promise<NotebookKind> => {
-  return new Promise((resolve, reject) =>
+): Promise<NotebookKind> =>
+  new Promise((resolve, reject) =>
     createNotebook(data, username).then((notebook) =>
       setTimeout(
         () =>
@@ -244,14 +241,12 @@ export const createNotebookWithoutStarting = (
       ),
     ),
   );
-};
 
-export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> => {
-  return k8sDeleteResource<NotebookKind, K8sStatus>({
+export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
+  k8sDeleteResource<NotebookKind, K8sStatus>({
     model: NotebookModel,
     queryOptions: { name: notebookName, ns: namespace },
   });
-};
 
 export const attachNotebookSecret = (
   notebookName: string,
@@ -343,8 +338,8 @@ export const removeNotebookPVC = (
   notebookName: string,
   namespace: string,
   pvcName: string,
-): Promise<NotebookKind> => {
-  return new Promise((resolve, reject) => {
+): Promise<NotebookKind> =>
+  new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
       .then((notebook) => {
         const volumes = notebook.spec.template.spec.volumes || [];
@@ -381,14 +376,13 @@ export const removeNotebookPVC = (
       })
       .catch(reject);
   });
-};
 
 export const removeNotebookSecret = (
   notebookName: string,
   namespace: string,
   secretName: string,
-): Promise<NotebookKind> => {
-  return new Promise((resolve, reject) => {
+): Promise<NotebookKind> =>
+  new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
       .then((notebook) => {
         const envFroms = notebook.spec.template.spec.containers[0].envFrom || [];
@@ -415,4 +409,3 @@ export const removeNotebookSecret = (
       })
       .catch(reject);
   });
-};

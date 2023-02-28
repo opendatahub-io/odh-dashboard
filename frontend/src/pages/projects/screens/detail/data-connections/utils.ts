@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { deleteSecret } from '../../../../../api';
-import { K8sStatus } from '../../../../../k8sTypes';
-import { AWS_KEYS } from '../../../dataConnections/const';
+import { deleteSecret } from '~/api';
+import { K8sStatus } from '~/k8sTypes';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import {
   AWSDataEntry,
   DataConnection,
   DataConnectionAWS,
   DataConnectionType,
-} from '../../../types';
-import { getSecretDescription, getSecretDisplayName } from '../../../utils';
+} from '~/pages/projects/types';
+import { getSecretDescription, getSecretDisplayName } from '~/pages/projects/utils';
 import { DATA_CONNECTION_TYPES } from './connectionRenderers';
 
 export const isDataConnectionAWS = (

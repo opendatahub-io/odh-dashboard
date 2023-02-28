@@ -7,18 +7,16 @@ type ExternalLinkProps = {
   to: string;
 };
 
-const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to }) => {
-  return (
-    <Button
-      variant="link"
-      isInline
-      onClick={() => window.open(to)}
-      icon={<ExternalLinkAltIcon />}
-      iconPosition="right"
-    >
-      {text}
-    </Button>
-  );
-};
+const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to }) => (
+  <Button
+    variant="link"
+    isInline
+    onClick={() => window.open(to)}
+    icon={<ExternalLinkAltIcon />}
+    iconPosition="right"
+  >
+    {text}
+  </Button>
+);
 
 export default ExternalLink;

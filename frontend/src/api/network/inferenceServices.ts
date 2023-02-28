@@ -6,10 +6,10 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceModel } from 'api/models';
-import { InferenceServiceKind, K8sStatus } from 'k8sTypes';
-import { CreatingInferenceServiceObject } from 'pages/modelServing/screens/types';
-import { translateDisplayNameForK8s } from 'pages/projects/utils';
+import { InferenceServiceModel } from '~/api/models';
+import { InferenceServiceKind, K8sStatus } from '~/k8sTypes';
+import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getModelServingProjects } from './projects';
 
 const assembleInferenceService = (
@@ -71,15 +71,14 @@ export const listInferenceService = (
 
 export const listScopedInferenceService = (
   labelSelector?: string,
-): Promise<InferenceServiceKind[]> => {
-  return getModelServingProjects().then((projects) => {
-    return Promise.all(
+): Promise<InferenceServiceKind[]> =>
+  getModelServingProjects().then((projects) =>
+    Promise.all(
       projects.map((project) => listInferenceService(project.metadata.name, labelSelector)),
     ).then((listInferenceService) =>
       _.uniqBy(_.flatten(listInferenceService), (is) => is.metadata.name),
-    );
-  });
-};
+    ),
+  );
 
 export const getInferenceServiceContext = (
   namespace?: string,
@@ -87,20 +86,18 @@ export const getInferenceServiceContext = (
 ): Promise<InferenceServiceKind[]> => {
   if (namespace) {
     return listInferenceService(namespace, labelSelector);
-  } else {
-    return listScopedInferenceService(labelSelector);
   }
+  return listScopedInferenceService(labelSelector);
 };
 
 export const getInferenceService = (
   name: string,
   namespace: string,
-): Promise<InferenceServiceKind> => {
-  return k8sGetResource<InferenceServiceKind>({
+): Promise<InferenceServiceKind> =>
+  k8sGetResource<InferenceServiceKind>({
     model: InferenceServiceModel,
     queryOptions: { name, ns: namespace },
   });
-};
 
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,
@@ -126,9 +123,8 @@ export const updateInferenceService = (
   });
 };
 
-export const deleteInferenceService = (name: string, namespace: string): Promise<K8sStatus> => {
-  return k8sDeleteResource<InferenceServiceKind, K8sStatus>({
+export const deleteInferenceService = (name: string, namespace: string): Promise<K8sStatus> =>
+  k8sDeleteResource<InferenceServiceKind, K8sStatus>({
     model: InferenceServiceModel,
     queryOptions: { name, ns: namespace },
   });
-};

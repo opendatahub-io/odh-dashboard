@@ -15,18 +15,18 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhDocument, OdhDocumentType } from '../types';
+import { QuickStartContextValues } from '@patternfly/quickstarts';
+import { OdhDocument, OdhDocumentType } from '~/types';
 import {
   getLaunchStatus,
   getQuickStartLabel,
   launchQuickStart,
   LaunchStatusEnum,
-} from '../utilities/quickStartUtils';
+} from '~/utilities/quickStartUtils';
+import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
-import { fireTrackingEvent } from '../utilities/segmentIOUtils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
-import { QuickStartContextValues } from '@patternfly/quickstarts';
 import FavoriteButton from './FavoriteButton';
 
 import './OdhCard.scss';

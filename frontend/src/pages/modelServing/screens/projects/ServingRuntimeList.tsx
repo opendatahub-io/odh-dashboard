@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import EmptyDetailsList from '../../../projects/screens/detail/EmptyDetailsList';
-import DetailsSection from '../../../projects/screens/detail/DetailsSection';
-import { ProjectSectionTitlesExtended } from '../../../projects/screens/detail/const';
-import { ProjectSectionID } from '../../../projects/screens/detail/types';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
+import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import { ProjectSectionTitlesExtended } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
-import { ServingRuntimeTableTabs } from '../types';
 
 const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);

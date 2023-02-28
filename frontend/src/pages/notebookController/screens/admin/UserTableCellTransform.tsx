@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { relativeTime } from '../../../../utilities/time';
+import { relativeTime } from '~/utilities/time';
 import { isField, AdminViewUserData } from './types';
 import ServerStatus from './ServerStatus';
 import NotebookActions from './NotebookActions';
@@ -21,7 +21,9 @@ const UserTableCellTransform: React.FC<TableDataRendererProps> = ({ user, userPr
   }
 
   if (isField<AdminViewUserData['lastActivity']>(content, userProperty === 'lastActivity')) {
-    if (!content) return <>Never</>;
+    if (!content) {
+      return <>Never</>;
+    }
     return <>{relativeTime(Date.now(), new Date(content).getTime())}</>;
   }
 

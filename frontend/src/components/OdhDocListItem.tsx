@@ -2,10 +2,10 @@ import React from 'react';
 import classNames from 'classnames';
 import { Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhDocument, OdhDocumentType } from '../types';
-import { getQuickStartLabel, launchQuickStart } from '../utilities/quickStartUtils';
-import { DOC_TYPE_TOOLTIPS } from '../utilities/const';
-import { getDuration } from '../utilities/utils';
+import { OdhDocument, OdhDocumentType } from '~/types';
+import { getQuickStartLabel, launchQuickStart } from '~/utilities/quickStartUtils';
+import { DOC_TYPE_TOOLTIPS } from '~/utilities/const';
+import { getDuration } from '~/utilities/utils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import FavoriteButton from './FavoriteButton';
 

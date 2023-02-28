@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { NotebookControllerTabTypes } from '~/pages/notebookController/const';
+import NotebookServerRoutes from '~/pages/notebookController/screens/server/NotebookServerRoutes';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import NotebookAdmin from './NotebookAdmin';
-import { NotebookControllerTabTypes } from '../../const';
-import NotebookServerRoutes from '../server/NotebookServerRoutes';
-import { NotebookControllerContext } from '../../NotebookControllerContext';
 
 const NotebookControllerTabs: React.FC = () => {
   const { setImpersonating, currentTab, setCurrentAdminTab } =

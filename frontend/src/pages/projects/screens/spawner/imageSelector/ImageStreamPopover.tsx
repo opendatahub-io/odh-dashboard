@@ -1,9 +1,12 @@
 import * as React from 'react';
 import { Button, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { getImageStreamDescription, getImageVersionDependencies } from '../spawnerUtils';
-import { ImageStreamAndVersion } from '../../../../../types';
-import NotebookImagePackageDetails from '../../../notebook/NotebookImagePackageDetails';
+import {
+  getImageStreamDescription,
+  getImageVersionDependencies,
+} from '~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamAndVersion } from '~/types';
+import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
 
 type ImageStreamPopoverProps = {
   selectedImage: ImageStreamAndVersion;

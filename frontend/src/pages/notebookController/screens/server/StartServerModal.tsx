@@ -13,18 +13,18 @@ import {
   Progress,
   ProgressVariant,
 } from '@patternfly/react-core';
-import { useDeepCompareMemoize } from '../../../../utilities/useDeepCompareMemoize';
+import { useNavigate } from 'react-router';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import {
   getEventTimestamp,
   useNotebookRedirectLink,
   useNotebookStatus,
-} from '../../../../utilities/notebookControllerUtils';
-import { EventStatus } from '../../../../types';
-import { NotebookControllerContext } from '../../NotebookControllerContext';
-import { useNavigate } from 'react-router';
+} from '~/utilities/notebookControllerUtils';
+import { EventStatus } from '~/types';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import useBrowserTabPreference from './useBrowserTabPreference';
 
-import '../../NotebookController.scss';
+import '~/pages/notebookController/NotebookController.scss';
 
 type StartServerModalProps = {
   spawnInProgress: boolean;

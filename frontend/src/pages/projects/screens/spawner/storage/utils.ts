@@ -5,15 +5,15 @@ import {
   StorageData,
   StorageType,
   UpdateObjectAtPropAndValue,
-} from '../../../types';
-import { getPvcDescription, getPvcDisplayName } from '../../../utils';
-import { NotebookKind, PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+} from '~/pages/projects/types';
+import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
+import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
-} from '../../../notebook/useRelatedNotebooks';
+} from '~/pages/projects/notebook/useRelatedNotebooks';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
+import { getRootVolumeName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import useDefaultPvcSize from './useAvailablePvcSize';
-import useGenericObjectState from '../../../../../utilities/useGenericObjectState';
-import { getRootVolumeName } from '../spawnerUtils';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,

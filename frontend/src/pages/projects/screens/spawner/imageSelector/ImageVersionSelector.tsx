@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
-import { ImageVersionSelectDataType } from '../types';
+import { ImageVersionSelectDataType } from '~/pages/projects/screens/spawner/types';
 import {
   checkTagBuildValid,
   compareImageVersionOrder,
@@ -9,9 +9,9 @@ import {
   getImageVersionSelectOptionObject,
   getImageVersionSoftwareString,
   isImageVersionSelectOptionObject,
-} from '../spawnerUtils';
+} from '~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamSpecTagType } from '~/k8sTypes';
 import ImageVersionTooltip from './ImageVersionTooltip';
-import { ImageStreamSpecTagType } from '../../../../../k8sTypes';
 
 type ImageVersionSelectorProps = {
   data: ImageVersionSelectDataType;

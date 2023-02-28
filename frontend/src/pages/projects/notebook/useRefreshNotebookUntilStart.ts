@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FAST_POLL_INTERVAL } from '../../../utilities/const';
+import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { NotebookState } from './types';
 
 const useRefreshNotebookUntilStart = (
@@ -17,6 +17,7 @@ const useRefreshNotebookUntilStart = (
         const { isRunning, refresh } = lastNotebookState.current;
         if (!isRunning) {
           refresh().catch((e) => {
+            /* eslint-disable-next-line no-console */
             console.error('Error refreshing, stopping notebook refresh', e);
             setWatchingForNotebook(false);
           });

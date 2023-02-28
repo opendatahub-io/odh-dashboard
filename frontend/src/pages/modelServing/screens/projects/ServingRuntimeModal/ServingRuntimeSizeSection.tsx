@@ -8,11 +8,14 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { CreatingServingRuntimeObject, ServingRuntimeSize } from '../../types';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import {
+  CreatingServingRuntimeObject,
+  ServingRuntimeSize,
+} from '~/pages/modelServing/screens/types';
+import useGPUSetting from '~/pages/notebookController/screens/server/useGPUSetting';
+import { GpuSettingString } from '~/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
-import useGPUSetting from '../../../../notebookController/screens/server/useGPUSetting';
-import { GpuSettingString } from '../../../../../types';
 
 type ServingRuntimeSizeSectionProps = {
   data: CreatingServingRuntimeObject;

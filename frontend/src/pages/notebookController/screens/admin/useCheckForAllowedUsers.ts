@@ -1,7 +1,7 @@
 import * as React from 'react';
+import { getAllowedUsers } from '~/redux/actions/actions';
+import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { AllowedUser } from './types';
-import { getAllowedUsers } from '../../../../redux/actions/actions';
-import useNamespaces from '../../useNamespaces';
 
 const useCheckForAllowedUsers = (): [
   allowedUsers: AllowedUser[],

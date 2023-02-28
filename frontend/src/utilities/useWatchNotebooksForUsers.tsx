@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { NotebookRunningState, UsernameMap } from '../types';
+import { NotebookRunningState, UsernameMap } from '~/types';
+import { getNotebookAndStatus } from '~/services/notebookService';
 import { POLL_INTERVAL } from './const';
-import { getNotebookAndStatus } from 'services/notebookService';
 import { generateNotebookNameFromUsername } from './notebookControllerUtils';
 import { allSettledPromises } from './allSettledPromises';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
@@ -24,7 +24,9 @@ const useWatchNotebooksForUsers = (
 
   const getNotebooks = React.useCallback(
     (usernameList: string[]) => {
-      if (!usernameList || usernameList.length === 0) return;
+      if (!usernameList || usernameList.length === 0) {
+        return;
+      }
 
       allSettledPromises<{ name: string; data: NotebookRunningState }, Error>(
         usernameList.map((username) => {

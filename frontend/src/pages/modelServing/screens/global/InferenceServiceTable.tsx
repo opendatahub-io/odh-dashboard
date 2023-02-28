@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
-import { GetColumnSort } from '../../../../utilities/useTableColumnSort';
-import { InferenceServiceKind, ServingRuntimeKind } from '../../../../k8sTypes';
+import { GetColumnSort } from '~/utilities/useTableColumnSort';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
-import ManageInferenceServiceModal from '../projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { ModelServingContext } from '../../ModelServingContext';
 
 type InferenceServiceTableProps = {
   clearFilters?: () => void;

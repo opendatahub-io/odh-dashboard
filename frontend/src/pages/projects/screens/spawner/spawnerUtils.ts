@@ -1,19 +1,7 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
-import { NotebookSize, Volume, VolumeMount } from '../../../../types';
-import {
-  BuildKind,
-  ImageStreamKind,
-  ImageStreamSpecTagType,
-  NotebookKind,
-} from '../../../../k8sTypes';
-import { FAILED_PHASES, PENDING_PHASES } from './const';
-import {
-  BuildStatus,
-  ImageStreamSelectOptionObjectType,
-  ImageVersionDependencyType,
-  ImageVersionSelectOptionObjectType,
-} from './types';
+import { NotebookSize, Volume, VolumeMount } from '~/types';
+import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
 import {
   ConfigMapCategory,
   EnvVariable,
@@ -22,9 +10,16 @@ import {
   StartNotebookData,
   StorageData,
   StorageType,
-} from '../../types';
-import { ROOT_MOUNT_PATH } from '../../pvc/const';
-import { AWS_KEYS, AWS_REQUIRED_KEYS } from '../../dataConnections/const';
+} from '~/pages/projects/types';
+import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
+import { AWS_KEYS, AWS_REQUIRED_KEYS } from '~/pages/projects/dataConnections/const';
+import {
+  BuildStatus,
+  ImageStreamSelectOptionObjectType,
+  ImageVersionDependencyType,
+  ImageVersionSelectOptionObjectType,
+} from './types';
+import { FAILED_PHASES, PENDING_PHASES } from './const';
 
 /******************* Common utils *******************/
 export const useMergeDefaultPVCName = (
@@ -84,14 +79,12 @@ export const getImageVersionSelectOptionObject = (
 });
 export const isImageStreamSelectOptionObject = (
   object: unknown,
-): object is ImageStreamSelectOptionObjectType => {
-  return (object as ImageStreamSelectOptionObjectType).imageStream !== undefined;
-};
+): object is ImageStreamSelectOptionObjectType =>
+  (object as ImageStreamSelectOptionObjectType).imageStream !== undefined;
 export const isImageVersionSelectOptionObject = (
   object: unknown,
-): object is ImageVersionSelectOptionObjectType => {
-  return (object as ImageVersionSelectOptionObjectType).imageVersion !== undefined;
-};
+): object is ImageVersionSelectOptionObjectType =>
+  (object as ImageVersionSelectOptionObjectType).imageVersion !== undefined;
 
 /******************* Compare utils for sorting *******************/
 const getBuildNumber = (build: BuildKind): number => {
@@ -157,6 +150,7 @@ export const getImageVersionDependencies = (
   } catch (e) {
     if (depString.includes('[')) {
       // It was intended to be an array but failed to parse, log the error
+      /* eslint-disable-next-line no-console */
       console.error(`JSON parse error when parsing ${imageVersion.name}`);
     }
     dependencies = [];

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { AWS_KEYS } from './const';
 import { FormGroup, TextInput } from '@patternfly/react-core';
-import PasswordInput from '../components/PasswordInput';
+import PasswordInput from '~/pages/projects/components/PasswordInput';
+import { AWS_KEYS } from './const';
 
 type AWSInputFieldProps = {
   isPassword?: boolean;

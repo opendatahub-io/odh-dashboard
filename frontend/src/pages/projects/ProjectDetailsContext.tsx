@@ -1,11 +1,4 @@
 import * as React from 'react';
-import {
-  ServingRuntimeKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  InferenceServiceKind,
-  SecretKind,
-} from '../../k8sTypes';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
@@ -16,24 +9,31 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import useProject from './useProject';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import useProjectNotebookStates from './notebook/useProjectNotebookStates';
-import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
-import useDataConnections from './screens/detail/data-connections/useDataConnections';
-import { DataConnection } from './types';
-import { NotebookState } from './notebook/types';
-import { DEFAULT_CONTEXT_DATA } from '../../utilities/const';
-import useServingRuntimes from '../modelServing/useServingRuntimes';
-import useInferenceServices from '../modelServing/useInferenceServices';
-import { ContextResourceData } from '../../types';
-import { useContextResourceData } from '../../utilities/useContextResourceData';
-import useServingRuntimeSecrets from '../modelServing/screens/projects/useServingRuntimeSecrets';
+import {
+  ServingRuntimeKind,
+  PersistentVolumeClaimKind,
+  ProjectKind,
+  InferenceServiceKind,
+  SecretKind,
+} from '~/k8sTypes';
+import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import { ContextResourceData } from '~/types';
+import { useContextResourceData } from '~/utilities/useContextResourceData';
+import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import {
   useServingRuntimesConfig,
   ServingRuntimesConfigResourceData,
-} from '../modelServing/useServingRuntimesConfig';
+} from '~/pages/modelServing/useServingRuntimesConfig';
+import { NotebookState } from './notebook/types';
+import { DataConnection } from './types';
+import useDataConnections from './screens/detail/data-connections/useDataConnections';
+import useProjectNotebookStates from './notebook/useProjectNotebookStates';
+import useProject from './useProject';
+import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;

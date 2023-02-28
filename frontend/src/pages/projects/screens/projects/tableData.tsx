@@ -1,6 +1,6 @@
-import { SortableData } from '../../../../utilities/useTableColumnSort';
-import { ProjectKind } from '../../../../k8sTypes';
-import { getProjectCreationTime, getProjectDisplayName } from '../../utils';
+import { SortableData } from '~/utilities/useTableColumnSort';
+import { ProjectKind } from '~/k8sTypes';
+import { getProjectCreationTime, getProjectDisplayName } from '~/pages/projects/utils';
 
 export const columns: SortableData<ProjectKind>[] = [
   {

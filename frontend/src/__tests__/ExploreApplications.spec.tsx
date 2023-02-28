@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { store } from '../redux/store/store';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
-import ExploreApplications from '../pages/exploreApplication/ExploreApplications';
-import { mockExploreApplications } from '../../__mocks__/mockExploreApplications';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import ExploreApplications from '~/pages/exploreApplication/ExploreApplications';
+import { mockExploreApplications } from '~/__mocks__/mockExploreApplications';
+import { store } from '~/redux/store/store';
 import '@testing-library/jest-dom';
 
 const dashboardConfig = {
@@ -43,12 +43,8 @@ jest.mock('../utilities/useWatchComponents', () => ({
   }),
 }));
 jest.mock('../utilities/router', () => ({
-  setQueryArgument: () => {
-    return;
-  },
-  removeQueryArgument: () => {
-    return;
-  },
+  setQueryArgument: () => undefined,
+  removeQueryArgument: () => undefined,
 }));
 
 // scrollIntoView is not implemented in jsdom

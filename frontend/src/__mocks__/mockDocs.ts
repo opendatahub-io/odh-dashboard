@@ -1,4 +1,4 @@
-import { OdhDocument } from '../src/types';
+import { OdhDocument } from '~/types';
 
 export const mockDocs = [
   {

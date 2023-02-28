@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
+import { getProjectDisplayName } from '~/pages/projects/utils';
 import useModelServingProjects from './useModelServingProjects';
-import { getProjectDisplayName } from 'pages/projects/utils';
 
 type ExistingProjectFieldProps = {
   fieldId: string;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { BuildStatus, DashboardConfig } from '../types';
+import { BuildStatus, DashboardConfig } from '~/types';
 
 type AppContextProps = {
   buildStatuses: BuildStatus[];

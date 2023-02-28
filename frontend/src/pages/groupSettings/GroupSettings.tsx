@@ -6,12 +6,13 @@ import {
   PageSection,
   PageSectionVariants,
 } from '@patternfly/react-core';
-import ApplicationsPage from '../ApplicationsPage';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import { useWatchGroups } from '~/utilities/useWatchGroups';
+import { FormGroupSettings } from '~/components/FormGroupSettings';
+import { isGroupEmpty } from '~/utilities/utils';
 import { GroupsConfigField, MenuItemStatus } from './groupTypes';
-import { useWatchGroups } from 'utilities/useWatchGroups';
-import { FormGroupSettings } from 'components/FormGroupSettings';
+
 import './GroupSettings.scss';
-import { isGroupEmpty } from 'utilities/utils';
 
 const GroupSettings: React.FC = () => {
   const {
@@ -26,7 +27,9 @@ const GroupSettings: React.FC = () => {
   } = useWatchGroups();
 
   const handleSaveButtonClicked = async () => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
     updateGroups(groupSettings);
   };
 

@@ -14,10 +14,10 @@ import {
   EmptyStateBody,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { AppNotification } from '../redux/types';
-import { ackNotification, removeNotification } from '../redux/actions/actions';
-import { calculateRelativeTime } from '../utilities/utils';
-import { useAppDispatch, useAppSelector } from '../redux/hooks';
+import { AppNotification } from '~/redux/types';
+import { ackNotification, removeNotification } from '~/redux/actions/actions';
+import { calculateRelativeTime } from '~/utilities/utils';
+import { useAppDispatch, useAppSelector } from '~/redux/hooks';
 
 interface AppNotificationDrawerProps {
   onClose: () => void;
@@ -29,9 +29,10 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
     (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
   );
   const dispatch = useAppDispatch();
-  const newNotifications = React.useMemo(() => {
-    return notifications.filter((notification) => !notification.read).length;
-  }, [notifications]);
+  const newNotifications = React.useMemo(
+    () => notifications.filter((notification) => !notification.read).length,
+    [notifications],
+  );
   const [currentTime, setCurrentTime] = React.useState<Date>(new Date());
 
   React.useEffect(() => {

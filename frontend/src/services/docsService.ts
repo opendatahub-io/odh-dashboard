@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { OdhDocument } from '../types';
+import { OdhDocument } from '~/types';
 
 export const fetchDocs = (docType?: string): Promise<OdhDocument[]> => {
   const url = '/api/docs';
@@ -10,9 +10,7 @@ export const fetchDocs = (docType?: string): Promise<OdhDocument[]> => {
   const options = { params: searchParams };
   return axios
     .get(url, options)
-    .then((response) => {
-      return response.data;
-    })
+    .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);
     });

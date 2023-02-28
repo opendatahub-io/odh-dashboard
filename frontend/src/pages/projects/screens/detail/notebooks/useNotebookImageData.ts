@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '../../../../../k8sTypes';
-import useNamespaces from '../../../../notebookController/useNamespaces';
-import useImageStreams from '../../spawner/useImageStreams';
-import { NotebookContainer } from '../../../../../types';
+import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
+import useNamespaces from '~/pages/notebookController/useNamespaces';
+import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
+import { NotebookContainer } from '~/types';
 
 const useNotebookImageData = (
   notebook?: NotebookKind,

@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { BUILD_PHASE, BuildStatus } from '../types';
-import { POLL_INTERVAL } from './const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
-import { fetchBuildStatuses } from '../services/buildsService';
-import { addNotification } from '../redux/actions/actions';
-import { AppNotificationStatus } from '../redux/types';
-import { useAppDispatch } from '../redux/hooks';
 import { List, ListItem, Stack, StackItem } from '@patternfly/react-core';
+import { BUILD_PHASE, BuildStatus } from '~/types';
+import { fetchBuildStatuses } from '~/services/buildsService';
+import { addNotification } from '~/redux/actions/actions';
+import { AppNotificationStatus } from '~/redux/types';
+import { useAppDispatch } from '~/redux/hooks';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
+import { POLL_INTERVAL } from './const';
 
 const runningStatuses = [
   BUILD_PHASE.new,
@@ -16,12 +16,8 @@ const runningStatuses = [
 ];
 const failedStatuses = [BUILD_PHASE.failed];
 
-const filterBuilds = (
-  buildStatuses: BuildStatus[],
-  filterStatuses: BUILD_PHASE[],
-): BuildStatus[] => {
-  return buildStatuses.filter((buildStatus) => filterStatuses.includes(buildStatus.status));
-};
+const filterBuilds = (buildStatuses: BuildStatus[], filterStatuses: BUILD_PHASE[]): BuildStatus[] =>
+  buildStatuses.filter((buildStatus) => filterStatuses.includes(buildStatus.status));
 
 export const useWatchBuildStatus = (): BuildStatus[] => {
   const [statuses, setStatuses] = React.useState<BuildStatus[]>([]);

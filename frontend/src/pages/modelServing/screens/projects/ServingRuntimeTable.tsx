@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
+import useTableColumnSort from '~/utilities/useTableColumnSort';
+import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { columns } from './data';
-import useTableColumnSort from '../../../../utilities/useTableColumnSort';
-import { SecretKind, ServingRuntimeKind } from '../../../../k8sTypes';
 import ServingRuntimeTableRow from './ServingRuntimeTableRow';
 import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '../types';
 
 type ServingRuntimeTableProps = {
   modelServers: ServingRuntimeKind[];

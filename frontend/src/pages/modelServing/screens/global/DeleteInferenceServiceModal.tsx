@@ -1,8 +1,8 @@
 import * as React from 'react';
-import DeleteModal from '../../../projects/components/DeleteModal';
+import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { InferenceServiceKind } from '~/k8sTypes';
+import { deleteInferenceService } from '~/api';
 import { getInferenceServiceDisplayName } from './utils';
-import { InferenceServiceKind } from '../../../../k8sTypes';
-import { deleteInferenceService } from '../../../../api';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;

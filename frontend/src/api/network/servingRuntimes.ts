@@ -6,15 +6,15 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeModel } from '../models';
-import { ConfigMapKind, ServingRuntimeKind } from '../../k8sTypes';
-import { CreatingServingRuntimeObject } from 'pages/modelServing/screens/types';
-import { getModelServingRuntimeName } from 'pages/modelServing/utils';
-import { getModelServingProjects } from './projects';
+import { ServingRuntimeModel } from '~/api/models';
+import { ConfigMapKind, ServingRuntimeKind } from '~/k8sTypes';
+import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
+import { ContainerResources } from '~/types';
+import { getDefaultServingRuntime } from '~/pages/modelServing/screens/projects/utils';
+import { DEFAULT_MODEL_SERVING_TEMPLATE } from '~/pages/modelServing/screens/const';
 import { assemblePodSpecOptions } from './utils';
-import { ContainerResources } from '../../types';
-import { getDefaultServingRuntime } from 'pages/modelServing/screens/projects/utils';
-import { DEFAULT_MODEL_SERVING_TEMPLATE } from 'pages/modelServing/screens/const';
+import { getModelServingProjects } from './projects';
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
@@ -54,14 +54,12 @@ const assembleServingRuntime = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, gpus);
 
-  updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => {
-    return {
-      ...container,
-      resources,
-      affinity,
-      tolerations,
-    };
-  });
+  updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => ({
+    ...container,
+    resources,
+    affinity,
+    tolerations,
+  }));
   return updatedServingRuntime;
 };
 
@@ -79,17 +77,14 @@ export const listServingRuntimes = (
   }).then((listResource) => listResource.items);
 };
 
-export const listScopedServingRuntimes = (
-  labelSelector?: string,
-): Promise<ServingRuntimeKind[]> => {
-  return getModelServingProjects().then((projects) => {
-    return Promise.all(
+export const listScopedServingRuntimes = (labelSelector?: string): Promise<ServingRuntimeKind[]> =>
+  getModelServingProjects().then((projects) =>
+    Promise.all(
       projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector)),
     ).then((listServingRuntimes) =>
       _.uniqBy(_.flatten(listServingRuntimes), (sr) => sr.metadata.name),
-    );
-  });
-};
+    ),
+  );
 
 export const getServingRuntimeContext = (
   namespace?: string,
@@ -97,17 +92,15 @@ export const getServingRuntimeContext = (
 ): Promise<ServingRuntimeKind[]> => {
   if (namespace) {
     return listServingRuntimes(namespace, labelSelector);
-  } else {
-    return listScopedServingRuntimes(labelSelector);
   }
+  return listScopedServingRuntimes(labelSelector);
 };
 
-export const getServingRuntime = (name: string, namespace: string): Promise<ServingRuntimeKind> => {
-  return k8sGetResource<ServingRuntimeKind>({
+export const getServingRuntime = (name: string, namespace: string): Promise<ServingRuntimeKind> =>
+  k8sGetResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,
     queryOptions: { name, ns: namespace },
   });
-};
 
 export const updateServingRuntime = (
   data: CreatingServingRuntimeObject,
@@ -164,9 +157,8 @@ export const createServingRuntime = (
 export const deleteServingRuntime = (
   name: string,
   namespace: string,
-): Promise<ServingRuntimeKind> => {
-  return k8sDeleteResource<ServingRuntimeKind>({
+): Promise<ServingRuntimeKind> =>
+  k8sDeleteResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,
     queryOptions: { name, ns: namespace },
   });
-};

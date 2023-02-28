@@ -1,8 +1,8 @@
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
-} from '../../../notebook/useRelatedNotebooks';
-import { getNotebookPVCMountPathMap } from '../../../notebook/utils';
+} from '~/pages/projects/notebook/useRelatedNotebooks';
+import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
 
 const useIsRootVolume = (pvc: PersistentVolumeClaimKind): boolean => {
   const pvcName = pvc.metadata.name;

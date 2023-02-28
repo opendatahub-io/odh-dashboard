@@ -1,4 +1,4 @@
-import { DashboardConfig } from '../types';
+import { DashboardConfig } from '~/types';
 import { featureFlagEnabled } from './utils';
 
 type NavDataCommon = {
@@ -29,31 +29,38 @@ const getSettingsNav = (
   isAdmin: boolean,
   dashboardConfig: DashboardConfig,
 ): NavDataGroup | null => {
-  if (!isAdmin) return null;
+  if (!isAdmin) {
+    return null;
+  }
 
   const settingsNavs: NavDataHref[] = [];
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableBYONImageStream))
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableBYONImageStream)) {
     settingsNavs.push({
       id: 'settings-notebook-images',
       label: 'Notebook Images',
       href: '/notebookImages',
     });
+  }
 
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableClusterManager))
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableClusterManager)) {
     settingsNavs.push({
       id: 'settings-cluster-settings',
       label: 'Cluster settings',
       href: '/clusterSettings',
     });
+  }
 
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableUserManagement))
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableUserManagement)) {
     settingsNavs.push({
       id: 'settings-group-settings',
       label: 'User management',
       href: '/groupSettings',
     });
+  }
 
-  if (settingsNavs.length === 0) return null;
+  if (settingsNavs.length === 0) {
+    return null;
+  }
 
   return {
     id: 'settings',

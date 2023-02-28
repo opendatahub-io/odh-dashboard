@@ -6,9 +6,9 @@ import { K8sStatus } from './k8sTypes';
 import { isK8sStatus, K8sStatusError } from './api';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
-  appFetch: (url, options) => {
+  appFetch: (url, options) =>
     // Using fetch instead of axios because of internal SDK structures that needs to use `response.text`
-    return fetch(`/api/k8s${url}`, options).then(async (response) => {
+    fetch(`/api/k8s${url}`, options).then(async (response) => {
       if (response.status < 400) {
         // Valid response, let it flow through the normal system
         return response;
@@ -30,9 +30,7 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
 
       // Not a status object, let the normal SDK flow take over
       return response;
-    });
-  },
-
+    }),
   /** Disable api discovery -- until we need to use the k8s watch hooks, we don't need to use api discovery */
   apiDiscovery: () => null,
   /** We don't need a plugin store yet -- we just want the SDK setup for utilities right now */

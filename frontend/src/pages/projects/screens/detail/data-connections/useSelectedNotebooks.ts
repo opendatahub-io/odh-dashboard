@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { NotebookKind } from '../../../../../k8sTypes';
-import { useDeepCompareMemoize } from '../../../../../utilities/useDeepCompareMemoize';
+import { NotebookKind } from '~/k8sTypes';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
-} from '../../../notebook/useRelatedNotebooks';
-import { DataConnection } from '../../../types';
+} from '~/pages/projects/notebook/useRelatedNotebooks';
+import { DataConnection } from '~/pages/projects/types';
 import { getDataConnectionResourceName } from './utils';
 
 const useSelectedNotebooks = (

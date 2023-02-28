@@ -10,13 +10,24 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import ApplicationsPage from '../../../../pages/ApplicationsPage';
-import { ImageStreamAndVersion } from '../../../../types';
-import GenericSidebar from '../../components/GenericSidebar';
-import NameDescriptionField from '../../components/NameDescriptionField';
-import { ProjectDetailsContext } from '../../ProjectDetailsContext';
-import { NameDescType } from '../../types';
-import { getNotebookDescription, getNotebookDisplayName, getProjectDisplayName } from '../../utils';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import { ImageStreamAndVersion } from '~/types';
+import GenericSidebar from '~/pages/projects/components/GenericSidebar';
+import NameDescriptionField from '~/pages/projects/components/NameDescriptionField';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { NameDescType } from '~/pages/projects/types';
+import {
+  getNotebookDescription,
+  getNotebookDisplayName,
+  getProjectDisplayName,
+} from '~/pages/projects/utils';
+import GPUSelectField from '~/pages/notebookController/screens/server/GPUSelectField';
+import { NotebookKind } from '~/k8sTypes';
+import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
+import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
+import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useNotebookGPUNumber';
+import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
+import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -26,15 +37,8 @@ import { useNotebookSize } from './useNotebookSize';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
-import GPUSelectField from '../../../notebookController/screens/server/GPUSelectField';
-import { NotebookKind } from '../../../../k8sTypes';
-import useNotebookImageData from '../detail/notebooks/useNotebookImageData';
-import useNotebookDeploymentSize from '../detail/notebooks/useNotebookDeploymentSize';
 import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import useNotebookGPUNumber from '../detail/notebooks/useNotebookGPUNumber';
-import NotebookRestartAlert from '../../components/NotebookRestartAlert';
-import useWillNotebooksRestart from '../../notebook/useWillNotebooksRestart';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;

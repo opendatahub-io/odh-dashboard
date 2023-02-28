@@ -8,17 +8,17 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import ApplicationsPage from '../../../ApplicationsPage';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import ExternalLink from '~/components/ExternalLink';
+import useTableColumnSort from '~/utilities/useTableColumnSort';
+import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
+import { Notebook } from '~/types';
 import { columns } from './const';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
-import ExternalLink from '../../../../components/ExternalLink';
-import useTableColumnSort from '../../../../utilities/useTableColumnSort';
 import { AdminViewUserData } from './types';
-import StopServerModal from '../server/StopServerModal';
 import { NotebookAdminContext } from './NotebookAdminContext';
-import { Notebook } from '../../../../types';
 
 const INITIAL_PAGE_LIMIT = 10;
 const NotebookAdminControl: React.FC = () => {

@@ -31,13 +31,13 @@ import {
   IAction,
 } from '@patternfly/react-table';
 import { CubesIcon, SearchIcon } from '@patternfly/react-icons';
-import { BYONImage } from 'types';
+import { BYONImage } from '~/types';
+import { relativeTime } from '~/utilities/time';
+import { updateBYONImage } from '~/services/imagesService';
 import { ImportImageModal } from './ImportImageModal';
-import { relativeTime } from '../../utilities/time';
 import './BYONImagesTable.scss';
 import { DeleteImageModal } from './DeleteBYONImageModal';
 import { UpdateImageModal } from './UpdateImageModal';
-import { updateBYONImage } from '../../services/imagesService';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
@@ -80,11 +80,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
   ];
 
   React.useEffect(() => {
-    setBYONImageVisible(
-      images.map((image) => {
-        return { id: image.id, visible: image.visible };
-      }),
-    );
+    setBYONImageVisible(images.map((image) => ({ id: image.id, visible: image.visible })));
   }, [images]);
 
   const [currentImage, setcurrentImage] = React.useState<BYONImage>(images[0]);
@@ -151,13 +147,9 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       return isExpanding ? [...otherExpandedRepoNames, image.id] : otherExpandedRepoNames;
     });
   };
-  const isBYONImageExpanded = (image: BYONImage) => {
-    return expandedBYONImageIDs.includes(image.id);
-  };
+  const isBYONImageExpanded = (image: BYONImage) => expandedBYONImageIDs.includes(image.id);
   const [BYONImageVisible, setBYONImageVisible] = React.useState<BYONImageEnabled[]>(
-    images.map((image) => {
-      return { id: image.id, visible: image.visible };
-    }),
+    images.map((image) => ({ id: image.id, visible: image.visible })),
   );
 
   const selectOptions = [
@@ -334,11 +326,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
                       className="enable-switch"
                       aria-label={`Enable Switch ${image.name}`}
                       data-id={`enabled-disable-${image.id}`}
-                      isChecked={
-                        BYONImageVisible.find((value) => {
-                          return image.id === value.id;
-                        })?.visible
-                      }
+                      isChecked={BYONImageVisible.find((value) => image.id === value.id)?.visible}
                       onChange={() => {
                         updateBYONImage({
                           id: image.id,

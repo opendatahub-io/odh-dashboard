@@ -1,4 +1,4 @@
-import { AWSDataEntry } from '../types';
+import { AWSDataEntry } from '~/pages/projects/types';
 
 export enum AWS_KEYS {
   NAME = 'Name',

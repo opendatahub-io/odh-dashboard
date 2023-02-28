@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { ConsoleLinkKind } from '../types';
+import { ConsoleLinkKind } from '~/types';
+import { fetchConsoleLinks } from '~/services/consoleLinksService';
 import { POLL_INTERVAL } from './const';
-import { fetchConsoleLinks } from '../services/consoleLinksService';
 
 export type ConsoleLinkResults = {
   consoleLinks: ConsoleLinkKind[];

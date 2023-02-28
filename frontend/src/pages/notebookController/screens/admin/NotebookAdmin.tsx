@@ -1,7 +1,7 @@
 import * as React from 'react';
+import NotebookServerRoutes from '~/pages/notebookController/screens/server/NotebookServerRoutes';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import NotebookAdminControl from './NotebookAdminControl';
-import NotebookServerRoutes from '../server/NotebookServerRoutes';
-import { NotebookControllerContext } from '../../NotebookControllerContext';
 import { NotebookAdminContextProvider } from './NotebookAdminContext';
 
 const NotebookAdmin: React.FC = () => {

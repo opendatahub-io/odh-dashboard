@@ -11,12 +11,12 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '../utilities/const';
-import { AppNotification } from '../redux/types';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '~/utilities/const';
+import { AppNotification } from '~/redux/types';
+import { useAppSelector } from '~/redux/hooks';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { logout } from './appUtils';
-import { useAppSelector } from '../redux/hooks';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -29,13 +29,15 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const userName: string = useAppSelector((state) => state.user || '');
   const { dashboardConfig } = useAppContext();
 
-  const newNotifications = React.useMemo(() => {
-    return notifications.filter((notification) => !notification.read).length;
-  }, [notifications]);
+  const newNotifications = React.useMemo(
+    () => notifications.filter((notification) => !notification.read).length,
+    [notifications],
+  );
 
   const handleLogout = () => {
     setUserMenuOpen(false);
     logout().then(() => {
+      /* eslint-disable-next-line no-console */
       console.log('logged out');
       window.location.reload();
     });

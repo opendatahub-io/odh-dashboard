@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ImageStreamKind } from '../../../../k8sTypes';
-import { getNotebookImageStreams } from '../../../../api';
+import { ImageStreamKind } from '~/k8sTypes';
+import { getNotebookImageStreams } from '~/api';
 
 const useImageStreams = (
   namespace?: string,

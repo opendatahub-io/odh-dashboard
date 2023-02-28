@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { useModelServingMetrics } from '../../../../api/prometheus/serving';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '../../../../types';
-import { DEFAULT_CONTEXT_DATA } from '../../../../utilities/const';
-import { TimeframeTitle } from '../types';
+import { useModelServingMetrics } from '~/api';
+import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 
 export enum ModelServingMetricType {
   ENDPOINT_HEALTH = 'end-point-health',

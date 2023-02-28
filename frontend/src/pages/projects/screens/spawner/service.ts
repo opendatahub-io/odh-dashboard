@@ -10,8 +10,8 @@ import {
   deleteSecret,
   replaceConfigMap,
   replaceSecret,
-} from '../../../../api';
-import { Volume, VolumeMount } from '../../../../types';
+} from '~/api';
+import { Volume, VolumeMount } from '~/types';
 import {
   ConfigMapCategory,
   EnvironmentFromVariable,
@@ -19,10 +19,10 @@ import {
   SecretCategory,
   StorageData,
   StorageType,
-} from '../../types';
+} from '~/pages/projects/types';
+import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
+import { ConfigMapKind, K8sStatus, NotebookKind, SecretKind } from '~/k8sTypes';
 import { getVolumesByStorageData } from './spawnerUtils';
-import { ROOT_MOUNT_PATH } from '../../pvc/const';
-import { ConfigMapKind, K8sStatus, NotebookKind, SecretKind } from '../../../../k8sTypes';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 
 export const createPvcDataForNotebook = async (
@@ -176,6 +176,7 @@ export const createConfigMapsAndSecretsForNotebook = async (
   return Promise.all(creatingPromises)
     .then((results: (ConfigMapKind | SecretKind)[]) => getEnvFromList(results, []))
     .catch((e) => {
+      /* eslint-disable-next-line no-console */
       console.error('Creating environment variables failed: ', e);
       throw e;
     });

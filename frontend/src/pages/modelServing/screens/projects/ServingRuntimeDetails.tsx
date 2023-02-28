@@ -8,10 +8,10 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
-import { ServingRuntimeKind } from '../../../../k8sTypes';
-import { AppContext } from '../../../../app/AppContext';
+import { ServingRuntimeKind } from '~/k8sTypes';
+import { AppContext } from '~/app/AppContext';
+import { ContainerResourceAttributes } from '~/types';
 import { getServingRuntimeSizes } from './utils';
-import { ContainerResourceAttributes } from '../../../../types';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;

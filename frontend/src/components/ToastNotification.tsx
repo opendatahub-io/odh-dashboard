@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton, AlertVariant } from '@patternfly/react-core';
-import { AppNotification } from '../redux/types';
-import { ackNotification, hideNotification } from '../redux/actions/actions';
-import { useAppDispatch } from '../redux/hooks';
+import { AppNotification } from '~/redux/types';
+import { ackNotification, hideNotification } from '~/redux/actions/actions';
+import { useAppDispatch } from '~/redux/hooks';
 
 const TOAST_NOTIFICATION_TIMEOUT = 8 * 1000;
 

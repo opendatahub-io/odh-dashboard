@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import { NotebookKind } from '../../../k8sTypes';
-import { getNotebookDisplayName } from '../utils';
-import AddExistingStorageField from '../screens/spawner/storage/AddExistingStorageField';
-import { useExistingStorageDataObjectForNotebook } from '../screens/spawner/storage/utils';
+import { NotebookKind } from '~/k8sTypes';
+import { getNotebookDisplayName } from '~/pages/projects/utils';
+import AddExistingStorageField from '~/pages/projects/screens/spawner/storage/AddExistingStorageField';
+import { useExistingStorageDataObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
+import { getNotebookMountPaths } from '~/pages/projects/notebook/utils';
+import { attachNotebookPVC } from '~/api';
+import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
+import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import MountPathField from './MountPathField';
-import { getNotebookMountPaths } from '../notebook/utils';
-import { attachNotebookPVC } from '../../../api';
-import NotebookRestartAlert from '../components/NotebookRestartAlert';
-import useWillNotebooksRestart from '../notebook/useWillNotebooksRestart';
 
 type AddNotebookStorageProps = {
   notebook?: NotebookKind;

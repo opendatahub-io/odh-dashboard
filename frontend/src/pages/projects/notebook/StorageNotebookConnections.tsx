@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert } from '@patternfly/react-core';
+import { ForNotebookSelection } from '~/pages/projects/types';
+import MountPathField from '~/pages/projects/pvc/MountPathField';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getNotebookMountPaths } from './utils';
-import { ForNotebookSelection } from '../types';
-import MountPathField from '../pvc/MountPathField';
-import { ProjectDetailsContext } from '../ProjectDetailsContext';
 import ConnectedNotebookField from './ConnectedNotebookField';
 
 type StorageNotebookConnectionsProps = {

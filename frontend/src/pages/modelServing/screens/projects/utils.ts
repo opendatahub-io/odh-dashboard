@@ -1,22 +1,25 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { ConfigMapKind, InferenceServiceKind, SecretKind, ServingRuntimeKind } from 'k8sTypes';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import useGenericObjectState from 'utilities/useGenericObjectState';
+import YAML from 'yaml';
+import { ConfigMapKind, InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
   ServingRuntimeSize,
-} from '../types';
-import { ContainerResourceAttributes, DashboardConfig, GpuSettingString } from 'types';
-import { DEFAULT_MODEL_SERVER_SIZES, DEFAULT_MODEL_SERVING_TEMPLATE } from '../const';
-import { useAppContext } from 'app/AppContext';
-import { useDeepCompareMemoize } from 'utilities/useDeepCompareMemoize';
-import { EMPTY_AWS_SECRET_DATA } from 'pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource } from 'pages/projects/utils';
-import YAML from 'yaml';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
+} from '~/pages/modelServing/screens/types';
+import { ContainerResourceAttributes, DashboardConfig, GpuSettingString } from '~/types';
+import {
+  DEFAULT_MODEL_SERVER_SIZES,
+  DEFAULT_MODEL_SERVING_TEMPLATE,
+} from '~/pages/modelServing/screens/const';
+import { useAppContext } from '~/app/AppContext';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
+import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];

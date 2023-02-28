@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Button, Icon, Skeleton, Tooltip } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
-import { ServingRuntimeKind } from '../../../../k8sTypes';
-import EmptyTableCellForAlignment from '../../../projects/components/EmptyTableCellForAlignment';
-import { ProjectDetailsContext } from '../../../projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '../types';
-import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ServingRuntimeKind } from '~/k8sTypes';
+import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { isServingRuntimeTokenEnabled } from './utils';
-import { ProjectSectionID } from '../../../projects/screens/detail/types';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;

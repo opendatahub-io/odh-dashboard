@@ -5,7 +5,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
 } from '@patternfly/react-core';
-import { NotebookSize } from '../../../../../types';
+import { NotebookSize } from '~/types';
 
 type NotebookSizeDetailsProps = {
   notebookSize: NotebookSize;

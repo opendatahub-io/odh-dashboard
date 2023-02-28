@@ -1,10 +1,10 @@
-import { NotebookKind } from '../../../../../k8sTypes';
+import { NotebookKind } from '~/k8sTypes';
 import {
   getImageStreamDisplayName,
   getImageVersionDependencies,
   getRelatedVersionDescription,
-} from '../../spawner/spawnerUtils';
-import { ImageVersionDependencyType } from '../../spawner/types';
+} from '~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/types';
 import useNotebookImageData from './useNotebookImageData';
 
 export type NotebookImage = {

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getValidationStatus, postValidateIsv } from '../services/validateIsvService';
-import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
-import { useAppDispatch } from '../redux/hooks';
+import { getValidationStatus, postValidateIsv } from '~/services/validateIsvService';
+import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
+import { useAppDispatch } from '~/redux/hooks';
 
 export enum EnableApplicationStatus {
   INPROGRESS,

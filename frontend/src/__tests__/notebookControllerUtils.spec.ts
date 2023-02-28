@@ -1,4 +1,4 @@
-import { usernameTranslate } from 'utilities/notebookControllerUtils';
+import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 
 const validUnameRegex = new RegExp('^[a-z]{1}[a-z0-9-]{1,62}$');
 

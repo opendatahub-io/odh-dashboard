@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Select, SelectOption, Stack, StackItem } from '@patternfly/react-core';
-import IndentSection from '../../../components/IndentSection';
+import IndentSection from '~/pages/projects/components/IndentSection';
 
 type EnvDataTypeFieldProps = {
   options: { [value: string]: { label: string; render: React.ReactNode } };

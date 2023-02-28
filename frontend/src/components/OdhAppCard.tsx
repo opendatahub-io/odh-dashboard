@@ -15,17 +15,17 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhApplication } from '../types';
-import { getLaunchStatus, launchQuickStart } from '../utilities/quickStartUtils';
-import BrandImage from './BrandImage';
-import SupportedAppTitle from './SupportedAppTitle';
+import { OdhApplication } from '~/types';
+import { getLaunchStatus, launchQuickStart } from '~/utilities/quickStartUtils';
+import EnableModal from '~/pages/exploreApplication/EnableModal';
+import { removeComponent } from '~/services/componentsServices';
+import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { useAppContext } from '~/app/AppContext';
+import { useAppDispatch } from '~/redux/hooks';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
-import EnableModal from '../pages/exploreApplication/EnableModal';
-import { removeComponent } from '../services/componentsServices';
-import { addNotification, forceComponentsUpdate } from '../redux/actions/actions';
-import { ODH_PRODUCT_NAME } from '../utilities/const';
-import { useAppContext } from '../app/AppContext';
-import { useAppDispatch } from '../redux/hooks';
+import SupportedAppTitle from './SupportedAppTitle';
+import BrandImage from './BrandImage';
 
 import './OdhCard.scss';
 

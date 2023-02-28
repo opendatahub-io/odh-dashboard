@@ -9,10 +9,10 @@ import {
   TextInputTypes,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from '../../const';
-import { EnvVarType, VariableRow } from '../../../../types';
+import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
+import { EnvVarType, VariableRow } from '~/types';
 
-import '../../NotebookController.scss';
+import '~/pages/notebookController/NotebookController.scss';
 
 type EnvironmentVariablesFieldProps = {
   fieldIndex: string;

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { FormGroup, Text } from '@patternfly/react-core';
-import { CreatingInferenceServiceObject } from '../../types';
-import { UpdateObjectAtPropAndValue } from 'pages/projects/types';
-import { getProjectDisplayName } from 'pages/projects/utils';
-import { listServingRuntimes } from 'api';
-import ExistingProjectField from 'pages/modelServing/screens/projects/InferenceServiceModal/ExistingProjectField';
-import { InferenceServiceKind, ProjectKind } from 'k8sTypes';
-import { defaultInferenceService } from '../utils';
+import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { getProjectDisplayName } from '~/pages/projects/utils';
+import { listServingRuntimes } from '~/api';
+import ExistingProjectField from '~/pages/modelServing/screens/projects/InferenceServiceModal/ExistingProjectField';
+import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
+import { defaultInferenceService } from '~/pages/modelServing/screens/projects/utils';
 
 type ProjectSectionType = {
   data: CreatingInferenceServiceObject;

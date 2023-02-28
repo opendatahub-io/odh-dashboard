@@ -1,16 +1,16 @@
 import * as React from 'react';
-import { DataConnection, DataConnectionType } from '../../../types';
+import { DataConnection, DataConnectionType } from '~/pages/projects/types';
+import DeleteModal from '~/pages/projects/components/DeleteModal';
+import useRelatedNotebooks, {
+  ConnectedNotebookContext,
+} from '~/pages/projects/notebook/useRelatedNotebooks';
+import { removeNotebookSecret } from '~/api';
+import DeleteModalConnectedAlert from '~/pages/projects/components/DeleteModalConnectedAlert';
 import {
   deleteDataConnection,
   getDataConnectionDisplayName,
   getDataConnectionResourceName,
 } from './utils';
-import DeleteModal from '../../../components/DeleteModal';
-import useRelatedNotebooks, {
-  ConnectedNotebookContext,
-} from '../../../notebook/useRelatedNotebooks';
-import { removeNotebookSecret } from '../../../../../api';
-import DeleteModalConnectedAlert from '../../../components/DeleteModalConnectedAlert';
 
 type DeleteDataConnectionModalProps = {
   dataConnection?: DataConnection;

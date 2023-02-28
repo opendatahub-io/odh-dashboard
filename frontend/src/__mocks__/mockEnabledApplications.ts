@@ -1,4 +1,4 @@
-import { OdhApplication, OdhApplicationCategory } from '../src/types';
+import { OdhApplication, OdhApplicationCategory } from '~/types';
 
 export const mockEnabledApplications: OdhApplication[] = [
   {

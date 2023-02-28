@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Nav, NavExpandable, NavItem, NavList, PageSidebar } from '@patternfly/react-core';
-import { getNavBarData, isNavDataGroup, NavDataGroup, NavDataHref } from '../utilities/NavData';
+import { getNavBarData, isNavDataGroup, NavDataGroup, NavDataHref } from '~/utilities/NavData';
+import { useUser } from '~/redux/selectors';
 import { useAppContext } from './AppContext';
-import { useUser } from '../redux/selectors';
 
 const checkLinkActiveStatus = (pathname: string, href: string) =>
   href.split('/')[1] == pathname.split('/')[1];

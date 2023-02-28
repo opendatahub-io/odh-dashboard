@@ -5,7 +5,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
 } from '@patternfly/react-core';
-import { InferenceServiceKind } from 'k8sTypes';
+import { InferenceServiceKind } from '~/k8sTypes';
 
 type InternalServicePopoverContentProps = {
   inferenceService: InferenceServiceKind;

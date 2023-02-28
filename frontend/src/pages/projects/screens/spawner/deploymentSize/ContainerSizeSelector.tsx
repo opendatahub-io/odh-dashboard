@@ -6,8 +6,8 @@ import {
   Select,
   SelectOption,
 } from '@patternfly/react-core';
-import { NotebookSize } from '../../../../../types';
-import { getSizeDescription } from '../spawnerUtils';
+import { NotebookSize } from '~/types';
+import { getSizeDescription } from '~/pages/projects/screens/spawner/spawnerUtils';
 
 type ContainerSizeSelectorProps = {
   value: NotebookSize;

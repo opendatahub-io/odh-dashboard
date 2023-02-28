@@ -20,11 +20,14 @@ import {
   Radio,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import ApplicationsPage from '../ApplicationsPage';
-import { useAppContext } from '../../app/AppContext';
-import { fetchClusterSettings, updateClusterSettings } from '../../services/clusterSettingsService';
-import { ClusterSettings, NotebookTolerationFormSettings } from '../../types';
-import { addNotification } from '../../redux/actions/actions';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import { useAppContext } from '~/app/AppContext';
+import { fetchClusterSettings, updateClusterSettings } from '~/services/clusterSettingsService';
+import { ClusterSettings, NotebookTolerationFormSettings } from '~/types';
+import { addNotification } from '~/redux/actions/actions';
+import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '~/utilities/utils';
+import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
+import { useAppDispatch } from '~/redux/hooks';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -40,9 +43,6 @@ import {
   DEFAULT_HOUR,
   MIN_CULLER_TIMEOUT,
 } from './const';
-import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '../../utilities/utils';
-import { useCheckJupyterEnabled } from '../../utilities/notebookControllerUtils';
-import { useAppDispatch } from '../../redux/hooks';
 
 import './ClusterSettings.scss';
 

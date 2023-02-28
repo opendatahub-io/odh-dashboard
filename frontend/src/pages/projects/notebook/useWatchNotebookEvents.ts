@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { EventKind } from '../../../k8sTypes';
-import { getNotebookEvents } from '../../../api';
-import { FAST_POLL_INTERVAL } from '../../../utilities/const';
+import { EventKind } from '~/k8sTypes';
+import { getNotebookEvents } from '~/api';
+import { FAST_POLL_INTERVAL } from '~/utilities/const';
 
 export const useWatchNotebookEvents = (
   projectName: string,
@@ -30,6 +30,7 @@ export const useWatchNotebookEvents = (
               setNoteBookEvents(data);
             })
             .catch((e) => {
+              /* eslint-disable-next-line no-console */
               console.error('Error fetching notebook events', e);
               clear();
             });

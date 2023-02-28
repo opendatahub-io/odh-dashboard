@@ -4,9 +4,9 @@ import {
   TolerationSettings,
   Volume,
   VolumeMount,
-} from '../../types';
-import { ValueOf } from '../../typeHelpers';
-import { AWSSecretKind } from '../../k8sTypes';
+} from '~/types';
+import { ValueOf } from '~/typeHelpers';
+import { AWSSecretKind } from '~/k8sTypes';
 import { AWS_KEYS } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;

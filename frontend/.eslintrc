@@ -17,14 +17,17 @@
   "plugins": [
     "@typescript-eslint",
     "react-hooks",
-    "eslint-plugin-react-hooks"
+    "eslint-plugin-react-hooks",
+    "import",
+    "no-relative-import-paths",
+    "prettier"
   ],
   "extends": [
     "eslint:recommended",
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
-    "prettier/@typescript-eslint",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "prettier"
   ],
   "globals": {
     "window": "readonly",
@@ -38,9 +41,34 @@
   "settings": {
     "react": {
       "version": "detect"
+    },
+    "import/parsers": {
+      "@typescript-eslint/parser": [
+        ".ts",
+        ".tsx"
+      ]
     }
   },
   "rules": {
+    "arrow-body-style": "error",
+    "curly": "error",
+    "camelcase": "warn",
+    "no-else-return": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "~/api/**"
+            ],
+            "message": "Read from '~/api' instead."
+          }
+        ]
+      }
+    ],
+    "no-console": "error",
+    "no-param-reassign": "error",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/interface-name-prefix": "off",
     "@typescript-eslint/no-var-requires": "off",
@@ -51,6 +79,39 @@
     "react-hooks/rules-of-hooks": "error",
     "import/extensions": "off",
     "import/no-unresolved": "off",
+    "import/order": [
+      "error",
+      {
+        "pathGroups": [
+          {
+            "pattern": "~/**",
+            "group": "external",
+            "position": "after"
+          }
+        ],
+        "pathGroupsExcludedImportTypes": [
+          "builtin"
+        ],
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          "index",
+          "sibling",
+          "parent",
+          "object",
+          "unknown"
+        ]
+      }
+    ],
+    "no-relative-import-paths/no-relative-import-paths": [
+      "warn",
+      {
+        "allowSameFolder": true,
+        "rootDir": "src",
+        "prefix": "~"
+      }
+    ],
     "prettier/prettier": [
       "error",
       {
@@ -61,5 +122,22 @@
       }
     ],
     "react/prop-types": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "./src/api/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "off",
+          {
+            "patterns": [
+              "~/api/**"
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

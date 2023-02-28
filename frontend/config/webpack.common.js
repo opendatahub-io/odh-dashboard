@@ -1,7 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
@@ -178,11 +177,9 @@ module.exports = env => {
     ],
     resolve: {
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
-      plugins: [
-        new TsconfigPathsPlugin({
-          configFile: path.resolve(RELATIVE_DIRNAME, './tsconfig.json')
-        })
-      ],
+      alias: {
+        "~": path.resolve(SRC_DIR)
+      },
       symlinks: false,
       cacheWithContext: false
     }

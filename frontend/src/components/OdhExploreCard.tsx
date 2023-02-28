@@ -9,13 +9,13 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { OdhApplication } from '../types';
-import { makeCardVisible } from '../utilities/utils';
-import EnableModal from '../pages/exploreApplication/EnableModal';
+import { OdhApplication } from '~/types';
+import { makeCardVisible } from '~/utilities/utils';
+import EnableModal from '~/pages/exploreApplication/EnableModal';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { useAppContext } from '~/app/AppContext';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
-import { ODH_PRODUCT_NAME } from '../utilities/const';
-import { useAppContext } from '../app/AppContext';
 import OdhExploreCardTypeBadge from './OdhExploreCardTypeBadge';
 
 import './OdhCard.scss';

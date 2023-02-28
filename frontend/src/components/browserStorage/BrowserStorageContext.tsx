@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEventListener } from '../../utilities/useEventListener';
+import { useEventListener } from '~/utilities/useEventListener';
 
 type ValueMap = { [storageKey: string]: unknown };
 export type BrowserStorageContext = {
@@ -39,10 +39,10 @@ export const useBrowserStorage = <T,>(
       } else if (typeof value === 'string') {
         setStringValue(storageKey, value, isSessionStorage);
         return true;
-      } else {
-        console.error('Was not a string value provided, cannot stringify');
-        return false;
       }
+      /* eslint-disable-next-line no-console */
+      console.error('Was not a string value provided, cannot stringify');
+      return false;
     },
     [isSessionStorage, jsonify, setJSONValue, setStringValue, storageKey],
   );
@@ -97,6 +97,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
         try {
           return JSON.parse(value);
         } catch (e) {
+          /* eslint-disable-next-line no-console */
           console.warn(`Failed to parse storage value "${key}"`);
           return null;
         }
@@ -116,6 +117,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
 
         return true;
       } catch (e) {
+        /* eslint-disable-next-line no-console */
         console.warn(
           'Could not store a value because it was requested to be stringified but was an invalid value for stringification.',
         );

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getPvcs } from '../../../../../api';
-import { PersistentVolumeClaimKind } from '../../../../../k8sTypes';
+import { getPvcs } from '~/api';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 
 const useProjectPvcs = (
   namespace?: string,

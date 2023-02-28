@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
-import { createRoleBinding, getRoleBinding } from '../services/roleBindingService';
+import { createRoleBinding, getRoleBinding } from '~/services/roleBindingService';
 import {
   EnvVarReducedTypeKeyValues,
   EventStatus,
@@ -13,15 +13,15 @@ import {
   ResourceGetter,
   RoleBinding,
   VariableRow,
-} from '../types';
-import { NotebookControllerContext } from '../pages/notebookController/NotebookControllerContext';
-import { useUser } from '../redux/selectors';
-import { EMPTY_USER_STATE } from '../pages/notebookController/const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
+} from '~/types';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
+import { useUser } from '~/redux/selectors';
+import { EMPTY_USER_STATE } from '~/pages/notebookController/const';
+import useNamespaces from '~/pages/notebookController/useNamespaces';
+import { useAppContext } from '~/app/AppContext';
+import { getRoute } from '~/services/routeService';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
-import useNamespaces from '../pages/notebookController/useNamespaces';
-import { useAppContext } from '../app/AppContext';
-import { getRoute } from '../services/routeService';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -59,22 +59,20 @@ export const verifyResource = async <T extends K8sResourceCommon>(
   fetchFunc: ResourceGetter<T>,
   createFunc?: ResourceCreator<T>,
   createBody?: T,
-): Promise<T | undefined> => {
-  return await fetchFunc(namespace, name).catch(async (e: AxiosError) => {
+): Promise<T | undefined> =>
+  await fetchFunc(namespace, name).catch(async (e: AxiosError) => {
     if (e.response?.status === 404) {
       if (createFunc && createBody) {
         return await createFunc(createBody);
-      } else {
-        return undefined;
       }
+      return undefined;
     }
     throw e;
   });
-};
 
 /** Classify environment variables as ConfigMap or Secret */
-export const classifyEnvVars = (variableRows: VariableRow[]): EnvVarReducedTypeKeyValues => {
-  return variableRows.reduce(
+export const classifyEnvVars = (variableRows: VariableRow[]): EnvVarReducedTypeKeyValues =>
+  variableRows.reduce(
     (prev, curr) => {
       const vars: Record<string, string | number> = {};
       const secretVars: Record<string, string | number> = {};
@@ -92,13 +90,14 @@ export const classifyEnvVars = (variableRows: VariableRow[]): EnvVarReducedTypeK
     },
     { configMap: {}, secrets: {} },
   );
-};
 
 export const getNotebookControllerUserState = (
   notebook: Notebook | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
-  if (!notebook?.metadata?.annotations || !notebook?.metadata?.labels) return null;
+  if (!notebook?.metadata?.annotations || !notebook?.metadata?.labels) {
+    return null;
+  }
 
   const {
     'notebooks.kubeflow.org/last-activity': lastActivity,
@@ -114,6 +113,7 @@ export const getNotebookControllerUserState = (
     if (usernameTranslate(loggedInUser) === notebookLabelUser) {
       user = loggedInUser;
     } else {
+      /* eslint-disable-next-line no-console */
       console.error('Could not get full user data');
       return null;
     }
@@ -204,6 +204,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
     if (!routeName) {
       // At time of call, if we do not have a route name, we are too late
       // This should *never* happen, somehow the modal got here before the Notebook had a name!?
+      /* eslint-disable-next-line no-console */
       console.error('Unable to determine why there was no route -- notebook did not have a name');
       return Promise.reject();
     }
@@ -219,6 +220,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
               resolve(backupRoute);
               return;
             }
+            /* eslint-disable-next-line no-console */
             console.warn('Unable to get the route. Re-polling.', e);
             if (fetchCountRef.current <= 0) {
               fetchCountRef.current--;
@@ -230,6 +232,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
       };
 
       call(resolve, () => {
+        /* eslint-disable-next-line no-console */
         console.error(
           'Could not fetch route over several tries, See previous warnings for a history of why each failed call.',
         );
@@ -319,12 +322,13 @@ export const useNotebookStatus = (
     notebookNamespace,
     currentUserNotebookPodUID,
     spawnInProgress && !isNotebookRunning,
-  ).filter((evt) => {
-    // Note: This looks redundant but is useful -- our state is stale when a new pod starts; this cleans that up
-    // This is not ideal, but the alternative is expose a reset function & thread it up to the stop call
-    // This is old code and needs to be removed in time, this will do for now.
-    return evt.involvedObject.uid === currentUserNotebookPodUID;
-  });
+  ).filter(
+    (evt) =>
+      // Note: This looks redundant but is useful -- our state is stale when a new pod starts; this cleans that up
+      // This is not ideal, but the alternative is expose a reset function & thread it up to the stop call
+      // This is old code and needs to be removed in time, this will do for now.
+      evt.involvedObject.uid === currentUserNotebookPodUID,
+  );
 
   const lastActivity = useLastActivity(
     open,
