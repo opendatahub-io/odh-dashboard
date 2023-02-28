@@ -24,9 +24,10 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
         data={notebookStates}
         columns={columns}
         disableRowRenderSupport
-        rowRenderer={(notebookState) => (
+        rowRenderer={(notebookState, i) => (
           <NotebookTableRow
             key={notebookState.notebook.metadata.uid}
+            rowIndex={i}
             obj={notebookState}
             onNotebookDelete={setNotebookToDelete}
             onNotebookAddStorage={setAddNotebookStorage}

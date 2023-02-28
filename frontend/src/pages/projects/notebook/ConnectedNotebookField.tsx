@@ -54,6 +54,7 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
         selections={selections}
         isOpen={notebookSelectOpen}
         isDisabled={disabled}
+        aria-label="Notebook select"
         onClear={() => {
           onSelect([]);
           setNotebookSelectOpen(false);

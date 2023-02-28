@@ -14,7 +14,7 @@ import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort
 type TableProps<DataType> = {
   data: DataType[];
   columns: SortableData<DataType>[];
-  rowRenderer: (data: DataType) => React.ReactNode;
+  rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;
   enablePagination?: boolean;
   minPageSize?: number;
   toolbarContent?: React.ReactElement<typeof ToolbarItem>;
@@ -96,9 +96,11 @@ const Table = <T,>({
           </Tr>
         </Thead>
         {disableRowRenderSupport ? (
-          sort.transformData(data).map((row) => rowRenderer(row))
+          sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))
         ) : (
-          <Tbody>{sort.transformData(data).map((row) => rowRenderer(row))}</Tbody>
+          <Tbody>
+            {sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))}
+          </Tbody>
         )}
       </TableComposable>
       {emptyTableView && data.length === 0 && (
