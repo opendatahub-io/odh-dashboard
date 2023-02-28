@@ -80,7 +80,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
               isDisabled={disableK8sName}
               id={`resource-${nameFieldId}`}
               name={`resource-${nameFieldId}`}
-              aria-labelledby={`resource-${nameFieldId}`}
+              aria-label={`resource-${nameFieldId}`}
               value={data.k8sName ?? k8sName}
               onChange={(k8sName) => {
                 setData({ ...data, k8sName });

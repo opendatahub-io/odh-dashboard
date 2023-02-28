@@ -49,6 +49,7 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
         isOpen={sizeDropdownOpen}
         onToggle={() => setSizeDropdownOpen(!sizeDropdownOpen)}
         aria-labelledby="container-size"
+        aria-label="Select a container size"
         selections={value.name}
         onSelect={(event, selection) => {
           // We know we are setting values as a string

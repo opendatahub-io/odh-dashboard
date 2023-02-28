@@ -49,6 +49,7 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
       <Select
         removeFindDomNode
         variant="typeahead"
+        aria-label="Persistent storage select"
         selections={selectedStorage}
         isOpen={isOpen}
         onClear={() => {

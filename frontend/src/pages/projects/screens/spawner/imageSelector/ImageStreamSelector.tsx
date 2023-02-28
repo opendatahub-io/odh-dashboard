@@ -54,6 +54,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
             setImageSelectionOpen(false);
           }
         }}
+        aria-label="Select an image"
         isOpen={imageSelectionOpen}
         selections={selectOptionObjects.find(
           (optionObject) =>

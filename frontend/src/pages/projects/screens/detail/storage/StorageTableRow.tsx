@@ -55,7 +55,14 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   return (
     <Tbody isExpanded={isExpanded}>
       <Tr>
-        <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
+        <Td
+          expand={{
+            rowIndex: 0,
+            expandId: 'storage-row-item',
+            isExpanded,
+            onToggle: () => setExpanded(!isExpanded),
+          }}
+        />
         <Td dataLabel="Name">
           <Flex
             spaceItems={{ default: 'spaceItemsSm' }}

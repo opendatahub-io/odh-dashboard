@@ -9,10 +9,9 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
-  id: ProjectSectionID;
+  id: string;
   actions?: React.ReactNode[];
   title: string;
   isLoading: boolean;
@@ -61,7 +60,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
       <StackItem>
         <Flex>
           <FlexItem>
-            <Title id={id} headingLevel="h4" size="xl">
+            <Title id={`${id}-title`} headingLevel="h4" size="xl">
               {title}
             </Title>
           </FlexItem>
