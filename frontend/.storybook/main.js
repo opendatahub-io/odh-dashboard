@@ -1,4 +1,6 @@
 const path = require('path');
+const SRC_DIR = process.env._ODH_SRC_DIR;
+
 
 module.exports = {
   features: {
@@ -30,10 +32,9 @@ module.exports = {
         'sass-loader'
       ]
     })
-    config.resolve.modules = [
-      ...(config.resolve.modules || []),
-      path.resolve(__dirname, "../src"),
-    ];
+
+    config.resolve.alias['~'] = path.resolve(__dirname, '../src/');
+    config.resolve.extensions.push(".ts", ".tsx", ".js", ".jsx");
 
     return config;
   },

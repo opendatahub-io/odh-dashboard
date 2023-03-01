@@ -1,14 +1,14 @@
 import React from 'react';
 
 import { ComponentStory, ComponentMeta } from '@storybook/react';
-import ProjectView from './ProjectView';
 import { rest } from 'msw';
 import { within, userEvent, waitForElementToBeRemoved } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { mockAPINamespaceProjectRoutesWorkbench } from '../../../../../__mocks__/mockAPINamespaceProjectRoutesWorkbench';
-import { mockAPINamespaceProjectPods } from '../../../../../__mocks__/mockAPINamespaceProjectPods';
-import { mockAPINamespaceProjectNotebooks } from '../../../../../__mocks__/mockAPINamespaceProjectNotebooks';
-import { mockAPINamespaceProjects } from '../../../../../__mocks__/mockAPINamespaceProjects';
+import { mockAPINamespaceProjectNotebooks } from '~/__mocks__/mockAPINamespaceProjectNotebooks';
+import { mockAPINamespaceProjectPods } from '~/__mocks__/mockAPINamespaceProjectPods';
+import { mockAPINamespaceProjectRoutesWorkbench } from '~/__mocks__/mockAPINamespaceProjectRoutesWorkbench';
+import { mockAPINamespaceProjects } from '~/__mocks__/mockAPINamespaceProjects';
+import ProjectView from './ProjectView';
 
 export default {
   title: 'ProjectView',
@@ -18,19 +18,17 @@ export default {
       handlers: [
         rest.get(
           '/api/k8s/apis/route.openshift.io/v1/namespaces/project/routes/workbench',
-          (req, res, ctx) => {
-            return res(ctx.json(mockAPINamespaceProjectRoutesWorkbench));
-          },
+          (req, res, ctx) => res(ctx.json(mockAPINamespaceProjectRoutesWorkbench)),
         ),
-        rest.get('/api/k8s/api/v1/namespaces/project/pods', (req, res, ctx) => {
-          return res(ctx.json(mockAPINamespaceProjectPods));
-        }),
-        rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/project/notebooks', (req, res, ctx) => {
-          return res(ctx.json(mockAPINamespaceProjectNotebooks));
-        }),
-        rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) => {
-          return res(ctx.json(mockAPINamespaceProjects));
-        }),
+        rest.get('/api/k8s/api/v1/namespaces/project/pods', (req, res, ctx) =>
+          res(ctx.json(mockAPINamespaceProjectPods)),
+        ),
+        rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/project/notebooks', (req, res, ctx) =>
+          res(ctx.json(mockAPINamespaceProjectNotebooks)),
+        ),
+        rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
+          res(ctx.json(mockAPINamespaceProjects)),
+        ),
       ],
     },
   },
