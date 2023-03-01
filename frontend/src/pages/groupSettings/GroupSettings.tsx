@@ -10,9 +10,10 @@ import {
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { isGroupEmpty } from '~/utilities/utils';
+import SettingSection from '~/components/SettingSection';
+import { MultiSelection } from '~/components/MultiSelection';
+import { useWatchGroups } from '~/utilities/useWatchGroups';
 import { GroupsConfigField, MenuItemStatus } from './groupTypes';
-import SettingSection from '../../components/SettingSection';
-import { MultiSelection } from '../../components/MultiSelection';
 
 const GroupSettings: React.FC = () => {
   const {

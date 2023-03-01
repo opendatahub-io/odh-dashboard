@@ -27,6 +27,7 @@ import { addNotification } from '~/redux/actions/actions';
 import { getTimeoutByHourAndMinute, getHourAndMinuteByTimeout } from '~/utilities/utils';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { useAppDispatch } from '~/redux/hooks';
+import SettingSection from '~/components/SettingSection';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -42,7 +43,6 @@ import {
   DEFAULT_HOUR,
   MIN_CULLER_TIMEOUT,
 } from './const';
-import SettingSection from '../../components/SettingSection';
 
 const DEFAULT_TOLERATION_VALUE = 'NotebooksOnly';
 const TOLERATION_FORMAT = /^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$/;

@@ -13,19 +13,17 @@ const SettingSection: React.FC<SettingSectionProps> = ({
   children,
   footer,
   description,
-}) => {
-  return (
-    <Card isFlat>
-      <CardTitle>{title}</CardTitle>
-      <CardBody>
-        <Stack hasGutter>
-          {description && <StackItem>{description}</StackItem>}
-          <StackItem>{children}</StackItem>
-        </Stack>
-      </CardBody>
-      {footer && <CardFooter>{footer}</CardFooter>}
-    </Card>
-  );
-};
+}) => (
+  <Card isFlat>
+    <CardTitle>{title}</CardTitle>
+    <CardBody>
+      <Stack hasGutter>
+        {description && <StackItem>{description}</StackItem>}
+        <StackItem>{children}</StackItem>
+      </Stack>
+    </CardBody>
+    {footer && <CardFooter>{footer}</CardFooter>}
+  </Card>
+);
 
 export default SettingSection;
