@@ -218,6 +218,7 @@ export type KubeStatus = {
   isAdmin: boolean;
   isAllowed: boolean;
   serverURL: string;
+  isImpersonating?: boolean;
 };
 
 export type KubeDecorator = KubeStatus & {

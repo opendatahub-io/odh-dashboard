@@ -1,6 +1,7 @@
 import { RequestOptions } from 'https';
 import { DEV_MODE, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
+import { getImpersonateAccessToken, isImpersonating } from '../devFlags';
 
 export const getDirectCallOptions = async (
   fastify: KubeFastifyInstance,
@@ -18,6 +19,15 @@ export const getDirectCallOptions = async (
   if (DEV_MODE) {
     // In dev mode, we always are logged in fully -- no service accounts
     headers = kubeHeaders;
+    // Fakes the call as another user to test permissions
+    if (isImpersonating() && !url.includes('thanos-querier-openshift-monitoring')) {
+      // We are impersonating an endpoint that is not thanos -- use the token from the impersonated user
+      // Thanos Querier does not grant basic user access on external routes
+      headers = {
+        ...kubeHeaders,
+        Authorization: `Bearer ${getImpersonateAccessToken()}`,
+      };
+    }
   } else {
     // When not in dev mode, we want to switch the token from the service account to the user
     const accessToken = request.headers[USER_ACCESS_TOKEN];

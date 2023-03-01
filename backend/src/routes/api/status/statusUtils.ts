@@ -3,6 +3,7 @@ import { KubeFastifyInstance, KubeStatus } from '../../../types';
 import { getUserName } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isUserAdmin, isUserAllowed } from '../../../utils/adminUtils';
+import { isImpersonating } from '../../../devFlags';
 
 export const status = async (
   fastify: KubeFastifyInstance,
@@ -25,18 +26,23 @@ export const status = async (
     fastify.log.error(error, 'failed to get status');
     throw error;
   } else {
+    const impersonating = isImpersonating();
+    const data: KubeStatus = {
+      currentContext,
+      currentUser,
+      namespace,
+      userName,
+      clusterID,
+      clusterBranding,
+      isAdmin,
+      isAllowed,
+      serverURL: server,
+    };
+    if (impersonating) {
+      data.isImpersonating = impersonating;
+    }
     return {
-      kube: {
-        currentContext,
-        currentUser,
-        namespace,
-        userName,
-        clusterID,
-        clusterBranding,
-        isAdmin,
-        isAllowed,
-        serverURL: server,
-      },
+      kube: data,
     };
   }
 };
