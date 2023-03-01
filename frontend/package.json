@@ -35,8 +35,7 @@
     "test:local": "jest --watchAll",
     "test:type-check": "tsc --noEmit",
     "test:storybook": "test-storybook --verbose",
-    "storybook": "start-storybook -p 6006 -s ./config",
-    "build-storybook": "build-storybook"
+    "storybook": "start-storybook -p 6006 -s ./config"
   },
   "dependencies": {
     "@openshift/dynamic-plugin-sdk": "^1.0.0-alpha12",
@@ -94,6 +93,7 @@
     "@types/showdown": "^1.9.3",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
+    "axe-playwright": "^1.2.3",
     "babel-loader": "^8.3.0",
     "copy-webpack-plugin": "^6.2.1",
     "css-loader": "^5.2.7",
