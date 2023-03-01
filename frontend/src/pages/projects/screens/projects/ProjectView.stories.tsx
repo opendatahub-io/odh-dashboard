@@ -5,10 +5,10 @@ import ProjectView from './ProjectView';
 import { rest } from 'msw';
 import { within, userEvent, waitForElementToBeRemoved } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { mockNotebooks } from '../../../../../__mocks__/mockNotebooks';
-import { mockPods } from '../../../../../__mocks__/mockPods';
-import { mockWorkbench } from '../../../../../__mocks__/mockWorkbench';
-import { mockProjects } from '../../../../../__mocks__/mockProjects';
+import { mockAPINamespaceProjectRoutesWorkbench } from '../../../../../__mocks__/mockAPINamespaceProjectRoutesWorkbench';
+import { mockAPINamespaceProjectPods } from '../../../../../__mocks__/mockAPINamespaceProjectPods';
+import { mockAPINamespaceProjectNotebooks } from '../../../../../__mocks__/mockAPINamespaceProjectNotebooks';
+import { mockAPINamespaceProjects } from '../../../../../__mocks__/mockAPINamespaceProjects';
 
 export default {
   title: 'ProjectView',
@@ -19,17 +19,17 @@ export default {
         rest.get(
           '/api/k8s/apis/route.openshift.io/v1/namespaces/project/routes/workbench',
           (req, res, ctx) => {
-            return res(ctx.json(mockWorkbench));
+            return res(ctx.json(mockAPINamespaceProjectRoutesWorkbench));
           },
         ),
         rest.get('/api/k8s/api/v1/namespaces/project/pods', (req, res, ctx) => {
-          return res(ctx.json(mockPods));
+          return res(ctx.json(mockAPINamespaceProjectPods));
         }),
         rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/project/notebooks', (req, res, ctx) => {
-          return res(ctx.json(mockNotebooks));
+          return res(ctx.json(mockAPINamespaceProjectNotebooks));
         }),
         rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) => {
-          return res(ctx.json(mockProjects));
+          return res(ctx.json(mockAPINamespaceProjects));
         }),
       ],
     },
@@ -51,7 +51,7 @@ Default.play = async ({ canvasElement }) => {
 
   // test that values from api are be displayed correctly
   expect(await canvas.findByText('project', { selector: 'a' })).toBeInTheDocument();
-  expect(await canvas.findByText('admin')).toBeInTheDocument();
+  expect(await canvas.findByText('user')).toBeInTheDocument();
 };
 
 export const EditProject = Template.bind({});
