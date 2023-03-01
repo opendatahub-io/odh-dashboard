@@ -1,9 +1,10 @@
 import { FastifyRequest } from 'fastify';
 import * as _ from 'lodash';
-import { USER_ACCESS_TOKEN } from './constants';
+import { DEV_IMPERSONATE_USER, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
+import { isImpersonating } from '../devFlags';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -96,6 +97,9 @@ export const getUserName = async (
     return userOauth.metadata.name;
   } catch (e) {
     if (DEV_MODE) {
+      if (isImpersonating()) {
+        return DEV_IMPERSONATE_USER;
+      }
       return (currentUser.username || currentUser.name)?.split('/')[0];
     }
     fastify.log.error(`Failed to retrieve username: ${e.response?.body?.message || e.message}`);

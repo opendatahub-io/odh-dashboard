@@ -17,6 +17,7 @@ export const getUserFulfilled = (response: {
     isAdmin: boolean;
     isAllowed: boolean;
     namespace: string;
+    isImpersonating?: boolean;
   };
 }): GetUserAction => ({
   type: Actions.GET_USER_FULFILLED,
@@ -27,6 +28,7 @@ export const getUserFulfilled = (response: {
     isAdmin: response.kube.isAdmin,
     isAllowed: response.kube.isAllowed,
     dashboardNamespace: response.kube.namespace,
+    isImpersonating: response.kube.isImpersonating,
   },
 });
 

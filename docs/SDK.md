@@ -36,6 +36,17 @@ We have set up a pass through API that will effectively take the path built by t
 
 See the [k8s pass through API](../backend/src/routes/api/k8s/pass-through.ts) here.
 
+### Pass Through Impersonate User Dev Mode
+
+In order to check regular user permissions without disabling the rest of the backend functionality in `dev mode`, you can add the `DEV_IMPERSONATE_USER` and `DEV_IMPERSONATE_PASSWORD` environment variables to your local setup with valid k8s username and password in your cluster. This will bypass the regular pass-through flow and will add that specific headers to the calls. The steps to impersonate another user are listed as follows:
+
+1. Create a new env variable in your `.env.local` file with this format `DEV_IMPERSONATE_USER=<username>` and `DEV_IMPERSONATE_PASSWORD=<password>` 
+2. Run the dev server for ODH dashboard. If you don't know how to run a local dev server, please refer to [CONTRIBUTING](../CONTRIBUTING.md) 
+3. Click on the username on the top right corner to open the dropdown menu, and choose `Start impersonate`, then the page will refresh and you will be impersonating as the user you set up in step 1
+4. To stop impersonating, click on the `Stop impersonate` button in the header toolbar
+
+NOTE: You may not be able to read data from some Prometheus applications when impersonating another user. In the DEV_MODE, we use the external route to fetch Prometheus data, and the route might connect to a target port that's not accessible by a regular user even if the bearer token is set. To validate that, you may need to deploy the image to the cluster.
+
 ## Patches
 
 Patches are based on [jsonpatch](https://jsonpatch.com/). For those who are unaware of the details let's do a quick breakdown on how they work. When making a `k8sPatchResource` call, it will ask for `Patches[]`. A `Patch` is just simply a straight forward operation on the existing resource.

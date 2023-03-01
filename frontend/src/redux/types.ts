@@ -33,6 +33,7 @@ export interface GetUserAction {
     isAllowed?: boolean;
     error?: Error | null;
     notification?: AppNotification;
+    isImpersonating?: boolean;
   };
 }
 
@@ -42,6 +43,7 @@ export type AppState = {
   user?: string;
   userLoading: boolean;
   userError?: Error | null;
+  isImpersonating?: boolean;
 
   clusterID?: string;
   clusterBranding?: string;

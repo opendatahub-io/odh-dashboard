@@ -30,6 +30,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         isAdmin: action.payload.isAdmin,
         isAllowed: action.payload.isAllowed,
         dashboardNamespace: action.payload.dashboardNamespace,
+        isImpersonating: action.payload.isImpersonating,
       };
     case Actions.GET_USER_REJECTED:
       return {

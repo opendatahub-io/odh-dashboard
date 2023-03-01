@@ -9,9 +9,13 @@ import {
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
+  Button,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK } from '~/utilities/const';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE } from '~/utilities/const';
+import useNotification from '~/utilities/useNotification';
+import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
 import AppLauncher from './AppLauncher';
@@ -27,7 +31,9 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
   const userName: string = useAppSelector((state) => state.user || '');
+  const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
+  const notification = useNotification();
 
   const newNotifications = React.useMemo(
     () => notifications.filter((notification) => !notification.read).length,
@@ -48,6 +54,21 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       Log out
     </DropdownItem>,
   ];
+
+  if (DEV_MODE && !isImpersonating) {
+    userMenuItems.unshift(
+      <DropdownItem
+        key="impersonate"
+        onClick={() => {
+          updateImpersonateSettings(true)
+            .then(() => location.reload())
+            .catch((e) => notification.error('Failed impersonating user', e.message));
+        }}
+      >
+        Start impersonate
+      </DropdownItem>,
+    );
+  }
 
   const handleHelpClick = () => {
     setHelpMenuOpen(false);
@@ -133,6 +154,24 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
             </ToolbarItem>
           ) : null}
         </ToolbarGroup>
+        {DEV_MODE && isImpersonating && (
+          <ToolbarItem>
+            <Tooltip
+              content={`You are impersonating as ${userName}, click to stop impersonating`}
+              position="bottom"
+            >
+              <Button
+                onClick={() =>
+                  updateImpersonateSettings(false)
+                    .then(() => location.reload())
+                    .catch((e) => notification.error('Failed stopping impersonating', e.message))
+                }
+              >
+                Stop impersonate
+              </Button>
+            </Tooltip>
+          </ToolbarItem>
+        )}
         <ToolbarItem>
           <Dropdown
             removeFindDomNode
