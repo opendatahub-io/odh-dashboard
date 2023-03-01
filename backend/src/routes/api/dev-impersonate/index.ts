@@ -70,7 +70,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         if (e?.code) {
           throw createCustomError(
             'Error impersonating user',
-            e.response || 'Impersonating user error',
+            e.response?.message || 'Impersonating user error',
             e.code,
           );
         }
