@@ -11,9 +11,10 @@ import { MenuItemStatus } from '~/pages/groupSettings/groupTypes';
 type MultiSelectionProps = {
   value: MenuItemStatus[];
   setValue: (itemSelection: MenuItemStatus[]) => void;
+  ariaLabel: string;
 };
 
-export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue }) => {
+export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue, ariaLabel }) => {
   const [showMenu, setShowMenu] = React.useState(false);
 
   const toggleMenu = (isOpen: React.SetStateAction<boolean>) => {
@@ -44,7 +45,8 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({ value, setValue 
         onClear={clearSelection}
         selections={value?.filter((element) => element.enabled).map((element) => element.name)}
         isOpen={showMenu}
-        aria-labelledby="Select a group"
+        aria-label="Select groups menu"
+        typeAheadAriaLabel={ariaLabel}
         isCreatable={false}
         onCreateOption={undefined}
         validated={noSelectedItems ? 'error' : 'default'}

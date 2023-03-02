@@ -34,6 +34,7 @@ export const FormGroupSettings: React.FC<FormGroupSettingsProps> = ({
   <FormGroup fieldId={groupsField} label={title}>
     <Text>{body}</Text>
     <MultiSelection
+      ariaLabel={body}
       value={items}
       setValue={(newState) => handleMenuItemSelection(newState, groupsField)}
     />
