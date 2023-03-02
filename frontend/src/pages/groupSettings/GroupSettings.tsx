@@ -27,6 +27,9 @@ const GroupSettings: React.FC = () => {
     setIsGroupSettingsChanged,
   } = useWatchGroups();
 
+  const adminDesc = 'Select the OpenShift groups that contain all Data Science administrators.';
+  const userDesc = 'Select the OpenShift groups that contain all Data Science users.';
+
   const handleSaveButtonClicked = async () => {
     if (isLoading) {
       return;
@@ -61,7 +64,7 @@ const GroupSettings: React.FC = () => {
         <StackItem>
           <SettingSection
             title="Data Science administrator groups"
-            description="Select the OpenShift groups that contain all Data Science administrators."
+            description={adminDesc}
             footer={
               <Alert
                 variant="info"
@@ -72,6 +75,7 @@ const GroupSettings: React.FC = () => {
             }
           >
             <MultiSelection
+              ariaLabel={adminDesc}
               value={groupSettings.adminGroups}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
             />
@@ -98,11 +102,9 @@ const GroupSettings: React.FC = () => {
           </SettingSection>
         </StackItem>
         <StackItem>
-          <SettingSection
-            title="Data Science user groups"
-            description="Select the OpenShift groups that contain all Data Science users."
-          >
+          <SettingSection title="Data Science user groups" description={userDesc}>
             <MultiSelection
+              ariaLabel={userDesc}
               value={groupSettings.allowedGroups}
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
             />
