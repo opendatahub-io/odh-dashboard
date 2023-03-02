@@ -76,7 +76,11 @@ export const listScopedInferenceService = (
     Promise.all(
       projects.map((project) => listInferenceService(project.metadata.name, labelSelector)),
     ).then((listInferenceService) =>
-      _.uniqBy(_.flatten(listInferenceService), (is) => is.metadata.name),
+      _.flatten(
+        listInferenceService.map((projectInferenceServices) =>
+          _.uniqBy(projectInferenceServices, (is) => is.metadata.name),
+        ),
+      ),
     ),
   );
 
