@@ -3,6 +3,7 @@ import { ThunkAction } from 'redux-thunk';
 import { Action } from 'redux';
 import { Actions, AppNotification, AppState, GetUserAction } from '~/redux/types';
 import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import { POLL_INTERVAL } from '~/utilities/const';
 
 export const getUserPending = (): GetUserAction => ({
   type: Actions.GET_USER_PENDING,
@@ -41,16 +42,18 @@ export const getUserRejected = (error: Error): GetUserAction => ({
 
 export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string>> => {
   const url = '/api/status';
-  return async (dispatch) => {
+  return (dispatch) => {
     dispatch(getUserPending());
-    try {
-      const response = await axios.get(url, {});
-      dispatch(getUserFulfilled(response.data));
-    } catch (e: unknown) {
-      if (axios.isAxiosError(e)) {
-        dispatch(getUserRejected(e.response?.data));
+    setInterval(async () => {
+      try {
+        const response = await axios.get(url, {});
+        dispatch(getUserFulfilled(response.data));
+      } catch (e: unknown) {
+        if (axios.isAxiosError(e)) {
+          dispatch(getUserRejected(e.response?.data));
+        }
       }
-    }
+    }, POLL_INTERVAL);
   };
 };
 
