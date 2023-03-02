@@ -260,86 +260,92 @@ const ClusterSettings: React.FC = () => {
             <Stack hasGutter>
               <StackItem>
                 <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                  <Radio
-                    id="culler-timeout-unlimited"
-                    data-id="culler-timeout-unlimited"
-                    label="Do not stop idle notebooks"
-                    isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                    name={CULLER_TIMEOUT_UNLIMITED}
-                    onChange={radioCheckedChange}
-                    value={CULLER_TIMEOUT_UNLIMITED}
-                  />
-                  <Radio
-                    id="culler-timeout-limited"
-                    data-id="culler-timeout-unlimited"
-                    label="Stop idle notebooks after"
-                    isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_LIMITED}
-                    name={CULLER_TIMEOUT_LIMITED}
-                    onChange={radioCheckedChange}
-                    value={CULLER_TIMEOUT_LIMITED}
-                    body={
-                      <InputGroup>
-                        <TextInput
-                          id="hour-input"
-                          style={{ maxWidth: '60px' }}
-                          name="hour"
-                          data-id="hour-input"
-                          type="text"
-                          aria-label="Culler Timeout Hour Input"
-                          value={hour}
-                          isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                          onChange={(value: string) => {
-                            let newValue =
-                              isNaN(Number(value)) || !Number.isInteger(Number(value))
-                                ? hour
-                                : Number(value);
-                            newValue =
-                              newValue > MAX_HOUR
-                                ? MAX_HOUR
-                                : newValue < MIN_HOUR
-                                ? MIN_HOUR
-                                : newValue;
-                            // if the hour is max, then the minute can only be set to 0
-                            if (newValue === MAX_HOUR && minute !== MIN_MINUTE) {
-                              setMinute(MIN_MINUTE);
-                            }
-                            setHour(newValue);
-                          }}
-                        />
-                        <InputGroupText variant={InputGroupTextVariant.plain}>hours</InputGroupText>
-                        <TextInput
-                          id="minute-input"
-                          style={{ maxWidth: '40px' }}
-                          name="minute"
-                          data-id="minute-input"
-                          type="text"
-                          aria-label="Culler Timeout Minute Input"
-                          value={minute}
-                          isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                          onChange={(value: string) => {
-                            let newValue =
-                              isNaN(Number(value)) || !Number.isInteger(Number(value))
-                                ? minute
-                                : Number(value);
-                            newValue =
-                              newValue > MAX_MINUTE
-                                ? MAX_MINUTE
-                                : newValue < MIN_MINUTE
-                                ? MIN_MINUTE
-                                : newValue;
-                            // if the hour is max, then the minute can only be set to 0
-                            if (hour === MAX_HOUR) {
-                              newValue = MIN_MINUTE;
-                            }
-                            setMinute(newValue);
-                          }}
-                        />
-                        <InputGroupText variant={InputGroupTextVariant.plain}>
-                          minutes
-                        </InputGroupText>
-                      </InputGroup>
-                    }
-                  />
+                  <FlexItem>
+                    <Radio
+                      id="culler-timeout-unlimited"
+                      data-id="culler-timeout-unlimited"
+                      label="Do not stop idle notebooks"
+                      isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
+                      name={CULLER_TIMEOUT_UNLIMITED}
+                      onChange={radioCheckedChange}
+                      value={CULLER_TIMEOUT_UNLIMITED}
+                    />
+                  </FlexItem>
+                  <FlexItem>
+                    <Radio
+                      id="culler-timeout-limited"
+                      data-id="culler-timeout-unlimited"
+                      label="Stop idle notebooks after"
+                      isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_LIMITED}
+                      name={CULLER_TIMEOUT_LIMITED}
+                      onChange={radioCheckedChange}
+                      value={CULLER_TIMEOUT_LIMITED}
+                      body={
+                        <InputGroup>
+                          <TextInput
+                            id="hour-input"
+                            style={{ maxWidth: '60px' }}
+                            name="hour"
+                            data-id="hour-input"
+                            type="text"
+                            aria-label="Culler Timeout Hour Input"
+                            value={hour}
+                            isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
+                            onChange={(value: string) => {
+                              let newValue =
+                                isNaN(Number(value)) || !Number.isInteger(Number(value))
+                                  ? hour
+                                  : Number(value);
+                              newValue =
+                                newValue > MAX_HOUR
+                                  ? MAX_HOUR
+                                  : newValue < MIN_HOUR
+                                  ? MIN_HOUR
+                                  : newValue;
+                              // if the hour is max, then the minute can only be set to 0
+                              if (newValue === MAX_HOUR && minute !== MIN_MINUTE) {
+                                setMinute(MIN_MINUTE);
+                              }
+                              setHour(newValue);
+                            }}
+                          />
+                          <InputGroupText variant={InputGroupTextVariant.plain}>
+                            hours
+                          </InputGroupText>
+                          <TextInput
+                            id="minute-input"
+                            style={{ maxWidth: '40px' }}
+                            name="minute"
+                            data-id="minute-input"
+                            type="text"
+                            aria-label="Culler Timeout Minute Input"
+                            value={minute}
+                            isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
+                            onChange={(value: string) => {
+                              let newValue =
+                                isNaN(Number(value)) || !Number.isInteger(Number(value))
+                                  ? minute
+                                  : Number(value);
+                              newValue =
+                                newValue > MAX_MINUTE
+                                  ? MAX_MINUTE
+                                  : newValue < MIN_MINUTE
+                                  ? MIN_MINUTE
+                                  : newValue;
+                              // if the hour is max, then the minute can only be set to 0
+                              if (hour === MAX_HOUR) {
+                                newValue = MIN_MINUTE;
+                              }
+                              setMinute(newValue);
+                            }}
+                          />
+                          <InputGroupText variant={InputGroupTextVariant.plain}>
+                            minutes
+                          </InputGroupText>
+                        </InputGroup>
+                      }
+                    />
+                  </FlexItem>
                 </Flex>
               </StackItem>
               <StackItem>
@@ -398,10 +404,7 @@ const ClusterSettings: React.FC = () => {
                       {notebookTolerationSettings.error}
                     </HelperTextItem>
                   )}
-                  <HelperTextItem
-                    variant={pvcSize === '' ? 'error' : 'indeterminate'}
-                    hasIcon={pvcSize === ''}
-                  >
+                  <HelperTextItem variant="indeterminate">
                     The toleration key above will be applied to all notebook pods when they are
                     created. Add a matching taint key (with any value) to the Machine Pool(s) that
                     you want to dedicate to Notebooks.
@@ -466,7 +469,9 @@ const ClusterSettings: React.FC = () => {
         <StackItem>
           <Button
             data-id="submit-cluster-settings"
-            isDisabled={saving || !isSettingsChanged || !!notebookTolerationSettings.error}
+            isDisabled={
+              saving || !pvcSize || !isSettingsChanged || !!notebookTolerationSettings.error
+            }
             variant="primary"
             isLoading={saving}
             onClick={handleSaveButtonClicked}
