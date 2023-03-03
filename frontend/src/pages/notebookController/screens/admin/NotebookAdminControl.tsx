@@ -1,16 +1,11 @@
 import * as React from 'react';
-import {
-  Alert,
-  Pagination,
-  PaginationVariant,
-  Stack,
-  StackItem,
-  Title,
-} from '@patternfly/react-core';
-import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import ExternalLink from '~/components/ExternalLink';
+import { Alert, Stack, StackItem, Title } from '@patternfly/react-core';
+import { Td, Tr } from '@patternfly/react-table';
+import Table from '~/components/Table';
+
 import useTableColumnSort from '~/utilities/useTableColumnSort';
+import ExternalLink from '~/components/ExternalLink';
+import ApplicationsPage from '~/pages/ApplicationsPage';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '~/types';
 import { columns } from './const';
@@ -20,12 +15,9 @@ import useAdminUsers from './useAdminUsers';
 import { AdminViewUserData } from './types';
 import { NotebookAdminContext } from './NotebookAdminContext';
 
-const INITIAL_PAGE_LIMIT = 10;
 const NotebookAdminControl: React.FC = () => {
   const [unsortedUsers, loaded, loadError] = useAdminUsers();
-  const [pageIndex, setPageIndex] = React.useState(0);
-  const [perPage, setPerPage] = React.useState(INITIAL_PAGE_LIMIT);
-  const { transformData, getColumnSort } = useTableColumnSort<AdminViewUserData>(columns, 0);
+  const { transformData } = useTableColumnSort<AdminViewUserData>(columns, 0);
   const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
 
   const users = transformData(unsortedUsers);
@@ -76,46 +68,26 @@ const NotebookAdminControl: React.FC = () => {
             <Title headingLevel="h2">Users</Title>
           </StackItem>
           <StackItem>
-            <TableComposable aria-label="Users table" variant="compact">
-              <Thead>
-                <Tr>
-                  {columns.map((column, i) => (
-                    <Th
+            <Table
+              aria-label="Users table"
+              variant="compact"
+              data={users}
+              enablePagination
+              columns={columns}
+              rowRenderer={(user) => (
+                <Tr key={user.name}>
+                  {columns.map((column) => (
+                    <Td
                       key={column.field}
-                      sort={getColumnSort(i)}
-                      role={!column.label ? 'presentation' : undefined}
+                      dataLabel={column.field}
+                      isActionCell={column.field === 'actions'}
                     >
-                      {column.label}
-                    </Th>
+                      <UserTableCellTransform user={user} userProperty={column.field} />
+                    </Td>
                   ))}
                 </Tr>
-              </Thead>
-              <Tbody>
-                {users.slice(perPage * pageIndex, perPage * pageIndex + perPage).map((user) => (
-                  <Tr key={user.name}>
-                    {columns.map((column) => (
-                      <Td
-                        key={column.field}
-                        dataLabel={column.field}
-                        isActionCell={column.field === 'actions'}
-                      >
-                        <UserTableCellTransform user={user} userProperty={column.field} />
-                      </Td>
-                    ))}
-                  </Tr>
-                ))}
-              </Tbody>
-            </TableComposable>
-            {users.length > INITIAL_PAGE_LIMIT && (
-              <Pagination
-                itemCount={users.length}
-                perPage={perPage}
-                page={pageIndex + 1}
-                variant={PaginationVariant.bottom}
-                onSetPage={(e, pageNumber) => setPageIndex(pageNumber - 1)}
-                onPerPageSelect={(e, newPerPage) => setPerPage(newPerPage)}
-              />
-            )}
+              )}
+            />
           </StackItem>
         </Stack>
         <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />

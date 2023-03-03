@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
-import useTableColumnSort from '~/utilities/useTableColumnSort';
+import Table from '~/components/Table';
+
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import DeletePVCModal from '~/pages/projects/pvc/DeletePVCModal';
-import { columns } from './data';
 import StorageTableRow from './StorageTableRow';
+import { columns } from './data';
 import ManageStorageModal from './ManageStorageModal';
 
 type StorageTableProps = {
@@ -13,25 +13,18 @@ type StorageTableProps = {
   onAddPVC: () => void;
 };
 
-const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refresh, onAddPVC }) => {
+const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) => {
   const [deleteStorage, setDeleteStorage] = React.useState<PersistentVolumeClaimKind | undefined>();
   const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
-  const sort = useTableColumnSort<PersistentVolumeClaimKind>(columns, 1);
-  const sortedPvcs = sort.transformData(unsortedPvcs);
 
   return (
     <>
-      <TableComposable variant="compact">
-        <Thead>
-          <Tr>
-            {columns.map((col, i) => (
-              <Th key={col.field} sort={sort.getColumnSort(i)} width={col.width}>
-                {col.label}
-              </Th>
-            ))}
-          </Tr>
-        </Thead>
-        {sortedPvcs.map((pvc) => (
+      <Table
+        data={pvcs}
+        columns={columns}
+        disableRowRenderSupport
+        variant="compact"
+        rowRenderer={(pvc) => (
           <StorageTableRow
             key={pvc.metadata.uid}
             obj={pvc}
@@ -39,8 +32,8 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs: unsortedPvcs, refresh
             onDeletePVC={setDeleteStorage}
             onAddPVC={onAddPVC}
           />
-        ))}
-      </TableComposable>
+        )}
+      />
       <ManageStorageModal
         isOpen={!!editPVC}
         existingData={editPVC}

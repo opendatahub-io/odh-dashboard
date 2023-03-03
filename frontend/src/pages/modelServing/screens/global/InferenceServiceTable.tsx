@@ -1,28 +1,28 @@
 import * as React from 'react';
-import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
-import { GetColumnSort } from '~/utilities/useTableColumnSort';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
-import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
+import Table from '~/components/Table';
+
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
+import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
 
 type InferenceServiceTableProps = {
   clearFilters?: () => void;
   inferenceServices: InferenceServiceKind[];
   servingRuntimes: ServingRuntimeKind[];
-  getColumnSort: GetColumnSort;
   refresh: () => void;
-};
+} & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   clearFilters,
   inferenceServices,
   servingRuntimes,
-  getColumnSort,
   refresh,
+  enablePagination,
+  toolbarContent,
 }) => {
   const {
     projects: { data: projects },
@@ -36,29 +36,23 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
     : getProjectInferenceServiceColumns();
   return (
     <>
-      <TableComposable variant={isGlobal ? undefined : 'compact'}>
-        <Thead>
-          <Tr>
-            {mappedColumns.map((col, i) => (
-              <Th key={col.field} sort={getColumnSort(i)} width={col.width}>
-                {col.label}
-              </Th>
-            ))}
-          </Tr>
-        </Thead>
-        {isGlobal && inferenceServices.length === 0 && (
-          <Tbody>
-            <Tr>
-              <Td colSpan={mappedColumns.length} style={{ textAlign: 'center' }}>
-                No projects match your filters.{' '}
-                <Button variant="link" isInline onClick={clearFilters}>
-                  Clear filters
-                </Button>
-              </Td>
-            </Tr>
-          </Tbody>
-        )}
-        {inferenceServices.map((is) => (
+      <Table
+        data={inferenceServices}
+        columns={mappedColumns}
+        variant={isGlobal ? undefined : 'compact'}
+        toolbarContent={toolbarContent}
+        enablePagination={enablePagination}
+        emptyTableView={
+          isGlobal ? (
+            <>
+              No projects match your filters.{' '}
+              <Button variant="link" isInline onClick={clearFilters}>
+                Clear filters
+              </Button>
+            </>
+          ) : undefined
+        }
+        rowRenderer={(is) => (
           <InferenceServiceTableRow
             key={is.metadata.uid}
             obj={is}
@@ -69,8 +63,8 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
             onDeleteInferenceService={setDeleteInferenceService}
             onEditInferenceService={setEditInferenceService}
           />
-        ))}
-      </TableComposable>
+        )}
+      />
       <DeleteInferenceServiceModal
         inferenceService={deleteInferenceService}
         onClose={(deleted) => {

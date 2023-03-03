@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { TableComposable, Th, Thead, Tr } from '@patternfly/react-table';
-import useTableColumnSort from '~/utilities/useTableColumnSort';
+import Table from '~/components/Table';
 import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import useTableColumnSort from '~/utilities/useTableColumnSort';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { columns } from './data';
@@ -43,17 +43,11 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
 
   return (
     <>
-      <TableComposable>
-        <Thead>
-          <Tr>
-            {columns.map((col, i) => (
-              <Th key={col.field} sort={sort.getColumnSort(i)} width={col.width}>
-                {col.label}
-              </Th>
-            ))}
-          </Tr>
-        </Thead>
-        {sortedModelServers.map((modelServer) => (
+      <Table
+        data={sortedModelServers}
+        columns={columns}
+        disableRowRenderSupport
+        rowRenderer={(modelServer) => (
           <ServingRuntimeTableRow
             key={modelServer.metadata.uid}
             obj={modelServer}
@@ -65,8 +59,8 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             }}
             expandedColumn={expandedColumn}
           />
-        ))}
-      </TableComposable>
+        )}
+      />
       <DeleteServingRuntimeModal
         servingRuntime={deleteServingRuntime}
         onClose={(deleted) => {
