@@ -207,7 +207,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
           className="filter-search"
           aria-label="search input for image images table"
           value={tableFilter.filter}
-          onChange={(value) => {
+          onChange={(_, value) => {
             const newCount = getFilterCount(value, tableFilter.option);
             setTableFilter({
               filter: value,
@@ -310,7 +310,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
               packages.push(<p>{`${nbpackage.name} ${nbpackage.version}`}</p>);
             });
             return (
-              <Tbody key={image.name} isExpanded={isBYONImageExpanded(image)}>
+              <Tbody key={image.id} isExpanded={isBYONImageExpanded(image)}>
                 <Tr isHidden={applyTableFilter(image)}>
                   <Td
                     expand={{

@@ -64,18 +64,14 @@ const BYONImages: React.FC = () => {
       errorMessage="Unable to load notebook images."
       emptyStatePage={noImagesPageSection}
     >
-      {!isEmpty ? (
-        <div className="odh-cluster-settings">
-          <PageSection variant={PageSectionVariants.light} padding={{ default: 'noPadding' }}>
-            <Flex direction={{ default: 'column' }}>
-              <FlexItem>
-                {' '}
-                <BYONImagesTable images={images} forceUpdate={forceUpdate} />
-              </FlexItem>
-            </Flex>
-          </PageSection>
-        </div>
-      ) : null}
+      <PageSection variant={PageSectionVariants.light} padding={{ default: 'noPadding' }}>
+        <Flex direction={{ default: 'column' }}>
+          <FlexItem>
+            {' '}
+            <BYONImagesTable images={images} forceUpdate={forceUpdate} />
+          </FlexItem>
+        </Flex>
+      </PageSection>
     </ApplicationsPage>
   );
 };
