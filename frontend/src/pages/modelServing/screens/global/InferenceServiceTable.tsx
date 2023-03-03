@@ -43,14 +43,14 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         toolbarContent={toolbarContent}
         enablePagination={enablePagination}
         emptyTableView={
-          isGlobal ? undefined : (
+          isGlobal ? (
             <>
               No projects match your filters.{' '}
               <Button variant="link" isInline onClick={clearFilters}>
                 Clear filters
               </Button>
             </>
-          )
+          ) : undefined
         }
         rowRenderer={(is) => (
           <InferenceServiceTableRow

@@ -6,7 +6,6 @@ import {
   Th,
   TableComposableProps,
   Caption,
-  Td,
   Tbody,
 } from '@patternfly/react-table';
 import React, { useEffect } from 'react';
@@ -42,16 +41,20 @@ const Table = <T,>({
   const data = enablePagination ? allData.slice(pageSize * (page - 1), pageSize * page) : allData;
 
   // update page to 1 if data changes (common when filter is applied)
-  useEffect(() => setPage(1), [data]);
+  useEffect(() => {
+    if (data.length === 0) {
+      setPage(1);
+    }
+  }, [data.length]);
 
   const sort = useTableColumnSort<T>(columns, 0);
 
-  const showPagination = enablePagination && data.length > minPageSize;
+  const showPagination = enablePagination && allData.length > minPageSize;
   const pagination = (pageDirection: 'up' | 'down') => (
     <Pagination
       dropDirection={pageDirection}
       perPageComponent="button"
-      itemCount={data.length}
+      itemCount={allData.length}
       perPage={pageSize}
       page={page}
       onSetPage={(e, newPage) => setPage(newPage)}
@@ -92,21 +95,17 @@ const Table = <T,>({
             ))}
           </Tr>
         </Thead>
-        {emptyTableView && data.length === 0 && (
-          <Tbody>
-            <Tr>
-              <Td colSpan={columns.length} style={{ textAlign: 'center' }}>
-                {emptyTableView}
-              </Td>
-            </Tr>
-          </Tbody>
-        )}
         {disableRowRenderSupport ? (
           sort.transformData(data).map((row) => rowRenderer(row))
         ) : (
           <Tbody>{sort.transformData(data).map((row) => rowRenderer(row))}</Tbody>
         )}
       </TableComposable>
+      {emptyTableView && data.length === 0 && (
+        <div style={{ padding: 'var(--pf-global--spacer--2xl) 0', textAlign: 'center' }}>
+          {emptyTableView}
+        </div>
+      )}
       {showPagination && (
         <Toolbar>
           <ToolbarContent>
