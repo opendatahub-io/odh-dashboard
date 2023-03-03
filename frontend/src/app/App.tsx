@@ -11,11 +11,10 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { detectUser } from '~/redux/actions/actions';
 import ToastNotifications from '~/components/ToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
 import { useUser } from '~/redux/selectors';
-import { useAppDispatch } from '~/redux/hooks';
+import useDetectUser from '~/utilities/useDetectUser';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -30,7 +29,6 @@ import './App.scss';
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
-  const dispatch = useAppDispatch();
 
   const buildStatuses = useWatchBuildStatus();
   const {
@@ -39,9 +37,7 @@ const App: React.FC = () => {
     loadError: fetchConfigError,
   } = useApplicationSettings();
 
-  React.useEffect(() => {
-    dispatch(detectUser());
-  }, [dispatch]);
+  useDetectUser();
 
   if (!username || !configLoaded || !dashboardConfig) {
     // We lack the critical data to startup the app

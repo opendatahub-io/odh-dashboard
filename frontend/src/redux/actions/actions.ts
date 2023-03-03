@@ -39,21 +39,6 @@ export const getUserRejected = (error: Error): GetUserAction => ({
   },
 });
 
-export const detectUser = (): ThunkAction<void, AppState, unknown, Action<string>> => {
-  const url = '/api/status';
-  return async (dispatch) => {
-    dispatch(getUserPending());
-    try {
-      const response = await axios.get(url, {});
-      dispatch(getUserFulfilled(response.data));
-    } catch (e: unknown) {
-      if (axios.isAxiosError(e)) {
-        dispatch(getUserRejected(e.response?.data));
-      }
-    }
-  };
-};
-
 export const getAllowedUsers = (notebookNamespace: string): Promise<AllowedUser[]> => {
   const url = `/api/status/${notebookNamespace}/allowedUsers`;
   return axios.get(url).then((response) => response.data);
