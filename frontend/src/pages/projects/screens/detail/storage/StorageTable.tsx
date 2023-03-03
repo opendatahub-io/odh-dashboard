@@ -22,6 +22,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
       <Table
         data={pvcs}
         columns={columns}
+        disableRowRenderSupport
         variant="compact"
         rowRenderer={(pvc) => (
           <StorageTableRow

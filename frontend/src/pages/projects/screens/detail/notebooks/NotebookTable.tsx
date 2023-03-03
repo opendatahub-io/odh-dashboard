@@ -23,6 +23,7 @@ const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }
         variant="compact"
         data={notebookStates}
         columns={columns}
+        disableRowRenderSupport
         rowRenderer={(notebookState) => (
           <NotebookTableRow
             key={notebookState.notebook.metadata.uid}

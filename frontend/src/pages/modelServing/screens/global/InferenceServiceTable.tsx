@@ -14,7 +14,7 @@ type InferenceServiceTableProps = {
   inferenceServices: InferenceServiceKind[];
   servingRuntimes: ServingRuntimeKind[];
   refresh: () => void;
-} & Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>;
+} & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   clearFilters,

@@ -7,6 +7,7 @@ import {
   TableComposableProps,
   Caption,
   Td,
+  Tbody,
 } from '@patternfly/react-table';
 import React, { useEffect } from 'react';
 import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort';
@@ -20,6 +21,7 @@ type TableProps<DataType> = {
   toolbarContent?: React.ReactElement<typeof ToolbarItem>;
   emptyTableView?: React.ReactElement<typeof Tr>;
   caption?: string;
+  disableRowRenderSupport?: boolean;
 } & Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
@@ -31,6 +33,7 @@ const Table = <T,>({
   toolbarContent,
   emptyTableView,
   caption,
+  disableRowRenderSupport,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
@@ -89,16 +92,20 @@ const Table = <T,>({
             ))}
           </Tr>
         </Thead>
-        <>
-          {emptyTableView && data.length === 0 && (
+        {emptyTableView && data.length === 0 && (
+          <Tbody>
             <Tr>
               <Td colSpan={columns.length} style={{ textAlign: 'center' }}>
                 {emptyTableView}
               </Td>
             </Tr>
-          )}
-          {sort.transformData(data).map((row) => rowRenderer(row))}
-        </>
+          </Tbody>
+        )}
+        {disableRowRenderSupport ? (
+          sort.transformData(data).map((row) => rowRenderer(row))
+        ) : (
+          <Tbody>{sort.transformData(data).map((row) => rowRenderer(row))}</Tbody>
+        )}
       </TableComposable>
       {showPagination && (
         <Toolbar>

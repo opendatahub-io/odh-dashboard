@@ -46,6 +46,7 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
       <Table
         data={sortedModelServers}
         columns={columns}
+        disableRowRenderSupport
         rowRenderer={(modelServer) => (
           <ServingRuntimeTableRow
             key={modelServer.metadata.uid}
