@@ -9,9 +9,10 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
-  id: string;
+  id: ProjectSectionID;
   actions?: React.ReactNode[];
   title: string;
   isLoading: boolean;
