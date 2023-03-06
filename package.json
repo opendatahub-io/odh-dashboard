@@ -32,7 +32,7 @@
     "make:push": "make push",
     "postinstall": "run-p postinstall:*",
     "postinstall:backend": "cd ./backend && npm install",
-    "postinstall:frontend": "cd ./frontend && npm install --force",
+    "postinstall:frontend": "cd ./frontend && npm install",
     "start": "run-p start:*",
     "start:backend": "cd ./backend && npm start",
     "start:frontend": "echo \"...available at ./frontend/public\"",
