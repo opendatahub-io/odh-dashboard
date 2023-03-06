@@ -215,7 +215,7 @@ export const getDefaultVersionForImageStream = (
 
   const defaultVersion = sortedVersions.find(
     (version) =>
-      version.annotations?.['opendatahub.io/notebook-image-recommended'] ||
+      version.annotations?.['opendatahub.io/workbench-image-recommended'] ||
       version.annotations?.['opendatahub.io/default-image'],
   );
   if (defaultVersion) {
@@ -293,7 +293,7 @@ export const checkVersionExistence = (
 };
 
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
-  !!imageVersion.annotations?.['opendatahub.io/notebook-image-recommended'];
+  !!imageVersion.annotations?.['opendatahub.io/workbench-image-recommended'];
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
