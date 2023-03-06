@@ -13,7 +13,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
       const context = parseInt(contextAsString) as NamespaceApplicationCase;
 
-      return applyNamespaceChange(fastify, name, context);
+      return applyNamespaceChange(fastify, request, name, context);
     },
   );
 };

@@ -1,10 +1,13 @@
 import { PatchUtils } from '@kubernetes/client-node';
+import { FastifyRequest } from 'fastify';
 import { NamespaceApplicationCase } from './const';
 import { KubeFastifyInstance } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
+import { DEV_MODE, USER_ACCESS_TOKEN } from '../../../utils/constants';
 
 export const applyNamespaceChange = (
   fastify: KubeFastifyInstance,
+  request: FastifyRequest,
   name: string,
   context: NamespaceApplicationCase,
 ): Promise<{ applied: boolean }> => {
@@ -16,6 +19,8 @@ export const applyNamespaceChange = (
       400,
     );
   }
+
+  const accessToken = request.headers[USER_ACCESS_TOKEN];
 
   let labels = {};
   switch (context) {
@@ -36,7 +41,10 @@ export const applyNamespaceChange = (
 
   return fastify.kube.coreV1Api
     .patchNamespace(name, { metadata: { labels } }, undefined, undefined, undefined, undefined, {
-      headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+      headers: {
+        'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH,
+        ...(!DEV_MODE && { Authorization: `Bearer ${accessToken}` }),
+      },
     })
     .then(() => ({ applied: true }))
     .catch((e) => {
