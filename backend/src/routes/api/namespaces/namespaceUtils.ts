@@ -1,13 +1,13 @@
+import * as _ from 'lodash';
 import { PatchUtils } from '@kubernetes/client-node';
-import { FastifyRequest } from 'fastify';
 import { NamespaceApplicationCase } from './const';
-import { KubeFastifyInstance } from '../../../types';
+import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { DEV_MODE, USER_ACCESS_TOKEN } from '../../../utils/constants';
 
 export const applyNamespaceChange = (
   fastify: KubeFastifyInstance,
-  request: FastifyRequest,
+  request: OauthFastifyRequest,
   name: string,
   context: NamespaceApplicationCase,
 ): Promise<{ applied: boolean }> => {
@@ -19,8 +19,6 @@ export const applyNamespaceChange = (
       400,
     );
   }
-
-  const accessToken = request.headers[USER_ACCESS_TOKEN];
 
   let labels = {};
   switch (context) {
@@ -39,7 +37,13 @@ export const applyNamespaceChange = (
       throw createCustomError('Unknown configuration', 'Cannot apply namespace change', 400);
   }
 
-  return fastify.kube.coreV1Api
+  const accessToken = request.headers[USER_ACCESS_TOKEN];
+  const coreV1Api = _.cloneDeep(fastify.kube.coreV1Api);
+  if (!DEV_MODE) {
+    coreV1Api.setApiKey(0, `Bearer ${accessToken}`);
+  }
+
+  return coreV1Api
     .patchNamespace(name, { metadata: { labels } }, undefined, undefined, undefined, undefined, {
       headers: {
         'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH,
