@@ -86,8 +86,6 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         </Button>,
       ]}
     >
-      <Stack hasGutter>
-        <StackItem>
           <Form
             onSubmit={(e) => {
               e.preventDefault();
@@ -104,7 +102,6 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
               disableK8sName={!!editProjectData}
             />
           </Form>
-        </StackItem>
         {error && (
           <StackItem>
             <Alert variant="danger" isInline title="Error creating project">
@@ -112,7 +109,6 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
             </Alert>
           </StackItem>
         )}
-      </Stack>
     </Modal>
   );
 };
