@@ -109,6 +109,12 @@ export const compareTagVersions = (
   a: ImageStreamSpecTagType,
   b: ImageStreamSpecTagType,
 ): number => {
+  // Recommended tags should be first
+  if (a.annotations?.['opendatahub.io/workbench-image-recommended']) {
+    return -1;
+  } else if (b.annotations?.['opendatahub.io/workbench-image-recommended']) {
+    return 1;
+  }
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
     return compareVersions(b.name, a.name);
   }
@@ -212,15 +218,6 @@ export const getDefaultVersionForImageStream = (
   }
 
   const sortedVersions = [...availableVersions].sort(compareTagVersions);
-
-  const defaultVersion = sortedVersions.find(
-    (version) =>
-      version.annotations?.['opendatahub.io/workbench-image-recommended'] ||
-      version.annotations?.['opendatahub.io/default-image'],
-  );
-  if (defaultVersion) {
-    return defaultVersion;
-  }
 
   // Return the most recent version
   return sortedVersions[0];
