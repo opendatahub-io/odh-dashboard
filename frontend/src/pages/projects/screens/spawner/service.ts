@@ -14,6 +14,7 @@ import {
 import { Volume, VolumeMount } from '~/types';
 import {
   ConfigMapCategory,
+  DataConnectionData,
   EnvironmentFromVariable,
   EnvVariable,
   SecretCategory,
@@ -24,6 +25,7 @@ import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { ConfigMapKind, K8sStatus, NotebookKind, SecretKind } from '~/k8sTypes';
 import { getVolumesByStorageData } from './spawnerUtils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
+import { fetchNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 
 export const createPvcDataForNotebook = async (
   projectName: string,
@@ -123,20 +125,21 @@ const getPromisesForConfigMapsAndSecrets = (
 
       switch (envVar.values.category) {
         case SecretCategory.GENERIC:
+        case SecretCategory.UPLOAD:
           return type === 'create'
             ? createSecret(assembleSecret(projectName, dataAsRecord))
             : replaceSecret(
                 assembleSecret(projectName, dataAsRecord, 'generic', envVar.existingName),
               );
+        case SecretCategory.AWS:
+          return type === 'create'
+            ? createSecret(assembleSecret(projectName, dataAsRecord, 'aws'))
+            : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName));
         case ConfigMapCategory.GENERIC:
         case ConfigMapCategory.UPLOAD:
           return type === 'create'
             ? createConfigMap(assembleConfigMap(projectName, dataAsRecord))
             : replaceConfigMap(assembleConfigMap(projectName, dataAsRecord, envVar.existingName));
-        case SecretCategory.AWS:
-          return type === 'create'
-            ? createSecret(assembleSecret(projectName, dataAsRecord, 'aws'))
-            : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName));
         default:
           return null;
       }
@@ -186,8 +189,18 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   notebook: NotebookKind,
   envVariables: EnvVariable[],
+  dataConnection?: DataConnectionData,
 ): Promise<EnvironmentFromVariable[]> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
+  const existingDataConnection = await fetchNotebookDataConnection(notebook);
+  const newDataConnections =
+    dataConnection && dataConnection.type === 'creating' && dataConnection.creating
+      ? [dataConnection.creating]
+      : [];
+  const replaceDataConnections =
+    dataConnection && dataConnection.type === 'existing' && dataConnection.existing
+      ? [dataConnection.existing]
+      : [];
   const [oldResources, newResources] = _.partition(envVariables, (envVar) => envVar.existingName);
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
@@ -223,9 +236,10 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     .filter((v): v is Promise<K8sStatus> => !!v);
   const creatingPromises = getPromisesForConfigMapsAndSecrets(
     projectName,
-    [...newResources, ...typeChangeResources],
+    [...newResources, ...typeChangeResources, ...newDataConnections],
     'create',
   );
+
   const updatingPromises = getPromisesForConfigMapsAndSecrets(
     projectName,
     updateResources,
@@ -242,9 +256,12 @@ export const updateConfigMapsAndSecretsForNotebook = async (
 
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 
-  return getEnvFromList(created, envFromList).filter(
+  return getEnvFromList(created, [...envFromList, ...replaceDataConnections]).filter(
     (envFrom) =>
-      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef?.name)) &&
-      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef?.name)),
+      !(
+        envFrom.secretRef?.name &&
+        ((dataConnection && existingDataConnection?.existingName === envFrom.secretRef.name) ||
+          deletingNames.includes(envFrom.secretRef?.name))
+      ) && !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef?.name)),
   );
 };

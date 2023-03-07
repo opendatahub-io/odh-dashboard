@@ -39,6 +39,8 @@ import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
 import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
+import DataConnectionField from './dataConnection/DataConnectionField';
+import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -62,6 +64,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
+  const [dataConnection, setDataConnection] = useNotebookDataConnection(existingNotebook);
 
   const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
 
@@ -191,6 +194,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 editStorage={getRootVolumeName(existingNotebook)}
               />
             </FormSection>
+            <FormSection
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
+              id={SpawnerPageSectionID.DATA_CONNECTIONS}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
+            >
+              <DataConnectionField
+                dataConnection={dataConnection}
+                setDataConnection={(connection) => setDataConnection(connection)}
+              />
+            </FormSection>
           </Form>
         </GenericSidebar>
       </PageSection>
@@ -215,6 +228,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               }}
               storageData={storageData}
               envVariables={envVariables}
+              dataConnection={dataConnection}
             />
           </StackItem>
         </Stack>

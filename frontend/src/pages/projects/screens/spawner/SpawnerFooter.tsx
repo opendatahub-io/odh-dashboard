@@ -9,7 +9,12 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { createNotebook, updateNotebook } from '~/api';
-import { StartNotebookData, StorageData, EnvVariable } from '~/pages/projects/types';
+import {
+  StartNotebookData,
+  StorageData,
+  EnvVariable,
+  DataConnectionData,
+} from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
@@ -26,12 +31,14 @@ type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
   storageData: StorageData;
   envVariables: EnvVariable[];
+  dataConnection: DataConnectionData;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   startNotebookData,
   storageData,
   envVariables,
+  dataConnection,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState('');
   const {
@@ -90,6 +97,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         projectName,
         editNotebook,
         envVariables,
+        dataConnection,
       ).catch(handleError);
 
       if (!pvcDetails || !envFrom) {
@@ -112,10 +120,20 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const onCreateNotebook = async () => {
     handleStart();
 
+    const newDataConnection =
+      dataConnection.enabled && dataConnection.type === 'creating' && dataConnection.creating
+        ? [dataConnection.creating]
+        : [];
+    const existingDataConnection =
+      dataConnection.enabled && dataConnection.type === 'existing' && dataConnection.existing
+        ? [dataConnection.existing]
+        : [];
+
     const pvcDetails = await createPvcDataForNotebook(projectName, storageData).catch(handleError);
-    const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, envVariables).catch(
-      handleError,
-    );
+    const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, [
+      ...envVariables,
+      ...newDataConnection,
+    ]).catch(handleError);
 
     if (!pvcDetails || !envFrom) {
       // Error happened, let the error code handle it
@@ -127,7 +145,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       ...startNotebookData,
       volumes,
       volumeMounts,
-      envFrom,
+      envFrom: [...envFrom, ...existingDataConnection],
       tolerationSettings,
     };
 
