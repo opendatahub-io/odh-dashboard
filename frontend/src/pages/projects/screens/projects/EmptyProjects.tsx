@@ -27,7 +27,6 @@ const EmptyProjects: React.FC = () => {
       <EmptyStateSecondaryActions>
         <Button
           href="/notebookController"
-          component="a"
           variant="link"
           onClick={(e) => {
             e.preventDefault();
