@@ -42,7 +42,6 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             ref={autoSelectNameRef}
             id={nameFieldId}
             name={nameFieldId}
-            aria-labelledby={nameFieldId}
             value={data.name}
             onChange={(name) => setData({ ...data, name })}
           />
@@ -69,7 +68,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
               </Tooltip>
             }
             isRequired
-            fieldId={nameFieldId}
+            fieldId={`resource-${nameFieldId}`}
             helperText={
               !disableK8sName &&
               "Must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character"
@@ -80,7 +79,6 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
               isDisabled={disableK8sName}
               id={`resource-${nameFieldId}`}
               name={`resource-${nameFieldId}`}
-              aria-labelledby={`resource-${nameFieldId}`}
               value={data.k8sName ?? k8sName}
               onChange={(k8sName) => {
                 setData({ ...data, k8sName });
@@ -96,7 +94,6 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             resizeOrientation="vertical"
             id={descriptionFieldId}
             name={descriptionFieldId}
-            aria-labelledby={descriptionFieldId}
             value={data.description}
             onChange={(description) => setData({ ...data, description })}
           />

@@ -8,7 +8,11 @@ const PasswordInput: React.FC<React.ComponentProps<typeof TextInput>> = (props) 
   return (
     <InputGroup>
       <TextInput {...props} type={isPassword ? 'password' : 'text'} />
-      <Button variant="control" onClick={() => setPassword(!isPassword)}>
+      <Button
+        aria-label={isPassword ? 'Show key' : 'Hide key'}
+        variant="control"
+        onClick={() => setPassword(!isPassword)}
+      >
         {isPassword ? <EyeSlashIcon /> : <EyeIcon />}
       </Button>
     </InputGroup>

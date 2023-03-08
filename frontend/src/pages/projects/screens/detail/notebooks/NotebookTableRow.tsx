@@ -45,7 +45,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   return (
     <Tbody isExpanded={isExpanded}>
       <Tr>
-        <Td expand={{ rowIndex: 0, isExpanded, onToggle: () => setExpanded(!isExpanded) }} />
+        <Td
+          expand={{
+            rowIndex: 0,
+            expandId: 'notebook-row-item',
+            isExpanded,
+            onToggle: () => setExpanded(!isExpanded),
+          }}
+        />
         <Td dataLabel="Name">
           <Title headingLevel="h4">
             <ResourceNameTooltip resource={obj.notebook}>

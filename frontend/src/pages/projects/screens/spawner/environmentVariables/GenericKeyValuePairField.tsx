@@ -71,6 +71,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
                 <SplitItem style={{ paddingTop: 'var(--pf-global--spacer--xl)' }}>
                   <Button
                     isDisabled={values.length === 1}
+                    aria-label="Remove key-value pair"
                     variant="plain"
                     icon={<MinusCircleIcon />}
                     onClick={() => onUpdate(removeArrayItem(values, i))}

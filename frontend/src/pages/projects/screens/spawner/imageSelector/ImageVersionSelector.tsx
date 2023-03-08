@@ -72,6 +72,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
             setVersionSelectionOpen(false);
           }
         }}
+        aria-label="Image version select"
         isOpen={versionSelectionOpen}
         selections={selectOptionObjects.find(
           (optionObject) => optionObject.imageVersion.name === selectedImageVersion?.name,

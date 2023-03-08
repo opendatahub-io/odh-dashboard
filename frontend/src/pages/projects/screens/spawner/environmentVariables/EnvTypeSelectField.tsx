@@ -36,6 +36,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
               onToggle={() => setOpen(!open)}
               selections={envVariable.type || ''}
               placeholderText="Select one"
+              aria-label="Select one"
               onSelect={(e, value) => {
                 if (typeof value === 'string') {
                   onUpdate({
@@ -65,7 +66,12 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
         </Stack>
       </SplitItem>
       <SplitItem>
-        <Button variant="plain" icon={<MinusCircleIcon />} onClick={() => onRemove()} />
+        <Button
+          variant="plain"
+          aria-label="Remove environment variable"
+          icon={<MinusCircleIcon />}
+          onClick={() => onRemove()}
+        />
       </SplitItem>
     </Split>
   );
