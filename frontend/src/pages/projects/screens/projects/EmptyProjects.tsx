@@ -8,12 +8,10 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import NewProjectButton from './NewProjectButton';
 
 const EmptyProjects: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <EmptyState>
       <EmptyStateIcon icon={CubesIcon} />
