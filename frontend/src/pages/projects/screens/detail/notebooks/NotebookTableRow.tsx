@@ -27,12 +27,14 @@ import NotebookStorageBars from './NotebookStorageBars';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
+  rowIndex: number;
   onNotebookDelete: (notebook: NotebookKind) => void;
   onNotebookAddStorage: (notebook: NotebookKind) => void;
 };
 
 const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   obj,
+  rowIndex,
   onNotebookDelete,
   onNotebookAddStorage,
 }) => {
@@ -47,7 +49,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       <Tr>
         <Td
           expand={{
-            rowIndex: 0,
+            rowIndex: rowIndex,
             expandId: 'notebook-row-item',
             isExpanded,
             onToggle: () => setExpanded(!isExpanded),

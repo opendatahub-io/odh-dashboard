@@ -20,6 +20,7 @@ import StorageWarningStatus from './StorageWarningStatus';
 
 type StorageTableRowProps = {
   obj: PersistentVolumeClaimKind;
+  rowIndex: number;
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
   onAddPVC: () => void;
@@ -27,6 +28,7 @@ type StorageTableRowProps = {
 
 const StorageTableRow: React.FC<StorageTableRowProps> = ({
   obj,
+  rowIndex,
   onDeletePVC,
   onEditPVC,
   onAddPVC,
@@ -57,7 +59,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       <Tr>
         <Td
           expand={{
-            rowIndex: 0,
+            rowIndex: rowIndex,
             expandId: 'storage-row-item',
             isExpanded,
             onToggle: () => setExpanded(!isExpanded),

@@ -24,9 +24,10 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
         columns={columns}
         disableRowRenderSupport
         variant="compact"
-        rowRenderer={(pvc) => (
+        rowRenderer={(pvc, i) => (
           <StorageTableRow
             key={pvc.metadata.uid}
+            rowIndex={i}
             obj={pvc}
             onEditPVC={setEditPVC}
             onDeletePVC={setDeleteStorage}
