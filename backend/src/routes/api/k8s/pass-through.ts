@@ -14,19 +14,34 @@ type PassThroughData = {
   url: string;
 };
 
-const isK8sStatus = (data: Record<string, unknown>): data is K8sStatus => data.kind === 'Status';
+export const isK8sStatus = (data: unknown): data is K8sStatus =>
+  (data as K8sStatus).kind === 'Status';
 
 const setupRequest = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   data: PassThroughData,
-  isURLSafe: boolean,
-): Promise<{ url: string; requestOptions: RequestOptions }> => {
+): Promise<RequestOptions> => {
+  const { method, url } = data;
+
+  const requestOptions = await getDirectCallOptions(fastify, request, url);
+
+  return {
+    ...requestOptions,
+    method,
+  };
+};
+
+export const passThrough = <T extends K8sResourceCommon>(
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  data: PassThroughData,
+): Promise<T | K8sStatus> => {
   const { method, url } = data;
 
   // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
   let safeURL = url;
-  if (!isURLSafe && method.toLowerCase() === 'post') {
+  if (method.toLowerCase() === 'post') {
     // Core SDK builds the wrong path for k8s -- can't post to a resource name; remove the name from the url
     // eg: POST /.../configmaps/my-config-map => POST /.../configmaps
     const urlParts = url.split('/');
@@ -38,27 +53,22 @@ const setupRequest = async (
     safeURL = queryParams.join('?');
   }
 
-  const requestOptions = await getDirectCallOptions(fastify, request, url);
-
-  return {
+  const updatedData = {
+    ...data,
     url: safeURL,
-    requestOptions: {
-      ...requestOptions,
-      method,
-    },
   };
+  return safeURLPassThrough(fastify, request, updatedData);
 };
 
-export const passThrough = <T extends K8sResourceCommon>(
+export const safeURLPassThrough = <T extends K8sResourceCommon>(
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   data: PassThroughData,
-  isURLSafe = false,
-): Promise<T> => {
-  const { method, requestData } = data;
+): Promise<T | K8sStatus> => {
+  const { method, requestData, url } = data;
 
   return new Promise((resolve, reject) => {
-    setupRequest(fastify, request, data, isURLSafe).then(({ url, requestOptions }) => {
+    setupRequest(fastify, request, data).then((requestOptions) => {
       if (requestData) {
         requestOptions.headers = {
           ...requestOptions.headers,
@@ -80,7 +90,7 @@ export const passThrough = <T extends K8sResourceCommon>(
               data += chunk;
             })
             .on('end', () => {
-              let parsedData;
+              let parsedData: T | K8sStatus;
               try {
                 parsedData = JSON.parse(data);
               } catch (e) {
@@ -89,7 +99,6 @@ export const passThrough = <T extends K8sResourceCommon>(
                   parsedData = {
                     kind: 'Status',
                     apiVersion: 'v1',
-                    metadata: {},
                     status: 'Failure',
                     message: data,
                     reason: 'NotFound',
