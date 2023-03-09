@@ -50,9 +50,8 @@ const Table = <T,>({
   const sort = useTableColumnSort<T>(columns, 0);
 
   const showPagination = enablePagination && allData.length > minPageSize;
-  const pagination = (pageDirection: 'up' | 'down') => (
+  const pagination = (variant: 'top' | 'bottom') => (
     <Pagination
-      dropDirection={pageDirection}
       perPageComponent="button"
       itemCount={allData.length}
       perPage={pageSize}
@@ -62,6 +61,7 @@ const Table = <T,>({
         setPageSize(newSize);
         setPage(newPage);
       }}
+      variant={variant}
       widgetId="table-pagination"
     />
   );
@@ -74,7 +74,7 @@ const Table = <T,>({
             {toolbarContent}
             {showPagination && (
               <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
-                {pagination('down')}
+                {pagination('top')}
               </ToolbarItem>
             )}
           </ToolbarContent>
@@ -112,7 +112,7 @@ const Table = <T,>({
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
-              {pagination('up')}
+              {pagination('bottom')}
             </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
