@@ -5,6 +5,7 @@ import { FAST_POLL_INTERVAL } from '~/utilities/const';
 const useRouteForNotebook = (
   notebookName?: string,
   projectName?: string,
+  isRunning?: boolean,
 ): [routeLink: string | null, loaded: boolean, loadError: Error | null] => {
   const [route, setRoute] = React.useState<string | null>(null);
   const [loaded, setLoaded] = React.useState(false);
@@ -31,7 +32,11 @@ const useRouteForNotebook = (
             if (cancelled) {
               return;
             }
-            setLoadError(e);
+            if (!isRunning && e.statusObject?.code === 404) {
+              setLoadError(null);
+            } else {
+              setLoadError(e);
+            }
             watchHandle = setTimeout(watchRoute, FAST_POLL_INTERVAL);
           });
       }
@@ -41,7 +46,7 @@ const useRouteForNotebook = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [notebookName, projectName]);
+  }, [notebookName, projectName, isRunning]);
 
   return [route, loaded, loadError];
 };
