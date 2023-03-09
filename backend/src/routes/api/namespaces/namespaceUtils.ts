@@ -68,9 +68,7 @@ export const applyNamespaceChange = async (
 
   return fastify.kube.coreV1Api
     .patchNamespace(name, { metadata: { labels } }, undefined, undefined, undefined, undefined, {
-      headers: {
-        'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH,
-      },
+      headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
     })
     .then(() => ({ applied: true }))
     .catch((e) => {
