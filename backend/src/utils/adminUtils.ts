@@ -132,8 +132,8 @@ const checkUserInGroups = async (
   groupList: string[],
   userName: string,
 ): Promise<boolean> => {
-  try {
-    for (const group of groupList) {
+  for (const group of groupList) {
+    try {
       const groupUsers = await getGroup(customObjectApi, group);
       if (
         groupUsers?.includes(userName) ||
@@ -141,9 +141,9 @@ const checkUserInGroups = async (
       ) {
         return true;
       }
+    } catch (e) {
+      fastify.log.error(e.toString());
     }
-  } catch (e) {
-    fastify.log.error(e.toString());
   }
   return false;
 };
