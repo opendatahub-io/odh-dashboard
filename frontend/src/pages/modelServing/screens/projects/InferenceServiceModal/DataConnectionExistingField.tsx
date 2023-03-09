@@ -61,9 +61,9 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
         </FormGroup>
       </StackItem>
       <StackItem>
-        <FormGroup label="Folder path">
+        <FormGroup fieldId="folder-path" label="Folder path">
           <TextInput
-            id="storage-path"
+            id="folder-path"
             value={data.storage.path}
             onChange={(path) => setData('storage', { ...data.storage, path })}
           />

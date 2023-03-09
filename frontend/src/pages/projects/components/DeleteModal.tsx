@@ -65,6 +65,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         <StackItem>
           <TextInput
             id="delete-modal-input"
+            aria-label="Delete modal input"
             value={value}
             onChange={(newValue) => setValue(newValue)}
           />

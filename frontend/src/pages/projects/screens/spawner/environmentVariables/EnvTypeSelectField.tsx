@@ -35,8 +35,8 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
               isOpen={open}
               onToggle={() => setOpen(!open)}
               selections={envVariable.type || ''}
-              placeholderText="Select one"
-              aria-label="Select one"
+              placeholderText="Select environment variable type"
+              aria-label="Select environment variable type"
               onSelect={(e, value) => {
                 if (typeof value === 'string') {
                   onUpdate({

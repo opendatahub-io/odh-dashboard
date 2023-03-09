@@ -45,6 +45,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
   return (
     <FormGroup
       label="Service account name"
+      fieldId="service-account-form-name"
       helperText="Enter the service account name for which the token will be generated"
       helperTextInvalid={token.error}
       helperTextInvalidIcon={<ExclamationCircleIcon />}
@@ -56,9 +57,9 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             value={token.name}
             isRequired
             type="text"
-            id="simple-form-name-01"
-            name="simple-form-name-01"
-            aria-describedby="simple-form-name-01-helper"
+            id="service-account-form-name"
+            name="service-account-form-name"
+            aria-describedby="service-account-form-name-helper"
             validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}
             onChange={(value) => {
               const tokens = data.tokens?.map((item) =>
@@ -78,6 +79,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
         <SplitItem>
           <Button
             variant="plain"
+            aria-label="Remove service account"
             icon={<MinusCircleIcon />}
             onClick={() => {
               setData(
