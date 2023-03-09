@@ -1,11 +1,10 @@
-import * as _ from 'lodash';
-import { PatchUtils } from '@kubernetes/client-node';
+import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
-import { DEV_MODE, USER_ACCESS_TOKEN } from '../../../utils/constants';
+import { passThrough } from '../k8s/pass-through';
 
-export const applyNamespaceChange = (
+export const applyNamespaceChange = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   name: string,
@@ -18,6 +17,36 @@ export const applyNamespaceChange = (
       'Cannot mutate namespaces with "openshift" or "kube"',
       400,
     );
+  }
+  const kc = fastify.kube.config;
+  const cluster = kc.getCurrentCluster();
+
+  const selfSubjectAccessReviewResult = await passThrough<V1SelfSubjectAccessReview>(
+    fastify,
+    request,
+    {
+      url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
+      method: 'POST',
+      requestData: JSON.stringify({
+        apiVersion: 'authorization.k8s.io/v1',
+        kind: 'SelfSubjectAccessReview',
+        spec: {
+          resourceAttributes: {
+            group: 'project.openshift.io',
+            resource: 'projects',
+            subresource: '',
+            verb: 'update',
+            name,
+            namespace: name,
+          },
+        },
+      }),
+    },
+    true,
+  );
+
+  if (!selfSubjectAccessReviewResult.status.allowed) {
+    throw createCustomError('Forbidden', "You don't have the access to update the namespace", 403);
   }
 
   let labels = {};
@@ -37,17 +66,10 @@ export const applyNamespaceChange = (
       throw createCustomError('Unknown configuration', 'Cannot apply namespace change', 400);
   }
 
-  const accessToken = request.headers[USER_ACCESS_TOKEN];
-  const coreV1Api = _.cloneDeep(fastify.kube.coreV1Api);
-  if (!DEV_MODE) {
-    coreV1Api.setApiKey(0, `Bearer ${accessToken}`);
-  }
-
-  return coreV1Api
+  return fastify.kube.coreV1Api
     .patchNamespace(name, { metadata: { labels } }, undefined, undefined, undefined, undefined, {
       headers: {
         'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH,
-        ...(!DEV_MODE && { Authorization: `Bearer ${accessToken}` }),
       },
     })
     .then(() => ({ applied: true }))

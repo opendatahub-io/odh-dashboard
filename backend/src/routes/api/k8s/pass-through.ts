@@ -1,7 +1,11 @@
-import { FastifyRequest } from 'fastify';
 import https, { RequestOptions } from 'https';
-import { K8sResourceCommon, K8sStatus, KubeFastifyInstance } from '../../../types';
-import { DEV_MODE, USER_ACCESS_TOKEN } from '../../../utils/constants';
+import {
+  K8sResourceCommon,
+  K8sStatus,
+  KubeFastifyInstance,
+  OauthFastifyRequest,
+} from '../../../types';
+import { DEV_MODE } from '../../../utils/constants';
 import { getDirectCallOptions } from '../../../utils/directCallUtils';
 
 type PassThroughData = {
@@ -14,14 +18,15 @@ const isK8sStatus = (data: Record<string, unknown>): data is K8sStatus => data.k
 
 const setupRequest = async (
   fastify: KubeFastifyInstance,
-  request: FastifyRequest<{ Headers: { [USER_ACCESS_TOKEN]: string } }>,
+  request: OauthFastifyRequest,
   data: PassThroughData,
+  isURLSafe: boolean,
 ): Promise<{ url: string; requestOptions: RequestOptions }> => {
   const { method, url } = data;
 
   // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
   let safeURL = url;
-  if (method.toLowerCase() === 'post') {
+  if (!isURLSafe && method.toLowerCase() === 'post') {
     // Core SDK builds the wrong path for k8s -- can't post to a resource name; remove the name from the url
     // eg: POST /.../configmaps/my-config-map => POST /.../configmaps
     const urlParts = url.split('/');
@@ -44,15 +49,16 @@ const setupRequest = async (
   };
 };
 
-export const passThrough = (
+export const passThrough = <T extends K8sResourceCommon>(
   fastify: KubeFastifyInstance,
-  request: FastifyRequest<{ Headers: { [USER_ACCESS_TOKEN]: string } }>,
+  request: OauthFastifyRequest,
   data: PassThroughData,
-): Promise<K8sResourceCommon> => {
+  isURLSafe = false,
+): Promise<T> => {
   const { method, requestData } = data;
 
   return new Promise((resolve, reject) => {
-    setupRequest(fastify, request, data).then(({ url, requestOptions }) => {
+    setupRequest(fastify, request, data, isURLSafe).then(({ url, requestOptions }) => {
       if (requestData) {
         requestOptions.headers = {
           ...requestOptions.headers,
@@ -74,7 +80,7 @@ export const passThrough = (
               data += chunk;
             })
             .on('end', () => {
-              let parsedData: K8sResourceCommon | K8sStatus;
+              let parsedData;
               try {
                 parsedData = JSON.parse(data);
               } catch (e) {
