@@ -11,7 +11,7 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { notebookNamespace } = useNamespaces();
-  const [routeLink, loaded, error] = useRouteForNotebook(notebookName, namespace);
+  const [routeLink, loaded, error] = useRouteForNotebook(notebookName, namespace, true);
 
   React.useEffect(() => {
     let cancelled = false;

@@ -24,6 +24,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   const [routeLink, loaded, error] = useRouteForNotebook(
     notebook.metadata.name,
     notebook.metadata.namespace,
+    isRunning,
   );
   const isStopped = hasStopAnnotation(notebook);
   const canLink = loaded && !!routeLink && !error && !isStopped && isRunning;
