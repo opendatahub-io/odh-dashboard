@@ -1,7 +1,11 @@
-import { FastifyRequest } from 'fastify';
 import https, { RequestOptions } from 'https';
-import { K8sResourceCommon, K8sStatus, KubeFastifyInstance } from '../../../types';
-import { DEV_MODE, USER_ACCESS_TOKEN } from '../../../utils/constants';
+import {
+  K8sResourceCommon,
+  K8sStatus,
+  KubeFastifyInstance,
+  OauthFastifyRequest,
+} from '../../../types';
+import { DEV_MODE } from '../../../utils/constants';
 import { getDirectCallOptions } from '../../../utils/directCallUtils';
 
 type PassThroughData = {
@@ -10,13 +14,29 @@ type PassThroughData = {
   url: string;
 };
 
-const isK8sStatus = (data: Record<string, unknown>): data is K8sStatus => data.kind === 'Status';
+export const isK8sStatus = (data: unknown): data is K8sStatus =>
+  (data as K8sStatus).kind === 'Status';
 
 const setupRequest = async (
   fastify: KubeFastifyInstance,
-  request: FastifyRequest<{ Headers: { [USER_ACCESS_TOKEN]: string } }>,
+  request: OauthFastifyRequest,
   data: PassThroughData,
-): Promise<{ url: string; requestOptions: RequestOptions }> => {
+): Promise<RequestOptions> => {
+  const { method, url } = data;
+
+  const requestOptions = await getDirectCallOptions(fastify, request, url);
+
+  return {
+    ...requestOptions,
+    method,
+  };
+};
+
+export const passThrough = <T extends K8sResourceCommon>(
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  data: PassThroughData,
+): Promise<T | K8sStatus> => {
   const { method, url } = data;
 
   // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
@@ -33,26 +53,22 @@ const setupRequest = async (
     safeURL = queryParams.join('?');
   }
 
-  const requestOptions = await getDirectCallOptions(fastify, request, url);
-
-  return {
+  const updatedData = {
+    ...data,
     url: safeURL,
-    requestOptions: {
-      ...requestOptions,
-      method,
-    },
   };
+  return safeURLPassThrough(fastify, request, updatedData);
 };
 
-export const passThrough = (
+export const safeURLPassThrough = <T extends K8sResourceCommon>(
   fastify: KubeFastifyInstance,
-  request: FastifyRequest<{ Headers: { [USER_ACCESS_TOKEN]: string } }>,
+  request: OauthFastifyRequest,
   data: PassThroughData,
-): Promise<K8sResourceCommon> => {
-  const { method, requestData } = data;
+): Promise<T | K8sStatus> => {
+  const { method, requestData, url } = data;
 
   return new Promise((resolve, reject) => {
-    setupRequest(fastify, request, data).then(({ url, requestOptions }) => {
+    setupRequest(fastify, request, data).then((requestOptions) => {
       if (requestData) {
         requestOptions.headers = {
           ...requestOptions.headers,
@@ -74,7 +90,7 @@ export const passThrough = (
               data += chunk;
             })
             .on('end', () => {
-              let parsedData: K8sResourceCommon | K8sStatus;
+              let parsedData: T | K8sStatus;
               try {
                 parsedData = JSON.parse(data);
               } catch (e) {
@@ -83,7 +99,6 @@ export const passThrough = (
                   parsedData = {
                     kind: 'Status',
                     apiVersion: 'v1',
-                    metadata: {},
                     status: 'Failure',
                     message: data,
                     reason: 'NotFound',

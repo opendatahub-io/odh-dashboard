@@ -1,10 +1,40 @@
-import { PatchUtils } from '@kubernetes/client-node';
+import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
-import { KubeFastifyInstance } from '../../../types';
+import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
+import { isK8sStatus, safeURLPassThrough } from '../k8s/pass-through';
 
-export const applyNamespaceChange = (
+const checkNamespacePermission = (
   fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  name: string,
+): Promise<V1SelfSubjectAccessReview | K8sStatus> => {
+  const kc = fastify.kube.config;
+  const cluster = kc.getCurrentCluster();
+  const selfSubjectAccessReviewObject: V1SelfSubjectAccessReview = {
+    apiVersion: 'authorization.k8s.io/v1',
+    kind: 'SelfSubjectAccessReview',
+    spec: {
+      resourceAttributes: {
+        group: 'project.openshift.io',
+        resource: 'projects',
+        subresource: '',
+        verb: 'update',
+        name,
+        namespace: name,
+      },
+    },
+  };
+  return safeURLPassThrough<V1SelfSubjectAccessReview>(fastify, request, {
+    url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
+    method: 'POST',
+    requestData: JSON.stringify(selfSubjectAccessReviewObject),
+  });
+};
+
+export const applyNamespaceChange = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
   name: string,
   context: NamespaceApplicationCase,
 ): Promise<{ applied: boolean }> => {
@@ -15,6 +45,19 @@ export const applyNamespaceChange = (
       'Cannot mutate namespaces with "openshift" or "kube"',
       400,
     );
+  }
+
+  const selfSubjectAccessReview = await checkNamespacePermission(fastify, request, name);
+  if (isK8sStatus(selfSubjectAccessReview)) {
+    throw createCustomError(
+      selfSubjectAccessReview.reason,
+      selfSubjectAccessReview.message,
+      selfSubjectAccessReview.code,
+    );
+  }
+  if (!selfSubjectAccessReview.status.allowed) {
+    fastify.log.error(`Unable to access the namespace, ${selfSubjectAccessReview.status.reason}`);
+    throw createCustomError('Forbidden', "You don't have the access to update the namespace", 403);
   }
 
   let labels = {};
