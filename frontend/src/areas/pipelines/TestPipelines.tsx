@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
+import { Alert, Button, Bullseye, Spinner } from '@patternfly/react-core';
 import { PipelineContextProvider, usePipelinesAPI, CreateCR } from './context';
 
 const TestPipelines: React.FC = () => {
@@ -21,11 +21,15 @@ const TestPipelines: React.FC = () => {
 
   return (
     <div>
-      <h1>Pipeline Test</h1>
+      <h1>Pipeline API Methods</h1>
       <ul>
         {apis.length === 0 && <li>No Apis</li>}
         {apis.map((key) => (
-          <li key={key}>{key}</li>
+          <li key={key}>
+            <Button variant="link" onClick={() => pipelinesAPI.api[key]().then(console.debug)}>
+              {key}
+            </Button>
+          </li>
         ))}
       </ul>
     </div>

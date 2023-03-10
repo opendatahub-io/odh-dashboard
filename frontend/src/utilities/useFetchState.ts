@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { K8sAPIOptions } from '../../k8sTypes';
+import { K8sAPIOptions } from '~/k8sTypes';
 
 /** Unify a single result type */
 type Result<T> = T | null;

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import {
   Alert,
   Bullseye,
@@ -10,11 +9,12 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { PipelineAPIs } from '../types';
-import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { createPipelinesCR } from '../../../api';
-import useProject from '../../../pages/projects/useProject';
+import { PipelineAPIs } from '~/areas/pipelines/types';
+import { createPipelinesCR, listPipelines } from '~/api';
+import useProject from '~/pages/projects/useProject';
+import usePipelineNamespaceCR from './usePipelineNamespaceCR';
+import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
 type PipelineContext = {
   hasCR: boolean;
@@ -43,7 +43,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = usePipelineNamespaceCR(namespace);
   // TODO: Do we need more than just knowing it exists?
   const isCRPresent = !!pipelineNamespaceCR;
-  const [pipelineAPIRoute, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
+  const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRPresent,
     namespace,
   );
@@ -63,11 +63,12 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     );
   }
 
-  if (crLoadError || routeLoadError) {
+  const error = crLoadError || routeLoadError;
+  if (error) {
     return (
       <Bullseye>
         <Alert title="Pipelines load error" variant="danger" isInline>
-          {crLoadError?.message || routeLoadError?.message}
+          {error.message}
         </Alert>
       </Bullseye>
     );
@@ -86,7 +87,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     <PipelinesContext.Provider
       value={{
         hasCR: isCRPresent,
-        hostPath: pipelineAPIRoute?.spec.host || null,
+        hostPath: pipelineAPIRouteHost || null,
         namespace,
         refreshState,
       }}
@@ -98,21 +99,34 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
 
 type UsePipelinesAPI = {
   pipelinesEnabled: boolean;
-  apiAvailable: boolean;
-  api: PipelineAPIs;
-};
+} & (
+  | {
+      apiAvailable: true;
+      api: PipelineAPIs;
+    }
+  | {
+      apiAvailable: false;
+    }
+);
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
   const { hasCR, hostPath } = React.useContext(PipelinesContext);
 
   console.debug('usePipelinesAPI on', hostPath);
+  if (!hostPath) {
+    return {
+      pipelinesEnabled: hasCR,
+      apiAvailable: false,
+    };
+  }
 
   return {
     pipelinesEnabled: hasCR,
-    apiAvailable: !!hostPath,
+    apiAvailable: true,
     api: {
       // TODO: apis!
       // eg uploadPipeline: (content: string) => uploadPipeline(hostPath, content),
+      listPipelines: listPipelines(hostPath),
     },
   };
 };

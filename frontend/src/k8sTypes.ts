@@ -410,7 +410,7 @@ export type DSPipelineKind = K8sResourceCommon & {
     scheduledWorkflow: Partial<{
       image: string;
     }>;
-    storage: Partial<{
+    objectStorage: Partial<{
       customStorage: Partial<{
         bucket: string;
         host: string;
