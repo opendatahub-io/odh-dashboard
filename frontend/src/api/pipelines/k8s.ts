@@ -4,7 +4,7 @@ import { DSPipelineKind, K8sAPIOptions, RouteKind } from '~/k8sTypes';
 import { getRoute } from '~/api';
 import { mergeRequestInit } from '~/api/apiMergeUtils';
 
-const PIPELINE_ROUTE_NAME = 'ds-pipeline-ui-pipelines-definition';
+const PIPELINE_ROUTE_NAME = 'ds-pipeline-pipelines-definition';
 const PIPELINE_DEFINITION_NAME = 'pipelines-definition';
 
 export const getPipelineAPIRoute = async (
