@@ -14,7 +14,7 @@ ARG SOURCE_CODE
 WORKDIR /usr/src/app
 
 ## Copying in source code
-COPY --chown=default:default ${SOURCE_CODE} /usr/src/app
+COPY --chown=default:root ${SOURCE_CODE} /usr/src/app
 
 # Change file ownership to the assemble user
 USER default
@@ -22,6 +22,13 @@ USER default
 RUN npm ci --omit=optional
 
 RUN npm run build
+
+FROM ${BASE_IMAGE} as runtime
+
+WORKDIR /usr/src/app
+
+# TODO: copy only the necessary files
+COPY --from=builder /usr/src/app /usr/src/app
 
 CMD ["npm", "run", "start"]
 
