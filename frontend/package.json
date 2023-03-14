@@ -149,6 +149,16 @@
       "msw-storybook-addon": "^1.7.0",
       "react": "^18.2.0",
       "react-dom": "^18.2.0"
+    },
+    "@storybook/addon-actions": {
+      "react": "^18.2.0"
+    },
+    "@storybook/addon-docs": {
+      "react": "^18.2.0"
+    },
+    "@storybook/react": {
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
     }
   }
 }
