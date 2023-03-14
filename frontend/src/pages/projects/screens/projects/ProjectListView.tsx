@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import Table from '~/components/Table';
-
 import useTableColumnSort from '~/utilities/useTableColumnSort';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
@@ -16,11 +15,13 @@ import ManageProjectModal from './ManageProjectModal';
 type ProjectListViewProps = {
   projects: ProjectKind[];
   refreshProjects: () => Promise<void>;
+  allowCreate: boolean;
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({
   projects: unfilteredProjects,
   refreshProjects,
+  allowCreate,
 }) => {
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -88,9 +89,11 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
                 }}
               />
             </ToolbarItem>
-            <ToolbarItem>
-              <NewProjectButton />
-            </ToolbarItem>
+            {allowCreate && (
+              <ToolbarItem>
+                <NewProjectButton />
+              </ToolbarItem>
+            )}
             <ToolbarItem>
               <Button
                 variant="link"

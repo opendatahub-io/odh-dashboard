@@ -1,6 +1,16 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
 
+export type K8sVerb =
+  | 'create'
+  | 'get'
+  | 'list'
+  | 'update'
+  | 'patch'
+  | 'delete'
+  | 'deletecollection'
+  | 'watch';
+
 /**
  * Annotations that we will use to allow the user flexibility in describing items outside of the
  * k8s structure.
@@ -363,5 +373,26 @@ export type AWSSecretKind = SecretKind & {
     labels?: {
       'opendatahub.io/managed': 'true';
     };
+  };
+};
+
+export type AccessReviewResourceAttributes = {
+  group?: string;
+  resource?: string;
+  subresource?: string;
+  verb?: K8sVerb;
+  name?: string;
+  namespace?: string;
+};
+
+export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
+  spec: {
+    resourceAttributes?: AccessReviewResourceAttributes;
+  };
+  status?: {
+    allowed: boolean;
+    denied?: boolean;
+    reason?: string;
+    evaluationError?: string;
   };
 };

@@ -11,7 +11,11 @@ import { CubesIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import NewProjectButton from './NewProjectButton';
 
-const EmptyProjects: React.FC = () => (
+type EmptyProjectsProps = {
+  allowCreate: boolean;
+};
+
+const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => (
   <EmptyState>
     <EmptyStateIcon icon={CubesIcon} />
     <Title headingLevel="h2" size="lg">
@@ -20,7 +24,7 @@ const EmptyProjects: React.FC = () => (
     <EmptyStateBody>
       To get started, create a data science project or launch a notebook with Jupyter.
     </EmptyStateBody>
-    <NewProjectButton />
+    {allowCreate && <NewProjectButton />}
     <EmptyStateSecondaryActions>
       <Button
         variant="link"

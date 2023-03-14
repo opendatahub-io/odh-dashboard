@@ -20,3 +20,6 @@ export * from './prometheus/serving';
 
 // Network error handling
 export * from './errorUtils';
+
+// User access review hook
+export * from './useAccessReview';
