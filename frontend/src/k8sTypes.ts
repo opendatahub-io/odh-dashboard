@@ -377,11 +377,17 @@ export type AWSSecretKind = SecretKind & {
 };
 
 export type AccessReviewResourceAttributes = {
-  group?: string;
+  /** CRD group, '*' for all groups, omit for core resources */
+  group?: '*' | string;
+  /** Plural resource name, omit for all */
   resource?: string;
-  subresource?: string;
-  verb?: K8sVerb;
+  /** TODO: Not a full list, could be expanded, "" means none */
+  subresource?: '' | 'spec' | 'status';
+  /** Must provide the verb you are trying to do; '*' means all verbs */
+  verb: '*' | K8sVerb;
+  /** A resource name, omit when not interested in a specific resource */
   name?: string;
+  /** The namespace the check is in, omit for unbounded check */
   namespace?: string;
 };
 

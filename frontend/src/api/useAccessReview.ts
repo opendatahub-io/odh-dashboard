@@ -2,16 +2,15 @@ import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import * as React from 'react';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '~/api/models';
 import { AccessReviewResourceAttributes, SelfSubjectAccessReviewKind } from '~/k8sTypes';
-import { K8sVerb } from '~/k8sTypes';
 
-const checkAccess = (
-  group: string,
-  resource: string,
-  subresource: string,
-  verb: K8sVerb,
-  name: string,
-  namespace: string,
-): Promise<SelfSubjectAccessReviewKind> => {
+const checkAccess = ({
+  group,
+  resource,
+  subresource,
+  verb,
+  name,
+  namespace,
+}: Required<AccessReviewResourceAttributes>): Promise<SelfSubjectAccessReviewKind> => {
   // Projects are a special case. `namespace` must be set to the project name
   // even though it's a cluster-scoped resource.
   const reviewNamespace =
@@ -46,13 +45,13 @@ export const useAccessReview = (
     group = '',
     resource = '',
     subresource = '',
-    verb = '' as K8sVerb,
+    verb = '*',
     name = '',
     namespace = '',
   } = resourceAttributes;
 
   React.useEffect(() => {
-    checkAccess(group, resource, subresource, verb, name, namespace)
+    checkAccess({ group, resource, subresource, verb, name, namespace })
       .then((result) => {
         if (result.status) {
           setAllowed(result.status.allowed);

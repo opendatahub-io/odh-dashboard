@@ -1,16 +1,8 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
 import { USER_ACCESS_TOKEN } from '../../../utils/constants';
-import { passThrough, safeURLPassThrough } from './pass-through';
+import { passThrough } from './pass-through';
 import { logRequestDetails } from '../../../utils/fileUtils';
-
-// TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
-// Some resources don't allow metadata.name when creating such as SelfSubjectAccessReview
-// this will cause the URL error when we call pass-through function
-// we will check this value below to call safeURLPassThrough instead of passThrough
-enum resourceWithoutMetadataName {
-  'SelfSubjectAccessReview',
-}
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   const kc = fastify.kube.config;
@@ -44,20 +36,6 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         url += `?${Object.keys(query)
           .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`)
           .join('&')}`;
-      }
-
-      if (
-        req.method.toLowerCase() === 'post' &&
-        Object.keys(resourceWithoutMetadataName).includes(`${req.body.kind}`)
-      ) {
-        return safeURLPassThrough(fastify, req, {
-          url,
-          method: req.method,
-          requestData: data,
-        }).catch(({ code, response }) => {
-          reply.code(code);
-          reply.send(response);
-        });
       }
 
       return passThrough(fastify, req, { url, method: req.method, requestData: data }).catch(
