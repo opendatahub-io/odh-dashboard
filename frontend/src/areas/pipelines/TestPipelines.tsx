@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Alert, Button, Bullseye, Spinner } from '@patternfly/react-core';
+import { ValueOf } from '~/typeHelpers';
 import { PipelineContextProvider, usePipelinesAPI, CreateCR } from './context';
 
+/** TEMP FILE TO TEST PIPELINE API */
 const TestPipelines: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();
 
@@ -17,16 +19,22 @@ const TestPipelines: React.FC = () => {
     );
   }
 
-  const apis = Object.keys(pipelinesAPI.api);
+  const apis: { key: string; trigger: ValueOf<typeof pipelinesAPI.api> }[] = [
+    { key: 'listPipelines', trigger: () => pipelinesAPI.api.listPipelines() },
+  ];
 
   return (
     <div>
       <h1>Pipeline API Methods</h1>
       <ul>
         {apis.length === 0 && <li>No Apis</li>}
-        {apis.map((key) => (
+        {apis.map(({ key, trigger }) => (
           <li key={key}>
-            <Button variant="link" onClick={() => pipelinesAPI.api[key]().then(console.debug)}>
+            <Button
+              variant="link"
+              // eslint-disable-next-line no-console
+              onClick={() => trigger().then(console.log).catch(console.error)}
+            >
               {key}
             </Button>
           </li>

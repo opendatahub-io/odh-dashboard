@@ -6,9 +6,9 @@ import { FAST_POLL_INTERVAL } from '~/utilities/const';
 
 const usePipelinesAPIRoute = (hasCR: boolean, namespace: string): FetchState<string> => {
   const callback = React.useCallback<FetchStateCallbackPromise<string>>(
-    (opts) => {
+    (opts) =>
       // TODO: fetch from namespace only when we have CR
-      return getPipelineAPIRoute(namespace, opts)
+      getPipelineAPIRoute(namespace, opts)
         .then((result: RouteKind) => `https://${result.spec.host}`)
         .catch((e) => {
           if (e.statusObject?.code === 404) {
@@ -16,9 +16,8 @@ const usePipelinesAPIRoute = (hasCR: boolean, namespace: string): FetchState<str
             return null;
           }
           throw e;
-        });
-    },
-    [hasCR, namespace],
+        }),
+    [namespace],
   );
 
   const ref = React.useRef(false);
