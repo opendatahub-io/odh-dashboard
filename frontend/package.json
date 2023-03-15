@@ -38,8 +38,8 @@
     "storybook": "start-storybook -p 6006 -s ./config"
   },
   "dependencies": {
-    "@openshift/dynamic-plugin-sdk": "^1.0.0-alpha12",
-    "@openshift/dynamic-plugin-sdk-utils": "^1.0.0-alpha17",
+    "@openshift/dynamic-plugin-sdk": "^3.0.0",
+    "@openshift/dynamic-plugin-sdk-utils": "^1.2.0",
     "@patternfly/patternfly": "4.224.2",
     "@patternfly/quickstarts": "^2.3.1",
     "@patternfly/react-catalog-view-extension": "4.95.1",
@@ -118,7 +118,7 @@
     "js-yaml-loader": "^1.2.2",
     "mini-css-extract-plugin": "^2.7.2",
     "msw": "^1.1.0",
-    "msw-storybook-addon": "^1.7.0",
+    "msw-storybook-addon": "^1.8.0",
     "npm-run-all": "^4.1.5",
     "null-loader": "^4.0.1",
     "prettier": "^2.1.2",
@@ -141,5 +141,24 @@
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.11.1",
     "webpack-merge": "^5.2.0"
+  },
+  "overrides": {
+    "@openshift/dynamic-plugin-sdk-utils": {
+      "react-redux": "^8.0.4",
+      "react-router": "^6.4.1",
+      "msw-storybook-addon": "^1.7.0",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
+    },
+    "@storybook/addon-actions": {
+      "react": "^18.2.0"
+    },
+    "@storybook/addon-docs": {
+      "react": "^18.2.0"
+    },
+    "@storybook/react": {
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
+    }
   }
 }

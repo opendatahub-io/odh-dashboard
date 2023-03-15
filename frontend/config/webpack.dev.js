@@ -32,7 +32,7 @@ module.exports = merge(
       hot: true,
       open: true,
       proxy: {
-        '/api': `http://localhost:${BACKEND_PORT}`,
+        '/api': `http://0.0.0.0:${BACKEND_PORT}`,
       },
       devMiddleware: {
         stats: 'errors-only',
