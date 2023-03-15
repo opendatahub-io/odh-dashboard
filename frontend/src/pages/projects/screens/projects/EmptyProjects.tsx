@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {
-  Button,
+  ButtonVariant,
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
@@ -8,7 +8,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import NewProjectButton from './NewProjectButton';
 
 type EmptyProjectsProps = {
@@ -22,15 +23,20 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => (
       No data science projects yet.
     </Title>
     <EmptyStateBody>
-      To get started, create a data science project or launch a notebook with Jupyter.
+      {allowCreate
+        ? 'To get started, create a data science project or launch a notebook with Jupyter.'
+        : `To get started, ask your ${ODH_PRODUCT_NAME} admin for a data science project or launch a notebook with Jupyter.`}
     </EmptyStateBody>
-    {allowCreate && <NewProjectButton />}
-    <EmptyStateSecondaryActions>
-      <Button
-        variant="link"
-        component={() => <Link to="/notebookController">Launch Jupyter</Link>}
-      />
-    </EmptyStateSecondaryActions>
+    {allowCreate ? (
+      <>
+        <NewProjectButton />
+        <EmptyStateSecondaryActions>
+          <LaunchJupyterButton variant={ButtonVariant.link} />
+        </EmptyStateSecondaryActions>
+      </>
+    ) : (
+      <LaunchJupyterButton variant={ButtonVariant.primary} />
+    )}
   </EmptyState>
 );
 

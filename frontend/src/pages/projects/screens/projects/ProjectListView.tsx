@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Button, ToolbarItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import Table from '~/components/Table';
 import useTableColumnSort from '~/utilities/useTableColumnSort';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
+import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -89,17 +89,20 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
                 }}
               />
             </ToolbarItem>
-            {allowCreate && (
+            {allowCreate ? (
+              <>
+                <ToolbarItem>
+                  <NewProjectButton />
+                </ToolbarItem>
+                <ToolbarItem>
+                  <LaunchJupyterButton variant={ButtonVariant.link} />
+                </ToolbarItem>
+              </>
+            ) : (
               <ToolbarItem>
-                <NewProjectButton />
+                <LaunchJupyterButton variant={ButtonVariant.primary} />
               </ToolbarItem>
             )}
-            <ToolbarItem>
-              <Button
-                variant="link"
-                component={() => <Link to="/notebookController">Launch Jupyter</Link>}
-              />
-            </ToolbarItem>
           </React.Fragment>
         }
       />
