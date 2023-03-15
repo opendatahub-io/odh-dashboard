@@ -78,7 +78,6 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
                         existing: { secretRef: { name: name ?? '' } },
                       })
                     }
-                    selectDirection="up"
                   />
                 )
               }

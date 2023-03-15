@@ -7,16 +7,12 @@ type ExistingDataConnectionFieldProps = {
   fieldId: string;
   selectedDataConnection?: string;
   setDataConnection: (name?: string) => void;
-  selectDirection?: 'up' | 'down';
-  menuAppendTo?: HTMLElement | 'parent';
 };
 
 const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = ({
   fieldId,
   selectedDataConnection,
   setDataConnection,
-  selectDirection = 'down',
-  menuAppendTo = 'parent',
 }) => {
   const [isOpen, setOpen] = React.useState(false);
   const {
@@ -61,8 +57,8 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
         }}
         onToggle={setOpen}
         placeholderText={placeholderText}
-        direction={selectDirection}
-        menuAppendTo={menuAppendTo}
+        direction="up"
+        menuAppendTo="parent"
       >
         {connections.map((connection) => (
           <SelectOption key={connection.data.metadata.name} value={connection.data.metadata.name}>
