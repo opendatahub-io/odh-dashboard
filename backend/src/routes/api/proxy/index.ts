@@ -5,13 +5,14 @@ import { logRequestDetails } from '../../../utils/fileUtils';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.post(
-    '/',
+    '/*',
     (
       req: OauthFastifyRequest<{
         // Querystring: Record<string, string>; // TODO
+        Params: { '*': string };
         Body: {
           method: string;
-          url: string;
+          host: string;
           data: Record<string, unknown>;
         };
       }>,
@@ -19,8 +20,11 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     ) => {
       logRequestDetails(fastify, req);
 
-      const { method, url, data } = req.body;
+      const { method, host, data } = req.body;
       const requestData = JSON.stringify(data);
+
+      const path = req.params['*'];
+      const url = `${host}/${path}`;
 
       return proxyCall(fastify, req, { method, url, requestData }).catch((error) => {
         if (error.code && error.response) {

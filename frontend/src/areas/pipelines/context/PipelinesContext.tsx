@@ -112,7 +112,6 @@ type UsePipelinesAPI = {
 export const usePipelinesAPI = (): UsePipelinesAPI => {
   const { hasCR, hostPath } = React.useContext(PipelinesContext);
 
-  console.debug('usePipelinesAPI on', hostPath);
   if (!hostPath) {
     return {
       pipelinesEnabled: hasCR,

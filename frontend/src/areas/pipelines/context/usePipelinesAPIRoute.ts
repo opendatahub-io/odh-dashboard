@@ -7,12 +7,6 @@ import { FAST_POLL_INTERVAL } from '~/utilities/const';
 const usePipelinesAPIRoute = (hasCR: boolean, namespace: string): FetchState<string> => {
   const callback = React.useCallback<FetchStateCallbackPromise<string>>(
     (opts) => {
-      if (hasCR) {
-        console.debug('Has resource... fetching route');
-      } else {
-        console.debug('Not looking for a route yet in', namespace);
-        // TODO: Do nothing
-      }
       // TODO: fetch from namespace only when we have CR
       return getPipelineAPIRoute(namespace, opts)
         .then((result: RouteKind) => `https://${result.spec.host}`)

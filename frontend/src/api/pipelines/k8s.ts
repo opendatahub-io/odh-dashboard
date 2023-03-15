@@ -46,10 +46,9 @@ export const createPipelinesCR = async (
 export const getPipelinesCR = async (
   namespace: string,
   opts?: K8sAPIOptions,
-): Promise<DSPipelineKind> => {
-  return k8sGetResource<DSPipelineKind>({
+): Promise<DSPipelineKind> =>
+  k8sGetResource<DSPipelineKind>({
     model: DataSciencePipelineApplicationModel,
     queryOptions: { name: PIPELINE_DEFINITION_NAME, ns: namespace },
     fetchOptions: { requestInit: mergeRequestInit(opts) },
   });
-};
