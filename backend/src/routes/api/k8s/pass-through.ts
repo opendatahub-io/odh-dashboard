@@ -44,6 +44,7 @@ export const passThrough = <T extends K8sResourceCommon>(
   if (method.toLowerCase() === 'post' && !url.endsWith('selfsubjectaccessreviews')) {
     // Core SDK builds the wrong path for k8s -- can't post to a resource name; remove the name from the url
     // eg: POST /.../configmaps/my-config-map => POST /.../configmaps
+    // Note: SelfSubjectAccessReviews do not include a resource name
     const urlParts = url.split('/');
     const queryParams = urlParts[urlParts.length - 1].split('?');
     urlParts.pop();
