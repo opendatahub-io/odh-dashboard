@@ -27,15 +27,19 @@ FROM ${BASE_IMAGE} as runtime
 
 WORKDIR /usr/src/app
 
-COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
-COPY  --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
-COPY  --chown=default:root --from=builder /usr/src/app/backend/package-lock.json /usr/src/app/backend/package-lock.json
-COPY  --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+# We need root user to perform some operations in runtime
+USER root
 
-# Change file ownership to the assemble user
-USER default
+ENV NODE_ENV production
+
+COPY --chown=root:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
+COPY --chown=root:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
+COPY --chown=root:root --from=builder /usr/src/app/backend/package-lock.json /usr/src/app/backend/package-lock.json
+COPY --chown=root:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
 
 RUN cd backend && npm ci --omit=dev
+
+WORKDIR /usr/src/app/backend
 
 CMD ["npm", "run", "start"]
 
