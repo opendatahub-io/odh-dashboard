@@ -27,8 +27,15 @@ FROM ${BASE_IMAGE} as runtime
 
 WORKDIR /usr/src/app
 
-# TODO: copy only the necessary files
-COPY --from=builder /usr/src/app /usr/src/app
+COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
+COPY  --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
+COPY  --chown=default:root --from=builder /usr/src/app/backend/package-lock.json /usr/src/app/backend/package-lock.json
+COPY  --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+
+# Change file ownership to the assemble user
+USER default
+
+RUN cd backend && npm ci --omit=dev
 
 CMD ["npm", "run", "start"]
 
