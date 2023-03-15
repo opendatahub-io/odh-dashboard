@@ -45,7 +45,7 @@ export const useAccessReview = (
     group = '',
     resource = '',
     subresource = '',
-    verb = '*',
+    verb,
     name = '',
     namespace = '',
   } = resourceAttributes;

@@ -32,7 +32,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
 
       // Apply query params
       const query = req.query;
-      if (Object.keys(query)) {
+      if (Object.keys(query).length > 0) {
         url += `?${Object.keys(query)
           .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`)
           .join('&')}`;
