@@ -19,7 +19,7 @@
   "main": "src/server.ts",
   "scripts": {
     "clean": "rm -f ../logs/adminActivity.log",
-    "start": "npm run tsc && NODE_ENV=production node ./dist/server.js --log=1 --registry=localhost:50051",
+    "start": "NODE_ENV=production node ./dist/server.js --log=1 --registry=localhost:50051",
     "start:dev": "npm run clean && export NODE_TLS_REJECT_UNAUTHORIZED=0 && export NODE_ENV=development && nodemon src/server.ts --log=1 --registry=localhost:50051",
     "debug": "npm run tsc && export NODE_TLS_REJECT_UNAUTHORIZED=0 && export NODE_ENV=development && node --inspect ./dist/server.js --log=1 --registry=localhost:50051",
     "build-only": "tsc -p . && node ./dist/server.js --log=1 --registry=localhost:50051 --buildonly",
@@ -56,14 +56,6 @@
     "@typescript-eslint/eslint-plugin": "^4.4.1",
     "@typescript-eslint/parser": "^4.4.1",
     "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
-    "eslint-config-esnext": "^4.1.0",
-    "eslint-config-node": "^4.1.0",
-    "eslint-config-prettier": "^6.15.0",
-    "eslint-plugin-babel": "^5.3.1",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^3.4.0",
     "fastify-cli": "^2.3.0",
     "nodemon": "^2.0.20",
     "pino-pretty": "^9.4.0",
@@ -72,5 +64,15 @@
     "ts-protoc-gen": "^0.10.0",
     "tslib": "^2.0.3",
     "typescript": "^4.0.3"
+  },
+  "optionalDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-esnext": "^4.1.0",
+    "eslint-config-node": "^4.1.0",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-babel": "^5.3.1",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.4.0"
   }
 }
