@@ -19,7 +19,7 @@ import {
 } from '@patternfly/react-charts';
 import { CubesIcon } from '@patternfly/react-icons';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { TimeframeTime } from '~/pages/modelServing/screens/const';
+import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 import { convertTimestamp, formatToShow, getThresholdData } from './utils';
 
@@ -27,11 +27,10 @@ type MetricsChartProps = {
   title: string;
   color: string;
   metrics: ContextResourceData<PrometheusQueryRangeResultValue>;
-  unit?: string;
   threshold?: number;
 };
 
-const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit, threshold }) => {
+const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, threshold }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
   const { currentTimeframe, lastUpdateTime } = React.useContext(ModelServingMetricsContext);
@@ -61,11 +60,11 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit
       handleResize();
     }
     return () => observer();
-  }, [bodyRef]);
+  }, []);
 
   return (
     <Card>
-      <CardTitle>{`${title}${unit ? ` (${unit})` : ''}`}</CardTitle>
+      <CardTitle>{title}</CardTitle>
       <CardBody style={{ height: hasData ? 400 : 200, padding: 0 }}>
         <div ref={bodyRef}>
           {hasData ? (
@@ -77,17 +76,17 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit
                   constrainToVisibleArea
                 />
               }
-              domain={{ y: maxValue === 0 ? [-1, 1] : [0, maxValue + 1] }}
+              domain={{ y: maxValue === 0 ? [0, 1] : [0, maxValue + 1] }}
               height={400}
               width={chartWidth}
               padding={{ left: 70, right: 50, bottom: 70, top: 50 }}
               themeColor={color}
             >
               <ChartAxis
-                tickCount={10}
                 tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
+                tickValues={[]}
                 domain={{
-                  x: [lastUpdateTime - TimeframeTime[currentTimeframe] * 1000, lastUpdateTime],
+                  x: [lastUpdateTime - TimeframeTimeRange[currentTimeframe] * 1000, lastUpdateTime],
                 }}
                 fixLabelOverlap
               />

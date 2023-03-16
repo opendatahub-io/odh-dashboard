@@ -8,19 +8,18 @@ import { getInferenceServiceMetricsQueries } from '~/pages/modelServing/screens/
 import NotFound from '~/pages/NotFound';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
+import InferenceGraphs from '~/pages/modelServing/screens/metrics/InferenceGraphs';
+import { MetricType } from '~/pages/modelServing/screens/types';
 
-const DetailsPageMetricsWrapper: React.FC = () => {
-  const { namespace: projectName, inferenceService: modelName } = useParams<{
-    namespace: string;
+const ProjectInferenceMetricsWrapper: React.FC = () => {
+  const { inferenceService: modelName } = useParams<{
     inferenceService: string;
   }>();
   const {
     currentProject,
     inferenceServices: { data: models, loaded },
   } = React.useContext(ProjectDetailsContext);
-  const inferenceService = models.find(
-    (model) => model.metadata.name === modelName && model.metadata.namespace === projectName,
-  );
+  const inferenceService = models.find((model) => model.metadata.name === modelName);
   if (!loaded) {
     return (
       <Bullseye>
@@ -36,9 +35,9 @@ const DetailsPageMetricsWrapper: React.FC = () => {
   const modelDisplayName = getInferenceServiceDisplayName(inferenceService);
 
   return (
-    <ModelServingMetricsProvider queries={queries}>
+    <ModelServingMetricsProvider queries={queries} type={MetricType.INFERENCE}>
       <MetricsPage
-        title={`${projectDisplayName} - ${modelDisplayName} metrics`}
+        title={`${modelDisplayName} metrics`}
         breadcrumbItems={[
           { label: 'Data Science Projects', link: '/projects' },
           {
@@ -50,9 +49,11 @@ const DetailsPageMetricsWrapper: React.FC = () => {
             isActive: true,
           },
         ]}
-      />
+      >
+        <InferenceGraphs />
+      </MetricsPage>
     </ModelServingMetricsProvider>
   );
 };
 
-export default DetailsPageMetricsWrapper;
+export default ProjectInferenceMetricsWrapper;

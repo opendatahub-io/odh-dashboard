@@ -3,6 +3,7 @@ import axios from 'axios';
 import { PrometheusQueryRangeResponse, PrometheusQueryRangeResultValue } from '~/types';
 
 const usePrometheusQueryRange = (
+  active: boolean,
   apiPath: string,
   queryLang: string,
   span: number,
@@ -22,9 +23,15 @@ const usePrometheusQueryRange = (
     const endInS = endInMs / 1000;
     const start = endInS - span;
 
+    if (!active) {
+      // Save us the call & data storage -- if it's not active, we don't need to fetch
+      // If we are already loaded & have data, it's okay -- it can be stale data to quickly show
+      // if the associated graph renders
+      return;
+    }
     axios
       .post<{ response: PrometheusQueryRangeResponse }>(apiPath, {
-        query: `${queryLang}&start=${start}&end=${endInS}&step=${step}`,
+        query: `query=${queryLang}&start=${start}&end=${endInS}&step=${step}`,
       })
       .then((response) => {
         const result = response.data?.response.data.result?.[0]?.values || [];
@@ -36,7 +43,7 @@ const usePrometheusQueryRange = (
         setError(e);
         setLoaded(true);
       });
-  }, [queryLang, apiPath, span, endInMs, step]);
+  }, [endInMs, span, active, apiPath, queryLang, step]);
 
   React.useEffect(() => {
     fetchData();

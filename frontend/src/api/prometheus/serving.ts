@@ -1,42 +1,55 @@
 import * as React from 'react';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { ModelServingMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import {
+  InferenceMetricType,
+  RuntimeMetricType,
+} from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { MetricType, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
-  queries: Record<ModelServingMetricType, string>,
+  type: MetricType,
+  queries: Record<RuntimeMetricType, string> | Record<InferenceMetricType, string>,
   timeframe: TimeframeTitle,
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
 ): {
-  data: Record<ModelServingMetricType, ContextResourceData<PrometheusQueryRangeResultValue>>;
+  data: Record<RuntimeMetricType, ContextResourceData<PrometheusQueryRangeResultValue>>;
   refresh: () => void;
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
 
-  const endpointHealth = useQueryRangeResourceData(
-    queries[ModelServingMetricType.ENDPOINT_HEALTH],
+  const runtimeRequestCount = useQueryRangeResourceData(
+    type === 'runtime',
+    queries[RuntimeMetricType.REQUEST_COUNT],
     end,
     timeframe,
   );
-  const inferencePerformance = useQueryRangeResourceData(
-    queries[ModelServingMetricType.INFERENCE_PERFORMANCE],
+
+  const runtimeAverageResponseTime = useQueryRangeResourceData(
+    type === 'runtime',
+    queries[RuntimeMetricType.AVG_RESPONSE_TIME],
     end,
     timeframe,
   );
-  const averageResponseTime = useQueryRangeResourceData(
-    queries[ModelServingMetricType.AVG_RESPONSE_TIME],
+
+  const runtimeCPUUtilization = useQueryRangeResourceData(
+    type === 'runtime',
+    queries[RuntimeMetricType.CPU_UTILIZATION],
     end,
     timeframe,
   );
-  const requestCount = useQueryRangeResourceData(
-    queries[ModelServingMetricType.REQUEST_COUNT],
+
+  const runtimeMemoryUtilization = useQueryRangeResourceData(
+    type === 'runtime',
+    queries[RuntimeMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
   );
-  const failedRequestCount = useQueryRangeResourceData(
-    queries[ModelServingMetricType.FAILED_REQUEST_COUNT],
+
+  const inferenceRequestCount = useQueryRangeResourceData(
+    type === 'inference',
+    queries[InferenceMetricType.REQUEST_COUNT],
     end,
     timeframe,
   );
@@ -45,7 +58,13 @@ export const useModelServingMetrics = (
     setLastUpdateTime(Date.now());
     // re-compute lastUpdateTime when data changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpointHealth, inferencePerformance, averageResponseTime, requestCount, failedRequestCount]);
+  }, [
+    runtimeRequestCount,
+    runtimeAverageResponseTime,
+    runtimeCPUUtilization,
+    runtimeMemoryUtilization,
+    inferenceRequestCount,
+  ]);
 
   const refreshAllMetrics = React.useCallback(() => {
     setEnd(Date.now());
@@ -54,20 +73,20 @@ export const useModelServingMetrics = (
   return React.useMemo(
     () => ({
       data: {
-        [ModelServingMetricType.ENDPOINT_HEALTH]: endpointHealth,
-        [ModelServingMetricType.INFERENCE_PERFORMANCE]: inferencePerformance,
-        [ModelServingMetricType.AVG_RESPONSE_TIME]: averageResponseTime,
-        [ModelServingMetricType.REQUEST_COUNT]: requestCount,
-        [ModelServingMetricType.FAILED_REQUEST_COUNT]: failedRequestCount,
+        [RuntimeMetricType.REQUEST_COUNT]: runtimeRequestCount,
+        [RuntimeMetricType.AVG_RESPONSE_TIME]: runtimeAverageResponseTime,
+        [RuntimeMetricType.CPU_UTILIZATION]: runtimeCPUUtilization,
+        [RuntimeMetricType.MEMORY_UTILIZATION]: runtimeMemoryUtilization,
+        [InferenceMetricType.REQUEST_COUNT]: inferenceRequestCount,
       },
       refresh: refreshAllMetrics,
     }),
     [
-      endpointHealth,
-      inferencePerformance,
-      averageResponseTime,
-      requestCount,
-      failedRequestCount,
+      runtimeRequestCount,
+      runtimeAverageResponseTime,
+      runtimeCPUUtilization,
+      runtimeMemoryUtilization,
+      inferenceRequestCount,
       refreshAllMetrics,
     ],
   );

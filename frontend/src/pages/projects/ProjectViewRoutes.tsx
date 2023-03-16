@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
-import DetailsPageMetricsWrapper from '~/pages/modelServing/screens/projects/DetailsPageMetricsWrapper';
+import ProjectInferenceMetricsWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsWrapper';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
+import ProjectRuntimeMetricsWrapper from '~/pages/modelServing/screens/projects/ProjectRuntimeMetricsWrapper';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -18,12 +19,15 @@ const ProjectViewRoutes: React.FC = () => {
         <Route index element={<ProjectDetails />} />
         <Route path="spawner" element={<SpawnerPage />} />
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
-        <Route
-          path="metrics/model/:inferenceService"
-          element={
-            modelMetricsEnabled ? <DetailsPageMetricsWrapper /> : <Navigate replace to="/" />
-          }
-        />
+        {modelMetricsEnabled && (
+          <>
+            <Route
+              path="metrics/model/:inferenceService"
+              element={<ProjectInferenceMetricsWrapper />}
+            />
+            <Route path="metrics/runtime" element={<ProjectRuntimeMetricsWrapper />} />
+          </>
+        )}
         <Route path="*" element={<Navigate to="." />} />
       </Route>
       <Route path="*" element={<Navigate to="." />} />

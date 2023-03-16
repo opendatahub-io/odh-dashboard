@@ -2,18 +2,24 @@ import * as React from 'react';
 import { useModelServingMetrics } from '~/api';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { MetricType, TimeframeTitle } from '~/pages/modelServing/screens/types';
 
-export enum ModelServingMetricType {
-  ENDPOINT_HEALTH = 'end-point-health',
-  INFERENCE_PERFORMANCE = 'inference-performance',
-  AVG_RESPONSE_TIME = 'avg-response-time',
-  REQUEST_COUNT = 'request-count',
-  FAILED_REQUEST_COUNT = 'failed-request-count',
+export enum RuntimeMetricType {
+  AVG_RESPONSE_TIME = 'runtime_avg-response-time',
+  REQUEST_COUNT = 'runtime_requests-count',
+  CPU_UTILIZATION = 'runtime_cpu-utilization',
+  MEMORY_UTILIZATION = 'runtime_memory-utilization',
+}
+
+export enum InferenceMetricType {
+  REQUEST_COUNT = 'inference_request-count',
 }
 
 type ModelServingMetricsContext = {
-  data: Record<ModelServingMetricType, ContextResourceData<PrometheusQueryRangeResultValue>>;
+  data: Record<
+    RuntimeMetricType & InferenceMetricType,
+    ContextResourceData<PrometheusQueryRangeResultValue>
+  >;
   currentTimeframe: TimeframeTitle;
   setCurrentTimeframe: (timeframe: TimeframeTitle) => void;
   refresh: () => void;
@@ -23,13 +29,13 @@ type ModelServingMetricsContext = {
 
 export const ModelServingMetricsContext = React.createContext<ModelServingMetricsContext>({
   data: {
-    [ModelServingMetricType.ENDPOINT_HEALTH]: DEFAULT_CONTEXT_DATA,
-    [ModelServingMetricType.INFERENCE_PERFORMANCE]: DEFAULT_CONTEXT_DATA,
-    [ModelServingMetricType.AVG_RESPONSE_TIME]: DEFAULT_CONTEXT_DATA,
-    [ModelServingMetricType.REQUEST_COUNT]: DEFAULT_CONTEXT_DATA,
-    [ModelServingMetricType.FAILED_REQUEST_COUNT]: DEFAULT_CONTEXT_DATA,
+    [RuntimeMetricType.REQUEST_COUNT]: DEFAULT_CONTEXT_DATA,
+    [RuntimeMetricType.AVG_RESPONSE_TIME]: DEFAULT_CONTEXT_DATA,
+    [RuntimeMetricType.CPU_UTILIZATION]: DEFAULT_CONTEXT_DATA,
+    [RuntimeMetricType.MEMORY_UTILIZATION]: DEFAULT_CONTEXT_DATA,
+    [InferenceMetricType.REQUEST_COUNT]: DEFAULT_CONTEXT_DATA,
   },
-  currentTimeframe: TimeframeTitle.FIVE_MINUTES,
+  currentTimeframe: TimeframeTitle.ONE_HOUR,
   setCurrentTimeframe: () => undefined,
   refresh: () => undefined,
   lastUpdateTime: 0,
@@ -39,12 +45,14 @@ export const ModelServingMetricsContext = React.createContext<ModelServingMetric
 type ModelServingMetricsProviderProps = {
   children: React.ReactNode;
   /** Prometheus query strings computed and ready to use */
-  queries: Record<ModelServingMetricType, string>;
+  queries: Record<RuntimeMetricType, string> | Record<InferenceMetricType, string>;
+  type: MetricType;
 };
 
 export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderProps> = ({
   queries,
   children,
+  type,
 }) => {
   const [currentTimeframe, setCurrentTimeframe] = React.useState<TimeframeTitle>(
     TimeframeTitle.ONE_DAY,
@@ -52,6 +60,7 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
   const [lastUpdateTime, setLastUpdateTime] = React.useState<number>(Date.now());
 
   const { data, refresh } = useModelServingMetrics(
+    type,
     queries,
     currentTimeframe,
     lastUpdateTime,
