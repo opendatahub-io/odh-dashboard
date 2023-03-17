@@ -25,7 +25,7 @@ FROM ${BASE_IMAGE} as runtime
 
 WORKDIR /usr/src/app
 
-RUN mkdir /usr/src/app/logs
+RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs
 
 USER default
 
@@ -33,6 +33,8 @@ COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/a
 COPY --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
 COPY --chown=default:root --from=builder /usr/src/app/backend/package-lock.json /usr/src/app/backend/package-lock.json
 COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
+COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
 
 RUN cd backend && npm ci --omit=dev --omit=optional
 
@@ -45,4 +47,3 @@ LABEL io.opendatahub.component="odh-dashboard" \
       name="open-data-hub/odh-dashboard-ubi8" \
       summary="odh-dashboard" \
       description="Open Data Hub Dashboard"
-      
