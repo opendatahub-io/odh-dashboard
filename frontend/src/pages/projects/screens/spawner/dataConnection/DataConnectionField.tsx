@@ -14,8 +14,8 @@ type DataConnectionFieldProps = {
   setDataConnection: (dataConnection: DataConnectionData) => void;
 };
 const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
-  dataConnection: dataConnection,
-  setDataConnection: setDataConnection,
+  dataConnection,
+  setDataConnection,
 }) => (
   <FormGroup fieldId="cluster-storage" role="radiogroup">
     <Stack hasGutter>
