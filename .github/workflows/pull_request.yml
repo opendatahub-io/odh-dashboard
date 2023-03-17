@@ -1,7 +1,7 @@
 name: Pull request
 on:
   pull_request:
-    branches: [ master, main, test**, dev** ]
+    branches: [ main, f/** ]
 
 jobs:
   Integration-checks:
