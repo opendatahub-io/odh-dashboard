@@ -43,13 +43,11 @@ export const decorators = [
       }}
     >
       <Provider store={store}>
-        <Router>
           <SDKInitialize>
             <BrowserStorageContextProvider>
               <Story />
             </BrowserStorageContextProvider>
           </SDKInitialize>
-        </Router>
       </Provider>
     </AppContext.Provider>
   ),

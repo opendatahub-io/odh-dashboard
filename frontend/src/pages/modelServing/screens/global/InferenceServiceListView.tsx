@@ -3,7 +3,7 @@ import { ToolbarItem } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
-import { getInferenceServiceDisplayName } from './utils';
+import { getInferenceServiceDisplayName, getInferenceServiceProjectDisplayName } from './utils';
 import ServeModelButton from './ServeModelButton';
 import InferenceServiceTable from './InferenceServiceTable';
 
@@ -18,6 +18,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
 }) => {
   const {
     inferenceServices: { refresh },
+    projects: { data: projects },
   } = React.useContext(ModelServingContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -30,6 +31,10 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
     switch (searchType) {
       case SearchType.NAME:
         return getInferenceServiceDisplayName(project).toLowerCase().includes(search.toLowerCase());
+      case SearchType.PROJECT:
+        return getInferenceServiceProjectDisplayName(project, projects)
+          .toLowerCase()
+          .includes(search.toLowerCase());
       default:
         return true;
     }
@@ -40,7 +45,10 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   };
 
   const searchTypes = React.useMemo(
-    () => Object.keys(SearchType).filter((key) => SearchType[key] === SearchType.NAME),
+    () =>
+      Object.keys(SearchType).filter(
+        (key) => SearchType[key] === SearchType.NAME || SearchType[key] === SearchType.PROJECT,
+      ),
     [],
   );
 

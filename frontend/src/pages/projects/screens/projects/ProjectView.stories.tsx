@@ -9,6 +9,7 @@ import { mockAPINamespaceProjectPods } from '~/__mocks__/mockAPINamespaceProject
 import { mockAPINamespaceProjectRoutesWorkbench } from '~/__mocks__/mockAPINamespaceProjectRoutesWorkbench';
 import { mockAPINamespaceProjects } from '~/__mocks__/mockAPINamespaceProjects';
 import ProjectView from './ProjectView';
+import { MemoryRouter } from 'react-router';
 
 export default {
   title: 'ProjectView',
@@ -36,7 +37,9 @@ export default {
 
 const Template: ComponentStory<typeof ProjectView> = (args) => (
   <div data-testid="story-loaded">
-    <ProjectView {...args} />
+    <MemoryRouter>
+      <ProjectView {...args} />
+    </MemoryRouter>
   </div>
 );
 
