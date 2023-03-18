@@ -31,7 +31,7 @@ const ProjectInferenceMetricsWrapper: React.FC = () => {
   return (
     <ModelServingMetricsProvider queries={queries} type={MetricType.RUNTIME}>
       <MetricsPage
-        title={`${projectDisplayName} - model server metrics`}
+        title={`ovm metrics`}
         breadcrumbItems={[
           { label: 'Data Science Projects', link: '/projects' },
           {
@@ -39,7 +39,7 @@ const ProjectInferenceMetricsWrapper: React.FC = () => {
             link: `/projects/${currentProject.metadata.name}`,
           },
           {
-            label: `Model server metrics`,
+            label: `ovm metrics`,
             isActive: true,
           },
         ]}

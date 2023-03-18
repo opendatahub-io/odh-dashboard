@@ -12,7 +12,8 @@ export enum RuntimeMetricType {
 }
 
 export enum InferenceMetricType {
-  REQUEST_COUNT = 'inference_request-count',
+  REQUEST_COUNT_SUCCESS = 'inference_request-count-successes',
+  REQUEST_COUNT_FAILED = 'inference_request-count-fails',
 }
 
 type ModelServingMetricsContext = {
@@ -33,7 +34,8 @@ export const ModelServingMetricsContext = React.createContext<ModelServingMetric
     [RuntimeMetricType.AVG_RESPONSE_TIME]: DEFAULT_CONTEXT_DATA,
     [RuntimeMetricType.CPU_UTILIZATION]: DEFAULT_CONTEXT_DATA,
     [RuntimeMetricType.MEMORY_UTILIZATION]: DEFAULT_CONTEXT_DATA,
-    [InferenceMetricType.REQUEST_COUNT]: DEFAULT_CONTEXT_DATA,
+    [InferenceMetricType.REQUEST_COUNT_FAILED]: DEFAULT_CONTEXT_DATA,
+    [InferenceMetricType.REQUEST_COUNT_SUCCESS]: DEFAULT_CONTEXT_DATA,
   },
   currentTimeframe: TimeframeTitle.ONE_HOUR,
   setCurrentTimeframe: () => undefined,

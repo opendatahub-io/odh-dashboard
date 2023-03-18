@@ -47,9 +47,16 @@ export const useModelServingMetrics = (
     timeframe,
   );
 
-  const inferenceRequestCount = useQueryRangeResourceData(
+  const inferenceRequestSuccessCount = useQueryRangeResourceData(
     type === 'inference',
-    queries[InferenceMetricType.REQUEST_COUNT],
+    queries[InferenceMetricType.REQUEST_COUNT_SUCCESS],
+    end,
+    timeframe,
+  );
+
+  const inferenceRequestFailedCount = useQueryRangeResourceData(
+    type === 'inference',
+    queries[InferenceMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
   );
@@ -63,7 +70,8 @@ export const useModelServingMetrics = (
     runtimeAverageResponseTime,
     runtimeCPUUtilization,
     runtimeMemoryUtilization,
-    inferenceRequestCount,
+    inferenceRequestSuccessCount,
+    inferenceRequestFailedCount,
   ]);
 
   const refreshAllMetrics = React.useCallback(() => {
@@ -77,7 +85,8 @@ export const useModelServingMetrics = (
         [RuntimeMetricType.AVG_RESPONSE_TIME]: runtimeAverageResponseTime,
         [RuntimeMetricType.CPU_UTILIZATION]: runtimeCPUUtilization,
         [RuntimeMetricType.MEMORY_UTILIZATION]: runtimeMemoryUtilization,
-        [InferenceMetricType.REQUEST_COUNT]: inferenceRequestCount,
+        [InferenceMetricType.REQUEST_COUNT_SUCCESS]: inferenceRequestSuccessCount,
+        [InferenceMetricType.REQUEST_COUNT_FAILED]: inferenceRequestFailedCount,
       },
       refresh: refreshAllMetrics,
     }),
@@ -86,7 +95,8 @@ export const useModelServingMetrics = (
       runtimeAverageResponseTime,
       runtimeCPUUtilization,
       runtimeMemoryUtilization,
-      inferenceRequestCount,
+      inferenceRequestSuccessCount,
+      inferenceRequestFailedCount,
       refreshAllMetrics,
     ],
   );

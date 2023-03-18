@@ -6,6 +6,7 @@ import {
   RuntimeMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { per100 } from '~/pages/modelServing/screens/metrics/utils';
 
 const RuntimeGraphs: React.FC = () => {
   const { data, currentTimeframe } = React.useContext(ModelServingMetricsContext);
@@ -17,30 +18,29 @@ const RuntimeGraphs: React.FC = () => {
     <Stack hasGutter>
       <StackItem>
         <MetricsChart
-          metrics={data[RuntimeMetricType.REQUEST_COUNT]}
+          metrics={{ metric: data[RuntimeMetricType.REQUEST_COUNT], translatePoint: per100 }}
           color="blue"
-          // TODO: Make sure this is handled per day and is dividing by 100
           title={`Http requests per ${inHours ? 'hour' : 'day'} (x100)`}
         />
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={data[RuntimeMetricType.AVG_RESPONSE_TIME]}
+          metrics={{ metric: data[RuntimeMetricType.AVG_RESPONSE_TIME] }}
           color="green"
           title="Average response time (ms)"
         />
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={data[RuntimeMetricType.CPU_UTILIZATION]}
+          metrics={{ metric: data[RuntimeMetricType.CPU_UTILIZATION] }}
           color="purple"
           title="CPU utilization %"
         />
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={data[RuntimeMetricType.MEMORY_UTILIZATION]}
-          color="purple"
+          metrics={{ metric: data[RuntimeMetricType.MEMORY_UTILIZATION] }}
+          color="orange"
           title="Memory utilization %"
         />
       </StackItem>

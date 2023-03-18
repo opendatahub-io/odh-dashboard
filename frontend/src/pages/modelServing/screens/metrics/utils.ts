@@ -1,8 +1,16 @@
 import * as _ from 'lodash';
 import { SelectOptionObject } from '@patternfly/react-core';
+import * as React from 'react';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { DashboardConfig } from '~/types';
+import {
+  GraphMetricLine,
+  GraphMetricPoint,
+  MetricChartLine,
+  NamedMetricChartLine,
+  TranslatePoint,
+} from '~/pages/modelServing/screens/metrics/types';
 import { InferenceMetricType, RuntimeMetricType } from './ModelServingMetricsContext';
 
 export const isModelMetricsEnabled = (
@@ -20,6 +28,7 @@ export const getRuntimeMetricsQueries = (
 ): Record<RuntimeMetricType, string> => {
   const namespace = runtime.metadata.namespace;
   return {
+    // TODO: Get new queries
     [RuntimeMetricType.REQUEST_COUNT]: `TBD`,
     [RuntimeMetricType.AVG_RESPONSE_TIME]: `rate(modelmesh_api_request_milliseconds_sum{exported_namespace="${namespace}"}[1m])/rate(modelmesh_api_request_milliseconds_count{exported_namespace="${namespace}"}[1m])`,
     [RuntimeMetricType.CPU_UTILIZATION]: `TBD`,
@@ -33,8 +42,9 @@ export const getInferenceServiceMetricsQueries = (
   const namespace = inferenceService.metadata.namespace;
   const name = inferenceService.metadata.name;
   return {
-    // TODO: Do we have two queries? one for success and one for failure?
-    [InferenceMetricType.REQUEST_COUNT]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
+    // TODO: Fix queries
+    [InferenceMetricType.REQUEST_COUNT_SUCCESS]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
+    [InferenceMetricType.REQUEST_COUNT_FAILED]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
   };
 };
 
@@ -74,12 +84,15 @@ export const convertTimestamp = (timestamp: number, show?: 'date' | 'second'): s
   } ${ampm}`;
 };
 
-export const getThresholdData = (
-  data: { x: number; y: number; name: string }[],
-  threshold: number,
-): { x: number; y: number }[] =>
+export const getThresholdData = (data: GraphMetricLine[], threshold: number): GraphMetricLine =>
   _.uniqBy(
-    data.map((data) => ({ name: 'Threshold', x: data.x, y: threshold })),
+    _.uniq(
+      data.reduce<number[]>((xValues, line) => [...xValues, ...line.map((point) => point.x)], []),
+    ).map((xValue) => ({
+      name: 'Threshold',
+      x: xValue,
+      y: threshold,
+    })),
     (value) => value.x,
   );
 
@@ -91,4 +104,46 @@ export const formatToShow = (timeframe: TimeframeTitle): 'date' | 'second' | und
     default:
       return 'date';
   }
+};
+
+export const per100: TranslatePoint = (point) => ({
+  ...point,
+  y: point.y / 100,
+});
+
+export const createGraphMetricLine = ({
+  metric,
+  name,
+  translatePoint,
+}: NamedMetricChartLine): GraphMetricLine =>
+  metric.data?.map<GraphMetricPoint>((data) => {
+    const point: GraphMetricPoint = {
+      x: data[0] * 1000,
+      y: parseInt(data[1]),
+      name,
+    };
+    if (translatePoint) {
+      return translatePoint(point);
+    }
+    return point;
+  }) || [];
+
+export const useStableMetrics = (
+  metricChartLine: MetricChartLine,
+  chartTitle: string,
+): NamedMetricChartLine[] => {
+  const metricsRef = React.useRef<NamedMetricChartLine[]>([]);
+
+  const metrics = Array.isArray(metricChartLine)
+    ? metricChartLine
+    : [{ ...metricChartLine, name: metricChartLine.name ?? chartTitle }];
+
+  if (
+    metrics.length !== metricsRef.current.length ||
+    metrics.some((graphLine, i) => graphLine.metric !== metricsRef.current[i].metric)
+  ) {
+    metricsRef.current = metrics;
+  }
+
+  return metricsRef.current;
 };
