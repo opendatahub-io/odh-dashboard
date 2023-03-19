@@ -1,6 +1,6 @@
 import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { getModelRoleBinding, getModelServiceAccountName } from '~/pages/modelServing/utils';
-import { RoleBindingKind } from '~/k8sTypes';
+import { KnownLabels, RoleBindingKind } from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
 
 export const generateRoleBindingData = (
@@ -15,7 +15,7 @@ export const generateRoleBindingData = (
       name: rbName,
       namespace: dashboardNamespace,
       labels: {
-        'opendatahub.io/dashboard': 'true',
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
     },
     roleRef: {
@@ -45,7 +45,7 @@ export const generateRoleBindingServingRuntime = (namespace: string): RoleBindin
       name,
       namespace,
       labels: {
-        'opendatahub.io/dashboard': 'true',
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
     },
     roleRef: {

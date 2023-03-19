@@ -1,6 +1,12 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
 
+export enum KnownLabels {
+  DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
+  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
+  DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+}
+
 export type K8sVerb =
   | 'create'
   | 'get'
@@ -49,6 +55,14 @@ export type NotebookAnnotations = Partial<{
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
 }>;
+
+export type DashboardLabels = {
+  [KnownLabels.DASHBOARD_RESOURCE]: 'true';
+};
+
+export type ModelServingProjectLabels = {
+  [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
+};
 
 export type BuildConfigKind = K8sResourceCommon & {
   metadata: {
@@ -224,12 +238,14 @@ export type PodKind = K8sResourceCommon & {
   };
 };
 
+/** Assumed Dashboard Project -- if we need more beyond that we should break this type up */
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
+    labels: DashboardLabels & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
@@ -372,7 +388,7 @@ export type AWSSecretKind = SecretKind & {
   metadata: {
     annotations?: DisplayNameAnnotations;
     labels?: {
-      'opendatahub.io/managed': 'true';
+      [KnownLabels.DATA_CONNECTION_AWS]: 'true';
     };
   };
 };

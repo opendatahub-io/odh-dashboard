@@ -15,10 +15,11 @@ import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRun
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '~/pages/projects/utils';
 import { featureFlagEnabled } from '~/utilities/utils';
+import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectSectionID } from './types';
 import StorageList from './storage/StorageList';
-import { ProjectSectionTitles, ProjectSectionTitlesExtended } from './const';
+import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
 import useCheckLogoutParams from './useCheckLogoutParams';
 
@@ -42,6 +43,9 @@ const ProjectDetails: React.FC = () => {
   const modelServingEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableModelServing,
   );
+  const pipelinesEnabled = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disablePipelines,
+  );
   useCheckLogoutParams();
 
   const scrollableSelectorID = 'project-details-list';
@@ -61,6 +65,15 @@ const ProjectDetails: React.FC = () => {
       component: <DataConnectionsList />,
       isEmpty: connectionsLoaded && connections.length === 0,
     },
+    ...(pipelinesEnabled
+      ? [
+          {
+            id: ProjectSectionID.PIPELINES,
+            component: <PipelinesSection />,
+            isEmpty: pipelinesEnabled,
+          },
+        ]
+      : []),
     ...(modelServingEnabled
       ? [
           {
@@ -93,12 +106,8 @@ const ProjectDetails: React.FC = () => {
         variant="light"
       >
         <GenericSidebar
-          sections={Object.keys(
-            modelServingEnabled
-              ? { ...ProjectSectionTitles, ...ProjectSectionTitlesExtended }
-              : ProjectSectionTitles,
-          )}
-          titles={modelServingEnabled ? ProjectSectionTitlesExtended : ProjectSectionTitles}
+          sections={sections.map(({ id }) => id)}
+          titles={ProjectSectionTitles}
           scrollableSelector={`#${scrollableSelectorID}`}
           maxWidth={175}
         >

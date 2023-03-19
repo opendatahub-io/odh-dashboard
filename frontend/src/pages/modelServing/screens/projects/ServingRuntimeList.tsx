@@ -3,10 +3,10 @@ import { Button } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import { ProjectSectionTitlesExtended } from '~/pages/projects/screens/detail/const';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 
@@ -29,7 +29,7 @@ const ServingRuntimeList: React.FC = () => {
     <>
       <DetailsSection
         id={ProjectSectionID.MODEL_SERVER}
-        title={ProjectSectionTitlesExtended[ProjectSectionID.MODEL_SERVER] || ''}
+        title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
         actions={
           emptyModelServer
             ? [

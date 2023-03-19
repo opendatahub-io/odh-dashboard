@@ -7,7 +7,7 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '~/api/models';
-import { InferenceServiceKind, K8sStatus } from '~/k8sTypes';
+import { InferenceServiceKind, K8sStatus, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getModelServingProjects } from './projects';
@@ -30,7 +30,7 @@ const assembleInferenceService = (
       namespace: project,
       labels: {
         name,
-        'opendatahub.io/dashboard': 'true',
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
         'openshift.io/display-name': data.name,

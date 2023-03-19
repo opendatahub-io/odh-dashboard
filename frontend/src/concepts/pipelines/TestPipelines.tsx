@@ -10,12 +10,15 @@ import {
   StackItem,
   ToggleGroup,
   ToggleGroupItem,
+  EmptyState,
+  EmptyStateIcon,
+  Title,
 } from '@patternfly/react-core';
 import { PipelineNodeModel } from '@patternfly/react-topology';
 import { ValueOf } from '~/typeHelpers';
 import PipelineTopology from '~/concepts/pipelines/topology/PipelineTopology';
 import { createNode, createNodeId } from '~/concepts/pipelines/topology/utils';
-import { PipelineContextProvider, usePipelinesAPI, CreateCR } from './context';
+import { PipelineContextProvider, usePipelinesAPI, CreatePipelineServerButton } from './context';
 
 const options: { text: string; data: PipelineNodeModel[] }[] = [
   {
@@ -104,14 +107,38 @@ const TestTopology = () => {
 const TestPipelines: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();
 
-  if (!pipelinesAPI.pipelinesEnabled) {
-    return <CreateCR />;
-  }
-  if (!pipelinesAPI.apiAvailable) {
+  if (pipelinesAPI.pipelinesServer.initializing) {
     return (
       <Bullseye>
         <Spinner />
       </Bullseye>
+    );
+  }
+
+  if (!pipelinesAPI.pipelinesServer.installed) {
+    return (
+      <PageSection isFilled>
+        <Bullseye>
+          <div>
+            <Title size="lg" headingLevel="h4">
+              No Pipeline Server
+            </Title>
+            <br />
+            <CreatePipelineServerButton variant="primary" />
+          </div>
+        </Bullseye>
+      </PageSection>
+    );
+  }
+
+  if (!pipelinesAPI.apiAvailable) {
+    return (
+      <EmptyState>
+        <EmptyStateIcon variant="container" component={Spinner} />
+        <Title size="lg" headingLevel="h4">
+          API Loading...
+        </Title>
+      </EmptyState>
     );
   }
 

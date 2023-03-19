@@ -20,6 +20,7 @@ export type FetchState<Type, Default extends Type = Type> = [
   data: Type | Default,
   loaded: boolean,
   loadError: Error | undefined,
+  /** This promise should never throw to the .catch */
   refresh: FetchStateRefreshPromise,
 ];
 
@@ -64,6 +65,23 @@ export type FetchStateCallbackPromiseAdHoc<Type> = FetchStateCallbackPromiseRetu
   Promise<AdHocUpdate<Type>>
 >;
 
+type FetchOptions = {
+  /** To enable auto refresh */
+  refreshRate: number;
+  /**
+   * Makes your promise pure from the sense of if it changes you do not want the previous data. When
+   * you recompute your fetchCallbackPromise, do you want to drop the values stored? This will
+   * reset everything; result, loaded, & error state. Intended purpose is if your promise is keyed
+   * off of a value that if it changes you should drop all data as it's fundamentally a different
+   * thing - sharing old state is misleading.
+   *
+   * Note: Doing this could have undesired side effects. Consider your hook's dependents and the
+   * state of your data.
+   * Note: This is only read as initial value; changes do nothing.
+   */
+  initialPromisePurity: boolean;
+};
+
 /**
  * A boilerplate helper utility. Given a callback that returns a promise, it will store state and
  * handle refreshes on intervals as needed.
@@ -73,21 +91,35 @@ export type FetchStateCallbackPromiseAdHoc<Type> = FetchStateCallbackPromiseRetu
 const useFetchState = <Type, Default extends Type = Type>(
   /** React.useCallback result. */
   fetchCallbackPromise: FetchStateCallbackPromise<Type> | FetchStateCallbackPromiseAdHoc<Type>,
-  /** A preferred default states - this is ignored after the first render */
-  defaultState: Default,
-  /** To enable auto refresh */
-  refreshRate = 0,
+  /**
+   * A preferred default states - this is ignored after the first render
+   * Note: This is only read as initial value; changes do nothing.
+   */
+  initialDefaultState: Default,
+  /** Configurable features */
+  { refreshRate = 0, initialPromisePurity = false }: Partial<FetchOptions> = {},
 ): FetchState<Type, Default> => {
-  const [result, setResult] = React.useState<Type | Default>(defaultState);
+  const [result, setResult] = React.useState<Type | Default>(initialDefaultState);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
   const abortCallbackRef = React.useRef<() => void>(() => undefined);
+  /** Setup on initial hook a singular reset function. DefaultState & resetDataOnNewPromise are initial render states. */
+  const cleanupRef = React.useRef(() => {
+    if (initialPromisePurity) {
+      setResult(initialDefaultState);
+      setLoaded(false);
+      setLoadError(undefined);
+    }
+  });
 
   const call = React.useCallback<() => [Promise<void>, () => void]>(() => {
     let interval: ReturnType<typeof setInterval>;
     let alreadyAborted = false;
     const abortController = new AbortController();
 
+    cleanupRef.current();
+
+    /** Note: this promise cannot "catch" beyond this instance -- unless a runtime error. */
     const doRequest = () =>
       fetchCallbackPromise({ signal: abortController.signal })
         .then((r) => {

@@ -1,4 +1,5 @@
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   name?: string;
@@ -23,6 +24,7 @@ export const mockPVCK8sResource = ({
     labels: {
       'opendatahub.io/dashboard': 'true',
     },
+    uid: genUID('pvc'),
   },
   spec: {
     accessModes: ['ReadWriteOnce'],

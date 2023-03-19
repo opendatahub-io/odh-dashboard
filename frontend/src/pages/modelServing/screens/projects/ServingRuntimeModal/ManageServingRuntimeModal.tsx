@@ -27,7 +27,7 @@ import {
   assembleServingRuntimeSA,
   createServiceAccount,
 } from '~/api';
-import { ServingRuntimeKind, SecretKind, K8sStatus } from '~/k8sTypes';
+import { ServingRuntimeKind, SecretKind, K8sStatus, KnownLabels } from '~/k8sTypes';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
@@ -156,7 +156,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         .catch((e) => setErrorModal(e));
     } else {
       Promise.all<ServingRuntimeKind | string | void>([
-        ...(currentProject.metadata.labels?.['modelmesh-enabled']
+        ...(currentProject.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
         createServingRuntime(createData, servingRuntimesConfig, namespace),

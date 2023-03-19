@@ -1,17 +1,6 @@
 import * as React from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 import {
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Spinner,
-  Title,
-} from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import {
   ServingRuntimeKind,
   PersistentVolumeClaimKind,
   ProjectKind,
@@ -28,11 +17,15 @@ import {
   useServingRuntimesConfig,
   ServingRuntimesConfigResourceData,
 } from '~/pages/modelServing/useServingRuntimesConfig';
+import { PipelineContextProvider } from '~/concepts/pipelines/context';
+import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import InvalidProject from '~/concepts/projects/InvalidProject';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
-import useProject from './useProject';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 
 type ProjectDetailsContextType = {
@@ -65,9 +58,10 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
-  const navigate = useNavigate();
+  const { dashboardConfig } = useAppContext();
   const { namespace } = useParams<{ namespace: string }>();
-  const [project, loaded, error] = useProject(namespace);
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(namespace));
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
@@ -101,28 +95,14 @@ const ProjectDetailsContextProvider: React.FC = () => {
     inferenceServiceRefresh,
   ]);
 
-  if (error) {
+  if (!project) {
     return (
-      <Bullseye>
-        <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
-            Problem loading project details
-          </Title>
-          <EmptyStateBody>{error.message}</EmptyStateBody>
-          <Button variant="primary" onClick={() => navigate('/projects')}>
-            View my projects
-          </Button>
-        </EmptyState>
-      </Bullseye>
-    );
-  }
-
-  if (!loaded || !project) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
+      <InvalidProject
+        namespace={namespace}
+        title="Problem loading project details"
+        navigateTo="/projects"
+        navigateText="View my projects"
+      />
     );
   }
 
@@ -140,7 +120,13 @@ const ProjectDetailsContextProvider: React.FC = () => {
         serverSecrets,
       }}
     >
-      <Outlet />
+      {featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) ? (
+        <PipelineContextProvider namespace={project.metadata.name}>
+          <Outlet />
+        </PipelineContextProvider>
+      ) : (
+        <Outlet />
+      )}
     </ProjectDetailsContext.Provider>
   );
 };

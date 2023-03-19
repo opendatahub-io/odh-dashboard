@@ -1,12 +1,13 @@
-import React from "react"
+import React from 'react';
 import { Provider } from 'react-redux';
 import { withRouter } from 'storybook-addon-react-router-v6';
 import { store } from '../src/redux/store/store';
 import SDKInitialize from '../src/SDKInitialize';
 import { BrowserStorageContextProvider } from '../src/components/browserStorage/BrowserStorageContext';
 import { initialize, mswDecorator } from 'msw-storybook-addon';
-import { AppContext } from "../src/app/AppContext";
-import { mockDashboardConfig } from "../src/__mocks__/mockDashboardConfig"
+import { AppContext } from '../src/app/AppContext';
+import { mockDashboardConfig } from '../src/__mocks__/mockDashboardConfig';
+import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
 
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
@@ -19,18 +20,18 @@ export const parameters = {
         {
           id: 'empty-table-header',
           enabled: false,
-        }
+        },
       ],
-    }
+    },
   },
-  actions: { argTypesRegex: "^on[A-Z].*" },
+  actions: { argTypesRegex: '^on[A-Z].*' },
   controls: {
     matchers: {
       color: /(background|color)$/i,
       date: /Date$/,
     },
   },
-}
+};
 
 // Initialize MSW
 initialize();
@@ -45,12 +46,14 @@ export const decorators = [
       <Provider store={store}>
         <SDKInitialize>
           <BrowserStorageContextProvider>
-            <Story />
+            <ProjectsContextProvider>
+              <Story />
+            </ProjectsContextProvider>
           </BrowserStorageContextProvider>
         </SDKInitialize>
       </Provider>
     </AppContext.Provider>
   ),
   mswDecorator,
-  withRouter
+  withRouter,
 ];

@@ -1,4 +1,5 @@
 import { DashboardConfig } from '~/types';
+import { KnownLabels } from '~/k8sTypes';
 
 export const mockDashboardConfig: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
@@ -6,7 +7,7 @@ export const mockDashboardConfig: DashboardConfig = {
   metadata: {
     name: 'odh-dashboard-config',
     labels: {
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     namespace: 'redhat-ods-applications',
   },
@@ -24,6 +25,7 @@ export const mockDashboardConfig: DashboardConfig = {
       disableProjects: false,
       disableModelServing: false,
       modelMetricsNamespace: 'test-project',
+      disablePipelines: false,
     },
     notebookController: {
       enabled: true,

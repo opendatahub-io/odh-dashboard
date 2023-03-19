@@ -53,13 +53,10 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     ),
   ),
   rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockProjectK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]))),
-  ),
-  rest.get('/api/k8s/apis/project.openshift.io/v1/projects/test-project', (req, res, ctx) =>
-    res(ctx.json(mockProjectK8sResource({}))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
@@ -115,7 +112,8 @@ Default.play = async ({ canvasElement }) => {
   await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
 
   // we fill in the page with data, so there should be no dividers on the page
-  expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(0);
+  // TODO: Handle Pipelines -- it has no data atm
+  expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(1);
 
   // check the x-small size shown correctly
   expect(canvas.getByText('XSmall')).toBeInTheDocument();

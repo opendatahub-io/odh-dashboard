@@ -1,4 +1,5 @@
-import { InferenceServiceKind } from '~/k8sTypes';
+import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
+import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   name?: string;
@@ -26,12 +27,12 @@ export const mockInferenceServiceK8sResource = ({
     generation: 1,
     labels: {
       name: name,
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     name: name,
     namespace: namespace,
     resourceVersion: '1309350',
-    uid: 'c275044f-85f7-44dc-9539-b9fdf6fcf334',
+    uid: genUID('service'),
   },
   spec: {
     predictor: {

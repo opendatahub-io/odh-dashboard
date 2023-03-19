@@ -9,7 +9,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash';
 import { NotebookModel } from '~/api/models';
-import { K8sAPIOptions, K8sStatus, NotebookKind } from '~/k8sTypes';
+import { K8sAPIOptions, K8sStatus, KnownLabels, NotebookKind } from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
@@ -55,7 +55,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
         app: notebookId,
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
-        'opendatahub.io/dashboard': 'true',
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
         'openshift.io/display-name': notebookName,

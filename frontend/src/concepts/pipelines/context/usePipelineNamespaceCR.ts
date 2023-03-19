@@ -18,7 +18,7 @@ const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
     [namespace],
   );
 
-  return useFetchState<State>(callback, null);
+  return useFetchState<State>(callback, null, { initialPromisePurity: true });
 };
 
 export default usePipelineNamespaceCR;

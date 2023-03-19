@@ -19,6 +19,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableProjects: boolean;
       disableModelServing: boolean;
       modelMetricsNamespace: string;
+      disablePipelines: boolean;
     };
     groupsConfig?: {
       adminGroups: string;

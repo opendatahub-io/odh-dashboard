@@ -1,4 +1,4 @@
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimeSize, TimeframeStepType, TimeframeTimeType, TimeframeTitle } from './types';
 
 export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [
@@ -66,7 +66,7 @@ export const DEFAULT_MODEL_SERVING_TEMPLATE: ServingRuntimeKind = {
     namespace: '',
     labels: {
       name: '',
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     annotations: {},
   },

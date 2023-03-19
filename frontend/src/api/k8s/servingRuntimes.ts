@@ -7,7 +7,7 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeModel } from '~/api/models';
-import { ConfigMapKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ConfigMapKind, KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { ContainerResources } from '~/types';
@@ -31,7 +31,7 @@ const assembleServingRuntime = (
     labels: {
       ...servingRuntime.metadata.labels,
       name,
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     annotations: {
       ...servingRuntime.metadata.annotations,
