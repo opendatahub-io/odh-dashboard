@@ -2,45 +2,24 @@ import * as React from 'react';
 import { getSecretsByLabel } from '~/api';
 import { SecretKind } from '~/k8sTypes';
 import { getModelServiceAccountName } from '~/pages/modelServing/utils';
+import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
 
-const useServingRuntimeSecrets = (
-  namespace?: string,
-): [
-  secrets: SecretKind[],
-  loaded: boolean,
-  loadError: Error | undefined,
-  refreshSecrets: () => void,
-] => {
-  const [secrets, setSecrets] = React.useState<SecretKind[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
-
+const useServingRuntimeSecrets = (namespace?: string): FetchState<SecretKind[]> => {
   const fetchSecrets = React.useCallback(() => {
     if (!namespace) {
-      return;
+      return Promise.reject(new NotReadyError('No namespace'));
     }
-    getSecretsByLabel('opendatahub.io/dashboard=true', namespace)
-      .then((secrets) => {
-        setSecrets(
-          secrets.filter(
-            (secret) =>
-              secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
-              getModelServiceAccountName(namespace),
-          ),
-        );
-        setLoaded(true);
-      })
-      .catch((e) => {
-        setLoadError(e);
-        setLoaded(true);
-      });
+
+    return getSecretsByLabel('opendatahub.io/dashboard=true', namespace).then((secrets) =>
+      secrets.filter(
+        (secret) =>
+          secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
+          getModelServiceAccountName(namespace),
+      ),
+    );
   }, [namespace]);
 
-  React.useEffect(() => {
-    fetchSecrets();
-  }, [fetchSecrets]);
-
-  return [secrets, loaded, loadError, fetchSecrets];
+  return useFetchState<SecretKind[]>(fetchSecrets, []);
 };
 
 export default useServingRuntimeSecrets;
