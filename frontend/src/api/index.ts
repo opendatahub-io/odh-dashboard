@@ -14,6 +14,10 @@ export * from './k8s/secrets';
 export * from './k8s/serviceAccounts';
 export * from './k8s/servingRuntimes';
 
+// Pipelines uses special redirected API
+export * from './pipelines/custom';
+export * from './pipelines/k8s';
+
 // Prometheus queries
 export * from './prometheus/pvcs';
 export * from './prometheus/serving';

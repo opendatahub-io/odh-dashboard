@@ -19,6 +19,8 @@ const NotebookController = React.lazy(
   () => import('../pages/notebookController/NotebookController'),
 );
 
+const TestPipelines = React.lazy(() => import('../concepts/pipelines/TestPipelines'));
+
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
@@ -54,6 +56,10 @@ const AppRoutes: React.FC = () => {
         {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
         {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}
         {isAdmin && <Route path="/groupSettings" element={<GroupSettingsPage />} />}
+
+        {/* TODO: REMOVE DEBUG CODE */}
+        <Route path="/pipelines/:namespace" element={<TestPipelines />} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </React.Suspense>

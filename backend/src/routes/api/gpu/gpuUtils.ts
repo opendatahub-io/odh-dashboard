@@ -105,6 +105,7 @@ export const getGPUData = async (
       protocol: 'https:',
       rejectUnauthorized: false,
     };
+    // TODO: fix this so this works with the proxyCall functionality
     const httpsRequest = https
       .get(url, options, (res) => {
         res.setEncoding('utf8');
