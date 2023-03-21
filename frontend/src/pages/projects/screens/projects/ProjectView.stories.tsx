@@ -4,12 +4,13 @@ import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent, waitForElementToBeRemoved } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { mockAPINamespaceProjectNotebooks } from '~/__mocks__/mockAPINamespaceProjectNotebooks';
-import { mockAPINamespaceProjectPods } from '~/__mocks__/mockAPINamespaceProjectPods';
-import { mockAPINamespaceProjectRoutesWorkbench } from '~/__mocks__/mockAPINamespaceProjectRoutesWorkbench';
-import { mockAPINamespaceProjects } from '~/__mocks__/mockAPINamespaceProjects';
 import ProjectView from './ProjectView';
 import { MemoryRouter } from 'react-router';
+import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
+import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 
 export default {
   title: 'ProjectView',
@@ -18,17 +19,17 @@ export default {
     msw: {
       handlers: [
         rest.get(
-          '/api/k8s/apis/route.openshift.io/v1/namespaces/project/routes/workbench',
-          (req, res, ctx) => res(ctx.json(mockAPINamespaceProjectRoutesWorkbench)),
+          '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
+          (req, res, ctx) => res(ctx.json(mockRouteK8sResource("test-notebook", "test-project"))),
         ),
-        rest.get('/api/k8s/api/v1/namespaces/project/pods', (req, res, ctx) =>
-          res(ctx.json(mockAPINamespaceProjectPods)),
+        rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
+          res(ctx.json(mockK8sResourceList([mockPodK8sResource("test-pod", "test-project", "admin")]))),
         ),
-        rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/project/notebooks', (req, res, ctx) =>
-          res(ctx.json(mockAPINamespaceProjectNotebooks)),
+        rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks', (req, res, ctx) =>
+          res(ctx.json(mockK8sResourceList([mockNotebookK8sResource("test-notebook", "Test Notebook", "test-project", "admin", "Test Notebook")]))),
         ),
         rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-          res(ctx.json(mockAPINamespaceProjects)),
+          res(ctx.json(mockK8sResourceList([mockProjectK8sResource("test_account", "Test Project", "A testing namespace", "test-project")]))),
         ),
       ],
     },
@@ -51,8 +52,8 @@ Default.play = async ({ canvasElement }) => {
   await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
 
   // test that values from api are be displayed correctly
-  expect(await canvas.findByText('project', { selector: 'a' })).toBeInTheDocument();
-  expect(await canvas.findByText('user')).toBeInTheDocument();
+  expect(await canvas.findByText('Test Project', { selector: 'a' })).toBeInTheDocument();
+  expect(await canvas.findByText('test_account')).toBeInTheDocument();
 };
 
 export const EditProject = Template.bind({});

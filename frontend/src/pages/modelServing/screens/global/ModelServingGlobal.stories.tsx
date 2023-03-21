@@ -4,10 +4,6 @@ import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent, waitForElementToBeRemoved } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { mockAPINamespaceProjectNotebooks } from '~/__mocks__/mockAPINamespaceProjectNotebooks';
-import { mockAPINamespaceProjectPods } from '~/__mocks__/mockAPINamespaceProjectPods';
-import { mockAPINamespaceProjectRoutesWorkbench } from '~/__mocks__/mockAPINamespaceProjectRoutesWorkbench';
-import { mockAPINamespaceProjects } from '~/__mocks__/mockAPINamespaceProjects';
 import ModelServingGlobal from './ModelServingGlobal';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ModelServingContextProvider from '../../ModelServingContext';
@@ -29,9 +25,9 @@ export default {
         // rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/project/notebooks', (req, res, ctx) =>
         //   res(ctx.json(mockAPINamespaceProjectNotebooks)),
         // ),
-        rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-          res(ctx.json(mockAPINamespaceProjects)),
-        ),
+        // rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
+        //   res(ctx.json(mockAPINamespaceProjects)),
+        // ),
       ],
     },
   },
