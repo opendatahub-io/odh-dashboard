@@ -366,3 +366,73 @@ export type AWSSecretKind = SecretKind & {
     };
   };
 };
+
+export type DSPipelineKind = K8sResourceCommon & {
+  spec: Partial<{
+    apiServer: Partial<{
+      apiServerImage: string;
+      artifactImage: string;
+      artifactScriptConfigMap: Partial<{
+        key: string;
+        name: string;
+      }>;
+    }>;
+    database: Partial<{
+      customDB: Partial<{
+        host: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        port: string;
+        username: string;
+      }>;
+      image: string;
+      mariaDB: Partial<{
+        image: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        username: string;
+      }>;
+    }>;
+    mlpipelineUI: Partial<{
+      configMap: string;
+      image: string;
+    }>;
+    persistentAgent: Partial<{
+      image: string;
+      pipelineAPIServerName: string;
+    }>;
+    scheduledWorkflow: Partial<{
+      image: string;
+    }>;
+    objectStorage: Partial<{
+      customStorage: Partial<{
+        bucket: string;
+        host: string;
+        port: string;
+        s3CredentialsSecret: Partial<{
+          accessKey: string;
+          secretKey: string;
+          secretName: string;
+        }>;
+      }>;
+      minio: Partial<{
+        bucket: string;
+        image: string;
+        s3CredentialsSecret: Partial<{
+          accessKey: string;
+          secretKey: string;
+          secretName: string;
+        }>;
+      }>;
+    }>;
+    viewerCRD: Partial<{
+      image: string;
+    }>;
+  }>;
+};
