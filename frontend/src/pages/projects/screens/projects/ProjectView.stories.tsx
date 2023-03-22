@@ -2,15 +2,14 @@ import React from 'react';
 
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { rest } from 'msw';
-import { within, userEvent, waitForElementToBeRemoved } from '@storybook/testing-library';
+import { within, userEvent } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import ProjectView from './ProjectView';
-import { MemoryRouter } from 'react-router';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
+import ProjectView from './ProjectView';
 
 export default {
   title: 'ProjectView',
@@ -20,16 +19,17 @@ export default {
       handlers: [
         rest.get(
           '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
-          (req, res, ctx) => res(ctx.json(mockRouteK8sResource("test-notebook", "test-project"))),
+          (req, res, ctx) => res(ctx.json(mockRouteK8sResource({}))),
         ),
         rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
-          res(ctx.json(mockK8sResourceList([mockPodK8sResource("test-pod", "test-project", "admin")]))),
+          res(ctx.json(mockK8sResourceList([mockPodK8sResource({})]))),
         ),
-        rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks', (req, res, ctx) =>
-          res(ctx.json(mockK8sResourceList([mockNotebookK8sResource("test-notebook", "Test Notebook", "test-project", "admin", "Test Notebook")]))),
+        rest.get(
+          '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
+          (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockNotebookK8sResource({})]))),
         ),
         rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-          res(ctx.json(mockK8sResourceList([mockProjectK8sResource("test_account", "Test Project", "A testing namespace", "test-project")]))),
+          res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
         ),
       ],
     },
@@ -38,9 +38,7 @@ export default {
 
 const Template: ComponentStory<typeof ProjectView> = (args) => (
   <div data-testid="story-loaded">
-    <MemoryRouter>
-      <ProjectView {...args} />
-    </MemoryRouter>
+    <ProjectView {...args} />
   </div>
 );
 
@@ -49,7 +47,6 @@ Default.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
   await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
 
   // test that values from api are be displayed correctly
   expect(await canvas.findByText('Test Project', { selector: 'a' })).toBeInTheDocument();
@@ -67,7 +64,6 @@ EditProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
   await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
 
   // user flow for editing a project
   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
@@ -97,7 +93,6 @@ DeleteProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
   await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
 
   // user flow for deleting a project
   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
@@ -131,7 +126,6 @@ CreateProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
   await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
 
   // user flow for deleting a project
   await userEvent.click(canvas.getByText('Create data science project', { selector: 'button' }));

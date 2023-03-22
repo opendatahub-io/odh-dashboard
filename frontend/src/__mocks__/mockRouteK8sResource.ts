@@ -1,6 +1,14 @@
-import { RouteKind } from "~/k8sTypes";
+import { RouteKind } from '~/k8sTypes';
 
-export const mockRouteK8sResource = (notebookName: string, namespace: string): RouteKind => ({
+type MockResourceConfigType = {
+  notebookName?: string;
+  namespace?: string;
+};
+
+export const mockRouteK8sResource = ({
+  notebookName = 'test-notebook',
+  namespace = 'test-project',
+}: MockResourceConfigType): RouteKind => ({
   kind: 'Route',
   apiVersion: 'route.openshift.io/v1',
   metadata: {
@@ -28,7 +36,7 @@ export const mockRouteK8sResource = (notebookName: string, namespace: string): R
     managedFields: [],
   },
   spec: {
-    path: "",
+    path: '',
     host: `${notebookName}-${namespace}.apps.user.com`,
     to: {
       kind: 'Service',
@@ -61,4 +69,4 @@ export const mockRouteK8sResource = (notebookName: string, namespace: string): R
       },
     ],
   },
-})
+});

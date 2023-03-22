@@ -1,6 +1,20 @@
-import { NotebookKind } from "~/k8sTypes";
+import { NotebookKind } from '~/k8sTypes';
 
-export const mockNotebookK8sResource = (name: string, displayName: string, namespace: string, user: string, description: string=""): NotebookKind => ({
+type MockResourceConfigType = {
+  name?: string;
+  displayName?: string;
+  namespace?: string;
+  user?: string;
+  description?: string;
+};
+
+export const mockNotebookK8sResource = ({
+  name = 'test-notebook',
+  displayName = 'Test Notebook',
+  namespace = 'test-project',
+  user = 'test-user',
+  description = '',
+}: MockResourceConfigType): NotebookKind => ({
   apiVersion: 'kubeflow.org/v1',
   kind: 'Notebook',
   metadata: {
@@ -281,4 +295,4 @@ export const mockNotebookK8sResource = (name: string, displayName: string, names
     },
     readyReplicas: 1,
   },
-})
+});

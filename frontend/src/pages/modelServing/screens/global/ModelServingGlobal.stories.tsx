@@ -2,12 +2,16 @@ import React from 'react';
 
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { rest } from 'msw';
-import { within, userEvent, waitForElementToBeRemoved } from '@storybook/testing-library';
+import { within, userEvent } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
+import { Route, Routes } from 'react-router-dom';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
+import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import ModelServingGlobal from './ModelServingGlobal';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import ModelServingContextProvider from '../../ModelServingContext';
-
 
 export default {
   title: 'ModelServingGlobal',
@@ -15,152 +19,127 @@ export default {
   parameters: {
     msw: {
       handlers: [
-        // rest.get(
-        //   '/api/k8s/apis/route.openshift.io/v1/namespaces/project/routes/workbench',
-        //   (req, res, ctx) => res(ctx.json(mockAPINamespaceProjectRoutesWorkbench)),
-        // ),
-        // rest.get('/api/k8s/api/v1/namespaces/project/pods', (req, res, ctx) =>
-        //   res(ctx.json(mockAPINamespaceProjectPods)),
-        // ),
-        // rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/project/notebooks', (req, res, ctx) =>
-        //   res(ctx.json(mockAPINamespaceProjectNotebooks)),
-        // ),
-        // rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-        //   res(ctx.json(mockAPINamespaceProjects)),
-        // ),
+        rest.get(
+          'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
+          (req, res, ctx) =>
+            res(ctx.json(mockK8sResourceList([mockServingRuntimeK8sResource({})]))),
+        ),
+        rest.get(
+          'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
+          (req, res, ctx) =>
+            res(ctx.json(mockK8sResourceList([mockInferenceServiceK8sResource({})]))),
+        ),
+        rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
+          res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
+        ),
+        rest.get(
+          '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
+          (req, res, ctx) => res(ctx.json(mockServingRuntimeK8sResource({}))),
+        ),
+        rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
+          res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
+        ),
       ],
     },
   },
 } as ComponentMeta<typeof ModelServingGlobal>;
 
 const Template: ComponentStory<typeof ModelServingGlobal> = (args) => (
-  <div data-testid="story-loaded">
-    <MemoryRouter>
-    <Routes>
-        <Route path="/" element={<ModelServingContextProvider />}>
-        <Route index element={<ModelServingGlobal {...args} />} />
-      </Route>
-    </Routes>
-    </MemoryRouter>
-  </div>
+  <Routes>
+    <Route path="/" element={<ModelServingContextProvider />}>
+      <Route index element={<ModelServingGlobal {...args} />} />
+    </Route>
+  </Routes>
 );
 
 export const Default = Template.bind({});
 Default.play = async ({ canvasElement }) => {
-  // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
 
   // test that values from api are be displayed correctly
-  expect(await canvas.findByText('project', { selector: 'a' })).toBeInTheDocument();
-  expect(await canvas.findByText('user')).toBeInTheDocument();
+  expect(
+    await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 }),
+  ).toBeInTheDocument();
+  expect(await canvas.findByText('Test Project')).toBeInTheDocument();
 };
 
-// export const EditProject = Template.bind({});
-// EditProject.parameters = {
-//   a11y: {
-//     // need to select modal as root
-//     element: '.pf-c-backdrop',
-//   },
-// };
-// EditProject.play = async ({ canvasElement }) => {
-//   // load page and wait until settled
-//   const canvas = within(canvasElement);
-//   await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-//   await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
+export const EditModel = Template.bind({});
+EditModel.parameters = {
+  a11y: {
+    // need to select modal as root
+    element: '.pf-c-backdrop',
+  },
+};
+EditModel.play = async ({ canvasElement }) => {
+  // load page and wait until settled
+  const canvas = within(canvasElement);
+  await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
-//   // user flow for editing a project
-//   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-//   await userEvent.click(canvas.getByText('Edit project', { selector: 'button' }));
+  // user flow for editing a project
+  await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
+  await userEvent.click(canvas.getByText('Edit', { selector: 'button' }));
 
-//   // get modal
-//   const body = within(canvasElement.ownerDocument.body);
-//   const nameInput = body.getByRole('textbox', { name: /Name Resource name/i });
-//   const updateButton = body.getByText('Update', { selector: 'button' });
+  // get modal
+  const body = within(canvasElement.ownerDocument.body);
+  const nameInput = body.getByRole('textbox', { name: 'Model Name' });
+  const updateButton = body.getByText('Deploy', { selector: 'button' });
 
-//   // test that you can not submit on empty
-//   await userEvent.clear(nameInput);
-//   expect(updateButton).toBeDisabled();
+  // test that you can not submit on empty
+  await userEvent.clear(nameInput);
+  expect(updateButton).toBeDisabled();
 
-//   // test that you can update the name to a different name
-//   await userEvent.type(nameInput, 'Updated Project', { delay: 50 });
-//   expect(updateButton).not.toBeDisabled();
-// };
+  // test that you can update the name to a different name
+  await userEvent.type(nameInput, 'Updated Model Name', { delay: 50 });
+  expect(updateButton).not.toBeDisabled();
 
-// export const DeleteProject = Template.bind({});
-// DeleteProject.parameters = {
-//   a11y: {
-//     element: '.pf-c-backdrop',
-//   },
-// };
-// DeleteProject.play = async ({ canvasElement }) => {
-//   // load page and wait until settled
-//   const canvas = within(canvasElement);
-//   await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-//   await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
+  // test that user cant upload on an empty new secret
+  const newDbc = body.getByRole('radio', { name: 'New data connection' });
+  await userEvent.click(newDbc);
+  expect(updateButton).toBeDisabled();
 
-//   // user flow for deleting a project
-//   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-//   await userEvent.click(canvas.getByText('Delete project', { selector: 'button' }));
+  // test that adding required values validates submit
+  const showPassword = body.getByRole('button', { name: 'Show password' });
+  await userEvent.click(showPassword);
 
-//   // get modal
-//   const body = within(canvasElement.ownerDocument.body);
-//   const retypeNameInput = body.getByRole('textbox');
-//   const deleteButton = body.getByText('Delete project', { selector: 'button' });
+  const secretName = body.getByRole('textbox', { name: 'AWS field Name' });
+  const secretKey = body.getByRole('textbox', { name: 'AWS field AWS_ACCESS_KEY_ID' });
+  const secretValue = body.getByRole('textbox', { name: 'AWS field AWS_SECRET_ACCESS_KEY' });
 
-//   // test that empty input disables form
-//   expect(deleteButton).toBeDisabled();
+  await userEvent.type(secretName, 'Test Secret', { delay: 50 });
+  await userEvent.type(secretKey, 'test-secret-key', { delay: 50 });
+  await userEvent.type(secretValue, 'test-secret-password', { delay: 50 });
+  expect(updateButton).not.toBeDisabled();
+};
 
-//   // test that you can not submit on wrong input
-//   await userEvent.type(retypeNameInput, 'not project', { delay: 50 });
-//   expect(deleteButton).toBeDisabled();
-//   await userEvent.clear(retypeNameInput);
+export const DeleteModel = Template.bind({});
+DeleteModel.parameters = {
+  a11y: {
+    element: '.pf-c-backdrop',
+  },
+};
+DeleteModel.play = async ({ canvasElement }) => {
+  // load page and wait until settled
+  const canvas = within(canvasElement);
+  await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
-//   // test that you can delete on correct input
-//   await userEvent.type(retypeNameInput, 'project', { delay: 50 });
-//   expect(deleteButton).not.toBeDisabled();
-// };
+  // user flow for deleting a project
+  await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
+  await userEvent.click(canvas.getByText('Delete', { selector: 'button' }));
 
-// export const CreateProject = Template.bind({});
-// CreateProject.parameters = {
-//   a11y: {
-//     element: '.pf-c-backdrop',
-//   },
-// };
-// CreateProject.play = async ({ canvasElement }) => {
-//   // load page and wait until settled
-//   const canvas = within(canvasElement);
-//   await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-//   await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
+  // get modal
+  const body = within(canvasElement.ownerDocument.body);
+  const retypeNameInput = body.getByRole('textbox', { name: 'Delete modal input' });
+  const deleteButton = body.getByText('Delete deployed model', { selector: 'button' });
 
-//   // user flow for deleting a project
-//   await userEvent.click(canvas.getByText('Create data science project', { selector: 'button' }));
+  // test that empty input disables form
+  expect(deleteButton).toBeDisabled();
 
-//   // get modal
-//   const body = within(canvasElement.ownerDocument.body);
-//   body.getByLabelText('Name');
-//   const resourceNameInput = body.getAllByRole('textbox').at(1) as HTMLElement;
-//   const nameInput = body.getByRole('textbox', { name: /Name Resource name/i });
-//   const createButton = body.getByText('Create', { selector: 'button' });
+  // test that you can not submit on wrong input
+  await userEvent.type(retypeNameInput, 'incorrect name', { delay: 50 });
+  expect(deleteButton).toBeDisabled();
+  await userEvent.clear(retypeNameInput);
 
-//   // test that empty input disables form
-//   expect(createButton).toBeDisabled();
-
-//   // test that you can submit on only giving name
-//   await userEvent.type(nameInput, 'new project', { delay: 50 });
-//   expect(createButton).not.toBeDisabled();
-
-//   // test no resource name
-//   await userEvent.clear(resourceNameInput);
-//   expect(createButton).toBeDisabled();
-
-//   // test resource name can not invalid you can edit the resource name
-//   await userEvent.type(resourceNameInput, 'resource name', { delay: 50 });
-//   expect(createButton).toBeDisabled();
-//   await userEvent.clear(resourceNameInput);
-
-//   // test you can edit the resource name
-//   await userEvent.type(resourceNameInput, 'resource-name', { delay: 50 });
-//   expect(createButton).not.toBeDisabled();
-// };
+  // test that you can delete on correct input
+  await userEvent.type(retypeNameInput, 'Test Inference Service', { delay: 50 });
+  expect(deleteButton).not.toBeDisabled();
+};
