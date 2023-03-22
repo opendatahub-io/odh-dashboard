@@ -61,7 +61,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isButtonDisabled =
     createInProgress ||
-    !checkRequiredFieldsForNotebookStart(startNotebookData, storageData, envVariables);
+    !checkRequiredFieldsForNotebookStart(
+      startNotebookData,
+      storageData,
+      envVariables,
+      dataConnection,
+    );
   const { username } = useUser();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
