@@ -21,6 +21,7 @@
     "build:analyze": "export _ODH_OUTPUT_ONLY=true; run-s build build:bundle-profile build:bundle-analyze",
     "build:bundle-profile": "webpack --config ./config/webpack.prod.js --profile --json > ./bundle.stats.json",
     "build:bundle-analyze": "webpack-bundle-analyzer ./bundle.stats.json",
+    "build:storybook": "build-storybook -s ./config",
     "build:clean": "rimraf ./public",
     "build:prod": "webpack --config ./config/webpack.prod.js",
     "format": "prettier --write \"./**/*.ts\" \"./**/*.tsx\" \"./**/*.scss\"",
@@ -35,6 +36,7 @@
     "test:local": "jest --watchAll",
     "test:type-check": "tsc --noEmit",
     "test:storybook": "test-storybook --verbose",
+    "test:storybook-ci": "npx concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npm run build:storybook --quiet && npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:127.0.0.1:6006 && npm run test:storybook\"",
     "storybook": "start-storybook -p 6006 -s ./config"
   },
   "dependencies": {
@@ -55,6 +57,7 @@
     "compare-versions": "^3.6.0",
     "dompurify": "^2.2.6",
     "lodash-es": "^4.17.15",
+    "playwright": "^1.31.2",
     "react": "^18.2.0",
     "react-cool-dimensions": "^2.0.5",
     "react-dom": "^18.2.0",

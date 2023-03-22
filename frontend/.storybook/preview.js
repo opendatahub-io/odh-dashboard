@@ -12,6 +12,17 @@ import { AppContext } from "../src/app/AppContext";
 import {mockDashboardConfig} from "../src/__mocks__/mockDashboardConfig"
 
 export const parameters = {
+  a11y: {
+    config: {
+      rules: [
+        // disable so kebabs on table headers don't need a visible label
+        {
+          id: 'empty-table-header',
+          enabled: false,
+        }
+      ],
+    }
+  },
   actions: { argTypesRegex: "^on[A-Z].*" },
   controls: {
     matchers: {
