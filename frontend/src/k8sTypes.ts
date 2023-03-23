@@ -1,6 +1,16 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
 
+export type K8sVerb =
+  | 'create'
+  | 'get'
+  | 'list'
+  | 'update'
+  | 'patch'
+  | 'delete'
+  | 'deletecollection'
+  | 'watch';
+
 /**
  * Annotations that we will use to allow the user flexibility in describing items outside of the
  * k8s structure.
@@ -364,5 +374,32 @@ export type AWSSecretKind = SecretKind & {
     labels?: {
       'opendatahub.io/managed': 'true';
     };
+  };
+};
+
+export type AccessReviewResourceAttributes = {
+  /** CRD group, '*' for all groups, omit for core resources */
+  group?: '*' | string;
+  /** Plural resource name, omit for all */
+  resource?: string;
+  /** TODO: Not a full list, could be expanded, "" means none */
+  subresource?: '' | 'spec' | 'status';
+  /** Must provide the verb you are trying to do; '*' means all verbs */
+  verb: '*' | K8sVerb;
+  /** A resource name, omit when not interested in a specific resource */
+  name?: string;
+  /** The namespace the check is in, omit for unbounded check */
+  namespace?: string;
+};
+
+export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
+  spec: {
+    resourceAttributes?: AccessReviewResourceAttributes;
+  };
+  status?: {
+    allowed: boolean;
+    denied?: boolean;
+    reason?: string;
+    evaluationError?: string;
   };
 };
