@@ -150,6 +150,26 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   };
 
   const onCreateNotebook = async () => {
+    if (dataConnection.type === 'creating') {
+      const dataAsRecord = dataConnection.creating?.values?.data.reduce<Record<string, string>>(
+        (acc, { key, value }) => ({ ...acc, [key]: value }),
+        {},
+      );
+      if (dataAsRecord) {
+        const isSuccess = await createSecret(assembleSecret(projectName, dataAsRecord, 'aws'), {
+          dryRun: true,
+        })
+          .then(() => true)
+          .catch((e) => {
+            handleError(e);
+            return false;
+          });
+        if (!isSuccess) {
+          return;
+        }
+      }
+    }
+    
     handleStart();
 
     const newDataConnection =
