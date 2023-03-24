@@ -1,6 +1,6 @@
 import React from "react"
 import { Provider } from 'react-redux';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { withRouter } from 'storybook-addon-react-router-v6';
 import { store } from '../src/redux/store/store';
 import SDKInitialize from '../src/SDKInitialize';
 import { BrowserStorageContextProvider } from '../src/components/browserStorage/BrowserStorageContext';
@@ -43,15 +43,14 @@ export const decorators = [
       }}
     >
       <Provider store={store}>
-        <Router>
           <SDKInitialize>
             <BrowserStorageContextProvider>
               <Story />
             </BrowserStorageContextProvider>
           </SDKInitialize>
-        </Router>
       </Provider>
     </AppContext.Provider>
   ),
-  mswDecorator
+  mswDecorator,
+  withRouter
 ];

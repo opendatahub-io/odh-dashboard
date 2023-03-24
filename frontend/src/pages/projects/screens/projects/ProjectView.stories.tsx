@@ -2,12 +2,13 @@ import React from 'react';
 
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { rest } from 'msw';
-import { within, userEvent, waitForElementToBeRemoved } from '@storybook/testing-library';
+import { within, userEvent } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { mockAPINamespaceProjectNotebooks } from '~/__mocks__/mockAPINamespaceProjectNotebooks';
-import { mockAPINamespaceProjectPods } from '~/__mocks__/mockAPINamespaceProjectPods';
-import { mockAPINamespaceProjectRoutesWorkbench } from '~/__mocks__/mockAPINamespaceProjectRoutesWorkbench';
-import { mockAPINamespaceProjects } from '~/__mocks__/mockAPINamespaceProjects';
+import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
+import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import ProjectView from './ProjectView';
 
 export default {
@@ -17,17 +18,18 @@ export default {
     msw: {
       handlers: [
         rest.get(
-          '/api/k8s/apis/route.openshift.io/v1/namespaces/project/routes/workbench',
-          (req, res, ctx) => res(ctx.json(mockAPINamespaceProjectRoutesWorkbench)),
+          '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
+          (req, res, ctx) => res(ctx.json(mockRouteK8sResource({}))),
         ),
-        rest.get('/api/k8s/api/v1/namespaces/project/pods', (req, res, ctx) =>
-          res(ctx.json(mockAPINamespaceProjectPods)),
+        rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
+          res(ctx.json(mockK8sResourceList([mockPodK8sResource({})]))),
         ),
-        rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/project/notebooks', (req, res, ctx) =>
-          res(ctx.json(mockAPINamespaceProjectNotebooks)),
+        rest.get(
+          '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
+          (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockNotebookK8sResource({})]))),
         ),
         rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-          res(ctx.json(mockAPINamespaceProjects)),
+          res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
         ),
       ],
     },
@@ -44,12 +46,11 @@ export const Default = Template.bind({});
 Default.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // test that values from api are be displayed correctly
-  expect(await canvas.findByText('project', { selector: 'a' })).toBeInTheDocument();
-  expect(await canvas.findByText('user')).toBeInTheDocument();
+  expect(await canvas.findByText('Test Project', { selector: 'a' })).toBeInTheDocument();
+  expect(await canvas.findByText('test-user')).toBeInTheDocument();
 };
 
 export const EditProject = Template.bind({});
@@ -62,8 +63,7 @@ EditProject.parameters = {
 EditProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // user flow for editing a project
   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
@@ -92,8 +92,7 @@ DeleteProject.parameters = {
 DeleteProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // user flow for deleting a project
   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
@@ -113,7 +112,7 @@ DeleteProject.play = async ({ canvasElement }) => {
   await userEvent.clear(retypeNameInput);
 
   // test that you can delete on correct input
-  await userEvent.type(retypeNameInput, 'project', { delay: 50 });
+  await userEvent.type(retypeNameInput, 'Test Project', { delay: 50 });
   expect(deleteButton).not.toBeDisabled();
 };
 
@@ -126,8 +125,7 @@ CreateProject.parameters = {
 CreateProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
-  await waitForElementToBeRemoved(() => canvas.queryByText('Loading'), { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // user flow for deleting a project
   await userEvent.click(canvas.getByText('Create data science project', { selector: 'button' }));
