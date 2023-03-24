@@ -20,6 +20,12 @@ const PENDING_PHASES = [
 const FAILED_PHASES = [BUILD_PHASE.error, BUILD_PHASE.failed];
 
 export const compareTagVersions = (a: ImageTagInfo, b: ImageTagInfo): number => {
+  // Recommended tags should be first
+  if (a.recommended) {
+    return -1;
+  } else if (b.recommended) {
+    return 1;
+  }
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
     return compareVersions(b.name, a.name);
   }

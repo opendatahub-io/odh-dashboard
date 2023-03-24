@@ -37,7 +37,7 @@ type ImageStreamAnnotations = Partial<{
 type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/notebook-python-dependencies': string;
   'opendatahub.io/notebook-software': string;
-  'opendatahub.io/notebook-image-recommended': string;
+  'opendatahub.io/workbench-image-recommended': string;
   'opendatahub.io/default-image': string;
 }>;
 

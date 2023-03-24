@@ -14,6 +14,17 @@ export const ScrollableSelectorID = 'workbench-spawner-page';
 export const FAILED_PHASES = [BUILD_PHASE.ERROR, BUILD_PHASE.FAILED];
 export const PENDING_PHASES = [BUILD_PHASE.NEW, BUILD_PHASE.PENDING, BUILD_PHASE.CANCELLED];
 
+export const IMAGE_ANNOTATIONS = {
+  DESC: 'opendatahub.io/notebook-image-desc',
+  DISP_NAME: 'opendatahub.io/notebook-image-name',
+  URL: 'opendatahub.io/notebook-image-url',
+  DEFAULT: 'opendatahub.io/default-image',
+  SOFTWARE: 'opendatahub.io/notebook-software',
+  DEPENDENCIES: 'opendatahub.io/notebook-python-dependencies',
+  IMAGE_ORDER: 'opendatahub.io/notebook-image-order',
+  RECOMMENDED: 'opendatahub.io/workbench-image-recommended',
+};
+
 export const DEFAULT_NOTEBOOK_SIZES = [
   {
     name: 'Small',
