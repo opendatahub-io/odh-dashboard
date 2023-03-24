@@ -169,7 +169,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         }
       }
     }
-    
+
     handleStart();
 
     const newDataConnection =
