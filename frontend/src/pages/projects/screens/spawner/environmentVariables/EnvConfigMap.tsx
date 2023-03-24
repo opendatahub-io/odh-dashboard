@@ -1,9 +1,13 @@
 import * as React from 'react';
-import { ConfigMapCategory, EnvVariableData } from '~/pages/projects/types';
+import {
+  ConfigMapCategory,
+  EnvironmentVariableType,
+  EnvVariableData,
+} from '~/pages/projects/types';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
-import ConfigMapUploadField from './ConfigMapUploadField';
+import EnvUploadField from './EnvUploadField';
 
 type EnvConfigMapProps = {
   env?: EnvVariableData;
@@ -32,7 +36,10 @@ const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate
       [ConfigMapCategory.UPLOAD]: {
         label: 'Upload',
         render: (
-          <ConfigMapUploadField onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })} />
+          <EnvUploadField
+            envVarType={EnvironmentVariableType.CONFIG_MAP}
+            onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
+          />
         ),
       },
     }}

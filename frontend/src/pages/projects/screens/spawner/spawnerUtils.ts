@@ -4,6 +4,7 @@ import { NotebookSize, Volume, VolumeMount } from '~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
 import {
   ConfigMapCategory,
+  DataConnectionData,
   EnvVariable,
   EnvVariableDataEntry,
   SecretCategory,
@@ -337,6 +338,7 @@ export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
   storageData: StorageData,
   envVariables: EnvVariable[],
+  dataConnection: DataConnectionData,
 ): boolean => {
   const { projectName, notebookName, notebookSize, image } = startNotebookData;
   const { storageType, creating, existing } = storageData;
@@ -352,5 +354,18 @@ export const checkRequiredFieldsForNotebookStart = (
   const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
   const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
 
-  return isNotebookDataValid && isStorageDataValid && isEnvVariableDataValid(envVariables);
+  const newDataConnectionInvalid =
+    dataConnection.type === 'creating' &&
+    !(dataConnection?.creating?.values?.data && isAWSValid(dataConnection.creating.values.data));
+  const existingDataConnectionInvalid =
+    dataConnection.type === 'existing' && !dataConnection?.existing?.secretRef.name;
+  const isDataConnectionValid =
+    !dataConnection.enabled || (!newDataConnectionInvalid && !existingDataConnectionInvalid);
+
+  return (
+    isNotebookDataValid &&
+    isStorageDataValid &&
+    isEnvVariableDataValid(envVariables) &&
+    isDataConnectionValid
+  );
 };

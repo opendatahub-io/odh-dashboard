@@ -84,6 +84,13 @@ export type ConfigMapRef = {
 
 export type EnvironmentFromVariable = Partial<SecretRef> & Partial<ConfigMapRef>;
 
+export type DataConnectionData = {
+  type: 'creating' | 'existing';
+  enabled: boolean;
+  creating?: EnvVariable;
+  existing?: SecretRef;
+};
+
 export enum DataConnectionType {
   AWS,
 }
@@ -123,6 +130,7 @@ export enum EnvironmentVariableType {
 export enum SecretCategory {
   GENERIC = 'secret key-value',
   AWS = 'aws',
+  UPLOAD = 'upload',
 }
 export enum ConfigMapCategory {
   GENERIC = 'configmap key-value',
