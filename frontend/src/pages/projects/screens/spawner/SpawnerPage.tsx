@@ -47,7 +47,7 @@ type SpawnerPageProps = {
 };
 
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject, dataConnections } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
 
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
@@ -64,7 +64,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
-  const [dataConnection, setDataConnection] = useNotebookDataConnection(existingNotebook);
+  const [dataConnection, setDataConnection] = useNotebookDataConnection(
+    existingNotebook,
+    dataConnections.data,
+  );
 
   const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
 

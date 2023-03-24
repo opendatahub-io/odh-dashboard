@@ -8,7 +8,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { createNotebook, updateNotebook } from '~/api';
+import { assembleSecret, createNotebook, createSecret, updateNotebook } from '~/api';
 import {
   StartNotebookData,
   StorageData,
@@ -26,6 +26,7 @@ import {
   updateConfigMapsAndSecretsForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
+import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -49,6 +50,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const tolerationSettings = notebookController?.notebookTolerationSettings;
   const {
     notebooks: { data },
+    dataConnections: { data: existingDataConnections },
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
@@ -68,6 +70,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dataConnection,
     );
   const { username } = useUser();
+  const existingNotebookDataConnection = getNotebookDataConnection(
+    editNotebook,
+    existingDataConnections,
+  );
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { gpus, notebookSize, image } = startNotebookData;
@@ -91,6 +97,26 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   };
 
   const onUpdateNotebook = async () => {
+    if (dataConnection.type === 'creating') {
+      const dataAsRecord = dataConnection.creating?.values?.data.reduce<Record<string, string>>(
+        (acc, { key, value }) => ({ ...acc, [key]: value }),
+        {},
+      );
+      if (dataAsRecord) {
+        const isSuccess = await createSecret(assembleSecret(projectName, dataAsRecord, 'aws'), {
+          dryRun: true,
+        })
+          .then(() => true)
+          .catch((e) => {
+            handleError(e);
+            return false;
+          });
+        if (!isSuccess) {
+          return;
+        }
+      }
+    }
+
     handleStart();
     if (editNotebook) {
       const pvcDetails = await replaceRootVolumesForNotebook(
@@ -103,6 +129,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         editNotebook,
         envVariables,
         dataConnection,
+        existingNotebookDataConnection,
       ).catch(handleError);
 
       if (!pvcDetails || !envFrom) {
