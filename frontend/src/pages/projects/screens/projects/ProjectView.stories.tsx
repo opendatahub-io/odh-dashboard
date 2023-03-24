@@ -46,11 +46,11 @@ export const Default = Template.bind({});
 Default.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // test that values from api are be displayed correctly
   expect(await canvas.findByText('Test Project', { selector: 'a' })).toBeInTheDocument();
-  expect(await canvas.findByText('test_account')).toBeInTheDocument();
+  expect(await canvas.findByText('test-user')).toBeInTheDocument();
 };
 
 export const EditProject = Template.bind({});
@@ -63,7 +63,7 @@ EditProject.parameters = {
 EditProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // user flow for editing a project
   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
@@ -92,7 +92,7 @@ DeleteProject.parameters = {
 DeleteProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // user flow for deleting a project
   await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
@@ -112,7 +112,7 @@ DeleteProject.play = async ({ canvasElement }) => {
   await userEvent.clear(retypeNameInput);
 
   // test that you can delete on correct input
-  await userEvent.type(retypeNameInput, 'project', { delay: 50 });
+  await userEvent.type(retypeNameInput, 'Test Project', { delay: 50 });
   expect(deleteButton).not.toBeDisabled();
 };
 
@@ -125,7 +125,7 @@ CreateProject.parameters = {
 CreateProject.play = async ({ canvasElement }) => {
   // load page and wait until settled
   const canvas = within(canvasElement);
-  await canvas.findByTestId('story-loaded', undefined, { timeout: 5000 });
+  await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
   // user flow for deleting a project
   await userEvent.click(canvas.getByText('Create data science project', { selector: 'button' }));
