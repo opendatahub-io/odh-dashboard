@@ -1,11 +1,17 @@
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
+export enum MetricType {
+  RUNTIME = 'runtime',
+  INFERENCE = 'inference',
+}
+
 export enum TimeframeTitle {
-  FIVE_MINUTES = '5 minutes',
   ONE_HOUR = '1 hour',
   ONE_DAY = '24 hours',
-  ONE_WEEK = '1 week',
+  ONE_WEEK = '7 days',
+  ONE_MONTH = '30 days',
+  // UNLIMITED = 'Unlimited',
 }
 
 export type TimeframeTimeType = {

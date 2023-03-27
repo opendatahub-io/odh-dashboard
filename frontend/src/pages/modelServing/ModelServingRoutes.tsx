@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
 import ModelServingContextProvider from './ModelServingContext';
-import ModelServingMetricsWrapper from './screens/metrics/ModelServingMetricsWrapper';
+import GlobalInferenceMetricsWrapper from './screens/metrics/GlobalInferenceMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
 import useModelMetricsEnabled from './useModelMetricsEnabled';
 
@@ -15,9 +15,10 @@ const ModelServingRoutes: React.FC = () => {
         <Route
           path="/metrics/:project/:inferenceService"
           element={
-            modelMetricsEnabled ? <ModelServingMetricsWrapper /> : <Navigate replace to="/" />
+            modelMetricsEnabled ? <GlobalInferenceMetricsWrapper /> : <Navigate replace to="/" />
           }
         />
+        {/* TODO: Global Runtime metrics?? */}
         <Route path="*" element={<Navigate to="." />} />
       </Route>
     </Routes>

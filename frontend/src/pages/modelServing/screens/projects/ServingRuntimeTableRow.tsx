@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Button, Icon, Skeleton, Tooltip } from '@patternfly/react-core';
+import { Button, DropdownDirection, Icon, Skeleton, Tooltip } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -27,8 +28,11 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   expandedColumn,
   onExpandColumn,
 }) => {
+  const navigate = useNavigate();
+
   const isRowExpanded = !!expandedColumn;
   const {
+    currentProject,
     inferenceServices: {
       data: inferenceServices,
       loaded: inferenceServicesLoaded,
@@ -122,6 +126,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td isActionCell>
           <ActionsColumn
+            dropdownDirection={DropdownDirection.up}
             items={[
               {
                 title: 'Edit model server',
@@ -130,6 +135,11 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
               {
                 title: 'Delete model server',
                 onClick: () => onDeleteServingRuntime(obj),
+              },
+              {
+                title: 'View metrics',
+                onClick: () =>
+                  navigate(`/projects/${currentProject.metadata.name}/metrics/runtime`),
               },
             ]}
           />
