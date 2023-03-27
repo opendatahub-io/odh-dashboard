@@ -11,6 +11,13 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
   setFolderPath,
 }) => {
   const [error, setError] = React.useState('');
+
+  const formatLeadingSlash = (value: string) => {
+    if (folderPath === '/') {
+      return '';
+    }
+    return value;
+  };
   return (
     <FormGroup
       helperTextInvalid={error}
@@ -23,16 +30,17 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
         <TextInput
           aria-label="folder-path"
           type="text"
-          value={folderPath}
+          value={formatLeadingSlash(folderPath)}
           placeholder="eg. data"
           onChange={(value) => {
+            const cleanedPath = value.replace(/^\/+/, '');
             let error = '';
-            if (!/^[a-zA-Z0-9.\-_*'()]+$/.test(value)) {
+            if (!/^[a-zA-Z0-9.\-_*'()/]+$/.test(cleanedPath)) {
               error =
                 "Must only consist of letters (a-z, A-Z), numbers (0-9), periods (.), hyphens (-), \
                  underscores (_), asterisks (*), single quotes ('), and parentheses ()";
             }
-            setFolderPath(value);
+            setFolderPath(cleanedPath.length === 0 ? '/' : cleanedPath);
             setError(error);
           }}
         />
