@@ -61,7 +61,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     return isAWSValid(createData.storage.awsData);
   };
 
-  const validFolderPath = (): boolean => /^[a-zA-Z0-9.\-_*'()]+$/.test(createData.storage.path);
+  const validFolderPath = (): boolean => /^[a-zA-Z0-9.\-_*'()/]+$/.test(createData.storage.path);
 
   const canCreate =
     !actionInProgress &&

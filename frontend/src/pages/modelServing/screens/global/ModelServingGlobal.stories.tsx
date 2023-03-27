@@ -109,6 +109,18 @@ EditModel.play = async ({ canvasElement }) => {
   await userEvent.type(secretKey, 'test-secret-key', { delay: 50 });
   await userEvent.type(secretValue, 'test-secret-password', { delay: 50 });
   expect(updateButton).not.toBeDisabled();
+
+  // test folder path
+  const pathInput = body.getByRole('textbox', {name: "folder-path"})
+  await userEvent.type(pathInput, "invalid path", { delay: 50 })
+  expect(updateButton).toBeDisabled();
+  await userEvent.clear(pathInput)
+  expect(updateButton).not.toBeDisabled();
+  await userEvent.type(pathInput, "val1d/Path", { delay: 50 })
+  expect(updateButton).not.toBeDisabled();
+  await userEvent.clear(pathInput)
+  await userEvent.paste(pathInput, "////pasted/leading/slashes/should/clear")
+  expect(updateButton).not.toBeDisabled();
 };
 
 export const DeleteModel = Template.bind({});
