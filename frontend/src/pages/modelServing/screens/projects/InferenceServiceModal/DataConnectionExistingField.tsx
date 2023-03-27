@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {
   FormGroup,
+  InputGroup,
+  InputGroupText,
   Select,
   SelectOption,
   Stack,
@@ -61,6 +63,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
         </FormGroup>
       </StackItem>
       <StackItem>
+        
         <FormGroup fieldId="folder-path" label="Folder path">
           <TextInput
             id="folder-path"
