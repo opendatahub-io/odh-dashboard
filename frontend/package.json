@@ -160,6 +160,9 @@
     "@storybook/react": {
       "react": "^18.2.0",
       "react-dom": "^18.2.0"
+    },
+    "@patternfly/react-topology": {
+      "react": "^18.2.0"
     }
   }
 }
