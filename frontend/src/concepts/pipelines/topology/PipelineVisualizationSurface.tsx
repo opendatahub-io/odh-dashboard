@@ -1,8 +1,12 @@
 import React from 'react';
 import {
+  action,
+  createTopologyControlButtons,
   DEFAULT_SPACER_NODE_TYPE,
+  defaultControlButtonsOptions,
   getEdgesFromNodes,
   PipelineNodeModel,
+  TopologyControlBar,
   TopologyView,
   useVisualizationController,
   VisualizationSurface,
@@ -36,7 +40,29 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   }, [controller, nodes]);
 
   return (
-    <TopologyView>
+    <TopologyView
+      controlBar={
+        <TopologyControlBar
+          controlButtons={createTopologyControlButtons({
+            ...defaultControlButtonsOptions,
+            zoomInCallback: action(() => {
+              controller.getGraph().scaleBy(4 / 3);
+            }),
+            zoomOutCallback: action(() => {
+              controller.getGraph().scaleBy(0.75);
+            }),
+            fitToScreenCallback: action(() => {
+              controller.getGraph().fit(80);
+            }),
+            resetViewCallback: action(() => {
+              controller.getGraph().reset();
+              controller.getGraph().layout();
+            }),
+            legend: false,
+          })}
+        />
+      }
+    >
       <VisualizationSurface />
     </TopologyView>
   );

@@ -8,6 +8,7 @@ import {
   SpacerNode,
   TaskEdge,
   TaskNode,
+  withPanZoom,
 } from '@patternfly/react-topology';
 
 // Topology gap... their types have issues with Strict TS mode
@@ -15,7 +16,7 @@ import {
 // @ts-ignore
 export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
   if (kind === ModelKind.graph) {
-    return GraphComponent;
+    return withPanZoom()(GraphComponent);
   }
   switch (type) {
     case DEFAULT_TASK_NODE_TYPE:
