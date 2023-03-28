@@ -16,6 +16,7 @@ type GenericHorizontalBarProps = {
     title: string;
     component: React.ReactNode;
     icon?: React.ReactElement<React.ComponentClass<SVGIconProps>>;
+    id?: string;
   }[];
 };
 
@@ -48,7 +49,7 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ sections })
           ))}
         </Tabs>
       </PageSection>
-      <PageSection variant={PageSectionVariants.light} isFilled padding={{ default: 'noPadding' }}>
+      <PageSection variant={PageSectionVariants.light} hasOverflowScroll isFilled>
         {sections.map((section) => (
           <TabContent
             id={section.title}

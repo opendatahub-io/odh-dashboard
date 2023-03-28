@@ -80,6 +80,7 @@ const ProjectDetailsComponents: React.FC = () => {
       hasOverflowScroll
       isFilled
       aria-label="project-details-page-section"
+      padding={{ default: 'noPadding' }}
       variant="light"
     >
       <GenericSidebar

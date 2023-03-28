@@ -1,4 +1,4 @@
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sCreateResource, k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { getModelRoleBinding, getModelServiceAccountName } from '~/pages/modelServing/utils';
 import { KnownLabels, RoleBindingKind } from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
@@ -61,6 +61,20 @@ export const generateRoleBindingServingRuntime = (namespace: string): RoleBindin
     ],
   };
   return roleBindingObject;
+};
+
+export const listRoleBindings = (
+  namespace?: string,
+  labelSelector?: string,
+): Promise<RoleBindingKind[]> => {
+  const queryOptions = {
+    ...(namespace && { ns: namespace }),
+    ...(labelSelector && { queryParams: { labelSelector } }),
+  };
+  return k8sListResource<RoleBindingKind>({
+    model: RoleBindingModel,
+    queryOptions,
+  }).then((listResource) => listResource.items);
 };
 
 export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBindingKind> =>
