@@ -61,16 +61,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     return isAWSValid(createData.storage.awsData);
   };
 
-  const validFolderPath = (): boolean => /^[a-zA-Z0-9.\-_*'()/]+$/.test(createData.storage.path);
-
   const canCreate =
     !actionInProgress &&
     createData.name !== '' &&
     createData.project !== '' &&
     createData.format.name !== '' &&
     createData.project !== '' &&
-    storageCanCreate() &&
-    validFolderPath();
+    storageCanCreate();
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -95,12 +92,26 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       ),
     );
 
+  const cleanFormData = () => ({
+    ...createData,
+    storage: {
+      ...createData.storage,
+      path:
+        createData.storage.path === '' || createData.storage.path === '/'
+          ? '/'
+          : createData.storage.path.replace(/^\/+/, ''),
+    },
+  });
+
   const createModel = (): Promise<InferenceServiceKind> => {
-    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createInferenceService(createData);
+    // clean data
+    const cleanedFormData = cleanFormData();
+
+    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      return createInferenceService(cleanedFormData);
     }
     return createAWSSecret().then((secret) =>
-      createInferenceService(createData, secret.metadata.name),
+      createInferenceService(cleanedFormData, secret.metadata.name),
     );
   };
 
@@ -108,11 +119,15 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (!editInfo) {
       return Promise.reject(new Error('No model to update'));
     }
-    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return updateInferenceService(createData, editInfo);
+
+    // clean data
+    const cleanedFormData = cleanFormData();
+
+    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      return updateInferenceService(cleanedFormData, editInfo);
     }
     return createAWSSecret().then((secret) =>
-      updateInferenceService(createData, editInfo, secret.metadata.name),
+      updateInferenceService(cleanedFormData, editInfo, secret.metadata.name),
     );
   };
 
