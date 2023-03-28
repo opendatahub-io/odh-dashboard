@@ -45,7 +45,6 @@ const calculateDelta = (
   return val1 * unit1.weight - val2 * unit2.weight;
 };
 
-/** value1 is larger that value2 */
 export const isEqual = (
   value1: ValueUnitString,
   value2: ValueUnitString,
