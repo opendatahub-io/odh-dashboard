@@ -4,9 +4,11 @@ import { ContainerResources } from '~/types';
 export enum MetricType {
   RUNTIME = 'runtime',
   INFERENCE = 'inference',
+  TRUST_AI = 'trustyai',
 }
 
 export enum TimeframeTitle {
+  FIFTEEN_MINUTES = '15 minutes',
   ONE_HOUR = '1 hour',
   ONE_DAY = '24 hours',
   ONE_WEEK = '7 days',

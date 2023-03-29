@@ -20,7 +20,7 @@ const MetricsPageToolbar: React.FC = () => {
     ModelServingMetricsContext,
   );
   return (
-    <Toolbar style={{ paddingBottom: 0 }}>
+    <Toolbar>
       <ToolbarContent>
         <ToolbarItem>
           <Select

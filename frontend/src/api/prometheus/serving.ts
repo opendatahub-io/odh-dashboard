@@ -5,7 +5,9 @@ import {
   RuntimeMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { MetricType, TimeframeTitle } from '~/pages/modelServing/screens/types';
-import useQueryRangeResourceData from './useQueryRangeResourceData';
+import useQueryRangeResourceData, {
+  useQueryRangeResourceDataTrusty,
+} from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
   type: MetricType,
@@ -61,6 +63,20 @@ export const useModelServingMetrics = (
     timeframe,
   );
 
+  const inferenceTrustyAISPD = useQueryRangeResourceDataTrusty(
+    type === 'inference',
+    queries[InferenceMetricType.TRUSTY_AI_SPD],
+    end,
+    timeframe,
+  );
+
+  const inferenceTrustyAIDIR = useQueryRangeResourceDataTrusty(
+    type === 'inference',
+    queries[InferenceMetricType.TRUSTY_AI_DIR],
+    end,
+    timeframe,
+  );
+
   React.useEffect(() => {
     setLastUpdateTime(Date.now());
     // re-compute lastUpdateTime when data changes
@@ -87,6 +103,8 @@ export const useModelServingMetrics = (
         [RuntimeMetricType.MEMORY_UTILIZATION]: runtimeMemoryUtilization,
         [InferenceMetricType.REQUEST_COUNT_SUCCESS]: inferenceRequestSuccessCount,
         [InferenceMetricType.REQUEST_COUNT_FAILED]: inferenceRequestFailedCount,
+        [InferenceMetricType.TRUSTY_AI_SPD]: inferenceTrustyAISPD,
+        [InferenceMetricType.TRUSTY_AI_DIR]: inferenceTrustyAIDIR,
       },
       refresh: refreshAllMetrics,
     }),
@@ -97,6 +115,8 @@ export const useModelServingMetrics = (
       runtimeMemoryUtilization,
       inferenceRequestSuccessCount,
       inferenceRequestFailedCount,
+      inferenceTrustyAISPD,
+      inferenceTrustyAIDIR,
       refreshAllMetrics,
     ],
   );

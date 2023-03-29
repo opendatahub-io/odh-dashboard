@@ -14,6 +14,8 @@ export enum RuntimeMetricType {
 export enum InferenceMetricType {
   REQUEST_COUNT_SUCCESS = 'inference_request-count-successes',
   REQUEST_COUNT_FAILED = 'inference_request-count-fails',
+  TRUSTY_AI_SPD = 'trustyai_spd',
+  TRUSTY_AI_DIR = 'trustyai_dir',
 }
 
 type ModelServingMetricsContext = {
@@ -36,6 +38,8 @@ export const ModelServingMetricsContext = React.createContext<ModelServingMetric
     [RuntimeMetricType.MEMORY_UTILIZATION]: DEFAULT_CONTEXT_DATA,
     [InferenceMetricType.REQUEST_COUNT_FAILED]: DEFAULT_CONTEXT_DATA,
     [InferenceMetricType.REQUEST_COUNT_SUCCESS]: DEFAULT_CONTEXT_DATA,
+    [InferenceMetricType.TRUSTY_AI_SPD]: DEFAULT_CONTEXT_DATA,
+    [InferenceMetricType.TRUSTY_AI_DIR]: DEFAULT_CONTEXT_DATA,
   },
   currentTimeframe: TimeframeTitle.ONE_HOUR,
   setCurrentTimeframe: () => undefined,

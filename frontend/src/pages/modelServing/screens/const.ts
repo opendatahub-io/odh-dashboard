@@ -127,6 +127,7 @@ export const DEFAULT_MODEL_SERVING_TEMPLATE: ServingRuntimeKind = {
  * Unit is in seconds
  */
 export const TimeframeTimeRange: TimeframeTimeType = {
+  [TimeframeTitle.FIFTEEN_MINUTES]: 15 * 60,
   [TimeframeTitle.ONE_HOUR]: 60 * 60,
   [TimeframeTitle.ONE_DAY]: 24 * 60 * 60,
   [TimeframeTitle.ONE_WEEK]: 7 * 24 * 60 * 60,
@@ -143,6 +144,7 @@ export const TimeframeTimeRange: TimeframeTimeType = {
  *   86,400 / (24 * 12) => 300 points of prometheus data
  */
 export const TimeframeStep: TimeframeStepType = {
+  [TimeframeTitle.FIFTEEN_MINUTES]: 3,
   [TimeframeTitle.ONE_HOUR]: 12,
   [TimeframeTitle.ONE_DAY]: 24 * 12,
   [TimeframeTitle.ONE_WEEK]: 7 * 24 * 12,

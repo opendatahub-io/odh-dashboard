@@ -13,7 +13,7 @@ const ModelServingRoutes: React.FC = () => {
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
         <Route
-          path="/metrics/:project/:inferenceService"
+          path="/metrics/:project/:inferenceService/:tab?"
           element={
             modelMetricsEnabled ? <GlobalInferenceMetricsWrapper /> : <Navigate replace to="/" />
           }
