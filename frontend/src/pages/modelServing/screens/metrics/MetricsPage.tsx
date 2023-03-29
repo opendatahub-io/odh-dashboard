@@ -1,11 +1,9 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { BreadcrumbItemType } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import MetricsChart from './MetricsChart';
-import MetricsPageToolbar from './MetricsPageToolbar';
-import { ModelServingMetricsContext, RuntimeMetricType } from './ModelServingMetricsContext';
+import MetricsPageTabs from './MetricsPageTabs';
 
 type MetricsPageProps = {
   children: React.ReactNode;
@@ -13,7 +11,7 @@ type MetricsPageProps = {
   breadcrumbItems: BreadcrumbItemType[];
 };
 
-const MetricsPage: React.FC<MetricsPageProps> = ({ children, title, breadcrumbItems }) => (
+const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems }) => (
   <ApplicationsPage
     title={title}
     breadcrumb={
@@ -29,12 +27,11 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ children, title, breadcrumbIt
         ))}
       </Breadcrumb>
     }
-    toolbar={<MetricsPageToolbar />}
     loaded
     description={null}
     empty={false}
   >
-    <PageSection isFilled>{children}</PageSection>
+    <MetricsPageTabs />
   </ApplicationsPage>
 );
 
