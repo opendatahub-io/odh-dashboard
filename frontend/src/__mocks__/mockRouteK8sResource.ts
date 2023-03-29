@@ -1,16 +1,24 @@
-// /api/k8s/apis/route.openshift.io/v1/namespaces/project/routes/workbench
+import { RouteKind } from '~/k8sTypes';
 
-export const mockAPINamespaceProjectRoutesWorkbench = {
+type MockResourceConfigType = {
+  notebookName?: string;
+  namespace?: string;
+};
+
+export const mockRouteK8sResource = ({
+  notebookName = 'test-notebook',
+  namespace = 'test-project',
+}: MockResourceConfigType): RouteKind => ({
   kind: 'Route',
   apiVersion: 'route.openshift.io/v1',
   metadata: {
-    name: 'workbench',
-    namespace: 'project',
+    name: notebookName,
+    namespace: namespace,
     uid: 'e3cfc63f-c8a0-4502-adab-7b8f53c11f76',
     resourceVersion: '4789458',
     creationTimestamp: '2023-02-14T21:44:13Z',
     labels: {
-      'notebook-name': 'workbench',
+      'notebook-name': notebookName,
     },
     annotations: {
       'openshift.io/host.generated': 'true',
@@ -19,7 +27,7 @@ export const mockAPINamespaceProjectRoutesWorkbench = {
       {
         apiVersion: 'kubeflow.org/v1',
         kind: 'Notebook',
-        name: 'workbench',
+        name: notebookName,
         uid: '00a7904f-49b7-4105-b8ba-ce28f3b4ae11',
         controller: true,
         blockOwnerDeletion: true,
@@ -28,10 +36,11 @@ export const mockAPINamespaceProjectRoutesWorkbench = {
     managedFields: [],
   },
   spec: {
-    host: 'workbench-project.apps.user.com',
+    path: '',
+    host: `${notebookName}-${namespace}.apps.user.com`,
     to: {
       kind: 'Service',
-      name: 'workbench-tls',
+      name: `${notebookName}-tls`,
       weight: 100,
     },
     port: {
@@ -46,7 +55,7 @@ export const mockAPINamespaceProjectRoutesWorkbench = {
   status: {
     ingress: [
       {
-        host: 'workbench-project.apps.user.com',
+        host: `${notebookName}-${namespace}.apps.user.com`,
         routerName: 'default',
         conditions: [
           {
@@ -60,4 +69,4 @@ export const mockAPINamespaceProjectRoutesWorkbench = {
       },
     ],
   },
-};
+});

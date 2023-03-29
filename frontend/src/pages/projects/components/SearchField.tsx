@@ -4,6 +4,7 @@ import { InputGroup, SearchInput, Select, SelectOption } from '@patternfly/react
 export enum SearchType {
   NAME = 'Name',
   USER = 'User',
+  PROJECT = 'Project',
 }
 
 type SearchFieldProps = {
