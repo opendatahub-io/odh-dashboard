@@ -92,16 +92,17 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       ),
     );
 
-  const cleanFormData = () => ({
-    ...createData,
-    storage: {
-      ...createData.storage,
-      path:
-        createData.storage.path === '' || createData.storage.path === '/'
-          ? '/'
-          : createData.storage.path.replace(/^\/+/, ''),
-    },
-  });
+  const cleanFormData = () => {
+    const cleanedStorageFolderPath = createData.storage.path.replace(/^\/+/, '');
+
+    return {
+      ...createData,
+      storage: {
+        ...createData.storage,
+        path: cleanedStorageFolderPath === '' ? '/' : cleanedStorageFolderPath,
+      },
+    };
+  };
 
   const createModel = (): Promise<InferenceServiceKind> => {
     // clean data
