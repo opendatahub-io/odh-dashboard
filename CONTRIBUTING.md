@@ -2,26 +2,32 @@
 
 Contributing encompasses repository specific requirements.
 
-## Install
+## Requirements
 
-Before developing you'll need to install:
-
-- [NodeJS and NPM](https://nodejs.org/)
-  - Node recommended version -> `18.14.0`
-  - NPM recommended version -> `8.19.4`
-- [OpenShift CLI](https://docs.openshift.com/container-platform/4.12/cli_reference/openshift_cli/getting-started-cli.html)
-- [kustomize](https://github.com/kubernetes-sigs/kustomize)
-- [podman](https://github.com/containers/podman)
-- and have access to [Quay.io](https://quay.io/)
+You can check the requirements of ODH in the [README section](./README.md#requirements).
 
 ## Writing code
 
 ### Running locally
 
-Development for both "frontend" and "backend" can be done while running
+Development for both "frontend" and "backend" can be done while running:
 
 ``` bash
 npm run dev
+```
+
+But the recommended flow for development would be have two sessions, one for the frontend:
+
+```bash
+cd frontend
+npm run start:dev
+```
+
+And one for the backend
+
+```bash
+cd backend
+npm run start:dev
 ```
 
 #### Give your dev env access
@@ -29,7 +35,7 @@ npm run dev
 To give your dev environment access to the ODH configuration, log in to the OpenShift cluster and set the project to the location of the ODH installation
 
 ```bash
-oc login https://api.my-openshift-cluster.com:6443 -u kubeadmin -p my-password
+oc login https://api.my-openshift-cluster.com:6443 -u <username> -p <password>
 ```
 
 or log in using the makefile and `.env.local` settings
