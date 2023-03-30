@@ -2,7 +2,6 @@ import React from 'react';
 import {
   action,
   createTopologyControlButtons,
-  DEFAULT_SPACER_NODE_TYPE,
   defaultControlButtonsOptions,
   getEdgesFromNodes,
   PipelineNodeModel,
@@ -10,6 +9,7 @@ import {
   TopologyView,
   useVisualizationController,
   VisualizationSurface,
+  getSpacerNodes,
 } from '@patternfly/react-topology';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 
@@ -24,14 +24,15 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   const controller = useVisualizationController();
 
   React.useEffect(() => {
-    const edges = getEdgesFromNodes(
-      nodes.filter((n) => !n.group),
-      DEFAULT_SPACER_NODE_TYPE,
-    );
+    // PF Bug
+    // TODO: Pipeline Topology weirdly doesn't set a width and height on spacer nodes -- but they do when using finally spacer nodes
+    const spacerNodes = getSpacerNodes(nodes).map((s) => ({ ...s, width: 1, height: 1 }));
+    const renderNodes = [...spacerNodes, ...nodes];
+    const edges = getEdgesFromNodes(renderNodes);
 
     controller.fromModel(
       {
-        nodes,
+        nodes: renderNodes,
         edges,
       },
       true,
