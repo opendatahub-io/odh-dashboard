@@ -27,8 +27,30 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-notebook',
     (req, res, ctx) => res(ctx.json(mockRouteK8sResource({}))),
   ),
+  rest.get(
+    '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-size',
+    (req, res, ctx) => res(ctx.json(mockRouteK8sResource({ notebookName: 'test-size' }))),
+  ),
   rest.get('/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockNotebookK8sResource({})]))),
+    res(
+      ctx.json(
+        mockK8sResourceList(
+          isEmpty
+            ? []
+            : [
+                mockNotebookK8sResource({}),
+                mockNotebookK8sResource({
+                  name: 'test-size',
+                  displayName: 'Test Size X-small',
+                  resources: {
+                    limits: { cpu: '500m', memory: '500Mi' },
+                    requests: { cpu: '100m', memory: '100Mi' },
+                  },
+                }),
+              ],
+        ),
+      ),
+    ),
   ),
   rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockProjectK8sResource({})]))),
@@ -94,6 +116,9 @@ Default.play = async ({ canvasElement }) => {
 
   // we fill in the page with data, so there should be no dividers on the page
   expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(0);
+
+  // check the x-small size shown correctly
+  expect(canvas.getByText('XSmall')).toBeInTheDocument();
 };
 
 export const EmptyDetailsPage = Template.bind({});

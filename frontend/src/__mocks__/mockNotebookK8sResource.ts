@@ -1,4 +1,6 @@
 import { NotebookKind } from '~/k8sTypes';
+import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
+import { ContainerResources } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -6,6 +8,7 @@ type MockResourceConfigType = {
   namespace?: string;
   user?: string;
   description?: string;
+  resources?: ContainerResources;
 };
 
 export const mockNotebookK8sResource = ({
@@ -14,6 +17,7 @@ export const mockNotebookK8sResource = ({
   namespace = 'test-project',
   user = 'test-user',
   description = '',
+  resources = DEFAULT_NOTEBOOK_SIZES[0].resources,
 }: MockResourceConfigType): NotebookKind => ({
   apiVersion: 'kubeflow.org/v1',
   kind: 'Notebook',
@@ -120,16 +124,7 @@ export const mockNotebookK8sResource = ({
               successThreshold: 1,
               timeoutSeconds: 1,
             },
-            resources: {
-              limits: {
-                cpu: '2',
-                memory: '8Gi',
-              },
-              requests: {
-                cpu: '1',
-                memory: '8Gi',
-              },
-            },
+            resources,
             volumeMounts: [
               {
                 mountPath: '/opt/app-root/src',
