@@ -1,16 +1,10 @@
 import * as React from 'react';
-import {
-  FormGroup,
-  Select,
-  SelectOption,
-  Stack,
-  StackItem,
-  TextInput,
-} from '@patternfly/react-core';
+import { FormGroup, Select, SelectOption, Stack, StackItem } from '@patternfly/react-core';
 import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
 import './DataConnectionExistingField.scss';
+import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 
 type DataConnectionExistingFieldType = {
   data: CreatingInferenceServiceObject;
@@ -61,13 +55,10 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
         </FormGroup>
       </StackItem>
       <StackItem>
-        <FormGroup fieldId="folder-path" label="Folder path">
-          <TextInput
-            id="folder-path"
-            value={data.storage.path}
-            onChange={(path) => setData('storage', { ...data.storage, path })}
-          />
-        </FormGroup>
+        <DataConnectionFolderPathField
+          folderPath={data.storage.path}
+          setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+        />
       </StackItem>
     </Stack>
   );
