@@ -104,12 +104,18 @@ const ProjectDetails: React.FC = () => {
         >
           <Stack hasGutter>
             {sections.map(({ id, component, isEmpty }, index) => (
-              <>
-                <StackItem key={id} id={id} aria-label={ProjectSectionTitles[id]}>
+              <React.Fragment key={id}>
+                <StackItem
+                  id={id}
+                  aria-label={ProjectSectionTitles[id]}
+                  data-testid="details-page-section"
+                >
                   {component}
                 </StackItem>
-                {index !== sections.length - 1 && isEmpty && <Divider />}
-              </>
+                {index !== sections.length - 1 && isEmpty && (
+                  <Divider data-testid="details-page-section-divider" />
+                )}
+              </React.Fragment>
             ))}
           </Stack>
         </GenericSidebar>

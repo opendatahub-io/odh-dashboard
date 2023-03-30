@@ -5,11 +5,11 @@ import { store } from '../src/redux/store/store';
 import SDKInitialize from '../src/SDKInitialize';
 import { BrowserStorageContextProvider } from '../src/components/browserStorage/BrowserStorageContext';
 import { initialize, mswDecorator } from 'msw-storybook-addon';
+import { AppContext } from "../src/app/AppContext";
+import { mockDashboardConfig } from "../src/__mocks__/mockDashboardConfig"
 
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
-import { AppContext } from "../src/app/AppContext";
-import {mockDashboardConfig} from "../src/__mocks__/mockDashboardConfig"
 
 export const parameters = {
   a11y: {
@@ -43,11 +43,11 @@ export const decorators = [
       }}
     >
       <Provider store={store}>
-          <SDKInitialize>
-            <BrowserStorageContextProvider>
-              <Story />
-            </BrowserStorageContextProvider>
-          </SDKInitialize>
+        <SDKInitialize>
+          <BrowserStorageContextProvider>
+            <Story />
+          </BrowserStorageContextProvider>
+        </SDKInitialize>
       </Provider>
     </AppContext.Provider>
   ),

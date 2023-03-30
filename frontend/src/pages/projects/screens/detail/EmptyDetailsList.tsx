@@ -12,7 +12,7 @@ type EmptyDetailsListProps = {
 const EmptyDetailsList: React.FC<EmptyDetailsListProps> = ({ title, description, icon }) => (
   <EmptyState variant="xs">
     <EmptyStateIcon icon={icon ?? CubesIcon} />
-    <Title headingLevel="h5" size="lg">
+    <Title headingLevel="h3" size="lg">
       {title}
     </Title>
     <EmptyStateBody>{description}</EmptyStateBody>

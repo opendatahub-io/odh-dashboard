@@ -56,7 +56,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           }}
         />
         <Td dataLabel="Name">
-          <Title headingLevel="h4">
+          <Title headingLevel="h3" size="md">
             <ResourceNameTooltip resource={obj.notebook}>
               {getNotebookDisplayName(obj.notebook)}
             </ResourceNameTooltip>

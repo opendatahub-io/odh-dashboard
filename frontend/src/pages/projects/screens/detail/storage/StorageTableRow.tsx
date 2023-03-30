@@ -71,7 +71,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
-              <Title headingLevel="h4">
+              <Title headingLevel="h3" size="md">
                 <ResourceNameTooltip resource={obj}>{getPvcDisplayName(obj)}</ResourceNameTooltip>
               </Title>
             </FlexItem>
