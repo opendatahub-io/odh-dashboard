@@ -593,7 +593,8 @@ const createPvc = async (
   pvcName: string,
 ): Promise<V1PersistentVolumeClaim> => {
   const pvcSize = getDashboardConfig().spec?.notebookController?.pvcSize ?? DEFAULT_PVC_SIZE;
-  const pvc = assemblePvc(pvcName, namespace, pvcSize);
+  const storageClassName = getDashboardConfig().spec.notebookController?.storageClassName;
+  const pvc = assemblePvc(pvcName, namespace, pvcSize, storageClassName);
 
   try {
     const pvcResponse = await fastify.kube.coreV1Api.createNamespacedPersistentVolumeClaim(
@@ -610,6 +611,7 @@ const assemblePvc = (
   pvcName: string,
   namespace: string,
   pvcSize: string,
+  storageClassName?: string,
 ): V1PersistentVolumeClaim => ({
   apiVersion: 'v1',
   kind: 'PersistentVolumeClaim',
@@ -628,6 +630,7 @@ const assemblePvc = (
       },
     },
     volumeMode: 'Filesystem',
+    storageClassName,
   },
   status: {
     phase: 'Pending',
