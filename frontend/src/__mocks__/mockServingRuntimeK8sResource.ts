@@ -3,11 +3,13 @@ import { ServingRuntimeKind } from '~/k8sTypes';
 type MockResourceConfigType = {
   name?: string;
   namespace?: string;
+  replicas?: number;
 };
 
 export const mockServingRuntimeK8sResource = ({
   name = 'test-model',
   namespace = 'test-project',
+  replicas = 0,
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -56,7 +58,7 @@ export const mockServingRuntimeK8sResource = ({
     grpcEndpoint: 'port:8085',
     multiModel: true,
     protocolVersions: ['grpc-v1'],
-    replicas: 1,
+    replicas: replicas,
     supportedModelFormats: [
       {
         autoSelect: true,
