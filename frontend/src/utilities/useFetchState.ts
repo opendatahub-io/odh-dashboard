@@ -8,6 +8,7 @@ import { K8sAPIOptions } from '~/k8sTypes';
 export class NotReadyError extends Error {
   constructor(reason: string) {
     super(`Not ready yet. ${reason}`);
+    this.name = 'NotReadyError';
   }
 }
 
@@ -114,7 +115,7 @@ const useFetchState = <Type, Default extends Type = Type>(
             return;
           }
 
-          if (e instanceof NotReadyError) {
+          if (e.name === 'NotReadyError') {
             // An escape hatch for callers to reject the call at this fetchCallbackPromise reference
             // Re-compute your callback to re-trigger again
             return;

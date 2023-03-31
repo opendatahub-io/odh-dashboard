@@ -63,7 +63,7 @@ const ServingRuntimeList: React.FC = () => {
           expandedColumn={expandedColumn}
           updateExpandedColumn={setExpandedColumn}
         />
-      </DetailsSection>{' '}
+      </DetailsSection>
       <ManageServingRuntimeModal
         isOpen={isOpen}
         onClose={(submit: boolean) => {

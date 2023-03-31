@@ -29,7 +29,7 @@ const DataConnectionsList: React.FC = () => {
             Add data connection
           </Button>,
         ]}
-        isLoading={!loaded && !connections}
+        isLoading={!loaded}
         isEmpty={connections.length === 0}
         loadError={error}
         emptyState={

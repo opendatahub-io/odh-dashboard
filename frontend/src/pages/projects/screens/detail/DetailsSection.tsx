@@ -61,7 +61,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
       <StackItem>
         <Flex>
           <FlexItem>
-            <Title id={`${id}-title`} headingLevel="h4" size="xl">
+            <Title id={`${id}-title`} headingLevel="h2" size="xl">
               {title}
             </Title>
           </FlexItem>

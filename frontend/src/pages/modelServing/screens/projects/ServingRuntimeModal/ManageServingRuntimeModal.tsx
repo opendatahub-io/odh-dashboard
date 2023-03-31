@@ -94,11 +94,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(false);
   };
 
-  const enableTokenAuth = async (): Promise<void> => {
-    if (!createData.tokenAuth) {
-      return Promise.resolve();
-    }
-
+  const setupTokenAuth = async (): Promise<void> => {
     const modelMeshSA = assembleServingRuntimeSA(namespace);
     createServiceAccount(modelMeshSA)
       .then(() => {
@@ -164,7 +160,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
         createServingRuntime(createData, servingRuntimesConfig, namespace),
-        enableTokenAuth(),
+        setupTokenAuth(),
       ])
         .then(() => {
           setActionInProgress(false);
