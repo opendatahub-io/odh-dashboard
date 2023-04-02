@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { Alert, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
-import { createPipelinesCR, listPipelineRuns, listPipelines } from '~/api';
+import {
+  createPipelinesCR,
+  getPipeline,
+  listPipelineRuns,
+  listPipelines,
+  listPipelineTemplates,
+} from '~/api';
 import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
@@ -100,8 +106,10 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     return {
       apiAvailable: !!path,
       api: {
+        getPipeline: getPipeline(path),
         listPipelines: listPipelines(path),
         listPipelineRuns: listPipelineRuns(path),
+        listPipelineTemplate: listPipelineTemplates(path),
       },
     };
   }, [hostPath]);

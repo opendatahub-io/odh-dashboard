@@ -6,6 +6,7 @@ import {
   pipelinesPageDescription,
   pipelinesPageTitle,
 } from '~/pages/pipelines/global/pipelines/const';
+import GlobalPipelineDetails from '~/pages/pipelines/global/pipelines/GlobalPipelineDetails';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 
 const GlobalPipelinesRoutes: React.FC = () => (
@@ -21,6 +22,7 @@ const GlobalPipelinesRoutes: React.FC = () => (
       }
     >
       <Route index element={<GlobalPipelines />} />
+      <Route path=":pipelineId" element={<GlobalPipelineDetails />} />
     </Route>
 
     <Route path="*" element={<Navigate to="." />} />

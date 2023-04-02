@@ -26,7 +26,12 @@ const PipelinesView: React.FC = () => {
     return <GlobalNoPipelines />;
   }
 
-  return <PipelinesTable pipelines={pipelines} />;
+  return (
+    <PipelinesTable
+      pipelines={pipelines}
+      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/${id}`}
+    />
+  );
 };
 
 export default PipelinesView;

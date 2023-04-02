@@ -38,7 +38,11 @@ const PipelinesList: React.FC = () => {
   return (
     <Stack hasGutter>
       <StackItem>
-        <PipelinesTable pipelines={pipelines} contentLimit={CONTENT_LIMIT} />
+        <PipelinesTable
+          pipelines={pipelines}
+          contentLimit={CONTENT_LIMIT}
+          pipelineDetailsPath={(namespace, id) => `/projects/${namespace}/pipelines/${id}`}
+        />
       </StackItem>
       {pipelines.length > CONTENT_LIMIT && (
         <StackItem>

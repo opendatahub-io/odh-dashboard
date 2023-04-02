@@ -1,7 +1,7 @@
 import { DEFAULT_TASK_NODE_TYPE, PipelineNodeModel } from '@patternfly/react-topology';
-import { NODE_HEIGHT, NODE_WIDTH } from '~/concepts/pipelines/topology/const';
-import { NodeDetails } from '~/concepts/pipelines/topology/types';
 import { genRandomChars } from '~/utilities/string';
+import { NODE_HEIGHT, NODE_WIDTH } from './const';
+import { NodeDetails } from './types';
 
 export const createNodeId = (prefix = 'node'): string => `${prefix}-${genRandomChars()}`;
 

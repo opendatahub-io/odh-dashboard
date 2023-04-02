@@ -1,17 +1,25 @@
 import * as React from 'react';
 import { Td, Tbody, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { relativeTime } from '~/utilities/time';
 import usePipelineRuns from '~/concepts/pipelines/apiHooks/usePipelineRuns';
 import TableRowTitleDescription from '~/components/TableRowTitleDescription';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type PipelinesTableRowProps = {
   pipeline: PipelineKF;
+  pipelineDetailsPath: (namespace: string, id: string) => string;
   rowIndex: number;
 };
 
-const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({ pipeline, rowIndex }) => {
+const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
+  pipeline,
+  rowIndex,
+  pipelineDetailsPath,
+}) => {
+  const { namespace } = usePipelinesAPI();
   const [runs, loaded] = usePipelineRuns(pipeline);
   const [isExpanded, setExpanded] = React.useState(false);
 
@@ -30,7 +38,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({ pipeline, rowInde
         />
         <Td dataLabel="Name">
           <TableRowTitleDescription
-            title={pipeline.name}
+            title={<Link to={pipelineDetailsPath(namespace, pipeline.id)}>{pipeline.name}</Link>}
             description={pipeline.description}
             descriptionAsMarkdown
           />
