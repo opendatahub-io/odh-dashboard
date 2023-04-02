@@ -7,6 +7,7 @@ import {
 import PipelinesPageHeaderActions from '~/pages/pipelines/global/pipelines/PipelinesPageHeaderActions';
 import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreApplicationPage';
 import PipelinesView from '~/pages/pipelines/global/pipelines/PipelinesView';
+import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 
 const GlobalPipelines: React.FC = () => {
   const pipelinesAPi = usePipelinesAPI();
@@ -18,7 +19,9 @@ const GlobalPipelines: React.FC = () => {
       headerAction={pipelinesAPi.pipelinesServer.installed && <PipelinesPageHeaderActions />}
       getRedirectPath={(namespace) => `/pipelines/${namespace}`}
     >
-      <PipelinesView />
+      <EnsureAPIAvailability>
+        <PipelinesView />
+      </EnsureAPIAvailability>
     </PipelineCoreApplicationPage>
   );
 };

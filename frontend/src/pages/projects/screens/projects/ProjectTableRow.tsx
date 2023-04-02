@@ -4,7 +4,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebookStates';
 import ListNotebookState from '~/pages/projects/notebook/ListNotebookState';
-import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { getProjectOwner } from '~/pages/projects/utils';
 import ProjectLink from './ProjectLink';
 

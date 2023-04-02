@@ -3,7 +3,6 @@ import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
-import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 
 const InstalledApplications = React.lazy(
   () => import('../pages/enabledApplications/EnabledApplications'),
@@ -20,11 +19,10 @@ const NotebookController = React.lazy(
   () => import('../pages/notebookController/NotebookController'),
 );
 
-const GlobalPipelines = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
+const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
 const GlobalPipelineRunsRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
 );
-const TestPipelines = React.lazy(() => import('../concepts/pipelines/TestPipelines'));
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
@@ -58,18 +56,8 @@ const AppRoutes: React.FC = () => {
           element={<NotebookLogoutRedirectPage />}
         />
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
-        <Route path="/pipelines/*" element={<GlobalPipelines />} />
+        <Route path="/pipelines/*" element={<GlobalPipelinesRoutes />} />
         <Route path="/pipelineRuns/*" element={<GlobalPipelineRunsRoutes />} />
-
-        {/* TODO: Remove before merging into the product */}
-        <Route
-          path="/pipelines-test/:namespace"
-          element={
-            <ProjectsRoutes>
-              <Route path="*" element={<TestPipelines />} />
-            </ProjectsRoutes>
-          }
-        />
 
         {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
         {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}

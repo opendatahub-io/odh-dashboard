@@ -1,22 +1,22 @@
 import * as React from 'react';
 import { Alert, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
-import { createPipelinesCR, listPipelines } from '~/api';
+import { createPipelinesCR, listPipelineRuns, listPipelines } from '~/api';
 import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
 type PipelineContext = {
   hasCR: boolean;
+  crInitializing: boolean;
   hostPath: string | null;
   namespace: string;
-  initializing: boolean;
   refreshState: () => void;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
   hasCR: false,
+  crInitializing: false,
   hostPath: null,
-  initializing: false,
   namespace: '',
   refreshState: () => undefined,
 });
@@ -60,7 +60,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     <PipelinesContext.Provider
       value={{
         hasCR: isCRPresent,
-        initializing: !crLoaded,
+        crInitializing: !crLoaded,
         hostPath,
         namespace,
         refreshState,
@@ -72,40 +72,44 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
 };
 
 type UsePipelinesAPI = {
-  pipelinesServer: { initializing: boolean; installed: boolean };
+  /** The contextual namespace */
   namespace: string;
-} & (
-  | {
-      apiAvailable: true;
-      api: PipelineAPIs;
-    }
-  | {
-      apiAvailable: false;
-    }
-);
+  /** State of the CR */
+  pipelinesServer: { initializing: boolean; installed: boolean };
+  /** If API will successfully call */
+  apiAvailable: boolean;
+  /** The available API functions */
+  api: PipelineAPIs;
+};
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
-  const { hasCR, initializing, hostPath, namespace } = React.useContext(PipelinesContext);
+  const { hasCR, crInitializing, hostPath, namespace } = React.useContext(PipelinesContext);
 
-  const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = { initializing, installed: hasCR };
+  const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
+    initializing: crInitializing,
+    installed: hasCR,
+  };
 
-  if (!hostPath) {
+  const apiState = React.useMemo<Pick<UsePipelinesAPI, 'apiAvailable' | 'api'>>(() => {
+    let path = hostPath;
+    if (!path) {
+      // TODO: we need to figure out maybe a stopgap or something
+      path = '';
+    }
+
     return {
-      pipelinesServer,
-      namespace,
-      apiAvailable: false,
+      apiAvailable: !!path,
+      api: {
+        listPipelines: listPipelines(path),
+        listPipelineRuns: listPipelineRuns(path),
+      },
     };
-  }
+  }, [hostPath]);
 
   return {
     pipelinesServer,
     namespace,
-    apiAvailable: true,
-    api: {
-      // TODO: apis!
-      // eg uploadPipeline: (content: string) => uploadPipeline(hostPath, content),
-      listPipelines: listPipelines(hostPath),
-    },
+    ...apiState,
   };
 };
 

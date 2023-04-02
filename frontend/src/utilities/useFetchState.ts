@@ -112,18 +112,28 @@ const useFetchState = <Type, Default extends Type = Type>(
     }
   });
 
+  React.useEffect(() => {
+    cleanupRef.current();
+  }, [fetchCallbackPromise]);
+
   const call = React.useCallback<() => [Promise<void>, () => void]>(() => {
-    let interval: ReturnType<typeof setInterval>;
     let alreadyAborted = false;
     const abortController = new AbortController();
-
-    cleanupRef.current();
 
     /** Note: this promise cannot "catch" beyond this instance -- unless a runtime error. */
     const doRequest = () =>
       fetchCallbackPromise({ signal: abortController.signal })
         .then((r) => {
           if (alreadyAborted) {
+            return;
+          }
+
+          if (r === undefined) {
+            // Undefined is an unacceptable response. If you want "nothing", pass `null` -- this is likely an API issue though.
+            // eslint-disable-next-line no-console
+            console.error(
+              'useFetchState Error: Got undefined back from a promise. This is likely an error with your call. Preventing setting.',
+            );
             return;
           }
 
@@ -159,30 +169,39 @@ const useFetchState = <Type, Default extends Type = Type>(
           setLoadError(e);
         });
 
-    if (refreshRate > 0) {
-      interval = setInterval(doRequest, refreshRate);
-    }
-
     const unload = () => {
       if (alreadyAborted) {
         return;
       }
 
       alreadyAborted = true;
-      clearInterval(interval);
       abortController.abort();
     };
 
     return [doRequest(), unload];
-  }, [fetchCallbackPromise, refreshRate]);
+  }, [fetchCallbackPromise]);
 
   React.useEffect(() => {
-    const [, unload] = call();
-    abortCallbackRef.current = unload;
+    let interval: ReturnType<typeof setInterval>;
+
+    const callAndSave = () => {
+      const [, unload] = call();
+      abortCallbackRef.current = unload;
+    };
+    callAndSave();
+
+    if (refreshRate > 0) {
+      interval = setInterval(() => {
+        abortCallbackRef.current();
+        callAndSave();
+      }, refreshRate);
+    }
+
     return () => {
+      clearInterval(interval);
       abortCallbackRef.current();
     };
-  }, [call]);
+  }, [call, refreshRate]);
 
   const refresh = React.useCallback<FetchStateRefreshPromise>(() => {
     abortCallbackRef.current();

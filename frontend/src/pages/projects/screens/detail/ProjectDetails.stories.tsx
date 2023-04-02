@@ -4,7 +4,7 @@ import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
 import { within } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { Route, Routes } from 'react-router-dom';
+import { Route } from 'react-router-dom';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
@@ -17,6 +17,7 @@ import { mockServingRuntimesConfig } from '~/__mocks__/mockServingRuntimesConfig
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
+import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import ProjectDetails from './ProjectDetails';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
@@ -97,11 +98,11 @@ export default {
 const Template: ComponentStory<typeof ProjectDetails> = (args) => {
   useDetectUser();
   return (
-    <Routes>
+    <ProjectsRoutes>
       <Route path="/" element={<ProjectDetailsContextProvider />}>
         <Route index element={<ProjectDetails {...args} />} />
       </Route>
-    </Routes>
+    </ProjectsRoutes>
   );
 };
 

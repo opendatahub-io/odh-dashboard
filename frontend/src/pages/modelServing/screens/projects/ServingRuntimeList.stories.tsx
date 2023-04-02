@@ -4,7 +4,7 @@ import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { rest } from 'msw';
 import { userEvent, within } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { Route, Routes } from 'react-router-dom';
+import { Route } from 'react-router-dom';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
@@ -15,6 +15,7 @@ import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8s
 import { mockServingRuntimesConfig } from '~/__mocks__/mockServingRuntimesConfig';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
+import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import ServingRuntimeList from './ServingRuntimeList';
 
 export default {
@@ -73,11 +74,11 @@ export default {
 } as ComponentMeta<typeof ServingRuntimeList>;
 
 const Template: ComponentStory<typeof ServingRuntimeList> = (args) => (
-  <Routes>
+  <ProjectsRoutes>
     <Route path="/" element={<ProjectDetailsContextProvider />}>
       <Route index element={<ServingRuntimeList {...args} />} />
     </Route>
-  </Routes>
+  </ProjectsRoutes>
 );
 
 export const Default = Template.bind({});
