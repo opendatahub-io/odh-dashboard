@@ -16,12 +16,14 @@ type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
   open: boolean;
   onClose: () => void;
+  onProjectCreated?: (projectName: string) => void;
 };
 
 const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   editProjectData,
   onClose,
   open,
+  onProjectCreated,
 }) => {
   const navigate = useNavigate();
   const [fetching, setFetching] = React.useState(false);
@@ -32,6 +34,12 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     description: '',
   });
   const { username } = useUser();
+
+  const handleProjectCreated: ManageProjectModalProps['onProjectCreated'] =
+    onProjectCreated ??
+    ((projectName) => {
+      navigate(`/projects/${projectName}`);
+    });
 
   const canSubmit =
     !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
@@ -61,9 +69,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
       updateProject(editProjectData, name, description).then(() => onBeforeClose());
     } else {
       createProject(username, name, description, k8sName)
-        .then((projectName) => {
-          navigate(`/projects/${projectName}`);
-        })
+        .then(handleProjectCreated)
         .catch((e) => {
           setError(e);
           setFetching(false);
@@ -78,7 +84,13 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
       isOpen={open}
       onClose={onBeforeClose}
       actions={[
-        <Button key="confirm" variant="primary" isDisabled={!canSubmit} onClick={submit}>
+        <Button
+          key="confirm"
+          variant="primary"
+          isDisabled={!canSubmit}
+          isLoading={fetching}
+          onClick={submit}
+        >
           {editProjectData ? 'Update' : 'Create'}
         </Button>,
         <Button key="cancel" variant="link" onClick={onBeforeClose}>

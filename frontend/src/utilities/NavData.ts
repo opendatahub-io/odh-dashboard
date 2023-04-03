@@ -88,6 +88,17 @@ export const getNavBarData = (
     navItems.push({ id: 'dsg', label: 'Data Science Projects', href: '/projects' });
   }
 
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines)) {
+    navItems.push({
+      id: 'pipelines',
+      group: { id: 'pipelines', title: 'Data Science Pipelines' },
+      children: [
+        { id: 'global-pipelines', label: 'Pipelines', href: '/pipelines' },
+        { id: 'global-pipeline-runs', label: 'Runs', href: '/pipelineRuns' },
+      ],
+    });
+  }
+
   if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableModelServing)) {
     navItems.push({ id: 'modelServing', label: 'Model Serving', href: '/modelServing' });
   }

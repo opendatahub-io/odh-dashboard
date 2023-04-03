@@ -1,4 +1,5 @@
-import { PodKind } from '~/k8sTypes';
+import { KnownLabels, PodKind } from '~/k8sTypes';
+import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   user?: string;
@@ -17,14 +18,14 @@ export const mockPodK8sResource = ({
     name: name,
     generateName: name,
     namespace: namespace,
-    uid: '6de9706e-5065-41b2-84a6-7a568404b0d1',
+    uid: genUID('pod'),
     resourceVersion: '4800675',
     creationTimestamp: '2023-02-14T22:06:45Z',
     labels: {
       app: name,
       'controller-revision-hash': `${name}-5b68f78f58`,
       'notebook-name': name,
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       'opendatahub.io/odh-managed': 'true',
       'opendatahub.io/user': user,
       statefulset: name,
@@ -39,7 +40,7 @@ export const mockPodK8sResource = ({
         apiVersion: 'apps/v1',
         kind: 'StatefulSet',
         name: name,
-        uid: '5c0e1547-5906-46cb-8562-8d10545dc98c',
+        uid: genUID('statefulset'),
         controller: true,
         blockOwnerDeletion: true,
       },

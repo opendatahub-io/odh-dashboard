@@ -6,7 +6,7 @@ import { useUser } from '~/redux/selectors';
 import { useAppContext } from './AppContext';
 
 const checkLinkActiveStatus = (pathname: string, href: string) =>
-  href.split('/')[1] == pathname.split('/')[1];
+  href.split('/')[1] === pathname.split('/')[1];
 
 const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, pathname }) => (
   <NavItem
