@@ -4,9 +4,9 @@
 
 ![Overview](./meta/arch-overview.png)
 
-There are 5 kinds of calls, split into two types, that are made from the client today. The difference in these two types is one takes your request and does it on your behalf and the other does it as you.
-
 > **OpenShift OAuth Proxy** is not part of the Dashboard (see [Dashboard Deployment `containers`](https://github.com/opendatahub-io/odh-dashboard/blob/main/manifests/base/deployment.yaml)) but useful to understand its role. See [OpenShift OAuth Proxy repo](https://github.com/openshift/oauth-proxy) for more information. It is typically in the containers of all services we talk to from the proxy API, as well as the Dashboard itself when the client calls the NodeJS server (in the pod).
+
+The main focus point here is that there are 5 kinds of calls from the client. These are split into two different types. The difference in these two types is one takes your request and does it on your behalf (via the service account), and the other does it as you (through direct calls with your bearer token).
 
 ### Custom Business Logic Backend
 
@@ -16,9 +16,11 @@ These are made on your behalf. There is a Dashboard service account (`1`) that m
 
 - Framework call
     - These are calls that get us your username, your allowed/admin status, the feature flags (OdhDashboardConfig), and other various infrastructure based items
-- Jupyter/Admin call (custom server logic)
+- Jupyter / Admin call
     - The Jupyter application uses a similar custom based server-logic to process creating and managing the Notebook that you can create
     - The admin screens all save data on the server using the service-account; most admins will have permissions to do this, and it is only architected this way due to legacy reasons
+
+The effort behind these calls are being discussed how best to remove them and bring all the logic to the frontend. The majority of these calls and their accompanying logic are K8s calls. Some of which require more than basic-user permissions. The basic-user calls will be moved to the client. The more than basic-user calls will be pushed to a new component outside, but part of the umbrella, of the Dashboard (to be described at a future date).
 
 Notes:
 - (`1`) Running in development mode locally, this service-account becomes your user. This is the main reason why when starting locally, you need to be a cluster-admin on the cluster
@@ -41,6 +43,8 @@ These are made using your user's k8s permissions. It consumes your OpenShift OAu
     - Uses known prometheus endpoints to get data
     - Somewhat deprecated -- it could probably be reworked to use the Proxy call endpoint, but serves as isolated functionality
 
+These all share the same underlying proxy to an endpoint call, they just structure the data differently before calling.
+
 ## Client Structure
 
 > **Note**: All content assumes you are looking at the `/frontend` folder.
@@ -49,7 +53,7 @@ When building new client features, there are a few things worth noting about the
 
 ### Coding Structure
 
-> **Note**: Some sections do not fully comply -- there is a cleanup effort underway, do not let that dissuade you from the correct architecture choices
+> **Note**: Some folders do not fully comply with this design -- there is a cleanup effort underway -- do not let that dissuade you from following the correct architecture choices noted down below when adding new features / code.
 
 - `/src/api` -- The current API
     - This content should be isolated to the main effort to make the call
@@ -71,8 +75,8 @@ When building new client features, there are a few things worth noting about the
 - `/src/types.ts` -- The generic types
     - This will have duplicates from the old design (used in `/src/services`) -- they will likely duplicate some effort in `/src/k8sTypes.ts`
 
-> **Note**: if the folder was not mentioned above, it is deprecated and should be looked to not be added to anymore. 
+> **Note**: if the folder was not mentioned above, it is deprecated and should be avoided when modifying code (within' reason). 
 
 ### Testing Structure
 
-TBD
+TBD - This is new functionality that is being flushed out right now.
