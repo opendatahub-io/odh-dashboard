@@ -15,10 +15,10 @@ const BiasGraph = () => {
         <MetricsChart
           metrics={{
             name: 'Bias',
-            metric: data[InferenceMetricType.REQUEST_COUNT_SUCCESS],
+            metric: data[InferenceMetricType.TRUSTY_AI_SPD],
             translatePoint: per100,
           }}
-          title={`Bias`}
+          title={`SPD`}
         />
       </StackItem>
     </Stack>

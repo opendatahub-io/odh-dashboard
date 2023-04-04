@@ -61,6 +61,20 @@ export const useModelServingMetrics = (
     timeframe,
   );
 
+  const inferenceTrustyTest = useQueryRangeResourceData(
+    type === 'inference',
+    queries[InferenceMetricType.TRUSTY_AI_SPD],
+    end,
+    timeframe,
+  );
+
+  // const trustyAiSpd = useQueryRangeResourceData(
+  //   type === 'trustyai',
+  //   queries[TrustyAIMetricType.SPD],
+  //   end,
+  //   timeframe,
+  // );
+
   React.useEffect(() => {
     setLastUpdateTime(Date.now());
     // re-compute lastUpdateTime when data changes
@@ -87,6 +101,7 @@ export const useModelServingMetrics = (
         [RuntimeMetricType.MEMORY_UTILIZATION]: runtimeMemoryUtilization,
         [InferenceMetricType.REQUEST_COUNT_SUCCESS]: inferenceRequestSuccessCount,
         [InferenceMetricType.REQUEST_COUNT_FAILED]: inferenceRequestFailedCount,
+        [InferenceMetricType.TRUSTY_AI_SPD]: inferenceTrustyTest,
       },
       refresh: refreshAllMetrics,
     }),
@@ -97,6 +112,7 @@ export const useModelServingMetrics = (
       runtimeMemoryUtilization,
       inferenceRequestSuccessCount,
       inferenceRequestFailedCount,
+      inferenceTrustyTest,
       refreshAllMetrics,
     ],
   );

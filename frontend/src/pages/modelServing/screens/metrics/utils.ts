@@ -45,6 +45,7 @@ export const getInferenceServiceMetricsQueries = (
     // TODO: Fix queries
     [InferenceMetricType.REQUEST_COUNT_SUCCESS]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
     [InferenceMetricType.REQUEST_COUNT_FAILED]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
+    [InferenceMetricType.TRUSTY_AI_SPD]: `trustyai_spd[10m]`,
   };
 };
 
