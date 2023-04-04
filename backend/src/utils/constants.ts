@@ -51,6 +51,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableModelServing: false,
       disableProjectSharing: false,
       disableCustomServingRuntimes: false,
+      disableServiceMesh: true,
       modelMetricsNamespace: '',
       disablePipelines: false,
     },

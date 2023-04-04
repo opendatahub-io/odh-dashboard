@@ -2,6 +2,7 @@ import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { isK8sStatus, safeURLPassThrough } from '../k8s/pass-through';
 
 const checkNamespacePermission = (
@@ -60,11 +61,14 @@ export const applyNamespaceChange = async (
     throw createCustomError('Forbidden', "You don't have the access to update the namespace", 403);
   }
 
+  const disableServiceMesh = getDashboardConfig().spec.dashboardConfig.disableServiceMesh;
+
   let labels = {};
   switch (context) {
     case NamespaceApplicationCase.DSG_CREATION:
       labels = {
         'opendatahub.io/dashboard': 'true',
+        'opendatahub.io/service-mesh': String(!disableServiceMesh),
         'modelmesh-enabled': 'true',
       };
       break;

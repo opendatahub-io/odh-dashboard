@@ -23,6 +23,7 @@ The following are a list of features that are supported, along with there defaul
 | disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
 | modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
+| disableServiceMesh           | true    | Disables use of service mesh for routing and authorization.                                          |
 
 ## Defaults
 

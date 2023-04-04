@@ -67,6 +67,8 @@ export type NotebookAnnotations = Partial<{
   'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
   'opendatahub.io/link': string; // redirect notebook url
   'opendatahub.io/username': string; // the untranslated username behind the notebook
+  'opendatahub.io/service-mesh': string; // Openshift Service Mesh : determines if mesh configuration should be applied
+  'opendatahub.io/hub-url': string; // Openshift Service Mesh : holds origination host for authorization rules
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
 }>;
@@ -406,6 +408,13 @@ export type RouteKind = K8sResourceCommon & {
     path: string;
   };
 };
+
+export type List<T> = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: T[];
+} & K8sResourceCommon;
 
 export type SecretKind = K8sResourceCommon & {
   metadata: {

@@ -213,7 +213,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
       const call = (resolve, reject) => {
         getRoute(notebookNamespace, routeName)
           .then((route) => {
-            resolve(`https://${route.spec.host}/notebook/${notebookNamespace}/${routeName}`);
+            resolve(`https://${route.spec.host}/notebook/${notebookNamespace}/${routeName}/`);
           })
           .catch((e) => {
             if (backupRoute) {

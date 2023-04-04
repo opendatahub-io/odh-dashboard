@@ -3,12 +3,14 @@ import { PatchUtils, V1ContainerStatus, V1Pod, V1PodList } from '@kubernetes/cli
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
 import { RecursivePartial } from '../../../typeHelpers';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
 import {
   createNotebook,
   generateNotebookNameFromUsername,
   getNamespaces,
   getNotebook,
   getRoute,
+  getGatewayRoute,
   updateNotebook,
 } from '../../../utils/notebookUtils';
 import { FastifyRequest } from 'fastify';
@@ -27,10 +29,19 @@ export const getNotebookStatus = async (
   const notebookName = notebook?.metadata.name;
   let newNotebook: Notebook;
   if (isRunning && !notebook?.metadata.annotations?.['opendatahub.io/link']) {
-    const route = await getRoute(fastify, namespace, notebookName).catch((e) => {
-      fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
-      return undefined;
-    });
+    const disableServiceMesh = getDashboardConfig().spec.dashboardConfig.disableServiceMesh;
+    let route: Route;
+    if (!disableServiceMesh) {
+      route = await getGatewayRoute(fastify, 'istio-system', 'odh-gateway').catch((e) => {
+        fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
+        return undefined;
+      });
+    } else {
+      route = await getRoute(fastify, namespace, notebookName).catch((e) => {
+        fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
+        return undefined;
+      });
+    }
     if (route) {
       newNotebook = await patchNotebookRoute(fastify, route, namespace, notebookName).catch((e) => {
         fastify.log.warn(`Failed patching route to notebook ${notebookName}: ${e.message}`);
@@ -78,7 +89,7 @@ export const patchNotebookRoute = async (
   const patch: RecursivePartial<Notebook> = {
     metadata: {
       annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${name}`,
+        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${name}/`,
       },
     },
   };

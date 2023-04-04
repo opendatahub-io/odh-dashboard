@@ -18,6 +18,7 @@ spec:
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: true
+    disableServiceMesh: true
     modelMetricsNamespace: ''
   notebookController:
     enabled: true
