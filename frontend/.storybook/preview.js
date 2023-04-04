@@ -1,6 +1,7 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { withRouter } from 'storybook-addon-react-router-v6';
+import { configure } from '@testing-library/react';
 import { store } from '../src/redux/store/store';
 import SDKInitialize from '../src/SDKInitialize';
 import { BrowserStorageContextProvider } from '../src/components/browserStorage/BrowserStorageContext';
@@ -39,6 +40,10 @@ export const parameters = {
 
 // Initialize MSW
 initialize();
+
+configure({
+  testIdAttribute: 'data-id',
+});
 
 export const decorators = [
   (Story) => (

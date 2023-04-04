@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { ClusterSettings } from '~/types';
+import { ClusterSettingsType } from '~/types';
 
-export const fetchClusterSettings = (): Promise<ClusterSettings> => {
+export const fetchClusterSettings = (): Promise<ClusterSettingsType> => {
   const url = '/api/cluster-settings';
   return axios
     .get(url)
@@ -12,7 +12,7 @@ export const fetchClusterSettings = (): Promise<ClusterSettings> => {
 };
 
 export const updateClusterSettings = (
-  settings: ClusterSettings,
+  settings: ClusterSettingsType,
 ): Promise<{ success: boolean; error: string }> => {
   const url = '/api/cluster-settings';
   return axios
