@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs, Tab, TabTitleText } from '@patternfly/react-core';
 import PerformanceTab from './PerformanceTab';
-import QualityTab from './QualityTab';
+import BiasTab from './BiasTab';
 import './MetricsPageTabs.scss';
 
 const MetricsPageTabs: React.FC = () => {
@@ -31,8 +31,8 @@ const MetricsPageTabs: React.FC = () => {
       >
         <PerformanceTab />
       </Tab>
-      <Tab eventKey={1} title={<TabTitleText>Quality</TabTitleText>} className="odh-tabcontent-fix">
-        <QualityTab />
+      <Tab eventKey={1} title={<TabTitleText>Bias</TabTitleText>} className="odh-tabcontent-fix">
+        <BiasTab />
       </Tab>
     </Tabs>
   );
