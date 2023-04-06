@@ -21,6 +21,7 @@ const RuntimeGraphs: React.FC = () => {
           metrics={{ metric: data[RuntimeMetricType.REQUEST_COUNT], translatePoint: per100 }}
           color="blue"
           title={`Http requests per ${inHours ? 'hour' : 'day'} (x100)`}
+          domainCalc={(maxYValue) => ({ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] })}
         />
       </StackItem>
       <StackItem>
@@ -28,6 +29,7 @@ const RuntimeGraphs: React.FC = () => {
           metrics={{ metric: data[RuntimeMetricType.AVG_RESPONSE_TIME] }}
           color="green"
           title="Average response time (ms)"
+          domainCalc={(maxYValue) => ({ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] })}
         />
       </StackItem>
       <StackItem>
@@ -35,6 +37,7 @@ const RuntimeGraphs: React.FC = () => {
           metrics={{ metric: data[RuntimeMetricType.CPU_UTILIZATION] }}
           color="purple"
           title="CPU utilization %"
+          domainCalc={(maxYValue) => ({ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] })}
         />
       </StackItem>
       <StackItem>
@@ -42,6 +45,7 @@ const RuntimeGraphs: React.FC = () => {
           metrics={{ metric: data[RuntimeMetricType.MEMORY_UTILIZATION] }}
           color="orange"
           title="Memory utilization %"
+          domainCalc={(maxYValue) => ({ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] })}
         />
       </StackItem>
     </Stack>
