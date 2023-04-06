@@ -20,18 +20,24 @@ const MetricsPageTabs: React.FC = () => {
       activeKey={activeTabKey}
       onSelect={handleTabClick}
       isBox={false}
-      aria-label="Tabs in the metrics page"
+      aria-label="Metrics page tabs"
       role="region"
+      className="odh-tabs-fix"
     >
       <Tab
         eventKey={0}
         title={<TabTitleText>Performance</TabTitleText>}
-        aria-label="Default content - performance"
+        aria-label="Performance tab"
         className="odh-tabcontent-fix"
       >
         <PerformanceTab />
       </Tab>
-      <Tab eventKey={1} title={<TabTitleText>Bias</TabTitleText>} className="odh-tabcontent-fix">
+      <Tab
+        eventKey={1}
+        title={<TabTitleText>Bias</TabTitleText>}
+        aria-label="Bias tab"
+        className="odh-tabcontent-fix"
+      >
         <BiasTab />
       </Tab>
     </Tabs>

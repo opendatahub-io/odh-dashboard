@@ -47,7 +47,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   color,
   metrics: unstableMetrics,
   threshold,
-  //TODO: Make optional with default value (use inference graph lambda as default) and remove the copy + pasted
+  //TODO: Make optional with default value (use inference graph lambda as default) and remove the
   // values from InferenceGraphs and RuntimeGraphs.
   domainCalc,
 }) => {

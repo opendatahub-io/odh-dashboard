@@ -10,7 +10,7 @@ const BiasTab = () => (
       <MetricsPageToolbar />
     </StackItem>
     <PageSection isFilled>
-      <Stack>
+      <Stack hasGutter>
         <StackItem>
           <SPDGraph />
         </StackItem>

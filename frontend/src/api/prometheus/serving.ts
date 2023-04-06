@@ -5,7 +5,9 @@ import {
   RuntimeMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { MetricType, TimeframeTitle } from '~/pages/modelServing/screens/types';
-import useQueryRangeResourceData from './useQueryRangeResourceData';
+import useQueryRangeResourceData, {
+  useQueryRangeResourceDataTrusty,
+} from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
   type: MetricType,
@@ -61,14 +63,14 @@ export const useModelServingMetrics = (
     timeframe,
   );
 
-  const inferenceTrustyAISPD = useQueryRangeResourceData(
+  const inferenceTrustyAISPD = useQueryRangeResourceDataTrusty(
     type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
   );
 
-  const inferenceTrustyAIDIR = useQueryRangeResourceData(
+  const inferenceTrustyAIDIR = useQueryRangeResourceDataTrusty(
     type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,

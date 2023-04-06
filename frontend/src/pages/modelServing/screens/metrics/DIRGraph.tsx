@@ -9,23 +9,19 @@ import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 const DirGraph = () => {
   const { data } = React.useContext(ModelServingMetricsContext);
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <MetricsChart
-          metrics={{
-            name: 'BiasDIR',
-            metric: data[InferenceMetricType.TRUSTY_AI_DIR],
-          }}
-          title={`Disparate Impact Ratio (DIR)`}
-          domainCalc={(maxYValue) => ({
-            y:
-              Math.abs(maxYValue - 1) > 0.2
-                ? [1 - Math.abs(maxYValue - 1) - 0.1, 1 + Math.abs(maxYValue - 1) + 0.1]
-                : [0.7, 1.3],
-          })}
-        />
-      </StackItem>
-    </Stack>
+    <MetricsChart
+      metrics={{
+        name: 'DIR',
+        metric: data[InferenceMetricType.TRUSTY_AI_DIR],
+      }}
+      title={`Disparate Impact Ratio (DIR)`}
+      domainCalc={(maxYValue) => ({
+        y:
+          Math.abs(maxYValue - 1) > 0.2
+            ? [1 - Math.abs(maxYValue - 1) - 0.1, 1 + Math.abs(maxYValue - 1) + 0.1]
+            : [0.7, 1.3],
+      })}
+    />
   );
 };
 

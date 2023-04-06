@@ -1,21 +1,24 @@
 import * as React from 'react';
 import axios from 'axios';
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResultValue } from '~/types';
+import {
+  PrometheusQueryRangeResponse,
+  PrometheusQueryRangeResponseData,
+  PrometheusQueryRangeResultValue,
+} from '~/types';
 
-const usePrometheusQueryRange = (
+export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (
+  data: PrometheusQueryRangeResponseData,
+) => T[];
+const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   active: boolean,
   apiPath: string,
   queryLang: string,
   span: number,
   endInMs: number,
   step: number,
-): [
-  results: PrometheusQueryRangeResultValue[],
-  loaded: boolean,
-  loadError: Error | undefined,
-  refetch: () => void,
-] => {
-  const [results, setResults] = React.useState<PrometheusQueryRangeResultValue[]>([]);
+  responsePredicate?: ResponsePredicate<T>,
+): [results: T[], loaded: boolean, loadError: Error | undefined, refetch: () => void] => {
+  const [results, setResults] = React.useState<T[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -34,8 +37,13 @@ const usePrometheusQueryRange = (
         query: `query=${queryLang}&start=${start}&end=${endInS}&step=${step}`,
       })
       .then((response) => {
-        const result = response.data?.response.data.result?.[0]?.values || [];
-        setResults(result);
+        let result: T[] | PrometheusQueryRangeResultValue[];
+        if (responsePredicate) {
+          result = responsePredicate(response.data?.response.data);
+        } else {
+          result = response.data?.response.data.result?.[0]?.values || [];
+        }
+        setResults(result as T[]);
         setLoaded(true);
         setError(undefined);
       })
@@ -43,7 +51,7 @@ const usePrometheusQueryRange = (
         setError(e);
         setLoaded(true);
       });
-  }, [endInMs, span, active, apiPath, queryLang, step]);
+  }, [responsePredicate, endInMs, span, active, apiPath, queryLang, step]);
 
   React.useEffect(() => {
     fetchData();
