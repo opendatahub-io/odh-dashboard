@@ -19,6 +19,7 @@ import {
   getResizeObserver,
 } from '@patternfly/react-charts';
 import { CubesIcon } from '@patternfly/react-icons';
+import { DomainTuple, ForAxes } from 'victory-core';
 import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 import { MetricChartLine, ProcessedMetrics } from './types';
@@ -30,11 +31,16 @@ import {
   useStableMetrics,
 } from './utils';
 
+//TODO: Improve type return value
+type DomainCalculator = (maxYValue: number) => ForAxes<DomainTuple>;
+
 type MetricsChartProps = {
   title: string;
   color?: string;
   metrics: MetricChartLine;
   threshold?: number;
+  //TODO: FIX TYPE BELOW!!!
+  domainCalc: DomainCalculator;
 };
 
 const MetricsChart: React.FC<MetricsChartProps> = ({
@@ -42,6 +48,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   color,
   metrics: unstableMetrics,
   threshold,
+  domainCalc,
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
@@ -53,7 +60,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
       metrics.reduce<ProcessedMetrics>(
         (acc, metric) => {
           const lineValues = createGraphMetricLine(metric);
-          const newMaxValue = Math.max(...lineValues.map((v) => v.y));
+          const newMaxValue = Math.max(...lineValues.map((v) => Math.abs(v.y)));
 
           return {
             data: [...acc.data, lineValues],
@@ -106,7 +113,9 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                   constrainToVisibleArea
                 />
               }
-              domain={{ y: maxYValue === 0 ? [0, 1] : [0, maxYValue + 1] }}
+              domain={domainCalc(maxYValue)}
+              //domain={{ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] }}
+              //domain={{ y: [-1, 1] }}
               height={400}
               width={chartWidth}
               padding={{ left: 70, right: 50, bottom: 70, top: 50 }}

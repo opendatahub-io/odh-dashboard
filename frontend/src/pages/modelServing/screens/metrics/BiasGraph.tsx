@@ -1,10 +1,9 @@
-import { Card, CardBody, CardTitle, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import {
   InferenceMetricType,
   ModelServingMetricsContext,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { per100 } from '~/pages/modelServing/screens/metrics/utils';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 
 const BiasGraph = () => {
@@ -16,9 +15,11 @@ const BiasGraph = () => {
           metrics={{
             name: 'Bias',
             metric: data[InferenceMetricType.TRUSTY_AI_SPD],
-            translatePoint: per100,
           }}
           title={`SPD`}
+          domainCalc={(maxYValue) => ({
+            y: maxYValue > 0.1 ? [-1 * maxYValue - 0.1, maxYValue + 0.1] : [-0.2, 0.2],
+          })}
         />
       </StackItem>
     </Stack>

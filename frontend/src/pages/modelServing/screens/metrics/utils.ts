@@ -41,11 +41,16 @@ export const getInferenceServiceMetricsQueries = (
 ): Record<InferenceMetricType, string> => {
   const namespace = inferenceService.metadata.namespace;
   const name = inferenceService.metadata.name;
+  const prometheusNamespace =
+    inferenceService.metadata.annotations?.['opendatahub.io/prometheus-namespace'] ?? namespace;
   return {
     // TODO: Fix queries
     [InferenceMetricType.REQUEST_COUNT_SUCCESS]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
     [InferenceMetricType.REQUEST_COUNT_FAILED]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
-    [InferenceMetricType.TRUSTY_AI_SPD]: `trustyai_spd[10m]`,
+    [InferenceMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}", namespace="trustyai-e2e"}`,
+    // model="demo-loan-rfc-alpha", namespace="trustyai-e2e"
+    //`trustyai_spd{batch_size="50000", container="trustyai-service", endpoint="8080", favorable_value="0", instance="10.128.6.47:8080", job="trustyai-service", model="demo-loan-rfc-alpha", namespace="trustyai-e2e", outcome="output-0", pod="trustyai-service-76bd7cfc7-b52dr", privileged="1.0", protected="input-3", request="59859772-dc3e-4707-a7d4-cd3e24315181", service="trustyai-service", unprivileged="0.0"}
+    //trustyai_spd[10m]`,
   };
 };
 
@@ -120,7 +125,7 @@ export const createGraphMetricLine = ({
   metric.data?.map<GraphMetricPoint>((data) => {
     const point: GraphMetricPoint = {
       x: data[0] * 1000,
-      y: parseInt(data[1]),
+      y: parseFloat(data[1]),
       name,
     };
     if (translatePoint) {
