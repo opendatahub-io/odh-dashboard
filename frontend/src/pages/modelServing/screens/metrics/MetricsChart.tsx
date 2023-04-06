@@ -31,7 +31,6 @@ import {
   useStableMetrics,
 } from './utils';
 
-//TODO: Improve type return value
 type DomainCalculator = (maxYValue: number) => ForAxes<DomainTuple>;
 
 type MetricsChartProps = {
@@ -39,7 +38,7 @@ type MetricsChartProps = {
   color?: string;
   metrics: MetricChartLine;
   threshold?: number;
-  //TODO: FIX TYPE BELOW!!!
+  //TODO: Consider a different parameter name
   domainCalc: DomainCalculator;
 };
 
@@ -48,6 +47,8 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   color,
   metrics: unstableMetrics,
   threshold,
+  //TODO: Make optional with default value (use inference graph lambda as default) and remove the copy + pasted
+  // values from InferenceGraphs and RuntimeGraphs.
   domainCalc,
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
@@ -114,6 +115,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                 />
               }
               domain={domainCalc(maxYValue)}
+              //TODO: remove commented code below before PR - they're useful to keep around for now though.
               //domain={{ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] }}
               //domain={{ y: [-1, 1] }}
               height={400}
