@@ -61,9 +61,16 @@ export const useModelServingMetrics = (
     timeframe,
   );
 
-  const inferenceTrustyTest = useQueryRangeResourceData(
+  const inferenceTrustyAISPD = useQueryRangeResourceData(
     type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_SPD],
+    end,
+    timeframe,
+  );
+
+  const inferenceTrustyAIDIR = useQueryRangeResourceData(
+    type === 'inference',
+    queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
   );
@@ -101,7 +108,8 @@ export const useModelServingMetrics = (
         [RuntimeMetricType.MEMORY_UTILIZATION]: runtimeMemoryUtilization,
         [InferenceMetricType.REQUEST_COUNT_SUCCESS]: inferenceRequestSuccessCount,
         [InferenceMetricType.REQUEST_COUNT_FAILED]: inferenceRequestFailedCount,
-        [InferenceMetricType.TRUSTY_AI_SPD]: inferenceTrustyTest,
+        [InferenceMetricType.TRUSTY_AI_SPD]: inferenceTrustyAISPD,
+        [InferenceMetricType.TRUSTY_AI_DIR]: inferenceTrustyAIDIR,
       },
       refresh: refreshAllMetrics,
     }),
@@ -112,7 +120,8 @@ export const useModelServingMetrics = (
       runtimeMemoryUtilization,
       inferenceRequestSuccessCount,
       inferenceRequestFailedCount,
-      inferenceTrustyTest,
+      inferenceTrustyAISPD,
+      inferenceTrustyAIDIR,
       refreshAllMetrics,
     ],
   );

@@ -14,11 +14,14 @@ const DirGraph = () => {
         <MetricsChart
           metrics={{
             name: 'BiasDIR',
-            metric: data[InferenceMetricType.TRUSTY_AI_SPD],
+            metric: data[InferenceMetricType.TRUSTY_AI_DIR],
           }}
           title={`Disparate Impact Ratio (DIR)`}
           domainCalc={(maxYValue) => ({
-            y: maxYValue > 0.1 ? [-1 * maxYValue - 0.1, maxYValue + 0.1] : [-0.2, 0.2],
+            y:
+              Math.abs(maxYValue - 1) > 0.2
+                ? [1 - Math.abs(maxYValue - 1) - 0.1, 1 + Math.abs(maxYValue - 1) + 0.1]
+                : [0.7, 1.3],
           })}
         />
       </StackItem>
