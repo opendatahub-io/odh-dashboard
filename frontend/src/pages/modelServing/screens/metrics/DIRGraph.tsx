@@ -9,18 +9,30 @@ import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 const DirGraph = () => {
   const { data } = React.useContext(ModelServingMetricsContext);
   const metric = {
-    ...data[InferenceMetricType.TRUSTY_AI_SPD],
-    data: data[InferenceMetricType.TRUSTY_AI_SPD].data[0]?.values, //map((x) => x?.[0]?.values || []),
+    ...data[InferenceMetricType.TRUSTY_AI_DIR],
+    data: data[InferenceMetricType.TRUSTY_AI_DIR].data[0]?.values, //map((x) => x?.[0]?.values || []),
   };
+
+  const metric2 = {
+    ...data[InferenceMetricType.TRUSTY_AI_DIR],
+    data: data[InferenceMetricType.TRUSTY_AI_DIR].data[1]?.values, //map((x) => x?.[0]?.values || []),
+  };
+
   // eslint-disable-next-line no-console
-  console.log(`Dir graph metric: ${metric}`);
+  console.log('DIR Graph Payload: %O', data[InferenceMetricType.TRUSTY_AI_DIR]);
+
+  // eslint-disable-next-line no-console
+  console.log('Dir graph metric: %O', metric);
   return (
     <MetricsChart
       metrics={{
         name: 'DIR',
         metric,
       }}
-      title={`Disparate Impact Ratio (DIR)`}
+      threshold={1.2}
+      minThreshold={0.8}
+      thresholdColor="red"
+      title="Disparate Impact Ratio (DIR)"
       domainCalc={(maxYValue) => ({
         y:
           Math.abs(maxYValue - 1) > 0.2

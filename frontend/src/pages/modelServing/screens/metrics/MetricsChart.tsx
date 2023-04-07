@@ -1,11 +1,15 @@
 import * as React from 'react';
 import {
   Card,
+  CardActions,
   CardBody,
+  CardHeader,
   CardTitle,
   EmptyState,
   EmptyStateIcon,
   Spinner,
+  Split,
+  SplitItem,
   Title,
 } from '@patternfly/react-core';
 import {
@@ -13,10 +17,12 @@ import {
   ChartArea,
   ChartAxis,
   ChartGroup,
+  ChartLine,
   ChartThemeColor,
   ChartThreshold,
   ChartVoronoiContainer,
   getResizeObserver,
+  getThresholdTheme,
 } from '@patternfly/react-charts';
 import { CubesIcon } from '@patternfly/react-icons';
 import { DomainTuple, ForAxes } from 'victory-core';
@@ -38,9 +44,11 @@ type MetricsChartProps = {
   color?: string;
   metrics: MetricChartLine;
   threshold?: number;
+  minThreshold?: number;
+  thresholdColor?: string;
   //TODO: Consider a different parameter name
   domainCalc: DomainCalculator;
-  embedded?: boolean;
+  toolbar?: React.ReactNode;
 };
 
 const MetricsChart: React.FC<MetricsChartProps> = ({
@@ -48,10 +56,12 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   color,
   metrics: unstableMetrics,
   threshold,
+  minThreshold,
+  thresholdColor,
   //TODO: Make optional with default value (use inference graph lambda as default) and remove the
   // values from InferenceGraphs and RuntimeGraphs.
   domainCalc,
-  embedded = false,
+  toolbar,
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
@@ -104,7 +114,10 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
 
   return (
     <Card>
-      {!embedded && <CardTitle>{title}</CardTitle>}
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {toolbar && <CardActions>{toolbar}</CardActions>}
+      </CardHeader>
       <CardBody style={{ height: hasSomeData ? 400 : 200, padding: 0 }}>
         <div ref={bodyRef}>
           {hasSomeData ? (
@@ -140,7 +153,30 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                   <ChartArea key={i} data={line} />
                 ))}
               </ChartGroup>
-              {threshold && <ChartThreshold data={getThresholdData(graphLines, threshold)} />}
+              {threshold && (
+                <ChartThreshold
+                  data={getThresholdData(graphLines, threshold)}
+                  style={
+                    thresholdColor
+                      ? {
+                          data: { stroke: thresholdColor },
+                        }
+                      : undefined
+                  }
+                />
+              )}
+              {minThreshold && (
+                <ChartThreshold
+                  data={getThresholdData(graphLines, minThreshold)}
+                  style={
+                    thresholdColor
+                      ? {
+                          data: { stroke: thresholdColor },
+                        }
+                      : undefined
+                  }
+                />
+              )}
             </Chart>
           ) : (
             <EmptyState>

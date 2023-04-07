@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardTitle, Stack, StackItem } from '@patternfly/react-core';
+import { Select, SelectOption, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { MetricChartLine } from '~/pages/modelServing/screens/metrics/types';
 import MetricsChart, { DomainCalculator } from '~/pages/modelServing/screens/metrics/MetricsChart';
 
@@ -13,17 +13,18 @@ type TrustyChartProps = {
   //TODO: Consider a different parameter name
   domainCalc: DomainCalculator;
 };
+
+const toolbar = (
+  <Toolbar>
+    <ToolbarContent>
+      <ToolbarItem>
+        <Select onToggle={(x) => x}></Select>
+      </ToolbarItem>
+    </ToolbarContent>
+  </Toolbar>
+);
 const TrustyChart: React.FC<TrustyChartProps> = ({ title, metrics, domainCalc }) => (
-  <Stack>
-    <StackItem>
-      <Card>
-        <CardTitle>{title}</CardTitle>
-      </Card>
-    </StackItem>
-    <StackItem>
-      <MetricsChart title={title} metrics={metrics} domainCalc={domainCalc} embedded={true} />
-    </StackItem>
-  </Stack>
+  <MetricsChart title={title} metrics={metrics} domainCalc={domainCalc} toolbar={toolbar} />
 );
 
 export default TrustyChart;
