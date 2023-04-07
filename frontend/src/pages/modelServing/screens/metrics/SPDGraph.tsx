@@ -32,6 +32,8 @@ const SPDGraph = () => {
       title="Statistical Parity Difference (SPD)"
       metrics={{ name: 'SPD', metric }}
       domainCalc={domainCalc}
+      threshold={0.1}
+      minThreshold={-0.1}
     />
   );
 };

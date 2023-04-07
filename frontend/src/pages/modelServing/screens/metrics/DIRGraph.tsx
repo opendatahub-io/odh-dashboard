@@ -19,10 +19,8 @@ const DirGraph = () => {
   };
 
   // eslint-disable-next-line no-console
-  console.log('DIR Graph Payload: %O', data[InferenceMetricType.TRUSTY_AI_DIR]);
+  console.log('DIR Full payload: %O', data[InferenceMetricType.TRUSTY_AI_DIR]);
 
-  // eslint-disable-next-line no-console
-  console.log('Dir graph metric: %O', metric);
   return (
     <MetricsChart
       metrics={{
