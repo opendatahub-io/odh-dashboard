@@ -1,7 +1,8 @@
 import React from 'react';
-import { Select, SelectOption, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import { Select, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { MetricChartLine } from '~/pages/modelServing/screens/metrics/types';
 import MetricsChart, { DomainCalculator } from '~/pages/modelServing/screens/metrics/MetricsChart';
+import SPDTooltip from '~/pages/modelServing/screens/metrics/SPDTooltip';
 
 //Question: Is there some way of passing props through from a parent component to a child without
 //redeclaring them - or is this the best way to do it?
@@ -17,6 +18,9 @@ type TrustyChartProps = {
 const toolbar = (
   <Toolbar>
     <ToolbarContent>
+      <ToolbarItem>
+        <SPDTooltip />
+      </ToolbarItem>
       <ToolbarItem>
         <Select onToggle={(x) => x}></Select>
       </ToolbarItem>
