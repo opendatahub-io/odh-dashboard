@@ -31,7 +31,7 @@ import {
   useStableMetrics,
 } from './utils';
 
-type DomainCalculator = (maxYValue: number) => ForAxes<DomainTuple>;
+export type DomainCalculator = (maxYValue: number) => ForAxes<DomainTuple>;
 
 type MetricsChartProps = {
   title: string;
@@ -40,6 +40,7 @@ type MetricsChartProps = {
   threshold?: number;
   //TODO: Consider a different parameter name
   domainCalc: DomainCalculator;
+  embedded?: boolean;
 };
 
 const MetricsChart: React.FC<MetricsChartProps> = ({
@@ -50,6 +51,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   //TODO: Make optional with default value (use inference graph lambda as default) and remove the
   // values from InferenceGraphs and RuntimeGraphs.
   domainCalc,
+  embedded = false,
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
@@ -102,7 +104,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
 
   return (
     <Card>
-      <CardTitle>{title}</CardTitle>
+      {!embedded && <CardTitle>{title}</CardTitle>}
       <CardBody style={{ height: hasSomeData ? 400 : 200, padding: 0 }}>
         <div ref={bodyRef}>
           {hasSomeData ? (
