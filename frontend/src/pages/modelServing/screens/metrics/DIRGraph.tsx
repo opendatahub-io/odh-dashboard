@@ -8,11 +8,17 @@ import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 
 const DirGraph = () => {
   const { data } = React.useContext(ModelServingMetricsContext);
+  const metric = {
+    ...data[InferenceMetricType.TRUSTY_AI_SPD],
+    data: data[InferenceMetricType.TRUSTY_AI_SPD].data[0]?.values, //map((x) => x?.[0]?.values || []),
+  };
+  // eslint-disable-next-line no-console
+  console.log(`Dir graph metric: ${metric}`);
   return (
     <MetricsChart
       metrics={{
         name: 'DIR',
-        metric: data[InferenceMetricType.TRUSTY_AI_DIR],
+        metric,
       }}
       title={`Disparate Impact Ratio (DIR)`}
       domainCalc={(maxYValue) => ({
