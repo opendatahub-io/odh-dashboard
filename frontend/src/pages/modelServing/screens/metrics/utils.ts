@@ -155,6 +155,7 @@ export const useStableMetrics = (
   ) {
     metricsRef.current = metrics;
   }
-
+  // eslint-disable-next-line no-console
+  console.log('Update metrics: %O', metricsRef);
   return metricsRef.current;
 };

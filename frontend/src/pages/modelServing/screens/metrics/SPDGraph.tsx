@@ -12,6 +12,10 @@ const SPDGraph = () => {
     ...data[InferenceMetricType.TRUSTY_AI_SPD],
     data: data[InferenceMetricType.TRUSTY_AI_SPD].data[0]?.values, //map((x) => x?.[0]?.values || []),
   };
+
+  // eslint-disable-next-line no-console
+  console.log('SPD: %O', data[InferenceMetricType.TRUSTY_AI_SPD]);
+
   const domainCalc: DomainCalculator = (maxYValue) => ({
     y: maxYValue > 0.1 ? [-1 * maxYValue - 0.1, maxYValue + 0.1] : [-0.2, 0.2],
   });
