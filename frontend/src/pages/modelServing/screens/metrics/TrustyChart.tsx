@@ -16,41 +16,54 @@ type TrustyChartProps = {
   domainCalc: DomainCalculator;
 };
 
-const options = [
-  <SelectOption key={0} value="Select a title" isPlaceholder />,
-  <SelectOption key={1} value="Mr" />,
-  <SelectOption key={2} value="Miss" />,
-  <SelectOption key={3} value="Mrs" />,
-  <SelectOption key={4} value="Ms" />,
-];
-const toolbar = (
-  <Toolbar>
-    <ToolbarContent>
-      <ToolbarItem>
-        <SPDTooltip />
-      </ToolbarItem>
-      <ToolbarItem>
-        Unique Payloads: <Select onToggle={() => true}>{options}</Select>
-      </ToolbarItem>
-    </ToolbarContent>
-  </Toolbar>
-);
 const TrustyChart: React.FC<TrustyChartProps> = ({
   title,
   metrics,
   threshold,
   minThreshold,
   domainCalc,
-}) => (
-  <MetricsChart
-    title={title}
-    metrics={metrics}
-    domainCalc={domainCalc}
-    toolbar={toolbar}
-    threshold={threshold}
-    minThreshold={minThreshold}
-    thresholdColor="red"
-  />
-);
+}) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState<string>();
+
+  const options = [
+    { value: 'opt-0', disabled: false },
+    { value: 'opt-1', disabled: false },
+    { value: 'opt-2', disabled: false },
+  ];
+
+  const onToggle = () => setIsOpen(!isOpen);
+  const onSelect = (event, selection) => {
+    setSelected(selection);
+    setIsOpen(false);
+  };
+
+  return (
+    <MetricsChart
+      title={title}
+      metrics={metrics}
+      domainCalc={domainCalc}
+      toolbar={
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <SPDTooltip />
+            </ToolbarItem>
+            <ToolbarItem>
+              <Select onToggle={onToggle} isOpen={isOpen} onSelect={onSelect} selections={selected}>
+                {options.map((option, index) => (
+                  <SelectOption key={index} value={option.value} />
+                ))}
+              </Select>
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+      }
+      threshold={threshold}
+      minThreshold={minThreshold}
+      thresholdColor="red"
+    />
+  );
+};
 
 export default TrustyChart;
