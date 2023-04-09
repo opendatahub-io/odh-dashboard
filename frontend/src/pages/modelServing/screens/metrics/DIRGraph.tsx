@@ -13,11 +13,6 @@ const DirGraph = () => {
     data: data[InferenceMetricType.TRUSTY_AI_DIR].data[0]?.values, //map((x) => x?.[0]?.values || []),
   };
 
-  const metric2 = {
-    ...data[InferenceMetricType.TRUSTY_AI_DIR],
-    data: data[InferenceMetricType.TRUSTY_AI_DIR].data[1]?.values, //map((x) => x?.[0]?.values || []),
-  };
-
   // eslint-disable-next-line no-console
   console.log('DIR Full payload: %O', data[InferenceMetricType.TRUSTY_AI_DIR]);
 
