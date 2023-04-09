@@ -1,37 +1,26 @@
 import React from 'react';
-import { Stack, StackItem } from '@patternfly/react-core';
-import {
-  InferenceMetricType,
-  ModelServingMetricsContext,
-} from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
+import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { DomainCalculator } from '~/pages/modelServing/screens/metrics/MetricsChart';
+import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
+import DIRTooltip from '~/pages/modelServing/screens/metrics/DIRTooltip';
 
 const DirGraph = () => {
-  const { data } = React.useContext(ModelServingMetricsContext);
-  const metric = {
-    ...data[InferenceMetricType.TRUSTY_AI_DIR],
-    data: data[InferenceMetricType.TRUSTY_AI_DIR].data[0]?.values, //map((x) => x?.[0]?.values || []),
-  };
-
-  // eslint-disable-next-line no-console
-  console.log('DIR Full payload: %O', data[InferenceMetricType.TRUSTY_AI_DIR]);
+  const domainCalc: DomainCalculator = (maxYValue) => ({
+    y:
+      Math.abs(maxYValue - 1) > 0.2
+        ? [1 - Math.abs(maxYValue - 1) - 0.1, 1 + Math.abs(maxYValue - 1) + 0.1]
+        : [0.7, 1.3],
+  });
 
   return (
-    <MetricsChart
-      metrics={{
-        name: 'DIR',
-        metric,
-      }}
+    <TrustyChart
+      title="Disparate Impact Ratio"
+      abbreviation="DIR"
+      trustyMetricType={InferenceMetricType.TRUSTY_AI_DIR}
+      tooltip={<DIRTooltip />}
+      domainCalc={domainCalc}
       threshold={1.2}
       minThreshold={0.8}
-      thresholdColor="red"
-      title="Disparate Impact Ratio (DIR)"
-      domainCalc={(maxYValue) => ({
-        y:
-          Math.abs(maxYValue - 1) > 0.2
-            ? [1 - Math.abs(maxYValue - 1) - 0.1, 1 + Math.abs(maxYValue - 1) + 0.1]
-            : [0.7, 1.3],
-      })}
     />
   );
 };

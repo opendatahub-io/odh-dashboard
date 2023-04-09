@@ -43,6 +43,7 @@ export const getInferenceServiceMetricsQueries = (
   const name = inferenceService.metadata.name;
 
   //TODO: Use it or lose it!!
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const prometheusNamespace =
     inferenceService.metadata.annotations?.['opendatahub.io/prometheus-namespace'] ?? namespace;
   return {
@@ -155,7 +156,5 @@ export const useStableMetrics = (
   ) {
     metricsRef.current = metrics;
   }
-  // eslint-disable-next-line no-console
-  console.log('Update metrics: %O', metricsRef);
   return metricsRef.current;
 };
