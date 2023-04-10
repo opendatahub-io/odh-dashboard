@@ -6,7 +6,7 @@ import DIRTooltip from '~/pages/modelServing/screens/metrics/DIRTooltip';
 
 const DirGraph = () => {
   const domainCalc: DomainCalculator = (maxYValue) => ({
-    y: maxYValue > 1.2 ? [0, maxYValue + 1] : [1, 1.3],
+    y: maxYValue > 1.2 ? [0, maxYValue + 0.1] : [0, 1.3],
     // Math.abs(maxYValue - 1) > 0.2
     //   ? [1 - Math.abs(maxYValue - 1) - 0.1, 1 + Math.abs(maxYValue - 1) + 0.1]
     //   : [0.7, 1.3],
