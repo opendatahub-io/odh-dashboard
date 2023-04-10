@@ -73,14 +73,13 @@ const ProjectDetailsComponents: React.FC = () => {
       : []),
   ];
 
-  // TODO: scrollabe selector stop working when tab mode is enabled
+  // TODO: scrollable selector stop working when tab mode is enabled
   return (
     <PageSection
       id={scrollableSelectorID}
       hasOverflowScroll
       isFilled
       aria-label="project-details-page-section"
-      padding={{ default: 'noPadding' }}
       variant="light"
     >
       <GenericSidebar

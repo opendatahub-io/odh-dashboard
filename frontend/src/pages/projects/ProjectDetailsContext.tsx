@@ -11,7 +11,7 @@ import {
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { ContextResourceData, RoleBinding } from '~/types';
+import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import {
