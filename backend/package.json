@@ -56,7 +56,7 @@
     "@typescript-eslint/eslint-plugin": "^4.4.1",
     "@typescript-eslint/parser": "^4.4.1",
     "babel-eslint": "^10.1.0",
-    "fastify-cli": "^2.3.0",
+    "fastify-cli": "^5.7.1",
     "nodemon": "^2.0.20",
     "pino-pretty": "^9.4.0",
     "prettier": "^2.2.1",
