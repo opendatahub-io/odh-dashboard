@@ -1,15 +1,17 @@
 import * as React from 'react';
 import Table from '~/components/Table';
 import ProjectSharingTableRow from './ProjectSharingTableRow';
-import { columnsProjectSharing } from './data';
+import { columnsProjectSharingUser,  columnsProjectSharingGroup } from './data';
 import { RoleBindingKind } from '~/k8sTypes';
+import { ProjectSharingTableType } from './types';
 
 type ProjectSharingTableProps = {
+  type: ProjectSharingTableType
   permissions: RoleBindingKind[];
   refresh: () => void;
 };
 
-const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({ permissions, refresh }) => {
+const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({ type, permissions, refresh }) => {
   const [addUserPermission, setAddUserPermission] = React.useState<RoleBindingKind | undefined>();
   const [removeUserPermission, setRemoveUserPermission] = React.useState<RoleBindingKind | undefined>();
 
@@ -18,7 +20,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({ permissions, 
       <Table
         variant="compact"
         data={permissions}
-        columns={columnsProjectSharing}
+        columns={type === ProjectSharingTableType.USER ? columnsProjectSharingUser : columnsProjectSharingGroup } 
         disableRowRenderSupport
         rowRenderer={(rb, i) => (
           <ProjectSharingTableRow

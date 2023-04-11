@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { RoleBindingKind } from '~/k8sTypes';
+import { formatDate } from './utils';
 
 type ProjectSharingTableRowProps = {
   obj: RoleBindingKind;
@@ -41,7 +42,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
           <Text> {obj.roleRef.name}</Text>
         </Td>
         <Td dataLabel="Date added">
-          <Text>{obj.metadata?.creationTimestamp}</Text>
+          <Text>{obj.metadata?.creationTimestamp ? formatDate(obj.metadata?.creationTimestamp) : ''}</Text>
         </Td>
         <Td isActionCell>
       <ActionsColumn
