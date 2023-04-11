@@ -71,7 +71,7 @@ export type DashboardCommonConfig = {
   disableUserManagement: boolean;
   disableProjects: boolean;
   disableModelServing: boolean;
-  disableCustomServingRuntimes: boolean,
+  disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
 };
 

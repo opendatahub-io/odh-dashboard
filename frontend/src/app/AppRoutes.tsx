@@ -20,6 +20,9 @@ const NotebookController = React.lazy(
 );
 
 const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/ClusterSettings'));
+const CustomServingRuntimesView = React.lazy(
+  () => import('../pages/modelServing/customServingRuntimes/CustomServingRuntimesView'),
+);
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
@@ -53,6 +56,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
         {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
         {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}
+        {isAdmin && <Route path="/servingRuntimes" element={<CustomServingRuntimesView />} />}
         {isAdmin && <Route path="/groupSettings" element={<GroupSettingsPage />} />}
         <Route path="*" element={<NotFound />} />
       </Routes>
