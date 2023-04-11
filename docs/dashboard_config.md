@@ -19,6 +19,7 @@ The following are a list of features that are supported, along with there defaul
 |  disableUserManagement | false | Removes the User Management panel in Settings.
 |  disableProjects | false | Disables Data Science Projects from the dashboard.
 |  disableModelServing | false | Disables Model Serving from the dashboard and from Data Science Projects.
+|  disableCustomServingRuntimes | false | Disables Custom Serving Runtimes from the Admin Panel.
 |  modelMetricsNamespace | false | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.
 
 ## Defaults
@@ -39,6 +40,7 @@ spec:
     disableUserManagement: false
     disableProjects: false
     disableModelServing: false
+    disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
 ```
 
@@ -123,6 +125,7 @@ spec:
     disableTracking: true
     disableProjects: true
     disableModelServing: true
+    disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
   notebookController:
     enabled: true

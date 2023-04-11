@@ -50,6 +50,14 @@ const getSettingsNav = (
     });
   }
 
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes)) {
+    settingsNavs.push({
+      id: 'settings-custom-serving-runtimes',
+      label: 'Serving runtimes',
+      href: '/servingRuntimes',
+    });
+  }
+
   if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableUserManagement)) {
     settingsNavs.push({
       id: 'settings-group-settings',

@@ -45,6 +45,8 @@ spec:
                       type: boolean
                     disableModelServing:
                       type: boolean
+                    disableCustomServingRuntimes:
+                      type: boolean
                     modelMetricsNamespace:
                       type: string
                 groupsConfig:
