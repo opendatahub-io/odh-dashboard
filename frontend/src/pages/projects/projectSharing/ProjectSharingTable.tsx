@@ -2,16 +2,16 @@ import * as React from 'react';
 import Table from '~/components/Table';
 import ProjectSharingTableRow from './ProjectSharingTableRow';
 import { columnsProjectSharing } from './data';
-import { UserPermission } from './types';
+import { RoleBindingKind } from '~/k8sTypes';
 
 type ProjectSharingTableProps = {
-  permissions: UserPermission[];
+  permissions: RoleBindingKind[];
   refresh: () => void;
 };
 
 const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({ permissions, refresh }) => {
-  const [addUserPermission, setAddUserPermission] = React.useState<UserPermission | undefined>();
-  const [removeUserPermission, setRemoveUserPermission] = React.useState<UserPermission | undefined>();
+  const [addUserPermission, setAddUserPermission] = React.useState<RoleBindingKind | undefined>();
+  const [removeUserPermission, setRemoveUserPermission] = React.useState<RoleBindingKind | undefined>();
 
   return (
     <>
@@ -20,13 +20,13 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({ permissions, 
         data={permissions}
         columns={columnsProjectSharing}
         disableRowRenderSupport
-        rowRenderer={(permissions, i) => (
+        rowRenderer={(rb, i) => (
           <ProjectSharingTableRow
-            key={permissions.username}
+            key={rb.metadata?.name || ''}
             rowIndex={i}
-            obj={permissions}
-            onUserDelete={setRemoveUserPermission}
-            onUserAdd={setAddUserPermission}
+            obj={rb}
+            onEditRoleBinding={setRemoveUserPermission}
+            onDeleteRoleBinding={setAddUserPermission}
           />
         )}
       />

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
+  DropdownDirection,
   Flex,
   FlexItem,
   Icon,
@@ -12,89 +13,55 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { UserPermission } from './types';
-
+import { RoleBindingKind } from '~/k8sTypes';
 
 type ProjectSharingTableRowProps = {
-  obj: UserPermission;
+  obj: RoleBindingKind;
   rowIndex: number;
-  onUserDelete: (user: UserPermission) => void;
-  onUserAdd: (user: UserPermission) => void;
+  onEditRoleBinding: (rolebinding: RoleBindingKind) => void;
+  onDeleteRoleBinding: (rolebinding: RoleBindingKind) => void;
 };
 
 const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   obj,
   rowIndex,
-  onUserDelete,
-  onUserAdd,
+  onEditRoleBinding,
+  onDeleteRoleBinding,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
 
-
   return (
     <Tbody>
       <Tr>
-        {/* <Td dataLabel="Username">
-          <Title headingLevel="h4">
-            <ResourceNameTooltip resource={obj.notebook}>
-              {getNotebookDisplayName(obj.notebook)}
-            </ResourceNameTooltip>
-          </Title>
-          <Text>{getNotebookDescription(obj.notebook)}</Text>
+        <Td dataLabel="Username">
+          <Text>{obj.subjects[0]?.name}</Text>
         </Td>
-        <Td dataLabel="Notebook image">
-          {!loaded ? (
-            <Spinner size="md" />
-          ) : (
-            <Text component="p">{notebookImage?.imageName ?? 'Unknown'}</Text>
-          )}
-          {isExpanded && notebookImage?.tagSoftware && (
-            <Text component={TextVariants.small}>{notebookImage.tagSoftware}</Text>
-          )}
+        <Td dataLabel="Permission">
+          <Text> {obj.roleRef.name}</Text>
         </Td>
-        <Td dataLabel="Container size">
-          <Flex
-            spaceItems={{ default: 'spaceItemsXs' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>{notebookSize?.name ?? 'Unknown'}</FlexItem>
-            {sizeError && (
-              <Tooltip removeFindDomNode content={sizeError}>
-                <Icon status="danger">
-                  <ExclamationCircleIcon />
-                </Icon>
-              </Tooltip>
-            )}
-          </Flex>
-        </Td>
-        <Td dataLabel="Status">
-          <NotebookStatusToggle notebookState={obj} doListen={false} />
-        </Td>
-        <Td>
-          <NotebookRouteLink label="Open" notebook={obj.notebook} isRunning={obj.isRunning} />
+        <Td dataLabel="Date added">
+          <Text>{obj.metadata?.creationTimestamp}</Text>
         </Td>
         <Td isActionCell>
-          <ActionsColumn
-            items={[
-              {
-                isDisabled: obj.isStarting,
-                title: 'Edit workbench',
-                onClick: () => {
-                  navigate(
-                    `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
-                  );
-                },
-              },
-              {
-                title: 'Delete workbench',
-                onClick: () => {
-                  onNotebookDelete(obj.notebook);
-                },
-              },
-            ]}
-          />
-        </Td> */}
+      <ActionsColumn
+        dropdownDirection={DropdownDirection.up}
+        items={[
+          {
+            title: 'Edit',
+            onClick: () => {
+              onEditRoleBinding(obj);
+            },
+          },
+          {
+            title: 'Delete',
+            onClick: () => {
+              onDeleteRoleBinding(obj);
+            },
+          },
+        ]}
+      />
+    </Td>
       </Tr>
     </Tbody>
   );

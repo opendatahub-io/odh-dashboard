@@ -13,9 +13,9 @@ import {
 import { CubesIcon } from '@patternfly/react-icons';
 import { Table } from '@patternfly/react-table';
 import { SortableData } from '~/utilities/useTableColumnSort';
-import { UserPermission } from './types';
 import ProjectSharingTable from './ProjectSharingTable';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { RoleBindingKind } from '~/k8sTypes';
 
 const ProjectSharing: React.FC = () => {
   const {
@@ -27,8 +27,6 @@ const ProjectSharing: React.FC = () => {
   React.useEffect(() => {
     console.log(roleBindings);
   }, [roleBindings]);
-
-  const tableData: UserPermission[] = [];
 
   return (
     <PageSection
@@ -50,7 +48,7 @@ const ProjectSharing: React.FC = () => {
           </StackItem>
           <StackItem>
             {' '}
-            <ProjectSharingTable permissions={tableData} refresh={() => {}} />
+            <ProjectSharingTable permissions={roleBindings} refresh={() => {}} />
           </StackItem>
         </Stack>
       </StackItem>

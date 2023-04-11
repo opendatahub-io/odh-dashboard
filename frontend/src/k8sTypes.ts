@@ -371,6 +371,10 @@ type RoleBindingSubject = {
 };
 
 export type RoleBindingKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   subjects: RoleBindingSubject[];
   roleRef: RoleBindingSubject;
 };

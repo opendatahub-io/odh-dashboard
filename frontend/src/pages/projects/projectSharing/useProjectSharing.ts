@@ -7,7 +7,7 @@ import useFetchState, { FetchState } from '~/utilities/useFetchState';
 const useProjectSharing = (namespace?: string): FetchState<RoleBindingKind[]> => {
   const getProjectSharingRoleBidings = React.useCallback(
     () =>
-      listRoleBindings(namespace, 'opendatahub.io/dashboard=true').catch((e) => {
+      listRoleBindings(namespace, 'opendatahub.io/dashboard=true,opendatahub.io/project-sharing=true').catch((e) => {
         if (e.statusObject?.code === 404) {
           throw new Error('No rolebindings found.');
         }

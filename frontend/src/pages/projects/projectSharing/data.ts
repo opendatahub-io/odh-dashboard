@@ -1,12 +1,12 @@
+import { RoleBindingKind } from '~/k8sTypes';
 import { SortableData } from '~/utilities/useTableColumnSort';
-import { UserPermission } from './types';
 
-export const columnsProjectSharing: SortableData<UserPermission>[] = [
+export const columnsProjectSharing: SortableData<RoleBindingKind>[] = [
     {
       field: 'username',
       label: 'Username',
       width: 30,
-      sortable: (a, b) => a.username.localeCompare(b.username),
+      sortable: (a, b) => a.roleRef.name.localeCompare(b.roleRef.name),
     },
     {
       field: 'permission',
@@ -20,7 +20,5 @@ export const columnsProjectSharing: SortableData<UserPermission>[] = [
       width: 30,
       sortable: false,
     },
-  
-  
   ];
   
