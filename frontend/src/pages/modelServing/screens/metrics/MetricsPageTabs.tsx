@@ -1,23 +1,37 @@
 import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, Tab, TabTitleText } from '@patternfly/react-core';
 import PerformanceTab from './PerformanceTab';
 import BiasTab from './BiasTab';
 import './MetricsPageTabs.scss';
 
 const MetricsPageTabs: React.FC = () => {
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
+  const DEFAULT_TAB = 'performance';
 
-  // Toggle currently active tab
+  const { tab } = useParams();
+  const navigate = useNavigate();
+
+  //Works to select default tab
+  React.useEffect(() => {
+    if (!tab) {
+      navigate(`./${DEFAULT_TAB}`, { replace: true });
+    }
+  }, [navigate, tab]);
+
+  const loadTab = (tabId: string) => {
+    navigate(`../${tabId}`, { relative: 'path' });
+  };
+
   const handleTabClick = (
     event: React.MouseEvent<HTMLElement> | React.KeyboardEvent | MouseEvent,
-    tabIndex: string | number,
+    tabId: string | number,
   ) => {
-    setActiveTabKey(tabIndex);
+    loadTab(String(tabId));
   };
 
   return (
     <Tabs
-      activeKey={activeTabKey}
+      activeKey={tab}
       onSelect={handleTabClick}
       isBox={false}
       aria-label="Metrics page tabs"
@@ -25,7 +39,7 @@ const MetricsPageTabs: React.FC = () => {
       className="odh-tabs-fix"
     >
       <Tab
-        eventKey={0}
+        eventKey="performance"
         title={<TabTitleText>Performance</TabTitleText>}
         aria-label="Performance tab"
         className="odh-tabcontent-fix"
@@ -33,7 +47,7 @@ const MetricsPageTabs: React.FC = () => {
         <PerformanceTab />
       </Tab>
       <Tab
-        eventKey={1}
+        eventKey="bias"
         title={<TabTitleText>Bias</TabTitleText>}
         aria-label="Bias tab"
         className="odh-tabcontent-fix"
