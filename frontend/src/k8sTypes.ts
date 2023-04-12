@@ -403,3 +403,25 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
     evaluationError?: string;
   };
 };
+
+export type TemplateKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: Partial<{
+      description: string;
+      tags: string;
+      iconClass: string;
+    }>;
+    name: string;
+    namespace: string;
+  };
+  objects: K8sResourceCommon[];
+  parameters: TemplateParameter[];
+};
+
+export type TemplateParameter = {
+  name: string;
+  displayName: string;
+  description: string;
+  value: string;
+  required: boolean;
+};
