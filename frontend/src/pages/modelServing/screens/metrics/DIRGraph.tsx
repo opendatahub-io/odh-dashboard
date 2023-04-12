@@ -19,6 +19,7 @@ const DirGraph = () => {
       trustyMetricType={InferenceMetricType.TRUSTY_AI_DIR}
       tooltip={<DIRTooltip />}
       domainCalc={domainCalc}
+      //TODO: accept array of threshold objects, allowing color, title etc
       threshold={1.2}
       minThreshold={0.8}
     />

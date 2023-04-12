@@ -45,6 +45,16 @@ type MetricsChartProps = {
   metrics: MetricChartLine;
   threshold?: number;
   minThreshold?: number;
+  //TODO: this needs to be an enum not a string allowing any color under the sun.
+  /*
+    [
+    {
+      value: number
+      color?: emum
+      label?: string
+    }
+    ]
+   */
   thresholdColor?: string;
   //TODO: Consider a different parameter name
   domainCalc: DomainCalculator;
@@ -59,7 +69,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   minThreshold,
   thresholdColor,
   //TODO: Make optional with default value (use inference graph lambda as default) and remove the
-  // values from InferenceGraphs and RuntimeGraphs.
+  // values from InferenceGraphs and RuntimeGraphs. - Default should be add 0 to max.
   domainCalc,
   toolbar,
 }) => {
@@ -68,6 +78,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   const { currentTimeframe, lastUpdateTime } = React.useContext(ModelServingMetricsContext);
   const metrics = useStableMetrics(unstableMetrics, title);
 
+  //TODO: Add minYValue here and to domainCalc call below.
   const { data: graphLines, maxYValue } = React.useMemo(
     () =>
       metrics.reduce<ProcessedMetrics>(
@@ -116,6 +127,9 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
+        {
+          //TODO: Only accept React Nodes of type Toolbar Content. Look at table as an example.
+        }
         {toolbar && <CardActions>{toolbar}</CardActions>}
       </CardHeader>
       <CardBody style={{ height: hasSomeData ? 400 : 200, padding: 0 }}>
@@ -168,6 +182,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               {minThreshold && (
                 <ChartThreshold
                   data={getThresholdData(graphLines, minThreshold)}
+                  //TODO: We should stick to PF variables,
                   style={
                     thresholdColor
                       ? {

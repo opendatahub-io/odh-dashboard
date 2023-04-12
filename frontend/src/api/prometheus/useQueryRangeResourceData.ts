@@ -31,15 +31,10 @@ const useQueryRangeResourceData = (
 type TrustyData = PrometheusQueryRangeResponseDataResult;
 
 /*
- 1. determine the result.metric filter.
- 2. make sure our trusty filter enum aligns with this metric.
- 3. create dropdown for enum values
- 4. make chart render values behind enum
-
- For UI rendering:
- - Add dropdown with items for enum values
- - set local state with selected enum value
- - pull from context the enum value
+ * TODO:
+ * - Keep the ResponsePredicate to be what is actually used.
+ * - Consider renaming
+ * - Might need to turn usePrometheusQueryRange into a generic.
  */
 export const useQueryRangeResourceDataTrusty = (
   /** Is the query active -- should we be fetching? */
