@@ -36,7 +36,6 @@ const InferenceGraphs: React.FC = () => {
             },
           ]}
           title={`Http requests per ${inHours ? 'hour' : 'day'} (x100)`}
-          domainCalc={(maxYValue) => ({ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] })}
         />
       </StackItem>
     </Stack>

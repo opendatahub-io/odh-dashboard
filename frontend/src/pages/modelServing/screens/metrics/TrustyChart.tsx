@@ -53,7 +53,7 @@ const TrustyChart: React.FC<TrustyChartProps> = ({
         name: abbreviation,
         metric: metric,
       }}
-      domainCalc={domainCalc}
+      domain={domainCalc}
       toolbar={
         <Toolbar>
           <ToolbarContent>

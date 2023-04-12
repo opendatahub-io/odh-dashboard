@@ -8,8 +8,6 @@ import {
   EmptyState,
   EmptyStateIcon,
   Spinner,
-  Split,
-  SplitItem,
   Title,
 } from '@patternfly/react-core';
 import {
@@ -17,12 +15,10 @@ import {
   ChartArea,
   ChartAxis,
   ChartGroup,
-  ChartLine,
   ChartThemeColor,
   ChartThreshold,
   ChartVoronoiContainer,
   getResizeObserver,
-  getThresholdTheme,
 } from '@patternfly/react-charts';
 import { CubesIcon } from '@patternfly/react-icons';
 import { DomainTuple, ForAxes } from 'victory-core';
@@ -38,6 +34,9 @@ import {
 } from './utils';
 
 export type DomainCalculator = (maxYValue: number) => ForAxes<DomainTuple>;
+const defaultDomainCalculator: DomainCalculator = (maxYValue) => ({
+  y: maxYValue === 0 ? [0, 1] : [0, maxYValue],
+});
 
 type MetricsChartProps = {
   title: string;
@@ -56,8 +55,7 @@ type MetricsChartProps = {
     ]
    */
   thresholdColor?: string;
-  //TODO: Consider a different parameter name
-  domainCalc: DomainCalculator;
+  domain?: DomainCalculator;
   toolbar?: React.ReactNode;
 };
 
@@ -68,9 +66,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   threshold,
   minThreshold,
   thresholdColor,
-  //TODO: Make optional with default value (use inference graph lambda as default) and remove the
-  // values from InferenceGraphs and RuntimeGraphs. - Default should be add 0 to max.
-  domainCalc,
+  domain = defaultDomainCalculator,
   toolbar,
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
@@ -143,10 +139,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                   constrainToVisibleArea
                 />
               }
-              domain={domainCalc(maxYValue)}
-              //TODO: remove commented code below before PR - they're useful to keep around for now though.
-              //domain={{ y: maxYValue === 0 ? [0, 1] : [0, maxYValue] }}
-              //domain={{ y: [-1, 1] }}
+              domain={domain(maxYValue)}
               height={400}
               width={chartWidth}
               padding={{ left: 70, right: 50, bottom: 70, top: 50 }}
