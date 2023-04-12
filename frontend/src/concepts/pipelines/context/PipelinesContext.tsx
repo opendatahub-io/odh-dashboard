@@ -4,6 +4,7 @@ import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
+import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineServerModal';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import useAPIState, { APIState } from './useAPIState';
@@ -174,6 +175,19 @@ export const DeleteServerModal = ({
           onClose();
         }
       }}
+    />
+  );
+};
+
+export const ViewServerModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const { namespace } = React.useContext(PipelinesContext);
+  const [pipelineNamespaceCR] = usePipelineNamespaceCR(namespace);
+
+  return (
+    <ViewPipelineServerModal
+      isOpen={isOpen}
+      onClose={onClose}
+      pipelineNamespaceCR={pipelineNamespaceCR}
     />
   );
 };

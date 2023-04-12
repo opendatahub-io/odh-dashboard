@@ -6,8 +6,9 @@ import {
   convertAWSSecretData,
 } from '~/pages/projects/screens/detail/data-connections/utils';
 import { AWSDataEntry, DataConnectionType } from '~/pages/projects/types';
-import { ObjectStorageExisting, PipelineServerConfigType } from './ConfigurePipelinesServerModal';
-import { DATABASE_CONNECTION_KEYS } from './const';
+import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
+import { DATABASE_CONNECTION_KEYS, EXTERNAL_DATABASE_SECRET } from './const';
+import { ObjectStorageExisting, PipelineServerConfigType } from './types';
 
 type SecretsResponse = [
   (
@@ -38,7 +39,7 @@ const createDatabaseSecret = (
   | undefined
 > => {
   if (!databaseConfig.useDefault) {
-    const secretKey = 'db-password';
+    const secretKey = EXTERNAL_DATABASE_SECRET.KEY;
     const databaseRecord = databaseConfig.value?.reduce<Record<string, string>>(
       (acc, { key, value }) => ({ ...acc, [key]: value }),
       {},
@@ -49,7 +50,7 @@ const createDatabaseSecret = (
         [secretKey]: databaseRecord[DATABASE_CONNECTION_KEYS.PASSWORD],
       },
       'generic',
-      'pipelines-db-password',
+      EXTERNAL_DATABASE_SECRET.NAME,
     );
 
     return createSecret(assembledSecret, { dryRun: dryRun }).then((secret) => ({
@@ -120,25 +121,18 @@ export const configureDSPipelineResourceSpec = (
   projectName: string,
 ): Promise<DSPipelineKind['spec']> =>
   createSecrets(config, projectName).then(([databaseSecret, objectStorageSecret]) => {
-    const awsRecord = objectStorageSecret?.awsData?.reduce<Record<string, string>>(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {},
-    );
-
-    const databaseRecord = config.database.value?.reduce<Record<string, string>>(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {},
-    );
+    const awsRecord = dataEntryToRecord(objectStorageSecret.awsData);
+    const databaseRecord = dataEntryToRecord(config.database.value);
 
     const [, externalStorageScheme, externalStorageHost] =
-      awsRecord?.[AWS_KEYS.S3_ENDPOINT].match(/^(\w+):\/\/(.*)/) ?? [];
+      awsRecord.AWS_S3_ENDPOINT?.match(/^(\w+):\/\/(.*)/) ?? [];
 
     return {
       objectStorage: {
         externalStorage: {
           host: externalStorageHost.replace(/\/$/, ''),
           scheme: externalStorageScheme,
-          bucket: awsRecord?.[AWS_KEYS.AWS_S3_BUCKET],
+          bucket: awsRecord.AWS_S3_BUCKET,
           port: '',
           s3CredentialsSecret: {
             accessKey: AWS_KEYS.ACCESS_KEY_ID,

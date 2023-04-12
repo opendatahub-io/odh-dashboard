@@ -1,3 +1,4 @@
+// temp fix until https://github.com/patternfly/patternfly-react/issues/8028 is resolved
 .checkbox-radio-fix-body-width {
 
   .pf-c-check__body,
@@ -6,6 +7,7 @@
   }
 }
 
+// targeting specific form section title elements to override --pf-c-form__section-title--FontSize, --pf-c-form__section-title--FontWeight
 .form-subtitle-text {
   color: var(--pf-global--Color--200);
   font-size: initial;

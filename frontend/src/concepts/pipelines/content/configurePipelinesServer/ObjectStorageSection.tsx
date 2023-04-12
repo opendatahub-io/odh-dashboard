@@ -18,7 +18,8 @@ import { DataConnection } from '~/pages/projects/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
-import { PipelineServerConfigType } from './ConfigurePipelinesServerModal';
+import { PipelineServerConfigType } from './types';
+import './ConfigurePipelinesServerModal.scss';
 
 const DISABLED_FOLDER_PATH = (
   <FormGroup
@@ -51,7 +52,7 @@ export const ObjectStorageSection = ({ setConfig, config }: ObjectStorageSection
     >
       <Radio
         className="checkbox-radio-fix-body-width"
-        name="existing-data-connection-type-radio"
+        name="data-connection-type-radio"
         id="existing-data-connection-type-radio"
         label="Existing data connection"
         isChecked={config.objectStorage.useExisting}
@@ -115,7 +116,7 @@ export const ObjectStorageSection = ({ setConfig, config }: ObjectStorageSection
       />
       <Radio
         className="checkbox-radio-fix-body-width"
-        name="new-data-connection-radio"
+        name="data-connection-radio"
         id="new-data-connection-radio"
         label="Create new data connection"
         isChecked={!config.objectStorage.useExisting}

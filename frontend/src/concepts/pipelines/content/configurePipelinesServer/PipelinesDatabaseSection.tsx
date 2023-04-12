@@ -8,7 +8,8 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import DatabaseConnectionField from './DatabaseConnectionField';
-import { PipelineServerConfigType } from './ConfigurePipelinesServerModal';
+import { PipelineServerConfigType } from './types';
+import './ConfigurePipelinesServerModal.scss';
 
 type PipelinesDatabaseSectionProps = {
   setConfig: (config: PipelineServerConfigType) => void;
@@ -40,7 +41,7 @@ export const PipelinesDatabaseSection = ({ setConfig, config }: PipelinesDatabas
           <FormGroup hasNoPaddingTop isStack>
             <Radio
               className="checkbox-radio-fix-body-width"
-              name="default-database-type-radio"
+              name="database-type-radio"
               id="default-database-connection-type-radio"
               label="Use default database stored on your cluster"
               isChecked={config.database.useDefault}
@@ -56,7 +57,7 @@ export const PipelinesDatabaseSection = ({ setConfig, config }: PipelinesDatabas
             />
             <Radio
               className="checkbox-radio-fix-body-width"
-              name="external-database-type-radio"
+              name="database-type-radio"
               id="external-database-type-radio"
               label="Connect to external MySQL database"
               isChecked={!config.database.useDefault}

@@ -1,8 +1,9 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { deletePipelineCR, deleteSecret, getSecret } from '~/api';
+import { deletePipelineCR, deleteSecret } from '~/api';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { EXTERNAL_DATABASE_SECRET } from './configurePipelinesServer/const';
 
 type DeletePipelineServerModalProps = {
   isOpen: boolean;
@@ -32,18 +33,8 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
       error={error}
       onDelete={() => {
         setDeleting(true);
-        Promise.all([
-          new Promise((resolve, reject) => {
-            // if the secret doesn't exist, catch and resolve
-            // else delete the secret, reject if error
-            getSecret(project.metadata.name, 'pipelines-db-password')
-              .then(() =>
-                deleteSecret(project.metadata.name, 'pipelines-db-password')
-                  .then(resolve)
-                  .catch(reject),
-              )
-              .catch(resolve);
-          }),
+        Promise.allSettled([
+          deleteSecret(project.metadata.name, EXTERNAL_DATABASE_SECRET.NAME),
           deletePipelineCR(namespace),
         ])
           .then(() => onBeforeClose(true))
