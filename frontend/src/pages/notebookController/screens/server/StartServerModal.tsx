@@ -168,7 +168,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       return null;
     }
     return (
-      <Alert isInline variant={spawnStatus.status} title={spawnStatus.title}>
+      <Alert component="h2" isInline variant={spawnStatus.status} title={spawnStatus.title}>
         <p>{spawnStatus.description}</p>
       </Alert>
     );
@@ -216,7 +216,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       isExpanded={logsExpanded}
       isIndented
     >
-      <List isPlain isBordered>
+      <List isPlain isBordered tabIndex={0}>
         {events.reverse().map((event, index) => (
           <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
             {`${getEventTimestamp(event)} [${event.type}] ${event.message}`}
