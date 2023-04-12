@@ -1,8 +1,18 @@
 import * as React from 'react';
 import { Alert, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
-import { createPipelinesCR } from '~/api';
+import { PipelineAPIs } from '~/concepts/pipelines/types';
+import {
+  getPipeline,
+  deletePipeline,
+  listPipelineRuns,
+  listPipelines,
+  listPipelineTemplates,
+  uploadPipeline,
+} from '~/api';
 import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
+import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
@@ -12,7 +22,7 @@ type PipelineContext = {
   crInitializing: boolean;
   namespace: string;
   project: ProjectKind;
-  refreshState: () => void;
+  refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
   apiState: APIState;
 };
@@ -22,7 +32,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   crInitializing: false,
   namespace: '',
   project: null as unknown as ProjectKind,
-  refreshState: () => undefined,
+  refreshState: async () => undefined,
   refreshAPIState: () => undefined,
   apiState: { apiAvailable: false, api: null as unknown as APIState['api'] },
 });
@@ -47,10 +57,10 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   );
   const hostPath = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
 
-  const refreshState = React.useCallback(() => {
-    refreshCR();
-    refreshRoute();
-  }, [refreshRoute, refreshCR]);
+  const refreshState = React.useCallback(
+    () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
+    [refreshRoute, refreshCR],
+  );
 
   const [apiState, refreshAPIState] = useAPIState(hostPath);
 
@@ -128,39 +138,41 @@ type CreatePipelineServerButtonProps = {
 export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProps> = ({
   variant,
 }) => {
-  const { namespace, refreshState } = React.useContext(PipelinesContext);
-  const [creating, setCreating] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-
-  const createCR = () => {
-    setCreating(true);
-    setError(null);
-    createPipelinesCR(namespace)
-      .then(() => {
-        refreshState();
-        // Don't reset creating state, this component is not needed once we have it and the caller
-        // should navigate away on their own as they will not need to create anymore
-      })
-      .catch((e) => {
-        setCreating(false);
-        setError(e);
-      });
-  };
+  const [configureModalVisible, setConfigureModalVisible] = React.useState(false);
+  const { refreshState } = React.useContext(PipelinesContext);
 
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <Button variant={variant} onClick={createCR} isDisabled={creating}>
-          Create pipeline server
-        </Button>
-      </StackItem>
-      {error && (
+    <>
+      <Stack hasGutter>
         <StackItem>
-          <Alert isInline variant="danger" title="Error creating">
-            {error.message}
-          </Alert>
+          <Button variant={variant} onClick={() => setConfigureModalVisible(true)}>
+            Create pipeline server
+          </Button>
         </StackItem>
-      )}
-    </Stack>
+      </Stack>
+      <ConfigurePipelinesServerModal
+        open={configureModalVisible}
+        onClose={() => {
+          setConfigureModalVisible(false);
+          refreshState();
+        }}
+      />
+    </>
+  );
+};
+
+export const DeleteModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const { refreshState } = React.useContext(PipelinesContext);
+  return (
+    <DeletePipelineServerModal
+      isOpen={isOpen}
+      onClose={(deleted) => {
+        if (deleted) {
+          refreshState().then(onClose);
+        } else {
+          onClose();
+        }
+      }}
+    />
   );
 };

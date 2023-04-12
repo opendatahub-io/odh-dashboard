@@ -1,0 +1,13 @@
+.checkbox-radio-fix-body-width {
+
+  .pf-c-check__body,
+  .pf-c-radio__body {
+    width: 100%;
+  }
+}
+
+.form-subtitle-text {
+  color: var(--pf-global--Color--200);
+  font-size: initial;
+  font-weight: initial;
+}
