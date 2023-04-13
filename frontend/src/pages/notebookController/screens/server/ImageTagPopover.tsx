@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Popover } from '@patternfly/react-core';
+import { Button, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ImageTagInfo } from '~/types';
 import { getNameVersionString } from '~/utilities/imageUtils';
@@ -35,7 +35,9 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
         </>
       }
     >
-      <OutlinedQuestionCircleIcon />
+      <Button className="odh-notebook-controller__notebook-image-popover-help-icon" isInline variant="plain" aria-label="More info">
+        <OutlinedQuestionCircleIcon />
+      </Button>
     </Popover>
   );
 };

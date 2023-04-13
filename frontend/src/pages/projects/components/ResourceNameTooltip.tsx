@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Button,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -10,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import '~/pages/notebookController/NotebookController.scss';
 
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
@@ -46,7 +48,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
             </Stack>
           }
         >
-          <OutlinedQuestionCircleIcon />
+          <Button className="odh-notebook-controller__notebook-image-popover-help-icon"  isInline variant="plain" aria-label="More info">
+            <OutlinedQuestionCircleIcon />
+          </Button>
         </Tooltip>
       </div>
     )}
