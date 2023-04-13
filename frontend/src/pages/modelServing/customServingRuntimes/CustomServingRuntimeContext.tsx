@@ -13,6 +13,7 @@ import { TemplateKind } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
+import { useDashboardNamespace } from '~/redux/selectors';
 import useTemplates from './useTemplates';
 
 type CustomServingRuntimeContextType = {
@@ -26,7 +27,11 @@ export const CustomServingRuntimeContext = React.createContext<CustomServingRunt
 });
 
 const CustomServingRuntimeContextProvider: React.FC = () => {
-  const servingRuntimeTemplates = useContextResourceData<TemplateKind>(useTemplates('opendatahub')); // TODO: change to operator namespace
+  const { dashboardNamespace } = useDashboardNamespace();
+
+  const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
+    useTemplates(dashboardNamespace),
+  );
 
   const servingRuntimeTeamplateRefresh = servingRuntimeTemplates.refresh;
 
@@ -42,7 +47,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
           <Title headingLevel="h4" size="lg">
             Problem loading serving runtimes page
           </Title>
-          <EmptyStateBody>{servingRuntimeTemplates.error?.message}</EmptyStateBody>
+          <EmptyStateBody>{servingRuntimeTemplates.error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
     );

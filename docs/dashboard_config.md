@@ -48,7 +48,6 @@ spec:
 
 The Dashboard config enables adding additional configuration
 
-
 ### Groups
 
 The `groupsConfig` field controls access to Dashboard features, such as the spawner for allowed users and the cluster settings UI for admins.
@@ -107,6 +106,10 @@ New annotations we created are:
 
 `*` - We need the original user's name (we translate their name to kube safe characters for notebook name and for the label) for some functionality. If this is omitted from the Notebook (or they don't have one yet) we try to make a validation against the current logged in user. This will work most of the time (and we assume logged in user when they don't have a Notebook), if this fails because you're an Admin and we don't have this state, we consider this an invalid state -- should be rare though as it requires the subset of users that are Admins to have a bad-state Notebook they are trying to impersonate (to start or view that users Notebook information).
 
+### Serving Runtime Template Order
+
+In order for the user to rearrange their custom Serving Runtime templates, we store the order in the dashboard configuration. When new templates are created they will be added to this list in order
+
 ## Example OdhDashboard Config
 
 ```yaml
@@ -130,56 +133,59 @@ spec:
   notebookController:
     enabled: true
   notebookSizes:
-  - name: Small
-    resources:
-      limits:
-        cpu: "2"
-        memory: 2Gi
-      requests:
-        cpu: "1"
-        memory: 1Gi
-  - name: Medium
-    resources:
-      limits:
-        cpu: "4"
-        memory: 4Gi
-      requests:
-        cpu: "2"
-        memory: 2Gi
-  - name: Large
-    resources:
-      limits:
-        cpu: "8"
-        memory: 8Gi
-      requests:
-        cpu: "4"
-        memory: 4Gi
+    - name: Small
+      resources:
+        limits:
+          cpu: "2"
+          memory: 2Gi
+        requests:
+          cpu: "1"
+          memory: 1Gi
+    - name: Medium
+      resources:
+        limits:
+          cpu: "4"
+          memory: 4Gi
+        requests:
+          cpu: "2"
+          memory: 2Gi
+    - name: Large
+      resources:
+        limits:
+          cpu: "8"
+          memory: 8Gi
+        requests:
+          cpu: "4"
+          memory: 4Gi
   modelServerSizes:
-  - name: Small
-    resources:
-      limits:
-        cpu: "2"
-        memory: 8Gi
-      requests:
-        cpu: "1"
-        memory: 4Gi
-  - name: Medium
-    resources:
-      limits:
-        cpu: "8"
-        memory: 10Gi
-      requests:
-        cpu: "4"
-        memory: 8Gi
-  - name: Large
-    resources:
-      limits:
-        cpu: "10"
-        memory: 20Gi
-      requests:
-        cpu: "6"
-        memory: 16Gi
+    - name: Small
+      resources:
+        limits:
+          cpu: "2"
+          memory: 8Gi
+        requests:
+          cpu: "1"
+          memory: 4Gi
+    - name: Medium
+      resources:
+        limits:
+          cpu: "8"
+          memory: 10Gi
+        requests:
+          cpu: "4"
+          memory: 8Gi
+    - name: Large
+      resources:
+        limits:
+          cpu: "10"
+          memory: 20Gi
+        requests:
+          cpu: "6"
+          memory: 16Gi
   groupsConfig:
     adminGroups: 'odh-admins'
     allowedGroups: 'system:authenticated'
+  templateOrder:
+    - 'ovms'
+
 ```

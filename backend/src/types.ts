@@ -37,6 +37,7 @@ export type DashboardConfig = K8sResourceCommon & {
       };
       storageClassName?: string;
     };
+    templateOrder?: string[];
   };
 };
 

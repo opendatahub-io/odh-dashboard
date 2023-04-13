@@ -56,6 +56,7 @@ export type DashboardConfig = K8sResourceCommon & {
       gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
+    templateOrder?: string[];
   };
 };
 

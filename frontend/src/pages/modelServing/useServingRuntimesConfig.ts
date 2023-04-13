@@ -26,7 +26,7 @@ export const useServingRuntimesConfig = (): {
   // Now there's only one model server in the cluster, in the future, we may have multiple model servers
   const fetchServingRuntimesConfig = React.useCallback(
     () =>
-      getConfigMap(dashboardNamespace, 'servingruntimes-config')
+      getConfigMap(dashboardNamespace, 'servingruntimes-config') // TODO: Delete servingruntimes-config-updater role and rolebinding when removing this
         .then((srcm) => {
           setServingRuntimesConfig(srcm);
         })

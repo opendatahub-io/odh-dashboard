@@ -147,5 +147,6 @@ export const mockDashboardConfig: DashboardConfig = {
         },
       },
     ],
+    templateOrder: [],
   },
 };

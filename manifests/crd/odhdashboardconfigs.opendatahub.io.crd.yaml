@@ -136,3 +136,7 @@ spec:
                             type: string
                     storageClassName:
                       type: string
+                templateOrder:
+                  type: array
+                  items:
+                    type: string
