@@ -48,7 +48,12 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
             </Stack>
           }
         >
-          <Button className="odh-notebook-controller__notebook-image-popover-help-icon"  isInline variant="plain" aria-label="More info">
+          <Button
+            className="odh-notebook-controller__notebook-image-popover-help-icon"
+            isInline
+            variant="plain"
+            aria-label="More info"
+          >
             <OutlinedQuestionCircleIcon />
           </Button>
         </Tooltip>

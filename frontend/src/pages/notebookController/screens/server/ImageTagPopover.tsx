@@ -35,7 +35,12 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
         </>
       }
     >
-      <Button className="odh-notebook-controller__notebook-image-popover-help-icon" isInline variant="plain" aria-label="More info">
+      <Button
+        className="odh-notebook-controller__notebook-image-popover-help-icon"
+        isInline
+        variant="plain"
+        aria-label="More info"
+      >
         <OutlinedQuestionCircleIcon />
       </Button>
     </Popover>
