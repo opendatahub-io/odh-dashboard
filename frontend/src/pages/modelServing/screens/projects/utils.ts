@@ -91,7 +91,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingServingRuntimeName = existingData?.servingRuntime?.metadata.name || '';
 
-  const existingNumReplicas = existingData?.servingRuntime?.spec.replicas || 1;
+  const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 
   const existingResources =
     existingData?.servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;

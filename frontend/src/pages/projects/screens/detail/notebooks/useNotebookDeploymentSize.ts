@@ -3,6 +3,7 @@ import { AppContext } from '~/app/AppContext';
 import { NotebookContainer, NotebookSize } from '~/types';
 import { getNotebookSizes } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import { NotebookKind } from '~/k8sTypes';
+import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
 
 const useNotebookDeploymentSize = (
   notebook?: NotebookKind,
@@ -20,8 +21,8 @@ const useNotebookDeploymentSize = (
   const sizes = getNotebookSizes(dashboardConfig);
   const size = sizes.find(
     (size) =>
-      size.resources.limits?.cpu === container.resources?.limits?.cpu &&
-      size.resources.limits?.memory === container.resources?.limits?.memory,
+      isCpuLimitEqual(size.resources.limits?.cpu, container.resources?.limits?.cpu) &&
+      isMemoryLimitEqual(size.resources.limits?.memory, container.resources?.limits?.memory),
   );
 
   if (!size) {

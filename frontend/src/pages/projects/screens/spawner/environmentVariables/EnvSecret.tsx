@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { EnvVariableData, SecretCategory } from '~/pages/projects/types';
-import AWSField from '~/pages/projects/dataConnections/AWSField';
-import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
+import { EnvironmentVariableType, EnvVariableData, SecretCategory } from '~/pages/projects/types';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
+import EnvUploadField from './EnvUploadField';
 
 type EnvSecretProps = {
   env?: EnvVariableData;
@@ -31,11 +30,11 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) =>
           />
         ),
       },
-      [SecretCategory.AWS]: {
-        label: 'AWS',
+      [SecretCategory.UPLOAD]: {
+        label: 'Upload',
         render: (
-          <AWSField
-            values={env.data.length === 0 ? EMPTY_AWS_SECRET_DATA : env.data}
+          <EnvUploadField
+            envVarType={EnvironmentVariableType.SECRET}
             onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
           />
         ),

@@ -34,6 +34,7 @@ export type DashboardConfig = K8sResourceCommon & {
         enabled: boolean;
         key: string;
       };
+      storageClassName?: string;
     };
   };
 };

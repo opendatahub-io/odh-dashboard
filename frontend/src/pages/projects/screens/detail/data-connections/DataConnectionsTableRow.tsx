@@ -28,7 +28,7 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
   <Tr>
     <EmptyTableCellForAlignment />
     <Td dataLabel="Name">
-      <Title headingLevel="h4">
+      <Title headingLevel="h3" size="md">
         <ResourceNameTooltip resource={obj.data}>
           {getDataConnectionDisplayName(obj)}
         </ResourceNameTooltip>

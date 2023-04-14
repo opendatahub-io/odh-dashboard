@@ -1,4 +1,4 @@
-import { ConfigMapKind } from '~/k8sTypes';
+import { ConfigMapKind, SecretKind } from '~/k8sTypes';
 
 export const updateArrayValue = <T>(values: T[], index: number, partialValue: Partial<T>): T[] =>
   values.map((v, i) => (i === index ? { ...v, ...partialValue } : v));
@@ -8,6 +8,9 @@ export const removeArrayItem = <T>(values: T[], index: number): T[] =>
 
 export const isConfigMapKind = (object: unknown): object is ConfigMapKind =>
   (object as ConfigMapKind).kind === 'ConfigMap';
+
+export const isSecretKind = (object: unknown): object is SecretKind =>
+  (object as SecretKind).kind === 'Secret';
 
 export const isStringKeyValuePairObject = (object: unknown): object is Record<string, string> =>
   Object.entries(object as Record<string, string>).every(

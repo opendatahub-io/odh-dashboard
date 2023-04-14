@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Divider,
+  PageSection,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import GenericSidebar from '~/pages/projects/components/GenericSidebar';
@@ -18,10 +25,17 @@ import useCheckLogoutParams from './useCheckLogoutParams';
 type SectionType = {
   id: ProjectSectionID;
   component: React.ReactNode;
+  isEmpty: boolean;
 };
 
 const ProjectDetails: React.FC = () => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const {
+    currentProject,
+    notebooks: { data: notebookStates, loaded: notebookStatesLoaded },
+    pvcs: { data: pvcs, loaded: pvcsLoaded },
+    dataConnections: { data: connections, loaded: connectionsLoaded },
+    servingRuntimes: { data: modelServers, loaded: modelServersLoaded },
+  } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
   const { dashboardConfig } = useAppContext();
@@ -32,11 +46,29 @@ const ProjectDetails: React.FC = () => {
 
   const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
-    { id: ProjectSectionID.WORKBENCHES, component: <NotebooksList /> },
-    { id: ProjectSectionID.CLUSTER_STORAGES, component: <StorageList /> },
-    { id: ProjectSectionID.DATA_CONNECTIONS, component: <DataConnectionsList /> },
+    {
+      id: ProjectSectionID.WORKBENCHES,
+      component: <NotebooksList />,
+      isEmpty: notebookStatesLoaded && notebookStates.length === 0,
+    },
+    {
+      id: ProjectSectionID.CLUSTER_STORAGES,
+      component: <StorageList />,
+      isEmpty: pvcsLoaded && pvcs.length === 0,
+    },
+    {
+      id: ProjectSectionID.DATA_CONNECTIONS,
+      component: <DataConnectionsList />,
+      isEmpty: connectionsLoaded && connections.length === 0,
+    },
     ...(modelServingEnabled
-      ? [{ id: ProjectSectionID.MODEL_SERVER, component: <ServingRuntimeList /> }]
+      ? [
+          {
+            id: ProjectSectionID.MODEL_SERVER,
+            component: <ServingRuntimeList />,
+            isEmpty: modelServersLoaded && modelServers.length === 0,
+          },
+        ]
       : []),
   ];
 
@@ -71,10 +103,19 @@ const ProjectDetails: React.FC = () => {
           maxWidth={175}
         >
           <Stack hasGutter>
-            {sections.map(({ id, component }) => (
-              <StackItem key={id} id={id} aria-label={ProjectSectionTitles[id]}>
-                {component}
-              </StackItem>
+            {sections.map(({ id, component, isEmpty }, index) => (
+              <React.Fragment key={id}>
+                <StackItem
+                  id={id}
+                  aria-label={ProjectSectionTitles[id]}
+                  data-testid="details-page-section"
+                >
+                  {component}
+                </StackItem>
+                {index !== sections.length - 1 && isEmpty && (
+                  <Divider data-testid="details-page-section-divider" />
+                )}
+              </React.Fragment>
             ))}
           </Stack>
         </GenericSidebar>

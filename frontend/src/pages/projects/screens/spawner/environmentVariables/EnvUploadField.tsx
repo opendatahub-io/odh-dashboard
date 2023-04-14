@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { FileUpload, FormGroup } from '@patternfly/react-core';
 import { parse } from 'yaml';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
-import { isConfigMapKind, isStringKeyValuePairObject } from './utils';
+import { EnvironmentVariableType, EnvVariableDataEntry } from '~/pages/projects/types';
+import { isConfigMapKind, isSecretKind, isStringKeyValuePairObject } from './utils';
 
-type ConfigMapUploadFieldProps = {
+type EnvUploadFieldProps = {
   onUpdate: (data: EnvVariableDataEntry[]) => void;
+  envVarType: EnvironmentVariableType;
 };
 
-const ConfigMapUploadField: React.FC<ConfigMapUploadFieldProps> = ({ onUpdate }) => {
+const EnvUploadField: React.FC<EnvUploadFieldProps> = ({ onUpdate, envVarType }) => {
   const [fileValue, setFileValue] = React.useState('');
   const [filename, setFilename] = React.useState('');
   const [isLoading, setLoading] = React.useState(false);
@@ -17,12 +18,12 @@ const ConfigMapUploadField: React.FC<ConfigMapUploadFieldProps> = ({ onUpdate })
   return (
     <FormGroup
       fieldId="configmap-upload"
-      helperText="Upload a Config Map yaml file"
+      helperText={`Upload a ${envVarType} yaml file`}
       helperTextInvalid={error}
       validated={error ? 'error' : 'default'}
     >
       <FileUpload
-        id="configmap-upload"
+        id="envvar-upload"
         type="text"
         value={fileValue}
         filename={filename}
@@ -44,22 +45,28 @@ const ConfigMapUploadField: React.FC<ConfigMapUploadFieldProps> = ({ onUpdate })
           setFileValue(data);
           try {
             const parsedData = parse(data);
-            if (!isConfigMapKind(parsedData)) {
-              setError('This file is not Config Map kind, please upload a Config Map kind file.');
+            if (
+              envVarType === EnvironmentVariableType.CONFIG_MAP
+                ? !isConfigMapKind(parsedData)
+                : !isSecretKind(parsedData)
+            ) {
+              setError(
+                `This file is not ${envVarType} kind, please upload a ${envVarType} kind file.`,
+              );
             } else {
-              const configMapData = parsedData.data;
-              if (!configMapData) {
+              const envData = parsedData.data;
+              if (!envData) {
                 setError('Data field cannot be empty, please check your file.');
-              } else if (!isStringKeyValuePairObject(configMapData)) {
+              } else if (!isStringKeyValuePairObject(envData)) {
                 setError('Data need to be string key value pairs, please check your file.');
               } else {
                 setError('');
-                onUpdate(Object.entries(configMapData).map(([key, value]) => ({ key, value })));
+                onUpdate(Object.entries(envData).map(([key, value]) => ({ key, value })));
               }
             }
           } catch (e) {
             setError(
-              'Cannot parse this file, please make sure this is a valid YAML file with only one Config Map defined.',
+              `Cannot parse this file, please make sure this is a valid YAML file with only one ${envVarType} defined.`,
             );
           }
         }}
@@ -72,4 +79,4 @@ const ConfigMapUploadField: React.FC<ConfigMapUploadFieldProps> = ({ onUpdate })
   );
 };
 
-export default ConfigMapUploadField;
+export default EnvUploadField;

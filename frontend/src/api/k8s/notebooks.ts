@@ -15,7 +15,7 @@ import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/typ
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
-import { mergeK8sQueryParams } from '~/api/apiMergeUtils';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { assemblePodSpecOptions } from './utils';
 
 const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
@@ -278,11 +278,13 @@ export const attachNotebookSecret = (
     },
   });
 
-  return k8sPatchResource<NotebookKind>({
-    model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace, queryParams: mergeK8sQueryParams(opts) },
-    patches,
-  });
+  return k8sPatchResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      queryOptions: { name: notebookName, ns: namespace },
+      patches,
+    }),
+  );
 };
 
 export const replaceNotebookSecret = (
@@ -300,11 +302,13 @@ export const replaceNotebookSecret = (
     },
   ];
 
-  return k8sPatchResource<NotebookKind>({
-    model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace, queryParams: mergeK8sQueryParams(opts) },
-    patches,
-  });
+  return k8sPatchResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      queryOptions: { name: notebookName, ns: namespace },
+      patches,
+    }),
+  );
 };
 
 export const attachNotebookPVC = (

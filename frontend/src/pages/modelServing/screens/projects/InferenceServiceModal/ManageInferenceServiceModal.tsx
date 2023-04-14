@@ -92,12 +92,27 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       ),
     );
 
+  const cleanFormData = () => {
+    const cleanedStorageFolderPath = createData.storage.path.replace(/^\/+/, '');
+
+    return {
+      ...createData,
+      storage: {
+        ...createData.storage,
+        path: cleanedStorageFolderPath === '' ? '/' : cleanedStorageFolderPath,
+      },
+    };
+  };
+
   const createModel = (): Promise<InferenceServiceKind> => {
-    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createInferenceService(createData);
+    // clean data
+    const cleanedFormData = cleanFormData();
+
+    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      return createInferenceService(cleanedFormData);
     }
     return createAWSSecret().then((secret) =>
-      createInferenceService(createData, secret.metadata.name),
+      createInferenceService(cleanedFormData, secret.metadata.name),
     );
   };
 
@@ -105,11 +120,15 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (!editInfo) {
       return Promise.reject(new Error('No model to update'));
     }
-    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return updateInferenceService(createData, editInfo);
+
+    // clean data
+    const cleanedFormData = cleanFormData();
+
+    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      return updateInferenceService(cleanedFormData, editInfo);
     }
     return createAWSSecret().then((secret) =>
-      updateInferenceService(createData, editInfo, secret.metadata.name),
+      updateInferenceService(cleanedFormData, editInfo, secret.metadata.name),
     );
   };
 

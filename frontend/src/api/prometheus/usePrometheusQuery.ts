@@ -1,42 +1,22 @@
 import * as React from 'react';
 import axios from 'axios';
 import { PrometheusQueryResponse } from '~/types';
+import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
 
-const usePrometheusQuery = (
-  apiPath: string,
-  query: string,
-): [
-  result: PrometheusQueryResponse | null,
-  loaded: boolean,
-  loadError: Error | undefined,
-  refetch: () => void,
-] => {
-  const [result, setResult] = React.useState<PrometheusQueryResponse | null>(null);
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>();
+type PromState = PrometheusQueryResponse | null;
 
+const usePrometheusQuery = (apiPath: string, query: string): FetchState<PromState> => {
   const fetchData = React.useCallback(() => {
     if (!query) {
-      return;
+      return Promise.reject(new NotReadyError('No query'));
     }
 
-    axios
+    return axios
       .post<{ response: PrometheusQueryResponse }>(apiPath, { query })
-      .then((response) => {
-        setResult(response.data.response);
-        setLoaded(true);
-        setError(undefined);
-      })
-      .catch((e) => {
-        setError(e);
-      });
+      .then((response) => response.data.response);
   }, [query, apiPath]);
 
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return [result, loaded, error, fetchData];
+  return useFetchState<PromState>(fetchData, null);
 };
 
 export default usePrometheusQuery;
