@@ -17,12 +17,10 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import useTemplates from './useTemplates';
 
 type CustomServingRuntimeContextType = {
-  refreshData: () => void;
   servingRuntimeTemplates: ContextResourceData<TemplateKind>;
 };
 
 export const CustomServingRuntimeContext = React.createContext<CustomServingRuntimeContextType>({
-  refreshData: () => undefined,
   servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
 });
 
@@ -32,12 +30,6 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
   const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
     useTemplates(dashboardNamespace),
   );
-
-  const servingRuntimeTeamplateRefresh = servingRuntimeTemplates.refresh;
-
-  const refreshData = React.useCallback(() => {
-    servingRuntimeTeamplateRefresh();
-  }, [servingRuntimeTeamplateRefresh]);
 
   if (servingRuntimeTemplates.error) {
     return (
@@ -65,7 +57,6 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     <CustomServingRuntimeContext.Provider
       value={{
         servingRuntimeTemplates,
-        refreshData,
       }}
     >
       <Outlet />
