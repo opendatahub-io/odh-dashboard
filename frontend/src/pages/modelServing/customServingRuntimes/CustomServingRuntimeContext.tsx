@@ -44,7 +44,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
       <Bullseye>
         <EmptyState>
           <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
+          <Title headingLevel="h2" size="lg">
             Problem loading serving runtimes page
           </Title>
           <EmptyStateBody>{servingRuntimeTemplates.error.message}</EmptyStateBody>

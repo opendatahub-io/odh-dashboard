@@ -14,6 +14,7 @@ export * from './k8s/secrets';
 export * from './k8s/serviceAccounts';
 export * from './k8s/servingRuntimes';
 export * from './k8s/templates';
+export * from './k8s/dashboardConfig';
 
 // Prometheus queries
 export * from './prometheus/pvcs';
