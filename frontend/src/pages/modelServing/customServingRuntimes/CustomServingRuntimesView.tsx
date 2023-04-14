@@ -14,7 +14,7 @@ const CustomServingRuntimesView: React.FC = () => {
     <ApplicationsPage
       title="Serving runtimes"
       description="Manage model serving runtimes"
-      loaded // already checked this in the context provider so loaded is always true here
+      loaded
       empty={servingRuntimeTemplates.length === 0}
       emptyStatePage={<EmptyCustomServingRuntime />}
       provideChildrenPadding
