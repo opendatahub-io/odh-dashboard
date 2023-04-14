@@ -30,18 +30,24 @@ const usePipelinesAPIRoute = (hasCR: boolean, namespace: string): FetchState<Sta
     [hasCR, namespace],
   );
 
-  const ref = React.useRef(false);
-  const refreshInterval = !ref.current && hasCR ? FAST_POLL_INTERVAL : undefined;
-  const fetchState = useFetchState<State>(callback, null, {
-    refreshRate: refreshInterval,
+  const state = useFetchState<State>(callback, null, {
     initialPromisePurity: true,
   });
 
-  if (fetchState[0]) {
-    ref.current = true;
-  }
+  // TODO: Consider baking this into useFetchState -- webhooks will make it obsolete
+  const [data, , , refresh] = state;
+  const hasData = !!data;
+  React.useEffect(() => {
+    let interval;
+    if (!hasData) {
+      interval = setInterval(refresh, FAST_POLL_INTERVAL);
+    }
+    return () => {
+      clearInterval(interval);
+    };
+  }, [hasData, refresh]);
 
-  return fetchState;
+  return state;
 };
 
 export default usePipelinesAPIRoute;

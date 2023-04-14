@@ -6,6 +6,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import ImportPipelineButton from '~/concepts/pipelines/import/ImportPipelineButton';
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
+import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 
 const PipelinesSection: React.FC = () => {
   const {
@@ -27,7 +28,9 @@ const PipelinesSection: React.FC = () => {
       isEmpty={!installed}
       emptyState={<NoPipelineServer variant="secondary" />}
     >
-      <PipelinesList />
+      <EnsureAPIAvailability>
+        <PipelinesList />
+      </EnsureAPIAvailability>
     </DetailsSection>
   );
 };

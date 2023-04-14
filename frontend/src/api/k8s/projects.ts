@@ -12,6 +12,7 @@ import { ProjectKind } from '~/k8sTypes';
 import { ProjectModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT } from '~/const';
 import { listServingRuntimes } from './servingRuntimes';
 
 export const getProject = (projectName: string): Promise<ProjectKind> =>
@@ -27,7 +28,7 @@ export const getProjects = (withLabel?: string): Promise<ProjectKind[]> =>
   }).then((listResource) => listResource.items);
 
 export const getDSGProjects = (): Promise<ProjectKind[]> =>
-  getProjects('opendatahub.io/dashboard=true');
+  getProjects(LABEL_SELECTOR_DASHBOARD_RESOURCE);
 
 export const createProject = (
   username: string,
@@ -92,7 +93,7 @@ export const createProject = (
 };
 
 export const getModelServingProjects = (): Promise<ProjectKind[]> =>
-  getProjects('opendatahub.io/dashboard=true,modelmesh-enabled=true');
+  getProjects(`${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_MODEL_SERVING_PROJECT}`);
 
 async function filter(arr, callback) {
   const fail = Symbol();

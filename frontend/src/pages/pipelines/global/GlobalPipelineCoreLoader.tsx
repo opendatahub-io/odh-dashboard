@@ -45,15 +45,10 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       }
 
       // They ended up on a non-valid project path
-      const redirectProject = projects[0];
       renderStateProps = {
         empty: true,
         emptyStatePage: (
-          <InvalidProject
-            namespace={namespace}
-            navigateTo={getInvalidRedirectPath(redirectProject.metadata.name)}
-            navigateText="Navigate to another project"
-          />
+          <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
         ),
       };
     } else {

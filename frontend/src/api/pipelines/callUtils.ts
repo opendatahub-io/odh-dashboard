@@ -5,7 +5,7 @@ const callPipelines = <T>(
   host: string,
   path: string,
   options: RequestInit,
-  data?: Record<string, unknown>,
+  { data, queryParams }: { data?: Record<string, unknown>; queryParams?: Record<string, unknown> },
 ): Promise<T> => {
   const { method, ...otherOptions } = options;
 
@@ -13,9 +13,7 @@ const callPipelines = <T>(
   return fetch(`/api/proxy${path}`, {
     ...otherOptions,
     headers: {
-      'Content-Type': `application/${
-        method === 'PATCH' ? 'json-patch+json' : 'json'
-      };charset=UTF-8`,
+      'Content-Type': `application/json;charset=UTF-8`,
     },
     method: 'POST', // we always post so we can send data
     body: JSON.stringify({
@@ -23,29 +21,39 @@ const callPipelines = <T>(
       host,
       path, // Not part of the request -- but easier to read from the network tab
       data,
+      queryParams,
     }),
   }).then((response) => response.text().then((data) => JSON.parse(data)));
 };
 
-export const pipelinesGET = <T>(host: string, path: string, options?: K8sAPIOptions): Promise<T> =>
-  callPipelines<T>(host, path, mergeRequestInit(options, { method: 'GET' }));
+export const pipelinesGET = <T>(
+  host: string,
+  path: string,
+  queryParams: Record<string, unknown> = {},
+  options?: K8sAPIOptions,
+): Promise<T> =>
+  callPipelines<T>(host, path, mergeRequestInit(options, { method: 'GET' }), { queryParams });
 
 export const pipelinesCREATE = <T>(
   host: string,
   path: string,
   data: Record<string, unknown>,
   options?: K8sAPIOptions,
-): Promise<T> => callPipelines<T>(host, path, mergeRequestInit(options, { method: 'POST' }), data);
+): Promise<T> =>
+  callPipelines<T>(host, path, mergeRequestInit(options, { method: 'POST' }), { data });
 
 export const pipelinesUPDATE = <T>(
   host: string,
   path: string,
   data: Record<string, unknown>,
   options?: K8sAPIOptions,
-): Promise<T> => callPipelines<T>(host, path, mergeRequestInit(options, { method: 'PUT' }), data);
+): Promise<T> =>
+  callPipelines<T>(host, path, mergeRequestInit(options, { method: 'PUT' }), { data });
 
 export const pipelinesDELETE = <T>(
   host: string,
   path: string,
+  queryParams: Record<string, unknown> = {},
   options?: K8sAPIOptions,
-): Promise<T> => callPipelines<T>(host, path, mergeRequestInit(options, { method: 'DELETE' }));
+): Promise<T> =>
+  callPipelines<T>(host, path, mergeRequestInit(options, { method: 'DELETE' }), { queryParams });

@@ -1,9 +1,16 @@
-import { ListPipelinesResponseKF } from './kfTypes';
+import { K8sAPIOptions } from '~/k8sTypes';
+import { ListPipelineRunsResourceKF, ListPipelinesResponseKF } from './kfTypes';
 
-export type ListPipelines = () => Promise<ListPipelinesResponseKF>;
+export type ListPipelines = (
+  opts: K8sAPIOptions,
+  limit?: number,
+) => Promise<ListPipelinesResponseKF>;
+export type ListPipelineRuns = (
+  opts: K8sAPIOptions,
+  pipelineId: string,
+) => Promise<ListPipelineRunsResourceKF>;
 
 export type PipelineAPIs = {
-  // TODO: fill out with all the APIs
-  // eg: uploadPipeline: (content: string) => SomeReturnedStructure;
   listPipelines: ListPipelines;
+  listPipelineRuns: ListPipelineRuns;
 };

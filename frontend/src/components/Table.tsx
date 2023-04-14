@@ -17,6 +17,7 @@ type TableProps<DataType> = {
   rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;
   enablePagination?: boolean;
   minPageSize?: number;
+  truncateRenderingAt?: number;
   toolbarContent?: React.ReactElement<typeof ToolbarItem>;
   emptyTableView?: React.ReactElement<typeof Tr>;
   caption?: string;
@@ -29,6 +30,7 @@ const Table = <T,>({
   rowRenderer,
   enablePagination,
   minPageSize = 10,
+  truncateRenderingAt = 0,
   toolbarContent,
   emptyTableView,
   caption,
@@ -38,7 +40,14 @@ const Table = <T,>({
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(minPageSize);
 
-  const data = enablePagination ? allData.slice(pageSize * (page - 1), pageSize * page) : allData;
+  let data: T[];
+  if (truncateRenderingAt) {
+    data = allData.slice(0, truncateRenderingAt);
+  } else if (enablePagination) {
+    data = allData.slice(pageSize * (page - 1), pageSize * page);
+  } else {
+    data = allData;
+  }
 
   // update page to 1 if data changes (common when filter is applied)
   useEffect(() => {

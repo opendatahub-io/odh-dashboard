@@ -1,10 +1,18 @@
 import { pipelinesGET } from '~/api/pipelines/callUtils';
-import { ListPipelinesAPI } from './callTypes';
+import { ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
+import { ListPipelineRunsAPI, ListPipelinesAPI } from './callTypes';
 
-// TODO: Kubeflow endpoints
+export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, count) =>
+  // eslint-disable-next-line camelcase
+  pipelinesGET(hostPath, '/apis/v1beta1/pipelines', { page_size: count }, opts);
 
-// eg uploadPipeline: POST /apis/v1beta1/pipelines/upload
-// https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec/#operation--apis-v1beta1-pipelines-upload-post
-
-export const listPipelines: ListPipelinesAPI = (hostPath, opts?) => () =>
-  pipelinesGET(hostPath, '/apis/v1beta1/pipelines', opts);
+export const listPipelineRuns: ListPipelineRunsAPI = (hostPath) => (opts, pipelineId) =>
+  pipelinesGET(
+    hostPath,
+    '/apis/v1beta1/runs',
+    {
+      'resource_reference_key.id': pipelineId,
+      'resource_reference_key.type': ResourceTypeKF.PIPELINE_VERSION,
+    },
+    opts,
+  );

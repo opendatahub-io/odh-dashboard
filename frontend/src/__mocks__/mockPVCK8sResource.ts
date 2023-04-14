@@ -1,4 +1,4 @@
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
@@ -22,7 +22,7 @@ export const mockPVCK8sResource = ({
     name,
     namespace,
     labels: {
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     uid: genUID('pvc'),
   },

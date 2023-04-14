@@ -7,7 +7,10 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;
   getRedirectPath: (namespace: string) => string;
-} & Omit<React.ComponentProps<typeof ApplicationsPage>, 'loaded' | 'empty'>;
+} & Omit<
+  React.ComponentProps<typeof ApplicationsPage>,
+  'loaded' | 'empty' | 'emptyStatePage' | 'headerContent' | 'provideChildrenPadding'
+>;
 
 const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = ({
   children,

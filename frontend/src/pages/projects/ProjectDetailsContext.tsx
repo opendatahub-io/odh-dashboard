@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Outlet, useParams } from 'react-router-dom';
+import { Navigate, Outlet, useParams } from 'react-router-dom';
 import {
   ServingRuntimeKind,
   PersistentVolumeClaimKind,
@@ -96,12 +96,19 @@ const ProjectDetailsContextProvider: React.FC = () => {
   ]);
 
   if (!project) {
+    if (
+      featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableProjects) &&
+      projects.length === 0
+    ) {
+      // No projects, but we do have the projects view -- navigate them so they can go through normal flows
+      return <Navigate to="/projects" replace />;
+    }
+
     return (
       <InvalidProject
         namespace={namespace}
         title="Problem loading project details"
-        navigateTo="/projects"
-        navigateText="View my projects"
+        getRedirectPath={(namespace) => `/projects/${namespace}`}
       />
     );
   }

@@ -6,7 +6,7 @@ import {
   EmptyStateSecondaryActions,
   Title,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon, OpenDrawerRightIcon } from '@patternfly/react-icons';
 import ImportPipelineButton from '~/concepts/pipelines/import/ImportPipelineButton';
 import ExternalLink from '~/components/ExternalLink';
 
@@ -18,8 +18,7 @@ const GlobalNoPipelines: React.FC = () => (
     </Title>
     <EmptyStateBody>
       To get started, import a pipeline, or create one using the Jupyter visual editor, for help
-      creating a pipeline, access the [quick start (icon)].
-      {/* TODO: What quick start? */}
+      creating a pipeline, access the <OpenDrawerRightIcon />.{/* TODO: What quick start? */}
     </EmptyStateBody>
     <ImportPipelineButton variant="primary" />
     <EmptyStateSecondaryActions>
