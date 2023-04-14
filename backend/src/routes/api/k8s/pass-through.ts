@@ -41,9 +41,10 @@ export const passThrough = <T extends K8sResourceCommon>(
 
   // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
   let safeURL = url;
-  if (method.toLowerCase() === 'post') {
+  if (method.toLowerCase() === 'post' && !url.endsWith('selfsubjectaccessreviews')) {
     // Core SDK builds the wrong path for k8s -- can't post to a resource name; remove the name from the url
     // eg: POST /.../configmaps/my-config-map => POST /.../configmaps
+    // Note: SelfSubjectAccessReviews do not include a resource name
     const urlParts = url.split('/');
     const queryParams = urlParts[urlParts.length - 1].split('?');
     urlParts.pop();

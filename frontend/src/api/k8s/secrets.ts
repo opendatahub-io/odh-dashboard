@@ -10,7 +10,7 @@ import { SecretModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getModelServiceAccountName } from '~/pages/modelServing/utils';
-import { mergeK8sQueryParams } from '~/api/apiMergeUtils';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
 
@@ -126,18 +126,20 @@ export const getSecretsByLabel = (label: string, namespace: string): Promise<Sec
   }).then((result) => result.items);
 
 export const createSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> =>
-  k8sCreateResource<SecretKind>({
-    model: SecretModel,
-    resource: data,
-    queryOptions: { queryParams: mergeK8sQueryParams(opts) },
-  });
+  k8sCreateResource<SecretKind>(
+    applyK8sAPIOptions(opts, {
+      model: SecretModel,
+      resource: data,
+    }),
+  );
 
 export const replaceSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> =>
-  k8sUpdateResource<SecretKind>({
-    model: SecretModel,
-    resource: data,
-    queryOptions: { queryParams: mergeK8sQueryParams(opts) },
-  });
+  k8sUpdateResource<SecretKind>(
+    applyK8sAPIOptions(opts, {
+      model: SecretModel,
+      resource: data,
+    }),
+  );
 
 export const deleteSecret = (projectName: string, secretName: string): Promise<K8sStatus> =>
   k8sDeleteResource<SecretKind, K8sStatus>({

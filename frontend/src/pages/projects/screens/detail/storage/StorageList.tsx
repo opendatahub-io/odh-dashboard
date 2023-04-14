@@ -36,7 +36,6 @@ const StorageList: React.FC = () => {
           <EmptyDetailsList
             title="No storage"
             description="Choose existing, or add new on cluster storage."
-            includeDivider
           />
         }
       >

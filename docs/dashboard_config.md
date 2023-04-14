@@ -29,7 +29,7 @@ In its default state the Dashboard config is in this form:
 spec:
   dashboardConfig:
     enablement: true
-    disableInfo: fals
+    disableInfo: false
     disableSupport: false
     disableClusterManager: false
     disableTracking: true
@@ -88,6 +88,7 @@ notebookController:
   notebookTolerationSettings:
     enabled: true
     key: NotebooksOnly
+  storageClassName: gp2
 ```
 
 ### Notebook Controller State

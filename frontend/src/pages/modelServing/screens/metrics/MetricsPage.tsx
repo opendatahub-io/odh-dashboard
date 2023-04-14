@@ -1,11 +1,9 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, PageSection } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { BreadcrumbItemType } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import MetricsChart from './MetricsChart';
 import MetricsPageToolbar from './MetricsPageToolbar';
-import { ModelServingMetricsContext, RuntimeMetricType } from './ModelServingMetricsContext';
 
 type MetricsPageProps = {
   children: React.ReactNode;

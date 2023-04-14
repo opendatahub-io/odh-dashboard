@@ -46,7 +46,6 @@ const NotebookList: React.FC = () => {
         <EmptyDetailsList
           title="No workbenches"
           description="To get started, create a workbench."
-          includeDivider
         />
       }
     >

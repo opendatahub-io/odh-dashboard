@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { FormGroup, InputGroup, InputGroupText, NumberInput } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { isHTMLInputElement, normalizeBetween } from '~/utilities/utils';
-import useDefaultPvcSize from '~/pages/projects/screens/spawner/storage/useAvailablePvcSize';
+import { isHTMLInputElement } from '~/utilities/utils';
 
 type PVSizeFieldProps = {
   fieldID: string;
@@ -13,11 +12,9 @@ type PVSizeFieldProps = {
 
 const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, currentSize }) => {
   const minSize = parseInt(currentSize || '') || 1;
-  const defaultSize = useDefaultPvcSize();
-  const availableSize = defaultSize * 2;
 
   const onStep = (step: number) => {
-    setSize(normalizeBetween(size + step, minSize, availableSize));
+    setSize(Math.max(size + step, minSize));
   };
   return (
     <FormGroup
@@ -36,14 +33,13 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, curre
           id={fieldID}
           name={fieldID}
           value={size}
-          max={availableSize}
           min={minSize}
           onPlus={() => onStep(1)}
           onMinus={() => onStep(-1)}
           onChange={(event) => {
             if (isHTMLInputElement(event.target)) {
               const newSize = Number(event.target.value);
-              setSize(isNaN(newSize) ? size : normalizeBetween(newSize, minSize, availableSize));
+              setSize(isNaN(newSize) ? size : Math.max(newSize, minSize));
             }
           }}
         />

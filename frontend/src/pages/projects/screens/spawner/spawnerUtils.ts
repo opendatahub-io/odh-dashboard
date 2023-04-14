@@ -4,6 +4,7 @@ import { NotebookSize, Volume, VolumeMount } from '~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
 import {
   ConfigMapCategory,
+  DataConnectionData,
   EnvVariable,
   EnvVariableDataEntry,
   SecretCategory,
@@ -19,7 +20,7 @@ import {
   ImageVersionDependencyType,
   ImageVersionSelectOptionObjectType,
 } from './types';
-import { FAILED_PHASES, PENDING_PHASES } from './const';
+import { FAILED_PHASES, PENDING_PHASES, IMAGE_ANNOTATIONS } from './const';
 
 /******************* Common utils *******************/
 export const useMergeDefaultPVCName = (
@@ -109,6 +110,12 @@ export const compareTagVersions = (
   a: ImageStreamSpecTagType,
   b: ImageStreamSpecTagType,
 ): number => {
+  // Recommended tags should be first
+  if (a.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED]) {
+    return -1;
+  } else if (b.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED]) {
+    return 1;
+  }
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
     return compareVersions(b.name, a.name);
   }
@@ -125,14 +132,13 @@ export const compareImageStreamOrder = (a: ImageStreamKind, b: ImageStreamKind):
 
 /******************* ImageStream and ImageVersion utils *******************/
 export const getImageStreamDisplayName = (imageStream: ImageStreamKind): string =>
-  imageStream.metadata.annotations?.['opendatahub.io/notebook-image-name'] ||
-  imageStream.metadata.name;
+  imageStream.metadata.annotations?.[IMAGE_ANNOTATIONS.DISP_NAME] || imageStream.metadata.name;
 
 export const getImageStreamDescription = (imageStream: ImageStreamKind): string =>
-  imageStream.metadata.annotations?.['opendatahub.io/notebook-image-desc'] || '';
+  imageStream.metadata.annotations?.[IMAGE_ANNOTATIONS.DESC] || '';
 
 export const getImageSteamOrder = (imageStream: ImageStreamKind): number =>
-  parseInt(imageStream.metadata.annotations?.['opendatahub.io/notebook-image-order'] || '100');
+  parseInt(imageStream.metadata.annotations?.[IMAGE_ANNOTATIONS.IMAGE_ORDER] || '100');
 
 /**
  * Parse annotation software field or dependencies field from long string to array
@@ -142,8 +148,8 @@ export const getImageVersionDependencies = (
   isSoftware = false,
 ): ImageVersionDependencyType[] => {
   const depString = isSoftware
-    ? imageVersion.annotations?.['opendatahub.io/notebook-software'] || ''
-    : imageVersion.annotations?.['opendatahub.io/notebook-python-dependencies'] || '';
+    ? imageVersion.annotations?.[IMAGE_ANNOTATIONS.SOFTWARE] || ''
+    : imageVersion.annotations?.[IMAGE_ANNOTATIONS.DEPENDENCIES] || '';
   let dependencies: ImageVersionDependencyType[];
   try {
     dependencies = JSON.parse(depString);
@@ -212,15 +218,6 @@ export const getDefaultVersionForImageStream = (
   }
 
   const sortedVersions = [...availableVersions].sort(compareTagVersions);
-
-  const defaultVersion = sortedVersions.find(
-    (version) =>
-      version.annotations?.['opendatahub.io/notebook-image-recommended'] ||
-      version.annotations?.['opendatahub.io/default-image'],
-  );
-  if (defaultVersion) {
-    return defaultVersion;
-  }
 
   // Return the most recent version
   return sortedVersions[0];
@@ -293,7 +290,7 @@ export const checkVersionExistence = (
 };
 
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
-  !!imageVersion.annotations?.['opendatahub.io/notebook-image-recommended'];
+  !!imageVersion.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED];
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
@@ -341,6 +338,7 @@ export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
   storageData: StorageData,
   envVariables: EnvVariable[],
+  dataConnection: DataConnectionData,
 ): boolean => {
   const { projectName, notebookName, notebookSize, image } = startNotebookData;
   const { storageType, creating, existing } = storageData;
@@ -356,5 +354,18 @@ export const checkRequiredFieldsForNotebookStart = (
   const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
   const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
 
-  return isNotebookDataValid && isStorageDataValid && isEnvVariableDataValid(envVariables);
+  const newDataConnectionInvalid =
+    dataConnection.type === 'creating' &&
+    !(dataConnection?.creating?.values?.data && isAWSValid(dataConnection.creating.values.data));
+  const existingDataConnectionInvalid =
+    dataConnection.type === 'existing' && !dataConnection?.existing?.secretRef.name;
+  const isDataConnectionValid =
+    !dataConnection.enabled || (!newDataConnectionInvalid && !existingDataConnectionInvalid);
+
+  return (
+    isNotebookDataValid &&
+    isStorageDataValid &&
+    isEnvVariableDataValid(envVariables) &&
+    isDataConnectionValid
+  );
 };

@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Alert,
-  FormGroup,
-  Radio,
-  Skeleton,
-  Stack,
-  StackItem,
-  TextInput,
-} from '@patternfly/react-core';
+import { Alert, FormGroup, Radio, Skeleton, Stack, StackItem } from '@patternfly/react-core';
 import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   CreatingInferenceServiceObject,
@@ -17,6 +9,7 @@ import AWSField from '~/pages/projects/dataConnections/AWSField';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import '~/pages/projects/screens/detail/storage/ManageStorageModal.scss';
 import DataConnectionExistingField from './DataConnectionExistingField';
+import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 
 type DataConnectionSectionType = {
   data: CreatingInferenceServiceObject;
@@ -95,13 +88,10 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
                     />
                   </StackItem>
                   <StackItem>
-                    <FormGroup fieldId="folder-path" label="Folder path">
-                      <TextInput
-                        id="folder-path"
-                        value={data.storage.path}
-                        onChange={(path) => setData('storage', { ...data.storage, path })}
-                      />
-                    </FormGroup>
+                    <DataConnectionFolderPathField
+                      folderPath={data.storage.path}
+                      setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+                    />
                   </StackItem>
                 </Stack>
               )

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import axios from 'axios';
 import { PrometheusQueryRangeResponse, PrometheusQueryRangeResultValue } from '~/types';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 
 const usePrometheusQueryRange = (
   active: boolean,
@@ -9,47 +10,22 @@ const usePrometheusQueryRange = (
   span: number,
   endInMs: number,
   step: number,
-): [
-  results: PrometheusQueryRangeResultValue[],
-  loaded: boolean,
-  loadError: Error | undefined,
-  refetch: () => void,
-] => {
-  const [results, setResults] = React.useState<PrometheusQueryRangeResultValue[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>();
-
-  const fetchData = React.useCallback(() => {
+): FetchState<PrometheusQueryRangeResultValue[]> => {
+  const fetchData = React.useCallback<
+    FetchStateCallbackPromise<PrometheusQueryRangeResultValue[]>
+  >(() => {
     const endInS = endInMs / 1000;
     const start = endInS - span;
 
-    if (!active) {
-      // Save us the call & data storage -- if it's not active, we don't need to fetch
-      // If we are already loaded & have data, it's okay -- it can be stale data to quickly show
-      // if the associated graph renders
-      return;
-    }
-    axios
+    return axios
       .post<{ response: PrometheusQueryRangeResponse }>(apiPath, {
         query: `query=${queryLang}&start=${start}&end=${endInS}&step=${step}`,
       })
-      .then((response) => {
-        const result = response.data?.response.data.result?.[0]?.values || [];
-        setResults(result);
-        setLoaded(true);
-        setError(undefined);
-      })
-      .catch((e) => {
-        setError(e);
-        setLoaded(true);
-      });
-  }, [endInMs, span, active, apiPath, queryLang, step]);
 
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+      .then((response) => response.data?.response.data.result?.[0]?.values || []);
+  }, [queryLang, apiPath, span, endInMs, step]);
 
-  return [results, loaded, error, fetchData];
+  return useFetchState<PrometheusQueryRangeResultValue[]>(fetchData, []);
 };
 
 export default usePrometheusQueryRange;

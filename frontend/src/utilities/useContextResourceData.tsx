@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { ContextResourceData } from '~/types';
+import { FetchState } from '~/utilities/useFetchState';
 import { POLL_INTERVAL } from './const';
 
 export const useContextResourceData = <T,>(
-  resourceData: [data: T[], loaded: boolean, loadError: Error | undefined, refresh: () => void],
+  resourceData: FetchState<T[]>,
   refreshInterval = POLL_INTERVAL,
 ): ContextResourceData<T> => {
   const [values, loaded, error, refresh] = resourceData;

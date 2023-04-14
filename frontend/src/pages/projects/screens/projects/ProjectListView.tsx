@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { Button, ToolbarItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import Table from '~/components/Table';
-
 import useTableColumnSort from '~/utilities/useTableColumnSort';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
+import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -16,11 +15,13 @@ import ManageProjectModal from './ManageProjectModal';
 type ProjectListViewProps = {
   projects: ProjectKind[];
   refreshProjects: () => Promise<void>;
+  allowCreate: boolean;
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({
   projects: unfilteredProjects,
   refreshProjects,
+  allowCreate,
 }) => {
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -88,15 +89,20 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
                 }}
               />
             </ToolbarItem>
-            <ToolbarItem>
-              <NewProjectButton />
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="link"
-                component={() => <Link to="/notebookController">Launch Jupyter</Link>}
-              />
-            </ToolbarItem>
+            {allowCreate ? (
+              <>
+                <ToolbarItem>
+                  <NewProjectButton />
+                </ToolbarItem>
+                <ToolbarItem>
+                  <LaunchJupyterButton variant={ButtonVariant.link} />
+                </ToolbarItem>
+              </>
+            ) : (
+              <ToolbarItem>
+                <LaunchJupyterButton variant={ButtonVariant.primary} />
+              </ToolbarItem>
+            )}
           </React.Fragment>
         }
       />

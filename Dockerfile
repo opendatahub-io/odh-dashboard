@@ -33,6 +33,7 @@ COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/a
 COPY --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
 COPY --chown=default:root --from=builder /usr/src/app/backend/package-lock.json /usr/src/app/backend/package-lock.json
 COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+COPY --chown=default:root --from=builder /usr/src/app/.npmrc /usr/src/app/backend/.npmrc
 COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
 COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
 

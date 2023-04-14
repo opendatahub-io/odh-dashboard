@@ -1,4 +1,6 @@
-export const mockDashboardConfig = {
+import { DashboardConfig } from '~/types';
+
+export const mockDashboardConfig: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
   metadata: {
@@ -6,13 +8,7 @@ export const mockDashboardConfig = {
     labels: {
       'opendatahub.io/dashboard': 'true',
     },
-    annotations: {},
-    creationTimestamp: '2023-02-08T13:35:42Z',
-    generation: 15,
-    managedFields: [],
     namespace: 'redhat-ods-applications',
-    resourceVersion: '1926467',
-    uid: '1e4fb39d-1d61-45c6-93ff-f4872a838a68',
   },
   spec: {
     dashboardConfig: {
@@ -27,6 +23,7 @@ export const mockDashboardConfig = {
       disableUserManagement: false,
       disableProjects: false,
       disableModelServing: false,
+      modelMetricsNamespace: 'test-project',
     },
     notebookController: {
       enabled: true,
@@ -83,6 +80,19 @@ export const mockDashboardConfig = {
       },
     ],
     notebookSizes: [
+      {
+        name: 'XSmall',
+        resources: {
+          limits: {
+            cpu: '0.5',
+            memory: '500Mi',
+          },
+          requests: {
+            cpu: '0.1',
+            memory: '100Mi',
+          },
+        },
+      },
       {
         name: 'Small',
         resources: {
