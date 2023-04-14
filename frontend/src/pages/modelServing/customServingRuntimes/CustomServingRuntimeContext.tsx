@@ -15,13 +15,18 @@ import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useTemplates from './useTemplates';
+import useTemplateOrder from './useTemplateOrder';
 
 type CustomServingRuntimeContextType = {
+  refreshData: () => void;
   servingRuntimeTemplates: ContextResourceData<TemplateKind>;
+  servingRuntimeTemplateOrder: ContextResourceData<string>;
 };
 
 export const CustomServingRuntimeContext = React.createContext<CustomServingRuntimeContextType>({
+  refreshData: () => undefined,
   servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
 });
 
 const CustomServingRuntimeContextProvider: React.FC = () => {
@@ -31,7 +36,19 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     useTemplates(dashboardNamespace),
   );
 
-  if (servingRuntimeTemplates.error) {
+  const servingRuntimeTemplateOrder = useContextResourceData<string>(
+    useTemplateOrder(dashboardNamespace),
+  );
+
+  const servingRuntimeTeamplateRefresh = servingRuntimeTemplates.refresh;
+  const servingRuntimeTeamplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
+
+  const refreshData = React.useCallback(() => {
+    servingRuntimeTeamplateRefresh();
+    servingRuntimeTeamplateOrderRefresh();
+  }, [servingRuntimeTeamplateRefresh, servingRuntimeTeamplateOrderRefresh]);
+
+  if (servingRuntimeTemplates.error || servingRuntimeTemplateOrder.error) {
     return (
       <Bullseye>
         <EmptyState>
@@ -39,13 +56,15 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
           <Title headingLevel="h2" size="lg">
             Problem loading serving runtimes page
           </Title>
-          <EmptyStateBody>{servingRuntimeTemplates.error.message}</EmptyStateBody>
+          <EmptyStateBody>
+            {servingRuntimeTemplates?.error?.message || servingRuntimeTemplateOrder?.error?.message}
+          </EmptyStateBody>
         </EmptyState>
       </Bullseye>
     );
   }
 
-  if (!servingRuntimeTemplates.loaded) {
+  if (!servingRuntimeTemplates.loaded || !servingRuntimeTemplateOrder.loaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -57,6 +76,8 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     <CustomServingRuntimeContext.Provider
       value={{
         servingRuntimeTemplates,
+        servingRuntimeTemplateOrder,
+        refreshData,
       }}
     >
       <Outlet />

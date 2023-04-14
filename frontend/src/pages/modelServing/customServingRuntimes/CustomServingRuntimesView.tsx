@@ -2,10 +2,12 @@ import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import EmptyCustomServingRuntime from './EmptyCustomServingRuntime';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
+import { compareTemplateKinds } from './utils';
 
 const CustomServingRuntimesView: React.FC = () => {
   const {
     servingRuntimeTemplates: { data: servingRuntimeTemplates },
+    servingRuntimeTemplateOrder: { data: order },
   } = React.useContext(CustomServingRuntimeContext);
 
   return (
@@ -17,7 +19,7 @@ const CustomServingRuntimesView: React.FC = () => {
       emptyStatePage={<EmptyCustomServingRuntime />}
       provideChildrenPadding
     >
-      {servingRuntimeTemplates.map((servingRuntime) => (
+      {servingRuntimeTemplates.sort(compareTemplateKinds(order)).map((servingRuntime) => (
         <div key={servingRuntime.metadata.name}>
           <p>{servingRuntime.metadata.name}</p>
           <p>{servingRuntime.metadata.annotations?.description || ''}</p>
