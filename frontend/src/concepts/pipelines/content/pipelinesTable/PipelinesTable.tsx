@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { TableVariant } from '@patternfly/react-table';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import Table from '~/components/Table';
 import PipelinesTableRow from '~/concepts/pipelines/content/pipelinesTable/PipelinesTableRow';
@@ -18,6 +19,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
   <Table
     data={pipelines}
     columns={columns}
+    variant={TableVariant.compact}
     truncateRenderingAt={contentLimit}
     rowRenderer={(pipeline, rowIndex) => (
       <PipelinesTableRow
