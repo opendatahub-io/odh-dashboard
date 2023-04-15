@@ -12,6 +12,23 @@ export class NotReadyError extends Error {
   }
 }
 
+/**
+ * Checks to see if it's a standard error handled by useStateFetch .catch block.
+ */
+export const isCommonStateError = (e: Error) => {
+  if (e.name === 'NotReadyError') {
+    // An escape hatch for callers to reject the call at this fetchCallbackPromise reference
+    // Re-compute your callback to re-trigger again
+    return true;
+  }
+  if (e.name == 'AbortError') {
+    // Abort errors are silent
+    return true;
+  }
+
+  return false;
+};
+
 /** Provided as a promise, so you can await a refresh before enabling buttons / closing modals */
 export type FetchStateRefreshPromise = () => Promise<void>;
 
@@ -157,13 +174,7 @@ const useFetchState = <Type, Default extends Type = Type>(
             return;
           }
 
-          if (e.name === 'NotReadyError') {
-            // An escape hatch for callers to reject the call at this fetchCallbackPromise reference
-            // Re-compute your callback to re-trigger again
-            return;
-          }
-          if (e.name == 'AbortError') {
-            // Abort errors are silent
+          if (isCommonStateError(e)) {
             return;
           }
           setLoadError(e);

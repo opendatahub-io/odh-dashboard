@@ -3,6 +3,7 @@ import {
   ListPipelineRuns,
   ListPipelines,
   ListPipelineTemplates,
+  UploadPipeline,
 } from '~/concepts/pipelines/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
@@ -15,3 +16,4 @@ export type GetPipelineAPI = KubeflowAPICall<GetPipeline>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
 export type ListPipelineRunsAPI = KubeflowAPICall<ListPipelineRuns>;
 export type ListPipelineTemplatesAPI = KubeflowAPICall<ListPipelineTemplates>;
+export type UploadPipelineAPI = KubeflowAPICall<UploadPipeline>;

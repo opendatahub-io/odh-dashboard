@@ -7,24 +7,38 @@ import {
   listPipelineRuns,
   listPipelines,
   listPipelineTemplates,
+  uploadPipeline,
 } from '~/api';
+import { ProjectKind } from '~/k8sTypes';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
+
+type APIState = {
+  /** If API will successfully call */
+  apiAvailable: boolean;
+  /** The available API functions */
+  api: PipelineAPIs;
+};
 
 type PipelineContext = {
   hasCR: boolean;
   crInitializing: boolean;
-  hostPath: string | null;
   namespace: string;
+  project: ProjectKind;
   refreshState: () => void;
+  refreshAPIState: () => void;
+  apiState: APIState;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
   hasCR: false,
   crInitializing: false,
-  hostPath: null,
   namespace: '',
+  project: null as unknown as ProjectKind,
   refreshState: () => undefined,
+  refreshAPIState: () => undefined,
+  apiState: { apiAvailable: false, api: null as unknown as APIState['api'] },
 });
 
 type PipelineContextProviderProps = {
@@ -36,10 +50,12 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   children,
   namespace,
 }) => {
+  const [internalAPIToggleState, setInternalAPIToggleState] = React.useState(false);
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(namespace));
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = usePipelineNamespaceCR(namespace);
-  // TODO: Do we need more than just knowing it exists?
+  // TODO: Implement the status loading flag from the CR
   const isCRPresent = crLoaded && !!pipelineNamespaceCR;
-  // TODO: Manage the route being free but the pods not being spun up yet
   const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRPresent,
     namespace,
@@ -51,8 +67,36 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     refreshRoute();
   }, [refreshRoute, refreshCR]);
 
-  const error = crLoadError || routeLoadError;
-  if (error) {
+  const refreshAPIState = React.useCallback(() => {
+    setInternalAPIToggleState((v) => !v);
+  }, []);
+
+  const apiState = React.useMemo<APIState>(() => {
+    // Note: This is a hack usage to get around the linter -- avoid copying this logic
+    // eslint-disable-next-line no-console
+    console.log('Computing Pipeline API', internalAPIToggleState ? '' : '');
+
+    let path = hostPath;
+    if (!path) {
+      // TODO: we need to figure out maybe a stopgap or something
+      path = '';
+    }
+
+    return {
+      apiAvailable: !!path,
+      api: {
+        getPipeline: getPipeline(path),
+        listPipelines: listPipelines(path),
+        listPipelineRuns: listPipelineRuns(path),
+        listPipelineTemplate: listPipelineTemplates(path),
+        uploadPipeline: uploadPipeline(path),
+      },
+    };
+  }, [hostPath, internalAPIToggleState]);
+
+  let error = crLoadError || routeLoadError;
+  if (error || !project) {
+    error = error || new Error('Project not found');
     return (
       <Bullseye>
         <Alert title="Pipelines load error" variant="danger" isInline>
@@ -67,9 +111,11 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
       value={{
         hasCR: isCRPresent,
         crInitializing: !crLoaded,
-        hostPath,
+        project,
+        apiState,
         namespace,
         refreshState,
+        refreshAPIState,
       }}
     >
       {children}
@@ -77,46 +123,40 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   );
 };
 
-type UsePipelinesAPI = {
+type UsePipelinesAPI = APIState & {
   /** The contextual namespace */
   namespace: string;
+  /** The Project resource behind the namespace */
+  project: ProjectKind;
   /** State of the CR */
   pipelinesServer: { initializing: boolean; installed: boolean };
-  /** If API will successfully call */
-  apiAvailable: boolean;
-  /** The available API functions */
-  api: PipelineAPIs;
+  /**
+   * Allows agnostic functionality to request all watched API to be reacquired.
+   * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
+   */
+  refreshAllAPI: () => void;
 };
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
-  const { hasCR, crInitializing, hostPath, namespace } = React.useContext(PipelinesContext);
+  const {
+    hasCR,
+    crInitializing,
+    apiState,
+    namespace,
+    project,
+    refreshAPIState: refreshAllAPI,
+  } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
     initializing: crInitializing,
     installed: hasCR,
   };
 
-  const apiState = React.useMemo<Pick<UsePipelinesAPI, 'apiAvailable' | 'api'>>(() => {
-    let path = hostPath;
-    if (!path) {
-      // TODO: we need to figure out maybe a stopgap or something
-      path = '';
-    }
-
-    return {
-      apiAvailable: !!path,
-      api: {
-        getPipeline: getPipeline(path),
-        listPipelines: listPipelines(path),
-        listPipelineRuns: listPipelineRuns(path),
-        listPipelineTemplate: listPipelineTemplates(path),
-      },
-    };
-  }, [hostPath]);
-
   return {
     pipelinesServer,
     namespace,
+    project,
+    refreshAllAPI,
     ...apiState,
   };
 };

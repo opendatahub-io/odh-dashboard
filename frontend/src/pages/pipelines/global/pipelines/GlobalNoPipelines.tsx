@@ -7,7 +7,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { PlusCircleIcon, OpenDrawerRightIcon } from '@patternfly/react-icons';
-import ImportPipelineButton from '~/concepts/pipelines/import/ImportPipelineButton';
+import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import ExternalLink from '~/components/ExternalLink';
 
 const GlobalNoPipelines: React.FC = () => (

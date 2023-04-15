@@ -24,7 +24,9 @@ export class ProxyError extends Error {
 type ProxyData = {
   method: string;
   url: string;
-  requestData?: string;
+  requestData?: string | Buffer;
+  /** Option to substitute your own content type for the API call -- defaults to JSON */
+  overrideContentType?: string;
 };
 
 /** Make a very basic pass-on / proxy call to another endpoint */
@@ -34,16 +36,23 @@ export const proxyCall = (
   data: ProxyData,
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const { method, requestData, url } = data;
+    const { method, requestData, overrideContentType, url } = data;
 
     getDirectCallOptions(fastify, request, url)
       .then((requestOptions) => {
         if (requestData) {
+          let contentType: string;
+          if (overrideContentType) {
+            contentType = overrideContentType;
+          } else {
+            contentType = `application/${
+              method === 'PATCH' ? 'json-patch+json' : 'json'
+            };charset=UTF-8`;
+          }
+
           requestOptions.headers = {
             ...requestOptions.headers,
-            'Content-Type': `application/${
-              method === 'PATCH' ? 'json-patch+json' : 'json'
-            };charset=UTF-8`,
+            'Content-Type': contentType,
             'Content-Length': requestData.length,
           };
         }
