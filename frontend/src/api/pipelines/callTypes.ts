@@ -1,5 +1,6 @@
 import {
   GetPipeline,
+  DeletePipeline,
   ListPipelineRuns,
   ListPipelines,
   ListPipelineTemplates,
@@ -13,6 +14,7 @@ type KubeflowSpecificAPICall = (opts: K8sAPIOptions, ...args: any[]) => Promise<
 type KubeflowAPICall<ActualCall extends KubeflowSpecificAPICall> = (hostPath: string) => ActualCall;
 
 export type GetPipelineAPI = KubeflowAPICall<GetPipeline>;
+export type DeletePipelineAPI = KubeflowAPICall<DeletePipeline>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
 export type ListPipelineRunsAPI = KubeflowAPICall<ListPipelineRuns>;
 export type ListPipelineTemplatesAPI = KubeflowAPICall<ListPipelineTemplates>;

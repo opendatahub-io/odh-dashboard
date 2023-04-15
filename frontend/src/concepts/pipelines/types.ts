@@ -1,5 +1,6 @@
 import { K8sAPIOptions } from '~/k8sTypes';
 import {
+  DeletePipelineResourceKF,
   ListPipelineRunsResourceKF,
   ListPipelinesResponseKF,
   ListPipelineTemplateResourceKF,
@@ -7,6 +8,10 @@ import {
 } from './kfTypes';
 
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
+export type DeletePipeline = (
+  opts: K8sAPIOptions,
+  pipelineId: string,
+) => Promise<DeletePipelineResourceKF>;
 export type ListPipelines = (
   opts: K8sAPIOptions,
   limit?: number,
@@ -28,6 +33,7 @@ export type UploadPipeline = (
 
 export type PipelineAPIs = {
   getPipeline: GetPipeline;
+  deletePipeline: DeletePipeline;
   listPipelines: ListPipelines;
   listPipelineRuns: ListPipelineRuns;
   listPipelineTemplate: ListPipelineTemplates;

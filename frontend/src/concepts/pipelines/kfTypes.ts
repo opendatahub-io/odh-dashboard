@@ -126,6 +126,9 @@ export type PipelineRunKF = {
   metrics: RunMetricKF[];
 };
 
+export type DeletePipelineResourceKF = {
+  // No response details
+};
 export type ListPipelinesResponseKF = PipelineKFCallCommon<{
   pipelines: PipelineKF[];
 }>;
