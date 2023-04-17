@@ -194,18 +194,19 @@ export const updateConfigMapsAndSecretsForNotebook = async (
 ): Promise<EnvironmentFromVariable[]> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
   const newDataConnection =
-    dataConnection && dataConnection.type === 'creating' && dataConnection.creating
+    dataConnection?.enabled && dataConnection.type === 'creating' && dataConnection.creating
       ? dataConnection.creating
       : undefined;
   const replaceDataConnection =
-    dataConnection && dataConnection.type === 'existing' && dataConnection.existing
+    dataConnection?.enabled &&
+    dataConnection.type === 'existing' &&
+    dataConnection.existing?.secretRef.name !== existingDataConnection?.data.metadata.name
       ? dataConnection.existing
       : undefined;
+
   const removeDataConnections =
-    (existingDataConnection && !dataConnection?.enabled) ||
-    (existingDataConnection &&
-      replaceDataConnection &&
-      replaceDataConnection.secretRef.name !== existingDataConnection.data.metadata.name)
+    existingDataConnection &&
+    (replaceDataConnection || newDataConnection || !dataConnection?.enabled)
       ? [existingDataConnection.data.metadata.name]
       : [];
 
