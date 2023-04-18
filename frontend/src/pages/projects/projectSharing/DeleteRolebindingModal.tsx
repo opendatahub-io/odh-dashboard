@@ -3,7 +3,6 @@ import DeleteModal from '~/pages/projects/components/DeleteModal';
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
-import { removeNotebookSecret } from '~/api';
 import DeleteModalConnectedAlert from '~/pages/projects/components/DeleteModalConnectedAlert';
 import { RoleBindingKind } from '~/k8sTypes';
 import { getRoleBindingDisplayName, getRoleBindingResourceName } from './utils';
@@ -32,9 +31,7 @@ const DeleteRolebindingModal: React.FC<DeleteRolebindingModalProps> = ({
     setError(undefined);
   };
 
-  const displayName = roleBinding
-    ? getRoleBindingDisplayName(roleBinding)
-    : 'this data connection';
+  const displayName = roleBinding ? getRoleBindingDisplayName(roleBinding) : 'this data connection';
 
   return (
     <DeleteModal

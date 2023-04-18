@@ -1,68 +1,129 @@
 import * as React from 'react';
-import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
+  Button,
   DropdownDirection,
-  Flex,
-  FlexItem,
-  Icon,
-  Spinner,
+  Select,
+  SelectOption,
   Text,
-  TextVariants,
-  Title,
-  Tooltip,
+  TextInput,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
 import { RoleBindingKind } from '~/k8sTypes';
-import { formatDate } from './utils';
+import { castProjectSharingRoleType, formatDate } from './utils';
+import { ProjectSharingRoleType } from './types';
 
 type ProjectSharingTableRowProps = {
   obj: RoleBindingKind;
-  rowIndex: number;
-  onEditRoleBinding: (rolebinding: RoleBindingKind) => void;
+  isEditing: boolean;
+  onCreateRoleBinding: (name: string, roleType: ProjectSharingRoleType) => void;
+  onCancelRoleBindingCreation: () => void;
   onDeleteRoleBinding: (rolebinding: RoleBindingKind) => void;
 };
 
 const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   obj,
-  rowIndex,
-  onEditRoleBinding,
+  isEditing,
+  onCreateRoleBinding,
+  onCancelRoleBindingCreation,
   onDeleteRoleBinding,
 }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const navigate = useNavigate();
+  const [roleBindingName, setRoleBindingName] = React.useState(obj.subjects[0]?.name || '');
+  const [roleBindingRoleRef, setRoleBindingRoleRef] = React.useState<ProjectSharingRoleType>(
+    castProjectSharingRoleType(obj.roleRef.name) || ProjectSharingRoleType.EDIT,
+  );
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   return (
     <Tbody>
       <Tr>
         <Td dataLabel="Username">
-          <Text>{obj.subjects[0]?.name}</Text>
+          {isEditing ? (
+            <TextInput
+              isRequired
+              id="serving-runtime-rolebinding-name"
+              value={roleBindingName}
+              onChange={(name) => setRoleBindingName(name)}
+            />
+          ) : (
+            <Text>{roleBindingName}</Text>
+          )}
         </Td>
         <Td dataLabel="Permission">
-          <Text> {obj.roleRef.name}</Text>
+          {isEditing ? (
+            <Select
+              removeFindDomNode
+              selections={roleBindingRoleRef}
+              isOpen={isOpen}
+              onSelect={(e, selection) => {
+                if (typeof selection === 'string') {
+                  setRoleBindingRoleRef(
+                    castProjectSharingRoleType(selection) || ProjectSharingRoleType.EDIT,
+                  );
+                  setIsOpen(false);
+                }
+              }}
+              onToggle={setIsOpen}
+              placeholderText={roleBindingRoleRef}
+              direction="down"
+            >
+              <SelectOption key={ProjectSharingRoleType.EDIT} value={ProjectSharingRoleType.EDIT}>
+                {ProjectSharingRoleType.EDIT}
+              </SelectOption>
+              <SelectOption key={ProjectSharingRoleType.ADMIN} value={ProjectSharingRoleType.ADMIN}>
+                {ProjectSharingRoleType.ADMIN}
+              </SelectOption>
+            </Select>
+          ) : (
+            <Text> {roleBindingRoleRef}</Text>
+          )}
         </Td>
         <Td dataLabel="Date added">
-          <Text>{obj.metadata?.creationTimestamp ? formatDate(obj.metadata?.creationTimestamp) : ''}</Text>
+          {!isEditing && obj && (
+            <Text>
+              {obj.metadata?.creationTimestamp ? formatDate(obj.metadata?.creationTimestamp) : ''}
+            </Text>
+          )}
         </Td>
-        <Td isActionCell>
-      <ActionsColumn
-        dropdownDirection={DropdownDirection.up}
-        items={[
-          {
-            title: 'Edit',
-            onClick: () => {
-              onEditRoleBinding(obj);
-            },
-          },
-          {
-            title: 'Delete',
-            onClick: () => {
-              onDeleteRoleBinding(obj);
-            },
-          },
-        ]}
-      />
-    </Td>
+        {!isEditing && obj && (
+          <Td isActionCell>
+            <ActionsColumn
+              dropdownDirection={DropdownDirection.up}
+              items={[
+                {
+                  title: 'Delete',
+                  onClick: () => {
+                    onDeleteRoleBinding(obj);
+                  },
+                },
+              ]}
+            />
+          </Td>
+        )}
+        {isEditing && (
+          <Td isActionCell modifier="nowrap">
+            <Button
+              data-id="save-rolebinding-button"
+              variant="plain"
+              icon={<CheckIcon />}
+              isDisabled={isLoading}
+              onClick={() => {
+                setIsLoading(true);
+                onCreateRoleBinding(roleBindingName, roleBindingRoleRef);
+              }}
+            />
+            <Button
+              data-id="cancel-rolebinding-button"
+              variant="plain"
+              isDisabled={isLoading}
+              icon={<TimesIcon />}
+              onClick={() => {
+                onCancelRoleBindingCreation();
+              }}
+            />
+          </Td>
+        )}
       </Tr>
     </Tbody>
   );

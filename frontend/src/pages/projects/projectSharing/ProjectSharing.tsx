@@ -4,8 +4,6 @@ import {
   EmptyStateBody,
   EmptyStateIcon,
   EmptyStateVariant,
-  Flex,
-  FlexItem,
   PageSection,
   Spinner,
   Stack,
@@ -13,20 +11,15 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import ProjectSharingTable from './ProjectSharingTable';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { type } from 'os';
-import { ProjectSharingTableType } from './types';
+import { ProjectSharingRBType } from './types';
+import ProjectSharingTableSection from './ProjectSharingTableSection';
 
 const ProjectSharing: React.FC = () => {
   const {
     projectSharingRB: { data: roleBindings, loaded, error: loadError, refresh: refreshRB },
-    refreshAllProjectData: refresh,
+    currentProject,
   } = React.useContext(ProjectDetailsContext);
-
-  React.useEffect(() => {
-    console.log(roleBindings);
-  }, [roleBindings]);
 
   if (loadError) {
     return (
@@ -63,30 +56,20 @@ const ProjectSharing: React.FC = () => {
           changes to the project. Admin allows users to also add and remove new users to the project
         </StackItem>
         <StackItem>
-          <Stack hasGutter>
-            <StackItem>
-              <Title id={`user-permission`} headingLevel="h4" size="xl">
-                Users
-              </Title>
-            </StackItem>
-            <StackItem>
-              {' '}
-              <ProjectSharingTable permissions={roleBindings} type={ProjectSharingTableType.USER} refresh={() => {}} />
-            </StackItem>
-          </Stack>
+          <ProjectSharingTableSection
+            roleBindings={roleBindings}
+            projectSharingTableType={ProjectSharingRBType.USER}
+            refresh={refreshRB}
+            namespace={currentProject.metadata.name}
+          />
         </StackItem>
         <StackItem>
-          <Stack hasGutter>
-            <StackItem>
-              <Title id={`user-permission`} headingLevel="h4" size="xl">
-                Group
-              </Title>
-            </StackItem>
-            <StackItem>
-              {' '}
-              <ProjectSharingTable permissions={roleBindings} type={ProjectSharingTableType.GROUP} refresh={() => {}} />
-            </StackItem>
-          </Stack>
+          <ProjectSharingTableSection
+            roleBindings={roleBindings}
+            projectSharingTableType={ProjectSharingRBType.GROUP}
+            refresh={refreshRB}
+            namespace={currentProject.metadata.name}
+          />
         </StackItem>
       </Stack>
     </PageSection>

@@ -8,16 +8,16 @@ import { getProjectDescription, getProjectDisplayName } from '~/pages/projects/u
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import { useAppContext } from '~/app/AppContext';
+import { useAccessReview } from '~/api';
 import { isProjectSharingEnabled } from '~/pages/projects/projectSharing/utils';
+import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectDetailsComponents from './ProjectDetailsComponents';
-import { useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
   resource: 'rolebindings',
-  verb: 'update',
+  verb: 'create',
 };
 
 const ProjectDetails: React.FC = () => {
@@ -27,7 +27,10 @@ const ProjectDetails: React.FC = () => {
   const description = getProjectDescription(currentProject);
   const projectSharingEnabled = isProjectSharingEnabled(dashboardConfig);
 
-  const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...accessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
 
   useCheckLogoutParams();
 
@@ -44,7 +47,7 @@ const ProjectDetails: React.FC = () => {
       loaded={rbacLoaded}
       empty={false}
     >
-      {(projectSharingEnabled && allowCreate) ? (
+      {projectSharingEnabled && allowCreate ? (
         <GenericHorizontalBar
           sections={[
             { title: 'Components', component: <ProjectDetailsComponents />, icon: <CubeIcon /> },

@@ -27,7 +27,12 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ sections })
 
   return (
     <>
-      <PageSection variant={PageSectionVariants.light} type="tabs" isFilled aria-label="horizontal-bar-tab-section">
+      <PageSection
+        variant={PageSectionVariants.light}
+        type="tabs"
+        isFilled
+        aria-label="horizontal-bar-tab-section"
+      >
         <Tabs
           activeKey={activeTabKey}
           onSelect={(event, tabIndex) => setActiveTabKey(tabIndex)}
@@ -49,7 +54,12 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ sections })
           ))}
         </Tabs>
       </PageSection>
-      <PageSection variant={PageSectionVariants.light} isFilled aria-label="horizontal-bar-content-section"  padding={{ default: 'noPadding' }}>
+      <PageSection
+        variant={PageSectionVariants.light}
+        isFilled
+        aria-label="horizontal-bar-content-section"
+        padding={{ default: 'noPadding' }}
+      >
         {sections.map((section) => (
           <TabContent
             id={section.title}

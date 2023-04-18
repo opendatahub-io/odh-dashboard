@@ -1,57 +1,52 @@
 import * as React from 'react';
 import Table from '~/components/Table';
-import ProjectSharingTableRow from './ProjectSharingTableRow';
-import { columnsProjectSharingUser,  columnsProjectSharingGroup } from './data';
 import { RoleBindingKind } from '~/k8sTypes';
-import { ProjectSharingTableType } from './types';
+import { deleteRoleBinding, generateRoleBindingProjectSharing, createRoleBinding } from '~/api';
+import ProjectSharingTableRow from './ProjectSharingTableRow';
+import { columnsProjectSharingUser, columnsProjectSharingGroup } from './data';
+import { ProjectSharingRBType } from './types';
 
 type ProjectSharingTableProps = {
-  type: ProjectSharingTableType
+  type: ProjectSharingRBType;
   permissions: RoleBindingKind[];
+  onCancel: () => void;
   refresh: () => void;
 };
 
-const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({ type, permissions, refresh }) => {
-  const [addUserPermission, setAddUserPermission] = React.useState<RoleBindingKind | undefined>();
-  const [removeUserPermission, setRemoveUserPermission] = React.useState<RoleBindingKind | undefined>();
-
-  return (
-    <>
-      <Table
-        variant="compact"
-        data={permissions}
-        columns={type === ProjectSharingTableType.USER ? columnsProjectSharingUser : columnsProjectSharingGroup } 
-        disableRowRenderSupport
-        rowRenderer={(rb, i) => (
-          <ProjectSharingTableRow
-            key={rb.metadata?.name || ''}
-            rowIndex={i}
-            obj={rb}
-            onEditRoleBinding={setRemoveUserPermission}
-            onDeleteRoleBinding={setAddUserPermission}
-          />
-        )}
-      />
-      {/* <AddNotebookStorage
-        notebook={addNotebookStorage}
-        onClose={(submitted) => {
-          if (submitted) {
-            refresh();
-          }
-          setAddNotebookStorage(undefined);
+const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
+  type,
+  permissions,
+  onCancel,
+  refresh,
+}) => (
+  <Table
+    variant="compact"
+    data={permissions}
+    columns={
+      type === ProjectSharingRBType.USER ? columnsProjectSharingUser : columnsProjectSharingGroup
+    }
+    disableRowRenderSupport
+    rowRenderer={(rb) => (
+      <ProjectSharingTableRow
+        key={rb.metadata?.name || ''}
+        obj={rb}
+        isEditing={rb.subjects[0]?.name === ''}
+        onCreateRoleBinding={(name, roleType) => {
+          const newRBObject = generateRoleBindingProjectSharing(
+            rb.metadata.namespace,
+            type,
+            name,
+            roleType,
+          );
+          createRoleBinding(newRBObject).then(() => refresh());
         }}
-      />
-      <DeleteNotebookModal
-        notebook={notebookToDelete}
-        onClose={(deleted) => {
-          if (deleted) {
-            refresh();
-          }
-          setNotebookToDelete(undefined);
+        onDeleteRoleBinding={(obj) => {
+          deleteRoleBinding(obj.metadata.name, obj.metadata.namespace).then(() => refresh());
         }}
-      /> */}
-    </>
-  );
-};
+        onCancelRoleBindingCreation={onCancel}
+      />
+    )}
+  />
+);
 
 export default ProjectSharingTable;
