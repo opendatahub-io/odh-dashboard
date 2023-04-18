@@ -1,5 +1,16 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
+import {
+  PodAffinity,
+  NotebookContainer,
+  PodToleration,
+  Volume,
+  ContainerResources,
+  DashboardCommonConfig,
+  NotebookSize,
+  GpuSettingString,
+  TolerationSettings,
+} from './types';
+import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
 export type K8sVerb =
   | 'create'
@@ -401,5 +412,48 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
     denied?: boolean;
     reason?: string;
     evaluationError?: string;
+  };
+};
+
+export type TemplateKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: Partial<{
+      description: string;
+      tags: string;
+      iconClass: string;
+    }>;
+    name: string;
+    namespace: string;
+  };
+  objects: K8sResourceCommon[];
+  parameters: TemplateParameter[];
+};
+
+export type TemplateParameter = {
+  name: string;
+  displayName: string;
+  description: string;
+  value: string;
+  required: boolean;
+};
+
+// New specification of DashboardConfig for pass through to the UI, we will have both types until we refactor the backend calls
+export type DashboardConfigKind = K8sResourceCommon & {
+  spec: {
+    dashboardConfig: DashboardCommonConfig;
+    groupsConfig?: {
+      adminGroups: string;
+      allowedGroups: string;
+    };
+    notebookSizes?: NotebookSize[];
+    modelServerSizes?: ServingRuntimeSize[];
+    notebookController?: {
+      enabled: boolean;
+      pvcSize?: string;
+      notebookNamespace?: string;
+      gpuSetting?: GpuSettingString;
+      notebookTolerationSettings?: TolerationSettings;
+    };
+    templateOrder?: string[];
   };
 };

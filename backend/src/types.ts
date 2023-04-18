@@ -18,6 +18,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableUserManagement: boolean;
       disableProjects: boolean;
       disableModelServing: boolean;
+      disableCustomServingRuntimes: boolean;
       modelMetricsNamespace: string;
     };
     groupsConfig?: {
@@ -36,6 +37,7 @@ export type DashboardConfig = K8sResourceCommon & {
       };
       storageClassName?: string;
     };
+    templateOrder?: string[];
   };
 };
 

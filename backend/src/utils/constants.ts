@@ -49,6 +49,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableUserManagement: false,
       disableProjects: false,
       disableModelServing: false,
+      disableCustomServingRuntimes: false,
       modelMetricsNamespace: '',
     },
     notebookController: {
@@ -58,6 +59,7 @@ export const blankDashboardCR: DashboardConfig = {
       adminGroups: 'odh-admins',
       allowedGroups: 'system:authenticated',
     },
+    templateOrder: [],
   },
 };
 

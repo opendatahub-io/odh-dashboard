@@ -56,6 +56,7 @@ export type DashboardConfig = K8sResourceCommon & {
       gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
+    templateOrder?: string[];
   };
 };
 
@@ -71,6 +72,7 @@ export type DashboardCommonConfig = {
   disableUserManagement: boolean;
   disableProjects: boolean;
   disableModelServing: boolean;
+  disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
 };
 

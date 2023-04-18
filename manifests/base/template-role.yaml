@@ -1,0 +1,12 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: servingruntime-template
+rules:
+  - verbs:
+      - get
+      - list
+    apiGroups:
+      - template.openshift.io
+    resources:
+      - templates
