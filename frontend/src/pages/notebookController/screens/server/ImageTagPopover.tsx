@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Icon, Popover } from '@patternfly/react-core';
+import { Icon, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ImageTagInfo } from '~/types';
 import { getNameVersionString } from '~/utilities/imageUtils';
