@@ -16,16 +16,22 @@ import { ProjectSharingRoleType } from './types';
 type ProjectSharingTableRowProps = {
   obj: RoleBindingKind;
   isEditing: boolean;
-  onCreateRoleBinding: (name: string, roleType: ProjectSharingRoleType) => void;
+  onCreateOrEditRoleBinding: (
+    name: string,
+    roleType: ProjectSharingRoleType,
+    rolebinding: RoleBindingKind,
+  ) => void;
   onCancelRoleBindingCreation: () => void;
+  onEditRoleBinding: (rolebinding: RoleBindingKind) => void;
   onDeleteRoleBinding: (rolebinding: RoleBindingKind) => void;
 };
 
 const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   obj,
   isEditing,
-  onCreateRoleBinding,
+  onCreateOrEditRoleBinding,
   onCancelRoleBindingCreation,
+  onEditRoleBinding,
   onDeleteRoleBinding,
 }) => {
   const [roleBindingName, setRoleBindingName] = React.useState(obj.subjects[0]?.name || '');
@@ -92,6 +98,12 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
               dropdownDirection={DropdownDirection.up}
               items={[
                 {
+                  title: 'Edit',
+                  onClick: () => {
+                    onEditRoleBinding(obj);
+                  },
+                },
+                {
                   title: 'Delete',
                   onClick: () => {
                     onDeleteRoleBinding(obj);
@@ -110,7 +122,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
               isDisabled={isLoading}
               onClick={() => {
                 setIsLoading(true);
-                onCreateRoleBinding(roleBindingName, roleBindingRoleRef);
+                onCreateOrEditRoleBinding(roleBindingName, roleBindingRoleRef, obj);
               }}
             />
             <Button

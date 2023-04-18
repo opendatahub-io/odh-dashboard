@@ -18,35 +18,61 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
   permissions,
   onCancel,
   refresh,
-}) => (
-  <Table
-    variant="compact"
-    data={permissions}
-    columns={
-      type === ProjectSharingRBType.USER ? columnsProjectSharingUser : columnsProjectSharingGroup
-    }
-    disableRowRenderSupport
-    rowRenderer={(rb) => (
-      <ProjectSharingTableRow
-        key={rb.metadata?.name || ''}
-        obj={rb}
-        isEditing={rb.subjects[0]?.name === ''}
-        onCreateRoleBinding={(name, roleType) => {
-          const newRBObject = generateRoleBindingProjectSharing(
-            rb.metadata.namespace,
-            type,
-            name,
-            roleType,
-          );
-          createRoleBinding(newRBObject).then(() => refresh());
-        }}
-        onDeleteRoleBinding={(obj) => {
-          deleteRoleBinding(obj.metadata.name, obj.metadata.namespace).then(() => refresh());
-        }}
-        onCancelRoleBindingCreation={onCancel}
-      />
-    )}
-  />
-);
+}) => {
+  const [editCell, setEditCell] = React.useState<string[]>([]);
 
+  return (
+    <Table
+      variant="compact"
+      data={permissions}
+      columns={
+        type === ProjectSharingRBType.USER ? columnsProjectSharingUser : columnsProjectSharingGroup
+      }
+      disableRowRenderSupport
+      rowRenderer={(rb) => (
+        <ProjectSharingTableRow
+          key={rb.metadata?.name || ''}
+          obj={rb}
+          isEditing={rb.subjects[0]?.name === '' || editCell.includes(rb.metadata.name)}
+          onCreateOrEditRoleBinding={(name, roleType, obj) => {
+            const newRBObject = generateRoleBindingProjectSharing(
+              obj.metadata.namespace,
+              type,
+              name,
+              roleType,
+            );
+            if (obj.subjects[0]?.name === '') {
+              createRoleBinding(newRBObject)
+                .then(() => refresh())
+                .catch(() =>
+                  setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name)),
+                );
+            } else {
+              createRoleBinding(newRBObject)
+                .then(() =>
+                  deleteRoleBinding(obj.metadata.name, obj.metadata.namespace).then(() =>
+                    refresh(),
+                  ),
+                )
+                .catch(() =>
+                  setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name)),
+                );
+              refresh();
+            }
+          }}
+          onDeleteRoleBinding={(obj) => {
+            deleteRoleBinding(obj.metadata.name, obj.metadata.namespace).then(() => refresh());
+          }}
+          onEditRoleBinding={(obj) => {
+            setEditCell((prev) => [...prev, obj.metadata.name]);
+          }}
+          onCancelRoleBindingCreation={() => {
+            setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
+            onCancel();
+          }}
+        />
+      )}
+    />
+  );
+};
 export default ProjectSharingTable;
