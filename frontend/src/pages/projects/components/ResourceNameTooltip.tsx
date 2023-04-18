@@ -5,6 +5,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Icon,
   Stack,
   StackItem,
   Tooltip,
@@ -48,14 +49,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
             </Stack>
           }
         >
-          <Button
-            className="odh-notebook-controller__notebook-image-popover-help-icon"
-            isInline
-            variant="plain"
-            aria-label="More info"
-          >
+          <Icon aria-label="More info" role="button" tabIndex={0}>
             <OutlinedQuestionCircleIcon />
-          </Button>
+          </Icon>
         </Tooltip>
       </div>
     )}
