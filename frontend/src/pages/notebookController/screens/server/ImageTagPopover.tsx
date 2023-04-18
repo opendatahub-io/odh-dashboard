@@ -35,7 +35,7 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
         </>
       }
     >
-      <Icon aria-label="More info" role="button" tabIndex={0}>
+      <Icon isInline aria-label="More info" role="button" tabIndex={0}>
         <OutlinedQuestionCircleIcon />
       </Icon>
     </Popover>

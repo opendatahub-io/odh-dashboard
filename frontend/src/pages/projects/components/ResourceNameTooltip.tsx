@@ -48,7 +48,7 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
             </Stack>
           }
         >
-          <Icon aria-label="More info" role="button" tabIndex={0}>
+          <Icon isInline aria-label="More info" role="button" tabIndex={0}>
             <OutlinedQuestionCircleIcon />
           </Icon>
         </Tooltip>
