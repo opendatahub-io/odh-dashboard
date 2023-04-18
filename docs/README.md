@@ -2,6 +2,7 @@
 
 This project is divided into several sections, each one describing features of the dashboard.
 
+* [ODH Dashboard Architecture](architecture.md)
 * [Dashboard Configuration](dashboard_config.md)
 * [Settings Panel](admin_dashboard.md)
 * [User Interaction](user_interaction.md)
