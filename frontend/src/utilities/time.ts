@@ -1,5 +1,18 @@
 const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
 
+export const relativeDuration = (valueInMs: number): string => {
+  let seconds = Math.floor(valueInMs / 1000);
+
+  let minutes = 0;
+  if (seconds > 60) {
+    minutes = Math.floor(seconds / 60);
+    seconds %= 60;
+  }
+
+  const leadZero = (v) => (v < 10 ? `0${v}` : v);
+  return `${minutes}:${leadZero(seconds)}`;
+};
+
 export const relativeTime = (current: number, previous: number): string => {
   const msPerMinute = 60 * 1000;
   const msPerHour = msPerMinute * 60;

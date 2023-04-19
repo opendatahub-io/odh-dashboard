@@ -37,6 +37,13 @@ export enum RunMetricFormatKF {
   PERCENTAGE = 'PERCENTAGE',
 }
 
+export enum PipelineRunStatusesKF {
+  COMPLETED = 'Completed',
+  RUNNING = 'Running',
+  CANCELLED = 'Cancelled',
+  FAILED = 'Failed',
+}
+
 export type ParameterKF = {
   name: string;
   value: string;
@@ -114,7 +121,7 @@ export type PipelineRunKF = {
   created_at: DateTimeKF;
   scheduled_at: DateTimeKF;
   finished_at: DateTimeKF;
-  status: string;
+  status: PipelineRunStatusesKF;
   error: string;
   metrics: RunMetricKF[];
 };

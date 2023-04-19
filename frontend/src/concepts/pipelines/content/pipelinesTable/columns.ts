@@ -24,7 +24,7 @@ export const columns: SortableData<PipelineKF>[] = [
     sortable: false,
   },
   {
-    label: 'Last Run time',
+    label: 'Last run time',
     field: 'lastRunTime',
     sortable: false,
   },
