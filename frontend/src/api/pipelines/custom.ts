@@ -1,6 +1,14 @@
 import { pipelinesGET } from '~/api/pipelines/callUtils';
 import { ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
-import { ListPipelineRunsAPI, ListPipelinesAPI } from './callTypes';
+import {
+  GetPipelineAPI,
+  ListPipelineRunsAPI,
+  ListPipelinesAPI,
+  ListPipelineTemplatesAPI,
+} from './callTypes';
+
+export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
+  pipelinesGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts);
 
 export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, count) =>
   // eslint-disable-next-line camelcase
@@ -16,3 +24,6 @@ export const listPipelineRuns: ListPipelineRunsAPI = (hostPath) => (opts, pipeli
     },
     opts,
   );
+
+export const listPipelineTemplates: ListPipelineTemplatesAPI = (hostPath) => (opts, pipelineId) =>
+  pipelinesGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}/templates`, {}, opts);

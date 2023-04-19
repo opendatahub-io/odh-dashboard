@@ -15,10 +15,12 @@ import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 
 type PipelineVisualizationSurfaceProps = {
   nodes: PipelineNodeModel[];
+  selectedIds?: string[];
 };
 
 const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> = ({
   nodes: unsafeNodes,
+  selectedIds,
 }) => {
   const nodes = useDeepCompareMemoize(unsafeNodes);
   const controller = useVisualizationController();
@@ -64,7 +66,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         />
       }
     >
-      <VisualizationSurface />
+      <VisualizationSurface state={{ selectedIds }} />
     </TopologyView>
   );
 };

@@ -9,6 +9,7 @@ import {
   TaskEdge,
   TaskNode,
   withPanZoom,
+  withSelection,
 } from '@patternfly/react-topology';
 
 // Topology gap... their types have issues with Strict TS mode
@@ -20,7 +21,9 @@ export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
   }
   switch (type) {
     case DEFAULT_TASK_NODE_TYPE:
-      return TaskNode;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      return withSelection()(TaskNode);
     case DEFAULT_SPACER_NODE_TYPE:
       return SpacerNode;
     case DEFAULT_EDGE_TYPE:

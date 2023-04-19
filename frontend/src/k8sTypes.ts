@@ -489,3 +489,66 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
     evaluationError?: string;
   };
 };
+
+export type PipelineRunTaskSpecDigest = {
+  name: string;
+  outputs: unknown[]; // TODO: detail outputs
+  version: string;
+};
+
+type PipelineRunTaskSpecStep = {
+  name: string;
+  args: string[];
+  command: string[];
+  image: string;
+};
+
+type PipelineRunTaskSpecResult = {
+  name: string;
+  type: string;
+  description?: string;
+};
+
+export type PipelineRunTaskSpec = {
+  steps: PipelineRunTaskSpecStep[];
+  results: PipelineRunTaskSpecResult[];
+  metadata: {
+    annotations: {
+      /** @see PipelineRunTaskSpecDigest */
+      'pipelines.kubeflow.org/component_spec_digest': string;
+    };
+    labels: {
+      'pipelines.kubeflow.org/cache_enabled': 'true';
+    };
+  };
+};
+export type PipelineRunTaskParam = {
+  name: string;
+  value: string;
+};
+
+export type PipelineRunTaskWhen = {
+  input: string;
+  operator: string;
+  values: string[];
+};
+
+export type PipelineRunTask = {
+  name: string;
+  taskSpec: PipelineRunTaskSpec;
+  params?: PipelineRunTaskParam[];
+  when?: PipelineRunTaskWhen[];
+  // TODO: favour this
+  runAfter?: string[];
+};
+
+export type PipelineRunKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: {
+    pipelineSpec: {
+      tasks: PipelineRunTask[];
+    };
+  };
+};

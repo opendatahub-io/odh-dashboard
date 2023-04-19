@@ -6,16 +6,26 @@ import { columns } from './columns';
 
 type PipelinesTableProps = {
   pipelines: PipelineKF[];
+  pipelineDetailsPath: (namespace: string, id: string) => string;
   contentLimit?: number;
 };
 
-const PipelinesTable: React.FC<PipelinesTableProps> = ({ pipelines, contentLimit }) => (
+const PipelinesTable: React.FC<PipelinesTableProps> = ({
+  pipelines,
+  contentLimit,
+  pipelineDetailsPath,
+}) => (
   <Table
     data={pipelines}
     columns={columns}
     truncateRenderingAt={contentLimit}
     rowRenderer={(pipeline, rowIndex) => (
-      <PipelinesTableRow key={pipeline.id} pipeline={pipeline} rowIndex={rowIndex} />
+      <PipelinesTableRow
+        key={pipeline.id}
+        pipeline={pipeline}
+        rowIndex={rowIndex}
+        pipelineDetailsPath={pipelineDetailsPath}
+      />
     )}
     disableRowRenderSupport
   />
