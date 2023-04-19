@@ -610,3 +610,18 @@ export type PipelineRunKind = K8sResourceCommon & {
     childReferences: unknown[];
   };
 };
+
+export type UserKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  groups: string[];
+  fullName?: string;
+};
+
+export type GroupKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  users: string[];
+};

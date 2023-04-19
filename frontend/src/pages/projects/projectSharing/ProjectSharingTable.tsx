@@ -9,6 +9,7 @@ import { ProjectSharingRBType } from './types';
 type ProjectSharingTableProps = {
   type: ProjectSharingRBType;
   permissions: RoleBindingKind[];
+  typeAhead: string[];
   onCancel: () => void;
   refresh: () => void;
 };
@@ -16,6 +17,7 @@ type ProjectSharingTableProps = {
 const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
   type,
   permissions,
+  typeAhead,
   onCancel,
   refresh,
 }) => {
@@ -34,6 +36,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
           key={rb.metadata?.name || ''}
           obj={rb}
           isEditing={rb.subjects[0]?.name === '' || editCell.includes(rb.metadata.name)}
+          typeAhead={typeAhead}
           onCreateOrEditRoleBinding={(name, roleType, obj) => {
             const newRBObject = generateRoleBindingProjectSharing(
               obj.metadata.namespace,

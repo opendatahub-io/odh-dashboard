@@ -10,6 +10,7 @@ import { filterRoleBindingSubjects } from './utils';
 export type ProjectSharingTableSectionProps = {
   roleBindings: RoleBindingKind[];
   projectSharingTableType: ProjectSharingRBType;
+  typeAhead: string[];
   namespace: string;
   refresh: () => void;
 };
@@ -17,6 +18,7 @@ export type ProjectSharingTableSectionProps = {
 const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
   roleBindings,
   projectSharingTableType,
+  typeAhead,
   namespace,
   refresh,
 }) => {
@@ -60,6 +62,7 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
         <ProjectSharingTable
           permissions={permissionLocal}
           type={projectSharingTableType}
+          typeAhead={typeAhead}
           onCancel={() => {
             setAddField(false);
             setPermissionLocal(filterRoleBindingSubjects(roleBindings, projectSharingTableType));

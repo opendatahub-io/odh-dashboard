@@ -12,12 +12,15 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { GroupKind, UserKind } from '~/k8sTypes';
 import { ProjectSharingRBType } from './types';
 import ProjectSharingTableSection from './ProjectSharingTableSection';
 
 const ProjectSharing: React.FC = () => {
   const {
     projectSharingRB: { data: roleBindings, loaded, error: loadError, refresh: refreshRB },
+    users: { data: users },
+    groups: { data: groups },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
 
@@ -60,6 +63,7 @@ const ProjectSharing: React.FC = () => {
             roleBindings={roleBindings}
             projectSharingTableType={ProjectSharingRBType.USER}
             refresh={refreshRB}
+            typeAhead={users.map((user: UserKind) => user.metadata.name)}
             namespace={currentProject.metadata.name}
           />
         </StackItem>
@@ -68,6 +72,7 @@ const ProjectSharing: React.FC = () => {
             roleBindings={roleBindings}
             projectSharingTableType={ProjectSharingRBType.GROUP}
             refresh={refreshRB}
+            typeAhead={groups.map((group: GroupKind) => group.metadata.name)}
             namespace={currentProject.metadata.name}
           />
         </StackItem>

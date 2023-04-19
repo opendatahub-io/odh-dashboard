@@ -7,6 +7,8 @@ import {
   InferenceServiceKind,
   SecretKind,
   RoleBindingKind,
+  UserKind,
+  GroupKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
@@ -29,6 +31,8 @@ import useDataConnections from './screens/detail/data-connections/useDataConnect
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
+import useUsers from './projectSharing/useUsers';
+import useGroups from './projectSharing/useGroups';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -41,6 +45,8 @@ type ProjectDetailsContextType = {
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
   projectSharingRB: ContextResourceData<RoleBindingKind>;
+  users: ContextResourceData<UserKind>;
+  groups: ContextResourceData<GroupKind>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -59,6 +65,8 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
   projectSharingRB: DEFAULT_CONTEXT_DATA,
+  users: DEFAULT_CONTEXT_DATA,
+  groups: DEFAULT_CONTEXT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -76,6 +84,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
   );
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
   const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
+  const users = useContextResourceData<UserKind>(useUsers());
+  const groups = useContextResourceData<GroupKind>(useGroups());
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
@@ -134,6 +144,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
         refreshAllProjectData,
         serverSecrets,
         projectSharingRB,
+        users,
+        groups,
       }}
     >
       {featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) ? (

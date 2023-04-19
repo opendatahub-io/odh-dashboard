@@ -13,6 +13,8 @@ export * from './k8s/routes';
 export * from './k8s/secrets';
 export * from './k8s/serviceAccounts';
 export * from './k8s/servingRuntimes';
+export * from './k8s/users';
+export * from './k8s/groups';
 
 // Pipelines uses special redirected API
 export * from './pipelines/custom';

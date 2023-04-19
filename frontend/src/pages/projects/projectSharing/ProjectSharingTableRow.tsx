@@ -5,8 +5,8 @@ import {
   DropdownDirection,
   Select,
   SelectOption,
+  SelectVariant,
   Text,
-  TextInput,
 } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
 import { RoleBindingKind } from '~/k8sTypes';
@@ -16,6 +16,7 @@ import { ProjectSharingRoleType } from './types';
 type ProjectSharingTableRowProps = {
   obj: RoleBindingKind;
   isEditing: boolean;
+  typeAhead: string[];
   onCreateOrEditRoleBinding: (
     name: string,
     roleType: ProjectSharingRoleType,
@@ -29,6 +30,7 @@ type ProjectSharingTableRowProps = {
 const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   obj,
   isEditing,
+  typeAhead,
   onCreateOrEditRoleBinding,
   onCancelRoleBindingCreation,
   onEditRoleBinding,
@@ -39,6 +41,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
     castProjectSharingRoleType(obj.roleRef.name) || ProjectSharingRoleType.EDIT,
   );
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpenName, setIsOpenName] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
   return (
@@ -46,12 +49,29 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
       <Tr>
         <Td dataLabel="Username">
           {isEditing ? (
-            <TextInput
-              isRequired
-              id="serving-runtime-rolebinding-name"
-              value={roleBindingName}
-              onChange={(name) => setRoleBindingName(name)}
-            />
+            <Select
+              variant={SelectVariant.typeahead}
+              typeAheadAriaLabel="Name selection"
+              selections={roleBindingName}
+              onToggle={(isOpened) => {
+                setIsOpenName(isOpened);
+              }}
+              onSelect={(e, selection) => {
+                if (typeof selection === 'string') {
+                  setRoleBindingName(selection);
+                  setIsOpenName(false);
+                }
+              }}
+              onClear={() => setRoleBindingName('')}
+              isOpen={isOpenName}
+              isCreatable={true}
+              aria-labelledby="name-selection"
+              placeholderText={roleBindingName}
+            >
+              {typeAhead.map((option, index) => (
+                <SelectOption key={index} value={option} />
+              ))}
+            </Select>
           ) : (
             <Text>{roleBindingName}</Text>
           )}
