@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Td, Tbody, Tr } from '@patternfly/react-table';
+import { Td, Tbody, Tr, ActionsColumn } from '@patternfly/react-table';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { relativeTime } from '~/utilities/time';
 import usePipelineRuns from '~/concepts/pipelines/apiHooks/usePipelineRuns';
@@ -20,13 +21,16 @@ type PipelinesTableRowProps = {
   pipeline: PipelineKF;
   pipelineDetailsPath: (namespace: string, id: string) => string;
   rowIndex: number;
+  onDeletePipeline: () => void;
 };
 
 const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   pipeline,
   rowIndex,
   pipelineDetailsPath,
+  onDeletePipeline,
 }) => {
+  const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const runsFetchState = usePipelineRuns(pipeline);
   const [isExpanded, setExpanded] = React.useState(false);
@@ -62,9 +66,31 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             </Timestamp>
           </Td>
           <Td isActionCell>
-            {/* TODO: https://github.com/opendatahub-io/odh-dashboard/issues/1063
-          <ActionsColumn />
-          */}
+            <ActionsColumn
+              items={[
+                {
+                  title: 'Create run',
+                  onClick: () => {
+                    alert('Not implemented');
+                  },
+                },
+                {
+                  title: 'View all runs',
+                  onClick: () => {
+                    navigate(`/pipelineRuns/${namespace}`);
+                  },
+                },
+                {
+                  isSeparator: true,
+                },
+                {
+                  title: 'Delete pipeline',
+                  onClick: () => {
+                    onDeletePipeline();
+                  },
+                },
+              ]}
+            />
           </Td>
         </Tr>
       </Tbody>

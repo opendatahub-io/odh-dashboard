@@ -6,7 +6,7 @@ import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 
 const PipelinesView: React.FC = () => {
-  const [pipelines, loaded, loadError] = usePipelines();
+  const [pipelines, loaded, loadError, refresh] = usePipelines();
 
   if (loadError) {
     return (
@@ -29,6 +29,7 @@ const PipelinesView: React.FC = () => {
   return (
     <PipelinesTable
       pipelines={pipelines}
+      refreshPipelines={refresh}
       pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/${id}`}
     />
   );

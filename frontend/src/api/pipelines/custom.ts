@@ -1,7 +1,8 @@
-import { proxyFILE, proxyGET } from '~/api/proxyUtils';
+import { proxyDELETE, proxyFILE, proxyGET } from '~/api/proxyUtils';
 import { ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 import {
   GetPipelineAPI,
+  DeletePipelineAPI,
   ListPipelineRunsAPI,
   ListPipelinesAPI,
   ListPipelineTemplatesAPI,
@@ -11,6 +12,9 @@ import { handlePipelineFailures } from './errorUtils';
 
 export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
+
+export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
+  proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts);
 
 export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, count) =>
   handlePipelineFailures(

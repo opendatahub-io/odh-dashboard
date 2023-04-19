@@ -12,7 +12,7 @@ const CONTENT_LIMIT = 5;
 
 const PipelinesList: React.FC = () => {
   const { namespace } = usePipelinesAPI();
-  const [pipelines, loaded, loadError] = usePipelines();
+  const [pipelines, loaded, loadError, refresh] = usePipelines();
   const navigate = useNavigate();
 
   if (loadError) {
@@ -42,6 +42,7 @@ const PipelinesList: React.FC = () => {
           pipelines={pipelines}
           contentLimit={CONTENT_LIMIT}
           pipelineDetailsPath={(namespace, id) => `/projects/${namespace}/pipelines/${id}`}
+          refreshPipelines={refresh}
         />
       </StackItem>
       {pipelines.length > CONTENT_LIMIT && (

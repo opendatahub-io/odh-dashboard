@@ -4,6 +4,7 @@ import { PipelineAPIs } from '~/concepts/pipelines/types';
 import {
   createPipelinesCR,
   getPipeline,
+  deletePipeline,
   listPipelineRuns,
   listPipelines,
   listPipelineTemplates,
@@ -86,6 +87,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
       apiAvailable: !!path,
       api: {
         getPipeline: getPipeline(path),
+        deletePipeline: deletePipeline(path),
         listPipelines: listPipelines(path),
         listPipelineRuns: listPipelineRuns(path),
         listPipelineTemplate: listPipelineTemplates(path),
