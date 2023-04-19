@@ -80,7 +80,11 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     fireTrackingEvent(`Workbench ${type}`, {
       GPU: gpus,
       lastSelectedSize: notebookSize.name,
-      lastSelectedImage: `${image.imageVersion?.from.name}`,
+      lastSelectedImage: image.imageVersion?.from
+        ? `${image.imageVersion.from.name}`
+        : `${image.imageStream?.metadata?.name || 'unknown image'} - ${
+            image.imageVersion?.name || 'unknown version'
+          }`,
       projectName,
       notebookName: name,
     });
