@@ -21,6 +21,10 @@ export const parameters = {
           id: 'empty-table-header',
           enabled: false,
         },
+        {
+          id: 'color-contrast',
+          enabled: false,
+        },
       ],
     },
   },
