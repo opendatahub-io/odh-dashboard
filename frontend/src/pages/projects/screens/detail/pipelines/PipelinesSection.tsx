@@ -4,7 +4,7 @@ import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import ImportPipelineButton from '~/concepts/pipelines/import/ImportPipelineButton';
+import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 

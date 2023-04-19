@@ -17,6 +17,14 @@ export type RecursivePartial<T> = {
 };
 
 /**
+ * Partial only some properties.
+ *
+ * eg. PartialSome<FooBarBaz, 'foo' | 'bar'>
+ */
+export type PartialSome<Type, Keys extends keyof Type> = Pick<Partial<Type>, Keys> &
+  Omit<Type, Keys>;
+
+/**
  * Unions all values of an object togethers -- antithesis to `keyof myObj`.
  */
 export type ValueOf<T> = T[keyof T];
