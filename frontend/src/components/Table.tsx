@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import {
   TableComposable,
@@ -8,19 +9,27 @@ import {
   Caption,
   Tbody,
 } from '@patternfly/react-table';
-import React, { useEffect } from 'react';
+import styles from '@patternfly/react-styles/css/components/Table/table';
+import useDraggableTable, { TrDragFunctionsType } from '~/utilities/useDraggableTable';
 import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort';
 
 type TableProps<DataType> = {
   data: DataType[];
   columns: SortableData<DataType>[];
-  rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;
+  rowRenderer: (
+    data: DataType,
+    rowIndex: number,
+    trDragFunctions?: TrDragFunctionsType,
+  ) => React.ReactNode;
   enablePagination?: boolean;
   minPageSize?: number;
   toolbarContent?: React.ReactElement<typeof ToolbarItem>;
   emptyTableView?: React.ReactElement<typeof Tr>;
   caption?: string;
   disableRowRenderSupport?: boolean;
+  isDraggable?: boolean;
+  initialItemOrder?: string[];
+  onDropCallback?: (itemOrder: string[]) => void;
 } & Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
@@ -33,19 +42,36 @@ const Table = <T,>({
   emptyTableView,
   caption,
   disableRowRenderSupport,
+  isDraggable,
+  initialItemOrder = [],
+  onDropCallback,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(minPageSize);
 
   const data = enablePagination ? allData.slice(pageSize * (page - 1), pageSize * page) : allData;
+  const bodyRef = React.useRef<HTMLTableSectionElement>(null);
+
+  const {
+    isDragging,
+    tbodyDragFunctions: { onDragLeave, onDragOver },
+    trDragFunctions,
+    itemOrder,
+  } = useDraggableTable(bodyRef, initialItemOrder);
 
   // update page to 1 if data changes (common when filter is applied)
-  useEffect(() => {
+  React.useEffect(() => {
     if (data.length === 0) {
       setPage(1);
     }
   }, [data.length]);
+
+  React.useEffect(() => {
+    if (onDropCallback) {
+      onDropCallback(itemOrder);
+    }
+  }, [itemOrder, onDropCallback]);
 
   const sort = useTableColumnSort<T>(columns, 0);
 
@@ -80,10 +106,11 @@ const Table = <T,>({
           </ToolbarContent>
         </Toolbar>
       )}
-      <TableComposable {...props}>
+      <TableComposable {...props} className={isDragging ? styles.modifiers.dragOver : undefined}>
         {caption && <Caption>{caption}</Caption>}
         <Thead>
           <Tr>
+            {isDraggable && <Th />}
             {columns.map((col, i) => (
               <Th
                 key={col.field + i}
@@ -97,6 +124,12 @@ const Table = <T,>({
         </Thead>
         {disableRowRenderSupport ? (
           sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))
+        ) : isDraggable ? (
+          <Tbody ref={bodyRef} onDragOver={onDragOver} onDragLeave={onDragLeave}>
+            {sort
+              .transformData(data)
+              .map((row, rowIndex) => rowRenderer(row, rowIndex, trDragFunctions))}
+          </Tbody>
         ) : (
           <Tbody>
             {sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))}

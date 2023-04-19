@@ -40,13 +40,13 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     useTemplateOrder(dashboardNamespace),
   );
 
-  const servingRuntimeTeamplateRefresh = servingRuntimeTemplates.refresh;
-  const servingRuntimeTeamplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
+  const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
+  const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
 
   const refreshData = React.useCallback(() => {
-    servingRuntimeTeamplateRefresh();
-    servingRuntimeTeamplateOrderRefresh();
-  }, [servingRuntimeTeamplateRefresh, servingRuntimeTeamplateOrderRefresh]);
+    servingRuntimeTemplateRefresh();
+    servingRuntimeTemplateOrderRefresh();
+  }, [servingRuntimeTemplateRefresh, servingRuntimeTemplateOrderRefresh]);
 
   if (servingRuntimeTemplates.error || servingRuntimeTemplateOrder.error) {
     return (
