@@ -116,6 +116,7 @@ const Table = <T,>({
                 key={col.field + i}
                 sort={col.sortable ? sort.getColumnSort(i) : undefined}
                 width={col.width}
+                info={col.info}
               >
                 {col.label}
               </Th>

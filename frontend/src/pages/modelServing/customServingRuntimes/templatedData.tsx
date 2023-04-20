@@ -11,6 +11,12 @@ export const columns: SortableData<TemplateKind>[] = [
     field: 'enabled',
     label: 'Enabled',
     sortable: false,
+    info: {
+      popover: 'Select which runtimes are available to users when serving models.',
+      popoverProps: {
+        showClose: false,
+      },
+    },
   },
   {
     field: 'models-deployed',

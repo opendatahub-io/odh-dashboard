@@ -12,3 +12,6 @@ export const compareTemplateKinds =
     }
     return 0;
   };
+
+export const getTemplateEnabled = (template: TemplateKind) =>
+  !(template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false');
