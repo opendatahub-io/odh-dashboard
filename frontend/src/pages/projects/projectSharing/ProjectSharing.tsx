@@ -29,7 +29,7 @@ const ProjectSharing: React.FC = () => {
       <PageSection isFilled aria-label="project-sharing-error-section" variant="light">
         <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
           <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
+          <Title headingLevel="h2" size="lg">
             There was an issue loading permissions.
           </Title>
           <EmptyStateBody>{loadError.message}</EmptyStateBody>
@@ -43,7 +43,7 @@ const ProjectSharing: React.FC = () => {
       <PageSection isFilled aria-label="project-sharing-loading-section" variant="light">
         <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
           <Spinner size="xl" />
-          <Title headingLevel="h4" size="lg">
+          <Title headingLevel="h2" size="lg">
             Loading
           </Title>
         </EmptyState>

@@ -33,7 +33,7 @@ const ProjectsRoutes: React.FC<ProjectsRoutesProps> = ({ children, disableMountR
     // This is unlikely to happen -- likely a development setup error and mounted outside of the provider
     render = (
       <EmptyState>
-        <Title headingLevel="h4" size="lg">
+        <Title headingLevel="h2" size="lg">
           There was an issue fetching projects.
         </Title>
         <EmptyStateBody>{loadError.message}</EmptyStateBody>
