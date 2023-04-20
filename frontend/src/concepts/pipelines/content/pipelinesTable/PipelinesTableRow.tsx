@@ -61,9 +61,17 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           <Td>{lastRun ? <RunStatus run={lastRun} /> : <NoRunContent />}</Td>
           <Td>{lastRun ? <RunDuration run={lastRun} /> : <NoRunContent />}</Td>
           <Td>
-            <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-              {relativeTime(Date.now(), createdDate.getTime())}
-            </Timestamp>
+            <span style={{ whiteSpace: 'nowrap' }}>
+              <Timestamp
+                date={createdDate}
+                tooltip={{
+                  variant: TimestampTooltipVariant.custom,
+                  content: pipeline.created_at,
+                }}
+              >
+                {relativeTime(Date.now(), createdDate.getTime())}
+              </Timestamp>
+            </span>
           </Td>
           <Td isActionCell>
             <ActionsColumn

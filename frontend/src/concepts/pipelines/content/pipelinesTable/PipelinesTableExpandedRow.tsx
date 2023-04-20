@@ -87,6 +87,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
             <RenderContentList items={renderContentByColumn.createDates} />
           </ExpandableRowContent>
         </Td>
+        <Td isActionCell />
       </Tr>
     </Tbody>
   );
