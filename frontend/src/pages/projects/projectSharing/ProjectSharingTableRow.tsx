@@ -139,7 +139,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
               data-id="save-rolebinding-button"
               variant="plain"
               icon={<CheckIcon />}
-              isDisabled={isLoading}
+              isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
               onClick={() => {
                 setIsLoading(true);
                 onCreateOrEditRoleBinding(roleBindingName, roleBindingRoleRef, obj);
