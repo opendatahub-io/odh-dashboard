@@ -79,11 +79,11 @@ export const RunDuration: RunUtil = ({ run }) => {
 
 export const RunCreated: RunUtil = ({ run }) => {
   const createdDate = new Date(run.created_at);
-
-  const content = relativeTime(Date.now(), createdDate.getTime());
   return (
-    <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-      <Truncate content={content}>{content}</Truncate>
-    </Timestamp>
+    <span style={{ whiteSpace: 'nowrap' }}>
+      <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
+        {relativeTime(Date.now(), createdDate.getTime())}
+      </Timestamp>
+    </span>
   );
 };

@@ -1,4 +1,10 @@
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import {
+  Pagination,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
+} from '@patternfly/react-core';
 import {
   TableComposable,
   Thead,
@@ -19,8 +25,8 @@ type TableProps<DataType> = {
   enablePagination?: boolean;
   minPageSize?: number;
   truncateRenderingAt?: number;
-  toolbarContent?: React.ReactElement<typeof ToolbarItem>;
-  emptyTableView?: React.ReactElement<typeof Tr>;
+  toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
+  emptyTableView?: React.ReactNode;
   caption?: string;
   disableRowRenderSupport?: boolean;
 } & Omit<TableComposableProps, 'ref' | 'data'>;
@@ -79,7 +85,7 @@ const Table = <T,>({
   return (
     <>
       {(toolbarContent || showPagination) && (
-        <Toolbar>
+        <Toolbar customChipGroupContent={<></>}>
           <ToolbarContent>
             {toolbarContent}
             {showPagination && (

@@ -61,9 +61,16 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           <Td>{lastRun ? <RunStatus run={lastRun} /> : <NoRunContent />}</Td>
           <Td>{lastRun ? <RunDuration run={lastRun} /> : <NoRunContent />}</Td>
           <Td>
-            <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-              {relativeTime(Date.now(), createdDate.getTime())}
-            </Timestamp>
+            <span style={{ whiteSpace: 'nowrap' }}>
+              <Timestamp
+                date={createdDate}
+                tooltip={{
+                  variant: TimestampTooltipVariant.default,
+                }}
+              >
+                {relativeTime(Date.now(), createdDate.getTime())}
+              </Timestamp>
+            </span>
           </Td>
           <Td isActionCell>
             <ActionsColumn
@@ -71,7 +78,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create run',
                   onClick: () => {
-                    alert('Not implemented');
+                    alert('should navigate to pipeline run creation page');
                   },
                 },
                 {
