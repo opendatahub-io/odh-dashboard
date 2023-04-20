@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { Td, Tbody, Tr, ExpandableRowContent } from '@patternfly/react-table';
-import { Spinner, Title } from '@patternfly/react-core';
+import {
+  Button,
+  EmptyState,
+  EmptyStateSecondaryActions,
+  EmptyStateVariant,
+  Spinner,
+  Title,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import IndentSection from '~/pages/projects/components/IndentSection';
@@ -41,7 +48,19 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
           <Td />
           <Td colSpan={6}>
             <ExpandableRowContent>
-              There are no runs currently for this pipeline.
+              <EmptyState variant={EmptyStateVariant.xs}>
+                <Title headingLevel="h3" size="md">
+                  No pipeline runs
+                </Title>
+                <EmptyStateSecondaryActions>
+                  <Button
+                    variant="link"
+                    onClick={() => alert('should navigate to pipeline run creation page')}
+                  >
+                    Create run
+                  </Button>
+                </EmptyStateSecondaryActions>
+              </EmptyState>
             </ExpandableRowContent>
           </Td>
         </Tr>
@@ -87,6 +106,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
             <RenderContentList items={renderContentByColumn.createDates} />
           </ExpandableRowContent>
         </Td>
+        <Td isActionCell />
       </Tr>
     </Tbody>
   );

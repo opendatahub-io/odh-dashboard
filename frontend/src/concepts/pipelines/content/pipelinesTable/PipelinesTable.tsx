@@ -12,19 +12,24 @@ type PipelinesTableProps = {
   pipelineDetailsPath: (namespace: string, id: string) => string;
   refreshPipelines: FetchStateRefreshPromise;
   contentLimit?: number;
-};
+} & Pick<
+  React.ComponentProps<typeof Table>,
+  'toolbarContent' | 'emptyTableView' | 'enablePagination'
+>;
 
 const PipelinesTable: React.FC<PipelinesTableProps> = ({
   pipelines,
   contentLimit,
   pipelineDetailsPath,
   refreshPipelines,
+  ...tableProps
 }) => {
   const [deleteTarget, setDeleteTarget] = React.useState<PipelineKF | null>(null);
 
   return (
     <>
       <Table
+        {...tableProps}
         data={pipelines}
         columns={columns}
         variant={TableVariant.compact}
