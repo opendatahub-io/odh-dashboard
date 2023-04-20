@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Button, Stack, StackItem, Title } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Button,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import { RoleBindingKind } from '~/k8sTypes';
 import { generateRoleBindingProjectSharing } from '~/api';
 import ProjectSharingTable from './ProjectSharingTable';
@@ -26,6 +33,7 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
     filterRoleBindingSubjects(roleBindings, projectSharingTableType),
   );
   const [addField, setAddField] = React.useState(false);
+  const [error, setError] = React.useState<Error | undefined>(undefined);
 
   const hasAddingField =
     permissionLocal.filter((rolebinding) => rolebinding.subjects[0]?.name === '').length > 0;
@@ -67,12 +75,28 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
             setAddField(false);
             setPermissionLocal(filterRoleBindingSubjects(roleBindings, projectSharingTableType));
           }}
+          onError={(error) => {
+            setError(error);
+            setPermissionLocal(filterRoleBindingSubjects(roleBindings, projectSharingTableType));
+          }}
           refresh={() => {
             setAddField(false);
             refresh();
           }}
         />
       </StackItem>
+      {error && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="danger"
+            title="Error"
+            actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
+          >
+            <p>{error.message}</p>
+          </Alert>
+        </StackItem>
+      )}
       <StackItem>
         <Button
           variant="link"

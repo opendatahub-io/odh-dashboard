@@ -50,11 +50,16 @@ export const compareDatesWithUndefined = (
   return date1Date.getTime() - date2Date.getTime();
 };
 
-export const ensureRoleBindingCreationSorting = (roleBinding1: RoleBindingKind, roleBinding2: RoleBindingKind, sortDirection: string | undefined, sorting: number): number => {
+export const ensureRoleBindingCreationSorting = (
+  roleBinding1: RoleBindingKind,
+  roleBinding2: RoleBindingKind,
+  sortDirection: string | undefined,
+  sorting: number,
+): number => {
   if (roleBinding1.subjects[0]?.name === '') {
     return sortDirection === 'asc' ? 1 : -1;
   } else if (roleBinding2.subjects[0]?.name === '') {
     return sortDirection === 'asc' ? -1 : 1;
   }
-  return sorting
-}
+  return sorting;
+};

@@ -11,6 +11,7 @@ type ProjectSharingTableProps = {
   permissions: RoleBindingKind[];
   typeAhead: string[];
   onCancel: () => void;
+  onError: (error: Error) => void;
   refresh: () => void;
 };
 
@@ -19,6 +20,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
   permissions,
   typeAhead,
   onCancel,
+  onError,
   refresh,
 }) => {
   const [editCell, setEditCell] = React.useState<string[]>([]);
@@ -47,19 +49,23 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
             if (obj.subjects[0]?.name === '') {
               createRoleBinding(newRBObject)
                 .then(() => refresh())
-                .catch(() =>
-                  setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name)),
-                );
+                .catch((e) => {
+                  onError(e);
+                });
             } else {
               createRoleBinding(newRBObject)
                 .then(() =>
-                  deleteRoleBinding(obj.metadata.name, obj.metadata.namespace).then(() =>
-                    refresh(),
-                  ),
+                  deleteRoleBinding(obj.metadata.name, obj.metadata.namespace)
+                    .then(() => refresh())
+                    .catch((e) => {
+                      onError(e);
+                      setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
+                    }),
                 )
-                .catch(() =>
-                  setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name)),
-                );
+                .catch((e) => {
+                  onError(e);
+                  setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
+                });
               refresh();
             }
           }}
