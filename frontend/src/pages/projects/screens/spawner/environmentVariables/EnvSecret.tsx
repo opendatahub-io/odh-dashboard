@@ -36,6 +36,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) =>
           <EnvUploadField
             envVarType={EnvironmentVariableType.SECRET}
             onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
+            translateValue={(value) => atob(value)}
           />
         ),
       },
