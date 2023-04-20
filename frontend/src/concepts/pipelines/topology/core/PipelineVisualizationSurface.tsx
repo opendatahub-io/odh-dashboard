@@ -30,6 +30,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     // TODO: Pipeline Topology weirdly doesn't set a width and height on spacer nodes -- but they do when using finally spacer nodes
     const spacerNodes = getSpacerNodes(nodes).map((s) => ({ ...s, width: 1, height: 1 }));
     const renderNodes = [...spacerNodes, ...nodes];
+    // TODO: We can have a weird edge issue if the node is off by a few pixels vertically from the center
     const edges = getEdgesFromNodes(renderNodes);
 
     controller.fromModel(

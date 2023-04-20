@@ -17,7 +17,8 @@ const PipelineDetailsYAML: React.FC<PipelineDetailsYAMLProps> = ({ pipelineRun }
   return (
     <CodeEditor
       code={pipelineYAML}
-      height="400px" // TODO: PF doesn't want to expand into the space
+      // TODO: PF doesn't want to expand into the space
+      height="400px"
       downloadFileName={`Pipeline ${pipelineRun.metadata.name}`}
       isDownloadEnabled
       isCopyEnabled
