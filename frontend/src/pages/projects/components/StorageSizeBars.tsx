@@ -41,17 +41,21 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
 
   let inUseRender: React.ReactNode;
-  // if (error) {
+  if (error) {
     inUseRender = (
       <Tooltip removeFindDomNode content={`Unable to get storage data.`}>
-        <ExclamationCircleIcon color="var(--pf-global--danger-color--100)" aria-label="error icon" tabIndex={0}/>
+        <ExclamationCircleIcon
+          color="var(--pf-global--danger-color--100)"
+          aria-label="error icon"
+          tabIndex={0}
+        />
       </Tooltip>
     );
-  // } else if (!loaded) {
-  //   inUseRender = <Spinner size="sm" />;
-  // } else {
-  //   inUseRender = inUseValue;
-  // }
+  } else if (!loaded) {
+    inUseRender = <Spinner size="sm" />;
+  } else {
+    inUseRender = inUseValue;
+  }
 
   const progressBar = (
     <Progress
