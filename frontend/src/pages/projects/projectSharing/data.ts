@@ -1,24 +1,26 @@
 import { RoleBindingKind } from '~/k8sTypes';
 import { SortableData } from '~/utilities/useTableColumnSort';
+import { compareDatesWithUndefined } from './utils';
 
 export const columnsProjectSharingUser: SortableData<RoleBindingKind>[] = [
   {
     field: 'username',
     label: 'Username',
     width: 30,
-    sortable: (a, b) => a.roleRef.name.localeCompare(b.roleRef.name),
+    sortable: (a, b) => a.subjects[0]?.name.localeCompare(b.subjects[0]?.name),
   },
   {
     field: 'permission',
     label: 'Permission',
     width: 20,
-    sortable: false,
+    sortable: (a, b) => a.roleRef.name.localeCompare(b.roleRef.name),
   },
   {
     field: 'date',
     label: 'Date added',
     width: 30,
-    sortable: false,
+    sortable: (a, b) =>
+      compareDatesWithUndefined(a.metadata.creationTimestamp, b.metadata.creationTimestamp),
   },
 ];
 

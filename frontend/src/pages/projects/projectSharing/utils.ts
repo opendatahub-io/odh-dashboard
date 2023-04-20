@@ -25,3 +25,27 @@ export const filterRoleBindingSubjects = (
 
 export const castProjectSharingRoleType = (role: string): ProjectSharingRoleType | undefined =>
   ProjectSharingRoleType[role.toUpperCase() as keyof typeof ProjectSharingRoleType];
+
+export const compareDatesWithUndefined = (
+  date1: string | undefined,
+  date2: string | undefined,
+): number => {
+  if (date1 === undefined && date2 === undefined) {
+    return 0;
+  }
+  if (date1 === undefined) {
+    return -1;
+  }
+  if (date2 === undefined) {
+    return 1;
+  }
+  const date1Date = new Date(date1);
+  const date2Date = new Date(date2);
+  if (date1Date.toString() === 'Invalid Date') {
+    return -1;
+  }
+  if (date2Date.toString() === 'Invalid Date') {
+    return 1;
+  }
+  return date1Date.getTime() - date2Date.getTime();
+};
