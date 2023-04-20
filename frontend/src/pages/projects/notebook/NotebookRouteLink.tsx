@@ -51,13 +51,13 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
       </FlexItem>
       {error && (
         <FlexItem>
-          <Tooltip content={error.message}>
-            <Icon status="danger">
+          <Tooltip content={"lalala"}>
+            <Icon role="button" aria-label="error icon" status="danger" tabIndex={0}>
               <ExclamationCircleIcon />
             </Icon>
           </Tooltip>
         </FlexItem>
-      )}
+       )}
     </Flex>
   );
 };
