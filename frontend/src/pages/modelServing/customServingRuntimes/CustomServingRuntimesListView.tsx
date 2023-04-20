@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as _ from 'lodash';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import Table from '~/components/Table';
-import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { TemplateKind } from '~/k8sTypes';
 import { patchDashboardConfigTemplateOrder } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
@@ -18,39 +17,12 @@ type CustomServingRuntimesListViewProps = {
 };
 
 const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps> = ({
-  templates: unfilteredTemplates,
+  templates,
   templateOrder,
   refresh,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
-  const [search, setSearch] = React.useState('');
-
-  // TODO: should we disabled drag&drop when using search function?
-  const filteredTemplates = unfilteredTemplates
-    .sort(compareTemplateKinds(templateOrder))
-    .filter((template) => {
-      if (!search) {
-        return true;
-      }
-
-      switch (searchType) {
-        case SearchType.NAME:
-          return template.metadata.name.includes(search.toLowerCase());
-        default:
-          return true;
-      }
-    });
-
-  const resetFilters = () => {
-    setSearch('');
-  };
-
-  const searchTypes = React.useMemo(
-    () => Object.keys(SearchType).filter((key) => SearchType[key] === SearchType.NAME),
-    [],
-  );
 
   const onDropCallback = React.useCallback(
     (newTemplateOrder) => {
@@ -66,19 +38,12 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
   return (
     <>
       <Table
-        enablePagination
         isDraggable
-        data={filteredTemplates}
+        data={templates}
         columns={columns}
-        initialItemOrder={filteredTemplates.map((template) => template.metadata.name)}
-        emptyTableView={
-          <>
-            No serving runtimes match your filters.{' '}
-            <Button variant="link" isInline onClick={resetFilters}>
-              Clear filters
-            </Button>
-          </>
-        }
+        initialItemOrder={templates
+          .sort(compareTemplateKinds(templateOrder))
+          .map((template) => template.metadata.name)}
         rowRenderer={(template, rowIndex, trDragFunctions) => (
           <CustomServingRuntimesTableRow
             key={template.metadata.uid}
@@ -89,17 +54,8 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
         )}
         toolbarContent={
           <ToolbarItem>
-            <SearchField
-              types={searchTypes}
-              searchType={searchType}
-              searchValue={search}
-              onSearchTypeChange={(searchType) => {
-                setSearchType(searchType);
-              }}
-              onSearchValueChange={(searchValue) => {
-                setSearch(searchValue);
-              }}
-            />
+            {/* TODO: Add navigation to the adding serving runtime page */}
+            <Button>Add serving runtime</Button>
           </ToolbarItem>
         }
         onDropCallback={onDropCallback}
