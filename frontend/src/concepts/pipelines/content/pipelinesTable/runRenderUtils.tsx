@@ -35,6 +35,8 @@ export const RunStatus: RunUtil = ({ run }) => {
     case PipelineRunStatusesKF.FAILED:
       icon = <ExclamationCircleIcon />;
       status = 'danger';
+      // TODO: tooltipContent for error?
+      // TODO: Make a PipelineRun fail
       break;
     case PipelineRunStatusesKF.RUNNING:
       icon = <SyncAltIcon />;

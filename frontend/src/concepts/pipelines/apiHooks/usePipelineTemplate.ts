@@ -13,22 +13,17 @@ const usePipelineTemplate = (pipelineId?: string) => {
         return Promise.reject(new NotReadyError('No pipeline id'));
       }
 
-      return new Promise((resolve, reject) => {
-        api
-          .listPipelineTemplate(opts, pipelineId)
-          .then(({ template }) => {
-            let pipelineRun: PipelineRunKind;
-            try {
-              pipelineRun = YAML.parse(template);
-            } catch (e) {
-              const message = (e as Error)?.message || '';
-              // eslint-disable-next-line no-console
-              console.error('Error parsing yaml', e);
-              throw new Error(`Unable to parse Pipeline structure. ${message}`);
-            }
-            resolve(pipelineRun);
-          })
-          .catch(reject);
+      return api.listPipelineTemplate(opts, pipelineId).then(({ template }) => {
+        let pipelineRun: PipelineRunKind;
+        try {
+          pipelineRun = YAML.parse(template);
+        } catch (e) {
+          const message = (e as Error)?.message || '';
+          // eslint-disable-next-line no-console
+          console.error('Error parsing yaml', e);
+          throw new Error(`Unable to parse Pipeline structure. ${message}`);
+        }
+        return pipelineRun;
       });
     },
     [api, pipelineId],
