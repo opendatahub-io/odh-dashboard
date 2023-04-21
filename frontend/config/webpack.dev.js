@@ -1,5 +1,6 @@
 const path = require('path');
 const { merge } = require('webpack-merge');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 setupDotenvFilesForEnv({ env: 'development' });
@@ -17,7 +18,8 @@ const BACKEND_PORT = process.env._BACKEND_PORT;
 module.exports = merge(
   {
     plugins: [
-      ...setupWebpackDotenvFilesForEnv({ directory: RELATIVE_DIRNAME, env: 'development', isRoot: IS_PROJECT_ROOT_DIR })
+      ...setupWebpackDotenvFilesForEnv({ directory: RELATIVE_DIRNAME, env: 'development', isRoot: IS_PROJECT_ROOT_DIR }),
+      new MonacoWebpackPlugin()
     ]
   },
   webpackCommon('development'),
@@ -56,7 +58,8 @@ module.exports = merge(
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-catalog-view-extension'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/styles/base.css'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/quickstarts')
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/quickstarts'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor/esm/vs/platform'),
           ],
           use: ['style-loader', 'css-loader']
         },
@@ -64,6 +67,25 @@ module.exports = merge(
           test: /\.css$/,
           include: stylesheet => stylesheet.includes('@patternfly/react-styles/css/'),
           use: ['null-loader']
+        },
+        {
+          test: /\.css$/,
+          exclude: [
+            SRC_DIR,
+            COMMON_DIR,
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-catalog-view-extension'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/styles/base.css'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/quickstarts'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor/esm/vs/platform'),
+          ],
+          use: ["style-loader", "css-loader"],
+        },
+        {
+          test: /\.ttf$/,
+          type: 'asset/resource'
         }
       ]
     }
