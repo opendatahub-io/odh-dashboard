@@ -7,25 +7,31 @@ import {
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { ServingRuntimeModel, TemplateModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '~/pages/projects/utils';
 
 export const assembleTemplate = (body: string, namespace: string): TemplateKind => {
   const servingRuntime = YAML.parse(body);
 
-  const displayName = servingRuntime.metadata?.annotations?.['display-name'];
-  const name = servingRuntime.metadata?.name;
+  const name = servingRuntime.metadata?.name || '';
+  const displayName = getDisplayNameFromK8sResource(servingRuntime);
+  const description = getDescriptionFromK8sResource(servingRuntime);
 
   return {
     kind: 'Template',
     apiVersion: 'template.openshift.io/v1',
     metadata: {
-      name: name || displayName || '',
+      name: name,
       namespace,
       labels: {
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        description: 'ONNX ServingRuntiem Definition',
+        description,
         'opendatahub.io/template-enabled': 'true',
+        'openshift.io/display-name': displayName,
         tags: `${name},servingruntime`,
       },
     },
