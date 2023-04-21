@@ -15,6 +15,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { TemplateKind } from '~/k8sTypes';
 import { createServingRuntimeTemplate } from '~/api';
+import { useDashboardNamespace } from '~/redux/selectors';
 
 type CustomServingRuntimesAddTemplateProps = {
   existingCustomServingRuntime?: TemplateKind;
@@ -23,6 +24,7 @@ type CustomServingRuntimesAddTemplateProps = {
 const CustomServingRuntimesAddTemplate: React.FC<CustomServingRuntimesAddTemplateProps> = ({
   existingCustomServingRuntime,
 }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [code, setCode] = React.useState('');
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
@@ -79,7 +81,7 @@ const CustomServingRuntimesAddTemplate: React.FC<CustomServingRuntimesAddTemplat
                   isLoading={loading}
                   onClick={() => {
                     setIsLoading(true);
-                    createServingRuntimeTemplate(code, 'opendatahub')
+                    createServingRuntimeTemplate(code, dashboardNamespace)
                       .then(() => navigate(`/servingRuntimes`))
                       .catch((err) => {
                         setError(err);
