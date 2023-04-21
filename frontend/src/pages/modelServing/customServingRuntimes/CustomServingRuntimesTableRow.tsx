@@ -37,7 +37,6 @@ const CustomServingRuntimesTableRow: React.FC<CustomServingRuntimesTableRowProps
       <Td dataLabel="Workbench">
         <CustomServingRuntimeEnabledToggle template={template} />
       </Td>
-      <Td dataLabel="Status">TODO</Td>
       <Td isActionCell>
         <ActionsColumn items={[]} />
       </Td>

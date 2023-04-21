@@ -19,11 +19,6 @@ export const columns: SortableData<TemplateKind>[] = [
     },
   },
   {
-    field: 'models-deployed',
-    label: 'Models Deployed',
-    sortable: false,
-  },
-  {
     field: 'kebab',
     label: '',
     sortable: false,
