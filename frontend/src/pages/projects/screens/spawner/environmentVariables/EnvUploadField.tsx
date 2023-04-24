@@ -7,9 +7,14 @@ import { isConfigMapKind, isSecretKind, isStringKeyValuePairObject } from './uti
 type EnvUploadFieldProps = {
   onUpdate: (data: EnvVariableDataEntry[]) => void;
   envVarType: EnvironmentVariableType;
+  translateValue?: (value: string) => string;
 };
 
-const EnvUploadField: React.FC<EnvUploadFieldProps> = ({ onUpdate, envVarType }) => {
+const EnvUploadField: React.FC<EnvUploadFieldProps> = ({
+  onUpdate,
+  envVarType,
+  translateValue,
+}) => {
   const [fileValue, setFileValue] = React.useState('');
   const [filename, setFilename] = React.useState('');
   const [isLoading, setLoading] = React.useState(false);
@@ -61,7 +66,12 @@ const EnvUploadField: React.FC<EnvUploadFieldProps> = ({ onUpdate, envVarType })
                 setError('Data need to be string key value pairs, please check your file.');
               } else {
                 setError('');
-                onUpdate(Object.entries(envData).map(([key, value]) => ({ key, value })));
+                onUpdate(
+                  Object.entries(envData).map(([key, value]) => ({
+                    key,
+                    value: translateValue ? translateValue(value) : value,
+                  })),
+                );
               }
             }
           } catch (e) {

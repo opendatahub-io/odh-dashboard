@@ -157,7 +157,7 @@ export type ImageStreamKind = K8sResourceCommon & {
 export type ImageStreamSpecTagType = {
   name: string;
   annotations?: ImageStreamSpecTagAnnotations;
-  from: {
+  from?: {
     kind: string;
     name: string;
   };

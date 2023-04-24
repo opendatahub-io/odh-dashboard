@@ -21,7 +21,7 @@ type HeaderProps = {
 const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
   const { isAllowed } = useUser();
   return (
-    <Masthead>
+    <Masthead role="banner">
       {isAllowed && (
         <MastheadToggle>
           <PageToggleButton id="page-nav-toggle" variant="plain" aria-label="Dashboard navigation">
