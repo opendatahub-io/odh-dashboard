@@ -2,15 +2,10 @@ import React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
-import { DomainCalculator } from '~/pages/modelServing/screens/metrics/types';
 
 const SPDChart = () => {
   const DEFAULT_MAX_THRESHOLD = 0.1;
   const DEFAULT_MIN_THRESHOLD = -0.1;
-
-  const domainCalc: DomainCalculator = (maxYValue) => ({
-    y: maxYValue > 0.1 ? [-1 * maxYValue - 0.1, maxYValue + 0.1] : [-0.2, 0.2],
-  });
 
   return (
     <TrustyChart
@@ -30,7 +25,9 @@ const SPDChart = () => {
           </StackItem>
         </Stack>
       }
-      domain={domainCalc}
+      domain={(maxYValue) => ({
+        y: maxYValue > 0.1 ? [-1 * maxYValue - 0.1, maxYValue + 0.1] : [-0.2, 0.2],
+      })}
       thresholds={[DEFAULT_MAX_THRESHOLD, DEFAULT_MIN_THRESHOLD]}
     />
   );

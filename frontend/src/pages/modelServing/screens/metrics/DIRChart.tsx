@@ -2,15 +2,11 @@ import React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
-import { DomainCalculator, MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
+import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 
 const DIRChart = () => {
   const DEFAULT_MAX_THRESHOLD = 1.2;
   const DEFAULT_MIN_THRESHOLD = 0.8;
-
-  const domainCalc: DomainCalculator = (maxYValue) => ({
-    y: maxYValue > 1.2 ? [0, maxYValue + 0.1] : [0, 1.3],
-  });
 
   return (
     <TrustyChart
@@ -30,7 +26,9 @@ const DIRChart = () => {
           </StackItem>
         </Stack>
       }
-      domain={domainCalc}
+      domain={(maxYValue) => ({
+        y: maxYValue > 1.2 ? [0, maxYValue + 0.1] : [0, 1.3],
+      })}
       thresholds={[DEFAULT_MAX_THRESHOLD, DEFAULT_MIN_THRESHOLD]}
       type={MetricsChartTypes.LINE}
     />
