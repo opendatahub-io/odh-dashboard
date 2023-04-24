@@ -17,23 +17,14 @@ const MetricsPageTabs: React.FC = () => {
     }
   }, [navigate, tab]);
 
-  const loadTab = (tabId: string) => {
-    navigate(`../${tabId}`, { relative: 'path' });
-  };
-
-  const handleTabClick = (
-    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent | MouseEvent,
-    tabId: string | number,
-  ) => {
-    if (typeof tabId === 'string') {
-      loadTab(tabId);
-    }
-  };
-
   return (
     <Tabs
-      activeKey={tab}
-      onSelect={handleTabClick}
+      activeKey={tab ?? DEFAULT_TAB}
+      onSelect={(event, tabId) => {
+        if (typeof tabId === 'string') {
+          navigate(`../${tabId}`, { relative: 'path' });
+        }
+      }}
       isBox={false}
       aria-label="Metrics page tabs"
       role="region"
