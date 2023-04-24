@@ -57,7 +57,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
             </Icon>
           </Tooltip>
         </FlexItem>
-       )}
+      )}
     </Flex>
   );
 };

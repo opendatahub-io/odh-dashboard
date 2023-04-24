@@ -43,7 +43,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   let inUseRender: React.ReactNode;
   if (error) {
     inUseRender = (
-      <Tooltip removeFindDomNode content={`Unable to get storage data.`}>
+      <Tooltip removeFindDomNode content={`Unable to get storage data. ${error.message}`}>
         <ExclamationCircleIcon
           color="var(--pf-global--danger-color--100)"
           aria-label="error icon"
