@@ -6,6 +6,7 @@ import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
 const SPDChart = () => {
   const DEFAULT_MAX_THRESHOLD = 0.1;
   const DEFAULT_MIN_THRESHOLD = -0.1;
+  const PADDING = 0.1;
 
   return (
     <TrustyChart
@@ -26,7 +27,10 @@ const SPDChart = () => {
         </Stack>
       }
       domain={(maxYValue) => ({
-        y: maxYValue > 0.1 ? [-1 * maxYValue - 0.1, maxYValue + 0.1] : [-0.2, 0.2],
+        y:
+          maxYValue > DEFAULT_MAX_THRESHOLD
+            ? [-1 * maxYValue - PADDING, maxYValue + PADDING]
+            : [DEFAULT_MIN_THRESHOLD - PADDING, DEFAULT_MAX_THRESHOLD + PADDING],
       })}
       thresholds={[DEFAULT_MAX_THRESHOLD, DEFAULT_MIN_THRESHOLD]}
     />

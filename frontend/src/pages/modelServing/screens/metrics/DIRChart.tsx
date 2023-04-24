@@ -7,6 +7,7 @@ import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 const DIRChart = () => {
   const DEFAULT_MAX_THRESHOLD = 1.2;
   const DEFAULT_MIN_THRESHOLD = 0.8;
+  const PADDING = 0.1;
 
   return (
     <TrustyChart
@@ -27,7 +28,10 @@ const DIRChart = () => {
         </Stack>
       }
       domain={(maxYValue) => ({
-        y: maxYValue > 1.2 ? [0, maxYValue + 0.1] : [0, 1.3],
+        y:
+          maxYValue > DEFAULT_MAX_THRESHOLD
+            ? [0, maxYValue + PADDING]
+            : [0, DEFAULT_MAX_THRESHOLD + PADDING],
       })}
       thresholds={[DEFAULT_MAX_THRESHOLD, DEFAULT_MIN_THRESHOLD]}
       type={MetricsChartTypes.LINE}
