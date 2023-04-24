@@ -56,7 +56,8 @@ const ProjectSharing: React.FC = () => {
       <Stack hasGutter>
         <StackItem>
           Add users and groups that can access the project. Edit allows users to view and make
-          changes to the project. Admin allows users to also add and remove new users to the project
+          changes to the project. Admin allows users to also add and remove new users to the
+          project.
         </StackItem>
         <StackItem>
           <ProjectSharingTableSection

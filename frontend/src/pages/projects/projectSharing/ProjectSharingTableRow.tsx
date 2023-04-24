@@ -94,10 +94,18 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
               placeholderText={roleBindingRoleRef}
               direction="down"
             >
-              <SelectOption key={ProjectSharingRoleType.EDIT} value={ProjectSharingRoleType.EDIT}>
+              <SelectOption
+                key={ProjectSharingRoleType.EDIT}
+                value={ProjectSharingRoleType.EDIT}
+                description={'Edit allows users to view and make changes to the project'}
+              >
                 {ProjectSharingRoleType.EDIT}
               </SelectOption>
-              <SelectOption key={ProjectSharingRoleType.ADMIN} value={ProjectSharingRoleType.ADMIN}>
+              <SelectOption
+                key={ProjectSharingRoleType.ADMIN}
+                value={ProjectSharingRoleType.ADMIN}
+                description={'Admin allows users to also add and remove new users to the project'}
+              >
                 {ProjectSharingRoleType.ADMIN}
               </SelectOption>
             </Select>
