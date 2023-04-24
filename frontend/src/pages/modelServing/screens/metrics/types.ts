@@ -42,3 +42,8 @@ export enum MetricsChartTypes {
   AREA,
   LINE,
 }
+
+export enum MetricsTabKeys {
+  PERFORMANCE = 'performance',
+  BIAS = 'bias',
+}

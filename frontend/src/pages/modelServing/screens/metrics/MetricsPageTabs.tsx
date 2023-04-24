@@ -1,12 +1,13 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, Tab, TabTitleText } from '@patternfly/react-core';
+import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import PerformanceTab from './PerformanceTab';
 import BiasTab from './BiasTab';
 import './MetricsPageTabs.scss';
 
 const MetricsPageTabs: React.FC = () => {
-  const DEFAULT_TAB = 'performance';
+  const DEFAULT_TAB = MetricsTabKeys.PERFORMANCE;
 
   const { tab } = useParams();
   const navigate = useNavigate();
@@ -15,11 +16,11 @@ const MetricsPageTabs: React.FC = () => {
     if (!tab) {
       navigate(`./${DEFAULT_TAB}`, { replace: true });
     }
-  }, [navigate, tab]);
+  }, [DEFAULT_TAB, navigate, tab]);
 
   return (
     <Tabs
-      activeKey={tab ?? DEFAULT_TAB}
+      activeKey={tab}
       onSelect={(event, tabId) => {
         if (typeof tabId === 'string') {
           navigate(`../${tabId}`, { relative: 'path' });
@@ -31,7 +32,7 @@ const MetricsPageTabs: React.FC = () => {
       className="odh-tabs-fix"
     >
       <Tab
-        eventKey="performance"
+        eventKey={MetricsTabKeys.PERFORMANCE}
         title={<TabTitleText>Performance</TabTitleText>}
         aria-label="Performance tab"
         className="odh-tabcontent-fix"
@@ -39,7 +40,7 @@ const MetricsPageTabs: React.FC = () => {
         <PerformanceTab />
       </Tab>
       <Tab
-        eventKey="bias"
+        eventKey={MetricsTabKeys.BIAS}
         title={<TabTitleText>Bias</TabTitleText>}
         aria-label="Bias tab"
         className="odh-tabcontent-fix"
