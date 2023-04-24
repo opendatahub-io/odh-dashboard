@@ -2,7 +2,7 @@ import React from 'react';
 import { Select, SelectOption } from '@patternfly/react-core';
 
 type ScheduledMetricSelectProps = {
-  selected: string | undefined;
+  selected?: string;
   options: string[];
   onSelect: (name: string) => void;
 };
