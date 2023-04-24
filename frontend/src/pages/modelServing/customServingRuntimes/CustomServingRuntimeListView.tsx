@@ -9,15 +9,15 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
 import { compareTemplateKinds } from './utils';
 import { columns } from './templatedData';
-import CustomServingRuntimesTableRow from './CustomServingRuntimesTableRow';
+import CustomServingRuntimeTableRow from './CustomServingRuntimeTableRow';
 
-type CustomServingRuntimesListViewProps = {
+type CustomServingRuntimeListViewProps = {
   templates: TemplateKind[];
   templateOrder: string[];
   refresh: () => void;
 };
 
-const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps> = ({
+const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> = ({
   templates,
   templateOrder,
   refresh,
@@ -47,7 +47,7 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
           .sort(compareTemplateKinds(templateOrder))
           .map((template) => template.metadata.name)}
         rowRenderer={(template, rowIndex, trDragFunctions) => (
-          <CustomServingRuntimesTableRow
+          <CustomServingRuntimeTableRow
             key={template.metadata.uid}
             obj={template}
             rowIndex={rowIndex}
@@ -67,4 +67,4 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
   );
 };
 
-export default CustomServingRuntimesListView;
+export default CustomServingRuntimeListView;
