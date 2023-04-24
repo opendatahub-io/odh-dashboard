@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
+import { useNavigate } from 'react-router';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import Table from '~/components/Table';
 import { TemplateKind } from '~/k8sTypes';
@@ -23,6 +24,7 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
+  const navigate = useNavigate();
 
   const onDropCallback = React.useCallback(
     (newTemplateOrder) => {
@@ -54,8 +56,9 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
         )}
         toolbarContent={
           <ToolbarItem>
-            {/* TODO: Add navigation to the adding serving runtime page */}
-            <Button>Add serving runtime</Button>
+            <Button onClick={() => navigate('/servingRuntimes/addServingRuntime')}>
+              Add serving runtime
+            </Button>
           </ToolbarItem>
         }
         onDropCallback={onDropCallback}

@@ -15,15 +15,19 @@ import {
 export const assembleTemplate = (body: string, namespace: string): TemplateKind => {
   const servingRuntime = YAML.parse(body);
 
-  const name = servingRuntime.metadata?.name || '';
+  const name = servingRuntime.metadata?.name;
   const displayName = getDisplayNameFromK8sResource(servingRuntime);
   const description = getDescriptionFromK8sResource(servingRuntime);
+
+  if (!name) {
+    throw new Error('Template name is required');
+  }
 
   return {
     kind: 'Template',
     apiVersion: 'template.openshift.io/v1',
     metadata: {
-      name: name,
+      name,
       namespace,
       labels: {
         'opendatahub.io/dashboard': 'true',

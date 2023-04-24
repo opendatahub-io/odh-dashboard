@@ -16,15 +16,18 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { TemplateKind } from '~/k8sTypes';
 import { createServingRuntimeTemplate } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
+import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
-type CustomServingRuntimesAddTemplateProps = {
+type CustomServingRuntimeAddTemplateProps = {
   existingCustomServingRuntime?: TemplateKind;
 };
 
-const CustomServingRuntimesAddTemplate: React.FC<CustomServingRuntimesAddTemplateProps> = ({
+const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateProps> = ({
   existingCustomServingRuntime,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const { refreshData } = React.useContext(CustomServingRuntimeContext);
+
   const [code, setCode] = React.useState('');
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
@@ -52,7 +55,11 @@ const CustomServingRuntimesAddTemplate: React.FC<CustomServingRuntimesAddTemplat
             isCopyEnabled
             isLanguageLabelVisible
             language={Language.yaml}
-            height="500px"
+            height="600px"
+            options={{ tabSize: 2 }}
+            emptyStateTitle="Add a serving runtime"
+            emptyStateBody="Drag a file here, upload files, or start from scratch."
+            emptyStateButton="Upload files"
             onCodeChange={(codeChanged: string) => {
               setCode(codeChanged);
             }}
@@ -75,14 +82,17 @@ const CustomServingRuntimesAddTemplate: React.FC<CustomServingRuntimesAddTemplat
             <ActionList>
               <ActionListItem>
                 <Button
-                  isDisabled={code === ''}
+                  isDisabled={code === '' || loading}
                   variant="primary"
                   id="create-button"
                   isLoading={loading}
                   onClick={() => {
                     setIsLoading(true);
                     createServingRuntimeTemplate(code, dashboardNamespace)
-                      .then(() => navigate(`/servingRuntimes`))
+                      .then(() => {
+                        refreshData();
+                        navigate(`/servingRuntimes`);
+                      })
                       .catch((err) => {
                         setError(err);
                       })
@@ -111,4 +121,4 @@ const CustomServingRuntimesAddTemplate: React.FC<CustomServingRuntimesAddTemplat
     </ApplicationsPage>
   );
 };
-export default CustomServingRuntimesAddTemplate;
+export default CustomServingRuntimeAddTemplate;
