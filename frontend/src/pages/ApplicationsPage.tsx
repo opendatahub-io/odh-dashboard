@@ -19,7 +19,6 @@ import {
 type ApplicationsPageProps = {
   title: string;
   breadcrumb?: React.ReactNode;
-  toolbar?: React.ReactNode;
   description: React.ReactNode;
   loaded: boolean;
   empty: boolean;
@@ -35,7 +34,6 @@ type ApplicationsPageProps = {
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   title,
   breadcrumb,
-  toolbar,
   description,
   loaded,
   empty,
@@ -58,7 +56,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         </SplitItem>
         {headerAction && <SplitItem>{headerAction}</SplitItem>}
       </Split>
-      {toolbar}
     </PageSection>
   );
 
