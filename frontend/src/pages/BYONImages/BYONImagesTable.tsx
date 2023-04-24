@@ -363,7 +363,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
                     ) : (
                       <EmptyState variant={EmptyStateVariant.small}>
                         <EmptyStateIcon icon={CubesIcon} />
-                        <Title headingLevel="h4" size="lg">
+                        <Title headingLevel="h2" size="lg">
                           No packages detected
                         </Title>
                         <EmptyStateBody>Edit the image to add packages</EmptyStateBody>
