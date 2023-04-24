@@ -11,7 +11,6 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { useCreateServingRuntimeObject } from '~/pages/modelServing/screens/projects/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import {
   addSupportModelMeshProject,
   assembleSecretSA,
@@ -27,7 +26,7 @@ import {
   assembleServingRuntimeSA,
   createServiceAccount,
 } from '~/api';
-import { ServingRuntimeKind, SecretKind, K8sStatus } from '~/k8sTypes';
+import { ServingRuntimeKind, SecretKind, K8sStatus, TemplateKind, ProjectKind } from '~/k8sTypes';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
@@ -38,6 +37,8 @@ import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
+  currentProject: ProjectKind;
+  servingRuntimeTemplates: TemplateKind[];
   editInfo?: {
     servingRuntime?: ServingRuntimeKind;
     secrets: SecretKind[];
@@ -47,40 +48,28 @@ type ManageServingRuntimeModalProps = {
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   isOpen,
   onClose,
+  currentProject,
+  servingRuntimeTemplates,
   editInfo,
 }) => {
-  const [createData, setCreateData, resetData, sizes, gpuSetting] =
-    useCreateServingRuntimeObject(editInfo);
+  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
+
+  const namespace = currentProject.metadata.name;
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const {
-    currentProject,
-    servingRuntimesConfig: {
-      servingRuntimesConfig,
-      refresh: servingRuntimeConfigRefresh,
-      loaded: servingRuntimeConfigLoaded,
-    },
-  } = React.useContext(ProjectDetailsContext);
-
-  const namespace = currentProject.metadata.name;
+  // TODO: change
+  const servingRuntime = servingRuntimeTemplates[0]?.objects[0] as ServingRuntimeKind;
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
 
   const inputValueValid =
-    servingRuntimeConfigLoaded &&
     createData.numReplicas >= 0 &&
     resourcesArePositive(createData.modelSize.resources) &&
     requestsUnderLimits(createData.modelSize.resources);
 
   const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
-
-  React.useEffect(() => {
-    if (isOpen) {
-      servingRuntimeConfigRefresh();
-    }
-  }, [isOpen, servingRuntimeConfigRefresh]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -159,7 +148,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         ...(currentProject.metadata.labels?.['modelmesh-enabled']
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
-        createServingRuntime(createData, servingRuntimesConfig, namespace),
+        createServingRuntime(createData, servingRuntime, namespace),
         setupTokenAuth(),
       ])
         .then(() => {
@@ -209,7 +198,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   data={createData}
                   setData={setCreateData}
                   sizes={sizes}
-                  gpuSetting={gpuSetting}
                 />
               </StackItem>
               <StackItem>

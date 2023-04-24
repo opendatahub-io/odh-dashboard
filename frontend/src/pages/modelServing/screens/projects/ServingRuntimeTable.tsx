@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Table from '~/components/Table';
-import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import useTableColumnSort from '~/utilities/useTableColumnSort';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
@@ -13,6 +13,7 @@ import ManageInferenceServiceModal from './InferenceServiceModal/ManageInference
 type ServingRuntimeTableProps = {
   modelServers: ServingRuntimeKind[];
   modelSecrets: SecretKind[];
+  templates: TemplateKind[];
   refreshServingRuntime: () => void;
   refreshTokens: () => void;
   refreshInferenceServices: () => void;
@@ -23,6 +24,7 @@ type ServingRuntimeTableProps = {
 const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
   modelServers: unsortedModelServers,
   modelSecrets,
+  templates,
   refreshServingRuntime,
   refreshTokens,
   refreshInferenceServices,
@@ -72,6 +74,8 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
       />
       <ManageServingRuntimeModal
         isOpen={editServingRuntime !== undefined}
+        currentProject={currentProject}
+        servingRuntimeTemplates={templates}
         editInfo={{
           servingRuntime: editServingRuntime,
           secrets: modelSecrets,

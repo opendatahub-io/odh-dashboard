@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button, Tooltip, Text } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -14,15 +14,18 @@ const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
   const {
     servingRuntimes: {
-      data: modelServers,
-      loaded,
-      error: loadError,
+      data: servingRuntimes,
+      loaded: servingRuntimesLoaded,
+      error: servingRuntimeError,
       refresh: refreshServingRuntime,
     },
+    servingRuntimeTemplates: { data: templates, loaded: templatesLoaded, error: templateError },
     serverSecrets: { data: secrets, refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
+    currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const emptyModelServer = modelServers.length === 0;
+  const emptyModelServer = servingRuntimes.length === 0;
+  const emptyTemplates = templates.length === 0;
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   return (
@@ -32,20 +35,45 @@ const ServingRuntimeList: React.FC = () => {
         title={ProjectSectionTitlesExtended[ProjectSectionID.MODEL_SERVER] || ''}
         actions={
           emptyModelServer
-            ? [
-                <Button
-                  onClick={() => setOpen(true)}
-                  key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-                  variant="secondary"
-                >
-                  Configure server
-                </Button>,
-              ]
+            ? emptyTemplates
+              ? [
+                  <Tooltip
+                    removeFindDomNode
+                    key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
+                    aria-label="Configure Server Info"
+                    content={
+                      <Text>
+                        At least one serving runtime must be enabled to configure a model server.
+                        Contact your administrator
+                      </Text>
+                    }
+                  >
+                    <Button
+                      isLoading={!templatesLoaded}
+                      isDisabled={!templatesLoaded || emptyTemplates}
+                      onClick={() => setOpen(true)}
+                      variant="secondary"
+                    >
+                      Configure server
+                    </Button>
+                  </Tooltip>,
+                ]
+              : [
+                  <Button
+                    isLoading={!templatesLoaded}
+                    isDisabled={!templatesLoaded || emptyTemplates}
+                    onClick={() => setOpen(true)}
+                    key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
+                    variant="secondary"
+                  >
+                    Configure server
+                  </Button>,
+                ]
             : undefined
         }
-        isLoading={!loaded}
+        isLoading={!servingRuntimesLoaded && !templatesLoaded}
         isEmpty={emptyModelServer}
-        loadError={loadError}
+        loadError={servingRuntimeError || templateError}
         emptyState={
           <EmptyDetailsList
             title="No model servers"
@@ -55,8 +83,9 @@ const ServingRuntimeList: React.FC = () => {
         }
       >
         <ServingRuntimeTable
-          modelServers={modelServers}
+          modelServers={servingRuntimes}
           modelSecrets={secrets}
+          templates={templates}
           refreshServingRuntime={refreshServingRuntime}
           refreshTokens={refreshTokens}
           refreshInferenceServices={refreshInferenceServices}
@@ -66,6 +95,8 @@ const ServingRuntimeList: React.FC = () => {
       </DetailsSection>
       <ManageServingRuntimeModal
         isOpen={isOpen}
+        currentProject={currentProject}
+        servingRuntimeTemplates={templates}
         onClose={(submit: boolean) => {
           setOpen(false);
           if (submit) {

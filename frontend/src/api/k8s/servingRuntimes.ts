@@ -7,12 +7,10 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeModel } from '~/api/models';
-import { ConfigMapKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ServingRuntimeKind } from '~/k8sTypes';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { ContainerResources } from '~/types';
-import { getDefaultServingRuntime } from '~/pages/modelServing/screens/projects/utils';
-import { DEFAULT_MODEL_SERVING_TEMPLATE } from '~/pages/modelServing/screens/const';
 import { assemblePodSpecOptions } from './utils';
 import { getModelServingProjects } from './projects';
 
@@ -21,7 +19,8 @@ const assembleServingRuntime = (
   namespace: string,
   servingRuntime: ServingRuntimeKind,
 ): ServingRuntimeKind => {
-  const { numReplicas, modelSize, externalRoute, tokenAuth, gpus } = data;
+  // TODO: Re-enable GPU support
+  const { numReplicas, modelSize, externalRoute, tokenAuth } = data;
   const name = getModelServingRuntimeName(namespace);
   const updatedServingRuntime = { ...servingRuntime };
 
@@ -52,7 +51,8 @@ const assembleServingRuntime = (
     },
   };
 
-  const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, gpus);
+  // TODO: Re-enable GPU support changin 0 to gpus
+  const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, 0);
 
   updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => ({
     ...container,
@@ -129,24 +129,20 @@ export const updateServingRuntime = (
 
 const getAssembledServingRuntime = (
   data: CreatingServingRuntimeObject,
-  servingRuntimeConfig: ConfigMapKind | undefined,
+  servingRuntimeTemplate: ServingRuntimeKind,
   namespace: string,
-): ServingRuntimeKind => {
-  const servingRuntime = getDefaultServingRuntime(servingRuntimeConfig);
-
-  try {
-    return assembleServingRuntime(data, namespace, servingRuntime);
-  } catch {
-    return assembleServingRuntime(data, namespace, DEFAULT_MODEL_SERVING_TEMPLATE);
-  }
-};
+): ServingRuntimeKind => assembleServingRuntime(data, namespace, servingRuntimeTemplate);
 
 export const createServingRuntime = (
   data: CreatingServingRuntimeObject,
-  servingRuntimeConfig: ConfigMapKind | undefined,
+  servingRuntimeTemplate: ServingRuntimeKind,
   namespace: string,
 ): Promise<ServingRuntimeKind> => {
-  const assembledServingRuntime = getAssembledServingRuntime(data, servingRuntimeConfig, namespace);
+  const assembledServingRuntime = getAssembledServingRuntime(
+    data,
+    servingRuntimeTemplate,
+    namespace,
+  );
 
   return k8sCreateResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,

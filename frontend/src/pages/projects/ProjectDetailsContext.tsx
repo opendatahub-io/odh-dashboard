@@ -17,6 +17,7 @@ import {
   ProjectKind,
   InferenceServiceKind,
   SecretKind,
+  TemplateKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
@@ -24,10 +25,9 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
-import {
-  useServingRuntimesConfig,
-  ServingRuntimesConfigResourceData,
-} from '~/pages/modelServing/useServingRuntimesConfig';
+import useTemplates from '~/pages/modelServing/customServingRuntimes/useTemplates';
+import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import { useDashboardNamespace } from '~/redux/selectors';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
@@ -41,8 +41,9 @@ type ProjectDetailsContextType = {
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
-  servingRuntimesConfig: ServingRuntimesConfigResourceData;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
+  servingRuntimeTemplates: ContextResourceData<TemplateKind>;
+  servingRuntimeTemplateOrder: ContextResourceData<string>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
 };
@@ -54,12 +55,9 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   notebooks: DEFAULT_CONTEXT_DATA,
   pvcs: DEFAULT_CONTEXT_DATA,
   dataConnections: DEFAULT_CONTEXT_DATA,
-  servingRuntimesConfig: {
-    servingRuntimesConfig: undefined,
-    loaded: false,
-    refresh: () => undefined,
-  },
   servingRuntimes: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
 });
@@ -67,12 +65,18 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
 const ProjectDetailsContextProvider: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
+  const { dashboardNamespace } = useDashboardNamespace();
   const [project, loaded, error] = useProject(namespace);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
-  const servingRuntimesConfig = useServingRuntimesConfig();
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
+  const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
+    useTemplates(dashboardNamespace),
+  );
+  const servingRuntimeTemplateOrder = useContextResourceData<string>(
+    useTemplateOrder(dashboardNamespace),
+  );
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
   );
@@ -81,23 +85,26 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
-  const servingRuntimesConfigRefresh = servingRuntimesConfig.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
+  const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
+  const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
     pvcRefresh();
     dataConnectionRefresh();
-    servingRuntimesConfigRefresh();
     servingRuntimeRefresh();
     inferenceServiceRefresh();
+    servingRuntimeTemplateRefresh();
+    servingRuntimeTemplateOrderRefresh();
   }, [
     notebookRefresh,
     pvcRefresh,
     dataConnectionRefresh,
-    servingRuntimesConfigRefresh,
     servingRuntimeRefresh,
+    servingRuntimeTemplateRefresh,
+    servingRuntimeTemplateOrderRefresh,
     inferenceServiceRefresh,
   ]);
 
@@ -133,8 +140,9 @@ const ProjectDetailsContextProvider: React.FC = () => {
         notebooks,
         pvcs,
         dataConnections,
-        servingRuntimesConfig,
         servingRuntimes,
+        servingRuntimeTemplates,
+        servingRuntimeTemplateOrder,
         inferenceServices,
         refreshAllProjectData,
         serverSecrets,

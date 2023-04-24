@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   FormGroup,
   FormSection,
-  NumberInput,
   Select,
   SelectOption,
   Stack,
@@ -13,25 +12,21 @@ import {
   CreatingServingRuntimeObject,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import useGPUSetting from '~/pages/notebookController/screens/server/useGPUSetting';
-import { GpuSettingString } from '~/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   sizes: ServingRuntimeSize[];
-  gpuSetting: GpuSettingString;
 };
 
 const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   data,
   setData,
   sizes,
-  gpuSetting,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
-  const { available: gpuAvailable, count: gpuCount } = useGPUSetting(gpuSetting || 'hidden');
+  // const { available: gpuAvailable, count: gpuCount } = useGPUSetting(gpuSetting || 'hidden');
 
   const sizeCustom = [
     ...sizes,
@@ -85,7 +80,8 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
           )}
         </Stack>
       </FormGroup>
-      {gpuAvailable && (
+      {/* TODO: Enable GPU */}
+      {/* {gpuAvailable && (
         <FormGroup label="Model server gpus">
           <NumberInput
             isDisabled={!gpuCount}
@@ -101,7 +97,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             onPlus={() => setData('gpus', data.gpus + 1)}
           />
         </FormGroup>
-      )}
+      )} */}
     </FormSection>
   );
 };

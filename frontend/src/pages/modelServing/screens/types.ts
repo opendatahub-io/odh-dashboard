@@ -32,7 +32,7 @@ export enum InferenceServiceModelState {
 export type CreatingServingRuntimeObject = {
   numReplicas: number;
   modelSize: ServingRuntimeSize;
-  gpus: number;
+  // gpus: number;
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];

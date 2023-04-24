@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import YAML from 'yaml';
-import { ConfigMapKind, InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
@@ -10,16 +9,12 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { ContainerResourceAttributes, DashboardConfig, GpuSettingString } from '~/types';
-import {
-  DEFAULT_MODEL_SERVER_SIZES,
-  DEFAULT_MODEL_SERVING_TEMPLATE,
-} from '~/pages/modelServing/screens/const';
+import { DashboardConfig } from '~/types';
+import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -35,30 +30,6 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
-export const getDefaultServingRuntime = (
-  servingRuntimesConfig?: ConfigMapKind,
-): ServingRuntimeKind => {
-  if (!servingRuntimesConfig) {
-    return DEFAULT_MODEL_SERVING_TEMPLATE;
-  }
-  try {
-    const overrideServingRuntime = YAML.parse(
-      servingRuntimesConfig?.data?.['override-config'] || '',
-    );
-    if (overrideServingRuntime) {
-      return overrideServingRuntime;
-    }
-    const defaultServingRuntime = YAML.parse(servingRuntimesConfig?.data?.['default-config'] || '');
-    if (defaultServingRuntime) {
-      return defaultServingRuntime;
-    }
-  } catch {
-    return DEFAULT_MODEL_SERVING_TEMPLATE;
-  }
-
-  return DEFAULT_MODEL_SERVING_TEMPLATE;
-};
-
 export const useCreateServingRuntimeObject = (existingData?: {
   servingRuntime?: ServingRuntimeKind;
   secrets: SecretKind[];
@@ -67,21 +38,20 @@ export const useCreateServingRuntimeObject = (existingData?: {
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>,
   resetDefaults: () => void,
   sizes: ServingRuntimeSize[],
-  gpuSetting: GpuSettingString,
 ] => {
   const { dashboardConfig } = useAppContext();
-  const {
-    servingRuntimesConfig: { servingRuntimesConfig },
-  } = React.useContext(ProjectDetailsContext);
-  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
-  let gpuSetting: GpuSettingString = 'hidden';
-  const defaultServingRuntime = getDefaultServingRuntime(servingRuntimesConfig);
-  gpuSetting = defaultServingRuntime?.metadata?.annotations?.['opendatahub.io/gpu-setting'];
 
+  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
+
+  // TODO: Modify for new template GPU
+  //let gpuSetting: GpuSettingString = 'hidden';
+
+  // TODO: Modify this line ----> gpuSetting = defaultServingRuntime?.metadata?.annotations?.['opendatahub.io/gpu-setting'];
+
+  // TODO: Add support for GPU ----> gpus: 0,
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
     numReplicas: 1,
     modelSize: sizes[0],
-    gpus: 0,
     externalRoute: false,
     tokenAuth: false,
     tokens: [],
@@ -96,10 +66,10 @@ export const useCreateServingRuntimeObject = (existingData?: {
   const existingResources =
     existingData?.servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
 
-  const existingGpus =
-    existingData?.servingRuntime?.spec?.containers[0]?.resources?.requests?.[
-      ContainerResourceAttributes.NVIDIA_GPU
-    ] || 0;
+  // const existingGpus =
+  //   existingData?.servingRuntime?.spec?.containers[0]?.resources?.requests?.[
+  //     ContainerResourceAttributes.NVIDIA_GPU
+  //   ] || 0;
 
   const existingExternalRoute =
     !!existingData?.servingRuntime?.metadata.annotations?.['enable-route'];
@@ -125,10 +95,10 @@ export const useCreateServingRuntimeObject = (existingData?: {
         };
       }
       setCreateData('modelSize', foundSize);
-      setCreateData(
-        'gpus',
-        typeof existingGpus == 'string' ? parseInt(existingGpus) : existingGpus,
-      );
+      // setCreateData(
+      //   'gpus',
+      //   typeof existingGpus == 'string' ? parseInt(existingGpus) : existingGpus,
+      // );
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
@@ -137,14 +107,13 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingServingRuntimeName,
     existingNumReplicas,
     existingResources,
-    existingGpus,
     existingExternalRoute,
     existingTokenAuth,
     existingTokens,
     setCreateData,
     sizes,
   ]);
-  return [...createModelState, sizes, gpuSetting];
+  return [...createModelState, sizes];
 };
 
 export const defaultInferenceService: CreatingInferenceServiceObject = {
