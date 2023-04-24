@@ -36,20 +36,20 @@ const TrustyChart: React.FC<TrustyChartProps> = ({
 
   //TODO: Fix this. This is a short term hack to add a property that will be provided by TrustyAI by release time.
   metricData.forEach((x, i) => {
-    if (!x.metric?.registeredName) {
-      x.metric.registeredName = `Payload ${i}`;
+    if (!x.metric?.requestName) {
+      x.metric.requestName = `Payload ${i}`;
     }
   });
 
   React.useEffect(() => {
     if (!selectedPayloadName) {
-      setSelectedPayloadName(metricData[0]?.metric?.registeredName);
+      setSelectedPayloadName(metricData[0]?.metric?.requestName);
     }
   }, [selectedPayloadName, metricData]);
 
-  const payloadOptions: string[] = metricData.map((payload) => payload.metric.registeredName);
+  const payloadOptions: string[] = metricData.map((payload) => payload.metric.requestName);
 
-  const selectedPayload = metricData.find((x) => x.metric.registeredName === selectedPayloadName);
+  const selectedPayload = metricData.find((x) => x.metric.requestName === selectedPayloadName);
 
   const metric = {
     ...data[metricType],
