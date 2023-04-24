@@ -137,7 +137,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
           <Td isActionCell modifier="nowrap">
             <Button
               data-id="save-rolebinding-button"
-              variant="plain"
+              variant="link"
               icon={<CheckIcon />}
               isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
               onClick={() => {
