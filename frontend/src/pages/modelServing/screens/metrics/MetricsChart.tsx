@@ -36,14 +36,11 @@ import {
 import {
   convertTimestamp,
   createGraphMetricLine,
+  defaultDomainCalculator,
   formatToShow,
   getThresholdData,
   useStableMetrics,
 } from './utils';
-
-const defaultDomainCalculator: DomainCalculator = (maxYValue) => ({
-  y: maxYValue === 0 ? [0, 1] : [0, maxYValue],
-});
 
 type MetricsChartProps = {
   title: string;

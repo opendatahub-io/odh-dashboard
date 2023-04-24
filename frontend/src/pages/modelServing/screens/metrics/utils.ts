@@ -5,6 +5,7 @@ import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { DashboardConfig } from '~/types';
 import {
+  DomainCalculator,
   GraphMetricLine,
   GraphMetricPoint,
   MetricChartLine,
@@ -148,3 +149,7 @@ export const useStableMetrics = (
   }
   return metricsRef.current;
 };
+
+export const defaultDomainCalculator: DomainCalculator = (maxYValue) => ({
+  y: maxYValue === 0 ? [0, 1] : [0, maxYValue],
+});
