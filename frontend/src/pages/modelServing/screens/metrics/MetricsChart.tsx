@@ -161,6 +161,8 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                     case MetricsChartTypes.LINE:
                       return <ChartLine key={i} data={line} />;
                       break;
+                    default:
+                      return null;
                   }
                 })}
               </ChartGroup>
