@@ -25,7 +25,9 @@ const MetricsPageTabs: React.FC = () => {
     event: React.MouseEvent<HTMLElement> | React.KeyboardEvent | MouseEvent,
     tabId: string | number,
   ) => {
-    loadTab(String(tabId));
+    if (typeof tabId === 'string') {
+      loadTab(tabId);
+    }
   };
 
   return (

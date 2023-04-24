@@ -18,8 +18,10 @@ const ScheduledMetricSelect: React.FC<ScheduledMetricSelectProps> = ({
       onToggle={() => setOpen(!isOpen)}
       isOpen={isOpen}
       onSelect={(event, selection) => {
-        onSelect(selection.toString());
-        setOpen(false);
+        if (typeof selection === 'string') {
+          onSelect(selection);
+          setOpen(false);
+        }
       }}
       selections={selected}
     >
