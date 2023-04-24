@@ -19,6 +19,10 @@ const useDraggableTable = (
   const [itemOrder, setItemOrder] = React.useState(initialItemOrder);
   const [tempItemOrder, setTempItemOrder] = React.useState<string[]>([]);
 
+  React.useEffect(() => {
+    setItemOrder(initialItemOrder);
+  }, [initialItemOrder]);
+
   const debouncedItemOrder = useDebounce(itemOrder, 5000);
 
   const onDragStart: TrProps['onDragStart'] = (evt) => {

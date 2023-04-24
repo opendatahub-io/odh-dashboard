@@ -14,15 +14,20 @@ import CustomServingRuntimeTableRow from './CustomServingRuntimeTableRow';
 type CustomServingRuntimeListViewProps = {
   templates: TemplateKind[];
   templateOrder: string[];
-  refresh: () => void;
+  refreshOrder: () => void;
 };
 
 const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> = ({
   templates,
   templateOrder,
-  refresh,
+  refreshOrder,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const initialItemOrder = React.useMemo(
+    () =>
+      templates.sort(compareTemplateKinds(templateOrder)).map((template) => template.metadata.name),
+    [templates, templateOrder],
+  );
   const notification = useNotification();
   const navigate = useNavigate();
 
@@ -30,11 +35,11 @@ const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> 
     (newTemplateOrder) => {
       if (!_.isEqual(newTemplateOrder, templateOrder)) {
         patchDashboardConfigTemplateOrder(newTemplateOrder, dashboardNamespace)
-          .then(refresh)
+          .then(refreshOrder)
           .catch((e) => notification.error(`Error update the serving runtimes order`, e.message));
       }
     },
-    [templateOrder, dashboardNamespace, refresh, notification],
+    [templateOrder, dashboardNamespace, refreshOrder, notification],
   );
 
   return (
@@ -43,9 +48,7 @@ const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> 
         isDraggable
         data={templates}
         columns={columns}
-        initialItemOrder={templates
-          .sort(compareTemplateKinds(templateOrder))
-          .map((template) => template.metadata.name)}
+        initialItemOrder={initialItemOrder}
         rowRenderer={(template, rowIndex, trDragFunctions) => (
           <CustomServingRuntimeTableRow
             key={template.metadata.uid}
