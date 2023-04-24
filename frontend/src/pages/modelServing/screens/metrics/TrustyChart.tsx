@@ -68,11 +68,9 @@ const TrustyChart: React.FC<TrustyChartProps> = ({
         <ToolbarContent>
           {tooltip && (
             <ToolbarItem>
-              <div style={{ display: 'inline-block' }}>
-                <Tooltip removeFindDomNode position="right" content={tooltip}>
-                  <OutlinedQuestionCircleIcon />
-                </Tooltip>
-              </div>
+              <Tooltip removeFindDomNode position="right" content={tooltip}>
+                <OutlinedQuestionCircleIcon />
+              </Tooltip>
             </ToolbarItem>
           )}
           <ToolbarItem variant="label">Scheduled Metric</ToolbarItem>
