@@ -23,7 +23,7 @@ const useDraggableTable = (
     setItemOrder(initialItemOrder);
   }, [initialItemOrder]);
 
-  const debouncedItemOrder = useDebounce(itemOrder, 5000);
+  const debouncedItemOrder = useDebounce(itemOrder, 1000);
 
   const onDragStart: TrProps['onDragStart'] = (evt) => {
     evt.dataTransfer.effectAllowed = 'move';
