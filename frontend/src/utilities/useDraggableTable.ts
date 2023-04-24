@@ -19,11 +19,15 @@ const useDraggableTable = (
   const [itemOrder, setItemOrder] = React.useState(initialItemOrder);
   const [tempItemOrder, setTempItemOrder] = React.useState<string[]>([]);
 
-  React.useEffect(() => {
+  const memoizedUpdateItemOrder = React.useCallback(() => {
     setItemOrder(initialItemOrder);
   }, [initialItemOrder]);
 
-  const debouncedItemOrder = useDebounce(itemOrder, 1000);
+  React.useEffect(() => {
+    memoizedUpdateItemOrder();
+  }, [memoizedUpdateItemOrder]);
+
+  const debouncedItemOrder = useDebounce(itemOrder, 500);
 
   const onDragStart: TrProps['onDragStart'] = (evt) => {
     evt.dataTransfer.effectAllowed = 'move';
