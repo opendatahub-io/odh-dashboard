@@ -166,9 +166,9 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                   }
                 })}
               </ChartGroup>
-              {thresholds.map((t, i) => (
+              {thresholds.map((t) => (
                 <ChartThreshold
-                  key={i}
+                  key={t.value}
                   data={getThresholdData(graphLines, t.value)}
                   style={t.color ? { data: { stroke: t.color } } : undefined}
                   name={t.label}
