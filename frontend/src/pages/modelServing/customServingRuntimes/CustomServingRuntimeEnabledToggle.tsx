@@ -21,7 +21,6 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
     toggleTemplateEnabledStatus(template.metadata.name, template.metadata.namespace, checked)
       .then(() => {
         setEnabled(checked);
-        setLoading(false);
       })
       .catch((e) => {
         notification.error(
@@ -29,6 +28,8 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
           e.message,
         );
         setEnabled(!checked);
+      })
+      .finally(() => {
         setLoading(false);
       });
   };

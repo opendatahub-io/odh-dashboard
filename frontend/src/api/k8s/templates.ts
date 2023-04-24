@@ -20,20 +20,15 @@ export const toggleTemplateEnabledStatus = (
   name: string,
   namespace: string,
   enable: boolean,
-): Promise<TemplateKind> => {
-  const patch = enable
-    ? {
-        op: 'remove',
-        path: '/metadata/annotations/opendatahub.io~1template-enabled',
-      }
-    : {
-        op: 'add',
-        path: '/metadata/annotations/opendatahub.io~1template-enabled',
-        value: 'false',
-      };
-  return k8sPatchResource<TemplateKind>({
+): Promise<TemplateKind> =>
+  k8sPatchResource<TemplateKind>({
     model: TemplateModel,
     queryOptions: { name, ns: namespace },
-    patches: [patch],
+    patches: [
+      {
+        op: 'replace',
+        path: '/metadata/annotations/opendatahub.io~1template-enabled',
+        value: enable ? 'true' : 'false',
+      },
+    ],
   });
-};
