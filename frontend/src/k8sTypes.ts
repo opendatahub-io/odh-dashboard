@@ -421,6 +421,7 @@ export type TemplateKind = K8sResourceCommon & {
       description: string;
       tags: string;
       iconClass: string;
+      'opendatahub.io/template-enabled': string;
     }>;
     name: string;
     namespace: string;

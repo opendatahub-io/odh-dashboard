@@ -14,6 +14,7 @@ export type SortableData<T> = {
    * Assume ASC -- the result will be inverted internally if needed.
    */
   sortable: boolean | ((a: T, b: T, keyField: string) => number);
+  info?: ThProps['info'];
 };
 
 /**
