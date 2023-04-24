@@ -13,14 +13,16 @@ const ScheduledMetricSelect: React.FC<ScheduledMetricSelectProps> = ({
 }) => {
   const [isOpen, setOpen] = React.useState(false);
 
-  const onToggle = () => setOpen(!isOpen);
-  const onSelectValue = (event, selection) => {
-    onSelect(selection);
-    setOpen(false);
-  };
-
   return (
-    <Select onToggle={onToggle} isOpen={isOpen} onSelect={onSelectValue} selections={selected}>
+    <Select
+      onToggle={() => setOpen(!isOpen)}
+      isOpen={isOpen}
+      onSelect={(event, selection) => {
+        onSelect(selection.toString());
+        setOpen(false);
+      }}
+      selections={selected}
+    >
       {options.map((value) => (
         <SelectOption key={value} value={value} />
       ))}
