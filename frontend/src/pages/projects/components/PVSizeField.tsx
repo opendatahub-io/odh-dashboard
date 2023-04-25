@@ -30,6 +30,7 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, curre
     >
       <InputGroup>
         <NumberInput
+          inputAriaLabel="Persistent storage size number input"
           id={fieldID}
           name={fieldID}
           value={size}

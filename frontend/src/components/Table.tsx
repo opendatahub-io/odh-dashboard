@@ -7,6 +7,7 @@ import {
   TableComposableProps,
   Caption,
   Tbody,
+  Td,
 } from '@patternfly/react-table';
 import React, { useEffect } from 'react';
 import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort';
@@ -84,15 +85,19 @@ const Table = <T,>({
         {caption && <Caption>{caption}</Caption>}
         <Thead>
           <Tr>
-            {columns.map((col, i) => (
-              <Th
-                key={col.field + i}
-                sort={col.sortable ? sort.getColumnSort(i) : undefined}
-                width={col.width}
-              >
-                {col.label}
-              </Th>
-            ))}
+            {columns.map((col, i) =>
+              col.label ? (
+                <Th
+                  key={col.field + i}
+                  sort={col.sortable ? sort.getColumnSort(i) : undefined}
+                  width={col.width}
+                >
+                  {col.label}
+                </Th>
+              ) : (
+                <Td key={col.field + i} width={col.width} />
+              ),
+            )}
           </Tr>
         </Thead>
         {disableRowRenderSupport ? (
