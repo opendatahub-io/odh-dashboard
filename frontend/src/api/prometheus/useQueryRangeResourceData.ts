@@ -15,18 +15,24 @@ const useQueryRangeResourceData = (
   query: string,
   end: number,
   timeframe: TimeframeTitle,
-): ContextResourceData<PrometheusQueryRangeResultValue> =>
-  useContextResourceData<PrometheusQueryRangeResultValue>(
-    usePrometheusQueryRange(
+): ContextResourceData<PrometheusQueryRangeResultValue> => {
+  const responsePredicate = React.useCallback<ResponsePredicate>(
+    (data) => data.result?.[0]?.values || [],
+    [],
+  );
+  return useContextResourceData<PrometheusQueryRangeResultValue>(
+    usePrometheusQueryRange<PrometheusQueryRangeResultValue>(
       active,
       '/api/prometheus/serving',
       query,
       TimeframeTimeRange[timeframe],
       end,
       TimeframeStep[timeframe],
+      responsePredicate,
     ),
     5 * 60 * 1000,
   );
+};
 
 type TrustyData = PrometheusQueryRangeResponseDataResult;
 
