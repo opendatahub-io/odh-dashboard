@@ -50,6 +50,8 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   // TODO: Add support for GPU ----> gpus: 0,
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
+    name: '',
+    servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: sizes[0],
     externalRoute: false,
@@ -60,6 +62,9 @@ export const useCreateServingRuntimeObject = (existingData?: {
   const [, setCreateData] = createModelState;
 
   const existingServingRuntimeName = existingData?.servingRuntime?.metadata.name || '';
+
+  const existingServingRuntimeTemplateName =
+    existingData?.servingRuntime?.metadata.labels?.name || '';
 
   const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 
@@ -86,6 +91,8 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   React.useEffect(() => {
     if (existingServingRuntimeName) {
+      setCreateData('name', existingServingRuntimeName);
+      setCreateData('servingRuntimeTemplateName', existingServingRuntimeTemplateName);
       setCreateData('numReplicas', existingNumReplicas);
       let foundSize = sizes.find((size) => _.isEqual(size.resources, existingResources));
       if (!foundSize) {
@@ -105,6 +112,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     }
   }, [
     existingServingRuntimeName,
+    existingServingRuntimeTemplateName,
     existingNumReplicas,
     existingResources,
     existingExternalRoute,

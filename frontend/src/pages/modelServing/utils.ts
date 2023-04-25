@@ -1,16 +1,8 @@
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { ContainerResources } from '~/types';
 
-export const getModelServingRuntimeName = (namespace: string): string =>
-  `model-server-${namespace}`;
-export const getModelServiceAccountName = (name: string): string => {
-  const servingRuntimeName = getModelServingRuntimeName(name);
-  return `${servingRuntimeName}-sa`;
-};
-export const getModelRoleBinding = (name: string): string => {
-  const servingRuntimeName = getModelServingRuntimeName(name);
-  return `${servingRuntimeName}-view`;
-};
+export const getModelServiceAccountName = (name: string): string => `${name}-sa`;
+export const getModelRoleBinding = (name: string): string => `${name}-view`;
 
 const isValidCpuOrMemoryValue = (value?: string) =>
   value === undefined ? true : parseInt(value) > 0;

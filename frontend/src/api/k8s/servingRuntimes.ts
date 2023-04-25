@@ -7,35 +7,41 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeModel } from '~/api/models';
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
-import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { ContainerResources } from '~/types';
-import { assemblePodSpecOptions } from './utils';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { getModelServingProjects } from './projects';
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
-  servingRuntime: ServingRuntimeKind,
+  servingRuntimeTeplate: ServingRuntimeKind,
+  existingServingRuntime?: ServingRuntimeKind,
 ): ServingRuntimeKind => {
   // TODO: Re-enable GPU support
   const { numReplicas, modelSize, externalRoute, tokenAuth } = data;
-  const name = getModelServingRuntimeName(namespace);
-  const updatedServingRuntime = { ...servingRuntime };
+  const name = existingServingRuntime?.metadata.name || translateDisplayNameForK8s(data.name);
+  const servingRuntimeTemplateName = servingRuntimeTeplate.metadata.name;
+  const updatedServingRuntime = { ...servingRuntimeTeplate };
+
+  const metadata = _.merge(existingServingRuntime?.metadata || {}, servingRuntimeTeplate.metadata);
 
   updatedServingRuntime.metadata = {
     name,
     namespace,
     labels: {
-      ...servingRuntime.metadata.labels,
+      ...metadata.labels,
       name,
       'opendatahub.io/dashboard': 'true',
     },
     annotations: {
-      ...servingRuntime.metadata.annotations,
+      ...metadata.annotations,
       ...(externalRoute && { 'enable-route': 'true' }),
       ...(tokenAuth && { 'enable-auth': 'true' }),
+      'openshift.io/display-name': data.name,
+      name: servingRuntimeTemplateName,
     },
   };
   updatedServingRuntime.spec.replicas = numReplicas;
@@ -51,15 +57,20 @@ const assembleServingRuntime = (
     },
   };
 
-  // TODO: Re-enable GPU support changin 0 to gpus
-  const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, 0);
+  updatedServingRuntime.spec.containers.map(
+    (container) => (container.resources = resourceSettings),
+  );
 
-  updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => ({
-    ...container,
-    resources,
-    affinity,
-    tolerations,
-  }));
+  // TODO: Re-enable GPU support changin 0 to gpus
+  // const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, 0);
+
+  // updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => ({
+  //   ...container,
+  //   resources,
+  //   affinity,
+  //   tolerations,
+  // }));
+
   return updatedServingRuntime;
 };
 
@@ -105,49 +116,52 @@ export const getServingRuntime = (name: string, namespace: string): Promise<Serv
 export const updateServingRuntime = (
   data: CreatingServingRuntimeObject,
   existingData: ServingRuntimeKind,
+  template: TemplateKind,
 ): Promise<ServingRuntimeKind> => {
-  const servingRuntime = assembleServingRuntime(
-    data,
-    existingData.metadata.namespace,
-    existingData,
-  );
+  try {
+    const servingRuntimeTemplate = getServingRuntimeFromTemplate(template);
 
-  const updatedServingRuntime = _.merge(existingData, servingRuntime);
+    const servingRuntime = assembleServingRuntime(
+      data,
+      existingData.metadata.namespace,
+      servingRuntimeTemplate,
+      existingData,
+    );
 
-  if (!data.tokenAuth) {
-    delete updatedServingRuntime?.metadata?.annotations?.['enable-auth'];
+    if (!data.tokenAuth) {
+      delete servingRuntime.metadata?.annotations?.['enable-auth'];
+    }
+
+    if (!data.externalRoute) {
+      delete servingRuntime.metadata?.annotations?.['enable-route'];
+    }
+
+    return k8sUpdateResource<ServingRuntimeKind>({
+      model: ServingRuntimeModel,
+      resource: servingRuntime,
+    });
+  } catch (e) {
+    return Promise.reject(e);
   }
-
-  if (!data.externalRoute) {
-    delete updatedServingRuntime?.metadata?.annotations?.['enable-route'];
-  }
-  return k8sUpdateResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    resource: updatedServingRuntime,
-  });
 };
-
-const getAssembledServingRuntime = (
-  data: CreatingServingRuntimeObject,
-  servingRuntimeTemplate: ServingRuntimeKind,
-  namespace: string,
-): ServingRuntimeKind => assembleServingRuntime(data, namespace, servingRuntimeTemplate);
 
 export const createServingRuntime = (
   data: CreatingServingRuntimeObject,
-  servingRuntimeTemplate: ServingRuntimeKind,
   namespace: string,
+  template: TemplateKind,
 ): Promise<ServingRuntimeKind> => {
-  const assembledServingRuntime = getAssembledServingRuntime(
-    data,
-    servingRuntimeTemplate,
-    namespace,
-  );
+  try {
+    const servingRuntimeTemplate = getServingRuntimeFromTemplate(template);
 
-  return k8sCreateResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    resource: assembledServingRuntime,
-  });
+    const assembledServingRuntime = assembleServingRuntime(data, namespace, servingRuntimeTemplate);
+
+    return k8sCreateResource<ServingRuntimeKind>({
+      model: ServingRuntimeModel,
+      resource: assembledServingRuntime,
+    });
+  } catch (e) {
+    return Promise.reject(e);
+  }
 };
 
 export const deleteServingRuntime = (

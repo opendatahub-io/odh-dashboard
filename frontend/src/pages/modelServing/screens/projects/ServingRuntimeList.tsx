@@ -7,6 +7,7 @@ import { ProjectSectionTitlesExtended } from '~/pages/projects/screens/detail/co
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import { filterTemplatesEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 
@@ -24,8 +25,9 @@ const ServingRuntimeList: React.FC = () => {
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
+  const templatesEnabled = filterTemplatesEnabled(templates);
   const emptyModelServer = servingRuntimes.length === 0;
-  const emptyTemplates = templates.length === 0;
+  const emptyTemplates = templatesEnabled.length === 0;
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   return (
@@ -85,7 +87,7 @@ const ServingRuntimeList: React.FC = () => {
         <ServingRuntimeTable
           modelServers={servingRuntimes}
           modelSecrets={secrets}
-          templates={templates}
+          templates={templatesEnabled}
           refreshServingRuntime={refreshServingRuntime}
           refreshTokens={refreshTokens}
           refreshInferenceServices={refreshInferenceServices}
@@ -96,7 +98,7 @@ const ServingRuntimeList: React.FC = () => {
       <ManageServingRuntimeModal
         isOpen={isOpen}
         currentProject={currentProject}
-        servingRuntimeTemplates={templates}
+        servingRuntimeTemplates={templatesEnabled}
         onClose={(submit: boolean) => {
           setOpen(false);
           if (submit) {
