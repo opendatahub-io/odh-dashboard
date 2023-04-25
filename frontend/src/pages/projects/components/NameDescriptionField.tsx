@@ -64,7 +64,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
                   </Stack>
                 }
               >
-                <HelpIcon />
+                <HelpIcon aria-label="More info" />
               </Tooltip>
             }
             isRequired

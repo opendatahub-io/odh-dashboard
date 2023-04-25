@@ -4,12 +4,14 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Icon,
   Stack,
   StackItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import '~/pages/notebookController/NotebookController.scss';
 
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
@@ -46,7 +48,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
             </Stack>
           }
         >
-          <OutlinedQuestionCircleIcon />
+          <Icon isInline aria-label="More info" role="button" tabIndex={0}>
+            <OutlinedQuestionCircleIcon />
+          </Icon>
         </Tooltip>
       </div>
     )}
