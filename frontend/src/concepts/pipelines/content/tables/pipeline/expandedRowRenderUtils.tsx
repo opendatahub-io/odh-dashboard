@@ -6,8 +6,8 @@ import {
   RunDuration,
   RunName,
   RunStatus,
-} from '~/concepts/pipelines/content/pipelinesTable/runRenderUtils';
-import { sortRunsByCreated } from '~/concepts/pipelines/content/pipelinesTable/utils';
+} from '~/concepts/pipelines/content/tables/renderUtils';
+import { sortRunsByCreated } from '~/concepts/pipelines/content/tables/utils';
 
 type RenderContentListProps = {
   firstItem?: React.ReactNode;

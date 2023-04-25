@@ -6,6 +6,7 @@ import {
   pipelineRunsPageDescription,
   pipelineRunsPageTitle,
 } from '~/pages/pipelines/global/runs/const';
+import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 
 const GlobalPipelineRunRoutes: React.FC = () => (
@@ -21,6 +22,17 @@ const GlobalPipelineRunRoutes: React.FC = () => (
       }
     >
       <Route index element={<GlobalPipelineRuns />} />
+      <Route
+        path=":pipelineId"
+        element={
+          <GlobalPipelineCoreDetails
+            pageName="Runs"
+            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+          />
+        }
+      />
+
+      <Route path="*" element={<Navigate to="." />} />
     </Route>
 
     <Route path="*" element={<Navigate to="." />} />

@@ -1,0 +1,12 @@
+// This is a hack to get around a bug in PatternFly TabContent.
+.odh-tabcontent-fix {
+  flex-grow: 1;
+
+  &:not([hidden]) {
+    display: flex;
+  }
+}
+// This is another hack to get around a bug in PatternFly Tabs component.
+.odh-tabs-fix {
+  flex-shrink: 0;
+}

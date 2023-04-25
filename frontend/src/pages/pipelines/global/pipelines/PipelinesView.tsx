@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import GlobalNoPipelines from '~/pages/pipelines/global/pipelines/GlobalNoPipelines';
-import PipelinesTable from '~/concepts/pipelines/content/pipelinesTable/PipelinesTable';
+import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import EmptyTableView from '~/concepts/pipelines/content/pipelinesTable/EmptyTableView';

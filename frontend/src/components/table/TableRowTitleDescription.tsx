@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Text, Title } from '@patternfly/react-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import MarkdownView from '~/components/MarkdownView';
-import ResourceNameTooltip from './ResourceNameTooltip';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 
 type TableRowTitleDescriptionProps = {
   title: React.ReactNode;

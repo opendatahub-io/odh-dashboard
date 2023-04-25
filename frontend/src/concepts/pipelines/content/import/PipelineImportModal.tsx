@@ -30,6 +30,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
   const onBeforeClose = (imported: boolean) => {
     onClose(imported);
     setImporting(false);
+    setError(undefined);
     resetData();
   };
 

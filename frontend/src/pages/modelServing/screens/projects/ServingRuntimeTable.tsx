@@ -1,7 +1,7 @@
 import * as React from 'react';
-import Table from '~/components/Table';
+import Table from '~/components/table/Table';
 import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
-import useTableColumnSort from '~/utilities/useTableColumnSort';
+import useTableColumnSort from '~/components/table/useTableColumnSort';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { columns } from './data';

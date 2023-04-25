@@ -5,17 +5,17 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { relativeTime } from '~/utilities/time';
-import usePipelineRuns from '~/concepts/pipelines/apiHooks/usePipelineRuns';
-import TableRowTitleDescription from '~/components/TableRowTitleDescription';
+import usePipelineRunsForPipeline from '~/concepts/pipelines/apiHooks/usePipelineRunsForPipeline';
+import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelinesTableExpandedRow from '~/concepts/pipelines/content/pipelinesTable/PipelinesTableExpandedRow';
-import { getLastRun } from '~/concepts/pipelines/content/pipelinesTable/utils';
+import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
+import { getLastRun } from '~/concepts/pipelines/content/tables/utils';
 import {
   NoRunContent,
   RunDuration,
   RunName,
   RunStatus,
-} from '~/concepts/pipelines/content/pipelinesTable/runRenderUtils';
+} from '~/concepts/pipelines/content/tables/renderUtils';
 
 type PipelinesTableRowProps = {
   pipeline: PipelineKF;
@@ -32,7 +32,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const runsFetchState = usePipelineRuns(pipeline);
+  const runsFetchState = usePipelineRunsForPipeline(pipeline);
   const [isExpanded, setExpanded] = React.useState(false);
 
   const createdDate = new Date(pipeline.created_at);

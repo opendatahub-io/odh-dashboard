@@ -2,9 +2,12 @@ import {
   GetPipeline,
   DeletePipeline,
   ListPipelineRuns,
+  ListPipelineRunJobs,
+  ListPipelineRunsByPipeline,
   ListPipelines,
   ListPipelineTemplates,
   UploadPipeline,
+  UpdatePipelineRunJob,
 } from '~/concepts/pipelines/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
@@ -16,6 +19,9 @@ type KubeflowAPICall<ActualCall extends KubeflowSpecificAPICall> = (hostPath: st
 export type GetPipelineAPI = KubeflowAPICall<GetPipeline>;
 export type DeletePipelineAPI = KubeflowAPICall<DeletePipeline>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
-export type ListPipelineRunsAPI = KubeflowAPICall<ListPipelineRuns>;
+export type ListPipelinesRunAPI = KubeflowAPICall<ListPipelineRuns>;
+export type ListPipelinesRunJobAPI = KubeflowAPICall<ListPipelineRunJobs>;
+export type ListPipelineRunsByPipelineAPI = KubeflowAPICall<ListPipelineRunsByPipeline>;
 export type ListPipelineTemplatesAPI = KubeflowAPICall<ListPipelineTemplates>;
+export type UpdatePipelineRunJobAPI = KubeflowAPICall<UpdatePipelineRunJob>;
 export type UploadPipelineAPI = KubeflowAPICall<UploadPipeline>;

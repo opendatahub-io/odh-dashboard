@@ -7,6 +7,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;
   getRedirectPath: (namespace: string) => string;
+  overrideChildPadding?: boolean;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'loaded' | 'empty' | 'emptyStatePage' | 'headerContent' | 'provideChildrenPadding'
@@ -15,6 +16,7 @@ type PipelineCoreApplicationPageProps = {
 const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = ({
   children,
   getRedirectPath,
+  overrideChildPadding,
   ...pageProps
 }) => {
   const pipelinesAPi = usePipelinesAPI();
@@ -26,7 +28,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       empty={!pipelinesAPi.pipelinesServer.installed}
       emptyStatePage={<NoPipelineServer variant="primary" />}
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
-      provideChildrenPadding
+      provideChildrenPadding={!overrideChildPadding}
     >
       {children}
     </ApplicationsPage>
