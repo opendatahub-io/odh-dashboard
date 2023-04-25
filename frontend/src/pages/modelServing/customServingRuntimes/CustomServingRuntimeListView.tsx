@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
+import { useNavigate } from 'react-router';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import Table from '~/components/Table';
 import { TemplateKind } from '~/k8sTypes';
@@ -8,31 +9,37 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
 import { compareTemplateKinds } from './utils';
 import { columns } from './templatedData';
-import CustomServingRuntimesTableRow from './CustomServingRuntimesTableRow';
+import CustomServingRuntimeTableRow from './CustomServingRuntimeTableRow';
 
-type CustomServingRuntimesListViewProps = {
+type CustomServingRuntimeListViewProps = {
   templates: TemplateKind[];
   templateOrder: string[];
-  refresh: () => void;
+  refreshOrder: () => void;
 };
 
-const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps> = ({
+const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> = ({
   templates,
   templateOrder,
-  refresh,
+  refreshOrder,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const initialItemOrder = React.useMemo(
+    () =>
+      templates.sort(compareTemplateKinds(templateOrder)).map((template) => template.metadata.name),
+    [templates, templateOrder],
+  );
   const notification = useNotification();
+  const navigate = useNavigate();
 
   const onDropCallback = React.useCallback(
     (newTemplateOrder) => {
       if (!_.isEqual(newTemplateOrder, templateOrder)) {
         patchDashboardConfigTemplateOrder(newTemplateOrder, dashboardNamespace)
-          .then(refresh)
+          .then(refreshOrder)
           .catch((e) => notification.error(`Error update the serving runtimes order`, e.message));
       }
     },
-    [templateOrder, dashboardNamespace, refresh, notification],
+    [templateOrder, dashboardNamespace, refreshOrder, notification],
   );
 
   return (
@@ -41,11 +48,9 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
         isDraggable
         data={templates}
         columns={columns}
-        initialItemOrder={templates
-          .sort(compareTemplateKinds(templateOrder))
-          .map((template) => template.metadata.name)}
+        initialItemOrder={initialItemOrder}
         rowRenderer={(template, rowIndex, trDragFunctions) => (
-          <CustomServingRuntimesTableRow
+          <CustomServingRuntimeTableRow
             key={template.metadata.uid}
             obj={template}
             rowIndex={rowIndex}
@@ -54,8 +59,9 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
         )}
         toolbarContent={
           <ToolbarItem>
-            {/* TODO: Add navigation to the adding serving runtime page */}
-            <Button>Add serving runtime</Button>
+            <Button onClick={() => navigate('/servingRuntimes/addServingRuntime')}>
+              Add serving runtime
+            </Button>
           </ToolbarItem>
         }
         onDropCallback={onDropCallback}
@@ -64,4 +70,4 @@ const CustomServingRuntimesListView: React.FC<CustomServingRuntimesListViewProps
   );
 };
 
-export default CustomServingRuntimesListView;
+export default CustomServingRuntimeListView;

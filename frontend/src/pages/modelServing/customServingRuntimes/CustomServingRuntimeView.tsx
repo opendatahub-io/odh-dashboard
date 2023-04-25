@@ -1,14 +1,13 @@
 import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import CustomServingRuntimesListView from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimesListView';
+import CustomServingRuntimeListView from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimeListView';
 import EmptyCustomServingRuntime from './EmptyCustomServingRuntime';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
-const CustomServingRuntimesView: React.FC = () => {
+const CustomServingRuntimeView: React.FC = () => {
   const {
     servingRuntimeTemplates: { data: servingRuntimeTemplates },
-    servingRuntimeTemplateOrder: { data: order },
-    refreshData,
+    servingRuntimeTemplateOrder: { data: order, refresh: refreshOrder },
   } = React.useContext(CustomServingRuntimeContext);
 
   return (
@@ -20,13 +19,13 @@ const CustomServingRuntimesView: React.FC = () => {
       emptyStatePage={<EmptyCustomServingRuntime />}
       provideChildrenPadding
     >
-      <CustomServingRuntimesListView
+      <CustomServingRuntimeListView
         templates={servingRuntimeTemplates}
         templateOrder={order}
-        refresh={refreshData}
+        refreshOrder={refreshOrder}
       />
     </ApplicationsPage>
   );
 };
 
-export default CustomServingRuntimesView;
+export default CustomServingRuntimeView;

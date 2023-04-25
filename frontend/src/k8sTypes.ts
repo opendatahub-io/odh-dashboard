@@ -420,7 +420,7 @@ export type TemplateKind = K8sResourceCommon & {
     annotations?: Partial<{
       description: string;
       tags: string;
-      iconClass: string;
+      iconClass?: string;
       'opendatahub.io/template-enabled': string;
     }>;
     name: string;

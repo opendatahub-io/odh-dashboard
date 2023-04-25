@@ -4,13 +4,13 @@ import { TemplateKind } from '~/k8sTypes';
 import { TrDragFunctionsType } from '~/utilities/useDraggableTable';
 import CustomServingRuntimeEnabledToggle from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimeEnabledToggle';
 
-type CustomServingRuntimesTableRowProps = {
+type CustomServingRuntimeTableRowProps = {
   obj: TemplateKind;
   rowIndex: number;
   dragFunctions?: TrDragFunctionsType;
 };
 
-const CustomServingRuntimesTableRow: React.FC<CustomServingRuntimesTableRowProps> = ({
+const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> = ({
   obj: template,
   rowIndex,
   dragFunctions,
@@ -44,4 +44,4 @@ const CustomServingRuntimesTableRow: React.FC<CustomServingRuntimesTableRowProps
   );
 };
 
-export default CustomServingRuntimesTableRow;
+export default CustomServingRuntimeTableRow;
