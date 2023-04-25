@@ -5,6 +5,7 @@ import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { DashboardConfig } from '~/types';
 import {
+  DomainCalculator,
   GraphMetricLine,
   GraphMetricPoint,
   MetricChartLine,
@@ -41,10 +42,12 @@ export const getInferenceServiceMetricsQueries = (
 ): Record<InferenceMetricType, string> => {
   const namespace = inferenceService.metadata.namespace;
   const name = inferenceService.metadata.name;
+
   return {
-    // TODO: Fix queries
     [InferenceMetricType.REQUEST_COUNT_SUCCESS]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
     [InferenceMetricType.REQUEST_COUNT_FAILED]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
+    [InferenceMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
+    [InferenceMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
   };
 };
 
@@ -119,7 +122,7 @@ export const createGraphMetricLine = ({
   metric.data?.map<GraphMetricPoint>((data) => {
     const point: GraphMetricPoint = {
       x: data[0] * 1000,
-      y: parseInt(data[1]),
+      y: parseFloat(data[1]),
       name,
     };
     if (translatePoint) {
@@ -144,6 +147,9 @@ export const useStableMetrics = (
   ) {
     metricsRef.current = metrics;
   }
-
   return metricsRef.current;
 };
+
+export const defaultDomainCalculator: DomainCalculator = (maxYValue) => ({
+  y: maxYValue === 0 ? [0, 1] : [0, maxYValue],
+});

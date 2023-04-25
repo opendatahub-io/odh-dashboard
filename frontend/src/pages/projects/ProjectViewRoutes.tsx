@@ -22,7 +22,7 @@ const ProjectViewRoutes: React.FC = () => {
         {modelMetricsEnabled && (
           <>
             <Route
-              path="metrics/model/:inferenceService"
+              path="metrics/model/:inferenceService/:tab?"
               element={<ProjectInferenceMetricsWrapper />}
             />
             <Route path="metrics/runtime" element={<ProjectRuntimeMetricsWrapper />} />
