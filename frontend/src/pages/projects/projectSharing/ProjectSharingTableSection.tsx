@@ -12,51 +12,31 @@ import { RoleBindingKind } from '~/k8sTypes';
 import { generateRoleBindingProjectSharing } from '~/api';
 import ProjectSharingTable from './ProjectSharingTable';
 import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
-import { filterRoleBindingSubjects } from './utils';
 
 export type ProjectSharingTableSectionProps = {
   roleBindings: RoleBindingKind[];
   projectSharingTableType: ProjectSharingRBType;
-  typeAhead: string[];
   namespace: string;
+  typeAhead?: string[];
   refresh: () => void;
 };
 
 const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
   roleBindings,
   projectSharingTableType,
-  typeAhead,
   namespace,
+  typeAhead,
   refresh,
 }) => {
-  const [permissionLocal, setPermissionLocal] = React.useState(
-    filterRoleBindingSubjects(roleBindings, projectSharingTableType),
-  );
-  const [addField, setAddField] = React.useState(false);
+  const [addField, setAddField] = React.useState<RoleBindingKind | undefined>(undefined);
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
-  const hasAddingField =
-    permissionLocal.filter((rolebinding) => rolebinding.subjects[0]?.name === '').length > 0;
-
-  React.useEffect(() => {
-    const permissions = filterRoleBindingSubjects(roleBindings, projectSharingTableType);
-
-    if (!hasAddingField || !addField) {
-      setPermissionLocal(filterRoleBindingSubjects(roleBindings, projectSharingTableType));
+  const permissionLocal = React.useMemo(() => {
+    if (addField) {
+      return [...roleBindings, addField];
     }
-
-    if (!hasAddingField && addField) {
-      setPermissionLocal([
-        ...permissions,
-        generateRoleBindingProjectSharing(
-          namespace,
-          projectSharingTableType,
-          '',
-          ProjectSharingRoleType.EDIT,
-        ),
-      ]);
-    }
-  }, [roleBindings, addField, namespace, projectSharingTableType, hasAddingField]);
+    return roleBindings;
+  }, [roleBindings, addField]);
 
   return (
     <Stack hasGutter>
@@ -66,21 +46,18 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
         </Title>
       </StackItem>
       <StackItem>
-        {' '}
         <ProjectSharingTable
           permissions={permissionLocal}
           type={projectSharingTableType}
           typeAhead={typeAhead}
           onCancel={() => {
-            setAddField(false);
-            setPermissionLocal(filterRoleBindingSubjects(roleBindings, projectSharingTableType));
+            setAddField(undefined);
           }}
           onError={(error) => {
             setError(error);
-            setPermissionLocal(filterRoleBindingSubjects(roleBindings, projectSharingTableType));
           }}
           refresh={() => {
-            setAddField(false);
+            setAddField(undefined);
             refresh();
           }}
         />
@@ -103,7 +80,16 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
           isInline
           icon={<PlusCircleIcon />}
           iconPosition="left"
-          onClick={() => setAddField(true)}
+          onClick={() =>
+            setAddField(
+              generateRoleBindingProjectSharing(
+                namespace,
+                projectSharingTableType,
+                '',
+                ProjectSharingRoleType.EDIT,
+              ),
+            )
+          }
           style={{ paddingLeft: 'var(--pf-global--spacer--lg)' }}
         >
           {projectSharingTableType === ProjectSharingRBType.USER ? 'Add user' : 'Add group'}

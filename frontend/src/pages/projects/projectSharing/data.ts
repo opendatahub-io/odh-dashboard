@@ -1,6 +1,6 @@
 import { RoleBindingKind } from '~/k8sTypes';
 import { SortableData } from '~/utilities/useTableColumnSort';
-import { compareDatesWithUndefined, ensureRoleBindingCreationSorting } from './utils';
+import { ensureRoleBindingCreationSorting, firstSubject } from './utils';
 
 export const columnsProjectSharingUser: SortableData<RoleBindingKind>[] = [
   {
@@ -12,7 +12,7 @@ export const columnsProjectSharingUser: SortableData<RoleBindingKind>[] = [
         a,
         b,
         sortDirection,
-        a.subjects[0]?.name.localeCompare(b.subjects[0]?.name),
+        firstSubject(a).localeCompare(firstSubject(b)),
       ),
   },
   {
@@ -30,28 +30,29 @@ export const columnsProjectSharingUser: SortableData<RoleBindingKind>[] = [
   {
     field: 'date',
     label: 'Date added',
-    width: 30,
+    width: 25,
     sortable: (a, b, key, sortDirection) =>
       ensureRoleBindingCreationSorting(
         a,
         b,
         sortDirection,
-        compareDatesWithUndefined(a.metadata.creationTimestamp, b.metadata.creationTimestamp),
+        new Date(b.metadata.creationTimestamp || 0).getTime() -
+          new Date(a.metadata.creationTimestamp || 0).getTime(),
       ),
   },
 ];
 
 export const columnsProjectSharingGroup: SortableData<RoleBindingKind>[] = [
   {
-    field: 'group',
-    label: 'Username',
+    field: 'username',
+    label: 'Name',
     width: 30,
     sortable: (a, b, key, sortDirection) =>
       ensureRoleBindingCreationSorting(
         a,
         b,
         sortDirection,
-        a.subjects[0]?.name.localeCompare(b.subjects[0]?.name),
+        firstSubject(a).localeCompare(firstSubject(b)),
       ),
   },
   {
@@ -69,13 +70,14 @@ export const columnsProjectSharingGroup: SortableData<RoleBindingKind>[] = [
   {
     field: 'date',
     label: 'Date added',
-    width: 30,
+    width: 25,
     sortable: (a, b, key, sortDirection) =>
       ensureRoleBindingCreationSorting(
         a,
         b,
         sortDirection,
-        compareDatesWithUndefined(a.metadata.creationTimestamp, b.metadata.creationTimestamp),
+        new Date(b.metadata.creationTimestamp || 0).getTime() -
+          new Date(a.metadata.creationTimestamp || 0).getTime(),
       ),
   },
 ];

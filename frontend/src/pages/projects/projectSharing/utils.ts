@@ -12,12 +12,6 @@ export const getRoleBindingResourceName = (roleBinding: RoleBindingKind): string
 export const getRoleBindingDisplayName = (roleBinding: RoleBindingKind): string =>
   getDisplayNameFromK8sResource(roleBinding);
 
-export const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
-  return new Intl.DateTimeFormat('en-US', options).format(date);
-};
-
 export const filterRoleBindingSubjects = (
   roleBindings: RoleBindingKind[],
   type: ProjectSharingRBType,
@@ -26,40 +20,19 @@ export const filterRoleBindingSubjects = (
 export const castProjectSharingRoleType = (role: string): ProjectSharingRoleType | undefined =>
   ProjectSharingRoleType[role.toUpperCase() as keyof typeof ProjectSharingRoleType];
 
-export const compareDatesWithUndefined = (
-  date1: string | undefined,
-  date2: string | undefined,
-): number => {
-  if (date1 === undefined && date2 === undefined) {
-    return 0;
-  }
-  if (date1 === undefined) {
-    return -1;
-  }
-  if (date2 === undefined) {
-    return 1;
-  }
-  const date1Date = new Date(date1);
-  const date2Date = new Date(date2);
-  if (date1Date.toString() === 'Invalid Date') {
-    return -1;
-  }
-  if (date2Date.toString() === 'Invalid Date') {
-    return 1;
-  }
-  return date1Date.getTime() - date2Date.getTime();
-};
-
 export const ensureRoleBindingCreationSorting = (
   roleBinding1: RoleBindingKind,
   roleBinding2: RoleBindingKind,
   sortDirection: string | undefined,
   sorting: number,
 ): number => {
-  if (roleBinding1.subjects[0]?.name === '') {
+  if (firstSubject(roleBinding1) === '') {
     return sortDirection === 'asc' ? 1 : -1;
-  } else if (roleBinding2.subjects[0]?.name === '') {
+  } else if (firstSubject(roleBinding2) === '') {
     return sortDirection === 'asc' ? -1 : 1;
   }
   return sorting;
 };
+
+export const firstSubject = (roleBinding: RoleBindingKind): string =>
+  roleBinding.subjects[0]?.name || '';

@@ -84,7 +84,7 @@ export const generateRoleBindingProjectSharing = (
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
     metadata: {
-      name: `rb-${genRandomChars()}`,
+      name: `dashboard-permissions-${genRandomChars()}`,
       namespace,
       labels: {
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',

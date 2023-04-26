@@ -3,167 +3,140 @@ import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   Button,
   DropdownDirection,
-  Select,
-  SelectOption,
-  SelectVariant,
+  Flex,
+  FlexItem,
   Text,
+  Timestamp,
+  TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
 import { RoleBindingKind } from '~/k8sTypes';
-import { castProjectSharingRoleType, formatDate } from './utils';
+import { relativeTime } from '~/utilities/time';
+import { castProjectSharingRoleType, firstSubject } from './utils';
 import { ProjectSharingRoleType } from './types';
+import ProjectSharingNameInput from './ProjectSharingNameInput';
+import ProjectSharingPermissionSelection from './ProjectSharingPermissionSelection';
 
 type ProjectSharingTableRowProps = {
   obj: RoleBindingKind;
   isEditing: boolean;
-  typeAhead: string[];
-  onCreateOrEditRoleBinding: (
-    name: string,
-    roleType: ProjectSharingRoleType,
-    rolebinding: RoleBindingKind,
-  ) => void;
-  onCancelRoleBindingCreation: () => void;
-  onEditRoleBinding: (rolebinding: RoleBindingKind) => void;
-  onDeleteRoleBinding: (rolebinding: RoleBindingKind) => void;
+  typeAhead?: string[];
+  onChange: (name: string, roleType: ProjectSharingRoleType) => void;
+  onCancel: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 };
 
 const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   obj,
   isEditing,
   typeAhead,
-  onCreateOrEditRoleBinding,
-  onCancelRoleBindingCreation,
-  onEditRoleBinding,
-  onDeleteRoleBinding,
+  onChange,
+  onCancel,
+  onEdit,
+  onDelete,
 }) => {
-  const [roleBindingName, setRoleBindingName] = React.useState(obj.subjects[0]?.name || '');
+  const [roleBindingName, setRoleBindingName] = React.useState(firstSubject(obj));
   const [roleBindingRoleRef, setRoleBindingRoleRef] = React.useState<ProjectSharingRoleType>(
     castProjectSharingRoleType(obj.roleRef.name) || ProjectSharingRoleType.EDIT,
   );
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [isOpenName, setIsOpenName] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const createdDate = new Date(obj.metadata.creationTimestamp || '');
 
   return (
     <Tbody>
       <Tr>
         <Td dataLabel="Username">
           {isEditing ? (
-            <Select
-              variant={SelectVariant.typeahead}
-              typeAheadAriaLabel="Name selection"
-              selections={roleBindingName}
-              onToggle={(isOpened) => {
-                setIsOpenName(isOpened);
-              }}
-              onSelect={(e, selection) => {
-                if (typeof selection === 'string') {
-                  setRoleBindingName(selection);
-                  setIsOpenName(false);
-                }
+            <ProjectSharingNameInput
+              value={roleBindingName}
+              onChange={(selection) => {
+                setRoleBindingName(selection);
               }}
               onClear={() => setRoleBindingName('')}
-              isOpen={isOpenName}
-              isCreatable={true}
-              aria-labelledby="name-selection"
               placeholderText={roleBindingName}
-            >
-              {typeAhead.map((option, index) => (
-                <SelectOption key={index} value={option} />
-              ))}
-            </Select>
+              typeAhead={typeAhead}
+            />
           ) : (
             <Text>{roleBindingName}</Text>
           )}
         </Td>
         <Td dataLabel="Permission">
           {isEditing ? (
-            <Select
-              removeFindDomNode
-              selections={roleBindingRoleRef}
-              isOpen={isOpen}
-              onSelect={(e, selection) => {
-                if (typeof selection === 'string') {
-                  setRoleBindingRoleRef(
-                    castProjectSharingRoleType(selection) || ProjectSharingRoleType.EDIT,
-                  );
-                  setIsOpen(false);
-                }
+            <ProjectSharingPermissionSelection
+              selection={roleBindingRoleRef}
+              onSelect={(selection) => {
+                setRoleBindingRoleRef(selection);
               }}
-              onToggle={setIsOpen}
-              placeholderText={roleBindingRoleRef}
-              direction="down"
-            >
-              <SelectOption
-                key={ProjectSharingRoleType.EDIT}
-                value={ProjectSharingRoleType.EDIT}
-                description={'Edit allows users to view and make changes to the project'}
-              >
-                {ProjectSharingRoleType.EDIT}
-              </SelectOption>
-              <SelectOption
-                key={ProjectSharingRoleType.ADMIN}
-                value={ProjectSharingRoleType.ADMIN}
-                description={'Admin allows users to also add and remove new users to the project'}
-              >
-                {ProjectSharingRoleType.ADMIN}
-              </SelectOption>
-            </Select>
+            />
           ) : (
             <Text> {roleBindingRoleRef}</Text>
           )}
         </Td>
         <Td dataLabel="Date added">
-          {!isEditing && obj && (
+          {!isEditing && (
             <Text>
-              {obj.metadata?.creationTimestamp ? formatDate(obj.metadata?.creationTimestamp) : ''}
+              <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
+                {relativeTime(Date.now(), createdDate.getTime())}
+              </Timestamp>
             </Text>
           )}
         </Td>
-        {!isEditing && obj && (
-          <Td isActionCell>
-            <ActionsColumn
-              dropdownDirection={DropdownDirection.up}
-              items={[
-                {
-                  title: 'Edit',
-                  onClick: () => {
-                    onEditRoleBinding(obj);
-                  },
-                },
-                {
-                  title: 'Delete',
-                  onClick: () => {
-                    onDeleteRoleBinding(obj);
-                  },
-                },
-              ]}
-            />
-          </Td>
-        )}
-        {isEditing && (
-          <Td isActionCell modifier="nowrap">
-            <Button
-              data-id="save-rolebinding-button"
-              variant="link"
-              icon={<CheckIcon />}
-              isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
-              onClick={() => {
-                setIsLoading(true);
-                onCreateOrEditRoleBinding(roleBindingName, roleBindingRoleRef, obj);
-              }}
-            />
-            <Button
-              data-id="cancel-rolebinding-button"
-              variant="plain"
-              isDisabled={isLoading}
-              icon={<TimesIcon />}
-              onClick={() => {
-                onCancelRoleBindingCreation();
-              }}
-            />
-          </Td>
-        )}
+        <Td isActionCell modifier="nowrap">
+          <Flex
+            direction={{ default: 'row' }}
+            justifyContent={{ default: 'justifyContentFlexEnd' }}
+            flexWrap={{ default: 'nowrap' }}
+          >
+            {isEditing ? (
+              <>
+                <FlexItem spacer={{ default: 'spacerNone' }}>
+                  <Button
+                    data-id="save-rolebinding-button"
+                    variant="link"
+                    icon={<CheckIcon />}
+                    isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
+                    onClick={() => {
+                      setIsLoading(true);
+                      onChange(roleBindingName, roleBindingRoleRef);
+                    }}
+                  />
+                </FlexItem>
+                <FlexItem spacer={{ default: 'spacerNone' }}>
+                  <Button
+                    data-id="cancel-rolebinding-button"
+                    variant="plain"
+                    isDisabled={isLoading}
+                    icon={<TimesIcon />}
+                    onClick={() => {
+                      onCancel();
+                    }}
+                  />
+                </FlexItem>
+              </>
+            ) : (
+              <FlexItem spacer={{ default: 'spacerNone' }}>
+                <ActionsColumn
+                  dropdownDirection={DropdownDirection.up}
+                  items={[
+                    {
+                      title: 'Edit',
+                      onClick: () => {
+                        onEdit();
+                      },
+                    },
+                    {
+                      title: 'Delete',
+                      onClick: () => {
+                        onDelete();
+                      },
+                    },
+                  ]}
+                />
+              </FlexItem>
+            )}
+          </Flex>
+        </Td>
       </Tr>
     </Tbody>
   );

@@ -6,8 +6,8 @@ export enum ProjectSharingRBType {
 }
 
 export enum ProjectSharingRoleType {
-  EDIT = 'edit',
-  ADMIN = 'admin',
+  EDIT = 'Edit',
+  ADMIN = 'Admin',
 }
 
 export type RoleBindingSubjectWithRole = RoleBindingSubject & {

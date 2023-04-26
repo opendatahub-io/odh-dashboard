@@ -12,65 +12,56 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { GroupKind, UserKind } from '~/k8sTypes';
+import { GroupKind } from '~/k8sTypes';
 import { ProjectSharingRBType } from './types';
 import ProjectSharingTableSection from './ProjectSharingTableSection';
+import { filterRoleBindingSubjects } from './utils';
 
 const ProjectSharing: React.FC = () => {
   const {
     projectSharingRB: { data: roleBindings, loaded, error: loadError, refresh: refreshRB },
-    users: { data: users },
     groups: { data: groups },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
 
   if (loadError) {
     return (
-      <PageSection isFilled aria-label="project-sharing-error-section" variant="light">
-        <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h2" size="lg">
-            There was an issue loading permissions.
-          </Title>
-          <EmptyStateBody>{loadError.message}</EmptyStateBody>
-        </EmptyState>
-      </PageSection>
+      <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
+        <EmptyStateIcon icon={ExclamationCircleIcon} />
+        <Title headingLevel="h2" size="lg">
+          There was an issue loading permissions.
+        </Title>
+        <EmptyStateBody>{loadError.message}</EmptyStateBody>
+      </EmptyState>
     );
   }
 
   if (!loaded) {
     return (
-      <PageSection isFilled aria-label="project-sharing-loading-section" variant="light">
-        <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
-          <Spinner size="xl" />
-          <Title headingLevel="h2" size="lg">
-            Loading
-          </Title>
-        </EmptyState>
-      </PageSection>
+      <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
+        <Spinner size="xl" />
+        <Title headingLevel="h2" size="lg">
+          Loading
+        </Title>
+      </EmptyState>
     );
   }
 
   return (
     <PageSection isFilled aria-label="project-sharing-page-section" variant="light">
       <Stack hasGutter>
-        <StackItem>
-          Add users and groups that can access the project. Edit allows users to view and make
-          changes to the project. Admin allows users to also add and remove new users to the
-          project.
-        </StackItem>
+        <StackItem>Add users and groups that can access the project. project.</StackItem>
         <StackItem>
           <ProjectSharingTableSection
-            roleBindings={roleBindings}
+            roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
             projectSharingTableType={ProjectSharingRBType.USER}
             refresh={refreshRB}
-            typeAhead={users.map((user: UserKind) => user.metadata.name)}
             namespace={currentProject.metadata.name}
           />
         </StackItem>
         <StackItem>
           <ProjectSharingTableSection
-            roleBindings={roleBindings}
+            roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.GROUP)}
             projectSharingTableType={ProjectSharingRBType.GROUP}
             refresh={refreshRB}
             typeAhead={groups.map((group: GroupKind) => group.metadata.name)}

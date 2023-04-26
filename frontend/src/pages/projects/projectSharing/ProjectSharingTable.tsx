@@ -5,11 +5,12 @@ import { deleteRoleBinding, generateRoleBindingProjectSharing, createRoleBinding
 import ProjectSharingTableRow from './ProjectSharingTableRow';
 import { columnsProjectSharingUser, columnsProjectSharingGroup } from './data';
 import { ProjectSharingRBType } from './types';
+import { firstSubject } from './utils';
 
 type ProjectSharingTableProps = {
   type: ProjectSharingRBType;
   permissions: RoleBindingKind[];
-  typeAhead: string[];
+  typeAhead?: string[];
   onCancel: () => void;
   onError: (error: Error) => void;
   refresh: () => void;
@@ -37,16 +38,16 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
         <ProjectSharingTableRow
           key={rb.metadata?.name || ''}
           obj={rb}
-          isEditing={rb.subjects[0]?.name === '' || editCell.includes(rb.metadata.name)}
+          isEditing={firstSubject(rb) === '' || editCell.includes(rb.metadata.name)}
           typeAhead={typeAhead}
-          onCreateOrEditRoleBinding={(name, roleType, obj) => {
+          onChange={(name, roleType) => {
             const newRBObject = generateRoleBindingProjectSharing(
-              obj.metadata.namespace,
+              rb.metadata.namespace,
               type,
               name,
               roleType,
             );
-            if (obj.subjects[0]?.name === '') {
+            if (firstSubject(rb) === '') {
               createRoleBinding(newRBObject)
                 .then(() => refresh())
                 .catch((e) => {
@@ -55,7 +56,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
             } else {
               createRoleBinding(newRBObject)
                 .then(() =>
-                  deleteRoleBinding(obj.metadata.name, obj.metadata.namespace)
+                  deleteRoleBinding(rb.metadata.name, rb.metadata.namespace)
                     .then(() => refresh())
                     .catch((e) => {
                       onError(e);
@@ -69,15 +70,17 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
               refresh();
             }
           }}
-          onDeleteRoleBinding={(obj) => {
-            deleteRoleBinding(obj.metadata.name, obj.metadata.namespace).then(() => refresh());
+          onDelete={() => {
+            deleteRoleBinding(rb.metadata.name, rb.metadata.namespace).then(() => refresh());
           }}
-          onEditRoleBinding={(obj) => {
-            setEditCell((prev) => [...prev, obj.metadata.name]);
+          onEdit={() => {
+            setEditCell((prev) => [...prev, rb.metadata.name]);
           }}
-          onCancelRoleBindingCreation={() => {
+          onCancel={() => {
             setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
-            onCancel();
+            if (firstSubject(rb) === '') {
+              onCancel();
+            }
           }}
         />
       )}
