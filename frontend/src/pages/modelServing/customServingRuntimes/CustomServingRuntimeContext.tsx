@@ -38,6 +38,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
 
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
     useTemplateOrder(dashboardNamespace),
+    2 * 60 * 1000,
   );
 
   const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;

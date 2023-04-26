@@ -1,6 +1,7 @@
 import YAML from 'yaml';
 import {
   k8sCreateResource,
+  k8sDeleteResource,
   k8sListResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
@@ -20,20 +21,23 @@ export const assembleTemplate = (body: string, namespace: string): TemplateKind 
   const description = getDescriptionFromK8sResource(servingRuntime);
 
   if (!name) {
-    throw new Error('Template name is required');
+    throw new Error('Serving runtime name is required');
   }
 
   return {
     kind: 'Template',
     apiVersion: 'template.openshift.io/v1',
     metadata: {
-      name,
+      name, // TODO: generate a random template name?
+      // user could change the template with a new serving runtime
+      // and create an other template with the old serving runtime
+      // if we keep the name, there could be a conflict
       namespace,
       labels: {
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        description,
+        'openshift.io/description': description,
         'opendatahub.io/template-enabled': 'true',
         'openshift.io/display-name': displayName,
         tags: `${name},servingruntime`,
@@ -75,23 +79,29 @@ export const toggleTemplateEnabledStatus = (
     ],
   });
 
+const dryRunServingRuntimeForTemplateCreation = (
+  template: TemplateKind,
+  namespace: string,
+): Promise<ServingRuntimeKind> => {
+  const servingRuntime = template.objects[0] as ServingRuntimeKind;
+  return k8sCreateResource<ServingRuntimeKind>(
+    applyK8sAPIOptions(
+      { dryRun: true },
+      {
+        model: ServingRuntimeModel,
+        resource: { ...servingRuntime, metadata: { ...servingRuntime.metadata, namespace } },
+      },
+    ),
+  );
+};
+
 export const createServingRuntimeTemplate = (
   body: string,
   namespace: string,
 ): Promise<TemplateKind> => {
   try {
     const template = assembleTemplate(body, namespace);
-    const servingRuntime = template.objects[0] as ServingRuntimeKind;
-
-    return k8sCreateResource<ServingRuntimeKind>(
-      applyK8sAPIOptions(
-        { dryRun: true },
-        {
-          model: ServingRuntimeModel,
-          resource: { ...servingRuntime, metadata: { ...servingRuntime.metadata, namespace } },
-        },
-      ),
-    ).then(() =>
+    return dryRunServingRuntimeForTemplateCreation(template, namespace).then(() =>
       k8sCreateResource<TemplateKind>({
         model: TemplateModel,
         resource: template,
@@ -101,3 +111,44 @@ export const createServingRuntimeTemplate = (
     return Promise.reject(e);
   }
 };
+
+export const updateServingRuntimeTemplate = (
+  name: string,
+  body: string,
+  namespace: string,
+): Promise<TemplateKind> => {
+  try {
+    const template = assembleTemplate(body, namespace);
+    return dryRunServingRuntimeForTemplateCreation(template, namespace).then(() =>
+      k8sPatchResource({
+        model: TemplateModel,
+        queryOptions: { name, ns: namespace },
+        patches: [
+          {
+            op: 'replace',
+            path: '/metadata/annotations/openshift.io~1description',
+            value: getDescriptionFromK8sResource(template),
+          },
+          {
+            op: 'replace',
+            path: '/metadata/annotations/openshift.io~1display-name',
+            value: getDisplayNameFromK8sResource(template),
+          },
+          {
+            op: 'replace',
+            path: '/objects/0',
+            value: template.objects[0],
+          },
+        ],
+      }),
+    );
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+
+export const deleteTemplate = (name: string, namespace: string): Promise<TemplateKind> =>
+  k8sDeleteResource<TemplateKind>({
+    model: TemplateModel,
+    queryOptions: { name, ns: namespace },
+  });

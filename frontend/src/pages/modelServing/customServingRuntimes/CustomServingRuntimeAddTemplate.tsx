@@ -12,10 +12,12 @@ import {
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { Link, useNavigate } from 'react-router-dom';
+import YAML from 'yaml';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { TemplateKind } from '~/k8sTypes';
-import { createServingRuntimeTemplate } from '~/api';
+import { createServingRuntimeTemplate, updateServingRuntimeTemplate } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
+import { getTemplateDisplayName } from '~/pages/modelServing/customServingRuntimes/utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type CustomServingRuntimeAddTemplateProps = {
@@ -33,14 +35,36 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const navigate = useNavigate();
 
+  const stringifiedTemplate = existingCustomServingRuntime
+    ? YAML.stringify(existingCustomServingRuntime.objects[0])
+    : '';
+
+  React.useEffect(() => {
+    setCode(stringifiedTemplate);
+  }, [stringifiedTemplate]);
+
   return (
     <ApplicationsPage
-      title="Add serving runtime"
-      description="Add a new runtime that will be available for Data Science users on this cluster"
+      title={
+        existingCustomServingRuntime
+          ? `Edit ${getTemplateDisplayName(existingCustomServingRuntime)}`
+          : 'Add serving runtime'
+      }
+      description={
+        existingCustomServingRuntime
+          ? 'Modify properties for your serving runtime.'
+          : 'Add a new runtime that will be available for Data Science users on this cluster.'
+      }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/servingRuntimes">Serving Runtimes</Link>} />
-          <BreadcrumbItem isActive>Add serving runtime</BreadcrumbItem>
+          <BreadcrumbItem>Settings</BreadcrumbItem>
+          <BreadcrumbItem render={() => <Link to="/servingRuntimes">Serving runtimes</Link>} />
+          {existingCustomServingRuntime && (
+            <BreadcrumbItem>{getTemplateDisplayName(existingCustomServingRuntime)}</BreadcrumbItem>
+          )}
+          <BreadcrumbItem isActive>
+            {existingCustomServingRuntime ? 'Edit' : 'Add'} serving runtime
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       loaded
@@ -50,6 +74,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       <Stack hasGutter>
         <StackItem>
           <CodeEditor
+            code={code}
             isUploadEnabled
             isDownloadEnabled
             isCopyEnabled
@@ -82,13 +107,20 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
             <ActionList>
               <ActionListItem>
                 <Button
-                  isDisabled={code === '' || loading}
+                  isDisabled={code === stringifiedTemplate || loading}
                   variant="primary"
                   id="create-button"
                   isLoading={loading}
                   onClick={() => {
                     setIsLoading(true);
-                    createServingRuntimeTemplate(code, dashboardNamespace)
+                    const onClickFunc = existingCustomServingRuntime
+                      ? updateServingRuntimeTemplate(
+                          existingCustomServingRuntime.metadata.name,
+                          code,
+                          dashboardNamespace,
+                        )
+                      : createServingRuntimeTemplate(code, dashboardNamespace);
+                    onClickFunc
                       .then(() => {
                         refreshData();
                         navigate(`/servingRuntimes`);

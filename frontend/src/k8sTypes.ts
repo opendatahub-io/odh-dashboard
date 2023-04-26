@@ -418,11 +418,11 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
 export type TemplateKind = K8sResourceCommon & {
   metadata: {
     annotations?: Partial<{
-      description: string;
       tags: string;
       iconClass?: string;
       'opendatahub.io/template-enabled': string;
-    }>;
+    }> &
+      DisplayNameAnnotations;
     name: string;
     namespace: string;
   };
