@@ -42,3 +42,9 @@ export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
   loaded: false,
   refresh: () => undefined,
 };
+
+export const DEFAULT_SERVING_RUNTIMES_CONFIG = {
+  servingRuntimesConfig: undefined,
+  loaded: false,
+  refresh: () => undefined,
+};
