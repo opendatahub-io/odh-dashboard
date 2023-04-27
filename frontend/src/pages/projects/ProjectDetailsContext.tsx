@@ -62,10 +62,10 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
 });
 
 const ProjectDetailsContextProvider: React.FC<ProjectDetailsContextProviderProps> = ({
-  servingRuntimesConfig = DEFAULT_SERVING_RUNTIMES_CONFIG,
-  inferenceServices = DEFAULT_CONTEXT_DATA,
-  servingRuntimes = DEFAULT_CONTEXT_DATA,
-  serverSecrets = DEFAULT_CONTEXT_DATA,
+  servingRuntimesConfig = { ...DEFAULT_SERVING_RUNTIMES_CONFIG, loaded: true },
+  inferenceServices = { ...DEFAULT_CONTEXT_DATA, loaded: true },
+  servingRuntimes = { ...DEFAULT_CONTEXT_DATA, loaded: true },
+  serverSecrets = { ...DEFAULT_CONTEXT_DATA, loaded: true },
 }) => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
