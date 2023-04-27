@@ -1,3 +1,4 @@
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 
@@ -23,12 +24,15 @@ export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
 export const filterTemplatesEnabled = (templates: TemplateKind[]) =>
   templates.filter(getTemplateEnabled);
 
+export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
+  obj.kind === 'ServingRuntime' &&
+  obj.spec?.builtInAdapter !== undefined &&
+  obj.spec?.containers !== undefined;
+
 export const getServingRuntimeFromTemplate = (template: TemplateKind): ServingRuntimeKind => {
-  const servingRuntime = template.objects[0] as ServingRuntimeKind | undefined;
-  if (!servingRuntime) {
-    throw new Error('Invalid template: no serving runtime');
-  } else if (servingRuntime.kind !== 'ServingRuntime') {
-    throw new Error(`Invalid template: expected ServingRuntime, got ${servingRuntime.kind}`);
+  if (isServingRuntimeKind(template.objects[0])) {
+    return template.objects[0];
+  } else {
+    throw new Error('Invalid Serving Runtime format');
   }
-  return servingRuntime;
 };
