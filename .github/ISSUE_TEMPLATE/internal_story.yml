@@ -1,0 +1,58 @@
+name: (Internal) Feature Story Template
+description: Intended to help with a template for breaking down larger efforts
+labels: ["priority/high"]
+body:
+  - type: input
+    id: goal
+    attributes:
+      label: Goal
+      description: A high level goal for this feature story.
+      placeholder: Implements the table for the global <feature> page.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependency issue
+      description: |
+        A link to the story/stories that precede this ticket
+
+        Tip: Using a bullet list will help display links to other tickets by unraveling the name and status of that ticket.
+      placeholder: |
+        * #xxxx1
+        * #xxxx2
+      value: No dependencies
+    validations:
+      required: false
+  - type: textarea
+    id: describe-feature
+    attributes:
+      label: Itemized goals
+      description: The points you want to make sure to cover. Aim to refer to the mocks instead of duplicating that effort; talk high level goals.
+      placeholder: |
+        * Add the table with the columns noted in the mocks
+        * Add the filter toolbar
+        * Row actions are done handled by another ticket -- add structure but not functionality
+    validations:
+      required: true
+  - type: textarea
+    id: follow-up-work
+    attributes:
+      label: Aspects continued elsewhere
+      description: |
+        This is a section to note any other tickets that will cover aspects seen in the mocks for this feature.
+        Ideally make a link reference to another ticket to help with navigation between issues.
+
+        Tip: Using a bullet list will help display links to other tickets by unraveling the name and status of that ticket.
+      placeholder: |
+        * Delete row action -- Ticket TBD
+        * Edit row action -- #xxxx
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Mocks
+      description: Link to the UX mocks (if needed); ideally directly to the screen in question. Multiple screens, multiple links.
+      value: No mocks
+    validations:
+      required: false

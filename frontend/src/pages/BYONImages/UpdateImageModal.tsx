@@ -115,7 +115,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
         <FormGroup
           label="Name"
           isRequired
-          fieldId="byon-image-name-label"
+          fieldId="byon-image-name-input"
           helperTextInvalid="This field is required."
           helperTextInvalidIcon={<ExclamationCircleIcon />}
           validated={validName ? undefined : 'error'}
@@ -132,7 +132,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
             }}
           />
         </FormGroup>
-        <FormGroup label="Description" fieldId="byon-image-description">
+        <FormGroup label="Description" fieldId="byon-image-description-input">
           <TextInput
             id="byon-image-description-input"
             isRequired
@@ -206,7 +206,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
               ) : (
                 <EmptyState variant={EmptyStateVariant.small}>
                   <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h4" size="lg">
+                  <Title headingLevel="h2" size="lg">
                     No software added
                   </Title>
                   <EmptyStateBody>
@@ -286,7 +286,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
               ) : (
                 <EmptyState variant={EmptyStateVariant.small}>
                   <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h4" size="lg">
+                  <Title headingLevel="h2" size="lg">
                     No packages added
                   </Title>
                   <EmptyStateBody>

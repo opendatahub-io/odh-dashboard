@@ -113,7 +113,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
         <FormGroup
           label="Repository"
           isRequired
-          fieldId="byon-image-repository-label"
+          fieldId="byon-image-repository-input"
           helperText="Repo where notebook images are stored."
           helperTextInvalid="This field is required."
           helperTextInvalidIcon={<ExclamationCircleIcon />}
@@ -135,7 +135,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
         <FormGroup
           label="Name"
           isRequired
-          fieldId="byon-image-name-label"
+          fieldId="byon-image-name-input"
           helperTextInvalid="This field is required."
           helperTextInvalidIcon={<ExclamationCircleIcon />}
           validated={validName ? undefined : 'error'}
@@ -152,7 +152,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
             }}
           />
         </FormGroup>
-        <FormGroup label="Description" fieldId="byon-image-description">
+        <FormGroup label="Description" fieldId="byon-image-description-input">
           <TextInput
             id="byon-image-description-input"
             isRequired
@@ -226,7 +226,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
               ) : (
                 <EmptyState variant={EmptyStateVariant.small}>
                   <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h4" size="lg">
+                  <Title headingLevel="h2" size="lg">
                     No software added
                   </Title>
                   <EmptyStateBody>
@@ -306,7 +306,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
               ) : (
                 <EmptyState variant={EmptyStateVariant.small}>
                   <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h4" size="lg">
+                  <Title headingLevel="h2" size="lg">
                     No packages added
                   </Title>
                   <EmptyStateBody>
