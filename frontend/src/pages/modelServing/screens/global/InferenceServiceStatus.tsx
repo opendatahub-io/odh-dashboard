@@ -21,13 +21,13 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
       case InferenceServiceModelState.LOADED:
       case InferenceServiceModelState.STANDBY:
         return (
-          <Icon status="success" isInline>
+          <Icon role="button" aria-label="success icon" status="success" isInline tabIndex={0}>
             <CheckCircleIcon />
           </Icon>
         );
       case InferenceServiceModelState.FAILED_TO_LOAD:
         return (
-          <Icon status="danger" isInline>
+          <Icon role="button" aria-label="error icon" status="danger" isInline tabIndex={0}>
             <ExclamationCircleIcon />
           </Icon>
         );
@@ -40,13 +40,13 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
         );
       case InferenceServiceModelState.UNKNOWN:
         return (
-          <Icon status="warning" isInline>
+          <Icon role="button" aria-label="warning icon" status="warning" isInline tabIndex={0}>
             <OutlinedQuestionCircleIcon />
           </Icon>
         );
       default:
         return (
-          <Icon status="warning" isInline>
+          <Icon role="button" aria-label="warning icon" status="warning" isInline tabIndex={0}>
             <OutlinedQuestionCircleIcon />
           </Icon>
         );
@@ -56,7 +56,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
   return (
     <Tooltip
       removeFindDomNode
-      aria-label="State Info"
+      role="none"
       content={<Text>{getInferenceServiceErrorMessage(inferenceService)}</Text>}
     >
       {StatusIcon()}
