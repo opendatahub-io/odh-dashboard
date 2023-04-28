@@ -6,7 +6,7 @@ import { TemplateKind } from '~/k8sTypes';
 import { patchDashboardConfigTemplateOrder } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
-import { getDragItemOrder } from './utils';
+import { getDragItemOrder, getServingRuntimeNameFromTemplate } from './utils';
 import DeleteCustomServingRuntimeModal from './DeleteCustomServingRuntimeModal';
 import { columns } from './templatedData';
 import CustomServingRuntimeTableRow from './CustomServingRuntimeTableRow';
@@ -44,11 +44,12 @@ const CustomServingRuntimeListView: React.FC = () => {
         columns={columns}
         itemOrder={dragItemOrder}
         setItemOrder={setDragItemOrder}
-        rowRenderer={(template, rowIndex, trDragFunctions) => (
+        rowRenderer={(template, rowIndex, rowId, trDragFunctions) => (
           <CustomServingRuntimeTableRow
             key={template.metadata.uid}
             obj={template}
             rowIndex={rowIndex}
+            rowId={rowId || getServingRuntimeNameFromTemplate(template)}
             dragFunctions={trDragFunctions}
             onDeleteTemplate={(obj) => setDeleteTemplate(obj)}
           />

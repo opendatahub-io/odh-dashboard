@@ -12,6 +12,7 @@ import {
 type CustomServingRuntimeTableRowProps = {
   obj: TemplateKind;
   rowIndex: number;
+  rowId: string;
   dragFunctions?: TrDragFunctionsType;
   onDeleteTemplate: (obj: TemplateKind) => void;
 };
@@ -19,6 +20,7 @@ type CustomServingRuntimeTableRowProps = {
 const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> = ({
   obj: template,
   rowIndex,
+  rowId,
   dragFunctions,
   onDeleteTemplate,
 }) => {
@@ -27,7 +29,6 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
     return null;
   }
   const { onDragEnd, onDragStart, onDrop } = dragFunctions;
-  const rowId = getServingRuntimeNameFromTemplate(template);
   return (
     <Tr
       key={rowIndex}
