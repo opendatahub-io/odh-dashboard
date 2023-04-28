@@ -6,18 +6,16 @@ import {
   PipelineRunLikeKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineRunJobStartTime,
   getPipelineRunLikeExperimentName,
   getPipelineRunLikePipelineName,
+  getRunDuration,
+  getScheduledStateWeight,
+  getStatusWeight,
 } from '~/concepts/pipelines/content/tables/utils';
-import { checkboxTableColumn } from '~/components/table/const';
+import { checkboxTableColumn, expandTableColumn, kebabTableColumn } from '~/components/table/const';
 
 export const pipelineColumns: SortableData<PipelineKF>[] = [
-  {
-    field: 'expand',
-    label: '',
-    sortable: false,
-  },
+  expandTableColumn(),
   {
     label: 'Pipeline name',
     field: 'pipeline',
@@ -42,13 +40,9 @@ export const pipelineColumns: SortableData<PipelineKF>[] = [
   {
     label: 'Created',
     field: 'created',
-    sortable: (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   },
-  {
-    label: '',
-    field: 'actions',
-    sortable: false,
-  },
+  kebabTableColumn(),
 ];
 
 const sharedPipelineRunLikeColumns: SortableData<PipelineRunLikeKF>[] = [
@@ -80,23 +74,19 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
   {
     label: 'Started',
     field: 'started',
-    sortable: (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   },
   {
     label: 'Duration',
     field: 'duration',
-    sortable: false,
+    sortable: (a, b) => getRunDuration(a) - getRunDuration(b),
   },
   {
     label: 'Status',
     field: 'status',
-    sortable: false,
+    sortable: (a, b) => getStatusWeight(a) - getStatusWeight(b),
   },
-  {
-    label: '',
-    field: 'kebab',
-    sortable: false,
-  },
+  kebabTableColumn(),
 ];
 
 export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
@@ -107,8 +97,8 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
     sortable: (a, b) => {
       if (a.trigger.periodic_schedule && b.trigger.periodic_schedule) {
         return (
-          parseInt(b.trigger.periodic_schedule.interval_second) -
-          parseInt(a.trigger.periodic_schedule.interval_second)
+          parseInt(a.trigger.periodic_schedule.interval_second) -
+          parseInt(b.trigger.periodic_schedule.interval_second)
         );
       }
       if (a.trigger.cron_schedule && b.trigger.cron_schedule) {
@@ -123,23 +113,14 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
   {
     label: 'Scheduled',
     field: 'scheduled',
-    sortable: (a, b) => {
-      const aTime = getPipelineRunJobStartTime(a)?.getTime() || 0;
-      const bTime = getPipelineRunJobStartTime(b)?.getTime() || 0;
-
-      return bTime - aTime;
-    },
+    sortable: (a, b) => getScheduledStateWeight(a) - getScheduledStateWeight(b),
     width: 15,
   },
   {
     label: 'Status',
     field: 'status',
-    sortable: (a, b) => Number(b.enabled ?? false) - Number(a.enabled ?? false),
+    sortable: (a, b) => Number(a.enabled ?? false) - Number(b.enabled ?? false),
     width: 10,
   },
-  {
-    label: '',
-    field: 'kebab',
-    sortable: false,
-  },
+  kebabTableColumn(),
 ];

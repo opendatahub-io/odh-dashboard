@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {
   Icon,
+  Level,
+  LevelItem,
   Spinner,
   Switch,
   Timestamp,
@@ -25,10 +27,11 @@ import {
   ResourceTypeKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineRunJobEndTime,
-  getPipelineRunJobStartTime,
+  getRunDuration,
   getPipelineRunLikeExperimentName,
   getRunResourceReference,
+  getPipelineRunJobScheduledState,
+  ScheduledState,
 } from '~/concepts/pipelines/content/tables/utils';
 
 export const NoRunContent = () => <>-</>;
@@ -89,15 +92,13 @@ export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) =>
 };
 
 export const RunDuration: RunUtil = ({ run }) => {
-  const finishedDate = new Date(run.finished_at);
-  if (finishedDate.getFullYear() <= 1970) {
+  const duration = getRunDuration(run);
+  if (!duration) {
     // Kubeflow initial timestamp -- epoch, not an actual value
     return <NoRunContent />;
   }
 
-  const createdDate = new Date(run.created_at);
-  const duration = finishedDate.getTime() - createdDate.getTime();
-  return <Timestamp date={finishedDate}>{relativeDuration(duration)}</Timestamp>;
+  return <>{relativeDuration(duration)}</>;
 };
 
 export const RunCreated: RunUtil = ({ run }) => {
@@ -119,7 +120,7 @@ export const RunLikePipeline: RunLikeUtil<{ namespace: string }> = ({ runLike, n
   const resourceRef = getRunResourceReference(runLike, ResourceTypeKF.PIPELINE_VERSION);
   const pipelineName = resourceRef?.name;
   if (!resourceRef || !pipelineName) {
-    return <>-</>;
+    return <NoRunContent />;
   }
   const pipelineId = resourceRef.key.id;
 
@@ -135,36 +136,39 @@ export const RunJobTrigger: RunJobUtil = ({ job }) => {
     return <>Cron {job.trigger.cron_schedule.cron}</>;
   }
 
-  return <>Unknown</>;
+  return <NoRunContent />;
 };
 
-const inPast = (date: Date | null): boolean => (date ? date.getTime() - Date.now() <= 0 : false);
 export const RunJobScheduled: RunJobUtil = ({ job }) => {
-  const startDate = getPipelineRunJobStartTime(job);
-  const startDateInPast = inPast(startDate);
-  if (!startDate || startDateInPast) {
-    const endDate = getPipelineRunJobEndTime(job);
-    if (!endDate) {
-      return <>On-going</>;
-    }
+  const [state, startDate, endDate] = getPipelineRunJobScheduledState(job);
 
-    const endDateInPast = inPast(endDate);
-    if (endDateInPast) {
+  switch (state) {
+    case ScheduledState.ENDED:
       return <>Completed</>;
-    }
-
-    return (
-      <Timestamp date={endDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-        Ends {relativeTime(Date.now(), endDate.getTime())}
-      </Timestamp>
-    );
+    case ScheduledState.NOT_STARTED:
+      if (startDate) {
+        return (
+          <Timestamp date={startDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
+            Starts {relativeTime(Date.now(), startDate.getTime())}
+          </Timestamp>
+        );
+      }
+      break;
+    case ScheduledState.STARTED_NOT_ENDED:
+      if (endDate) {
+        return (
+          <Timestamp date={endDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
+            Ends {relativeTime(Date.now(), endDate.getTime())}
+          </Timestamp>
+        );
+      }
+      break;
+    case ScheduledState.UNBOUNDED_END:
+      return <>On-going</>;
+    default:
   }
 
-  return (
-    <Timestamp date={startDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-      Starts {relativeTime(Date.now(), startDate.getTime())}
-    </Timestamp>
-  );
+  return <NoRunContent />;
 };
 
 export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<void> }> = ({
@@ -181,30 +185,33 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
   }, [isEnabled]);
 
   return (
-    <Switch
-      id={`${job.id}-toggle`}
-      isDisabled={isChangingFlag}
-      onChange={(checked) => {
-        setIsChangingFlag(true);
-        setError(null);
-        onToggle(checked).catch((e) => {
-          setError(e);
-          setIsChangingFlag(false);
-        });
-      }}
-      isChecked={isEnabled}
-      label={
-        <>
-          {isChangingFlag && <Spinner size="md" />}
-          {error && (
-            <Tooltip content={error.message}>
-              <Icon status="danger">
-                <ExclamationCircleIcon />
-              </Icon>
-            </Tooltip>
-          )}
-        </>
-      }
-    />
+    <Level hasGutter>
+      <LevelItem>
+        <Switch
+          id={`${job.id}-toggle`}
+          aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
+          isDisabled={isChangingFlag}
+          onChange={(checked) => {
+            setIsChangingFlag(true);
+            setError(null);
+            onToggle(checked).catch((e) => {
+              setError(e);
+              setIsChangingFlag(false);
+            });
+          }}
+          isChecked={isEnabled}
+        />
+      </LevelItem>
+      <LevelItem>
+        {isChangingFlag && <Spinner size="md" />}
+        {error && (
+          <Tooltip content={error.message}>
+            <Icon status="danger">
+              <ExclamationCircleIcon />
+            </Icon>
+          </Tooltip>
+        )}
+      </LevelItem>
+    </Level>
   );
 };

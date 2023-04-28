@@ -10,13 +10,7 @@ const usePipelineRunsForPipeline = (pipeline: PipelineKF) => {
 
   const pipelineId = pipeline.id;
   const call = React.useCallback<FetchStateCallbackPromise<PipelineRunKF[]>>(
-    (opts) =>
-      new Promise((resolve, reject) => {
-        api
-          .listPipelineRunsByPipeline(opts, pipelineId)
-          .then(({ runs }) => resolve(runs ?? []))
-          .catch(reject);
-      }),
+    (opts) => api.listPipelineRunsByPipeline(opts, pipelineId).then(({ runs }) => runs ?? []),
     [api, pipelineId],
   );
 

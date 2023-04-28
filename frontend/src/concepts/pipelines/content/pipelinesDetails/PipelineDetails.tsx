@@ -21,6 +21,7 @@ import PipelineDetailsActions from '~/concepts/pipelines/content/pipelinesDetail
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import DeletePipelineModal from '~/concepts/pipelines/content/DeletePipelineModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 
 type PipelineDetailsProps = {
   breadcrumbPath: React.ReactElement<typeof BreadcrumbItem>[];
@@ -99,18 +100,22 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ breadcrumbPath }) => 
                 hidden={PipelineDetailsTab.GRAPH !== activeTabKey}
                 style={{ flexGrow: 1 }}
               >
-                <PipelineTopology
-                  nodes={nodes}
-                  selectedIds={selectedId ? [selectedId] : []}
-                  onSelectionChange={(ids) => {
-                    const firstId = ids[0];
-                    if (ids.length === 0) {
-                      setSelectedId(null);
-                    } else if (taskMap[firstId]) {
-                      setSelectedId(firstId);
-                    }
-                  }}
-                />
+                {nodes.length === 0 ? (
+                  <PipelineTopologyEmpty />
+                ) : (
+                  <PipelineTopology
+                    nodes={nodes}
+                    selectedIds={selectedId ? [selectedId] : []}
+                    onSelectionChange={(ids) => {
+                      const firstId = ids[0];
+                      if (ids.length === 0) {
+                        setSelectedId(null);
+                      } else if (taskMap[firstId]) {
+                        setSelectedId(firstId);
+                      }
+                    }}
+                  />
+                )}
               </TabContent>
               <TabContent
                 id={`tabContent-${PipelineDetailsTab.YAML}`}

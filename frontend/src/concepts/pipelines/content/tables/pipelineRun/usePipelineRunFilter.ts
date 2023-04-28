@@ -30,10 +30,16 @@ const usePipelineRunFilter = (
     if (runValue && !run.name.includes(runValue)) {
       return false;
     }
-    if (experimentValue && !getPipelineRunLikeExperimentName(run).includes(experimentValue)) {
+    if (
+      experimentValue &&
+      !getPipelineRunLikeExperimentName(run).toLowerCase().includes(experimentValue.toLowerCase())
+    ) {
       return false;
     }
-    if (pipelineValue && !getPipelineRunLikePipelineName(run).includes(pipelineValue)) {
+    if (
+      pipelineValue &&
+      !getPipelineRunLikePipelineName(run).toLowerCase().includes(pipelineValue.toLowerCase())
+    ) {
       return false;
     }
     if (startedValue && !run.created_at.includes(startedValue)) {

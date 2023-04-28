@@ -3,15 +3,13 @@ import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
+import DateRange from '~/components/dateRange/DateRange';
 
 export enum FilterOptions {
   NAME = 'Name',
   EXPERIMENT = 'Experiment',
   PIPELINE = 'Pipeline',
-  // TODO: how to filter on trigger? -- it's an "every x"
-  // TRIGGER = 'Trigger',
-  // TODO: how to filter on scheduled? -- it's a start(?) to end(?)
-  // SCHEDULED = 'Scheduled',
+  SCHEDULED = 'Scheduled',
   STATUS = 'Status',
 }
 
@@ -49,20 +47,9 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
       [FilterOptions.PIPELINE]: (props) => (
         <TextInput {...props} aria-label="Search for a pipeline name" placeholder="Pipeline name" />
       ),
-      // [FilterOptions.TRIGGER]: ({ onChange, ...props }) => (
-      //   <DatePicker
-      //     aria-label="Select a trigger duration date"
-      //     {...props}
-      //     onChange={(event, value) => onChange(value)}
-      //   />
-      // ),
-      // [FilterOptions.SCHEDULED]: ({ onChange, ...props }) => (
-      //   <DatePicker
-      //     aria-label="Select a scheduled date"
-      //     {...props}
-      //     onChange={(event, value) => onChange(value)}
-      //   />
-      // ),
+      [FilterOptions.SCHEDULED]: (props) => (
+        <DateRange {...props} aria-label="Select a scheduled date range" />
+      ),
       [FilterOptions.STATUS]: (props) => (
         <SimpleDropdownSelect
           {...props}

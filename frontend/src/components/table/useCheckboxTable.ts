@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { xor } from 'lodash';
 import Table from '~/components/table/Table';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 
@@ -11,16 +12,19 @@ type UseCheckboxTable = {
 
 const useCheckboxTable = (dataIds: string[]): UseCheckboxTable => {
   const refStableDataIds = useDeepCompareMemoize(dataIds);
-  const [headerSelected, setHeaderSelected] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  return React.useMemo(
-    () => ({
+  return React.useMemo(() => {
+    // Header is selected if all selections and all ids are equal
+    // This will allow for checking of the header to "reset" to provided ids during a trim/filter
+    const headerSelected =
+      selectedIds.length > 0 && xor(selectedIds, refStableDataIds).length === 0;
+
+    return {
       selections: selectedIds,
       tableProps: {
         selectAll: {
           onSelect: (value) => {
-            setHeaderSelected(value);
             setSelectedIds(value ? refStableDataIds : []);
           },
           selected: headerSelected,
@@ -29,15 +33,13 @@ const useCheckboxTable = (dataIds: string[]): UseCheckboxTable => {
       isSelected: (id) => selectedIds.includes(id),
       toggleSelection: (id) => {
         if (selectedIds.includes(id)) {
-          setHeaderSelected(false);
           setSelectedIds(selectedIds.filter((selectedId) => selectedId !== id));
         } else {
           setSelectedIds([...selectedIds, id]);
         }
       },
-    }),
-    [headerSelected, refStableDataIds, selectedIds],
-  );
+    };
+  }, [refStableDataIds, selectedIds]);
 };
 
 export default useCheckboxTable;

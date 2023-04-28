@@ -9,13 +9,7 @@ const usePipelineRunJobs = () => {
   const { api } = usePipelinesAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<PipelineRunJobKF[]>>(
-    (opts) =>
-      new Promise((resolve, reject) => {
-        api
-          .listPipelineRunJobs(opts)
-          .then(({ jobs }) => resolve(jobs ?? []))
-          .catch(reject);
-      }),
+    (opts) => api.listPipelineRunJobs(opts).then(({ jobs }) => jobs ?? []),
     [api],
   );
 

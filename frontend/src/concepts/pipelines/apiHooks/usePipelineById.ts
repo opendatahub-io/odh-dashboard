@@ -12,14 +12,7 @@ const usePipelineById = (pipelineId?: string) => {
         return Promise.reject(new NotReadyError('No pipeline id'));
       }
 
-      return new Promise((resolve, reject) => {
-        api
-          .getPipeline(opts, pipelineId)
-          .then((pipeline) => {
-            resolve(pipeline);
-          })
-          .catch(reject);
-      });
+      return api.getPipeline(opts, pipelineId);
     },
     [api, pipelineId],
   );

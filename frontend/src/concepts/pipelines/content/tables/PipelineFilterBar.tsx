@@ -7,6 +7,7 @@ import {
   ToolbarGroup,
   ToolbarItem,
   ToolbarChip,
+  Tooltip,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { ValueOf } from '~/typeHelpers';
@@ -79,7 +80,10 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
                   key: filterKey,
                   node: (
                     <>
-                      <b>{optionValue}:</b> {dataValue}
+                      <b>{optionValue}:</b>{' '}
+                      <Tooltip removeFindDomNode content={dataValue} position="top-start">
+                        <span>{dataValue}</span>
+                      </Tooltip>
                     </>
                   ),
                 };

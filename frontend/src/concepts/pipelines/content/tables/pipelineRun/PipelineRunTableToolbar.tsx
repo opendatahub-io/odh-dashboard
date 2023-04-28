@@ -3,6 +3,7 @@ import { Button, DatePicker, TextInput, ToolbarItem } from '@patternfly/react-co
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import { PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
 
 export enum FilterOptions {
   NAME = 'Name',
@@ -17,9 +18,14 @@ export type FilterProps = Pick<
   'filterData' | 'onFilterUpdate' | 'onClearFilters'
 >;
 
-type PipelineRunJobTableToolbarProps = FilterProps;
+type PipelineRunJobTableToolbarProps = React.ComponentProps<typeof RunTableToolbarActions> &
+  FilterProps;
 
-const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = (toolbarProps) => (
+const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
+  deleteAllEnabled,
+  onDeleteAll,
+  ...toolbarProps
+}) => (
   <PipelineFilterBar
     {...toolbarProps}
     filterOptions={FilterOptions}
@@ -67,6 +73,9 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = (tool
       >
         Create run
       </Button>
+    </ToolbarItem>
+    <ToolbarItem>
+      <RunTableToolbarActions deleteAllEnabled={deleteAllEnabled} onDeleteAll={onDeleteAll} />
     </ToolbarItem>
   </PipelineFilterBar>
 );
