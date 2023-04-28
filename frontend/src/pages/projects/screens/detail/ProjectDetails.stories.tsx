@@ -9,7 +9,6 @@ import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
@@ -17,6 +16,7 @@ import { mockServingRuntimesConfig } from '~/__mocks__/mockServingRuntimesConfig
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
+import ModelServingProjectDetailsContextAdditions from '~/pages/projects/ModelServingProjectDetailsContextAdditions';
 import ProjectDetails from './ProjectDetails';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
@@ -101,7 +101,7 @@ const Template: ComponentStory<typeof ProjectDetails> = (args) => {
   useDetectUser();
   return (
     <Routes>
-      <Route path="/" element={<ProjectDetailsContextProvider />}>
+      <Route path="/" element={<ModelServingProjectDetailsContextAdditions />}>
         <Route index element={<ProjectDetails {...args} />} />
       </Route>
     </Routes>
