@@ -6,8 +6,12 @@ export const getTemplateEnabled = (template: TemplateKind) =>
 
 export const getDragItemOrder = (templates: TemplateKind[], order: string[]) =>
   templates
-    .map((template) => template.objects[0].metadata.name)
-    .sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    .sort(
+      (a, b) =>
+        order.indexOf(getServingRuntimeNameFromTemplate(a)) -
+        order.indexOf(getServingRuntimeNameFromTemplate(b)),
+    )
+    .map((template) => getServingRuntimeNameFromTemplate(template));
 
 export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind) =>
   getDisplayNameFromK8sResource(template.objects[0]);
