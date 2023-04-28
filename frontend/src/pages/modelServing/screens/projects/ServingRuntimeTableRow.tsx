@@ -75,7 +75,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                   aria-labelledby="Deployed models load error"
                   content={inferenceServicesLoadError.message}
                 >
-                  <Icon status="danger">
+                  <Icon role="button" status="danger" aria-label="error icon" tabIndex={0}>
                     <ExclamationCircleIcon />
                   </Icon>
                 </Tooltip>
@@ -101,7 +101,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                   aria-labelledby="Tokens load error"
                   content={secretsLoadError.message}
                 >
-                  <Icon status="danger">
+                  <Icon role="button" status="danger" aria-label="error icon" tabIndex={0}>
                     <ExclamationCircleIcon />
                   </Icon>
                 </Tooltip>
