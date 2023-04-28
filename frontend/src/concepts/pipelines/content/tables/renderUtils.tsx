@@ -186,7 +186,11 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
       isDisabled={isChangingFlag}
       onChange={(checked) => {
         setIsChangingFlag(true);
-        onToggle(checked).catch((e) => setError(e));
+        setError(null);
+        onToggle(checked).catch((e) => {
+          setError(e);
+          setIsChangingFlag(false);
+        });
       }}
       isChecked={isEnabled}
       label={
@@ -194,7 +198,9 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
           {isChangingFlag && <Spinner size="md" />}
           {error && (
             <Tooltip content={error.message}>
-              <ExclamationCircleIcon />
+              <Icon status="danger">
+                <ExclamationCircleIcon />
+              </Icon>
             </Tooltip>
           )}
         </>
