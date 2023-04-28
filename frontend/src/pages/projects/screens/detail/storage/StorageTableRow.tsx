@@ -14,7 +14,7 @@ import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
 import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
-import TableRowTitleDescription from '~/components/TableRowTitleDescription';
+import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 

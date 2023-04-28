@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import Table from '~/components/Table';
-import useTableColumnSort from '~/utilities/useTableColumnSort';
+import Table from '~/components/table/Table';
+import useTableColumnSort from '~/components/table/useTableColumnSort';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';

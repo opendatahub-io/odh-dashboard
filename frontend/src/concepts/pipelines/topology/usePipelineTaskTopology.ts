@@ -42,7 +42,7 @@ const EMPTY_STATE: KubeFlowTaskTopology = { taskMap: {}, nodes: [] };
 export const usePipelineTaskTopology = (
   pipelineRun?: PipelineRunKind | null,
 ): KubeFlowTaskTopology => {
-  const tasks: PipelineRunTask[] | undefined = pipelineRun?.spec.pipelineSpec.tasks;
+  const tasks: PipelineRunTask[] | undefined = pipelineRun?.spec.pipelineSpec?.tasks;
 
   return React.useMemo<KubeFlowTaskTopology>(() => {
     if (!tasks) {

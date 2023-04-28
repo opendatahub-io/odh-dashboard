@@ -6,9 +6,12 @@ import {
   getPipeline,
   deletePipeline,
   listPipelineRuns,
+  listPipelineRunsByPipeline,
   listPipelines,
   listPipelineTemplates,
   uploadPipeline,
+  listPipelineRunJobs,
+  updatePipelineRunJob,
 } from '~/api';
 import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -90,7 +93,10 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
         deletePipeline: deletePipeline(path),
         listPipelines: listPipelines(path),
         listPipelineRuns: listPipelineRuns(path),
+        listPipelineRunJobs: listPipelineRunJobs(path),
+        listPipelineRunsByPipeline: listPipelineRunsByPipeline(path),
         listPipelineTemplate: listPipelineTemplates(path),
+        updatePipelineRunJob: updatePipelineRunJob(path),
         uploadPipeline: uploadPipeline(path),
       },
     };

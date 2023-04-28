@@ -44,6 +44,12 @@ export enum PipelineRunStatusesKF {
   FAILED = 'Failed',
 }
 
+export enum JobModeKF {
+  UNKNOWN_MODE = 'UNKNOWN_MODE',
+  ENABLED = 'ENABLED',
+  DISABLED = 'DISABLED',
+}
+
 export type ParameterKF = {
   name: string;
   value: string;
@@ -98,6 +104,23 @@ export type PipelineSpecKF = {
   runtime_config: PipelineSpecRuntimeConfig;
 };
 
+export type CronScheduleKF = {
+  start_time: DateTimeKF;
+  end_time: DateTimeKF;
+  cron: string;
+};
+
+export type PeriodicScheduleKF = {
+  start_time?: DateTimeKF;
+  end_time?: DateTimeKF;
+  interval_second: string;
+};
+
+export type TriggerKF = {
+  cron_schedule?: CronScheduleKF;
+  periodic_schedule?: PeriodicScheduleKF;
+};
+
 export type PipelineKF = {
   id: string;
   created_at: DateTimeKF;
@@ -107,16 +130,19 @@ export type PipelineKF = {
   url?: UrlKF;
   error?: string;
   default_version: PipelineVersionKF;
-  resource_references?: ResourceReferenceKF;
+  resource_references?: ResourceReferenceKF[];
 };
 
-export type PipelineRunKF = {
+export type PipelineRunLikeKF = {
   id: string;
   name: string;
+  resource_references?: ResourceReferenceKF[];
+};
+
+export type PipelineRunKF = PipelineRunLikeKF & {
   storage_state: RunStorageStateKF;
   description: string;
   pipeline_spec: PipelineSpecKF;
-  resource_reference: ResourceReferenceKF;
   service_account: string;
   created_at: DateTimeKF;
   scheduled_at: DateTimeKF;
@@ -124,6 +150,21 @@ export type PipelineRunKF = {
   status: PipelineRunStatusesKF;
   error: string;
   metrics: RunMetricKF[];
+};
+
+export type PipelineRunJobKF = PipelineRunLikeKF & {
+  description: string;
+  pipeline_spec: PipelineSpecKF;
+  service_account?: string;
+  max_concurrency: string;
+  trigger: TriggerKF;
+  mode: JobModeKF;
+  created_at: DateTimeKF;
+  updated_at: DateTimeKF;
+  status: string;
+  error: string;
+  enabled?: boolean;
+  no_catchup: boolean;
 };
 
 export type DeletePipelineResourceKF = {
@@ -134,6 +175,9 @@ export type ListPipelinesResponseKF = PipelineKFCallCommon<{
 }>;
 export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
   runs: PipelineRunKF[];
+}>;
+export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
+  jobs: PipelineRunJobKF[];
 }>;
 export type ListPipelineTemplateResourceKF = {
   /** YAML template of a PipelineRunKind */

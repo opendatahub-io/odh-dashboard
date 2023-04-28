@@ -6,7 +6,15 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 
-const GlobalPipelineDetails: React.FC = () => {
+type GlobalPipelineCoreDetailsProps = {
+  pageName: string;
+  redirectPath: (namespace: string) => string;
+};
+
+const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
+  pageName,
+  redirectPath,
+}) => {
   const { pipelineId } = useParams();
   const { namespace } = usePipelinesAPI();
   const { projects } = React.useContext(ProjectsContext);
@@ -22,8 +30,8 @@ const GlobalPipelineDetails: React.FC = () => {
         <BreadcrumbItem
           key="home"
           render={() => (
-            <Link to={`/pipelines/${namespace}`}>
-              Pipelines - {project ? getProjectDisplayName(project) : namespace}
+            <Link to={redirectPath(namespace)}>
+              {pageName} - {project ? getProjectDisplayName(project) : namespace}
             </Link>
           )}
         />,
@@ -32,4 +40,4 @@ const GlobalPipelineDetails: React.FC = () => {
   );
 };
 
-export default GlobalPipelineDetails;
+export default GlobalPipelineCoreDetails;

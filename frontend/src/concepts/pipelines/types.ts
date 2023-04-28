@@ -2,6 +2,7 @@ import { K8sAPIOptions } from '~/k8sTypes';
 import {
   DeletePipelineResourceKF,
   ListPipelineRunsResourceKF,
+  ListPipelineRunJobsResourceKF,
   ListPipelinesResponseKF,
   ListPipelineTemplateResourceKF,
   PipelineKF,
@@ -16,7 +17,9 @@ export type ListPipelines = (
   opts: K8sAPIOptions,
   limit?: number,
 ) => Promise<ListPipelinesResponseKF>;
-export type ListPipelineRuns = (
+export type ListPipelineRuns = (opts: K8sAPIOptions) => Promise<ListPipelineRunsResourceKF>;
+export type ListPipelineRunJobs = (opts: K8sAPIOptions) => Promise<ListPipelineRunJobsResourceKF>;
+export type ListPipelineRunsByPipeline = (
   opts: K8sAPIOptions,
   pipelineId: string,
 ) => Promise<ListPipelineRunsResourceKF>;
@@ -24,6 +27,11 @@ export type ListPipelineTemplates = (
   opts: K8sAPIOptions,
   pipelineId: string,
 ) => Promise<ListPipelineTemplateResourceKF>;
+export type UpdatePipelineRunJob = (
+  opts: K8sAPIOptions,
+  jobId: string,
+  enabled: boolean,
+) => Promise<void>;
 export type UploadPipeline = (
   opts: K8sAPIOptions,
   name: string,
@@ -36,6 +44,9 @@ export type PipelineAPIs = {
   deletePipeline: DeletePipeline;
   listPipelines: ListPipelines;
   listPipelineRuns: ListPipelineRuns;
+  listPipelineRunJobs: ListPipelineRunJobs;
+  listPipelineRunsByPipeline: ListPipelineRunsByPipeline;
   listPipelineTemplate: ListPipelineTemplates;
+  updatePipelineRunJob: UpdatePipelineRunJob;
   uploadPipeline: UploadPipeline;
 };

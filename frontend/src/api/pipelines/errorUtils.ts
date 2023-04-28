@@ -21,6 +21,9 @@ const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
 export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
     .then((result) => {
+      if (isErrorKF(result)) {
+        throw result;
+      }
       if (isErrorDetailsKF(result)) {
         const errorKF: ErrorKF = {
           error: result.error_message,

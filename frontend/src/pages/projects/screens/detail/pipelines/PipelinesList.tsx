@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Bullseye, Button, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
-import PipelinesTable from '~/concepts/pipelines/content/pipelinesTable/PipelinesTable';
+import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
