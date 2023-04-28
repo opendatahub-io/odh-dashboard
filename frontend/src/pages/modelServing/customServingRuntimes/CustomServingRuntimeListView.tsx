@@ -16,7 +16,6 @@ const CustomServingRuntimeListView: React.FC = () => {
   const {
     servingRuntimeTemplateOrder: { data: templateOrder, refresh: refreshOrder },
     servingRuntimeTemplates: { data: templates },
-    customServingRuntimes,
     refreshData,
   } = React.useContext(CustomServingRuntimeContext);
   const { dashboardNamespace } = useDashboardNamespace();
@@ -24,7 +23,7 @@ const CustomServingRuntimeListView: React.FC = () => {
   const navigate = useNavigate();
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
   const [dragItemOrder, setDragItemOrder] = React.useState(
-    getDragItemOrder(customServingRuntimes, templateOrder),
+    getDragItemOrder(templates, templateOrder),
   );
 
   React.useEffect(() => {
@@ -34,8 +33,8 @@ const CustomServingRuntimeListView: React.FC = () => {
   }, [dragItemOrder, dashboardNamespace, refreshOrder, notification]);
 
   React.useEffect(() => {
-    setDragItemOrder(getDragItemOrder(customServingRuntimes, templateOrder));
-  }, [customServingRuntimes, templateOrder]);
+    setDragItemOrder(getDragItemOrder(templates, templateOrder));
+  }, [templates, templateOrder]);
 
   return (
     <>
