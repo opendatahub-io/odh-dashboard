@@ -14,7 +14,7 @@ import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 const CustomServingRuntimeListView: React.FC = () => {
   const {
-    servingRuntimeTemplateOrder: { data: templateOrder },
+    servingRuntimeTemplateOrder: { data: templateOrder, refresh: refreshOrder },
     servingRuntimeTemplates: { data: templates },
     refreshData,
   } = React.useContext(CustomServingRuntimeContext);
@@ -22,19 +22,10 @@ const CustomServingRuntimeListView: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
-  const [dragItemOrder, setDragItemOrder] = React.useState(
-    getDragItemOrder(templates, templateOrder),
+  const dragItemOrder = React.useMemo(
+    () => getDragItemOrder(templates, templateOrder),
+    [templates, templateOrder],
   );
-
-  React.useEffect(() => {
-    patchDashboardConfigTemplateOrder(dragItemOrder, dashboardNamespace).catch((e) =>
-      notification.error(`Error update the serving runtimes order`, e.message),
-    );
-  }, [dragItemOrder, dashboardNamespace, notification]);
-
-  React.useEffect(() => {
-    setDragItemOrder(getDragItemOrder(templates, templateOrder));
-  }, [templates, templateOrder]);
 
   return (
     <>
@@ -43,13 +34,17 @@ const CustomServingRuntimeListView: React.FC = () => {
         data={templates}
         columns={columns}
         itemOrder={dragItemOrder}
-        setItemOrder={setDragItemOrder}
-        rowRenderer={(template, rowIndex, rowId, trDragFunctions) => (
+        setItemOrder={(itemOrder) => {
+          patchDashboardConfigTemplateOrder(itemOrder, dashboardNamespace)
+            .then(() => refreshOrder())
+            .catch((e) => notification.error(`Error update the serving runtimes order`, e.message));
+        }}
+        rowRenderer={(template, rowIndex, trDragFunctions) => (
           <CustomServingRuntimeTableRow
             key={template.metadata.uid}
             obj={template}
             rowIndex={rowIndex}
-            rowId={rowId || getServingRuntimeNameFromTemplate(template)}
+            rowId={getServingRuntimeNameFromTemplate(template)}
             dragFunctions={trDragFunctions}
             onDeleteTemplate={(obj) => setDeleteTemplate(obj)}
           />

@@ -20,7 +20,6 @@ type TableProps<DataType> = {
   rowRenderer: (
     data: DataType,
     rowIndex: number,
-    rowId?: string,
     trDragFunctions?: TrDragFunctionsType,
   ) => React.ReactNode;
   enablePagination?: boolean;
@@ -128,9 +127,7 @@ const Table = <T,>({
           <Tbody ref={bodyRef} onDragOver={onDragOver} onDragLeave={onDragLeave}>
             {sort
               .transformData(data)
-              .map((row, rowIndex) =>
-                rowRenderer(row, rowIndex, itemOrder[rowIndex], trDragFunctions),
-              )}
+              .map((row, rowIndex) => rowRenderer(row, rowIndex, trDragFunctions))}
           </Tbody>
         ) : (
           <Tbody>
