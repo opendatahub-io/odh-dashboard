@@ -64,7 +64,7 @@ const NotebookStatusText: React.FC<NotebookStatusTextProps> = ({
           {labelText}{' '}
           {notebookStatus?.currentStatus === EventStatus.ERROR && (
             <Tooltip removeFindDomNode content={notebookStatus.currentEvent}>
-              <Icon isInline status="danger">
+              <Icon isInline aria-label="error icon" role="button" status="danger" tabIndex={0}>
                 <ExclamationCircleIcon />
               </Icon>
             </Tooltip>

@@ -23,7 +23,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
     <FormSection title="Model server replicas">
       <FormGroup label="Number of model server replicas to deploy">
         <NumberInput
-          id="num-replicas-serving-runtime"
+          inputAriaLabel="model server replicas number input"
           value={data.numReplicas}
           widthChars={10}
           min={MIN_SIZE}

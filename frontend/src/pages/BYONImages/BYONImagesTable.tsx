@@ -294,13 +294,13 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       >
         <Thead>
           <Tr>
-            <Th />
+            <Td />
             <Th sort={getSortParams(0)}>{columnNames.name}</Th>
             <Th sort={getSortParams(1)}>{columnNames.description}</Th>
             <Th>Enable</Th>
             <Th sort={getSortParams(4)}>{columnNames.user}</Th>
             <Th sort={getSortParams(5)}>{columnNames.uploaded}</Th>
-            <Th />
+            <Td />
           </Tr>
         </Thead>
         {tableFilter.count > 0 ? (
@@ -363,7 +363,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
                     ) : (
                       <EmptyState variant={EmptyStateVariant.small}>
                         <EmptyStateIcon icon={CubesIcon} />
-                        <Title headingLevel="h4" size="lg">
+                        <Title headingLevel="h2" size="lg">
                           No packages detected
                         </Title>
                         <EmptyStateBody>Edit the image to add packages</EmptyStateBody>

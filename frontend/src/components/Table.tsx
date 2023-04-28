@@ -8,6 +8,7 @@ import {
   TableComposableProps,
   Caption,
   Tbody,
+  Td,
 } from '@patternfly/react-table';
 import styles from '@patternfly/react-styles/css/components/Table/table';
 import useDraggableTable, { TrDragFunctionsType } from '~/utilities/useDraggableTable';
@@ -105,16 +106,20 @@ const Table = <T,>({
         <Thead>
           <Tr>
             {isDraggable && <Th />}
-            {columns.map((col, i) => (
-              <Th
-                key={col.field + i}
-                sort={col.sortable ? sort.getColumnSort(i) : undefined}
-                width={col.width}
-                info={col.info}
-              >
-                {col.label}
-              </Th>
-            ))}
+            {columns.map((col, i) =>
+              col.label ? (
+                <Th
+                  key={col.field + i}
+                  sort={col.sortable ? sort.getColumnSort(i) : undefined}
+                  width={col.width}
+                  info={col.info}
+                >
+                  {col.label}
+                </Th>
+              ) : (
+                <Td key={col.field + i} width={col.width} />
+              ),
+            )}
           </Tr>
         </Thead>
         {disableRowRenderSupport ? (
