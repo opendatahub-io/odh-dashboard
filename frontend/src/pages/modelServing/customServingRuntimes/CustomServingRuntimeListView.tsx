@@ -14,7 +14,7 @@ import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 const CustomServingRuntimeListView: React.FC = () => {
   const {
-    servingRuntimeTemplateOrder: { data: templateOrder, refresh: refreshOrder },
+    servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplates: { data: templates },
     refreshData,
   } = React.useContext(CustomServingRuntimeContext);
@@ -30,7 +30,7 @@ const CustomServingRuntimeListView: React.FC = () => {
     patchDashboardConfigTemplateOrder(dragItemOrder, dashboardNamespace).catch((e) =>
       notification.error(`Error update the serving runtimes order`, e.message),
     );
-  }, [dragItemOrder, dashboardNamespace, refreshOrder, notification]);
+  }, [dragItemOrder, dashboardNamespace, notification]);
 
   React.useEffect(() => {
     setDragItemOrder(getDragItemOrder(templates, templateOrder));
