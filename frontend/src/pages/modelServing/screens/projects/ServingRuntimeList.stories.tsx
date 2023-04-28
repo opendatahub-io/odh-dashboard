@@ -12,7 +12,6 @@ import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockServingRuntimesConfig } from '~/__mocks__/mockServingRuntimesConfig';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import ServingRuntimeList from './ServingRuntimeList';
@@ -63,9 +62,6 @@ export default {
         rest.get(
           '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
           (req, res, ctx) => res(ctx.json(mockServingRuntimeK8sResource({}))),
-        ),
-        rest.get('/api/k8s/api/v1/configmaps/servingruntimes-config', (req, res, ctx) =>
-          res(ctx.json(mockServingRuntimesConfig({}))),
         ),
       ],
     },

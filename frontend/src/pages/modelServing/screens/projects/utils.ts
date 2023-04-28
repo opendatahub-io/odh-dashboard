@@ -9,7 +9,7 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { DashboardConfig } from '~/types';
+import { ContainerResourceAttributes, DashboardConfig } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -43,17 +43,12 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
 
-  // TODO: Modify for new template GPU
-  //let gpuSetting: GpuSettingString = 'hidden';
-
-  // TODO: Modify this line ----> gpuSetting = defaultServingRuntime?.metadata?.annotations?.['opendatahub.io/gpu-setting'];
-
-  // TODO: Add support for GPU ----> gpus: 0,
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
     name: '',
     servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: sizes[0],
+    gpus: 0,
     externalRoute: false,
     tokenAuth: false,
     tokens: [],
@@ -64,17 +59,17 @@ export const useCreateServingRuntimeObject = (existingData?: {
   const existingServingRuntimeName = existingData?.servingRuntime?.metadata.name || '';
 
   const existingServingRuntimeTemplateName =
-    existingData?.servingRuntime?.metadata.labels?.name || '';
+    existingData?.servingRuntime?.metadata.annotations?.['opendatahub.io/template-name'] || '';
 
   const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 
   const existingResources =
     existingData?.servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
 
-  // const existingGpus =
-  //   existingData?.servingRuntime?.spec?.containers[0]?.resources?.requests?.[
-  //     ContainerResourceAttributes.NVIDIA_GPU
-  //   ] || 0;
+  const existingGpus =
+    existingData?.servingRuntime?.spec?.containers[0]?.resources?.requests?.[
+      ContainerResourceAttributes.NVIDIA_GPU
+    ] || 0;
 
   const existingExternalRoute =
     !!existingData?.servingRuntime?.metadata.annotations?.['enable-route'];
@@ -102,10 +97,10 @@ export const useCreateServingRuntimeObject = (existingData?: {
         };
       }
       setCreateData('modelSize', foundSize);
-      // setCreateData(
-      //   'gpus',
-      //   typeof existingGpus == 'string' ? parseInt(existingGpus) : existingGpus,
-      // );
+      setCreateData(
+        'gpus',
+        typeof existingGpus == 'string' ? parseInt(existingGpus) : existingGpus,
+      );
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
@@ -115,6 +110,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingServingRuntimeTemplateName,
     existingNumReplicas,
     existingResources,
+    existingGpus,
     existingExternalRoute,
     existingTokenAuth,
     existingTokens,

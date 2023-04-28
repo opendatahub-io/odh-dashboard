@@ -39,7 +39,7 @@ type ManageServingRuntimeModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
   currentProject: ProjectKind;
-  servingRuntimeTemplates: TemplateKind[];
+  servingRuntimeTemplates?: TemplateKind[];
   editInfo?: {
     servingRuntime?: ServingRuntimeKind;
     secrets: SecretKind[];
@@ -133,7 +133,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
           if (!editInfo?.servingRuntime) {
             return;
           }
-          updateServingRuntime(createData, editInfo.servingRuntime, servingRuntimeTemplates[0])
+          updateServingRuntime(createData, editInfo.servingRuntime)
             .then(() => {
               setActionInProgress(false);
               onBeforeClose(true);
@@ -146,7 +146,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         ...(currentProject.metadata.labels?.['modelmesh-enabled']
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
-        createServingRuntime(createData, namespace, servingRuntimeTemplates[0]),
+        createServingRuntime(createData, namespace, servingRuntimeTemplates?.[0]),
         setupTokenAuth(),
       ])
         .then(() => {
@@ -188,32 +188,40 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             }}
           >
             <Stack hasGutter>
-              <StackItem>
-                <FormGroup
-                  label="Model server name"
-                  fieldId="serving-runtime-name-input"
-                  isRequired
-                >
-                  <TextInput
-                    isRequired
-                    id="serving-runtime-name-input"
-                    value={createData.name}
-                    onChange={(name) => setCreateData('name', name)}
-                  />
-                </FormGroup>
-              </StackItem>
-              <StackItem>
-                <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
-                  <TextInput
-                    isRequired
-                    id="serving-runtime-selection"
-                    value={createData.servingRuntimeTemplateName}
-                    onChange={(servingRuntime) =>
-                      setCreateData('servingRuntimeTemplateName', servingRuntime)
-                    }
-                  />
-                </FormGroup>
-              </StackItem>
+              {servingRuntimeTemplates && (
+                <>
+                  <StackItem>
+                    <FormGroup
+                      label="Model server name"
+                      fieldId="serving-runtime-name-input"
+                      isRequired
+                    >
+                      <TextInput
+                        isRequired
+                        id="serving-runtime-name-input"
+                        value={createData.name}
+                        onChange={(name) => setCreateData('name', name)}
+                      />
+                    </FormGroup>
+                  </StackItem>
+                  <StackItem>
+                    <FormGroup
+                      label="Serving runtime"
+                      fieldId="serving-runtime-selection"
+                      isRequired
+                    >
+                      <TextInput
+                        isRequired
+                        id="serving-runtime-selection"
+                        value={createData.servingRuntimeTemplateName}
+                        onChange={(servingRuntime) =>
+                          setCreateData('servingRuntimeTemplateName', servingRuntime)
+                        }
+                      />
+                    </FormGroup>
+                  </StackItem>
+                </>
+              )}
               <StackItem>
                 <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
               </StackItem>

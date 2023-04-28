@@ -8,6 +8,8 @@ import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { filterTemplatesEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
+import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 
@@ -25,9 +27,15 @@ const ServingRuntimeList: React.FC = () => {
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const templatesEnabled = filterTemplatesEnabled(templates);
+  const { dashboardConfig } = useAppContext();
+  const customServingRuntimesEnabled = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
+  );
+  const templatesEnabled = customServingRuntimesEnabled
+    ? filterTemplatesEnabled(templates)
+    : undefined;
   const emptyModelServer = servingRuntimes.length === 0;
-  const emptyTemplates = templatesEnabled.length === 0;
+  const emptyTemplates = templatesEnabled ? templatesEnabled.length === 0 : false;
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   return (
@@ -52,7 +60,7 @@ const ServingRuntimeList: React.FC = () => {
                   >
                     <Button
                       isLoading={!templatesLoaded}
-                      isDisabled={!templatesLoaded || emptyTemplates}
+                      isDisabled={true}
                       onClick={() => setOpen(true)}
                       variant="secondary"
                     >
@@ -62,8 +70,7 @@ const ServingRuntimeList: React.FC = () => {
                 ]
               : [
                   <Button
-                    isLoading={!templatesLoaded}
-                    isDisabled={!templatesLoaded || emptyTemplates}
+                    isLoading={customServingRuntimesEnabled ? !templatesLoaded : false}
                     onClick={() => setOpen(true)}
                     key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
                     variant="secondary"

@@ -13,7 +13,6 @@ import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContex
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockServingRuntimesConfig } from '~/__mocks__/mockServingRuntimesConfig';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
@@ -77,9 +76,6 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   rest.get(
     '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
     (req, res, ctx) => res(ctx.json(mockServingRuntimeK8sResource({}))),
-  ),
-  rest.get('/api/k8s/api/v1/configmaps/servingruntimes-config', (req, res, ctx) =>
-    res(ctx.json(mockServingRuntimesConfig({}))),
   ),
 ];
 

@@ -30,9 +30,8 @@ export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRunt
   obj.spec?.containers !== undefined;
 
 export const getServingRuntimeFromTemplate = (template: TemplateKind): ServingRuntimeKind => {
-  if (isServingRuntimeKind(template.objects[0])) {
-    return template.objects[0];
-  } else {
+  if (!isServingRuntimeKind(template.objects[0])) {
     throw new Error('Invalid Serving Runtime format');
   }
+  return template.objects[0];
 };

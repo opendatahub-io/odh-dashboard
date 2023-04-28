@@ -13,7 +13,7 @@ import ManageInferenceServiceModal from './InferenceServiceModal/ManageInference
 type ServingRuntimeTableProps = {
   modelServers: ServingRuntimeKind[];
   modelSecrets: SecretKind[];
-  templates: TemplateKind[];
+  templates?: TemplateKind[];
   refreshServingRuntime: () => void;
   refreshTokens: () => void;
   refreshInferenceServices: () => void;

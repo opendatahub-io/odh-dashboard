@@ -34,7 +34,7 @@ export type CreatingServingRuntimeObject = {
   servingRuntimeTemplateName: string;
   numReplicas: number;
   modelSize: ServingRuntimeSize;
-  // gpus: number;
+  gpus: number;
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];
