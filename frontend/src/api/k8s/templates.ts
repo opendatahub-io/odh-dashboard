@@ -8,19 +8,18 @@ import {
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { ServingRuntimeModel, TemplateModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '~/pages/projects/utils';
+import { genRandomChars } from '~/utilities/string';
 
-export const assembleTemplate = (body: string, namespace: string): TemplateKind => {
-  const servingRuntime = YAML.parse(body);
+export const assembleServingRuntimeTemplate = (
+  body: string,
+  namespace: string,
+  templateName?: string,
+): TemplateKind & { objects: ServingRuntimeKind[] } => {
+  const servingRuntime: ServingRuntimeKind = YAML.parse(body);
+  const name = `template-${genRandomChars()}`;
+  const servingRuntimeName = servingRuntime.metadata.name;
 
-  const name = servingRuntime.metadata?.name;
-  const displayName = getDisplayNameFromK8sResource(servingRuntime);
-  const description = getDescriptionFromK8sResource(servingRuntime);
-
-  if (!name) {
+  if (!servingRuntimeName) {
     throw new Error('Serving runtime name is required');
   }
 
@@ -28,19 +27,14 @@ export const assembleTemplate = (body: string, namespace: string): TemplateKind 
     kind: 'Template',
     apiVersion: 'template.openshift.io/v1',
     metadata: {
-      name, // TODO: generate a random template name?
-      // user could change the template with a new serving runtime
-      // and create an other template with the old serving runtime
-      // if we keep the name, there could be a conflict
+      name: templateName || name,
       namespace,
       labels: {
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        'openshift.io/description': description,
         'opendatahub.io/template-enabled': 'true',
-        'openshift.io/display-name': displayName,
-        tags: `${name},servingruntime`,
+        tags: `${servingRuntimeName},servingruntime`,
       },
     },
     objects: [servingRuntime],
@@ -80,11 +74,10 @@ export const toggleTemplateEnabledStatus = (
   });
 
 const dryRunServingRuntimeForTemplateCreation = (
-  template: TemplateKind,
+  servingRuntime: ServingRuntimeKind,
   namespace: string,
-): Promise<ServingRuntimeKind> => {
-  const servingRuntime = template.objects[0] as ServingRuntimeKind;
-  return k8sCreateResource<ServingRuntimeKind>(
+): Promise<ServingRuntimeKind> =>
+  k8sCreateResource<ServingRuntimeKind>(
     applyK8sAPIOptions(
       { dryRun: true },
       {
@@ -93,15 +86,22 @@ const dryRunServingRuntimeForTemplateCreation = (
       },
     ),
   );
-};
 
-export const createServingRuntimeTemplate = (
+export const createServingRuntimeTemplate = async (
   body: string,
   namespace: string,
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleTemplate(body, namespace);
-    return dryRunServingRuntimeForTemplateCreation(template, namespace).then(() =>
+    const template = assembleServingRuntimeTemplate(body, namespace);
+    const servingRuntime = template.objects[0];
+    const servingRuntimeName = servingRuntime.metadata.name;
+
+    // make sure the serving runtime name is not duplicated
+    const templates = await listTemplates(namespace, 'opendatahub.io/dashboard=true');
+    if (templates.find((t) => t.objects[0].metadata.name === servingRuntimeName)) {
+      throw new Error(`Serving runtime name "${servingRuntimeName}" already exists.`);
+    }
+    return dryRunServingRuntimeForTemplateCreation(servingRuntime, namespace).then(() =>
       k8sCreateResource<TemplateKind>({
         model: TemplateModel,
         resource: template,
@@ -113,31 +113,30 @@ export const createServingRuntimeTemplate = (
 };
 
 export const updateServingRuntimeTemplate = (
-  name: string,
+  templateName: string,
+  servingRuntimeName: string,
   body: string,
   namespace: string,
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleTemplate(body, namespace);
-    return dryRunServingRuntimeForTemplateCreation(template, namespace).then(() =>
-      k8sPatchResource({
+    const servingRuntime: ServingRuntimeKind = YAML.parse(body);
+    if (!servingRuntime.metadata.name) {
+      throw new Error('Serving runtime name is required.');
+    }
+    if (servingRuntime.metadata.name !== servingRuntimeName) {
+      throw new Error(
+        `Cannot change serving runtime name (original: "${servingRuntimeName}", updated: "${servingRuntime.metadata.name}").`,
+      );
+    }
+    return dryRunServingRuntimeForTemplateCreation(servingRuntime, namespace).then(() =>
+      k8sPatchResource<TemplateKind>({
         model: TemplateModel,
-        queryOptions: { name, ns: namespace },
+        queryOptions: { name: templateName, ns: namespace },
         patches: [
           {
             op: 'replace',
-            path: '/metadata/annotations/openshift.io~1description',
-            value: getDescriptionFromK8sResource(template),
-          },
-          {
-            op: 'replace',
-            path: '/metadata/annotations/openshift.io~1display-name',
-            value: getDisplayNameFromK8sResource(template),
-          },
-          {
-            op: 'replace',
             path: '/objects/0',
-            value: template.objects[0],
+            value: servingRuntime,
           },
         ],
       }),

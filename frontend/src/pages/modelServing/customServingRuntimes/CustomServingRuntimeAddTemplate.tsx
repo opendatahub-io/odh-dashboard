@@ -17,41 +17,34 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { TemplateKind } from '~/k8sTypes';
 import { createServingRuntimeTemplate, updateServingRuntimeTemplate } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { getTemplateDisplayName } from '~/pages/modelServing/customServingRuntimes/utils';
+import { getServingRuntimeDisplayNameFromTemplate } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type CustomServingRuntimeAddTemplateProps = {
-  existingCustomServingRuntime?: TemplateKind;
+  existingTemplate?: TemplateKind;
 };
 
 const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateProps> = ({
-  existingCustomServingRuntime,
+  existingTemplate,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
 
-  const [code, setCode] = React.useState('');
+  const stringifiedTemplate = existingTemplate ? YAML.stringify(existingTemplate.objects[0]) : '';
+  const [code, setCode] = React.useState(stringifiedTemplate);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const navigate = useNavigate();
 
-  const stringifiedTemplate = existingCustomServingRuntime
-    ? YAML.stringify(existingCustomServingRuntime.objects[0])
-    : '';
-
-  React.useEffect(() => {
-    setCode(stringifiedTemplate);
-  }, [stringifiedTemplate]);
-
   return (
     <ApplicationsPage
       title={
-        existingCustomServingRuntime
-          ? `Edit ${getTemplateDisplayName(existingCustomServingRuntime)}`
+        existingTemplate
+          ? `Edit ${getServingRuntimeDisplayNameFromTemplate(existingTemplate)}`
           : 'Add serving runtime'
       }
       description={
-        existingCustomServingRuntime
+        existingTemplate
           ? 'Modify properties for your serving runtime.'
           : 'Add a new runtime that will be available for Data Science users on this cluster.'
       }
@@ -59,11 +52,13 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
         <Breadcrumb>
           <BreadcrumbItem>Settings</BreadcrumbItem>
           <BreadcrumbItem render={() => <Link to="/servingRuntimes">Serving runtimes</Link>} />
-          {existingCustomServingRuntime && (
-            <BreadcrumbItem>{getTemplateDisplayName(existingCustomServingRuntime)}</BreadcrumbItem>
+          {existingTemplate && (
+            <BreadcrumbItem>
+              {getServingRuntimeDisplayNameFromTemplate(existingTemplate)}
+            </BreadcrumbItem>
           )}
           <BreadcrumbItem isActive>
-            {existingCustomServingRuntime ? 'Edit' : 'Add'} serving runtime
+            {existingTemplate ? 'Edit' : 'Add'} serving runtime
           </BreadcrumbItem>
         </Breadcrumb>
       }
@@ -76,8 +71,6 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
           <CodeEditor
             code={code}
             isUploadEnabled
-            isDownloadEnabled
-            isCopyEnabled
             isLanguageLabelVisible
             language={Language.yaml}
             height="600px"
@@ -107,15 +100,16 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
             <ActionList>
               <ActionListItem>
                 <Button
-                  isDisabled={code === stringifiedTemplate || loading}
+                  isDisabled={code === stringifiedTemplate || code === '' || loading}
                   variant="primary"
                   id="create-button"
                   isLoading={loading}
                   onClick={() => {
                     setIsLoading(true);
-                    const onClickFunc = existingCustomServingRuntime
+                    const onClickFunc = existingTemplate
                       ? updateServingRuntimeTemplate(
-                          existingCustomServingRuntime.metadata.name,
+                          existingTemplate.metadata.name,
+                          existingTemplate.objects[0].metadata.name,
                           code,
                           dashboardNamespace,
                         )
@@ -133,7 +127,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                       });
                   }}
                 >
-                  {existingCustomServingRuntime ? 'Update' : 'Add'}
+                  {existingTemplate ? 'Update' : 'Add'}
                 </Button>
               </ActionListItem>
               <ActionListItem>

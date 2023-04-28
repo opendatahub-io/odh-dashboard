@@ -12,17 +12,11 @@ import { columns } from './templatedData';
 import CustomServingRuntimeTableRow from './CustomServingRuntimeTableRow';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
-type CustomServingRuntimeListViewProps = {
-  templates: TemplateKind[];
-  templateOrder: string[];
-};
-
-const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> = ({
-  templates,
-  templateOrder,
-}) => {
+const CustomServingRuntimeListView: React.FC = () => {
   const {
-    servingRuntimeTemplateOrder: { refresh: refreshOrder },
+    servingRuntimeTemplateOrder: { data: templateOrder, refresh: refreshOrder },
+    servingRuntimeTemplates: { data: templates },
+    customServingRuntimes,
     refreshData,
   } = React.useContext(CustomServingRuntimeContext);
   const { dashboardNamespace } = useDashboardNamespace();
@@ -30,7 +24,7 @@ const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> 
   const navigate = useNavigate();
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
   const [dragItemOrder, setDragItemOrder] = React.useState(
-    getDragItemOrder(templates, templateOrder),
+    getDragItemOrder(customServingRuntimes, templateOrder),
   );
 
   React.useEffect(() => {
@@ -40,8 +34,8 @@ const CustomServingRuntimeListView: React.FC<CustomServingRuntimeListViewProps> 
   }, [dragItemOrder, dashboardNamespace, refreshOrder, notification]);
 
   React.useEffect(() => {
-    setDragItemOrder(getDragItemOrder(templates, templateOrder));
-  }, [templates, templateOrder]);
+    setDragItemOrder(getDragItemOrder(customServingRuntimes, templateOrder));
+  }, [customServingRuntimes, templateOrder]);
 
   return (
     <>

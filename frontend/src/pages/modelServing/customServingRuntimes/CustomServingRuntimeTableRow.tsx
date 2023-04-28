@@ -3,8 +3,11 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { TemplateKind } from '~/k8sTypes';
 import { TrDragFunctionsType } from '~/utilities/useDraggableTable';
-import CustomServingRuntimeEnabledToggle from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimeEnabledToggle';
-import { getTemplateDisplayName } from './utils';
+import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
+import {
+  getServingRuntimeDisplayNameFromTemplate,
+  getServingRuntimeNameFromTemplate,
+} from './utils';
 
 type CustomServingRuntimeTableRowProps = {
   obj: TemplateKind;
@@ -24,10 +27,11 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
     return null;
   }
   const { onDragEnd, onDragStart, onDrop } = dragFunctions;
+  const rowId = getServingRuntimeNameFromTemplate(template);
   return (
     <Tr
       key={rowIndex}
-      id={template.metadata.name}
+      id={rowId}
       draggable
       onDrop={onDrop}
       onDragEnd={onDragEnd}
@@ -35,10 +39,10 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
     >
       <Td
         draggableRow={{
-          id: `draggable-row-${template.metadata.name}`,
+          id: `draggable-row-${rowId}`,
         }}
       />
-      <Td dataLabel="Name">{getTemplateDisplayName(template)}</Td>
+      <Td dataLabel="Name">{getServingRuntimeDisplayNameFromTemplate(template)}</Td>
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />
       </Td>
@@ -48,7 +52,11 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
             {
               title: 'Edit',
               onClick: () =>
-                navigate(`/servingRuntimes/editServingRuntime/${template.metadata.name}`),
+                navigate(
+                  `/servingRuntimes/editServingRuntime/${getServingRuntimeNameFromTemplate(
+                    template,
+                  )}`,
+                ),
             },
             {
               title: 'Delete',

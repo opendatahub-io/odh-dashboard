@@ -11,7 +11,7 @@ const CustomServingRuntimeRoutes: React.FC = () => (
       <Route index element={<CustomServingRuntimeView />} />
       <Route path="addServingRuntime" element={<CustomServingRuntimeAddTemplate />} />
       <Route
-        path="editServingRuntime/:templateName"
+        path="editServingRuntime/:servingRuntimeName"
         element={<CustomServingRuntimeEditTemplate />}
       />
       <Route path="*" element={<Navigate to="." />} />

@@ -9,11 +9,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { TemplateKind } from '~/k8sTypes';
+import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
+import { isServingRuntimeKind } from './utils';
 import useTemplates from './useTemplates';
 import useTemplateOrder from './useTemplateOrder';
 
@@ -21,12 +22,14 @@ type CustomServingRuntimeContextType = {
   refreshData: () => void;
   servingRuntimeTemplates: ContextResourceData<TemplateKind>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
+  customServingRuntimes: ServingRuntimeKind[];
 };
 
 export const CustomServingRuntimeContext = React.createContext<CustomServingRuntimeContextType>({
   refreshData: () => undefined,
   servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
+  customServingRuntimes: [],
 });
 
 const CustomServingRuntimeContextProvider: React.FC = () => {
@@ -39,6 +42,14 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
     useTemplateOrder(dashboardNamespace),
     2 * 60 * 1000,
+  );
+
+  const customServingRuntimes = React.useMemo(
+    () =>
+      servingRuntimeTemplates.data
+        .map((template) => template.objects[0])
+        .filter((object): object is ServingRuntimeKind => isServingRuntimeKind(object)),
+    [servingRuntimeTemplates],
   );
 
   const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
@@ -78,6 +89,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
       value={{
         servingRuntimeTemplates,
         servingRuntimeTemplateOrder,
+        customServingRuntimes,
         refreshData,
       }}
     >

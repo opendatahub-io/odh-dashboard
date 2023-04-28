@@ -2,7 +2,7 @@ import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { TemplateKind } from '~/k8sTypes';
 import { deleteTemplate } from '~/api';
-import { getTemplateDisplayName } from '~/pages/modelServing/customServingRuntimes/utils';
+import { getServingRuntimeDisplayNameFromTemplate } from './utils';
 
 type DeleteCustomServingRuntimeModalProps = {
   template?: TemplateKind;
@@ -22,7 +22,9 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
     setError(undefined);
   };
 
-  const deleteName = template ? getTemplateDisplayName(template) : 'this serving runtime';
+  const deleteName = template
+    ? getServingRuntimeDisplayNameFromTemplate(template)
+    : 'this serving runtime';
 
   return (
     <DeleteModal
@@ -47,7 +49,8 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
       error={error}
       deleteName={deleteName}
     >
-      This action cannot be undone.
+      This action cannot be undone. Models already deployed using this runtime will not be affected
+      by this action.
     </DeleteModal>
   );
 };

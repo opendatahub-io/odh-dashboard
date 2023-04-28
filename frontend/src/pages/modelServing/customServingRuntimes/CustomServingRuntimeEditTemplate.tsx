@@ -11,6 +11,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TemplateKind } from '~/k8sTypes';
+import { getServingRuntimeNameFromTemplate } from './utils';
 import CustomServingRuntimeAddTemplate from './CustomServingRuntimeAddTemplate';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
@@ -19,10 +20,12 @@ const CustomServingRuntimeEditTemplate: React.FC = () => {
     servingRuntimeTemplates: { data },
   } = React.useContext(CustomServingRuntimeContext);
   const navigate = useNavigate();
-  const { templateName } = useParams();
+  const { servingRuntimeName } = useParams();
   const ref = React.useRef<TemplateKind>();
   if (!ref.current) {
-    ref.current = data.find((template) => template.metadata.name === templateName);
+    ref.current = data.find(
+      (template) => getServingRuntimeNameFromTemplate(template) === servingRuntimeName,
+    );
   }
 
   if (!ref.current) {
@@ -42,7 +45,7 @@ const CustomServingRuntimeEditTemplate: React.FC = () => {
     );
   }
 
-  return <CustomServingRuntimeAddTemplate existingCustomServingRuntime={ref.current} />;
+  return <CustomServingRuntimeAddTemplate existingTemplate={ref.current} />;
 };
 
 export default CustomServingRuntimeEditTemplate;
