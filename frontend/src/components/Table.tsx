@@ -19,6 +19,7 @@ type TableProps<DataType> = {
   rowRenderer: (
     data: DataType,
     rowIndex: number,
+    rowId?: string,
     trDragFunctions?: TrDragFunctionsType,
   ) => React.ReactNode;
   enablePagination?: boolean;
@@ -28,8 +29,8 @@ type TableProps<DataType> = {
   caption?: string;
   disableRowRenderSupport?: boolean;
   isDraggable?: boolean;
-  initialItemOrder?: string[];
-  onDropCallback?: (itemOrder: string[]) => void;
+  itemOrder?: string[];
+  setItemOrder?: (itemOrder: string[]) => void;
 } & Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
@@ -43,8 +44,8 @@ const Table = <T,>({
   caption,
   disableRowRenderSupport,
   isDraggable,
-  initialItemOrder = [],
-  onDropCallback,
+  itemOrder = [],
+  setItemOrder = () => undefined,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
@@ -57,8 +58,7 @@ const Table = <T,>({
     isDragging,
     tbodyDragFunctions: { onDragLeave, onDragOver },
     trDragFunctions,
-    itemOrder,
-  } = useDraggableTable(bodyRef, initialItemOrder);
+  } = useDraggableTable(bodyRef, itemOrder, setItemOrder);
 
   // update page to 1 if data changes (common when filter is applied)
   React.useEffect(() => {
@@ -66,12 +66,6 @@ const Table = <T,>({
       setPage(1);
     }
   }, [data.length]);
-
-  React.useEffect(() => {
-    if (onDropCallback) {
-      onDropCallback(itemOrder);
-    }
-  }, [itemOrder, onDropCallback]);
 
   const sort = useTableColumnSort<T>(columns, 0);
 
@@ -129,7 +123,9 @@ const Table = <T,>({
           <Tbody ref={bodyRef} onDragOver={onDragOver} onDragLeave={onDragLeave}>
             {sort
               .transformData(data)
-              .map((row, rowIndex) => rowRenderer(row, rowIndex, trDragFunctions))}
+              .map((row, rowIndex) =>
+                rowRenderer(row, rowIndex, itemOrder[rowIndex], trDragFunctions),
+              )}
           </Tbody>
         ) : (
           <Tbody>

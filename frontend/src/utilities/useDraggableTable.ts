@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { TbodyProps, TrProps } from '@patternfly/react-table';
 import styles from '@patternfly/react-styles/css/components/Table/table';
-import useDebounce from '~/utilities/useDebounce';
 
 export type TrDragFunctionsType = {
   onDragStart: React.DragEventHandler<HTMLTableRowElement>;
@@ -11,23 +10,13 @@ export type TrDragFunctionsType = {
 
 const useDraggableTable = (
   bodyRef: React.RefObject<HTMLTableSectionElement>,
-  initialItemOrder: string[],
+  itemOrder: string[],
+  setItemOrder: (itemOrder: string[]) => void,
 ) => {
   const [draggedItemId, setDraggedItemId] = React.useState('');
   const [draggingToItemIndex, setDraggingToItemIndex] = React.useState(-1);
   const [isDragging, setIsDragging] = React.useState(false);
-  const [itemOrder, setItemOrder] = React.useState(initialItemOrder);
-  const [tempItemOrder, setTempItemOrder] = React.useState<string[]>([]);
-
-  const memoizedUpdateItemOrder = React.useCallback(() => {
-    setItemOrder(initialItemOrder);
-  }, [initialItemOrder]);
-
-  React.useEffect(() => {
-    memoizedUpdateItemOrder();
-  }, [memoizedUpdateItemOrder]);
-
-  const debouncedItemOrder = useDebounce(itemOrder, 500);
+  const [tempItemOrder, setTempItemOrder] = React.useState<string[]>(itemOrder);
 
   const onDragStart: TrProps['onDragStart'] = (evt) => {
     evt.dataTransfer.effectAllowed = 'move';
@@ -136,10 +125,10 @@ const useDraggableTable = (
       (item) => item.id === dragId,
     );
     if (newDraggingToItemIndex !== draggingToItemIndex) {
-      const tempItemOrder = moveItem([...itemOrder], draggedItemId, newDraggingToItemIndex);
-      move(tempItemOrder);
+      const newItemOrder = moveItem([...itemOrder], draggedItemId, newDraggingToItemIndex);
+      move(newItemOrder);
       setDraggingToItemIndex(newDraggingToItemIndex);
-      setTempItemOrder(tempItemOrder);
+      setTempItemOrder(newItemOrder);
     }
   };
 
@@ -163,7 +152,6 @@ const useDraggableTable = (
       onDragEnd,
       onDrop,
     },
-    itemOrder: debouncedItemOrder,
   };
 };
 

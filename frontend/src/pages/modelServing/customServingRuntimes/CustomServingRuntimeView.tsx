@@ -7,7 +7,6 @@ import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 const CustomServingRuntimeView: React.FC = () => {
   const {
     servingRuntimeTemplates: { data: servingRuntimeTemplates },
-    servingRuntimeTemplateOrder: { data: order, refresh: refreshOrder },
   } = React.useContext(CustomServingRuntimeContext);
 
   return (
@@ -19,11 +18,7 @@ const CustomServingRuntimeView: React.FC = () => {
       emptyStatePage={<EmptyCustomServingRuntime />}
       provideChildrenPadding
     >
-      <CustomServingRuntimeListView
-        templates={servingRuntimeTemplates}
-        templateOrder={order}
-        refreshOrder={refreshOrder}
-      />
+      <CustomServingRuntimeListView />
     </ApplicationsPage>
   );
 };

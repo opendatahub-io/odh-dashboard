@@ -1,16 +1,22 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import { Button, EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 
-const EmptyCustomServingRuntime: React.FC = () => (
-  <EmptyState>
-    <EmptyStateIcon icon={CubesIcon} />
-    <Title headingLevel="h2" size="lg">
-      No custom serving runtimes.
-    </Title>
-    <EmptyStateBody>To get started, create a new serving runtime.</EmptyStateBody>
-    {/* // TODO: Add button to create new custom serving runtime */}
-  </EmptyState>
-);
+const EmptyCustomServingRuntime: React.FC = () => {
+  const navigate = useNavigate();
+  return (
+    <EmptyState>
+      <EmptyStateIcon icon={CubesIcon} />
+      <Title headingLevel="h2" size="lg">
+        No custom serving runtimes.
+      </Title>
+      <EmptyStateBody>To get started, create a new serving runtime.</EmptyStateBody>
+      <Button onClick={() => navigate('/servingRuntimes/addServingRuntime')}>
+        Add serving runtime
+      </Button>
+    </EmptyState>
+  );
+};
 
 export default EmptyCustomServingRuntime;

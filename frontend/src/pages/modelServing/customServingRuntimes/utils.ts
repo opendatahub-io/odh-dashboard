@@ -1,17 +1,20 @@
 import { TemplateKind } from '~/k8sTypes';
-
-export const compareTemplateKinds =
-  (metadataNameOrder: string[]) => (a: TemplateKind, b: TemplateKind) => {
-    const aIndex = metadataNameOrder.indexOf(a.metadata.name);
-    const bIndex = metadataNameOrder.indexOf(b.metadata.name);
-
-    if (aIndex > bIndex) {
-      return 1;
-    } else if (aIndex < bIndex) {
-      return -1;
-    }
-    return 0;
-  };
+import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 
 export const getTemplateEnabled = (template: TemplateKind) =>
   !(template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false');
+
+export const getDragItemOrder = (templates: TemplateKind[], order: string[]) =>
+  templates
+    .sort(
+      (a, b) =>
+        order.indexOf(getServingRuntimeNameFromTemplate(a)) -
+        order.indexOf(getServingRuntimeNameFromTemplate(b)),
+    )
+    .map((template) => getServingRuntimeNameFromTemplate(template));
+
+export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind) =>
+  getDisplayNameFromK8sResource(template.objects[0]);
+
+export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
+  template.objects[0].metadata.name;
