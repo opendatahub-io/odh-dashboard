@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router';
 import { Button, ToolbarItem } from '@patternfly/react-core';
-import styles from '@patternfly/react-styles/css/components/Table/table';
 import { TemplateKind } from '~/k8sTypes';
 import { patchDashboardConfigTemplateOrder } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
@@ -23,7 +22,7 @@ const CustomServingRuntimeListView: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
   const navigate = useNavigate();
-  const bodyRef = React.useRef<HTMLTableSectionElement>(null);
+
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
   const sortedTemplates = React.useMemo(
     () => getSortedTemplates(unsortedTemplates, templateOrder),
@@ -38,8 +37,7 @@ const CustomServingRuntimeListView: React.FC = () => {
     [dashboardNamespace, refreshOrder, notification],
   );
 
-  const { isDragging, tbodyDragFunctions, trDragFunctions } = useDraggableTable(
-    bodyRef,
+  const { tableProps, rowProps } = useDraggableTable(
     sortedTemplates.map((template) => getServingRuntimeNameFromTemplate(template)),
     setItemOrder,
   );
@@ -47,19 +45,18 @@ const CustomServingRuntimeListView: React.FC = () => {
   return (
     <>
       <Table
-        className={isDragging ? styles.modifiers.dragOver : undefined}
+        {...tableProps}
         data={sortedTemplates}
         columns={columns}
         rowRenderer={(template, rowIndex) => (
           <CustomServingRuntimeTableRow
+            {...rowProps}
             key={template.metadata.uid}
             obj={template}
             rowIndex={rowIndex}
-            trDragFunctions={trDragFunctions}
             onDeleteTemplate={(obj) => setDeleteTemplate(obj)}
           />
         )}
-        tbodyProps={{ ...tbodyDragFunctions, ref: bodyRef }}
         toolbarContent={
           <ToolbarItem>
             <Button onClick={() => navigate('/servingRuntimes/addServingRuntime')}>

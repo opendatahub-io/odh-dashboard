@@ -2,21 +2,12 @@ import * as React from 'react';
 import { TbodyProps, TrProps } from '@patternfly/react-table';
 import styles from '@patternfly/react-styles/css/components/Table/table';
 
-export type TrDragFunctionsType = {
-  onDragStart: React.DragEventHandler<HTMLTableRowElement>;
-  onDragEnd: React.DragEventHandler<HTMLTableRowElement>;
-  onDrop: React.DragEventHandler<HTMLTableRowElement>;
-};
-
-const useDraggableTable = (
-  bodyRef: React.RefObject<HTMLTableSectionElement>,
-  itemOrder: string[],
-  setItemOrder: (itemOrder: string[]) => void,
-) => {
+const useDraggableTable = (itemOrder: string[], setItemOrder: (itemOrder: string[]) => void) => {
   const [draggedItemId, setDraggedItemId] = React.useState('');
   const [draggingToItemIndex, setDraggingToItemIndex] = React.useState(-1);
   const [isDragging, setIsDragging] = React.useState(false);
   const [tempItemOrder, setTempItemOrder] = React.useState<string[]>(itemOrder);
+  const bodyRef = React.useRef<HTMLTableSectionElement>(null);
 
   const onDragStart: TrProps['onDragStart'] = (evt) => {
     evt.dataTransfer.effectAllowed = 'move';
@@ -142,12 +133,11 @@ const useDraggableTable = (
   };
 
   return {
-    isDragging,
-    tbodyDragFunctions: {
-      onDragOver,
-      onDragLeave,
+    tableProps: {
+      className: isDragging ? styles.modifiers.dragOver : undefined,
+      tbodyProps: { onDragOver, onDragLeave, ref: bodyRef },
     },
-    trDragFunctions: {
+    rowProps: {
       onDragStart,
       onDragEnd,
       onDrop,
