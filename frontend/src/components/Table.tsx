@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-table';
 import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort';
 
-export type TableProps<DataType> = {
+type TableProps<DataType> = {
   data: DataType[];
   columns: SortableData<DataType>[];
   rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;

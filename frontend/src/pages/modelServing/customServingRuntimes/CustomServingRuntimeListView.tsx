@@ -55,7 +55,6 @@ const CustomServingRuntimeListView: React.FC = () => {
             key={template.metadata.uid}
             obj={template}
             rowIndex={rowIndex}
-            bodyRef={bodyRef}
             trDragFunctions={trDragFunctions}
             onDeleteTemplate={(obj) => setDeleteTemplate(obj)}
           />

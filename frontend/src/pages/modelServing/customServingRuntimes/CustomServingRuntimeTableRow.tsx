@@ -12,7 +12,6 @@ import {
 type CustomServingRuntimeTableRowProps = {
   obj: TemplateKind;
   rowIndex: number;
-  bodyRef: React.RefObject<HTMLTableSectionElement>;
   trDragFunctions: TrDragFunctionsType;
   onDeleteTemplate: (obj: TemplateKind) => void;
 };
