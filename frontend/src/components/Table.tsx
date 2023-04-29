@@ -23,7 +23,7 @@ type TableProps<DataType> = {
   emptyTableView?: React.ReactElement<typeof Tr>;
   caption?: string;
   disableRowRenderSupport?: boolean;
-  tbodyProps?: TbodyProps & { ref: React.Ref<HTMLTableSectionElement> | undefined };
+  tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> };
 } & Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
