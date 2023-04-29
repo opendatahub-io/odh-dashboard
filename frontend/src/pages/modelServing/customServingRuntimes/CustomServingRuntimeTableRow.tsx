@@ -12,27 +12,25 @@ import {
 type CustomServingRuntimeTableRowProps = {
   obj: TemplateKind;
   rowIndex: number;
-  rowId: string;
-  dragFunctions?: TrDragFunctionsType;
+  bodyRef: React.RefObject<HTMLTableSectionElement>;
+  trDragFunctions: TrDragFunctionsType;
   onDeleteTemplate: (obj: TemplateKind) => void;
 };
 
 const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> = ({
   obj: template,
   rowIndex,
-  rowId,
-  dragFunctions,
+  trDragFunctions,
   onDeleteTemplate,
 }) => {
   const navigate = useNavigate();
-  if (!dragFunctions) {
-    return null;
-  }
-  const { onDragEnd, onDragStart, onDrop } = dragFunctions;
+  const { onDragEnd, onDragStart, onDrop } = trDragFunctions;
+  const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
+
   return (
     <Tr
       key={rowIndex}
-      id={rowId}
+      id={servingRuntimeName}
       draggable
       onDrop={onDrop}
       onDragEnd={onDragEnd}
@@ -40,7 +38,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
     >
       <Td
         draggableRow={{
-          id: `draggable-row-${rowId}`,
+          id: `draggable-row-${servingRuntimeName}`,
         }}
       />
       <Td dataLabel="Name">{getServingRuntimeDisplayNameFromTemplate(template)}</Td>
@@ -52,12 +50,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           items={[
             {
               title: 'Edit',
-              onClick: () =>
-                navigate(
-                  `/servingRuntimes/editServingRuntime/${getServingRuntimeNameFromTemplate(
-                    template,
-                  )}`,
-                ),
+              onClick: () => navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
             },
             {
               title: 'Delete',

@@ -2,6 +2,11 @@ import * as React from 'react';
 import { TbodyProps, TrProps } from '@patternfly/react-table';
 import styles from '@patternfly/react-styles/css/components/Table/table';
 
+export type TbodyDragFunctionsType = {
+  onDragOver: React.DragEventHandler<HTMLTableSectionElement>;
+  onDragLeave: React.DragEventHandler<HTMLTableSectionElement>;
+};
+
 export type TrDragFunctionsType = {
   onDragStart: React.DragEventHandler<HTMLTableRowElement>;
   onDragEnd: React.DragEventHandler<HTMLTableRowElement>;
