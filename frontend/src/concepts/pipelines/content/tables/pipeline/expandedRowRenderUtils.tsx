@@ -4,7 +4,7 @@ import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   RunCreated,
   RunDuration,
-  RunName,
+  RunNameForPipeline,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { sortRunsByCreated } from '~/concepts/pipelines/content/tables/utils';
@@ -36,7 +36,7 @@ export const combineRunsByColumn = (runs: PipelineRunKF[], sliceCount?: number) 
         return acc;
       }
 
-      acc.names.push(<RunName run={run} />);
+      acc.names.push(<RunNameForPipeline run={run} />);
       acc.statuses.push(<RunStatus run={run} />);
       acc.durations.push(<RunDuration run={run} />);
       acc.createDates.push(<RunCreated run={run} />);

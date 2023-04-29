@@ -4,6 +4,8 @@ import DetailsPageMetricsWrapper from '~/pages/modelServing/screens/projects/Det
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import ProjectPipelineDetails from '~/pages/projects/screens/detail/pipelines/ProjectPipelineDetails';
+import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
+import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -26,7 +28,14 @@ const ProjectViewRoutes: React.FC = () => {
             modelMetricsEnabled ? <DetailsPageMetricsWrapper /> : <Navigate replace to="/" />
           }
         />
-        <Route path="pipelines/:pipelineId" element={<ProjectPipelineDetails />} />
+        <Route
+          path="pipeline/:pipelineId"
+          element={<ProjectPipelineDetails BreadcrumbDetailsComponent={PipelineDetails} />}
+        />
+        <Route
+          path="pipelineRun/:pipelineRunId"
+          element={<ProjectPipelineDetails BreadcrumbDetailsComponent={PipelineRunDetails} />}
+        />
         <Route path="*" element={<Navigate to="." />} />
       </Route>
       <Route path="*" element={<Navigate to="." />} />

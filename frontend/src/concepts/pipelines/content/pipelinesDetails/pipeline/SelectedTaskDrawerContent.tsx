@@ -8,7 +8,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { PipelineRunTask } from '~/k8sTypes';
-import TaskDetails from './TaskDetails';
+import PipelineTaskDetails from './PipelineTaskDetails';
 
 type SelectedTaskDrawerContentProps = {
   task?: PipelineRunTask;
@@ -35,7 +35,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody>
-        <TaskDetails task={task} />
+        <PipelineTaskDetails task={task} />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

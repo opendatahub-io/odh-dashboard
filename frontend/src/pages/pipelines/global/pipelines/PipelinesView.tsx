@@ -63,7 +63,7 @@ const PipelinesView: React.FC = () => {
       }
       emptyTableView={<EmptyTableView onClearFilters={() => setFilterData(DEFAULT_FILTER_DATA)} />}
       refreshPipelines={refresh}
-      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/${id}`}
+      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/${id}`}
     />
   );
 };

@@ -10,14 +10,19 @@ import {
   ListPipelineTemplatesAPI,
   UploadPipelineAPI,
   UpdatePipelineRunJobAPI,
+  GetPipelineRunAPI,
+  StopPipelineRunAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
 export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
 
+export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRunId) =>
+  handlePipelineFailures(proxyGET(hostPath, `/apis/v1beta1/runs/${pipelineRunId}`, {}, opts));
+
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
-  proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts);
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
 
 export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, count) =>
   handlePipelineFailures(
@@ -49,6 +54,9 @@ export const listPipelineTemplates: ListPipelineTemplatesAPI = (hostPath) => (op
   handlePipelineFailures(
     proxyGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}/templates`, {}, opts),
   );
+
+export const stopPipelineRun: StopPipelineRunAPI = (hostPath) => (opts, runId) =>
+  handlePipelineFailures(proxyCREATE(hostPath, `/apis/v1beta1/runs/${runId}/terminate`, {}, opts));
 
 export const updatePipelineRunJob: UpdatePipelineRunJobAPI = (hostPath) => (opts, jobId, enabled) =>
   handlePipelineFailures(

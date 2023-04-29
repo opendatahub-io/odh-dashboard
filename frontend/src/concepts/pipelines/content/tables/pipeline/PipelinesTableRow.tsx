@@ -13,7 +13,7 @@ import { getLastRun } from '~/concepts/pipelines/content/tables/utils';
 import {
   NoRunContent,
   RunDuration,
-  RunName,
+  RunNameForPipeline,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 
@@ -57,7 +57,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
               descriptionAsMarkdown
             />
           </Td>
-          <Td>{lastRun ? <RunName run={lastRun} /> : <NoRunContent />}</Td>
+          <Td>{lastRun ? <RunNameForPipeline run={lastRun} /> : <NoRunContent />}</Td>
           <Td>{lastRun ? <RunStatus run={lastRun} /> : <NoRunContent />}</Td>
           <Td>{lastRun ? <RunDuration run={lastRun} /> : <NoRunContent />}</Td>
           <Td>

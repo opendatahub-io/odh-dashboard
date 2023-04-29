@@ -98,7 +98,7 @@ export type RunMetricKF = {
 export type PipelineSpecKF = {
   pipeline_id?: string;
   pipeline_name?: string;
-  workflow_manifests?: string;
+  workflow_manifest?: string;
   pipeline_manifests?: string;
   parameters: ParameterKF[];
   runtime_config: PipelineSpecRuntimeConfig;
@@ -165,6 +165,13 @@ export type PipelineRunJobKF = PipelineRunLikeKF & {
   error: string;
   enabled?: boolean;
   no_catchup: boolean;
+};
+
+export type PipelineRunResourceKF = {
+  pipeline_runtime: {
+    workflow_manifest: string;
+  };
+  run: PipelineRunKF;
 };
 
 export type DeletePipelineResourceKF = {

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
 import {
@@ -31,7 +32,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     <Tr>
       <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td>
-        <TableRowTitleDescription title={run.name} description={run.description} />
+        <TableRowTitleDescription
+          title={<Link to={`/pipelineRuns/${namespace}/pipelineRun/${run.id}`}>{run.name}</Link>}
+          description={run.description}
+        />
       </Td>
       <Td>
         <RunLikeExperiment runLike={run} />

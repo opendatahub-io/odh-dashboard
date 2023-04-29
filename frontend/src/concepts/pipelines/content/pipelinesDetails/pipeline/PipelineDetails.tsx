@@ -16,23 +16,20 @@ import usePipelineTemplate from '~/concepts/pipelines/apiHooks/usePipelineTempla
 import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import MarkdownView from '~/components/MarkdownView';
-import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/SelectedTaskDrawerContent';
-import PipelineDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsActions';
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import DeletePipelineModal from '~/concepts/pipelines/content/DeletePipelineModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
-
-type PipelineDetailsProps = {
-  breadcrumbPath: React.ReactElement<typeof BreadcrumbItem>[];
-};
+import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/pipelinesDetails/types';
+import PipelineDetailsActions from './PipelineDetailsActions';
+import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 
 enum PipelineDetailsTab {
   GRAPH,
   YAML,
 }
 
-const PipelineDetails: React.FC<PipelineDetailsProps> = ({ breadcrumbPath }) => {
+const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
   const { pipelineId } = useParams();
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
@@ -124,7 +121,10 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ breadcrumbPath }) => 
                 hidden={PipelineDetailsTab.YAML !== activeTabKey}
                 style={{ flexGrow: 1 }}
               >
-                <PipelineDetailsYAML pipelineRun={pipelineRun} />
+                <PipelineDetailsYAML
+                  filename={`Pipeline ${pipelineRun?.metadata.name}`}
+                  content={pipelineRun}
+                />
               </TabContent>
             </ApplicationsPage>
           </DrawerContentBody>

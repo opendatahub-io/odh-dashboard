@@ -12,6 +12,8 @@ import {
   uploadPipeline,
   listPipelineRunJobs,
   updatePipelineRunJob,
+  getPipelineRun,
+  stopPipelineRun,
 } from '~/api';
 import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -90,12 +92,14 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
       apiAvailable: !!path,
       api: {
         getPipeline: getPipeline(path),
+        getPipelineRun: getPipelineRun(path),
         deletePipeline: deletePipeline(path),
         listPipelines: listPipelines(path),
         listPipelineRuns: listPipelineRuns(path),
         listPipelineRunJobs: listPipelineRunJobs(path),
         listPipelineRunsByPipeline: listPipelineRunsByPipeline(path),
         listPipelineTemplate: listPipelineTemplates(path),
+        stopPipelineRun: stopPipelineRun(path),
         updatePipelineRunJob: updatePipelineRunJob(path),
         uploadPipeline: uploadPipeline(path),
       },

@@ -1,42 +1,44 @@
 import * as React from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { BreadcrumbItem } from '@patternfly/react-core';
-import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetails';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
+import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/pipelinesDetails/types';
+import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 
 type GlobalPipelineCoreDetailsProps = {
   pageName: string;
   redirectPath: (namespace: string) => string;
+  BreadcrumbDetailsComponent: PipelineCoreDetailsPageComponent;
 };
 
 const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
   pageName,
   redirectPath,
+  BreadcrumbDetailsComponent,
 }) => {
-  const { pipelineId } = useParams();
-  const { namespace } = usePipelinesAPI();
-  const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(namespace));
+  const { pipelineId, pipelineRunId } = useParams();
+  const { namespace, project } = usePipelinesAPI();
 
-  if (!pipelineId) {
-    return <Navigate to={`/pipelines/${namespace}`} />;
+  if (!pipelineId && !pipelineRunId) {
+    return <Navigate to={redirectPath(namespace)} />;
   }
 
   return (
-    <PipelineDetails
-      breadcrumbPath={[
-        <BreadcrumbItem
-          key="home"
-          render={() => (
-            <Link to={redirectPath(namespace)}>
-              {pageName} - {project ? getProjectDisplayName(project) : namespace}
-            </Link>
-          )}
-        />,
-      ]}
-    />
+    <EnsureAPIAvailability>
+      <BreadcrumbDetailsComponent
+        breadcrumbPath={[
+          <BreadcrumbItem
+            key="home"
+            render={() => (
+              <Link to={redirectPath(namespace)}>
+                {pageName} - {getProjectDisplayName(project)}
+              </Link>
+            )}
+          />,
+        ]}
+      />
+    </EnsureAPIAvailability>
   );
 };
 

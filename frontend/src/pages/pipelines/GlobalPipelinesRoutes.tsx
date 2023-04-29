@@ -7,6 +7,8 @@ import {
   pipelinesPageTitle,
 } from '~/pages/pipelines/global/pipelines/const';
 import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
+import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 
 const GlobalPipelinesRoutes: React.FC = () => (
@@ -23,9 +25,20 @@ const GlobalPipelinesRoutes: React.FC = () => (
     >
       <Route index element={<GlobalPipelines />} />
       <Route
-        path=":pipelineId"
+        path="pipeline/:pipelineId"
         element={
           <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={PipelineDetails}
+            pageName="Pipelines"
+            redirectPath={(namespace) => `/pipelines/${namespace}`}
+          />
+        }
+      />
+      <Route
+        path="pipelineRun/:pipelineRunId"
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={PipelineRunDetails}
             pageName="Pipelines"
             redirectPath={(namespace) => `/pipelines/${namespace}`}
           />

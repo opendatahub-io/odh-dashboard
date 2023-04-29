@@ -33,6 +33,7 @@ import {
   getPipelineRunJobScheduledState,
   ScheduledState,
 } from '~/concepts/pipelines/content/tables/utils';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 export const NoRunContent = () => <>-</>;
 
@@ -41,7 +42,14 @@ type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;
 type RunLikeUtil<P = ExtraProps> = React.FC<{ runLike: PipelineRunLikeKF } & P>;
 type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKF } & P>;
 
-export const RunName: RunUtil = ({ run }) => <Truncate content={run.name} />;
+export const RunNameForPipeline: RunUtil = ({ run }) => {
+  const { namespace } = usePipelinesAPI();
+  return (
+    <Link to={`/pipelines/${namespace}/pipelineRun/${run.id}`}>
+      <Truncate content={run.name} />
+    </Link>
+  );
+};
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
   let icon: React.ReactNode;
