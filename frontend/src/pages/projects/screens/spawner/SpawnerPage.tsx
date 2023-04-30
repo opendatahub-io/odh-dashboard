@@ -12,8 +12,8 @@ import {
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '~/types';
-import GenericSidebar from '~/pages/projects/components/GenericSidebar';
-import NameDescriptionField from '~/pages/projects/components/NameDescriptionField';
+import GenericSidebar from '~/components/GenericSidebar';
+import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { NameDescType } from '~/pages/projects/types';
 import {

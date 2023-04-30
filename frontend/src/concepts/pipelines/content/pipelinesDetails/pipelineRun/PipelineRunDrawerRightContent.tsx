@@ -38,7 +38,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody>
-        <PipelineRunDrawerRightTabs />
+        <PipelineRunDrawerRightTabs task={task} />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

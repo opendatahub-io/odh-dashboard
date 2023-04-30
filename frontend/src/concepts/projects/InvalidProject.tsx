@@ -1,6 +1,6 @@
 import * as React from 'react';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import ProjectSelector from '~/concepts/projects/ProjectSelector';
+import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 
 type InvalidProjectProps = {
   title?: string;
@@ -13,7 +13,7 @@ const InvalidProject: React.FC<InvalidProjectProps> = ({ namespace, title, getRe
     title={title || 'Project not found'}
     bodyText={`${namespace ? `Project ${namespace}` : 'The Project'} was not found.`}
   >
-    <ProjectSelector
+    <ProjectSelectorNavigator
       getRedirectPath={getRedirectPath}
       invalidDropdownPlaceholder="Select project"
       primary

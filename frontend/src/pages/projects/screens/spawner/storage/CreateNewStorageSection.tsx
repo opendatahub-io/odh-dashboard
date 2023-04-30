@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { CreatingStorageObject } from '~/pages/projects/types';
 import PVSizeField from '~/pages/projects/components/PVSizeField';
-import NameDescriptionField from '~/pages/projects/components/NameDescriptionField';
+import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 
 type CreateNewStorageSectionProps = {

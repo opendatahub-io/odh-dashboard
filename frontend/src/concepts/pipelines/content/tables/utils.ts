@@ -1,7 +1,7 @@
 import {
   PipelineRunJobKF,
   PipelineRunKF,
-  PipelineRunLikeKF,
+  PipelineCoreResourceKF,
   PipelineRunStatusesKF,
   ResourceReferenceKF,
   ResourceTypeKF,
@@ -36,16 +36,25 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
 };
 
 export const getRunResourceReference = (
-  runLike: PipelineRunLikeKF,
+  runLike: PipelineCoreResourceKF,
   type: ResourceTypeKF,
 ): ResourceReferenceKF | undefined =>
   runLike.resource_references?.find((ref) => ref.key.type === type);
 
-export const getPipelineRunLikeExperimentName = (runLike: PipelineRunLikeKF): string =>
-  getRunResourceReference(runLike, ResourceTypeKF.EXPERIMENT)?.name || 'Default';
+export const getPipelineRunLikePipelineReference = (
+  runLike: PipelineCoreResourceKF,
+): ResourceReferenceKF | undefined =>
+  getRunResourceReference(runLike, ResourceTypeKF.PIPELINE_VERSION);
 
-export const getPipelineRunLikePipelineName = (runLike: PipelineRunLikeKF): string =>
-  getRunResourceReference(runLike, ResourceTypeKF.PIPELINE_VERSION)?.name || '';
+export const getPipelineRunLikeExperimentReference = (
+  runLike: PipelineCoreResourceKF,
+): ResourceReferenceKF | undefined => getRunResourceReference(runLike, ResourceTypeKF.EXPERIMENT);
+
+export const getPipelineRunLikeExperimentName = (runLike: PipelineCoreResourceKF): string =>
+  getPipelineRunLikeExperimentReference(runLike)?.name || 'Default';
+
+export const getPipelineRunLikePipelineName = (runLike: PipelineCoreResourceKF): string =>
+  getPipelineRunLikePipelineReference(runLike)?.name || '';
 
 export const getPipelineRunJobStartTime = (job: PipelineRunJobKF): Date | null => {
   const startTime =

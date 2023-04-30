@@ -1,9 +1,13 @@
 import * as React from 'react';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 
-const useGenericObjectState = <T>(
-  defaultData: T,
-): [data: T, setData: UpdateObjectAtPropAndValue<T>, resetDefault: () => void] => {
+type GenericObjectState<T> = [
+  data: T,
+  setData: UpdateObjectAtPropAndValue<T>,
+  resetDefault: () => void,
+];
+
+const useGenericObjectState = <T>(defaultData: T): GenericObjectState<T> => {
   const [value, setValue] = React.useState<T>(defaultData);
 
   const setPropValue = React.useCallback<UpdateObjectAtPropAndValue<T>>((propKey, propValue) => {

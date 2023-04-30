@@ -38,7 +38,7 @@ const PipelinesView: React.FC = () => {
     const filterName = filterData[FilterType.PIPELINE_NAME];
     const filterDate = filterData[FilterType.CREATED_ON];
 
-    if (filterName && !value.name.includes(filterName)) {
+    if (filterName && !value.name.toLowerCase().includes(filterName.toLowerCase())) {
       return false;
     }
     if (filterDate && !value.created_at.includes(filterDate)) {
@@ -63,7 +63,7 @@ const PipelinesView: React.FC = () => {
       }
       emptyTableView={<EmptyTableView onClearFilters={() => setFilterData(DEFAULT_FILTER_DATA)} />}
       refreshPipelines={refresh}
-      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/${id}`}
+      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
     />
   );
 };

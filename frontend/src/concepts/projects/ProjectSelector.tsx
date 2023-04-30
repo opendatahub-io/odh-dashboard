@@ -1,25 +1,25 @@
 import * as React from 'react';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
+import { ProjectKind } from '~/k8sTypes';
 
 type ProjectSelectorProps = {
+  onSelection: (project: ProjectKind) => void;
+  namespace: string;
   invalidDropdownPlaceholder?: string;
-  getRedirectPath: (namespace: string) => string;
   primary?: boolean;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
-  getRedirectPath,
+  onSelection,
+  namespace,
   invalidDropdownPlaceholder,
   primary,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   useMountProjectRefresh();
-  const { namespace } = useParams();
-  const navigate = useNavigate();
   const selection = projects.find(byName(namespace));
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
@@ -43,8 +43,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
         <DropdownItem
           key={project.metadata.name}
           onClick={() => {
-            navigate(getRedirectPath(project.metadata.name));
             setDropdownOpen(false);
+            onSelection(project);
           }}
         >
           {getProjectDisplayName(project)}

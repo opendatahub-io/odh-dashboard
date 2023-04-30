@@ -15,11 +15,10 @@ import {
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { GlobeAmericasIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { PipelineRunKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineRunLikePipelineName,
+  getPipelineRunLikePipelineReference,
   getRunDuration,
-  getRunResourceReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
@@ -60,14 +59,14 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ pipelineR
     </>
   );
 
-  const pipelineReference = getRunResourceReference(pipelineRunKF, ResourceTypeKF.PIPELINE_VERSION);
+  const pipelineReference = getPipelineRunLikePipelineReference(pipelineRunKF);
   const pipelineRef = pipelineReference
     ? [
         {
           key: 'Pipeline',
           // TODO: get the relative parent namespaced link
           value: (
-            <Link to={`/pipelines/${namespace}/pipeline/${pipelineReference.key.id}`}>
+            <Link to={`/pipelines/${namespace}/pipeline/view/${pipelineReference.key.id}`}>
               {pipelineReference.name}
             </Link>
           ),

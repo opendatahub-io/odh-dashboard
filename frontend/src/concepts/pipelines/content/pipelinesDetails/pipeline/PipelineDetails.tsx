@@ -20,7 +20,7 @@ import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/P
 import DeletePipelineModal from '~/concepts/pipelines/content/DeletePipelineModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/pipelinesDetails/types';
+import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 

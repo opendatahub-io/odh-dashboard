@@ -12,7 +12,7 @@ import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/
 import { PipelineRunKind } from '~/k8sTypes';
 import MarkdownView from '~/components/MarkdownView';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/pipelinesDetails/types';
+import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import { PipelineRunResourceKF } from '~/concepts/pipelines/kfTypes';
 import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
@@ -72,18 +72,23 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }
               }
             >
               <ApplicationsPage
-                title={run?.name ?? 'Loading...'}
+                title={error ? 'Error loading run' : run?.name ?? 'Loading...'}
                 description={run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''}
                 loaded={loaded}
                 loadError={error}
                 breadcrumb={
                   <Breadcrumb>
                     {breadcrumbPath}
-                    <BreadcrumbItem isActive>{run?.name || 'Loading...'}</BreadcrumbItem>
+                    <BreadcrumbItem isActive>
+                      {error ? 'Run details' : run?.name ?? 'Loading...'}
+                    </BreadcrumbItem>
                   </Breadcrumb>
                 }
                 headerAction={
-                  <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
+                  loaded &&
+                  !error && (
+                    <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
+                  )
                 }
                 empty={false}
               >

@@ -22,16 +22,15 @@ import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
   PipelineRunJobKF,
   PipelineRunKF,
-  PipelineRunLikeKF,
+  PipelineCoreResourceKF,
   PipelineRunStatusesKF,
-  ResourceTypeKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
   getPipelineRunLikeExperimentName,
-  getRunResourceReference,
   getPipelineRunJobScheduledState,
   ScheduledState,
+  getPipelineRunLikePipelineReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
@@ -39,13 +38,14 @@ export const NoRunContent = () => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;
-type RunLikeUtil<P = ExtraProps> = React.FC<{ runLike: PipelineRunLikeKF } & P>;
+type RunLikeUtil<P = ExtraProps> = React.FC<{ runLike: PipelineCoreResourceKF } & P>;
 type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKF } & P>;
 
 export const RunNameForPipeline: RunUtil = ({ run }) => {
   const { namespace } = usePipelinesAPI();
   return (
-    <Link to={`/pipelines/${namespace}/pipelineRun/${run.id}`}>
+    // TODO: get link path
+    <Link to={`/pipelines/${namespace}/pipelineRun/view/${run.id}`}>
       <Truncate content={run.name} />
     </Link>
   );
@@ -125,14 +125,15 @@ export const RunLikeExperiment: RunLikeUtil = ({ runLike }) => (
 );
 
 export const RunLikePipeline: RunLikeUtil<{ namespace: string }> = ({ runLike, namespace }) => {
-  const resourceRef = getRunResourceReference(runLike, ResourceTypeKF.PIPELINE_VERSION);
+  const resourceRef = getPipelineRunLikePipelineReference(runLike);
   const pipelineName = resourceRef?.name;
   if (!resourceRef || !pipelineName) {
     return <NoRunContent />;
   }
   const pipelineId = resourceRef.key.id;
 
-  return <Link to={`/pipelineRuns/${namespace}/${pipelineId}`}>{pipelineName}</Link>;
+  // TODO: get link path
+  return <Link to={`/pipelineRuns/${namespace}/pipeline/view/${pipelineId}`}>{pipelineName}</Link>;
 };
 
 export const RunJobTrigger: RunJobUtil = ({ job }) => {

@@ -43,7 +43,7 @@ const PipelineRunDetailsActions: React.FC<PipelineDetailsActionsProps> = ({ onDe
               </DropdownItem>,
               <DropdownItem
                 key="clone-run"
-                onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/${run.id}/clone`)}
+                onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`)}
               >
                 Clone run
               </DropdownItem>,

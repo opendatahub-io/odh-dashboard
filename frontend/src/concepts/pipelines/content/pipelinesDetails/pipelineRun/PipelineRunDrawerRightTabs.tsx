@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { DrawerPanelBody, Tab, TabContent, Tabs } from '@patternfly/react-core';
+import { PipelineRunTask } from '~/k8sTypes';
 
 enum PipelineRunNodeTabs {
   INPUT_OUTPUT = 'Input / Output',
@@ -12,7 +13,9 @@ enum PipelineRunNodeTabs {
   ML_METADATA = 'ML Metadata',
 }
 
-type PipelineRunDrawerRightTabsProps = {};
+type PipelineRunDrawerRightTabsProps = {
+  task: PipelineRunTask;
+};
 
 const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = () => {
   const [selection, setSelection] = React.useState(PipelineRunNodeTabs.DETAILS);

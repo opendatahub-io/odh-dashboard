@@ -31,7 +31,7 @@ const usePipelineRunJobFilter = (
     const scheduledRangeValue = filterData[FilterOptions.SCHEDULED];
     const statusValue = filterData[FilterOptions.STATUS];
 
-    if (runValue && !job.name.includes(runValue)) {
+    if (runValue && !job.name.toLowerCase().includes(runValue.toLowerCase())) {
       return false;
     }
     if (

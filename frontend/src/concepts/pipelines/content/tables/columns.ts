@@ -3,7 +3,7 @@ import {
   PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
-  PipelineRunLikeKF,
+  PipelineCoreResourceKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getPipelineRunLikeExperimentName,
@@ -45,7 +45,7 @@ export const pipelineColumns: SortableData<PipelineKF>[] = [
   kebabTableColumn(),
 ];
 
-const sharedPipelineRunLikeColumns: SortableData<PipelineRunLikeKF>[] = [
+const sharedPipelineRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Name',

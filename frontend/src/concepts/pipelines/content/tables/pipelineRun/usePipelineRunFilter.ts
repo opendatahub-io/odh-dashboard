@@ -27,7 +27,7 @@ const usePipelineRunFilter = (
     const startedValue = filterData[FilterOptions.STARTED];
     const statusValue = filterData[FilterOptions.STATUS];
 
-    if (runValue && !run.name.includes(runValue)) {
+    if (runValue && !run.name.toLowerCase().includes(runValue.toLowerCase())) {
       return false;
     }
     if (

@@ -33,7 +33,9 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td>
         <TableRowTitleDescription
-          title={<Link to={`/pipelineRuns/${namespace}/pipelineRun/${run.id}`}>{run.name}</Link>}
+          title={
+            <Link to={`/pipelineRuns/${namespace}/pipelineRun/view/${run.id}`}>{run.name}</Link>
+          }
           description={run.description}
         />
       </Td>

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
+import ManageExperimentModal from '~/concepts/pipelines/content/experiment/ManageExperimentModal';
 
 type RunTableToolbarActionsProps = {
   deleteAllEnabled: boolean;
@@ -10,7 +11,7 @@ const RunTableToolbarActions: React.FC<RunTableToolbarActionsProps> = ({
   deleteAllEnabled,
   onDeleteAll,
 }) => {
-  const [, setCreateExperiment] = React.useState(false);
+  const [createExperiment, setCreateExperiment] = React.useState(false);
   return (
     <>
       <SimpleMenuActions
@@ -29,6 +30,7 @@ const RunTableToolbarActions: React.FC<RunTableToolbarActionsProps> = ({
           },
         ]}
       />
+      <ManageExperimentModal isOpen={createExperiment} onClose={() => setCreateExperiment(false)} />
     </>
   );
 };

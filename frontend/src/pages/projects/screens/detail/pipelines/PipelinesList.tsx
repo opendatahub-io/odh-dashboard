@@ -41,7 +41,7 @@ const PipelinesList: React.FC = () => {
         <PipelinesTable
           pipelines={pipelines}
           contentLimit={CONTENT_LIMIT}
-          pipelineDetailsPath={(namespace, id) => `/projects/${namespace}/pipeline/${id}`}
+          pipelineDetailsPath={(namespace, id) => `/projects/${namespace}/pipeline/view/${id}`}
           refreshPipelines={refresh}
         />
       </StackItem>

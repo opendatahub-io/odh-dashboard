@@ -23,9 +23,10 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({ onDelet
       isOpen={open}
       position="right"
       dropdownItems={[
+        // TODO: Handle path
         <DropdownItem
           key="create-run"
-          onClick={() => alert('should take you to the create run page')}
+          onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/create`)}
         >
           Create run
         </DropdownItem>,

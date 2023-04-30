@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Bullseye, Split, SplitItem } from '@patternfly/react-core';
-import ProjectSelector from '~/concepts/projects/ProjectSelector';
+import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
 
 type PipelineCoreProjectSelectorProps = {
   getRedirectPath: (namespace: string) => string;
@@ -14,7 +14,7 @@ const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = 
       <Bullseye>Project</Bullseye>
     </SplitItem>
     <SplitItem>
-      <ProjectSelector getRedirectPath={getRedirectPath} />
+      <ProjectSelectorNavigator getRedirectPath={getRedirectPath} />
     </SplitItem>
   </Split>
 );

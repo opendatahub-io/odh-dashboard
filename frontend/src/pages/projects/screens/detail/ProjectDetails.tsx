@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import GenericSidebar from '~/pages/projects/components/GenericSidebar';
+import GenericSidebar from '~/components/GenericSidebar';
 import { useAppContext } from '~/app/AppContext';
 import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';

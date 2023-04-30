@@ -78,7 +78,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create run',
                   onClick: () => {
-                    alert('should navigate to pipeline run creation page');
+                    navigate(`/pipelines/${namespace}/pipelineRun/create`);
                   },
                 },
                 {

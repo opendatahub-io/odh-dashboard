@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/pipelinesDetails/types';
+import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 
 type GlobalPipelineCoreDetailsProps = {
@@ -17,12 +17,7 @@ const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
   redirectPath,
   BreadcrumbDetailsComponent,
 }) => {
-  const { pipelineId, pipelineRunId } = useParams();
   const { namespace, project } = usePipelinesAPI();
-
-  if (!pipelineId && !pipelineRunId) {
-    return <Navigate to={redirectPath(namespace)} />;
-  }
 
   return (
     <EnsureAPIAvailability>
@@ -37,6 +32,7 @@ const GlobalPipelineCoreDetails: React.FC<GlobalPipelineCoreDetailsProps> = ({
             )}
           />,
         ]}
+        contextPath={redirectPath(namespace)}
       />
     </EnsureAPIAvailability>
   );
