@@ -1,5 +1,5 @@
 import { RoleBindingKind } from '~/k8sTypes';
-import { SortableData } from '~/utilities/useTableColumnSort';
+import { SortableData } from '~/components/table/useTableColumnSort';
 import { ensureRoleBindingCreationSorting, firstSubject } from './utils';
 
 export const columnsProjectSharingUser: SortableData<RoleBindingKind>[] = [
