@@ -43,19 +43,16 @@ const ServingRuntimeList: React.FC = () => {
       <DetailsSection
         id={ProjectSectionID.MODEL_SERVER}
         title={ProjectSectionTitlesExtended[ProjectSectionID.MODEL_SERVER] || ''}
-        actions={
-          emptyModelServer
-            ? [
-                <ServingRuntimeListButtonAction
-                  emptyTemplates={emptyTemplates}
-                  customServingRuntimesEnabled={customServingRuntimesEnabled}
-                  templatesLoaded={templatesLoaded}
-                  onClick={() => setOpen(true)}
-                  key={`serving-runtime-actions`}
-                />,
-              ]
-            : undefined
-        }
+        actions={[
+          <ServingRuntimeListButtonAction
+            emptyTemplates={emptyTemplates}
+            emptyModelServer={emptyModelServer}
+            customServingRuntimesEnabled={customServingRuntimesEnabled}
+            templatesLoaded={templatesLoaded}
+            onClick={() => setOpen(true)}
+            key={`serving-runtime-actions`}
+          />,
+        ]}
         isLoading={!servingRuntimesLoaded && !templatesLoaded}
         isEmpty={emptyModelServer}
         loadError={servingRuntimeError || templateError}

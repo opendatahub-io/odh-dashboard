@@ -3,6 +3,7 @@ import { Button, Tooltip, Text } from '@patternfly/react-core';
 
 type ServingRuntimeListButtonActionProps = {
   emptyTemplates: boolean;
+  emptyModelServer: boolean;
   customServingRuntimesEnabled: boolean;
   templatesLoaded: boolean;
   onClick: () => void;
@@ -10,6 +11,7 @@ type ServingRuntimeListButtonActionProps = {
 
 const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionProps> = ({
   emptyTemplates,
+  emptyModelServer,
   customServingRuntimesEnabled,
   templatesLoaded,
   onClick,
@@ -36,6 +38,10 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
         </Button>
       </Tooltip>
     );
+  }
+
+  if (!customServingRuntimesEnabled && !emptyModelServer) {
+    return null;
   }
 
   return (
