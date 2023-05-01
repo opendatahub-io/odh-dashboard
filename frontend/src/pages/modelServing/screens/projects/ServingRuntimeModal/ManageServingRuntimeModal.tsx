@@ -9,7 +9,6 @@ import {
   Modal,
   Stack,
   StackItem,
-  TextInput,
 } from '@patternfly/react-core';
 import { useCreateServingRuntimeObject } from '~/pages/modelServing/screens/projects/utils';
 import {
@@ -30,10 +29,21 @@ import {
 import { ServingRuntimeKind, SecretKind, K8sStatus, TemplateKind, ProjectKind } from '~/k8sTypes';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
+import {
+  getModelRoleBinding,
+  getModelServiceAccountName,
+  getModelServingPermissionName,
+  getModelServingRuntimeName,
+  requestsUnderLimits,
+  resourcesArePositive,
+} from '~/pages/modelServing/utils';
+import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
+import { getServingRuntimeNameFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
+import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -54,18 +64,24 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
-
-  const namespace = currentProject.metadata.name;
-
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const { dashboardConfig } = useAppContext();
 
+  const namespace = currentProject.metadata.name;
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
+  const customServingRuntimesEnabled = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
+  );
 
-  const inputValueValid =
+  const baseInputValueValid =
     createData.numReplicas >= 0 &&
     resourcesArePositive(createData.modelSize.resources) &&
     requestsUnderLimits(createData.modelSize.resources);
+
+  const inputValueValid = customServingRuntimesEnabled
+    ? baseInputValueValid && createData.name && createData.servingRuntimeTemplateName
+    : baseInputValueValid;
 
   const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
 
@@ -81,16 +97,33 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(false);
   };
 
-  const setupTokenAuth = async (): Promise<void> => {
-    const modelMeshSA = assembleServingRuntimeSA(namespace);
+  const getTokenNames = (name: string) => {
+    const serviceAccountName = customServingRuntimesEnabled
+      ? getModelServingPermissionName(translateDisplayNameForK8s(name))
+      : getModelServiceAccountName(namespace);
+    const roleBindingName = customServingRuntimesEnabled
+      ? getModelServingPermissionName(translateDisplayNameForK8s(name))
+      : getModelRoleBinding(namespace);
+
+    return { serviceAccountName, roleBindingName };
+  };
+
+  const setupTokenAuth = async (name: string): Promise<void> => {
+    const { serviceAccountName, roleBindingName } = getTokenNames(name);
+
+    const modelMeshSA = assembleServingRuntimeSA(serviceAccountName, namespace);
     createServiceAccount(modelMeshSA)
       .then(() => {
-        const tokenAuth = generateRoleBindingServingRuntime(namespace);
+        const tokenAuth = generateRoleBindingServingRuntime(
+          roleBindingName,
+          serviceAccountName,
+          namespace,
+        );
         createRoleBinding(tokenAuth)
           .then(() => {
             allSettledPromises<SecretKind, Error>(
               createData.tokens.map((token) => {
-                const secretToken = assembleSecretSA(token.name, namespace);
+                const secretToken = assembleSecretSA(token.name, serviceAccountName, namespace);
                 return createSecret(secretToken);
               }),
             )
@@ -102,7 +135,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       .catch((error) => Promise.reject(error));
   };
 
-  const updateSecrets = async (): Promise<void> => {
+  const updateSecrets = async (name: string): Promise<void> => {
+    const { serviceAccountName } = getTokenNames(name);
     const deletedSecrets = (editInfo?.secrets || [])
       .map((secret) => secret.metadata.name)
       .filter((token) => !createData.tokens.some((tokenEdit) => tokenEdit.editName === token));
@@ -110,7 +144,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       ...createData.tokens
         .filter((token) => translateDisplayNameForK8s(token.name) !== token.editName)
         .map((token) => {
-          const secretToken = assembleSecretSA(token.name, namespace, token.editName);
+          const secretToken = assembleSecretSA(
+            token.name,
+            serviceAccountName,
+            namespace,
+            token.editName,
+          );
           if (token.editName) {
             return replaceSecret(secretToken);
           }
@@ -126,14 +165,18 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(true);
 
+    const fillData = {
+      ...createData,
+      name: customServingRuntimesEnabled ? createData.name : getModelServingRuntimeName(namespace),
+    };
+
     if (editInfo) {
-      // TODO: Delete secrets
-      updateSecrets()
+      updateSecrets(editInfo.servingRuntime?.metadata.name || '')
         .then(() => {
           if (!editInfo?.servingRuntime) {
             return;
           }
-          updateServingRuntime(createData, editInfo.servingRuntime)
+          updateServingRuntime(fillData, editInfo.servingRuntime)
             .then(() => {
               setActionInProgress(false);
               onBeforeClose(true);
@@ -142,12 +185,20 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         })
         .catch((e) => setErrorModal(e));
     } else {
+      const servingRuntimeTemplate = servingRuntimeTemplates?.find(
+        (template) =>
+          getServingRuntimeNameFromTemplate(template) === fillData.servingRuntimeTemplateName,
+      );
+      if (!servingRuntimeTemplate) {
+        setErrorModal(new Error('Custom Serving Runtime not found'));
+        return;
+      }
       Promise.all<ServingRuntimeKind | string | void>([
         ...(currentProject.metadata.labels?.['modelmesh-enabled']
           ? [addSupportModelMeshProject(currentProject.metadata.name)]
           : []),
-        createServingRuntime(createData, namespace, servingRuntimeTemplates?.[0]),
-        setupTokenAuth(),
+        createServingRuntime(fillData, namespace, servingRuntimeTemplate),
+        setupTokenAuth(fillData.name),
       ])
         .then(() => {
           setActionInProgress(false);
@@ -188,40 +239,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             }}
           >
             <Stack hasGutter>
-              {servingRuntimeTemplates && (
-                <>
-                  <StackItem>
-                    <FormGroup
-                      label="Model server name"
-                      fieldId="serving-runtime-name-input"
-                      isRequired
-                    >
-                      <TextInput
-                        isRequired
-                        id="serving-runtime-name-input"
-                        value={createData.name}
-                        onChange={(name) => setCreateData('name', name)}
-                      />
-                    </FormGroup>
-                  </StackItem>
-                  <StackItem>
-                    <FormGroup
-                      label="Serving runtime"
-                      fieldId="serving-runtime-selection"
-                      isRequired
-                    >
-                      <TextInput
-                        isRequired
-                        id="serving-runtime-selection"
-                        value={createData.servingRuntimeTemplateName}
-                        onChange={(servingRuntime) =>
-                          setCreateData('servingRuntimeTemplateName', servingRuntime)
-                        }
-                      />
-                    </FormGroup>
-                  </StackItem>
-                </>
-              )}
+              <ServingRuntimeTemplateSection
+                data={createData}
+                setData={setCreateData}
+                templates={servingRuntimeTemplates}
+                isEditing={!!editInfo}
+              />
               <StackItem>
                 <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
               </StackItem>

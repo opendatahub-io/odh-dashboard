@@ -7,8 +7,10 @@ import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCe
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
-import { isServingRuntimeTokenEnabled } from './utils';
+import { filterTokens, isServingRuntimeTokenEnabled } from './utils';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
@@ -35,7 +37,20 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
       error: inferenceServicesLoadError,
     },
     serverSecrets: { data: secrets, loaded: secretsLoaded, error: secretsLoadError },
+    currentProject,
   } = React.useContext(ProjectDetailsContext);
+  const { dashboardConfig } = useAppContext();
+
+  const customServingRuntimesEnabled = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
+  );
+
+  const tokens = filterTokens(
+    secrets,
+    obj.metadata.name,
+    currentProject.metadata.name,
+    customServingRuntimesEnabled,
+  );
 
   const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
     onExpandColumn(expandedColumn === colIndex ? undefined : colIndex);
@@ -89,12 +104,12 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           dataLabel="Tokens"
           compoundExpand={compoundExpandParams(
             ServingRuntimeTableTabs.TOKENS,
-            secrets.length === 0 || !isServingRuntimeTokenEnabled(obj),
+            tokens.length === 0 || !isServingRuntimeTokenEnabled(obj),
           )}
         >
           {secretsLoaded ? (
             <>
-              {!isServingRuntimeTokenEnabled(obj) ? 'Tokens disabled' : secrets.length}{' '}
+              {!isServingRuntimeTokenEnabled(obj) ? 'Tokens disabled' : tokens.length}{' '}
               {secretsLoadError && (
                 <Tooltip
                   removeFindDomNode

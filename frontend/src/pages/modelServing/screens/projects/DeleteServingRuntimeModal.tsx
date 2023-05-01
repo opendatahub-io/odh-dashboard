@@ -1,15 +1,17 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { ServingRuntimeKind } from '~/k8sTypes';
-import { deleteServingRuntime } from '~/api';
+import { K8sStatus, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { deleteSecret, deleteServingRuntime } from '~/api';
 
 type DeleteServingRuntimeModalProps = {
   servingRuntime?: ServingRuntimeKind;
+  tokens: SecretKind[];
   onClose: (deleted: boolean) => void;
 };
 
 const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
   servingRuntime,
+  tokens,
   onClose,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -30,7 +32,11 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
       onDelete={() => {
         if (servingRuntime) {
           setIsDeleting(true);
-          deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace)
+          Promise.all<ServingRuntimeKind | K8sStatus>([
+            deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
+            ...tokens.map((token) => deleteSecret(token.metadata.namespace, token.metadata.name)),
+          ])
+
             .then(() => {
               onBeforeClose(true);
             })

@@ -20,28 +20,43 @@ const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
   servingRuntime: ServingRuntimeKind,
+  isEditing?: boolean,
 ): ServingRuntimeKind => {
-  const { name: dataName, numReplicas, modelSize, externalRoute, tokenAuth, gpus } = data;
-  const name = translateDisplayNameForK8s(dataName);
+  const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth, gpus } = data;
+  const name = translateDisplayNameForK8s(displayName);
   const servingRuntimeTemplateName = getDisplayNameFromK8sResource(servingRuntime);
   const updatedServingRuntime = { ...servingRuntime };
 
-  updatedServingRuntime.metadata = {
-    name,
-    namespace,
-    labels: {
-      ...updatedServingRuntime.metadata.labels,
+  if (!isEditing) {
+    updatedServingRuntime.metadata = {
+      ...updatedServingRuntime.metadata,
       name,
-      'opendatahub.io/dashboard': 'true',
-    },
-    annotations: {
-      ...updatedServingRuntime.metadata.annotations,
-      ...(externalRoute && { 'enable-route': 'true' }),
-      ...(tokenAuth && { 'enable-auth': 'true' }),
-      'openshift.io/display-name': data.name,
-      'opendatahub.io/template-name': servingRuntimeTemplateName,
-    },
-  };
+      namespace,
+      labels: {
+        ...updatedServingRuntime.metadata.labels,
+        name,
+        'opendatahub.io/dashboard': 'true',
+      },
+      annotations: {
+        ...updatedServingRuntime.metadata.annotations,
+        ...(externalRoute && { 'enable-route': 'true' }),
+        ...(tokenAuth && { 'enable-auth': 'true' }),
+        'openshift.io/display-name': displayName,
+        'opendatahub.io/template-name': servingRuntime.metadata.name,
+        'opendatahub.io/template-display-name': servingRuntimeTemplateName,
+      },
+    };
+  } else {
+    updatedServingRuntime.metadata = {
+      ...updatedServingRuntime.metadata,
+      annotations: {
+        ...updatedServingRuntime.metadata.annotations,
+        ...(externalRoute && { 'enable-route': 'true' }),
+        ...(tokenAuth && { 'enable-auth': 'true' }),
+        'openshift.io/display-name': displayName,
+      },
+    };
+  }
   updatedServingRuntime.spec.replicas = numReplicas;
 
   const resourceSettings: ContainerResources = {
@@ -54,10 +69,6 @@ const assembleServingRuntime = (
       memory: modelSize.resources.limits?.memory,
     },
   };
-
-  updatedServingRuntime.spec.containers.map(
-    (container) => (container.resources = resourceSettings),
-  );
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, gpus);
 
@@ -118,15 +129,17 @@ export const updateServingRuntime = (
     data,
     existingData.metadata.namespace,
     existingData,
+    true,
   );
 
-  const updatedServingRuntime = _.merge(existingData, servingRuntime);
+  // At the moment we won't support editing the serving runtime template
+  const updatedServingRuntime = { ...servingRuntime };
 
   if (!data.tokenAuth) {
     delete updatedServingRuntime.metadata?.annotations?.['enable-auth'];
   }
 
-  //TODO: Add support for GRPC
+  //TODO: In conversations with the model serving team to check the annotations for GRPC
   if (!data.externalRoute) {
     delete updatedServingRuntime.metadata?.annotations?.['enable-route'];
   }

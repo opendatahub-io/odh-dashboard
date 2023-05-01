@@ -67,7 +67,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     return (
       <Td dataLabel="Tokens expansion" colSpan={6}>
         <ExpandableRowContent>
-          <ServingRumtimeTokensTable isTokenEnabled={isServingRuntimeTokenEnabled(obj)} />
+          <ServingRumtimeTokensTable obj={obj} isTokenEnabled={isServingRuntimeTokenEnabled(obj)} />
         </ExpandableRowContent>
       </Td>
     );

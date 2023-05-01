@@ -27,7 +27,8 @@ export const filterTemplatesEnabled = (templates: TemplateKind[]) =>
 export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
   obj.kind === 'ServingRuntime' &&
   obj.spec?.builtInAdapter !== undefined &&
-  obj.spec?.containers !== undefined;
+  obj.spec?.containers !== undefined &&
+  obj.spec?.supportedModelFormats !== undefined;
 
 export const getServingRuntimeFromTemplate = (template: TemplateKind): ServingRuntimeKind => {
   if (!isServingRuntimeKind(template.objects[0])) {
@@ -35,3 +36,8 @@ export const getServingRuntimeFromTemplate = (template: TemplateKind): ServingRu
   }
   return template.objects[0];
 };
+
+export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string =>
+  resource.metadata.annotations?.['opendatahub.io/template-name'] ||
+  resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
+  '';

@@ -4,6 +4,9 @@ import { SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import useTableColumnSort from '~/utilities/useTableColumnSort';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
+import { filterTokens } from './utils';
 import { columns } from './data';
 import ServingRuntimeTableRow from './ServingRuntimeTableRow';
 import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
@@ -43,6 +46,11 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
   const sort = useTableColumnSort<ServingRuntimeKind>(columns, 1);
   const sortedModelServers = sort.transformData(unsortedModelServers);
 
+  const { dashboardConfig } = useAppContext();
+  const customServingRuntimesEnabled = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
+  );
+
   return (
     <>
       <Table
@@ -65,6 +73,12 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
       />
       <DeleteServingRuntimeModal
         servingRuntime={deleteServingRuntime}
+        tokens={filterTokens(
+          modelSecrets,
+          deleteServingRuntime?.metadata.name || '',
+          currentProject.metadata.name,
+          customServingRuntimesEnabled,
+        )}
         onClose={(deleted) => {
           if (deleted) {
             refreshServingRuntime();
@@ -78,7 +92,12 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
         servingRuntimeTemplates={templates}
         editInfo={{
           servingRuntime: editServingRuntime,
-          secrets: modelSecrets,
+          secrets: filterTokens(
+            modelSecrets,
+            editServingRuntime?.metadata.name || '',
+            currentProject.metadata.name,
+            customServingRuntimesEnabled,
+          ),
         }}
         onClose={(submit: boolean) => {
           setEditServingRuntime(undefined);

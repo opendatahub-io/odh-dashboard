@@ -15,6 +15,11 @@ import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import {
+  getModelServiceAccountName,
+  getModelServingPermissionName,
+} from '~/pages/modelServing/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -29,6 +34,21 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
+
+export const filterTokens = (
+  secrets: SecretKind[],
+  servingRuntimeName: string,
+  namespace: string,
+  customServingRuntimesEnabled: boolean,
+): SecretKind[] => {
+  const serviceAccountName = customServingRuntimesEnabled
+    ? getModelServingPermissionName(servingRuntimeName)
+    : getModelServiceAccountName(namespace);
+  return secrets?.filter(
+    (secret) =>
+      secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
+  );
+};
 
 export const useCreateServingRuntimeObject = (existingData?: {
   servingRuntime?: ServingRuntimeKind;
@@ -56,10 +76,13 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const [, setCreateData] = createModelState;
 
-  const existingServingRuntimeName = existingData?.servingRuntime?.metadata.name || '';
+  const existingServingRuntimeName = existingData?.servingRuntime
+    ? getDisplayNameFromK8sResource(existingData.servingRuntime)
+    : '';
 
-  const existingServingRuntimeTemplateName =
-    existingData?.servingRuntime?.metadata.annotations?.['opendatahub.io/template-name'] || '';
+  const existingServingRuntimeTemplateName = existingData?.servingRuntime
+    ? getDisplayNameFromServingRuntimeTemplate(existingData.servingRuntime)
+    : '';
 
   const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 

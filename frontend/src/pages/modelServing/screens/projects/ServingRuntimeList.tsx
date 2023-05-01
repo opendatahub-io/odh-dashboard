@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Button, Tooltip, Text } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -12,6 +11,7 @@ import { useAppContext } from '~/app/AppContext';
 import { featureFlagEnabled } from '~/utilities/utils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
+import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
 
 const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
@@ -35,7 +35,7 @@ const ServingRuntimeList: React.FC = () => {
     ? filterTemplatesEnabled(templates)
     : undefined;
   const emptyModelServer = servingRuntimes.length === 0;
-  const emptyTemplates = templatesEnabled ? templatesEnabled.length === 0 : false;
+  const emptyTemplates = templatesEnabled?.length === 0 || false;
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   return (
@@ -45,39 +45,15 @@ const ServingRuntimeList: React.FC = () => {
         title={ProjectSectionTitlesExtended[ProjectSectionID.MODEL_SERVER] || ''}
         actions={
           emptyModelServer
-            ? emptyTemplates
-              ? [
-                  <Tooltip
-                    removeFindDomNode
-                    key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-                    aria-label="Configure Server Info"
-                    content={
-                      <Text>
-                        At least one serving runtime must be enabled to configure a model server.
-                        Contact your administrator
-                      </Text>
-                    }
-                  >
-                    <Button
-                      isLoading={!templatesLoaded}
-                      isDisabled={true}
-                      onClick={() => setOpen(true)}
-                      variant="secondary"
-                    >
-                      Configure server
-                    </Button>
-                  </Tooltip>,
-                ]
-              : [
-                  <Button
-                    isLoading={customServingRuntimesEnabled ? !templatesLoaded : false}
-                    onClick={() => setOpen(true)}
-                    key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-                    variant="secondary"
-                  >
-                    Configure server
-                  </Button>,
-                ]
+            ? [
+                <ServingRuntimeListButtonAction
+                  emptyTemplates={emptyTemplates}
+                  customServingRuntimesEnabled={customServingRuntimesEnabled}
+                  templatesLoaded={templatesLoaded}
+                  onClick={() => setOpen(true)}
+                  key={`serving-runtime-actions`}
+                />,
+              ]
             : undefined
         }
         isLoading={!servingRuntimesLoaded && !templatesLoaded}

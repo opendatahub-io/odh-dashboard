@@ -92,7 +92,7 @@ export const DEFAULT_MODEL_SERVING_TEMPLATE: ServingRuntimeKind = {
       {
         name: 'ovms',
         image:
-          'registry.redhat.io/rhods/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
+          'quay.io/modh/openvino-model-server@sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116',
         args: [
           '--port=8001',
           '--rest_port=8888',
