@@ -250,9 +250,9 @@ export type PodKind = K8sResourceCommon & {
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
-    Partial<{
-      'openshift.io/requester': string; // the username of the user that requested this project
-    }>;
+      Partial<{
+        'openshift.io/requester': string; // the username of the user that requested this project
+      }>;
     labels: DashboardLabels & Partial<ModelServingProjectLabels>;
     name: string;
   };
@@ -275,10 +275,10 @@ export type ServiceAccountKind = K8sResourceCommon & {
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
-    Partial<{
-      ['enable-route']: string;
-      ['enable-auth']: string;
-    }>;
+      Partial<{
+        ['enable-route']: string;
+        ['enable-auth']: string;
+      }>;
     name: string;
     namespace: string;
   };
@@ -448,7 +448,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       externalStorage: Partial<{
         bucket: string;
         host: string;
-        port: "";
+        port: '';
         scheme: string;
         s3CredentialsSecret: Partial<{
           accessKey: string;
