@@ -1,14 +1,5 @@
 import * as React from 'react';
 import { Alert, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
-import { PipelineAPIs } from '~/concepts/pipelines/types';
-import {
-  getPipeline,
-  deletePipeline,
-  listPipelineRuns,
-  listPipelines,
-  listPipelineTemplates,
-  uploadPipeline,
-} from '~/api';
 import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
