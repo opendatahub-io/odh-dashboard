@@ -1,10 +1,6 @@
 import * as React from 'react';
 import { Button, FormSection, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import {
-  CreateRunPageSections,
-  runPageSectionTitles,
-} from '~/concepts/pipelines/content/createRun/const';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import useExperiements from '~/concepts/pipelines/apiHooks/useExperiements';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
@@ -32,8 +28,8 @@ const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }
   return (
     <>
       <FormSection
-        id={CreateRunPageSections.EXPERIMENT}
-        title={runPageSectionTitles[CreateRunPageSections.EXPERIMENT]}
+      // id={CreateRunPageSections.EXPERIMENT}
+      // title={runPageSectionTitles[CreateRunPageSections.EXPERIMENT]}
       >
         <Stack hasGutter>
           <StackItem>

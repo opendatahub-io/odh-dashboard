@@ -7,7 +7,6 @@ import { ValueOf } from '~/typeHelpers';
 import RunTypeSection from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSection';
 import ParamsSection from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import PipelineSection from './contentSections/PipelineSection';
-import ExperimentSection from './contentSections/ExperimentSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 
 type RunPageContentProps = {
@@ -52,10 +51,12 @@ const RunForm: React.FC<RunPageContentProps> = ({ data, onValueChange }) => (
         );
       }}
     />
+    {/*
     <ExperimentSection
       value={data.experiment}
       onChange={(experiment) => onValueChange('experiment', experiment)}
     />
+    */}
     <RunTypeSection
       value={data.runType}
       onChange={(runType) => onValueChange('runType', runType)}

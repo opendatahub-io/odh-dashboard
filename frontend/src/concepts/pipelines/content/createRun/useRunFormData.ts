@@ -17,13 +17,9 @@ import {
   PipelineRunKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
-import {
-  getPipelineRunLikeExperimentReference,
-  getPipelineRunLikePipelineReference,
-} from '~/concepts/pipelines/content/tables/utils';
+import { getPipelineRunLikePipelineReference } from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { FetchState } from '~/utilities/useFetchState';
 import { ValueOf } from '~/typeHelpers';
 import {
@@ -80,17 +76,17 @@ const useUpdatePipeline = (
     usePipelineById,
   );
 
-const useUpdateExperiment = (
-  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineCoreResourceKF,
-) =>
-  useUpdateData(
-    setFunction,
-    initialData,
-    'experiment',
-    getPipelineRunLikeExperimentReference,
-    useExperimentById,
-  );
+// const useUpdateExperiment = (
+//   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+//   initialData?: PipelineCoreResourceKF,
+// ) =>
+//   useUpdateData(
+//     setFunction,
+//     initialData,
+//     'experiment',
+//     getPipelineRunLikeExperimentReference,
+//     useExperimentById,
+//   );
 
 const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   if (!kfTime) {
@@ -169,13 +165,13 @@ const useRunFormData = (initialData?: PipelineRunKF | PipelineRunJobKF) => {
       description: initialData?.description ?? '',
     },
     pipeline: null,
-    experiment: null,
+    // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
   });
 
   const setFunction = objState[1];
   useUpdatePipeline(setFunction, initialData);
-  useUpdateExperiment(setFunction, initialData);
+  // useUpdateExperiment(setFunction, initialData);
   useUpdateRunType(setFunction, initialData);
 
   return objState;
