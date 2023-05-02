@@ -1,5 +1,6 @@
 const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
 const printIn = (time: number, unit: string) => `in ${time} ${unit}${time > 1 ? 's' : ''}`;
+const leadZero = (v: number) => (v < 10 ? `0${v}` : `${v}`);
 
 export const relativeDuration = (valueInMs: number): string => {
   let seconds = Math.floor(valueInMs / 1000);
@@ -10,8 +11,30 @@ export const relativeDuration = (valueInMs: number): string => {
     seconds %= 60;
   }
 
-  const leadZero = (v) => (v < 10 ? `0${v}` : v);
   return `${minutes}:${leadZero(seconds)}`;
+};
+
+/** As YYYY-MM-DD */
+export const convertDateToSimpleDateString = (date?: Date): string | null => {
+  if (!date) {
+    return null;
+  }
+
+  return `${date.getUTCFullYear()}-${leadZero(date.getUTCMonth() + 1)}-${leadZero(
+    date.getUTCDate(),
+  )}`;
+};
+
+/** As HH:MM *M */
+export const convertDateToTimeString = (date?: Date): string | null => {
+  if (!date) {
+    return null;
+  }
+
+  const hours = date.getHours();
+  const hoursIn12 = (hours >= 12 ? hours - 12 : hours) || 12;
+
+  return `${hoursIn12}:${leadZero(date.getMinutes())} ${hours >= 12 ? 'PM' : 'AM'}`;
 };
 
 export const printSeconds = (seconds: number) => {

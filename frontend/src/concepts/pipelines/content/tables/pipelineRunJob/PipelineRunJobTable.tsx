@@ -14,10 +14,10 @@ type PipelineRunTableProps = {
 };
 
 const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs }) => {
-  const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
-    jobs.map(({ id }) => id),
-  );
   const [filterJobs, toolbarProps] = usePipelineRunJobFilter(jobs);
+  const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
+    filterJobs.map(({ id }) => id),
+  );
   const [, setDeleteIds] = React.useState<string[]>([]); // TODO: make modal
 
   return (

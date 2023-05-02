@@ -31,7 +31,13 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
     }
   }, [autoFocusName]);
 
-  const k8sName = React.useMemo(() => translateDisplayNameForK8s(data.name), [data.name]);
+  const k8sName = React.useMemo(() => {
+    if (showK8sName) {
+      return translateDisplayNameForK8s(data.name);
+    }
+
+    return '';
+  }, [showK8sName, data.name]);
 
   return (
     <Stack hasGutter>

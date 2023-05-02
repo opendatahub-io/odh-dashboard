@@ -1,15 +1,15 @@
 import { mergeRequestInit } from '~/api/apiMergeUtils';
 import { K8sAPIOptions } from '~/k8sTypes';
-import { EitherNotBoth } from '~/typeHelpers';
+import { EitherOrNone } from '~/typeHelpers';
 
 type CallProxyJSONOptions = {
   queryParams?: Record<string, unknown>;
-} & EitherNotBoth<
+} & EitherOrNone<
   {
-    fileContents?: string;
+    fileContents: string;
   },
   {
-    data?: Record<string, unknown>;
+    data: Record<string, unknown>;
   }
 >;
 
@@ -47,6 +47,7 @@ export const proxyGET = <T>(
 ): Promise<T> =>
   callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'GET' }), { queryParams });
 
+/** Standard POST */
 export const proxyCREATE = <T>(
   host: string,
   path: string,
@@ -59,6 +60,7 @@ export const proxyCREATE = <T>(
     queryParams,
   });
 
+/** POST -- but with file content instead of body data */
 export const proxyFILE = <T>(
   host: string,
   path: string,
@@ -68,6 +70,17 @@ export const proxyFILE = <T>(
 ): Promise<T> =>
   callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'POST' }), {
     fileContents,
+    queryParams,
+  });
+
+/** POST -- but no body data -- targets simple endpoints */
+export const proxyENDPOINT = <T>(
+  host: string,
+  path: string,
+  queryParams: Record<string, unknown> = {},
+  options?: K8sAPIOptions,
+): Promise<T> =>
+  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'POST' }), {
     queryParams,
   });
 

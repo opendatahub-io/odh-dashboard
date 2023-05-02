@@ -14,8 +14,11 @@ type PipelineRunTableProps = {
 };
 
 const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
-  const { tableProps, toggleSelection, isSelected } = useCheckboxTable(runs.map(({ id }) => id));
   const [filteredRuns, toolbarProps] = usePipelineRunFilter(runs);
+  const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
+    filteredRuns.map(({ id }) => id),
+  );
+  const [, setDeleteIds] = React.useState<string[]>([]); // TODO: make modal
 
   return (
     <>
@@ -25,7 +28,13 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
         columns={pipelineRunColumns}
         enablePagination
         emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
-        toolbarContent={<PipelineRunTableToolbar {...toolbarProps} />}
+        toolbarContent={
+          <PipelineRunTableToolbar
+            {...toolbarProps}
+            deleteAllEnabled={selections.length > 0}
+            onDeleteAll={() => setDeleteIds(selections)}
+          />
+        }
         rowRenderer={(run) => (
           <PipelineRunTableRow
             key={run.id}

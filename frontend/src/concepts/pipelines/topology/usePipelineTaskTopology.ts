@@ -1,9 +1,11 @@
 import * as React from 'react';
+import { RunStatus } from '@patternfly/react-topology';
 import { createNode } from '~/concepts/pipelines/topology/core/utils';
 import {
   PipelineRunKind,
   PipelineRunTask,
   PipelineRunTaskParam,
+  PipelineRunTaskRunStatusProperties,
   PipelineRunTaskWhen,
 } from '~/k8sTypes';
 
@@ -33,6 +35,26 @@ const whenAsRunAfter: AsRunAfter<PipelineRunTaskWhen> = (when) => {
 
 const isTruthyString = (t: unknown): t is string => !!t;
 
+const getRunStatus = (status: PipelineRunTaskRunStatusProperties): RunStatus => {
+  const successCondition = status.conditions.find((s) => s.type === 'Succeeded');
+  // const cancelledCondition = status.conditions.find((s) => s.status === 'Cancelled');
+
+  if (!successCondition || !successCondition.status) {
+    return RunStatus.Idle;
+  }
+
+  let runStatus: RunStatus | undefined;
+  if (successCondition.status === 'True') {
+    runStatus = RunStatus.Succeeded;
+  } else if (successCondition.status === 'False') {
+    runStatus = RunStatus.Failed;
+  } else {
+    runStatus = RunStatus.Running;
+  }
+
+  return runStatus;
+};
+
 export type KubeFlowTaskTopology = {
   taskMap: Record<string, PipelineRunTask>;
   nodes: ReturnType<typeof createNode>[];
@@ -43,6 +65,7 @@ export const usePipelineTaskTopology = (
   pipelineRun?: PipelineRunKind | null,
 ): KubeFlowTaskTopology => {
   const tasks: PipelineRunTask[] | undefined = pipelineRun?.spec.pipelineSpec?.tasks;
+  const status = pipelineRun?.status;
 
   return React.useMemo<KubeFlowTaskTopology>(() => {
     if (!tasks) {
@@ -74,23 +97,46 @@ export const usePipelineTaskTopology = (
     }, {});
 
     const idFromTask = (t: PipelineRunTask): string => t.name;
-    const nodes = tasks.map((task) => {
-      const runAfter: string[] | undefined = edgeLookupMap[task.name]
-        ? Array.from(edgeLookupMap[task.name])
-        : undefined;
+    return tasks.reduce<KubeFlowTaskTopology>(
+      (acc, task) => {
+        const runAfter: string[] | undefined = edgeLookupMap[task.name]
+          ? Array.from(edgeLookupMap[task.name])
+          : undefined;
 
-      return createNode({
-        id: idFromTask(task),
-        label: task.name,
-        runAfter,
-      });
-    });
+        let runStatus: RunStatus | undefined;
+        if (status) {
+          const skippedTasks = status.skippedTasks?.map((t) => t.name);
+          if (skippedTasks) {
+            runStatus = skippedTasks.includes(task.name) ? RunStatus.Skipped : undefined;
+          }
 
-    const taskMap = tasks.reduce<KubeFlowTaskTopology['taskMap']>(
-      (acc, t) => ({ ...acc, [idFromTask(t)]: t }),
-      {},
+          if (!runStatus) {
+            const taskStatusList = Object.values(status.taskRuns || {});
+            if (taskStatusList.length > 0) {
+              const thisTaskStatus = taskStatusList.find(
+                (status) => status.pipelineTaskName === task.name,
+              );
+              if (thisTaskStatus) {
+                runStatus = getRunStatus(thisTaskStatus.status);
+              }
+            }
+          }
+        }
+
+        const id = idFromTask(task);
+        const node = createNode({
+          id,
+          label: task.name,
+          runAfter,
+          status: runStatus,
+        });
+
+        return {
+          taskMap: { ...acc.taskMap, [id]: task },
+          nodes: [...acc.nodes, node],
+        };
+      },
+      { taskMap: {}, nodes: [] },
     );
-
-    return { taskMap, nodes };
-  }, [tasks]);
+  }, [tasks, status]);
 };

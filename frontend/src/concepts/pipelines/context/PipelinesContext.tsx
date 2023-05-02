@@ -1,29 +1,11 @@
 import * as React from 'react';
 import { Alert, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
-import { PipelineAPIs } from '~/concepts/pipelines/types';
-import {
-  createPipelinesCR,
-  getPipeline,
-  deletePipeline,
-  listPipelineRuns,
-  listPipelineRunsByPipeline,
-  listPipelines,
-  listPipelineTemplates,
-  uploadPipeline,
-  listPipelineRunJobs,
-  updatePipelineRunJob,
-} from '~/api';
+import { createPipelinesCR } from '~/api';
 import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
-
-type APIState = {
-  /** If API will successfully call */
-  apiAvailable: boolean;
-  /** The available API functions */
-  api: PipelineAPIs;
-};
 
 type PipelineContext = {
   hasCR: boolean;
@@ -54,7 +36,6 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   children,
   namespace,
 }) => {
-  const [internalAPIToggleState, setInternalAPIToggleState] = React.useState(false);
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace));
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = usePipelineNamespaceCR(namespace);
@@ -71,36 +52,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     refreshRoute();
   }, [refreshRoute, refreshCR]);
 
-  const refreshAPIState = React.useCallback(() => {
-    setInternalAPIToggleState((v) => !v);
-  }, []);
-
-  const apiState = React.useMemo<APIState>(() => {
-    // Note: This is a hack usage to get around the linter -- avoid copying this logic
-    // eslint-disable-next-line no-console
-    console.log('Computing Pipeline API', internalAPIToggleState ? '' : '');
-
-    let path = hostPath;
-    if (!path) {
-      // TODO: we need to figure out maybe a stopgap or something
-      path = '';
-    }
-
-    return {
-      apiAvailable: !!path,
-      api: {
-        getPipeline: getPipeline(path),
-        deletePipeline: deletePipeline(path),
-        listPipelines: listPipelines(path),
-        listPipelineRuns: listPipelineRuns(path),
-        listPipelineRunJobs: listPipelineRunJobs(path),
-        listPipelineRunsByPipeline: listPipelineRunsByPipeline(path),
-        listPipelineTemplate: listPipelineTemplates(path),
-        updatePipelineRunJob: updatePipelineRunJob(path),
-        uploadPipeline: uploadPipeline(path),
-      },
-    };
-  }, [hostPath, internalAPIToggleState]);
+  const [apiState, refreshAPIState] = useAPIState(hostPath);
 
   let error = crLoadError || routeLoadError;
   if (error || !project) {

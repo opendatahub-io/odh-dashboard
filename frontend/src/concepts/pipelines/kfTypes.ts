@@ -2,9 +2,9 @@
 // TODO: Determine what is optional and what is not
 
 /**
- * Format: "{YYYY}-{MM}-{DD}T{HH}:{MM}:{SS}Z"
+ * ISO Format: "{YYYY}-{MM}-{DD}T{HH}:{MM}:{SS}Z"
  */
-type DateTimeKF = string;
+export type DateTimeKF = string;
 
 type PipelineKFCallCommon<UniqueProps> = {
   total_size?: number;
@@ -48,6 +48,12 @@ export enum JobModeKF {
   UNKNOWN_MODE = 'UNKNOWN_MODE',
   ENABLED = 'ENABLED',
   DISABLED = 'DISABLED',
+}
+
+export enum StorageStateKF {
+  STORAGESTATE_UNSPECIFIED = 'STORAGESTATE_UNSPECIFIED',
+  STORAGESTATE_AVAILABLE = 'STORAGESTATE_AVAILABLE',
+  STORAGESTATE_ARCHIVED = 'STORAGESTATE_ARCHIVED',
 }
 
 export type ParameterKF = {
@@ -98,15 +104,15 @@ export type RunMetricKF = {
 export type PipelineSpecKF = {
   pipeline_id?: string;
   pipeline_name?: string;
-  workflow_manifests?: string;
+  workflow_manifest?: string;
   pipeline_manifests?: string;
   parameters: ParameterKF[];
   runtime_config: PipelineSpecRuntimeConfig;
 };
 
 export type CronScheduleKF = {
-  start_time: DateTimeKF;
-  end_time: DateTimeKF;
+  start_time?: DateTimeKF;
+  end_time?: DateTimeKF;
   cron: string;
 };
 
@@ -121,27 +127,23 @@ export type TriggerKF = {
   periodic_schedule?: PeriodicScheduleKF;
 };
 
-export type PipelineKF = {
+export type PipelineCoreResourceKF = {
   id: string;
-  created_at: DateTimeKF;
   name: string;
-  description: string;
+  description?: string;
+  resource_references?: ResourceReferenceKF[];
+};
+
+export type PipelineKF = PipelineCoreResourceKF & {
+  created_at: DateTimeKF;
   parameters?: ParameterKF[];
   url?: UrlKF;
   error?: string;
   default_version: PipelineVersionKF;
-  resource_references?: ResourceReferenceKF[];
 };
 
-export type PipelineRunLikeKF = {
-  id: string;
-  name: string;
-  resource_references?: ResourceReferenceKF[];
-};
-
-export type PipelineRunKF = PipelineRunLikeKF & {
+export type PipelineRunKF = PipelineCoreResourceKF & {
   storage_state: RunStorageStateKF;
-  description: string;
   pipeline_spec: PipelineSpecKF;
   service_account: string;
   created_at: DateTimeKF;
@@ -152,8 +154,7 @@ export type PipelineRunKF = PipelineRunLikeKF & {
   metrics: RunMetricKF[];
 };
 
-export type PipelineRunJobKF = PipelineRunLikeKF & {
-  description: string;
+export type PipelineRunJobKF = PipelineCoreResourceKF & {
   pipeline_spec: PipelineSpecKF;
   service_account?: string;
   max_concurrency: string;
@@ -167,9 +168,28 @@ export type PipelineRunJobKF = PipelineRunLikeKF & {
   no_catchup: boolean;
 };
 
+export type PipelineRunResourceKF = {
+  pipeline_runtime: {
+    workflow_manifest: string;
+  };
+  run: PipelineRunKF;
+};
+
+export type ExperimentKF = {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: DateTimeKF;
+  resource_references?: ResourceReferenceKF[];
+  storage_state: StorageStateKF;
+};
+
 export type DeletePipelineResourceKF = {
   // No response details
 };
+export type ListExperimentsResponseKF = PipelineKFCallCommon<{
+  experiments: ExperimentKF[];
+}>;
 export type ListPipelinesResponseKF = PipelineKFCallCommon<{
   pipelines: PipelineKF[];
 }>;
@@ -182,4 +202,38 @@ export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
 export type ListPipelineTemplateResourceKF = {
   /** YAML template of a PipelineRunKind */
   template: string;
+};
+
+export type CreatePipelineRunKFData = Omit<
+  PipelineRunKF,
+  | 'id'
+  | 'status'
+  | 'created_at'
+  | 'finished_at'
+  | 'scheduled_at'
+  | 'pipeline_spec'
+  | 'storage_state'
+  | 'error'
+  | 'metrics'
+> & {
+  pipeline_spec: Pick<PipelineSpecKF, 'parameters'>;
+};
+
+export type CreatePipelineRunJobKFData = Omit<
+  PipelineRunJobKF,
+  | 'id'
+  | 'status'
+  | 'created_at'
+  | 'finished_at'
+  | 'updated_at'
+  | 'scheduled_at'
+  | 'pipeline_spec'
+  | 'storage_state'
+  | 'enabled'
+  | 'mode'
+  | 'error'
+  | 'metrics'
+  | 'no_catchup'
+> & {
+  pipeline_spec: Pick<PipelineSpecKF, 'parameters'>;
 };

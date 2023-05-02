@@ -8,7 +8,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { FetchState } from '~/utilities/useFetchState';
@@ -24,6 +24,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
   isExpanded,
   runsFetchState,
 }) => {
+  const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [runs, loaded] = runsFetchState;
 
@@ -55,7 +56,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
                 <EmptyStateSecondaryActions>
                   <Button
                     variant="link"
-                    onClick={() => alert('should navigate to pipeline run creation page')}
+                    onClick={() => navigate(`/pipeline/${namespace}/pipelineRun/create`)}
                   >
                     Create run
                   </Button>

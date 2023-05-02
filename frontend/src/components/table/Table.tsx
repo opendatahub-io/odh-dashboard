@@ -13,6 +13,7 @@ import {
   TableComposableProps,
   Caption,
   Tbody,
+  Td,
 } from '@patternfly/react-table';
 import React, { useEffect } from 'react';
 import useTableColumnSort, { SortableData } from '~/components/table/useTableColumnSort';
@@ -113,6 +114,8 @@ const Table = <T,>({
                       isSelected: selectAll.selected,
                       onSelect: (e, value) => selectAll.onSelect(value),
                     }}
+                    // TODO: Log PF bug -- when there are no rows this gets truncated
+                    style={{ minWidth: '45px' }}
                   />
                 );
               }
@@ -126,7 +129,8 @@ const Table = <T,>({
                   {col.label}
                 </Th>
               ) : (
-                <Th key={col.field + i} width={col.width} />
+                // Table headers cannot be empty for a11y, table cells can -- https://dequeuniversity.com/rules/axe/4.0/empty-table-header
+                <Td key={col.field + i} width={col.width} />
               );
             })}
           </Tr>

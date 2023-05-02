@@ -27,13 +27,19 @@ const usePipelineRunFilter = (
     const startedValue = filterData[FilterOptions.STARTED];
     const statusValue = filterData[FilterOptions.STATUS];
 
-    if (runValue && !run.name.includes(runValue)) {
+    if (runValue && !run.name.toLowerCase().includes(runValue.toLowerCase())) {
       return false;
     }
-    if (experimentValue && !getPipelineRunLikeExperimentName(run).includes(experimentValue)) {
+    if (
+      experimentValue &&
+      !getPipelineRunLikeExperimentName(run).toLowerCase().includes(experimentValue.toLowerCase())
+    ) {
       return false;
     }
-    if (pipelineValue && !getPipelineRunLikePipelineName(run).includes(pipelineValue)) {
+    if (
+      pipelineValue &&
+      !getPipelineRunLikePipelineName(run).toLowerCase().includes(pipelineValue.toLowerCase())
+    ) {
       return false;
     }
     if (startedValue && !run.created_at.includes(startedValue)) {

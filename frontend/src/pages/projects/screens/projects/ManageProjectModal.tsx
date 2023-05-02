@@ -9,7 +9,7 @@ import {
   getProjectDisplayName,
   isValidK8sName,
 } from '~/pages/projects/utils';
-import NameDescriptionField from '~/pages/projects/components/NameDescriptionField';
+import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 
 type ManageProjectModalProps = {

@@ -9,15 +9,7 @@ const usePipelines = (limit?: number) => {
   const { api } = usePipelinesAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<PipelineKF[]>>(
-    (opts) =>
-      new Promise((resolve, reject) => {
-        api
-          .listPipelines(opts, limit)
-          .then(({ pipelines }) => {
-            resolve(pipelines ?? []);
-          })
-          .catch(reject);
-      }),
+    (opts) => api.listPipelines(opts, limit).then(({ pipelines }) => pipelines ?? []),
     [api, limit],
   );
 

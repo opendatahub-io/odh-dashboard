@@ -64,6 +64,14 @@ export type ModelServingProjectLabels = {
   [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
 };
 
+export type K8sCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+};
+
 export type BuildConfigKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -542,17 +550,57 @@ export type PipelineRunTask = {
   runAfter?: string[];
 };
 
+export type PipelineRunPipelineSpec = {
+  tasks: PipelineRunTask[];
+};
+
+export type SkippedTask = {
+  name: string;
+  reason: string;
+  whenExpressions: PipelineRunTaskWhen;
+};
+
+export type PipelineRunTaskRunStatusProperties = {
+  conditions: K8sCondition[];
+  podName: string;
+  startTime: string;
+  completionTime?: string;
+  // TODO: Populate these
+  steps?: unknown[];
+  taskResults?: unknown[];
+  taskSpec?: {
+    steps?: unknown[];
+    results?: unknown[];
+  };
+};
+
+export type PipelineRunTaskRunStatus = {
+  /** The task name; pipelineSpec.tasks[].name */
+  pipelineTaskName: string;
+  status: PipelineRunTaskRunStatusProperties;
+};
+
 export type PipelineRunKind = K8sResourceCommon & {
   metadata: {
     name: string;
   };
   spec: {
-    pipelineSpec?: {
-      tasks: PipelineRunTask[];
-    };
+    pipelineSpec?: PipelineRunPipelineSpec;
     /** Unsupported for Kubeflow */
     pipelineRef?: {
       name: string;
     };
+  };
+  status?: {
+    startTime: string;
+    completionTime?: string;
+    succeededCondition?: string;
+    conditions?: K8sCondition[];
+    /** Keyed on a generated key for the task run */
+    taskRuns?: Record<string, PipelineRunTaskRunStatus>;
+    pipelineSpec: PipelineRunPipelineSpec;
+    skippedTasks?: SkippedTask[];
+    /** References Tekton tasks -- unlikely we will need this */
+    childReferences: unknown[];
   };
 };

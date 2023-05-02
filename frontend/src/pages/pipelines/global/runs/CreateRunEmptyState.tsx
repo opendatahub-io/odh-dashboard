@@ -28,7 +28,10 @@ const CreateRunEmptyState: React.FC<CreateRunEmptyStateProps> = ({ title, descri
       </Title>
       <EmptyStateBody>{description}</EmptyStateBody>
       <EmptyStatePrimary>
-        <Button variant="primary" onClick={() => navigate(`/pipelineRuns/${namespace}/runs`)}>
+        <Button
+          variant="primary"
+          onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/create`)}
+        >
           Create run
         </Button>
       </EmptyStatePrimary>

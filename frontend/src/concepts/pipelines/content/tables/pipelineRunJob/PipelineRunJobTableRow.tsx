@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { useNavigate } from 'react-router-dom';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
 import {
@@ -25,6 +26,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
   onDelete,
   job,
 }) => {
+  const navigate = useNavigate();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
 
   return (
@@ -55,9 +57,9 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
         <ActionsColumn
           items={[
             {
-              title: 'Edit',
+              title: 'Clone',
               onClick: () => {
-                alert('should navigate to pipeline run creation page');
+                navigate(`/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.id}`);
               },
             },
             {

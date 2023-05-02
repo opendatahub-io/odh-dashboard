@@ -7,10 +7,10 @@ import {
   ModelKind,
   SpacerNode,
   TaskEdge,
-  TaskNode,
   withPanZoom,
   withSelection,
 } from '@patternfly/react-topology';
+import StandardTaskNode from '~/concepts/pipelines/topology/core/customNodes/StandardTaskNode';
 
 // Topology gap... their types have issues with Strict TS mode
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -23,7 +23,7 @@ export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
     case DEFAULT_TASK_NODE_TYPE:
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      return withSelection()(TaskNode);
+      return withSelection()(StandardTaskNode);
     case DEFAULT_SPACER_NODE_TYPE:
       return SpacerNode;
     case DEFAULT_EDGE_TYPE:

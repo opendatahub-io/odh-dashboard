@@ -7,6 +7,10 @@ import {
   pipelinesPageTitle,
 } from '~/pages/pipelines/global/pipelines/const';
 import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
+import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
+import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
+import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 
 const GlobalPipelinesRoutes: React.FC = () => (
@@ -23,9 +27,40 @@ const GlobalPipelinesRoutes: React.FC = () => (
     >
       <Route index element={<GlobalPipelines />} />
       <Route
-        path=":pipelineId"
+        path="pipeline/view/:pipelineId"
         element={
           <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={PipelineDetails}
+            pageName="Pipelines"
+            redirectPath={(namespace) => `/pipelines/${namespace}`}
+          />
+        }
+      />
+      <Route
+        path="pipelineRun/view/:pipelineRunId"
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={PipelineRunDetails}
+            pageName="Pipelines"
+            redirectPath={(namespace) => `/pipelines/${namespace}`}
+          />
+        }
+      />
+      <Route
+        path="pipelineRun/create"
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={CreateRunPage}
+            pageName="Pipelines"
+            redirectPath={(namespace) => `/pipelines/${namespace}`}
+          />
+        }
+      />
+      <Route
+        path="pipelineRun/clone/:pipelineRunId"
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={CloneRunPage}
             pageName="Pipelines"
             redirectPath={(namespace) => `/pipelines/${namespace}`}
           />

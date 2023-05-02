@@ -6,6 +6,7 @@ import {
 import {
   getPipelineRunLikeExperimentName,
   getPipelineRunLikePipelineName,
+  isJobWithinDateRange,
 } from '~/concepts/pipelines/content/tables/utils';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 
@@ -14,6 +15,7 @@ const DEFAULT_FILTER_DATA: FilterData = {
   [FilterOptions.NAME]: '',
   [FilterOptions.EXPERIMENT]: '',
   [FilterOptions.PIPELINE]: '',
+  [FilterOptions.SCHEDULED]: '',
   [FilterOptions.STATUS]: '',
 };
 
@@ -26,15 +28,25 @@ const usePipelineRunJobFilter = (
     const runValue = filterData[FilterOptions.NAME];
     const experimentValue = filterData[FilterOptions.EXPERIMENT];
     const pipelineValue = filterData[FilterOptions.PIPELINE];
+    const scheduledRangeValue = filterData[FilterOptions.SCHEDULED];
     const statusValue = filterData[FilterOptions.STATUS];
 
-    if (runValue && !job.name.includes(runValue)) {
+    if (runValue && !job.name.toLowerCase().includes(runValue.toLowerCase())) {
       return false;
     }
-    if (experimentValue && !getPipelineRunLikeExperimentName(job).includes(experimentValue)) {
+    if (
+      experimentValue &&
+      !getPipelineRunLikeExperimentName(job).toLowerCase().includes(experimentValue.toLowerCase())
+    ) {
       return false;
     }
-    if (pipelineValue && !getPipelineRunLikePipelineName(job).includes(pipelineValue)) {
+    if (
+      pipelineValue &&
+      !getPipelineRunLikePipelineName(job).toLowerCase().includes(pipelineValue.toLowerCase())
+    ) {
+      return false;
+    }
+    if (scheduledRangeValue && !isJobWithinDateRange(job, scheduledRangeValue)) {
       return false;
     }
     if (statusValue) {
