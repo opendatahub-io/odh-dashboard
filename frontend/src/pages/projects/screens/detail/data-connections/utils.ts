@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { deleteSecret } from '~/api';
-import { K8sStatus } from '~/k8sTypes';
+import { AWSSecretKind, K8sStatus, KnownLabels, SecretKind } from '~/k8sTypes';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import {
   AWSDataEntry,
@@ -10,6 +10,9 @@ import {
 } from '~/pages/projects/types';
 import { getSecretDescription, getSecretDisplayName } from '~/pages/projects/utils';
 import { DATA_CONNECTION_TYPES } from './connectionRenderers';
+
+export const isSecretAWSSecretKind = (secret: SecretKind): secret is AWSSecretKind =>
+  !!secret.metadata.labels?.[KnownLabels.DATA_CONNECTION_AWS];
 
 export const isDataConnectionAWS = (
   dataConnection: DataConnection,

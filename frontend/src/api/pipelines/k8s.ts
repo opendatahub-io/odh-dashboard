@@ -1,6 +1,10 @@
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sCreateResource,
+  k8sDeleteResource,
+  k8sGetResource,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { DataSciencePipelineApplicationModel } from '~/api/models';
-import { DSPipelineKind, K8sAPIOptions, RouteKind } from '~/k8sTypes';
+import { DSPipelineKind, K8sAPIOptions, K8sStatus, RouteKind } from '~/k8sTypes';
 import { getRoute } from '~/api';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
@@ -14,6 +18,7 @@ export const getPipelineAPIRoute = async (
 
 export const createPipelinesCR = async (
   namespace: string,
+  spec: DSPipelineKind['spec'],
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind> => {
   const resource: DSPipelineKind = {
@@ -24,15 +29,17 @@ export const createPipelinesCR = async (
       namespace,
     },
     spec: {
-      // TODO: populate info from the modal
       objectStorage: {
-        minio: {
-          image: 'quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance',
+        externalStorage: {
+          port: '',
+          ...spec?.objectStorage?.externalStorage,
         },
+        ...spec?.objectStorage,
       },
       mlpipelineUI: {
         image: 'quay.io/opendatahub/odh-ml-pipelines-frontend-container:beta-ui',
       },
+      ...spec,
     },
   };
 
@@ -49,6 +56,17 @@ export const getPipelinesCR = async (
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind> =>
   k8sGetResource<DSPipelineKind>(
+    applyK8sAPIOptions(opts, {
+      model: DataSciencePipelineApplicationModel,
+      queryOptions: { name: PIPELINE_DEFINITION_NAME, ns: namespace },
+    }),
+  );
+
+export const deletePipelineCR = async (
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<DSPipelineKind, K8sStatus>(
     applyK8sAPIOptions(opts, {
       model: DataSciencePipelineApplicationModel,
       queryOptions: { name: PIPELINE_DEFINITION_NAME, ns: namespace },

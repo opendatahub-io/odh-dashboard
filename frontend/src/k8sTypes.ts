@@ -412,7 +412,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
     }>;
     database: Partial<{
-      customDB: Partial<{
+      externalDB: Partial<{
         host: string;
         passwordSecret: Partial<{
           key: string;
@@ -445,10 +445,11 @@ export type DSPipelineKind = K8sResourceCommon & {
       image: string;
     }>;
     objectStorage: Partial<{
-      customStorage: Partial<{
+      externalStorage: Partial<{
         bucket: string;
         host: string;
-        port: string;
+        port: '';
+        scheme: string;
         s3CredentialsSecret: Partial<{
           accessKey: string;
           secretKey: string;

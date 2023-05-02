@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { FormGroup, TextInput } from '@patternfly/react-core';
 import PasswordInput from '~/pages/projects/components/PasswordInput';
-import { AWS_KEYS } from './const';
+import { DATABASE_CONNECTION_KEYS } from './const';
 
-type AWSInputFieldProps = {
+type DatabaseConnectionInputFieldProps = {
   isPassword?: boolean;
   isRequired: boolean;
-  onChange: (key: AWS_KEYS, value: string) => void;
-  type: AWS_KEYS;
+  onChange: (key: DATABASE_CONNECTION_KEYS, value: string) => void;
+  type: DATABASE_CONNECTION_KEYS;
   value: string;
 };
 
-const AWSInputField: React.FC<AWSInputFieldProps> = ({
+const DatabaseConnectionInputField: React.FC<DatabaseConnectionInputFieldProps> = ({
   isPassword,
   isRequired,
   onChange,
@@ -23,7 +23,7 @@ const AWSInputField: React.FC<AWSInputFieldProps> = ({
   return (
     <FormGroup isRequired={isRequired} label={type}>
       <ComponentField
-        aria-label={`AWS field ${type}`}
+        aria-label={`Database connection field ${type}`}
         isRequired={isRequired}
         value={value}
         onChange={(value) => onChange(type, value)}
@@ -32,4 +32,4 @@ const AWSInputField: React.FC<AWSInputFieldProps> = ({
   );
 };
 
-export default AWSInputField;
+export default DatabaseConnectionInputField;
