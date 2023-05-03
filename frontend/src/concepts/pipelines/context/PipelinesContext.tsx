@@ -4,6 +4,7 @@ import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
+import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
@@ -38,7 +39,8 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   namespace,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(namespace));
+  const project = projects.find(byName(namespace)) ?? null;
+  useSyncPreferredProject(project);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = usePipelineNamespaceCR(namespace);
   // TODO: Implement the status loading flag from the CR
   const isCRPresent = crLoaded && !!pipelineNamespaceCR;

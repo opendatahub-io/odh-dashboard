@@ -9,6 +9,15 @@ type ProjectsContext = {
   modelServingProjects: ProjectKind[];
   /** eg. Terminating state, etc */
   nonActiveProjects: ProjectKind[];
+
+  /** Some component set this value, you should use this instead of projects[0] */
+  preferredProject: ProjectKind | null;
+  /**
+   * Allows for navigation to be unimpeded by project selection
+   * @see useSyncPreferredProject
+   */
+  updatePreferredProject: (project: ProjectKind) => void;
+
   // ...the rest of the state variables
   loaded: ProjectFetchState[1];
   loadError: ProjectFetchState[2];
@@ -19,6 +28,8 @@ export const ProjectsContext = React.createContext<ProjectsContext>({
   projects: [],
   modelServingProjects: [],
   nonActiveProjects: [],
+  preferredProject: null,
+  updatePreferredProject: () => undefined,
   loaded: false,
   loadError: new Error('Not in project provider'),
   refresh: () => Promise.resolve(),
@@ -34,6 +45,8 @@ type ProjectsProviderProps = {
 
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
   const fetchProjects = React.useCallback(() => getDSGProjects(), []);
+  const [preferredProject, setPreferredProject] =
+    React.useState<ProjectsContext['preferredProject']>(null);
   const [projectData, loaded, loadError, refreshProjects] = useFetchState<ProjectKind[]>(
     fetchProjects,
     [],
@@ -77,6 +90,12 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       }),
     [refreshProjects],
   );
+  const updatePreferredProject = React.useCallback<ProjectsContext['updatePreferredProject']>(
+    (project) => {
+      setPreferredProject(project);
+    },
+    [],
+  );
 
   return (
     <ProjectsContext.Provider
@@ -84,6 +103,8 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
         projects,
         modelServingProjects,
         nonActiveProjects,
+        preferredProject,
+        updatePreferredProject,
         loaded,
         loadError,
         refresh,

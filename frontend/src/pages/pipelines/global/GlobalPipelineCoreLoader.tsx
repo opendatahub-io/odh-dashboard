@@ -24,7 +24,7 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, preferredProject } = React.useContext(ProjectsContext);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {
@@ -53,7 +53,7 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       };
     } else {
       // Redirect the namespace suffix into the URL
-      const redirectProject = projects[0];
+      const redirectProject = preferredProject ?? projects[0];
       return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
     }
   }
