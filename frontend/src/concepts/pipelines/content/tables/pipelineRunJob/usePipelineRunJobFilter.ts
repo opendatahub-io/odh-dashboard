@@ -4,8 +4,8 @@ import {
   FilterProps,
 } from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import {
-  getPipelineRunLikeExperimentName,
-  getPipelineRunLikePipelineName,
+  getPipelineCoreResourceExperimentName,
+  getPipelineCoreResourcePipelineName,
   isJobWithinDateRange,
 } from '~/concepts/pipelines/content/tables/utils';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
@@ -36,13 +36,15 @@ const usePipelineRunJobFilter = (
     }
     if (
       experimentValue &&
-      !getPipelineRunLikeExperimentName(job).toLowerCase().includes(experimentValue.toLowerCase())
+      !getPipelineCoreResourceExperimentName(job)
+        .toLowerCase()
+        .includes(experimentValue.toLowerCase())
     ) {
       return false;
     }
     if (
       pipelineValue &&
-      !getPipelineRunLikePipelineName(job).toLowerCase().includes(pipelineValue.toLowerCase())
+      !getPipelineCoreResourcePipelineName(job).toLowerCase().includes(pipelineValue.toLowerCase())
     ) {
       return false;
     }

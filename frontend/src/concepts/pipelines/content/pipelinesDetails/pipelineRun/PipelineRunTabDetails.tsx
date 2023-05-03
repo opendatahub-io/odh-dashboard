@@ -17,7 +17,7 @@ import { GlobeAmericasIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineRunLikePipelineReference,
+  getPipelineCoreResourcePipelineReference,
   getRunDuration,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -59,7 +59,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ pipelineR
     </>
   );
 
-  const pipelineReference = getPipelineRunLikePipelineReference(pipelineRunKF);
+  const pipelineReference = getPipelineCoreResourcePipelineReference(pipelineRunKF);
   const pipelineRef = pipelineReference
     ? [
         {

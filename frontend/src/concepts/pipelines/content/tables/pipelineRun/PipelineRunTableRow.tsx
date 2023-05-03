@@ -6,8 +6,8 @@ import TableRowTitleDescription from '~/components/table/TableRowTitleDescriptio
 import {
   RunCreated,
   RunDuration,
-  RunLikeExperiment,
-  RunLikePipeline,
+  CoreResourceExperiment,
+  CoreResourcePipeline,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -40,10 +40,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         />
       </Td>
       <Td>
-        <RunLikeExperiment runLike={run} />
+        <CoreResourceExperiment resource={run} />
       </Td>
       <Td>
-        <RunLikePipeline runLike={run} namespace={namespace} />
+        <CoreResourcePipeline resource={run} namespace={namespace} />
       </Td>
       <Td>
         <RunCreated run={run} />

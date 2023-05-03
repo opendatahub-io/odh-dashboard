@@ -17,7 +17,7 @@ import {
   PipelineRunKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
-import { getPipelineRunLikePipelineReference } from '~/concepts/pipelines/content/tables/utils';
+import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { FetchState } from '~/utilities/useFetchState';
@@ -77,7 +77,7 @@ const useUpdatePipeline = (
     updatedSetFunction,
     initialData,
     'pipeline',
-    getPipelineRunLikePipelineReference,
+    getPipelineCoreResourcePipelineReference,
     usePipelineById,
   );
 };
@@ -90,7 +90,7 @@ const useUpdatePipeline = (
 //     setFunction,
 //     initialData,
 //     'experiment',
-//     getPipelineRunLikeExperimentReference,
+//     getPipelineCoreResourceExperimentReference,
 //     useExperimentById,
 //   );
 

@@ -27,10 +27,10 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
-  getPipelineRunLikeExperimentName,
+  getPipelineCoreResourceExperimentName,
   getPipelineRunJobScheduledState,
   ScheduledState,
-  getPipelineRunLikePipelineReference,
+  getPipelineCoreResourcePipelineReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
@@ -38,7 +38,7 @@ export const NoRunContent = () => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;
-type RunLikeUtil<P = ExtraProps> = React.FC<{ runLike: PipelineCoreResourceKF } & P>;
+type CoreResourceUtil<P = ExtraProps> = React.FC<{ resource: PipelineCoreResourceKF } & P>;
 type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKF } & P>;
 
 export const RunNameForPipeline: RunUtil = ({ run }) => {
@@ -121,12 +121,15 @@ export const RunCreated: RunUtil = ({ run }) => {
   );
 };
 
-export const RunLikeExperiment: RunLikeUtil = ({ runLike }) => (
-  <>{getPipelineRunLikeExperimentName(runLike)}</>
+export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (
+  <>{getPipelineCoreResourceExperimentName(resource)}</>
 );
 
-export const RunLikePipeline: RunLikeUtil<{ namespace: string }> = ({ runLike, namespace }) => {
-  const resourceRef = getPipelineRunLikePipelineReference(runLike);
+export const CoreResourcePipeline: CoreResourceUtil<{ namespace: string }> = ({
+  resource,
+  namespace,
+}) => {
+  const resourceRef = getPipelineCoreResourcePipelineReference(resource);
   const pipelineName = resourceRef?.name;
   if (!resourceRef || !pipelineName) {
     return <NoRunContent />;

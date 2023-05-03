@@ -6,8 +6,8 @@ import {
   PipelineCoreResourceKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineRunLikeExperimentName,
-  getPipelineRunLikePipelineName,
+  getPipelineCoreResourceExperimentName,
+  getPipelineCoreResourcePipelineName,
   getRunDuration,
   getScheduledStateWeight,
   getStatusWeight,
@@ -45,7 +45,7 @@ export const pipelineColumns: SortableData<PipelineKF>[] = [
   kebabTableColumn(),
 ];
 
-const sharedPipelineRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
+const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Name',
@@ -57,20 +57,22 @@ const sharedPipelineRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
     label: 'Experiment',
     field: 'experiment',
     sortable: (a, b) =>
-      getPipelineRunLikeExperimentName(a).localeCompare(getPipelineRunLikeExperimentName(b)),
+      getPipelineCoreResourceExperimentName(a).localeCompare(
+        getPipelineCoreResourceExperimentName(b),
+      ),
     width: 10,
   },
   {
     label: 'Pipeline',
     field: 'pipeline',
     sortable: (a, b) =>
-      getPipelineRunLikePipelineName(a)?.localeCompare(getPipelineRunLikePipelineName(b)),
+      getPipelineCoreResourcePipelineName(a)?.localeCompare(getPipelineCoreResourcePipelineName(b)),
     width: 15,
   },
 ];
 
 export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
-  ...sharedPipelineRunLikeColumns,
+  ...sharedRunLikeColumns,
   {
     label: 'Started',
     field: 'started',
@@ -90,7 +92,7 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
 ];
 
 export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
-  ...sharedPipelineRunLikeColumns,
+  ...sharedRunLikeColumns,
   {
     label: 'Trigger',
     field: 'trigger',

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {
-  getPipelineRunLikeExperimentName,
-  getPipelineRunLikePipelineName,
+  getPipelineCoreResourceExperimentName,
+  getPipelineCoreResourcePipelineName,
 } from '~/concepts/pipelines/content/tables/utils';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { FilterOptions, FilterProps } from './PipelineRunTableToolbar';
@@ -32,13 +32,15 @@ const usePipelineRunFilter = (
     }
     if (
       experimentValue &&
-      !getPipelineRunLikeExperimentName(run).toLowerCase().includes(experimentValue.toLowerCase())
+      !getPipelineCoreResourceExperimentName(run)
+        .toLowerCase()
+        .includes(experimentValue.toLowerCase())
     ) {
       return false;
     }
     if (
       pipelineValue &&
-      !getPipelineRunLikePipelineName(run).toLowerCase().includes(pipelineValue.toLowerCase())
+      !getPipelineCoreResourcePipelineName(run).toLowerCase().includes(pipelineValue.toLowerCase())
     ) {
       return false;
     }
