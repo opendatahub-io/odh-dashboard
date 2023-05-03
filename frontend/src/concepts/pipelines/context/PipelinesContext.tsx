@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
-import { ProjectKind } from '~/k8sTypes';
+import { DSPipelineKind, ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
@@ -13,6 +13,7 @@ type PipelineContext = {
   crInitializing: boolean;
   namespace: string;
   project: ProjectKind;
+  pipelineNamespaceCR: DSPipelineKind | null;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
   apiState: APIState;
@@ -23,6 +24,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   crInitializing: false,
   namespace: '',
   project: null as unknown as ProjectKind,
+  pipelineNamespaceCR: null,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
   apiState: { apiAvailable: false, api: null as unknown as APIState['api'] },
@@ -73,6 +75,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
         hasCR: isCRPresent,
         crInitializing: !crLoaded,
         project,
+        pipelineNamespaceCR,
         apiState,
         namespace,
         refreshState,
@@ -89,6 +92,8 @@ type UsePipelinesAPI = APIState & {
   namespace: string;
   /** The Project resource behind the namespace */
   project: ProjectKind;
+  /** The DSPipeline resource for the namespace */
+  pipelineNamespaceCR: DSPipelineKind | null;
   /** State of the CR */
   pipelinesServer: { initializing: boolean; installed: boolean };
   /**
@@ -105,6 +110,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     apiState,
     namespace,
     project,
+    pipelineNamespaceCR,
     refreshAPIState: refreshAllAPI,
   } = React.useContext(PipelinesContext);
 
@@ -117,6 +123,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     pipelinesServer,
     namespace,
     project,
+    pipelineNamespaceCR,
     refreshAllAPI,
     ...apiState,
   };

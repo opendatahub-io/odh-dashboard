@@ -6,6 +6,7 @@ import {
   convertAWSSecretData,
 } from '~/pages/projects/screens/detail/data-connections/utils';
 import { AWSDataEntry, DataConnectionType } from '~/pages/projects/types';
+import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
 import { ObjectStorageExisting, PipelineServerConfigType } from './ConfigurePipelinesServerModal';
 import { DATABASE_CONNECTION_KEYS } from './const';
 
@@ -120,25 +121,23 @@ export const configureDSPipelineResourceSpec = (
   projectName: string,
 ): Promise<DSPipelineKind['spec']> =>
   createSecrets(config, projectName).then(([databaseSecret, objectStorageSecret]) => {
-    const awsRecord = objectStorageSecret?.awsData?.reduce<Record<string, string>>(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {},
-    );
+    const awsRecord = dataEntryToRecord(objectStorageSecret.awsData);
+    const databaseRecord = dataEntryToRecord(config.database.value);
 
-    const databaseRecord = config.database.value?.reduce<Record<string, string>>(
+    config.database.value?.reduce<Record<string, string>>(
       (acc, { key, value }) => ({ ...acc, [key]: value }),
       {},
     );
 
     const [, externalStorageScheme, externalStorageHost] =
-      awsRecord?.[AWS_KEYS.S3_ENDPOINT].match(/^(\w+):\/\/(.*)/) ?? [];
+      awsRecord.AWS_S3_ENDPOINT?.match(/^(\w+):\/\/(.*)/) ?? [];
 
     return {
       objectStorage: {
         externalStorage: {
           host: externalStorageHost.replace(/\/$/, ''),
           scheme: externalStorageScheme,
-          bucket: awsRecord?.[AWS_KEYS.AWS_S3_BUCKET],
+          bucket: awsRecord.AWS_S3_BUCKET,
           port: '',
           s3CredentialsSecret: {
             accessKey: AWS_KEYS.ACCESS_KEY_ID,
