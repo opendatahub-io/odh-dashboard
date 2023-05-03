@@ -73,6 +73,7 @@ const TrustyChart: React.FC<TrustyChartProps> = ({
               </Tooltip>
             </ToolbarItem>
           )}
+          {/*<ToolbarItem><button onClick={() => } </ToolbarItem>*/}
           <ToolbarItem variant="label">Scheduled Metric</ToolbarItem>
           <ToolbarItem>
             <ScheduledMetricSelect
