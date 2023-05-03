@@ -6,12 +6,13 @@ import { ProjectSectionTitlesExtended } from '~/pages/projects/screens/detail/co
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
-import { filterTemplatesEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
 import { useAppContext } from '~/app/AppContext';
 import { featureFlagEnabled } from '~/utilities/utils';
+import { getTemplateEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
+
 
 const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
@@ -31,11 +32,9 @@ const ServingRuntimeList: React.FC = () => {
   const customServingRuntimesEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
   );
-  const templatesEnabled = customServingRuntimesEnabled
-    ? filterTemplatesEnabled(templates)
-    : undefined;
+  const templatesEnabled = templates.filter(getTemplateEnabled);
+  const emptyTemplates = templatesEnabled?.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;
-  const emptyTemplates = templatesEnabled?.length === 0 || false;
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   return (
@@ -50,7 +49,7 @@ const ServingRuntimeList: React.FC = () => {
             customServingRuntimesEnabled={customServingRuntimesEnabled}
             templatesLoaded={templatesLoaded}
             onClick={() => setOpen(true)}
-            key={`serving-runtime-actions`}
+            key="serving-runtime-actions"
           />,
         ]}
         isLoading={!servingRuntimesLoaded && !templatesLoaded}
@@ -67,7 +66,7 @@ const ServingRuntimeList: React.FC = () => {
         <ServingRuntimeTable
           modelServers={servingRuntimes}
           modelSecrets={secrets}
-          templates={templatesEnabled}
+          templates={customServingRuntimesEnabled ? templatesEnabled : undefined}
           refreshServingRuntime={refreshServingRuntime}
           refreshTokens={refreshTokens}
           refreshInferenceServices={refreshInferenceServices}
@@ -78,7 +77,7 @@ const ServingRuntimeList: React.FC = () => {
       <ManageServingRuntimeModal
         isOpen={isOpen}
         currentProject={currentProject}
-        servingRuntimeTemplates={templatesEnabled}
+        servingRuntimeTemplates={customServingRuntimesEnabled ? templatesEnabled : undefined}
         onClose={(submit: boolean) => {
           setOpen(false);
           if (submit) {

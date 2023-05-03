@@ -63,6 +63,8 @@ export type NotebookAnnotations = Partial<{
 
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
+  'enable-route': string;
+  'enable-auth': string;
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -266,11 +268,7 @@ export type ServiceAccountKind = K8sResourceCommon & {
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
-      ServingRuntimeAnnotations &
-      Partial<{
-        ['enable-route']: string;
-        ['enable-auth']: string;
-      }>;
+      ServingRuntimeAnnotations;
     name: string;
     namespace: string;
   };

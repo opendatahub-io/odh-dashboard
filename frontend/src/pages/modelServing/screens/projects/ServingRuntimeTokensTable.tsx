@@ -9,12 +9,12 @@ import { featureFlagEnabled } from '~/utilities/utils';
 import { filterTokens } from './utils';
 import ServingRuntimeTokenTableRow from './ServingRuntimeTokenTableRow';
 
-type ServingRumtimeTokensTableProps = {
+type ServingRuntimeTokensTableProps = {
   obj: ServingRuntimeKind;
   isTokenEnabled: boolean;
 };
 
-const ServingRumtimeTokensTable: React.FC<ServingRumtimeTokensTableProps> = ({
+const ServingRuntimeTokensTable: React.FC<ServingRuntimeTokensTableProps> = ({
   obj,
   isTokenEnabled,
 }) => {
@@ -60,4 +60,4 @@ const ServingRumtimeTokensTable: React.FC<ServingRumtimeTokensTableProps> = ({
   );
 };
 
-export default ServingRumtimeTokensTable;
+export default ServingRuntimeTokensTable;

@@ -16,7 +16,11 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
   templatesLoaded,
   onClick,
 }) => {
-  if (emptyTemplates) {
+  if (!customServingRuntimesEnabled && !emptyModelServer) {
+    return null;
+  }
+
+  if (customServingRuntimesEnabled && emptyTemplates) {
     return (
       <Tooltip
         removeFindDomNode
@@ -34,14 +38,10 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
           onClick={onClick}
           variant="secondary"
         >
-          Configure server
+          Configure server working
         </Button>
       </Tooltip>
     );
-  }
-
-  if (!customServingRuntimesEnabled && !emptyModelServer) {
-    return null;
   }
 
   return (

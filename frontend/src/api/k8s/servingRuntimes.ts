@@ -27,6 +27,7 @@ const assembleServingRuntime = (
   const servingRuntimeTemplateName = getDisplayNameFromK8sResource(servingRuntime);
   const updatedServingRuntime = { ...servingRuntime };
 
+  // TODO: Enable GRPC
   if (!isEditing) {
     updatedServingRuntime.metadata = {
       ...updatedServingRuntime.metadata,
@@ -39,8 +40,8 @@ const assembleServingRuntime = (
       },
       annotations: {
         ...updatedServingRuntime.metadata.annotations,
-        ...(externalRoute && { 'enable-route': 'true' }),
-        ...(tokenAuth && { 'enable-auth': 'true' }),
+        'enable-route':  externalRoute ? 'true' : 'false',
+        'enable-auth': tokenAuth? 'true' : 'false',
         'openshift.io/display-name': displayName,
         'opendatahub.io/template-name': servingRuntime.metadata.name,
         'opendatahub.io/template-display-name': servingRuntimeTemplateName,
@@ -51,8 +52,8 @@ const assembleServingRuntime = (
       ...updatedServingRuntime.metadata,
       annotations: {
         ...updatedServingRuntime.metadata.annotations,
-        ...(externalRoute && { 'enable-route': 'true' }),
-        ...(tokenAuth && { 'enable-auth': 'true' }),
+        'enable-route':  externalRoute ? 'true' : 'false',
+        'enable-auth': tokenAuth? 'true' : 'false',
         'openshift.io/display-name': displayName,
       },
     };
@@ -125,24 +126,13 @@ export const updateServingRuntime = (
   data: CreatingServingRuntimeObject,
   existingData: ServingRuntimeKind,
 ): Promise<ServingRuntimeKind> => {
-  const servingRuntime = assembleServingRuntime(
+
+  const updatedServingRuntime = assembleServingRuntime(
     data,
     existingData.metadata.namespace,
     existingData,
     true,
   );
-
-  // At the moment we won't support editing the serving runtime template
-  const updatedServingRuntime = { ...servingRuntime };
-
-  if (!data.tokenAuth) {
-    delete updatedServingRuntime.metadata?.annotations?.['enable-auth'];
-  }
-
-  //TODO: In conversations with the model serving team to check the annotations for GRPC
-  if (!data.externalRoute) {
-    delete updatedServingRuntime.metadata?.annotations?.['enable-route'];
-  }
 
   return k8sUpdateResource<ServingRuntimeKind>({
     model: ServingRuntimeModel,

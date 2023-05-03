@@ -21,9 +21,6 @@ export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind)
 export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
   template.objects[0].metadata.name;
 
-export const filterTemplatesEnabled = (templates: TemplateKind[]) =>
-  templates.filter(getTemplateEnabled);
-
 export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
   obj.kind === 'ServingRuntime' &&
   obj.spec?.builtInAdapter !== undefined &&
