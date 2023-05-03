@@ -38,6 +38,7 @@ export enum RunMetricFormatKF {
 }
 
 export enum PipelineRunStatusesKF {
+  SUCCEEDED = 'Succeeded',
   COMPLETED = 'Completed',
   RUNNING = 'Running',
   CANCELLED = 'Cancelled',

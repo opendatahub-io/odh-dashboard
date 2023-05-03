@@ -58,6 +58,7 @@ export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) =>
 
   switch (run.status) {
     case PipelineRunStatusesKF.COMPLETED:
+    case PipelineRunStatusesKF.SUCCEEDED:
       icon = <CheckCircleIcon />;
       status = 'success';
       break;

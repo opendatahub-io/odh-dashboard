@@ -27,9 +27,10 @@ export const getRunDuration = (run: PipelineRunKF): number => {
 export const getStatusWeight = (run: PipelineRunKF): number => {
   const weights: Record<PipelineRunStatusesKF, number> = {
     [PipelineRunStatusesKF.CANCELLED]: 0,
-    [PipelineRunStatusesKF.COMPLETED]: 1,
-    [PipelineRunStatusesKF.FAILED]: 2,
-    [PipelineRunStatusesKF.RUNNING]: 3,
+    [PipelineRunStatusesKF.SUCCEEDED]: 1,
+    [PipelineRunStatusesKF.COMPLETED]: 2,
+    [PipelineRunStatusesKF.FAILED]: 3,
+    [PipelineRunStatusesKF.RUNNING]: 4,
   };
 
   return weights[run.status] ?? 0;
