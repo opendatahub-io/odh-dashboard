@@ -21,7 +21,6 @@ const ProjectSharing: React.FC = () => {
   const {
     projectSharingRB: { data: roleBindings, loaded, error: loadError, refresh: refreshRB },
     groups: { data: groups },
-    currentProject,
   } = React.useContext(ProjectDetailsContext);
 
   if (loadError) {
@@ -56,7 +55,6 @@ const ProjectSharing: React.FC = () => {
             roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
             projectSharingTableType={ProjectSharingRBType.USER}
             refresh={refreshRB}
-            namespace={currentProject.metadata.name}
           />
         </StackItem>
         <StackItem>
@@ -65,7 +63,6 @@ const ProjectSharing: React.FC = () => {
             projectSharingTableType={ProjectSharingRBType.GROUP}
             refresh={refreshRB}
             typeAhead={groups.map((group: GroupKind) => group.metadata.name)}
-            namespace={currentProject.metadata.name}
           />
         </StackItem>
       </Stack>

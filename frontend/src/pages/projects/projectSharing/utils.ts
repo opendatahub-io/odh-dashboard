@@ -17,22 +17,10 @@ export const filterRoleBindingSubjects = (
   type: ProjectSharingRBType,
 ): RoleBindingKind[] => roleBindings.filter((roles) => roles.subjects[0]?.kind === type);
 
-export const castProjectSharingRoleType = (role: string): ProjectSharingRoleType | undefined =>
-  ProjectSharingRoleType[role.toUpperCase() as keyof typeof ProjectSharingRoleType];
-
-export const ensureRoleBindingCreationSorting = (
-  roleBinding1: RoleBindingKind,
-  roleBinding2: RoleBindingKind,
-  sortDirection: string | undefined,
-  sorting: number,
-): number => {
-  if (firstSubject(roleBinding1) === '') {
-    return sortDirection === 'asc' ? 1 : -1;
-  } else if (firstSubject(roleBinding2) === '') {
-    return sortDirection === 'asc' ? -1 : 1;
-  }
-  return sorting;
-};
+export const castProjectSharingRoleType = (role: string): ProjectSharingRoleType =>
+  role === ProjectSharingRoleType.ADMIN
+    ? ProjectSharingRoleType.ADMIN
+    : ProjectSharingRoleType.EDIT;
 
 export const firstSubject = (roleBinding: RoleBindingKind): string =>
   roleBinding.subjects[0]?.name || '';

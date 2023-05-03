@@ -1,17 +1,20 @@
 import * as React from 'react';
 import Table from '~/components/table/Table';
 import { RoleBindingKind } from '~/k8sTypes';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { deleteRoleBinding, generateRoleBindingProjectSharing, createRoleBinding } from '~/api';
 import ProjectSharingTableRow from './ProjectSharingTableRow';
-import { columnsProjectSharingUser, columnsProjectSharingGroup } from './data';
+import { columnsProjectSharing } from './data';
 import { ProjectSharingRBType } from './types';
 import { firstSubject } from './utils';
+import ProjectSharingTableRowAdd from './ProjectSharingTableRowAdd';
 
 type ProjectSharingTableProps = {
   type: ProjectSharingRBType;
   permissions: RoleBindingKind[];
+  isAdding: boolean;
   typeAhead?: string[];
-  onCancel: () => void;
+  onDismissNewRow: () => void;
   onError: (error: Error) => void;
   refresh: () => void;
 };
@@ -20,20 +23,46 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
   type,
   permissions,
   typeAhead,
-  onCancel,
+  isAdding,
+  onDismissNewRow,
   onError,
   refresh,
 }) => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+
   const [editCell, setEditCell] = React.useState<string[]>([]);
 
   return (
     <Table
       variant="compact"
       data={permissions}
-      columns={
-        type === ProjectSharingRBType.USER ? columnsProjectSharingUser : columnsProjectSharingGroup
-      }
+      columns={columnsProjectSharing}
       disableRowRenderSupport
+      footerRow={() =>
+        isAdding ? (
+          <ProjectSharingTableRowAdd
+            key={'add-permission-row'}
+            typeAhead={typeAhead}
+            onChange={(name, roleType) => {
+              const newRBObject = generateRoleBindingProjectSharing(
+                currentProject.metadata.name,
+                type,
+                name,
+                roleType,
+              );
+              createRoleBinding(newRBObject)
+                .then(() => {
+                  onDismissNewRow();
+                  refresh();
+                })
+                .catch((e) => {
+                  onError(e);
+                });
+            }}
+            onCancel={onDismissNewRow}
+          />
+        ) : null
+      }
       rowRenderer={(rb) => (
         <ProjectSharingTableRow
           key={rb.metadata?.name || ''}
@@ -42,33 +71,25 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
           typeAhead={typeAhead}
           onChange={(name, roleType) => {
             const newRBObject = generateRoleBindingProjectSharing(
-              rb.metadata.namespace,
+              currentProject.metadata.name,
               type,
               name,
               roleType,
             );
-            if (firstSubject(rb) === '') {
-              createRoleBinding(newRBObject)
-                .then(() => refresh())
-                .catch((e) => {
-                  onError(e);
-                });
-            } else {
-              createRoleBinding(newRBObject)
-                .then(() =>
-                  deleteRoleBinding(rb.metadata.name, rb.metadata.namespace)
-                    .then(() => refresh())
-                    .catch((e) => {
-                      onError(e);
-                      setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
-                    }),
-                )
-                .catch((e) => {
-                  onError(e);
-                  setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
-                });
-              refresh();
-            }
+            createRoleBinding(newRBObject)
+              .then(() =>
+                deleteRoleBinding(rb.metadata.name, rb.metadata.namespace)
+                  .then(() => refresh())
+                  .catch((e) => {
+                    onError(e);
+                    setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
+                  }),
+              )
+              .catch((e) => {
+                onError(e);
+                setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
+              });
+            refresh();
           }}
           onDelete={() => {
             deleteRoleBinding(rb.metadata.name, rb.metadata.namespace).then(() => refresh());
@@ -78,9 +99,6 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
           }}
           onCancel={() => {
             setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
-            if (firstSubject(rb) === '') {
-              onCancel();
-            }
           }}
         />
       )}

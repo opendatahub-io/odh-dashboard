@@ -89,6 +89,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
   const projectSharingRefresh = projectSharingRB.refresh;
+  const groupsRefresh = groups.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
@@ -98,6 +99,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeRefresh();
     inferenceServiceRefresh();
     projectSharingRefresh();
+    groupsRefresh();
   }, [
     notebookRefresh,
     pvcRefresh,
@@ -106,6 +108,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeRefresh,
     inferenceServiceRefresh,
     projectSharingRefresh,
+    groupsRefresh,
   ]);
 
   if (!project) {

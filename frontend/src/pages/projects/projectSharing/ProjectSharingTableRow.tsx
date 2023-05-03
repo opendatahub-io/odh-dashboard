@@ -3,8 +3,8 @@ import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   Button,
   DropdownDirection,
-  Flex,
-  FlexItem,
+  Split,
+  SplitItem,
   Text,
   Timestamp,
   TimestampTooltipVariant,
@@ -83,14 +83,10 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
           )}
         </Td>
         <Td isActionCell modifier="nowrap">
-          <Flex
-            direction={{ default: 'row' }}
-            justifyContent={{ default: 'justifyContentFlexEnd' }}
-            flexWrap={{ default: 'nowrap' }}
-          >
+          <Split>
             {isEditing ? (
               <>
-                <FlexItem spacer={{ default: 'spacerNone' }}>
+                <SplitItem>
                   <Button
                     data-id="save-rolebinding-button"
                     variant="link"
@@ -101,8 +97,8 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
                       onChange(roleBindingName, roleBindingRoleRef);
                     }}
                   />
-                </FlexItem>
-                <FlexItem spacer={{ default: 'spacerNone' }}>
+                </SplitItem>
+                <SplitItem>
                   <Button
                     data-id="cancel-rolebinding-button"
                     variant="plain"
@@ -112,30 +108,33 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
                       onCancel();
                     }}
                   />
-                </FlexItem>
+                </SplitItem>
               </>
             ) : (
-              <FlexItem spacer={{ default: 'spacerNone' }}>
-                <ActionsColumn
-                  dropdownDirection={DropdownDirection.up}
-                  items={[
-                    {
-                      title: 'Edit',
-                      onClick: () => {
-                        onEdit();
+              <>
+                <SplitItem isFilled></SplitItem>
+                <SplitItem>
+                  <ActionsColumn
+                    dropdownDirection={DropdownDirection.up}
+                    items={[
+                      {
+                        title: 'Edit',
+                        onClick: () => {
+                          onEdit();
+                        },
                       },
-                    },
-                    {
-                      title: 'Delete',
-                      onClick: () => {
-                        onDelete();
+                      {
+                        title: 'Delete',
+                        onClick: () => {
+                          onDelete();
+                        },
                       },
-                    },
-                  ]}
-                />
-              </FlexItem>
+                    ]}
+                  />
+                </SplitItem>
+              </>
             )}
-          </Flex>
+          </Split>
         </Td>
       </Tr>
     </Tbody>

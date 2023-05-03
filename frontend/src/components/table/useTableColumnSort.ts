@@ -13,7 +13,7 @@ export type SortableData<T> = {
    * Pass a function that will get the two results and what field needs to be matched.
    * Assume ASC -- the result will be inverted internally if needed.
    */
-  sortable: boolean | ((a: T, b: T, keyField: string, sortDirection?: string) => number);
+  sortable: boolean | ((a: T, b: T, keyField: string) => number);
 };
 
 /**
@@ -49,7 +49,7 @@ const useTableColumnSort = <T>(
 
         const compute = () => {
           if (typeof columnField.sortable === 'function') {
-            return columnField.sortable(a, b, columnField.field, activeSortDirection);
+            return columnField.sortable(a, b, columnField.field);
           }
 
           if (!columnField.field) {

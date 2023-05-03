@@ -9,14 +9,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { RoleBindingKind } from '~/k8sTypes';
-import { generateRoleBindingProjectSharing } from '~/api';
 import ProjectSharingTable from './ProjectSharingTable';
-import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
+import { ProjectSharingRBType } from './types';
 
 export type ProjectSharingTableSectionProps = {
   roleBindings: RoleBindingKind[];
   projectSharingTableType: ProjectSharingRBType;
-  namespace: string;
   typeAhead?: string[];
   refresh: () => void;
 };
@@ -24,19 +22,13 @@ export type ProjectSharingTableSectionProps = {
 const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
   roleBindings,
   projectSharingTableType,
-  namespace,
   typeAhead,
   refresh,
 }) => {
-  const [addField, setAddField] = React.useState<RoleBindingKind | undefined>(undefined);
+  const [addField, setAddField] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
-  const permissionLocal = React.useMemo(() => {
-    if (addField) {
-      return [...roleBindings, addField];
-    }
-    return roleBindings;
-  }, [roleBindings, addField]);
+  const permissionLocal = React.useMemo(() => roleBindings, [roleBindings]);
 
   return (
     <Stack hasGutter>
@@ -50,14 +42,14 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
           permissions={permissionLocal}
           type={projectSharingTableType}
           typeAhead={typeAhead}
-          onCancel={() => {
-            setAddField(undefined);
+          isAdding={!!addField}
+          onDismissNewRow={() => {
+            setAddField(false);
           }}
           onError={(error) => {
             setError(error);
           }}
           refresh={() => {
-            setAddField(undefined);
             refresh();
           }}
         />
@@ -80,16 +72,7 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
           isInline
           icon={<PlusCircleIcon />}
           iconPosition="left"
-          onClick={() =>
-            setAddField(
-              generateRoleBindingProjectSharing(
-                namespace,
-                projectSharingTableType,
-                '',
-                ProjectSharingRoleType.EDIT,
-              ),
-            )
-          }
+          onClick={() => setAddField(true)}
           style={{ paddingLeft: 'var(--pf-global--spacer--lg)' }}
         >
           {projectSharingTableType === ProjectSharingRBType.USER ? 'Add user' : 'Add group'}
