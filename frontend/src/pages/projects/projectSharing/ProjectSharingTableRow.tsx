@@ -89,6 +89,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
                 <SplitItem>
                   <Button
                     data-id="save-rolebinding-button"
+                    aria-label="Save role binding"
                     variant="link"
                     icon={<CheckIcon />}
                     isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
@@ -101,6 +102,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
                 <SplitItem>
                   <Button
                     data-id="cancel-rolebinding-button"
+                    aria-label="Cancel role binding"
                     variant="plain"
                     isDisabled={isLoading}
                     icon={<TimesIcon />}

@@ -28,18 +28,16 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
   const [addField, setAddField] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
-  const permissionLocal = React.useMemo(() => roleBindings, [roleBindings]);
-
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title id={`user-permission`} headingLevel="h2" size="xl">
+        <Title id={`user-permission-${projectSharingTableType}`} headingLevel="h2" size="xl">
           {projectSharingTableType === ProjectSharingRBType.USER ? 'Users' : 'Groups'}
         </Title>
       </StackItem>
       <StackItem>
         <ProjectSharingTable
-          permissions={permissionLocal}
+          permissions={roleBindings}
           type={projectSharingTableType}
           typeAhead={typeAhead}
           isAdding={!!addField}
