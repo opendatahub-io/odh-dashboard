@@ -185,9 +185,6 @@ export type ExperimentKF = {
   storage_state: StorageStateKF;
 };
 
-export type DeletePipelineResourceKF = {
-  // No response details
-};
 export type ListExperimentsResponseKF = PipelineKFCallCommon<{
   experiments: ExperimentKF[];
 }>;

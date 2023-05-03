@@ -18,6 +18,8 @@ import {
   CreatePipelineRunAPI,
   CreatePipelineRunJobAPI,
   GetPipelineRunJobAPI,
+  DeletePipelineRunAPI,
+  DeletePipelineRunJobAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -46,6 +48,12 @@ export const getPipelineRunJob: GetPipelineRunJobAPI = (hostPath) => (opts, pipe
 
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
+
+export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runId) =>
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/runs/${runId}`, {}, opts));
+
+export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts, jobId) =>
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, opts));
 
 export const listExperiments: ListExperimentsAPI = (hostPath) => (opts) =>
   handlePipelineFailures(

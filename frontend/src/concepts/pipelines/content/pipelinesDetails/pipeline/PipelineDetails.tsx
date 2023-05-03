@@ -17,10 +17,10 @@ import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import MarkdownView from '~/components/MarkdownView';
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
-import DeletePipelineModal from '~/concepts/pipelines/content/DeletePipelineModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
+import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 
@@ -130,8 +130,9 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-      <DeletePipelineModal
-        pipeline={isDeleting ? pipeline : null}
+      <DeletePipelineCoreResourceModal
+        type="pipeline"
+        toDeleteResources={isDeleting && pipeline ? [pipeline] : []}
         onClose={() => {
           navigate(`/pipelines/${namespace}`);
         }}
