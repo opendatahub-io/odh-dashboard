@@ -1,5 +1,4 @@
 import {
-  isFilledRunFormData,
   periodicOptionAsSeconds,
   RunDateTime,
   RunFormData,
@@ -16,6 +15,7 @@ import {
   ResourceTypeKF,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
+import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
 
 const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[] => {
   const refs: ResourceReferenceKF[] = [];

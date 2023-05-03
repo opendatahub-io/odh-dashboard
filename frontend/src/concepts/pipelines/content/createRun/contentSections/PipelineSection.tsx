@@ -38,7 +38,11 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) =>
           />
         </StackItem>
         <StackItem>
-          <ImportPipelineButton variant="link" icon={<PlusCircleIcon />}>
+          <ImportPipelineButton
+            variant="link"
+            icon={<PlusCircleIcon />}
+            onCreate={(pipeline) => onChange(pipeline)}
+          >
             Upload new pipeline
           </ImportPipelineButton>
         </StackItem>

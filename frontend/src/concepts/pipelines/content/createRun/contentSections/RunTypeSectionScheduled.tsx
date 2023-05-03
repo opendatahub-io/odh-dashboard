@@ -11,6 +11,7 @@ import {
   DEFAULT_CRON_STRING,
   DEFAULT_PERIODIC_OPTION,
 } from '~/concepts/pipelines/content/createRun/const';
+import EndDateBeforeStartDateError from '~/concepts/pipelines/content/createRun/contentSections/EndDateBeforeStartDateError';
 
 type RunTypeSectionScheduledProps = {
   data: RunTypeScheduledData;
@@ -31,7 +32,7 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
         isChecked={data.triggerType === ScheduledType.PERIODIC}
         id={ScheduledType.PERIODIC}
         onChange={() =>
-          onChange({ triggerType: ScheduledType.PERIODIC, value: DEFAULT_PERIODIC_OPTION })
+          onChange({ ...data, triggerType: ScheduledType.PERIODIC, value: DEFAULT_PERIODIC_OPTION })
         }
         body={
           data.triggerType === ScheduledType.PERIODIC && (
@@ -60,13 +61,22 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
         isChecked={data.triggerType === ScheduledType.CRON}
         onChange={() =>
           onChange({
+            ...data,
             triggerType: ScheduledType.CRON,
             value: DEFAULT_CRON_STRING,
           })
         }
         body={
           data.triggerType === ScheduledType.CRON && (
-            <ClipboardCopy hoverTip="Copy" clickTip="Copied">
+            <ClipboardCopy
+              hoverTip="Copy"
+              clickTip="Copied"
+              onChange={(value) => {
+                if (typeof value === 'string') {
+                  onChange({ ...data, value });
+                }
+              }}
+            >
               {data.value}
             </ClipboardCopy>
           )
@@ -87,7 +97,16 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
         label="End date"
         value={data.end}
         onChange={(end) => onChange({ ...data, end })}
+        adjustNow={(now) => {
+          if (data.start) {
+            const start = new Date(`${data.start.date} ${data.start.time}`);
+            start.setDate(start.getDate() + 7);
+            return start;
+          }
+          return now;
+        }}
       />
+      <EndDateBeforeStartDateError start={data.start} end={data.end} />
     </StackItem>
   </Stack>
 );

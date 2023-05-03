@@ -57,8 +57,8 @@ const useUpdateData = <T extends PipelineCoreResourceKF>(
 const useUpdatePipeline = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineCoreResourceKF,
-) =>
-  useUpdateData(
+) => {
+  const updatedSetFunction = React.useCallback(
     (key, resource) => {
       setFunction(key, resource);
       if (resource && 'parameters' in resource) {
@@ -70,11 +70,17 @@ const useUpdatePipeline = (
         setFunction('params', []);
       }
     },
+    [setFunction],
+  );
+
+  return useUpdateData(
+    updatedSetFunction,
     initialData,
     'pipeline',
     getPipelineRunLikePipelineReference,
     usePipelineById,
   );
+};
 
 // const useUpdateExperiment = (
 //   setFunction: UpdateObjectAtPropAndValue<RunFormData>,

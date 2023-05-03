@@ -67,7 +67,7 @@ export type UploadPipeline = (
   name: string,
   description: string,
   fileContents: string,
-) => Promise<void>;
+) => Promise<PipelineKF>;
 
 export type PipelineAPIs = {
   createExperiment: CreateExperiment;

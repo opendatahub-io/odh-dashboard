@@ -17,6 +17,7 @@ type RunTypeSectionDateTimeProps = {
   label: string;
   value?: RunDateTime;
   onChange: (dateTime?: RunDateTime) => void;
+  adjustNow?: (now: Date) => Date;
 };
 
 const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
@@ -24,6 +25,7 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
   label,
   value,
   onChange,
+  adjustNow,
 }) => {
   const handleChange = ({ date, time }: { date?: string; time?: string }) => {
     onChange({
@@ -41,7 +43,10 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
           isChecked={value !== undefined}
           onChange={(checked) => {
             if (checked) {
-              const now = new Date();
+              let now = new Date();
+              if (adjustNow) {
+                now = adjustNow(now);
+              }
               handleChange({
                 date: convertDateToSimpleDateString(now) ?? undefined,
                 time: convertDateToTimeString(now) ?? undefined,

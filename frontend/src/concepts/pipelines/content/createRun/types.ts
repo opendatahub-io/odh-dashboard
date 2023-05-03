@@ -54,6 +54,3 @@ export type SafeRunFormData = RunFormData & {
   // experiment: ExperimentKF;
   params: RunParam[];
 };
-
-export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunFormData =>
-  !!formData.nameDesc.name && !!formData.pipeline && !!formData.params;
