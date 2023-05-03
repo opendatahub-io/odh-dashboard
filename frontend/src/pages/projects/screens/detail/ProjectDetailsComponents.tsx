@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
-import GenericSidebar from '~/pages/projects/components/GenericSidebar';
+import GenericSidebar from '~/components/GenericSidebar';
 import { useAppContext } from '~/app/AppContext';
 import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
