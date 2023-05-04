@@ -6,7 +6,7 @@ import { AWSSecretKind, SecretKind } from '~/k8sTypes';
 const isAWSSecret = (secret: SecretKind): secret is AWSSecretKind =>
   secret.metadata.name.startsWith(DATA_CONNECTION_PREFIX);
 
-const useSecret = (name: string | null, namespace: string) => {
+const useAWSSecret = (name: string | null, namespace: string) => {
   const callback = React.useCallback<FetchStateCallbackPromise<AWSSecretKind | null>>(
     (opts) => {
       if (!name) {
@@ -26,4 +26,4 @@ const useSecret = (name: string | null, namespace: string) => {
   return useFetchState(callback, null);
 };
 
-export default useSecret;
+export default useAWSSecret;
