@@ -12,6 +12,7 @@ import {
   TbodyProps,
 } from '@patternfly/react-table';
 import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort';
+import { EitherNotBoth } from '~/typeHelpers';
 
 type TableProps<DataType> = {
   data: DataType[];
@@ -22,9 +23,11 @@ type TableProps<DataType> = {
   toolbarContent?: React.ReactElement<typeof ToolbarItem>;
   emptyTableView?: React.ReactElement<typeof Tr>;
   caption?: string;
-  disableRowRenderSupport?: boolean;
-  tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> };
-} & Omit<TableComposableProps, 'ref' | 'data'>;
+} & EitherNotBoth<
+  { disableRowRenderSupport?: boolean },
+  { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
+> &
+  Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
   data: allData,
