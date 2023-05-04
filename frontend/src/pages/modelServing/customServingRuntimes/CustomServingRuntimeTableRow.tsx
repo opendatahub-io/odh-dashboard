@@ -2,10 +2,12 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { TemplateKind } from '~/k8sTypes';
+import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
+  isTemplateOOTB,
 } from './utils';
 
 type CustomServingRuntimeTableRowProps = {
@@ -30,22 +32,37 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           id: `draggable-row-${servingRuntimeName}`,
         }}
       />
-      <Td dataLabel="Name">{getServingRuntimeDisplayNameFromTemplate(template)}</Td>
+      <Td dataLabel="Name">
+        <ResourceNameTooltip resource={template.objects[0]}>
+          {getServingRuntimeDisplayNameFromTemplate(template)}
+        </ResourceNameTooltip>
+      </Td>
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />
       </Td>
       <Td isActionCell>
         <ActionsColumn
-          items={[
-            {
-              title: 'Edit',
-              onClick: () => navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
-            },
-            {
-              title: 'Delete',
-              onClick: () => onDeleteTemplate(template),
-            },
-          ]}
+          items={
+            isTemplateOOTB(template)
+              ? [
+                  {
+                    title: 'Clone',
+                    onClick: () =>
+                      navigate('/servingRuntimes/addServingRuntime', { state: { template } }),
+                  },
+                ]
+              : [
+                  {
+                    title: 'Edit',
+                    onClick: () =>
+                      navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
+                  },
+                  {
+                    title: 'Delete',
+                    onClick: () => onDeleteTemplate(template),
+                  },
+                ]
+          }
         />
       </Td>
     </Tr>
