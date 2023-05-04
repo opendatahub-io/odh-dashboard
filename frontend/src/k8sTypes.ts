@@ -267,8 +267,7 @@ export type ServiceAccountKind = K8sResourceCommon & {
 
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations &
-      ServingRuntimeAnnotations;
+    annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
     name: string;
     namespace: string;
   };

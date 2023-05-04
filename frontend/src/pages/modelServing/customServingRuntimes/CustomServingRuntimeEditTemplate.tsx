@@ -33,7 +33,7 @@ const CustomServingRuntimeEditTemplate: React.FC = () => {
       <Bullseye>
         <EmptyState>
           <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
+          <Title headingLevel="h2" size="lg">
             Unable to edit serving runtime
           </Title>
           <EmptyStateBody>We were unable to find a serving runtime by this name</EmptyStateBody>

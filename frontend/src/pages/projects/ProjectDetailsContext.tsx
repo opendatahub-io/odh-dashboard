@@ -37,7 +37,6 @@ import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProject from './useProject';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 
-
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
   refreshAllProjectData: () => void;
@@ -73,7 +72,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const modelServingEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableModelServing,
   );
-  
   const customServingRuntimesEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
   );
@@ -124,7 +122,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
       <Bullseye>
         <EmptyState>
           <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
+          <Title headingLevel="h2" size="lg">
             Problem loading project details
           </Title>
           <EmptyStateBody>{error.message}</EmptyStateBody>

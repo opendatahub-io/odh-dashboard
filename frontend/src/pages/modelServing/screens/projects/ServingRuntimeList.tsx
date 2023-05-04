@@ -13,7 +13,6 @@ import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntim
 import ServingRuntimeTable from './ServingRuntimeTable';
 import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
 
-
 const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
   const {

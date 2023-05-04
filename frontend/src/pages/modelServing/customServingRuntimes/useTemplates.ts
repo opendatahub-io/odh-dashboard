@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { listTemplates } from '~/api';
-import { useAppContext } from '~/app/AppContext';
 import { TemplateKind } from '~/k8sTypes';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';

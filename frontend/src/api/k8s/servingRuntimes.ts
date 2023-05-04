@@ -40,8 +40,8 @@ const assembleServingRuntime = (
       },
       annotations: {
         ...updatedServingRuntime.metadata.annotations,
-        'enable-route':  externalRoute ? 'true' : 'false',
-        'enable-auth': tokenAuth? 'true' : 'false',
+        'enable-route': externalRoute ? 'true' : 'false',
+        'enable-auth': tokenAuth ? 'true' : 'false',
         'openshift.io/display-name': displayName,
         'opendatahub.io/template-name': servingRuntime.metadata.name,
         'opendatahub.io/template-display-name': servingRuntimeTemplateName,
@@ -52,8 +52,8 @@ const assembleServingRuntime = (
       ...updatedServingRuntime.metadata,
       annotations: {
         ...updatedServingRuntime.metadata.annotations,
-        'enable-route':  externalRoute ? 'true' : 'false',
-        'enable-auth': tokenAuth? 'true' : 'false',
+        'enable-route': externalRoute ? 'true' : 'false',
+        'enable-auth': tokenAuth ? 'true' : 'false',
         'openshift.io/display-name': displayName,
       },
     };
@@ -126,7 +126,6 @@ export const updateServingRuntime = (
   data: CreatingServingRuntimeObject,
   existingData: ServingRuntimeKind,
 ): Promise<ServingRuntimeKind> => {
-
   const updatedServingRuntime = assembleServingRuntime(
     data,
     existingData.metadata.namespace,

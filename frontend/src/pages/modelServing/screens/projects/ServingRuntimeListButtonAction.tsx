@@ -34,7 +34,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
       >
         <Button
           isLoading={!templatesLoaded}
-          isDisabled={true}
+          isAriaDisabled={true}
           onClick={onClick}
           variant="secondary"
         >

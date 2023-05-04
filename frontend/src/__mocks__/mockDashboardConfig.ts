@@ -8,7 +8,7 @@ export const mockDashboardConfig: DashboardConfig = {
     labels: {
       'opendatahub.io/dashboard': 'true',
     },
-    namespace: 'redhat-ods-applications',
+    namespace: 'opendatahub',
   },
   spec: {
     dashboardConfig: {
@@ -147,6 +147,6 @@ export const mockDashboardConfig: DashboardConfig = {
         },
       },
     ],
-    templateOrder: [],
+    templateOrder: ['test-model'],
   },
 };
