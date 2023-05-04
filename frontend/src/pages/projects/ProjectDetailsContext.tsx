@@ -18,10 +18,16 @@ import {
   InferenceServiceKind,
   SecretKind,
 } from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA, DEFAULT_SERVING_RUNTIMES_CONFIG } from '~/utilities/const';
+import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
-import { ServingRuntimesConfigResourceData } from '~/pages/modelServing/useServingRuntimesConfig';
+import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
+import {
+  useServingRuntimesConfig,
+  ServingRuntimesConfigResourceData,
+} from '~/pages/modelServing/useServingRuntimesConfig';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
@@ -41,13 +47,6 @@ type ProjectDetailsContextType = {
   serverSecrets: ContextResourceData<SecretKind>;
 };
 
-type ProjectDetailsContextProviderProps = {
-  servingRuntimesConfig?: ServingRuntimesConfigResourceData;
-  servingRuntimes?: ContextResourceData<ServingRuntimeKind>;
-  inferenceServices?: ContextResourceData<InferenceServiceKind>;
-  serverSecrets?: ContextResourceData<SecretKind>;
-};
-
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
   // We never will get into a case without a project, so fudge the default value
   currentProject: null as unknown as ProjectKind,
@@ -55,18 +54,17 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   notebooks: DEFAULT_CONTEXT_DATA,
   pvcs: DEFAULT_CONTEXT_DATA,
   dataConnections: DEFAULT_CONTEXT_DATA,
-  servingRuntimesConfig: DEFAULT_SERVING_RUNTIMES_CONFIG,
+  servingRuntimesConfig: {
+    servingRuntimesConfig: undefined,
+    loaded: false,
+    refresh: () => undefined,
+  },
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
 });
 
-const ProjectDetailsContextProvider: React.FC<ProjectDetailsContextProviderProps> = ({
-  servingRuntimesConfig = { ...DEFAULT_SERVING_RUNTIMES_CONFIG, loaded: true },
-  inferenceServices = { ...DEFAULT_CONTEXT_DATA, loaded: true },
-  servingRuntimes = { ...DEFAULT_CONTEXT_DATA, loaded: true },
-  serverSecrets = { ...DEFAULT_CONTEXT_DATA, loaded: true },
-}) => {
+const ProjectDetailsContextProvider: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
   const [project, loaded, error] = useProject(namespace);
@@ -77,6 +75,12 @@ const ProjectDetailsContextProvider: React.FC<ProjectDetailsContextProviderProps
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
+  const servingRuntimesConfig = useServingRuntimesConfig();
+  const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
+  const inferenceServices = useContextResourceData<InferenceServiceKind>(
+    useInferenceServices(namespace),
+  );
+  const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
   const servingRuntimesConfigRefresh = servingRuntimesConfig.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
