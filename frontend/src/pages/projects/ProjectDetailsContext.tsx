@@ -71,16 +71,16 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
-
-  const notebookRefresh = notebooks.refresh;
-  const pvcRefresh = pvcs.refresh;
-  const dataConnectionRefresh = dataConnections.refresh;
   const servingRuntimesConfig = useServingRuntimesConfig();
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
   );
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
+
+  const notebookRefresh = notebooks.refresh;
+  const pvcRefresh = pvcs.refresh;
+  const dataConnectionRefresh = dataConnections.refresh;
   const servingRuntimesConfigRefresh = servingRuntimesConfig.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
