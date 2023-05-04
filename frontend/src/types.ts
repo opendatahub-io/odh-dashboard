@@ -605,9 +605,12 @@ export type PersistentVolumeClaimList = {
 
 export type Volume = {
   name: string;
-  emptyDir?: Record<string, any>; // eslint-disable-line
+  emptyDir?: Record<string, unknown>;
   persistentVolumeClaim?: {
     claimName: string;
+  };
+  secret?: {
+    secretName: string;
   };
 };
 

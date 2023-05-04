@@ -6,6 +6,7 @@ import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useN
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { useAppContext } from '~/app/AppContext';
+import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
 import { NotebookState } from './types';
 import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
@@ -15,9 +16,14 @@ import NotebookStatusText from './NotebookStatusText';
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
   doListen: boolean;
+  enablePipelines?: boolean;
 };
 
-const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookState, doListen }) => {
+const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
+  notebookState,
+  doListen,
+  enablePipelines,
+}) => {
   const { notebook, isStarting, isRunning, refresh } = notebookState;
   const gpuNumber = useNotebookGPUNumber(notebook);
   const { size } = useNotebookDeploymentSize(notebook);
@@ -92,7 +98,12 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({ notebookSta
                   dashboardConfig,
                   notebookState.notebook,
                 );
-                startNotebook(notebookName, notebookNamespace, tolerationSettings).then(() => {
+                startNotebook(
+                  notebookName,
+                  notebookNamespace,
+                  tolerationSettings,
+                  enablePipelines && !currentlyHasPipelines(notebook),
+                ).then(() => {
                   fireNotebookTrackingEvent('started');
                   refresh().then(() => setInProgress(false));
                   listenToNotebookStart(true);

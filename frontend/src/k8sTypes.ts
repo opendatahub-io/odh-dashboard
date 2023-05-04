@@ -1,4 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
 
 export enum KnownLabels {
@@ -404,9 +405,14 @@ export type AWSSecretKind = SecretKind & {
       [KnownLabels.DATA_CONNECTION_AWS]: 'true';
     };
   };
+  data: Record<AWS_KEYS, string>;
 };
 
 export type DSPipelineKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   spec: Partial<{
     apiServer: Partial<{
       apiServerImage: string;

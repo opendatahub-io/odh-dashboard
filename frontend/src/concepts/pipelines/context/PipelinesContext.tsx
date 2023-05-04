@@ -5,6 +5,7 @@ import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
+import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
@@ -49,6 +50,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     namespace,
   );
   const hostPath = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
+  useManageElyraSecret(namespace, pipelineNamespaceCR, hostPath);
 
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
@@ -154,7 +156,13 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
   );
 };
 
-export const DeleteModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+export const DeleteServerModal = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
   const { refreshState } = React.useContext(PipelinesContext);
   return (
     <DeletePipelineServerModal

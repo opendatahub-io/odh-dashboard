@@ -2,5 +2,5 @@ export {
   CreatePipelineServerButton,
   PipelineContextProvider,
   usePipelinesAPI,
-  DeleteModal,
+  DeleteServerModal,
 } from './PipelinesContext';

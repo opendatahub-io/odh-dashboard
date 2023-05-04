@@ -4,12 +4,15 @@ import {
   k8sGetResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { DataSciencePipelineApplicationModel } from '~/api/models';
-import { DSPipelineKind, K8sAPIOptions, K8sStatus, RouteKind } from '~/k8sTypes';
-import { getRoute } from '~/api';
+import { DSPipelineKind, K8sAPIOptions, K8sStatus, RouteKind, SecretKind } from '~/k8sTypes';
+import { getRoute } from '~/api/k8s/routes';
+import { getSecret } from '~/api/k8s/secrets';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { PIPELINE_DEFINITION_NAME, PIPELINE_ROUTE_NAME } from '~/concepts/pipelines/const';
+import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 
-const PIPELINE_ROUTE_NAME = 'ds-pipeline-pipelines-definition';
-const PIPELINE_DEFINITION_NAME = 'pipelines-definition';
+export const getElyraSecret = async (namespace: string, opts: K8sAPIOptions): Promise<SecretKind> =>
+  getSecret(namespace, ELYRA_SECRET_NAME, opts);
 
 export const getPipelineAPIRoute = async (
   namespace: string,
