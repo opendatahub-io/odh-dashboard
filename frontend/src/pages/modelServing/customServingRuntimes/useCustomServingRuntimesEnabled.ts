@@ -10,11 +10,9 @@ const useCustomServingRuntimesEnabled = (): boolean => {
     },
   } = useAppContext();
 
-  if (!featureFlagEnabled(disableModelServing)) {
-    return false;
-  }
-
-  return featureFlagEnabled(disableCustomServingRuntimes);
+  return (
+    featureFlagEnabled(disableModelServing) && featureFlagEnabled(disableCustomServingRuntimes)
+  );
 };
 
 export default useCustomServingRuntimesEnabled;
