@@ -9,30 +9,25 @@ import {
   Caption,
   Tbody,
   Td,
+  TbodyProps,
 } from '@patternfly/react-table';
-import styles from '@patternfly/react-styles/css/components/Table/table';
-import useDraggableTable, { TrDragFunctionsType } from '~/utilities/useDraggableTable';
 import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort';
+import { EitherNotBoth } from '~/typeHelpers';
 
 type TableProps<DataType> = {
   data: DataType[];
   columns: SortableData<DataType>[];
-  rowRenderer: (
-    data: DataType,
-    rowIndex: number,
-    rowId?: string,
-    trDragFunctions?: TrDragFunctionsType,
-  ) => React.ReactNode;
+  rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;
   enablePagination?: boolean;
   minPageSize?: number;
   toolbarContent?: React.ReactElement<typeof ToolbarItem>;
   emptyTableView?: React.ReactElement<typeof Tr>;
   caption?: string;
-  disableRowRenderSupport?: boolean;
-  isDraggable?: boolean;
-  itemOrder?: string[];
-  setItemOrder?: (itemOrder: string[]) => void;
-} & Omit<TableComposableProps, 'ref' | 'data'>;
+} & EitherNotBoth<
+  { disableRowRenderSupport?: boolean },
+  { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
+> &
+  Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
   data: allData,
@@ -44,22 +39,13 @@ const Table = <T,>({
   emptyTableView,
   caption,
   disableRowRenderSupport,
-  isDraggable,
-  itemOrder = [],
-  setItemOrder = () => undefined,
+  tbodyProps,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(minPageSize);
 
   const data = enablePagination ? allData.slice(pageSize * (page - 1), pageSize * page) : allData;
-  const bodyRef = React.useRef<HTMLTableSectionElement>(null);
-
-  const {
-    isDragging,
-    tbodyDragFunctions: { onDragLeave, onDragOver },
-    trDragFunctions,
-  } = useDraggableTable(bodyRef, itemOrder, setItemOrder);
 
   // update page to 1 if data changes (common when filter is applied)
   React.useEffect(() => {
@@ -101,11 +87,10 @@ const Table = <T,>({
           </ToolbarContent>
         </Toolbar>
       )}
-      <TableComposable {...props} className={isDragging ? styles.modifiers.dragOver : undefined}>
+      <TableComposable {...props}>
         {caption && <Caption>{caption}</Caption>}
         <Thead>
           <Tr>
-            {isDraggable && <Th />}
             {columns.map((col, i) =>
               col.label ? (
                 <Th
@@ -124,16 +109,8 @@ const Table = <T,>({
         </Thead>
         {disableRowRenderSupport ? (
           sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))
-        ) : isDraggable ? (
-          <Tbody ref={bodyRef} onDragOver={onDragOver} onDragLeave={onDragLeave}>
-            {sort
-              .transformData(data)
-              .map((row, rowIndex) =>
-                rowRenderer(row, rowIndex, itemOrder[rowIndex], trDragFunctions),
-              )}
-          </Tbody>
         ) : (
-          <Tbody>
+          <Tbody {...tbodyProps}>
             {sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))}
           </Tbody>
         )}

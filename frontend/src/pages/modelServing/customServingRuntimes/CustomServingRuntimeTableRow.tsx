@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { TemplateKind } from '~/k8sTypes';
-import { TrDragFunctionsType } from '~/utilities/useDraggableTable';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
@@ -12,35 +11,23 @@ import {
 type CustomServingRuntimeTableRowProps = {
   obj: TemplateKind;
   rowIndex: number;
-  rowId: string;
-  dragFunctions?: TrDragFunctionsType;
   onDeleteTemplate: (obj: TemplateKind) => void;
 };
 
 const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> = ({
   obj: template,
   rowIndex,
-  rowId,
-  dragFunctions,
   onDeleteTemplate,
+  ...props
 }) => {
   const navigate = useNavigate();
-  if (!dragFunctions) {
-    return null;
-  }
-  const { onDragEnd, onDragStart, onDrop } = dragFunctions;
+  const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
+
   return (
-    <Tr
-      key={rowIndex}
-      id={rowId}
-      draggable
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
-      onDragStart={onDragStart}
-    >
+    <Tr key={rowIndex} id={servingRuntimeName} draggable {...props}>
       <Td
         draggableRow={{
-          id: `draggable-row-${rowId}`,
+          id: `draggable-row-${servingRuntimeName}`,
         }}
       />
       <Td dataLabel="Name">{getServingRuntimeDisplayNameFromTemplate(template)}</Td>
@@ -52,12 +39,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           items={[
             {
               title: 'Edit',
-              onClick: () =>
-                navigate(
-                  `/servingRuntimes/editServingRuntime/${getServingRuntimeNameFromTemplate(
-                    template,
-                  )}`,
-                ),
+              onClick: () => navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
             },
             {
               title: 'Delete',

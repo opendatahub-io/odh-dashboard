@@ -3,6 +3,11 @@ import { TemplateKind } from '~/k8sTypes';
 
 export const columns: SortableData<TemplateKind>[] = [
   {
+    field: 'draggable',
+    label: '',
+    sortable: false,
+  },
+  {
     field: 'name',
     label: 'Name',
     sortable: false,

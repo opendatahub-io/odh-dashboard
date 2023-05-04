@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router';
 import { Button, ToolbarItem } from '@patternfly/react-core';
-import Table from '~/components/Table';
 import { TemplateKind } from '~/k8sTypes';
 import { patchDashboardConfigTemplateOrder } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
-import { getDragItemOrder, getServingRuntimeNameFromTemplate } from './utils';
+import Table from '~/components/Table';
+import useDraggableTable from '~/utilities/useDraggableTable';
+import { getServingRuntimeNameFromTemplate, getSortedTemplates } from './utils';
 import DeleteCustomServingRuntimeModal from './DeleteCustomServingRuntimeModal';
 import { columns } from './templatedData';
 import CustomServingRuntimeTableRow from './CustomServingRuntimeTableRow';
@@ -14,43 +15,45 @@ import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 const CustomServingRuntimeListView: React.FC = () => {
   const {
-    servingRuntimeTemplateOrder: { data: templateOrder },
-    servingRuntimeTemplates: { data: templates },
+    servingRuntimeTemplateOrder: { data: templateOrder, refresh: refreshOrder },
+    servingRuntimeTemplates: { data: unsortedTemplates },
     refreshData,
   } = React.useContext(CustomServingRuntimeContext);
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
   const navigate = useNavigate();
+
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
-  const [dragItemOrder, setDragItemOrder] = React.useState(
-    getDragItemOrder(templates, templateOrder),
+  const sortedTemplates = React.useMemo(
+    () => getSortedTemplates(unsortedTemplates, templateOrder),
+    [unsortedTemplates, templateOrder],
+  );
+  const setItemOrder = React.useCallback(
+    (itemOrder: string[]) => {
+      patchDashboardConfigTemplateOrder(itemOrder, dashboardNamespace)
+        .then(refreshOrder)
+        .catch((e) => notification.error(`Error update the serving runtimes order`, e.message));
+    },
+    [dashboardNamespace, refreshOrder, notification],
   );
 
-  React.useEffect(() => {
-    patchDashboardConfigTemplateOrder(dragItemOrder, dashboardNamespace).catch((e) =>
-      notification.error(`Error update the serving runtimes order`, e.message),
-    );
-  }, [dragItemOrder, dashboardNamespace, notification]);
-
-  React.useEffect(() => {
-    setDragItemOrder(getDragItemOrder(templates, templateOrder));
-  }, [templates, templateOrder]);
+  const { tableProps, rowProps } = useDraggableTable(
+    sortedTemplates.map((template) => getServingRuntimeNameFromTemplate(template)),
+    setItemOrder,
+  );
 
   return (
     <>
       <Table
-        isDraggable
-        data={templates}
+        {...tableProps}
+        data={sortedTemplates}
         columns={columns}
-        itemOrder={dragItemOrder}
-        setItemOrder={setDragItemOrder}
-        rowRenderer={(template, rowIndex, rowId, trDragFunctions) => (
+        rowRenderer={(template, rowIndex) => (
           <CustomServingRuntimeTableRow
+            {...rowProps}
             key={template.metadata.uid}
             obj={template}
             rowIndex={rowIndex}
-            rowId={rowId || getServingRuntimeNameFromTemplate(template)}
-            dragFunctions={trDragFunctions}
             onDeleteTemplate={(obj) => setDeleteTemplate(obj)}
           />
         )}
