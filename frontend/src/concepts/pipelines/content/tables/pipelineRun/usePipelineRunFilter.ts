@@ -3,7 +3,12 @@ import {
   getPipelineCoreResourceExperimentName,
   getPipelineCoreResourcePipelineName,
 } from '~/concepts/pipelines/content/tables/utils';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineRunKF,
+  PipelineRunStatusesKF,
+  PipelineRunStatusUnknown,
+} from '~/concepts/pipelines/kfTypes';
+import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import { FilterOptions, FilterProps } from './PipelineRunTableToolbar';
 
 type FilterData = Record<FilterOptions, string>;
@@ -47,8 +52,14 @@ const usePipelineRunFilter = (
     if (startedValue && !run.created_at.includes(startedValue)) {
       return false;
     }
-    if (statusValue && run.status !== statusValue) {
-      return false;
+    if (statusValue) {
+      const { label } = computeRunStatus(run);
+      const keys: string[] = Object.values(PipelineRunStatusesKF);
+      if (statusValue === PipelineRunStatusUnknown && keys.includes(label)) {
+        return false;
+      } else if (statusValue !== PipelineRunStatusUnknown && statusValue !== label) {
+        return false;
+      }
     }
 
     return true;

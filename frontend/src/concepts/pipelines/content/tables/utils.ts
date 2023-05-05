@@ -27,13 +27,13 @@ export const getRunDuration = (run: PipelineRunKF): number => {
 export const getStatusWeight = (run: PipelineRunKF): number => {
   const weights: Record<PipelineRunStatusesKF, number> = {
     [PipelineRunStatusesKF.CANCELLED]: 0,
-    [PipelineRunStatusesKF.SUCCEEDED]: 1,
-    [PipelineRunStatusesKF.COMPLETED]: 2,
-    [PipelineRunStatusesKF.FAILED]: 3,
-    [PipelineRunStatusesKF.RUNNING]: 4,
+    [PipelineRunStatusesKF.COMPLETED]: 1,
+    [PipelineRunStatusesKF.FAILED]: 2,
+    [PipelineRunStatusesKF.RUNNING]: 3,
+    [PipelineRunStatusesKF.STARTED]: 4,
   };
 
-  return weights[run.status] ?? 0;
+  return weights[run.status] ?? Infinity;
 };
 
 export const getRunResourceReference = (
@@ -112,7 +112,7 @@ export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
     [ScheduledState.ENDED]: 3,
   };
 
-  return weights[state] ?? 0;
+  return weights[state] ?? Infinity;
 };
 
 export const isJobWithinDateRange = (

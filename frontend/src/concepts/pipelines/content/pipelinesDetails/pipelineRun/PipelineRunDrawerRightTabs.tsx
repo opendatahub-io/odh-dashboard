@@ -1,24 +1,31 @@
 import * as React from 'react';
 import { DrawerPanelBody, Tab, TabContent, Tabs } from '@patternfly/react-core';
-import { PipelineRunTask } from '~/k8sTypes';
+import SelectedNodeDetailsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeDetailsTab';
+import { PipelineRunTaskDetails, TaskReferenceMap } from '~/concepts/pipelines/content/types';
+import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
+import SelectedNodeVolumeMountsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeVolumeMountsTab';
 
 enum PipelineRunNodeTabs {
   INPUT_OUTPUT = 'Input / Output',
-  VISUALIZATIONS = 'Visualizations',
+  // VISUALIZATIONS = 'Visualizations',
   DETAILS = 'Details',
   VOLUMES = 'Volumes',
-  LOGS = 'Logs',
-  POD = 'Pod',
-  EVENTS = 'Events',
-  ML_METADATA = 'ML Metadata',
+  // LOGS = 'Logs',
+  // POD = 'Pod',
+  // EVENTS = 'Events',
+  // ML_METADATA = 'ML Metadata',
 }
 
 type PipelineRunDrawerRightTabsProps = {
-  task: PipelineRunTask;
+  task: PipelineRunTaskDetails;
+  taskReferences: TaskReferenceMap;
 };
 
-const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = () => {
-  const [selection, setSelection] = React.useState(PipelineRunNodeTabs.DETAILS);
+const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
+  task,
+  taskReferences,
+}) => {
+  const [selection, setSelection] = React.useState(PipelineRunNodeTabs.INPUT_OUTPUT);
 
   const tabContentProps = (tab: PipelineRunNodeTabs): React.ComponentProps<typeof TabContent> => ({
     id: tab,
@@ -42,14 +49,20 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ()
       </Tabs>
       {selection && (
         <DrawerPanelBody>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.INPUT_OUTPUT)}>TBD</TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.VISUALIZATIONS)}>TBD 2</TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.DETAILS)}>TBD 3</TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.VOLUMES)}>TBD 4</TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.LOGS)}>TBD 5</TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.POD)}>TBD 6</TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.EVENTS)}>TBD 7</TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.ML_METADATA)}>TBD 8</TabContent>
+          <TabContent {...tabContentProps(PipelineRunNodeTabs.INPUT_OUTPUT)}>
+            <SelectedNodeInputOutputTab taskReferences={taskReferences} task={task} />
+          </TabContent>
+          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.VISUALIZATIONS)}>TBD 2</TabContent>*/}
+          <TabContent {...tabContentProps(PipelineRunNodeTabs.DETAILS)}>
+            <SelectedNodeDetailsTab task={task} />
+          </TabContent>
+          <TabContent {...tabContentProps(PipelineRunNodeTabs.VOLUMES)}>
+            <SelectedNodeVolumeMountsTab task={task} />
+          </TabContent>
+          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.LOGS)}>TBD 5</TabContent>*/}
+          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.POD)}>TBD 6</TabContent>*/}
+          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.EVENTS)}>TBD 7</TabContent>*/}
+          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.ML_METADATA)}>TBD 8</TabContent>*/}
         </DrawerPanelBody>
       )}
     </>

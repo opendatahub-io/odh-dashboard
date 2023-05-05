@@ -38,12 +38,13 @@ export enum RunMetricFormatKF {
 }
 
 export enum PipelineRunStatusesKF {
-  SUCCEEDED = 'Succeeded',
+  STARTED = 'Started',
   COMPLETED = 'Completed',
   RUNNING = 'Running',
   CANCELLED = 'Cancelled',
   FAILED = 'Failed',
 }
+export const PipelineRunStatusUnknown = 'Unknown';
 
 export enum JobModeKF {
   UNKNOWN_MODE = 'UNKNOWN_MODE',
@@ -150,7 +151,7 @@ export type PipelineRunKF = PipelineCoreResourceKF & {
   created_at: DateTimeKF;
   scheduled_at: DateTimeKF;
   finished_at: DateTimeKF;
-  status: PipelineRunStatusesKF;
+  status: PipelineRunStatusesKF | string;
   error: string;
   metrics: RunMetricKF[];
 };

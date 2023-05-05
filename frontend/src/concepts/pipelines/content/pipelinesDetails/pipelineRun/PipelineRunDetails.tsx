@@ -21,6 +21,7 @@ import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipeline
 import { RunDetailsTabSelection } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import PipelineRunTitle from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTitle';
 
 const getPipelineRunKind = (
   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
@@ -54,6 +55,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
+              taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
           }
@@ -77,7 +79,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                 }
               >
                 <ApplicationsPage
-                  title={error ? 'Error loading run' : run?.name ?? 'Loading...'}
+                  title={error ? 'Error loading run' : <PipelineRunTitle run={run} />}
                   description={
                     run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
                   }

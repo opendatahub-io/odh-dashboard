@@ -10,20 +10,13 @@ import {
   Tooltip,
   Truncate,
 } from '@patternfly/react-core';
-import {
-  BanIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  QuestionCircleIcon,
-  SyncAltIcon,
-} from '@patternfly/react-icons';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
   PipelineRunJobKF,
   PipelineRunKF,
   PipelineCoreResourceKF,
-  PipelineRunStatusesKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
@@ -33,6 +26,7 @@ import {
   getPipelineCoreResourcePipelineReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
 export const NoRunContent = () => <>-</>;
 
@@ -52,40 +46,15 @@ export const RunNameForPipeline: RunUtil = ({ run }) => {
 };
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
-  let icon: React.ReactNode;
-  let status: React.ComponentProps<typeof Icon>['status'];
-  let tooltipContent: string | null = null;
-
-  switch (run.status) {
-    case PipelineRunStatusesKF.COMPLETED:
-    case PipelineRunStatusesKF.SUCCEEDED:
-      icon = <CheckCircleIcon />;
-      status = 'success';
-      break;
-    case PipelineRunStatusesKF.FAILED:
-      icon = <ExclamationCircleIcon />;
-      status = 'danger';
-      // TODO: tooltipContent for error?
-      // TODO: Make a PipelineRun fail
-      break;
-    case PipelineRunStatusesKF.RUNNING:
-      icon = <SyncAltIcon />;
-      break;
-    case PipelineRunStatusesKF.CANCELLED:
-      icon = <BanIcon />;
-      break;
-    default:
-      icon = <QuestionCircleIcon />;
-      status = 'warning';
-      tooltipContent = run.status;
-  }
+  const { icon, status, label, details } = computeRunStatus(run);
+  let tooltipContent = details;
 
   const content = (
     <div style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
       <Icon isInline status={status}>
         {icon}
       </Icon>{' '}
-      {!justIcon && run.status}
+      {!justIcon && label}
     </div>
   );
 

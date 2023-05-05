@@ -5,18 +5,21 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  Text,
   Title,
 } from '@patternfly/react-core';
-import { PipelineRunTask } from '~/k8sTypes';
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
+import { TaskReferenceMap, PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 
 type PipelineRunDrawerRightContentProps = {
-  task?: PipelineRunTask;
+  task?: PipelineRunTaskDetails;
+  taskReferences: TaskReferenceMap;
   onClose: () => void;
 };
 
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
   task,
+  taskReferences,
   onClose,
 }) => {
   if (!task) {
@@ -33,12 +36,13 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
         <Title headingLevel="h2" size="xl">
           {task.name}
         </Title>
+        {task.runDetails && <Text component="small">{task.runDetails.status.podName}</Text>}
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody>
-        <PipelineRunDrawerRightTabs task={task} />
+        <PipelineRunDrawerRightTabs taskReferences={taskReferences} task={task} />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );
