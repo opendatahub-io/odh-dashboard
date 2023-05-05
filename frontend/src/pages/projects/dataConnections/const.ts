@@ -28,16 +28,16 @@ export const AWS_FIELDS: FieldOptions[] = [
     isRequired: true,
   },
   {
-    key: AWS_KEYS.AWS_S3_BUCKET,
-    label: AWS_KEYS.AWS_S3_BUCKET,
-  },
-  {
     key: AWS_KEYS.S3_ENDPOINT,
     label: AWS_KEYS.S3_ENDPOINT,
   },
   {
     key: AWS_KEYS.DEFAULT_REGION,
     label: AWS_KEYS.DEFAULT_REGION,
+  },
+  {
+    key: AWS_KEYS.AWS_S3_BUCKET,
+    label: AWS_KEYS.AWS_S3_BUCKET,
   },
 ];
 

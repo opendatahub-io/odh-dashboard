@@ -3,4 +3,5 @@ export {
   PipelineContextProvider,
   usePipelinesAPI,
   DeleteServerModal,
+  ViewServerModal,
 } from './PipelinesContext';

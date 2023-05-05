@@ -1,6 +1,11 @@
 import { FieldOptions } from '~/components/FieldList';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 
+export enum EXTERNAL_DATABASE_SECRET {
+  KEY = 'db-password',
+  NAME = 'pipelines-db-password',
+}
+
 export enum DATABASE_CONNECTION_KEYS {
   HOST = 'Host',
   PORT = 'Port',

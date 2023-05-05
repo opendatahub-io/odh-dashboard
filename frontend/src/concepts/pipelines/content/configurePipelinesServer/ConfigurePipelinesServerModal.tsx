@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import { AWSDataEntry, DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
+import { DataConnection } from '~/pages/projects/types';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import './ConfigurePipelinesServerModal.scss';
 import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
@@ -15,27 +15,10 @@ import {
   DATABASE_CONNECTION_FIELDS,
   DATABASE_CONNECTION_KEYS,
   EMPTY_DATABASE_CONNECTION,
+  EXTERNAL_DATABASE_SECRET,
 } from './const';
 import { configureDSPipelineResourceSpec } from './utils';
-
-export type ObjectStorageExisting = {
-  existingName: string;
-  existingValue: AWSDataEntry;
-  useExisting: true;
-};
-
-export type ObjectStorageNew = {
-  newValue: EnvVariableDataEntry[];
-  useExisting: false;
-};
-
-export type PipelineServerConfigType = {
-  database: {
-    useDefault: boolean;
-    value: EnvVariableDataEntry[];
-  };
-  objectStorage: ObjectStorageExisting | ObjectStorageNew;
-};
+import { PipelineServerConfigType } from './types';
 
 type ConfigurePipelinesServerModalProps = {
   open: boolean;
@@ -123,7 +106,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             setError(e);
 
             // Cleanup created password secret
-            deleteSecret(project.metadata.name, 'pipelines-db-password');
+            deleteSecret(project.metadata.name, EXTERNAL_DATABASE_SECRET.NAME);
           });
       })
       .catch((e) => {
