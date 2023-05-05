@@ -55,7 +55,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (projectContext) {
       const { currentProject, currentServingRuntime } = projectContext;
       setCreateData('project', currentProject.metadata.name);
-      setCreateData('servingRuntimeName', currentServingRuntime?.metadata.name);
+      setCreateData('servingRuntimeName', currentServingRuntime.metadata.name);
     }
   }, [projectContext, setCreateData]);
 
