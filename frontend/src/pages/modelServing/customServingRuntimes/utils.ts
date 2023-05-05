@@ -4,6 +4,9 @@ import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 export const getTemplateEnabled = (template: TemplateKind) =>
   !(template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false');
 
+export const isTemplateOOTB = (template: TemplateKind) =>
+  template.metadata.labels?.['opendatahub.io/ootb'] === 'true';
+
 export const getSortedTemplates = (templates: TemplateKind[], order: string[]) =>
   [...templates].sort(
     (a, b) =>

@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
+import { Label } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
+import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
+  isTemplateOOTB,
 } from './utils';
 
 type CustomServingRuntimeTableRowProps = {
@@ -22,6 +25,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
 }) => {
   const navigate = useNavigate();
   const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
+  const templateOOTB = isTemplateOOTB(template);
 
   return (
     <Tr key={rowIndex} id={servingRuntimeName} draggable {...props}>
@@ -30,22 +34,40 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           id: `draggable-row-${servingRuntimeName}`,
         }}
       />
-      <Td dataLabel="Name">{getServingRuntimeDisplayNameFromTemplate(template)}</Td>
+      <Td dataLabel="Name">
+        <ResourceNameTooltip resource={template.objects[0]}>
+          {getServingRuntimeDisplayNameFromTemplate(template)}
+        </ResourceNameTooltip>
+        {templateOOTB && <Label>Pre-installed</Label>}
+      </Td>
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />
       </Td>
       <Td isActionCell>
         <ActionsColumn
-          items={[
-            {
-              title: 'Edit',
-              onClick: () => navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
-            },
-            {
-              title: 'Delete',
-              onClick: () => onDeleteTemplate(template),
-            },
-          ]}
+          items={
+            templateOOTB
+              ? [
+                  {
+                    title: 'Clone',
+                    onClick: () =>
+                      navigate('/servingRuntimes/addServingRuntime', {
+                        state: { template: template.objects[0] },
+                      }),
+                  },
+                ]
+              : [
+                  {
+                    title: 'Edit',
+                    onClick: () =>
+                      navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
+                  },
+                  {
+                    title: 'Delete',
+                    onClick: () => onDeleteTemplate(template),
+                  },
+                ]
+          }
         />
       </Td>
     </Tr>

@@ -11,7 +11,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { TemplateKind } from '~/k8sTypes';
@@ -29,8 +29,13 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
+  const { state } = useLocation();
 
-  const stringifiedTemplate = existingTemplate ? YAML.stringify(existingTemplate.objects[0]) : '';
+  const stringifiedTemplate = existingTemplate
+    ? YAML.stringify(existingTemplate.objects[0])
+    : state
+    ? YAML.stringify(state.template)
+    : '';
   const [code, setCode] = React.useState(stringifiedTemplate);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
