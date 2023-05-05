@@ -8,8 +8,8 @@ export const columns: SortableData<ServingRuntimeKind>[] = [
     sortable: false,
   },
   {
-    field: 'type',
-    label: 'Type',
+    field: 'model-name',
+    label: 'Model Server Name',
     width: 25,
     sortable: false,
   },

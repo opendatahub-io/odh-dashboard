@@ -61,6 +61,13 @@ export type NotebookAnnotations = Partial<{
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
 }>;
 
+export type ServingRuntimeAnnotations = Partial<{
+  'opendatahub.io/template-name': string;
+  'opendatahub.io/template-display-name': string;
+  'enable-route': string;
+  'enable-auth': string;
+}>;
+
 export type BuildConfigKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -261,11 +268,7 @@ export type ServiceAccountKind = K8sResourceCommon & {
 
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        ['enable-route']: string;
-        ['enable-auth']: string;
-      }>;
+    annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
     name: string;
     namespace: string;
   };

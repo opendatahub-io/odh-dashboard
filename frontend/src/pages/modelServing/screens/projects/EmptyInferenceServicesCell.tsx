@@ -11,7 +11,7 @@ const EmptyInferenceServicesCell: React.FC<EmptyInferenceServicesCellProps> = ({
 }) => (
   <EmptyState>
     <EmptyStateIcon icon={PlusCircleIcon} />
-    <Title headingLevel="h4" size="lg">
+    <Title headingLevel="h2" size="lg">
       No deployed models
     </Title>
     <Button variant="primary" onClick={onDeployModel}>

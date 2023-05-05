@@ -52,3 +52,21 @@ export type AppState = {
   notifications: AppNotification[];
   forceComponentsUpdate: number;
 };
+
+export type StatusResponse = {
+  kube: {
+    currentContext: string;
+    currentUser: {
+      name: string;
+      token: string;
+    };
+    namespace: string;
+    userName: string | string[];
+    clusterID: string;
+    clusterBranding: string;
+    isAdmin: boolean;
+    isAllowed: boolean;
+    serverURL: string;
+    isImpersonating?: boolean;
+  };
+};
