@@ -15,7 +15,7 @@ const EmptyModelServing: React.FC = () => {
     return (
       <EmptyState>
         <EmptyStateIcon icon={PlusCircleIcon} />
-        <Title headingLevel="h4" size="lg">
+        <Title headingLevel="h2" size="lg">
           No model servers.
         </Title>
         <EmptyStateBody>
@@ -31,7 +31,7 @@ const EmptyModelServing: React.FC = () => {
   return (
     <EmptyState>
       <EmptyStateIcon icon={PlusCircleIcon} />
-      <Title headingLevel="h4" size="lg">
+      <Title headingLevel="h2" size="lg">
         No deployed models.
       </Title>
       <EmptyStateBody>To get started, use existing model servers to serve a model.</EmptyStateBody>

@@ -3,7 +3,6 @@ import { FormGroup, Text } from '@patternfly/react-core';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import { listServingRuntimes } from '~/api';
 import ExistingProjectField from '~/pages/modelServing/screens/projects/InferenceServiceModal/ExistingProjectField';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { defaultInferenceService } from '~/pages/modelServing/screens/projects/utils';
@@ -16,9 +15,10 @@ type ProjectSectionType = {
 };
 
 const ProjectSection: React.FC<ProjectSectionType> = ({ data, setData, project, editInfo }) => {
-  const updateProject = (projectName: string, servingRuntimeName?: string) => {
+  const updateProject = (projectName: string) => {
     setData('project', projectName);
-    setData('servingRuntimeName', servingRuntimeName || '');
+    setData('servingRuntimeName', '');
+    setData('format', '');
     setData('storage', defaultInferenceService.storage);
     setData('format', defaultInferenceService.format);
   };
@@ -36,9 +36,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({ data, setData, project, 
           disabled={editInfo !== undefined}
           onSelect={(projectSelected) => {
             if (projectSelected) {
-              listServingRuntimes(projectSelected).then((servingRuntimes) => {
-                updateProject(projectSelected, servingRuntimes?.[0].metadata.name || '');
-              });
+              updateProject(projectSelected);
             } else {
               updateProject('');
             }

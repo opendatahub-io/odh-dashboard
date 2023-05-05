@@ -10,77 +10,68 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { useCreateServingRuntimeObject } from '~/pages/modelServing/screens/projects/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ServingRuntimeKind, SecretKind, TemplateKind, ProjectKind } from '~/k8sTypes';
+import { addSupportModelMeshProject, createServingRuntime, updateServingRuntime } from '~/api';
 import {
-  addSupportModelMeshProject,
-  assembleSecretSA,
-  createRoleBinding,
-  createSecret,
-  deleteSecret,
-  generateRoleBindingServingRuntime,
-  replaceSecret,
-} from '~/api';
+  requestsUnderLimits,
+  resourcesArePositive,
+  setUpTokenAuth,
+  updateSecrets,
+} from '~/pages/modelServing/utils';
+import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import {
-  createServingRuntime,
-  updateServingRuntime,
-  assembleServingRuntimeSA,
-  createServiceAccount,
-} from '~/api';
-import { ServingRuntimeKind, SecretKind, K8sStatus, KnownLabels } from '~/k8sTypes';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
+  getServingRuntimeFromTemplate,
+  getServingRuntimeNameFromTemplate,
+} from '~/pages/modelServing/customServingRuntimes/utils';
+import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
+import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
-  editInfo?: {
-    servingRuntime?: ServingRuntimeKind;
-    secrets: SecretKind[];
-  };
-};
+  currentProject: ProjectKind;
+} & EitherOrNone<
+  { servingRuntimeTemplates?: TemplateKind[] },
+  {
+    editInfo?: {
+      servingRuntime?: ServingRuntimeKind;
+      secrets: SecretKind[];
+    };
+  }
+>;
 
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   isOpen,
   onClose,
+  currentProject,
+  servingRuntimeTemplates,
   editInfo,
 }) => {
-  const [createData, setCreateData, resetData, sizes, gpuSetting] =
-    useCreateServingRuntimeObject(editInfo);
-
+  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const {
-    currentProject,
-    servingRuntimesConfig: {
-      servingRuntimesConfig,
-      refresh: servingRuntimeConfigRefresh,
-      loaded: servingRuntimeConfigLoaded,
-    },
-  } = React.useContext(ProjectDetailsContext);
+  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
   const namespace = currentProject.metadata.name;
-
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
-
-  const inputValueValid =
-    servingRuntimeConfigLoaded &&
+  const baseInputValueValid =
     createData.numReplicas >= 0 &&
     resourcesArePositive(createData.modelSize.resources) &&
     requestsUnderLimits(createData.modelSize.resources);
-
+  const servingRuntimeTemplateNameValid = editInfo?.servingRuntime
+    ? true
+    : !!createData.servingRuntimeTemplateName;
+  const inputValueValid = customServingRuntimesEnabled
+    ? baseInputValueValid && createData.name && servingRuntimeTemplateNameValid
+    : baseInputValueValid;
   const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
-
-  React.useEffect(() => {
-    if (isOpen) {
-      servingRuntimeConfigRefresh();
-    }
-  }, [isOpen, servingRuntimeConfigRefresh]);
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -94,45 +85,47 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(false);
   };
 
-  const setupTokenAuth = async (): Promise<void> => {
-    const modelMeshSA = assembleServingRuntimeSA(namespace);
-    createServiceAccount(modelMeshSA)
-      .then(() => {
-        const tokenAuth = generateRoleBindingServingRuntime(namespace);
-        createRoleBinding(tokenAuth)
-          .then(() => {
-            allSettledPromises<SecretKind, Error>(
-              createData.tokens.map((token) => {
-                const secretToken = assembleSecretSA(token.name, namespace);
-                return createSecret(secretToken);
-              }),
-            )
-              .then(() => Promise.resolve())
-              .catch((error) => Promise.reject(error));
-          })
-          .catch((error) => Promise.reject(error));
-      })
-      .catch((error) => Promise.reject(error));
-  };
-
-  const updateSecrets = async (): Promise<void> => {
-    const deletedSecrets = (editInfo?.secrets || [])
-      .map((secret) => secret.metadata.name)
-      .filter((token) => !createData.tokens.some((tokenEdit) => tokenEdit.editName === token));
-    Promise.all<K8sStatus | SecretKind>([
-      ...createData.tokens
-        .filter((token) => translateDisplayNameForK8s(token.name) !== token.editName)
-        .map((token) => {
-          const secretToken = assembleSecretSA(token.name, namespace, token.editName);
-          if (token.editName) {
-            return replaceSecret(secretToken);
-          }
-          return createSecret(secretToken);
-        }),
-      ...deletedSecrets.map((secret) => deleteSecret(namespace, secret)),
+  const updateModelServer = (
+    fillData: CreatingServingRuntimeObject,
+    servingRuntime: ServingRuntimeKind,
+    secrets: SecretKind[],
+  ): Promise<void> =>
+    Promise.all([
+      updateSecrets(
+        fillData,
+        servingRuntime.metadata.name,
+        servingRuntime.metadata.namespace,
+        secrets,
+      ),
+      updateServingRuntime(fillData, servingRuntime, customServingRuntimesEnabled),
     ])
-      .then(() => Promise.resolve())
-      .catch((error) => Promise.reject(error));
+      .then(() => {
+        setActionInProgress(false);
+        onBeforeClose(true);
+      })
+      .catch((e) => setErrorModal(e));
+
+  const createModelServer = (
+    fillData: CreatingServingRuntimeObject,
+    servingRuntime: ServingRuntimeKind,
+    namespace: string,
+  ): Promise<ServingRuntimeKind | string | void> => {
+    const servingRuntimeName = translateDisplayNameForK8s(fillData.name);
+
+    return Promise.all<ServingRuntimeKind | string | void>([
+      ...(currentProject.metadata.labels?.['modelmesh-enabled']
+        ? [addSupportModelMeshProject(currentProject.metadata.name)]
+        : []),
+      createServingRuntime(fillData, namespace, servingRuntime, customServingRuntimesEnabled),
+      setUpTokenAuth(fillData, servingRuntimeName, namespace),
+    ])
+      .then(() => {
+        setActionInProgress(false);
+        onBeforeClose(true);
+      })
+      .catch((e) => {
+        setErrorModal(e);
+      });
   };
 
   const submit = () => {
@@ -140,33 +133,28 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(true);
 
     if (editInfo) {
-      // TODO: Delete secrets
-      updateSecrets()
-        .then(() => {
-          if (!editInfo?.servingRuntime) {
-            return;
-          }
-          updateServingRuntime(createData, editInfo.servingRuntime)
-            .then(() => {
-              setActionInProgress(false);
-              onBeforeClose(true);
-            })
-            .catch((e) => setErrorModal(e));
-        })
-        .catch((e) => setErrorModal(e));
+      if (!editInfo.servingRuntime || !editInfo.secrets) {
+        setErrorModal(new Error('Serving Runtime or Secrets not found'));
+        return;
+      }
+      updateModelServer(createData, editInfo.servingRuntime, editInfo.secrets);
     } else {
-      Promise.all<ServingRuntimeKind | string | void>([
-        ...(currentProject.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]
-          ? [addSupportModelMeshProject(currentProject.metadata.name)]
-          : []),
-        createServingRuntime(createData, servingRuntimesConfig, namespace),
-        setupTokenAuth(),
-      ])
-        .then(() => {
-          setActionInProgress(false);
-          onBeforeClose(true);
-        })
-        .catch((e) => setErrorModal(e));
+      const servingRuntimeTemplate = servingRuntimeTemplates?.find(
+        (template) =>
+          getServingRuntimeNameFromTemplate(template) === createData.servingRuntimeTemplateName,
+      );
+      if (customServingRuntimesEnabled && !servingRuntimeTemplate) {
+        setErrorModal(new Error('Serving Runtime Template not found'));
+        return;
+      }
+      try {
+        const servingRuntime = getServingRuntimeFromTemplate(servingRuntimeTemplate);
+        createModelServer(createData, servingRuntime, namespace);
+      } catch (e) {
+        if (e instanceof Error) {
+          setErrorModal(e);
+        }
+      }
     }
   };
 
@@ -201,6 +189,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             }}
           >
             <Stack hasGutter>
+              <ServingRuntimeTemplateSection
+                data={createData}
+                setData={setCreateData}
+                templates={servingRuntimeTemplates}
+                isEditing={!!editInfo}
+              />
               <StackItem>
                 <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
               </StackItem>
@@ -209,7 +203,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   data={createData}
                   setData={setCreateData}
                   sizes={sizes}
-                  gpuSetting={gpuSetting}
                 />
               </StackItem>
               <StackItem>

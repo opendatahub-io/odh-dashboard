@@ -8,6 +8,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
+import InferenceServiceModel from './InferenceServiceModel';
 import InferenceServiceStatus from './InferenceServiceStatus';
 
 type InferenceServiceTableRowProps = {
@@ -49,6 +50,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       {isGlobal && (
         <Td dataLabel="Project">
           <InferenceServiceProject inferenceService={inferenceService} />
+        </Td>
+      )}
+      {isGlobal && (
+        <Td dataLabel="Model server">
+          <InferenceServiceModel inferenceService={inferenceService} />
         </Td>
       )}
       <Td dataLabel="Inference endpoint">

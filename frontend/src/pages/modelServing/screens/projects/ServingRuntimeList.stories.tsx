@@ -12,10 +12,14 @@ import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockServingRuntimesConfig } from '~/__mocks__/mockServingRuntimesConfig';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
+import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
+import { mockStatus } from '~/__mocks__/mockStatus';
+import useDetectUser from '~/utilities/useDetectUser';
+import { fetchDashboardConfig } from '~/services/dashboardConfigService';
 import ServingRuntimeList from './ServingRuntimeList';
 
 export default {
@@ -28,6 +32,8 @@ export default {
     },
     msw: {
       handlers: [
+        rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
+        rest.get('/api/config', (req, res, ctx) => res(ctx.json(mockDashboardConfig))),
         rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
           res(ctx.json(mockK8sResourceList([mockPodK8sResource({})]))),
         ),
@@ -65,21 +71,30 @@ export default {
           '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
           (req, res, ctx) => res(ctx.json(mockServingRuntimeK8sResource({}))),
         ),
-        rest.get('/api/k8s/api/v1/configmaps/servingruntimes-config', (req, res, ctx) =>
-          res(ctx.json(mockServingRuntimesConfig({}))),
+        rest.get(
+          '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
+          (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockTemplateK8sResource({})]))),
+        ),
+        rest.get(
+          '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
+          (req, res, ctx) => res(ctx.json(mockDashboardConfig)),
         ),
       ],
     },
   },
 } as ComponentMeta<typeof ServingRuntimeList>;
 
-const Template: ComponentStory<typeof ServingRuntimeList> = (args) => (
-  <ProjectsRoutes>
-    <Route path="/" element={<ProjectDetailsContextProvider />}>
-      <Route index element={<ServingRuntimeList {...args} />} />
-    </Route>
-  </ProjectsRoutes>
-);
+const Template: ComponentStory<typeof ServingRuntimeList> = (args) => {
+  fetchDashboardConfig();
+  useDetectUser();
+  return (
+    <ProjectsRoutes>
+      <Route path="/" element={<ProjectDetailsContextProvider />}>
+        <Route index element={<ServingRuntimeList {...args} />} />
+      </Route>
+    </ProjectsRoutes>
+  );
+};
 
 export const Default = Template.bind({});
 Default.play = async ({ canvasElement }) => {

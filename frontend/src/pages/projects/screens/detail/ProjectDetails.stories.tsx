@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
 import { within } from '@storybook/testing-library';
@@ -13,14 +12,17 @@ import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContex
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockServingRuntimesConfig } from '~/__mocks__/mockServingRuntimesConfig';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
+import { mockStatus } from '~/__mocks__/mockStatus';
+import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from './ProjectDetails';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
+  rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
   rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockPodK8sResource({})]))),
   ),
@@ -76,8 +78,13 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
     (req, res, ctx) => res(ctx.json(mockServingRuntimeK8sResource({}))),
   ),
-  rest.get('/api/k8s/api/v1/configmaps/servingruntimes-config', (req, res, ctx) =>
-    res(ctx.json(mockServingRuntimesConfig({}))),
+  rest.get(
+    '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
+    (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockTemplateK8sResource({})]))),
+  ),
+  rest.get(
+    '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
+    (req, res, ctx) => res(ctx.json(mockDashboardConfig)),
   ),
 ];
 

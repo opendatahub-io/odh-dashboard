@@ -14,24 +14,21 @@ import {
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
 import useGPUSetting from '~/pages/notebookController/screens/server/useGPUSetting';
-import { GpuSettingString } from '~/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   sizes: ServingRuntimeSize[];
-  gpuSetting: GpuSettingString;
 };
 
 const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   data,
   setData,
   sizes,
-  gpuSetting,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
-  const { available: gpuAvailable, count: gpuCount } = useGPUSetting(gpuSetting || 'hidden');
+  const { available: gpuAvailable, count: gpuCount } = useGPUSetting('autodetect');
 
   const sizeCustom = [
     ...sizes,

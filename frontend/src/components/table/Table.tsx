@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   Pagination,
   Toolbar,
@@ -14,10 +15,11 @@ import {
   Caption,
   Tbody,
   Td,
+  TbodyProps,
 } from '@patternfly/react-table';
-import React, { useEffect } from 'react';
 import useTableColumnSort, { SortableData } from '~/components/table/useTableColumnSort';
 import { CHECKBOX_FIELD_ID } from '~/components/table/const';
+import { EitherNotBoth } from '~/typeHelpers';
 
 type TableProps<DataType> = {
   data: DataType[];
@@ -30,10 +32,13 @@ type TableProps<DataType> = {
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
   emptyTableView?: React.ReactNode;
   caption?: string;
-  disableRowRenderSupport?: boolean;
   footerRow?: (pageNumber: number) => React.ReactElement<typeof Tr> | null;
   selectAll?: { onSelect: (value: boolean) => void; selected: boolean };
-} & Omit<TableComposableProps, 'ref' | 'data'>;
+} & EitherNotBoth<
+  { disableRowRenderSupport?: boolean },
+  { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
+> &
+  Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
   data: allData,
@@ -49,6 +54,7 @@ const Table = <T,>({
   disableRowRenderSupport,
   selectAll,
   footerRow,
+  tbodyProps,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
@@ -66,7 +72,7 @@ const Table = <T,>({
   }
 
   // update page to 1 if data changes (common when filter is applied)
-  useEffect(() => {
+  React.useEffect(() => {
     if (data.length === 0) {
       setPage(1);
     }
@@ -127,6 +133,7 @@ const Table = <T,>({
                   key={col.field + i}
                   sort={col.sortable ? sort.getColumnSort(i) : undefined}
                   width={col.width}
+                  info={col.info}
                 >
                   {col.label}
                 </Th>
@@ -144,7 +151,7 @@ const Table = <T,>({
           </>
         ) : (
           <>
-            <Tbody>{data.map((row, rowIndex) => rowRenderer(row, rowIndex))}</Tbody>
+            <Tbody {...tbodyProps}>{data.map((row, rowIndex) => rowRenderer(row, rowIndex))}</Tbody>
             {footerRow && footerRow(page)}
           </>
         )}

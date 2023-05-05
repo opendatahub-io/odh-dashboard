@@ -1,7 +1,33 @@
 import { DashboardConfig } from '~/types';
 import { KnownLabels } from '~/k8sTypes';
 
-export const mockDashboardConfig: DashboardConfig = {
+type MockDashboardConfigType = {
+  disableInfo?: boolean;
+  disableSupport?: boolean;
+  disableClusterManager?: boolean;
+  disableTracking?: boolean;
+  disableBYONImageStream?: boolean;
+  disableISVBadges?: boolean;
+  disableAppLauncher?: boolean;
+  disableUserManagement?: boolean;
+  disableProjects?: boolean;
+  disableModelServing?: boolean;
+  disableCustomServingRuntimes?: boolean;
+};
+
+export const mockDashboardConfig = ({
+  disableInfo = false,
+  disableSupport = false,
+  disableClusterManager = false,
+  disableTracking = true,
+  disableBYONImageStream = false,
+  disableISVBadges = false,
+  disableAppLauncher = false,
+  disableUserManagement = false,
+  disableProjects = false,
+  disableModelServing = false,
+  disableCustomServingRuntimes = false,
+}: MockDashboardConfigType): DashboardConfig => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
   metadata: {
@@ -9,21 +35,22 @@ export const mockDashboardConfig: DashboardConfig = {
     labels: {
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
-    namespace: 'redhat-ods-applications',
+    namespace: 'opendatahub',
   },
   spec: {
     dashboardConfig: {
       enablement: true,
-      disableInfo: false,
-      disableSupport: false,
-      disableClusterManager: false,
-      disableTracking: true,
-      disableBYONImageStream: false,
-      disableISVBadges: false,
-      disableAppLauncher: false,
-      disableUserManagement: false,
-      disableProjects: false,
-      disableModelServing: false,
+      disableInfo,
+      disableSupport,
+      disableClusterManager,
+      disableTracking,
+      disableBYONImageStream,
+      disableISVBadges,
+      disableAppLauncher,
+      disableUserManagement,
+      disableProjects,
+      disableModelServing,
+      disableCustomServingRuntimes,
       modelMetricsNamespace: 'test-project',
       disablePipelines: false,
       disableProjectSharing: false,
@@ -149,6 +176,7 @@ export const mockDashboardConfig: DashboardConfig = {
         },
       },
     ],
+    templateOrder: ['test-model'],
   },
   status: {
     dependencyOperators: {
@@ -158,4 +186,4 @@ export const mockDashboardConfig: DashboardConfig = {
       },
     },
   },
-};
+});

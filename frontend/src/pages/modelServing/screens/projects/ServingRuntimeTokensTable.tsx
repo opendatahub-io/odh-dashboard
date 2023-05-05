@@ -1,21 +1,26 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem } from '@patternfly/react-core';
 import Table from '~/components/table/Table';
-
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { tokenColumns } from '~/pages/modelServing/screens/global/data';
+import { ServingRuntimeKind } from '~/k8sTypes';
 import ServingRuntimeTokenTableRow from './ServingRuntimeTokenTableRow';
 
-type ServingRumtimeTokensTableProps = {
+type ServingRuntimeTokensTableProps = {
+  obj: ServingRuntimeKind;
   isTokenEnabled: boolean;
 };
 
-const ServingRumtimeTokensTable: React.FC<ServingRumtimeTokensTableProps> = ({
+const ServingRuntimeTokensTable: React.FC<ServingRuntimeTokensTableProps> = ({
+  obj,
   isTokenEnabled,
 }) => {
   const {
-    serverSecrets: { data: secrets, loaded, error },
+    serverSecrets: { loaded, error },
+    filterTokens,
   } = React.useContext(ProjectDetailsContext);
+
+  const tokens = filterTokens(obj.metadata.name);
 
   if (!isTokenEnabled) {
     return (
@@ -29,7 +34,7 @@ const ServingRumtimeTokensTable: React.FC<ServingRumtimeTokensTableProps> = ({
 
   return (
     <Table
-      data={secrets}
+      data={tokens}
       columns={tokenColumns}
       rowRenderer={(secret) => (
         <ServingRuntimeTokenTableRow
@@ -43,4 +48,4 @@ const ServingRumtimeTokensTable: React.FC<ServingRumtimeTokensTableProps> = ({
   );
 };
 
-export default ServingRumtimeTokensTable;
+export default ServingRuntimeTokensTable;

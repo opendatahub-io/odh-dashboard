@@ -47,6 +47,8 @@ spec:
                       type: boolean
                     disableProjectSharing:
                       type: boolean
+                    disableCustomServingRuntimes:
+                      type: boolean
                     modelMetricsNamespace:
                       type: string
                     disablePipelines:
@@ -138,3 +140,7 @@ spec:
                             type: string
                     storageClassName:
                       type: string
+                templateOrder:
+                  type: array
+                  items:
+                    type: string

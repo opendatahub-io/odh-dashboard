@@ -50,6 +50,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableProjects: false,
       disableModelServing: false,
       disableProjectSharing: false,
+      disableCustomServingRuntimes: false,
       modelMetricsNamespace: '',
       disablePipelines: true,
     },
@@ -60,6 +61,7 @@ export const blankDashboardCR: DashboardConfig = {
       adminGroups: 'odh-admins',
       allowedGroups: 'system:authenticated',
     },
+    templateOrder: [],
   },
   status: {
     dependencyOperators: {

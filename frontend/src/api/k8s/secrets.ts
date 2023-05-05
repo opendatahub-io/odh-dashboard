@@ -9,7 +9,6 @@ import { K8sAPIOptions, K8sStatus, KnownLabels, SecretKind } from '~/k8sTypes';
 import { SecretModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { getModelServiceAccountName } from '~/pages/modelServing/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
@@ -90,10 +89,10 @@ export const assembleSecretISStorage = (
 
 export const assembleSecretSA = (
   name: string,
+  serviceAccountName: string,
   namespace: string,
   editName?: string,
 ): SecretKind => {
-  const saName = getModelServiceAccountName(namespace);
   const k8Name = editName || translateDisplayNameForK8s(name);
   return {
     apiVersion: 'v1',
@@ -102,7 +101,7 @@ export const assembleSecretSA = (
       name: k8Name,
       namespace,
       annotations: {
-        'kubernetes.io/service-account.name': saName,
+        'kubernetes.io/service-account.name': serviceAccountName,
         'openshift.io/display-name': name,
       },
       labels: {

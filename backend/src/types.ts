@@ -26,6 +26,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableProjects: boolean;
       disableModelServing: boolean;
       disableProjectSharing: boolean;
+      disableCustomServingRuntimes: boolean;
       modelMetricsNamespace: string;
       disablePipelines: boolean;
     };
@@ -45,6 +46,7 @@ export type DashboardConfig = K8sResourceCommon & {
       };
       storageClassName?: string;
     };
+    templateOrder?: string[];
   };
   /** Faux status object -- will be replaced in the long run by a Dashboard Controller */
   status: {

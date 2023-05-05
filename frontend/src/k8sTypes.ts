@@ -1,6 +1,17 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
-import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
+import {
+  PodAffinity,
+  NotebookContainer,
+  PodToleration,
+  Volume,
+  ContainerResources,
+  DashboardCommonConfig,
+  NotebookSize,
+  GpuSettingString,
+  TolerationSettings,
+} from './types';
+import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
@@ -73,6 +84,13 @@ export type K8sCondition = {
   message?: string;
   lastTransitionTime?: string;
 };
+
+export type ServingRuntimeAnnotations = Partial<{
+  'opendatahub.io/template-name': string;
+  'opendatahub.io/template-display-name': string;
+  'enable-route': string;
+  'enable-auth': string;
+}>;
 
 export type BuildConfigKind = K8sResourceCommon & {
   metadata: {
@@ -276,11 +294,7 @@ export type ServiceAccountKind = K8sResourceCommon & {
 
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        ['enable-route']: string;
-        ['enable-auth']: string;
-      }>;
+    annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
     name: string;
     namespace: string;
   };
@@ -648,4 +662,47 @@ export type GroupKind = K8sResourceCommon & {
     name: string;
   };
   users: string[];
+};
+
+export type TemplateKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: Partial<{
+      tags: string;
+      iconClass?: string;
+      'opendatahub.io/template-enabled': string;
+    }>;
+    name: string;
+    namespace: string;
+  };
+  objects: K8sDSGResource[];
+  parameters: TemplateParameter[];
+};
+
+export type TemplateParameter = {
+  name: string;
+  displayName: string;
+  description: string;
+  value: string;
+  required: boolean;
+};
+
+// New specification of DashboardConfig for pass through to the UI, we will have both types until we refactor the backend calls
+export type DashboardConfigKind = K8sResourceCommon & {
+  spec: {
+    dashboardConfig: DashboardCommonConfig;
+    groupsConfig?: {
+      adminGroups: string;
+      allowedGroups: string;
+    };
+    notebookSizes?: NotebookSize[];
+    modelServerSizes?: ServingRuntimeSize[];
+    notebookController?: {
+      enabled: boolean;
+      pvcSize?: string;
+      notebookNamespace?: string;
+      gpuSetting?: GpuSettingString;
+      notebookTolerationSettings?: TolerationSettings;
+    };
+    templateOrder?: string[];
+  };
 };

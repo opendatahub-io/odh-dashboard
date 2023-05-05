@@ -63,6 +63,7 @@ export type DashboardConfig = K8sResourceCommon & {
       gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
+    templateOrder?: string[];
   };
   /** Faux status object -- computed by the service account */
   status: {
@@ -85,6 +86,7 @@ export type DashboardCommonConfig = {
   disableProjects: boolean;
   disableModelServing: boolean;
   disableProjectSharing: boolean;
+  disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
 };
