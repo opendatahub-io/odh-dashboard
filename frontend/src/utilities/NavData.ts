@@ -50,7 +50,10 @@ const getSettingsNav = (
     });
   }
 
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes)) {
+  if (
+    featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes) &&
+    featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableModelServing)
+  ) {
     settingsNavs.push({
       id: 'settings-custom-serving-runtimes',
       label: 'Serving runtimes',
