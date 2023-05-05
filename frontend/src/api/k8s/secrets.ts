@@ -113,11 +113,17 @@ export const assembleSecretSA = (
   };
 };
 
-export const getSecret = (projectName: string, secretName: string): Promise<SecretKind> =>
-  k8sGetResource<SecretKind>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: projectName },
-  });
+export const getSecret = (
+  projectName: string,
+  secretName: string,
+  opts?: K8sAPIOptions,
+): Promise<SecretKind> =>
+  k8sGetResource<SecretKind>(
+    applyK8sAPIOptions(opts, {
+      model: SecretModel,
+      queryOptions: { name: secretName, ns: projectName },
+    }),
+  );
 
 export const getSecretsByLabel = (label: string, namespace: string): Promise<SecretKind[]> =>
   k8sListResource<SecretKind>({

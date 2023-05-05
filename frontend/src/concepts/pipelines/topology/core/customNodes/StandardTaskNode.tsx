@@ -6,6 +6,7 @@ import {
   WhenDecorator,
   NodeModel,
   WithSelectionProps,
+  observer,
 } from '@patternfly/react-topology';
 import { StandardTaskNodeData } from '~/concepts/pipelines/topology/core/types';
 
@@ -27,4 +28,4 @@ const StandardTaskNode: React.FC<DemoTaskNodeProps> = ({ element, onSelect, sele
   );
 };
 
-export default StandardTaskNode;
+export default observer(StandardTaskNode);

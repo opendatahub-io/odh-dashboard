@@ -1,9 +1,14 @@
 import * as React from 'react';
 import {
-  getPipelineRunLikeExperimentName,
-  getPipelineRunLikePipelineName,
+  getPipelineCoreResourceExperimentName,
+  getPipelineCoreResourcePipelineName,
 } from '~/concepts/pipelines/content/tables/utils';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineRunKF,
+  PipelineRunStatusesKF,
+  PipelineRunStatusUnknown,
+} from '~/concepts/pipelines/kfTypes';
+import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import { FilterOptions, FilterProps } from './PipelineRunTableToolbar';
 
 type FilterData = Record<FilterOptions, string>;
@@ -32,21 +37,29 @@ const usePipelineRunFilter = (
     }
     if (
       experimentValue &&
-      !getPipelineRunLikeExperimentName(run).toLowerCase().includes(experimentValue.toLowerCase())
+      !getPipelineCoreResourceExperimentName(run)
+        .toLowerCase()
+        .includes(experimentValue.toLowerCase())
     ) {
       return false;
     }
     if (
       pipelineValue &&
-      !getPipelineRunLikePipelineName(run).toLowerCase().includes(pipelineValue.toLowerCase())
+      !getPipelineCoreResourcePipelineName(run).toLowerCase().includes(pipelineValue.toLowerCase())
     ) {
       return false;
     }
     if (startedValue && !run.created_at.includes(startedValue)) {
       return false;
     }
-    if (statusValue && run.status !== statusValue) {
-      return false;
+    if (statusValue) {
+      const { label } = computeRunStatus(run);
+      const keys: string[] = Object.values(PipelineRunStatusesKF);
+      if (statusValue === PipelineRunStatusUnknown && keys.includes(label)) {
+        return false;
+      } else if (statusValue !== PipelineRunStatusUnknown && statusValue !== label) {
+        return false;
+      }
     }
 
     return true;

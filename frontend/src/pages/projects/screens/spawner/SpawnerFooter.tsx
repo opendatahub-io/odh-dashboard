@@ -33,6 +33,7 @@ type SpawnerFooterProps = {
   storageData: StorageData;
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
+  canEnablePipelines: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -40,6 +41,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   storageData,
   envVariables,
   dataConnection,
+  canEnablePipelines,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState('');
   const {
@@ -205,7 +207,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       tolerationSettings,
     };
 
-    createNotebook(newStartData, username)
+    createNotebook(newStartData, username, canEnablePipelines)
       .then((notebook) => afterStart(notebook.metadata.name, 'created'))
       .catch(handleError);
   };

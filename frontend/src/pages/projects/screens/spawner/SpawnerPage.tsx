@@ -28,6 +28,7 @@ import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks
 import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useNotebookGPUNumber';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -224,21 +225,26 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             </StackItem>
           )}
           <StackItem>
-            <SpawnerFooter
-              startNotebookData={{
-                notebookName: nameDesc.name,
-                description: nameDesc.description,
-                projectName: currentProject.metadata.name,
-                image: selectedImage,
-                notebookSize: selectedSize,
-                gpus: parseInt(selectedGpu),
-                volumes: [],
-                volumeMounts: [],
-              }}
-              storageData={storageData}
-              envVariables={envVariables}
-              dataConnection={dataConnection}
-            />
+            <CanEnableElyraPipelinesCheck namespace={currentProject.metadata.name}>
+              {(canEnablePipelines) => (
+                <SpawnerFooter
+                  startNotebookData={{
+                    notebookName: nameDesc.name,
+                    description: nameDesc.description,
+                    projectName: currentProject.metadata.name,
+                    image: selectedImage,
+                    notebookSize: selectedSize,
+                    gpus: parseInt(selectedGpu),
+                    volumes: [],
+                    volumeMounts: [],
+                  }}
+                  storageData={storageData}
+                  envVariables={envVariables}
+                  dataConnection={dataConnection}
+                  canEnablePipelines={canEnablePipelines}
+                />
+              )}
+            </CanEnableElyraPipelinesCheck>
           </StackItem>
         </Stack>
       </PageSection>

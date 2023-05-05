@@ -10,35 +10,29 @@ import {
   Tooltip,
   Truncate,
 } from '@patternfly/react-core';
-import {
-  BanIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  QuestionCircleIcon,
-  SyncAltIcon,
-} from '@patternfly/react-icons';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
   PipelineRunJobKF,
   PipelineRunKF,
   PipelineCoreResourceKF,
-  PipelineRunStatusesKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
-  getPipelineRunLikeExperimentName,
+  getPipelineCoreResourceExperimentName,
   getPipelineRunJobScheduledState,
   ScheduledState,
-  getPipelineRunLikePipelineReference,
+  getPipelineCoreResourcePipelineReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
 export const NoRunContent = () => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;
-type RunLikeUtil<P = ExtraProps> = React.FC<{ runLike: PipelineCoreResourceKF } & P>;
+type CoreResourceUtil<P = ExtraProps> = React.FC<{ resource: PipelineCoreResourceKF } & P>;
 type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKF } & P>;
 
 export const RunNameForPipeline: RunUtil = ({ run }) => {
@@ -52,39 +46,15 @@ export const RunNameForPipeline: RunUtil = ({ run }) => {
 };
 
 export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
-  let icon: React.ReactNode;
-  let status: React.ComponentProps<typeof Icon>['status'];
-  let tooltipContent: string | null = null;
-
-  switch (run.status) {
-    case PipelineRunStatusesKF.COMPLETED:
-      icon = <CheckCircleIcon />;
-      status = 'success';
-      break;
-    case PipelineRunStatusesKF.FAILED:
-      icon = <ExclamationCircleIcon />;
-      status = 'danger';
-      // TODO: tooltipContent for error?
-      // TODO: Make a PipelineRun fail
-      break;
-    case PipelineRunStatusesKF.RUNNING:
-      icon = <SyncAltIcon />;
-      break;
-    case PipelineRunStatusesKF.CANCELLED:
-      icon = <BanIcon />;
-      break;
-    default:
-      icon = <QuestionCircleIcon />;
-      status = 'warning';
-      tooltipContent = run.status;
-  }
+  const { icon, status, label, details } = computeRunStatus(run);
+  let tooltipContent = details;
 
   const content = (
     <div style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
       <Icon isInline status={status}>
         {icon}
       </Icon>{' '}
-      {!justIcon && run.status}
+      {!justIcon && label}
     </div>
   );
 
@@ -120,12 +90,15 @@ export const RunCreated: RunUtil = ({ run }) => {
   );
 };
 
-export const RunLikeExperiment: RunLikeUtil = ({ runLike }) => (
-  <>{getPipelineRunLikeExperimentName(runLike)}</>
+export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (
+  <>{getPipelineCoreResourceExperimentName(resource)}</>
 );
 
-export const RunLikePipeline: RunLikeUtil<{ namespace: string }> = ({ runLike, namespace }) => {
-  const resourceRef = getPipelineRunLikePipelineReference(runLike);
+export const CoreResourcePipeline: CoreResourceUtil<{ namespace: string }> = ({
+  resource,
+  namespace,
+}) => {
+  const resourceRef = getPipelineCoreResourcePipelineReference(resource);
   const pipelineName = resourceRef?.name;
   if (!resourceRef || !pipelineName) {
     return <NoRunContent />;

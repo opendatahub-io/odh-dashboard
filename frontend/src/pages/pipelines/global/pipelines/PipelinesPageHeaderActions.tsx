@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Dropdown, DropdownItem, DropdownSeparator, DropdownToggle } from '@patternfly/react-core';
-import { DeleteModal } from '~/concepts/pipelines/context';
+import { DeleteServerModal } from '~/concepts/pipelines/context';
 
 const PipelinesPageHeaderActions: React.FC = () => {
   const [open, setOpen] = React.useState(false);
@@ -31,7 +31,7 @@ const PipelinesPageHeaderActions: React.FC = () => {
           </DropdownItem>,
         ]}
       />
-      <DeleteModal
+      <DeleteServerModal
         isOpen={deleteOpen}
         onClose={() => {
           setDeleteOpen(false);

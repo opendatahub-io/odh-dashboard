@@ -3,9 +3,9 @@ import { TableVariant } from '@patternfly/react-table';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import Table from '~/components/table/Table';
 import PipelinesTableRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
-import DeletePipelineModal from '~/concepts/pipelines/content/DeletePipelineModal';
 import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 import { pipelineColumns } from '~/concepts/pipelines/content/tables/columns';
+import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 
 type PipelinesTableProps = {
   pipelines: PipelineKF[];
@@ -46,8 +46,9 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         )}
         disableRowRenderSupport
       />
-      <DeletePipelineModal
-        pipeline={deleteTarget}
+      <DeletePipelineCoreResourceModal
+        type="pipeline"
+        toDeleteResources={deleteTarget ? [deleteTarget] : []}
         onClose={(deleted) => {
           if (deleted) {
             refreshPipelines().then(() => setDeleteTarget(null));

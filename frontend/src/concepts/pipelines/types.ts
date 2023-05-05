@@ -1,6 +1,5 @@
 import { K8sAPIOptions } from '~/k8sTypes';
 import {
-  DeletePipelineResourceKF,
   ListPipelineRunsResourceKF,
   ListPipelineRunJobsResourceKF,
   ListPipelinesResponseKF,
@@ -37,10 +36,9 @@ export type GetPipelineRunJob = (
   opts: K8sAPIOptions,
   pipelineRunJobId: string,
 ) => Promise<PipelineRunJobKF>;
-export type DeletePipeline = (
-  opts: K8sAPIOptions,
-  pipelineId: string,
-) => Promise<DeletePipelineResourceKF>;
+export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
+export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
+export type DeletePipelineRunJob = (opts: K8sAPIOptions, jobId: string) => Promise<void>;
 export type ListExperiments = (opts) => Promise<ListExperimentsResponseKF>;
 export type ListPipelines = (
   opts: K8sAPIOptions,
@@ -67,7 +65,7 @@ export type UploadPipeline = (
   name: string,
   description: string,
   fileContents: string,
-) => Promise<void>;
+) => Promise<PipelineKF>;
 
 export type PipelineAPIs = {
   createExperiment: CreateExperiment;
@@ -78,6 +76,8 @@ export type PipelineAPIs = {
   getPipelineRun: GetPipelineRun;
   getPipelineRunJob: GetPipelineRunJob;
   deletePipeline: DeletePipeline;
+  deletePipelineRun: DeletePipelineRun;
+  deletePipelineRunJob: DeletePipelineRunJob;
   listExperiments: ListExperiments;
   listPipelines: ListPipelines;
   listPipelineRuns: ListPipelineRuns;

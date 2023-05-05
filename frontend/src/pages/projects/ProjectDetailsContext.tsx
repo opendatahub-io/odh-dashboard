@@ -24,6 +24,7 @@ import { useAppContext } from '~/app/AppContext';
 import { featureFlagEnabled } from '~/utilities/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InvalidProject from '~/concepts/projects/InvalidProject';
+import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
@@ -69,7 +70,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const { dashboardConfig } = useAppContext();
   const { namespace } = useParams<{ namespace: string }>();
   const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(namespace));
+  const project = projects.find(byName(namespace)) ?? null;
+  useSyncPreferredProject(project);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));

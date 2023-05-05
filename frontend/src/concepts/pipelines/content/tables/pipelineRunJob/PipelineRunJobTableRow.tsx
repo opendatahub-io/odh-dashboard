@@ -7,8 +7,8 @@ import {
   RunJobScheduled,
   RunJobStatus,
   RunJobTrigger,
-  RunLikeExperiment,
-  RunLikePipeline,
+  CoreResourceExperiment,
+  CoreResourcePipeline,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import CheckboxTd from '~/components/table/CheckboxTd';
@@ -36,10 +36,10 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
         <TableRowTitleDescription title={job.name} description={job.description} />
       </Td>
       <Td>
-        <RunLikeExperiment runLike={job} />
+        <CoreResourceExperiment resource={job} />
       </Td>
       <Td>
-        <RunLikePipeline runLike={job} namespace={namespace} />
+        <CoreResourcePipeline resource={job} namespace={namespace} />
       </Td>
       <Td>
         <RunJobTrigger job={job} />

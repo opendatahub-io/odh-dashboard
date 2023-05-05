@@ -61,6 +61,14 @@ export const blankDashboardCR: DashboardConfig = {
       allowedGroups: 'system:authenticated',
     },
   },
+  status: {
+    dependencyOperators: {
+      redhatOpenshiftPipelines: {
+        available: false,
+        queriedForStatus: false,
+      },
+    },
+  },
 };
 
 export const MOUNT_PATH = '/opt/app-root/src';

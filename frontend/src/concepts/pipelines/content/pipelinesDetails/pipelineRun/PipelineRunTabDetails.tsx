@@ -1,42 +1,33 @@
 import * as React from 'react';
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Icon,
-  Split,
-  SplitItem,
-  Stack,
-  StackItem,
-  Timestamp,
-  TimestampFormat,
-  Title,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { GlobeAmericasIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineRunLikePipelineReference,
+  getPipelineCoreResourcePipelineReference,
   getRunDuration,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { relativeDuration } from '~/utilities/time';
+import {
+  asTimestamp,
+  DetailItem,
+  renderDetailItems,
+} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF;
+  workflowName?: string;
 };
 
-type DetailItem = {
-  key: string;
-  value: React.ReactNode;
-};
-
-const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ pipelineRunKF }) => {
+const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
+  pipelineRunKF,
+  workflowName,
+}) => {
   const { namespace, project } = usePipelinesAPI();
 
-  if (!pipelineRunKF) {
+  if (!pipelineRunKF || !workflowName) {
     return (
       <EmptyState>
         <EmptyStateIcon icon={ExclamationCircleIcon} />
@@ -50,16 +41,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ pipelineR
     );
   }
 
-  const asTimestamp = (date: Date) => (
-    <>
-      <Icon size="sm">
-        <GlobeAmericasIcon />
-      </Icon>{' '}
-      <Timestamp date={date} dateFormat={TimestampFormat.full} timeFormat={TimestampFormat.full} />
-    </>
-  );
-
-  const pipelineReference = getPipelineRunLikePipelineReference(pipelineRunKF);
+  const pipelineReference = getPipelineCoreResourcePipelineReference(pipelineRunKF);
   const pipelineRef = pipelineReference
     ? [
         {
@@ -82,7 +64,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ pipelineR
       value: <Link to={`/projects/${namespace}`}>{getProjectDisplayName(project)}</Link>,
     },
     { key: 'Run ID', value: pipelineRunKF.id },
-    // { key: 'Workflow name', value: '?????' },
+    { key: 'Workflow name', value: workflowName },
     { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
     {
       key: 'Started at',
@@ -92,19 +74,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ pipelineR
     { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
   ];
 
-  return (
-    <Stack hasGutter>
-      {details.map((detail) => (
-        <StackItem key={detail.key}>
-          <Split hasGutter>
-            <SplitItem style={{ width: 150 }}>{detail.key}</SplitItem>
-            <SplitItem isFilled>{detail.value}</SplitItem>
-          </Split>
-        </StackItem>
-      ))}
-      <StackItem>&nbsp;</StackItem>
-    </Stack>
-  );
+  return <>{renderDetailItems(details)}</>;
 };
 
 export default PipelineRunTabDetails;

@@ -13,10 +13,11 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useImportModalData from '~/concepts/pipelines/content/import/useImportModalData';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 
 type PipelineImportModalProps = {
   isOpen: boolean;
-  onClose: (imported: boolean) => void;
+  onClose: (pipeline?: PipelineKF) => void;
 };
 
 const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClose }) => {
@@ -27,8 +28,8 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
 
   const haveEnoughData = !!name && !!fileContents;
 
-  const onBeforeClose = (imported: boolean) => {
-    onClose(imported);
+  const onBeforeClose = (pipeline?: PipelineKF) => {
+    onClose(pipeline);
     setImporting(false);
     setError(undefined);
     resetData();
@@ -38,7 +39,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
     <Modal
       title="Import pipeline"
       isOpen={isOpen}
-      onClose={() => onBeforeClose(false)}
+      onClose={() => onBeforeClose()}
       actions={[
         <Button
           key="import-button"
@@ -49,7 +50,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
             setError(undefined);
             api
               .uploadPipeline({}, name, description, fileContents)
-              .then(() => onBeforeClose(true))
+              .then((pipeline) => onBeforeClose(pipeline))
               .catch((e) => {
                 setImporting(false);
                 setError(e);
@@ -58,7 +59,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
         >
           Import pipeline
         </Button>,
-        <Button key="cancel-button" variant="secondary" onClick={() => onBeforeClose(false)}>
+        <Button key="cancel-button" variant="secondary" onClick={() => onBeforeClose()}>
           Cancel
         </Button>,
       ]}

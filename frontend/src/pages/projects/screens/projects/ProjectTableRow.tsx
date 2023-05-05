@@ -38,6 +38,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           loaded={loaded}
           error={error}
           show="notebook"
+          namespace={project.metadata.name}
         />
       </Td>
       <Td dataLabel="Status">
@@ -46,6 +47,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           loaded={loaded}
           error={error}
           show="status"
+          namespace={project.metadata.name}
         />
       </Td>
       <Td dataLabel="Created">

@@ -30,31 +30,32 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
     [PipelineRunStatusesKF.COMPLETED]: 1,
     [PipelineRunStatusesKF.FAILED]: 2,
     [PipelineRunStatusesKF.RUNNING]: 3,
+    [PipelineRunStatusesKF.STARTED]: 4,
   };
 
-  return weights[run.status] ?? 0;
+  return weights[run.status] ?? Infinity;
 };
 
 export const getRunResourceReference = (
-  runLike: PipelineCoreResourceKF,
+  resource: PipelineCoreResourceKF,
   type: ResourceTypeKF,
 ): ResourceReferenceKF | undefined =>
-  runLike.resource_references?.find((ref) => ref.key.type === type);
+  resource.resource_references?.find((ref) => ref.key.type === type);
 
-export const getPipelineRunLikePipelineReference = (
-  runLike: PipelineCoreResourceKF,
+export const getPipelineCoreResourcePipelineReference = (
+  resource: PipelineCoreResourceKF,
 ): ResourceReferenceKF | undefined =>
-  getRunResourceReference(runLike, ResourceTypeKF.PIPELINE_VERSION);
+  getRunResourceReference(resource, ResourceTypeKF.PIPELINE_VERSION);
 
-export const getPipelineRunLikeExperimentReference = (
-  runLike: PipelineCoreResourceKF,
-): ResourceReferenceKF | undefined => getRunResourceReference(runLike, ResourceTypeKF.EXPERIMENT);
+export const getPipelineCoreResourceExperimentReference = (
+  resource: PipelineCoreResourceKF,
+): ResourceReferenceKF | undefined => getRunResourceReference(resource, ResourceTypeKF.EXPERIMENT);
 
-export const getPipelineRunLikeExperimentName = (runLike: PipelineCoreResourceKF): string =>
-  getPipelineRunLikeExperimentReference(runLike)?.name || 'Default';
+export const getPipelineCoreResourceExperimentName = (resource: PipelineCoreResourceKF): string =>
+  getPipelineCoreResourceExperimentReference(resource)?.name || 'Default';
 
-export const getPipelineRunLikePipelineName = (runLike: PipelineCoreResourceKF): string =>
-  getPipelineRunLikePipelineReference(runLike)?.name || '';
+export const getPipelineCoreResourcePipelineName = (resource: PipelineCoreResourceKF): string =>
+  getPipelineCoreResourcePipelineReference(resource)?.name || '';
 
 export const getPipelineRunJobStartTime = (job: PipelineRunJobKF): Date | null => {
   const startTime =
@@ -111,7 +112,7 @@ export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
     [ScheduledState.ENDED]: 3,
   };
 
-  return weights[state] ?? 0;
+  return weights[state] ?? Infinity;
 };
 
 export const isJobWithinDateRange = (

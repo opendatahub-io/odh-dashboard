@@ -2,18 +2,21 @@ import * as React from 'react';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Split, SplitItem } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
-import { ProjectSharingRoleType } from './types';
+import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
 import ProjectSharingNameInput from './ProjectSharingNameInput';
 import ProjectSharingPermissionSelection from './ProjectSharingPermissionSelection';
 
 type ProjectSharingTableRowPropsAdd = {
   typeAhead?: string[];
+  type: ProjectSharingRBType;
   onChange: (name: string, roleType: ProjectSharingRoleType) => void;
   onCancel: () => void;
 };
 
+/** @deprecated - this should use ProjectSharingTableRow */
 const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
   typeAhead,
+  type,
   onChange,
   onCancel,
 }) => {
@@ -28,6 +31,7 @@ const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
       <Tr>
         <Td dataLabel="Username">
           <ProjectSharingNameInput
+            type={type}
             value={roleBindingName}
             onChange={(selection) => {
               setRoleBindingName(selection);

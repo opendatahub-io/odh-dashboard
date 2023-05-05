@@ -16,9 +16,7 @@ const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, path
     itemId={item.id}
     isActive={checkLinkActiveStatus(pathname, item.href)}
   >
-    <Link to={item.href} aria-label={item.label}>
-      {item.label}
-    </Link>
+    <Link to={item.href}>{item.label}</Link>
   </NavItem>
 );
 

@@ -1,10 +1,12 @@
 import * as React from 'react';
-import { Grid, GridItem, Stack, StackItem, Title } from '@patternfly/react-core';
+import { Stack, StackItem, Title } from '@patternfly/react-core';
 import { Divider } from '@patternfly/react-core/components';
 import { PipelineRunTask } from '~/k8sTypes';
 import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
 import TaskDetailsCodeBlock from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsCodeBlock';
-import TaskDetailsParams from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsParams';
+import TaskDetailsInputParams from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputParams';
+import TaskDetailsOutputResults from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsOutputResults';
+import TaskDetailsVolumeMounts from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsVolumeMounts';
 
 type TaskDetailsProps = {
   task: PipelineRunTask;
@@ -12,19 +14,19 @@ type TaskDetailsProps = {
 
 const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => (
   <Stack hasGutter>
-    {task.params && <TaskDetailsParams params={task.params} />}
+    {task.params && (
+      <StackItem>
+        <TaskDetailsInputParams params={task.params} />
+      </StackItem>
+    )}
     {task.taskSpec.results && (
       <StackItem>
-        <TaskDetailsSection title="Output parameters">
-          <Grid hasGutter>
-            {task.taskSpec.results.map((result, i) => (
-              <React.Fragment key={`result-${i}`}>
-                <GridItem span={4}>{result.name}</GridItem>
-                <GridItem span={8}>{result.description}</GridItem>
-              </React.Fragment>
-            ))}
-          </Grid>
-        </TaskDetailsSection>
+        <TaskDetailsOutputResults
+          results={task.taskSpec.results.map(({ name, description }) => ({
+            name,
+            value: description ?? '',
+          }))}
+        />
       </StackItem>
     )}
     {task.taskSpec.steps.map((step) => (
@@ -37,21 +39,32 @@ const PipelineTaskDetails: React.FC<TaskDetailsProps> = ({ task }) => (
             <Divider />
           </StackItem>
         )}
-        <StackItem>
-          <TaskDetailsSection title="Arguments">
-            <TaskDetailsCodeBlock id="args" content={step.args.join('\n')} />
-          </TaskDetailsSection>
-        </StackItem>
-        <StackItem>
-          <TaskDetailsSection title="Command">
-            <TaskDetailsCodeBlock id="command" content={step.command.join('\n')} />
-          </TaskDetailsSection>
-        </StackItem>
-        <StackItem>
-          <TaskDetailsSection title="Image">{step.image}</TaskDetailsSection>
-        </StackItem>
+        {step.args && (
+          <StackItem>
+            <TaskDetailsSection title="Arguments">
+              <TaskDetailsCodeBlock id="args" content={step.args.join('\n')} />
+            </TaskDetailsSection>
+          </StackItem>
+        )}
+        {step.command && (
+          <StackItem>
+            <TaskDetailsSection title="Command">
+              <TaskDetailsCodeBlock id="command" content={step.command.join('\n')} />
+            </TaskDetailsSection>
+          </StackItem>
+        )}
+        {step.image && (
+          <StackItem>
+            <TaskDetailsSection title="Image">{step.image}</TaskDetailsSection>
+          </StackItem>
+        )}
       </React.Fragment>
     ))}
+    {task.taskSpec.stepTemplate?.volumeMounts && (
+      <StackItem>
+        <TaskDetailsVolumeMounts volumeMounts={task.taskSpec.stepTemplate.volumeMounts} />
+      </StackItem>
+    )}
     <StackItem>&nbsp;</StackItem>
   </Stack>
 );

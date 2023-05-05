@@ -6,7 +6,7 @@ import {
   DrawerContent,
   DrawerContentBody,
 } from '@patternfly/react-core';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunKind } from '~/k8sTypes';
@@ -19,6 +19,9 @@ import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelin
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
 import { RunDetailsTabSelection } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
+import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import PipelineRunTitle from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTitle';
 
 const getPipelineRunKind = (
   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
@@ -33,10 +36,12 @@ const getPipelineRunKind = (
   }
 };
 
-const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
+const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { pipelineRunId } = useParams();
-  const [runResource, loaded, error] = usePipelineRunById(pipelineRunId);
-  const [, setDeleting] = React.useState(false);
+  const navigate = useNavigate();
+  const { namespace } = usePipelinesAPI();
+  const [runResource, loaded, error] = usePipelineRunById(pipelineRunId, true);
+  const [deleting, setDeleting] = React.useState(false);
   const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const pipelineRuntime = getPipelineRunKind(runResource?.pipeline_runtime);
@@ -44,77 +49,89 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }
   const run = runResource?.run;
 
   return (
-    <Drawer isExpanded={!!selectedId}>
-      <DrawerContent
-        panelContent={
-          <PipelineRunDrawerRightContent
-            task={selectedId ? taskMap[selectedId] : undefined}
-            onClose={() => setSelectedId(null)}
-          />
-        }
-      >
-        <DrawerContentBody>
-          <Drawer isInline isExpanded position="bottom">
-            <DrawerContent
-              panelContent={
-                <PipelineRunDrawerBottomContent
-                  detailsTab={detailsTab}
-                  onSelectionChange={(selection) => {
-                    setDetailsTab(selection);
-                    setSelectedId(null);
-                  }}
-                  pipelineRunDetails={
-                    runResource && pipelineRuntime
-                      ? { kf: runResource.run, kind: pipelineRuntime }
-                      : undefined
-                  }
-                />
-              }
-            >
-              <ApplicationsPage
-                title={error ? 'Error loading run' : run?.name ?? 'Loading...'}
-                description={run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''}
-                loaded={loaded}
-                loadError={error}
-                breadcrumb={
-                  <Breadcrumb>
-                    {breadcrumbPath}
-                    <BreadcrumbItem isActive>
-                      {error ? 'Run details' : run?.name ?? 'Loading...'}
-                    </BreadcrumbItem>
-                  </Breadcrumb>
-                }
-                headerAction={
-                  loaded &&
-                  !error && (
-                    <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
-                  )
-                }
-                empty={false}
-              >
-                {nodes.length === 0 ? (
-                  <PipelineTopologyEmpty />
-                ) : (
-                  <PipelineTopology
-                    nodes={nodes}
-                    selectedIds={selectedId ? [selectedId] : []}
-                    onSelectionChange={(ids) => {
-                      const firstId = ids[0];
-                      if (ids.length === 0) {
-                        setSelectedId(null);
-                      } else if (taskMap[firstId]) {
-                        setDetailsTab(null);
-                        setSelectedId(firstId);
-                      }
+    <>
+      <Drawer isExpanded={!!selectedId}>
+        <DrawerContent
+          panelContent={
+            <PipelineRunDrawerRightContent
+              task={selectedId ? taskMap[selectedId] : undefined}
+              taskReferences={taskMap}
+              onClose={() => setSelectedId(null)}
+            />
+          }
+        >
+          <DrawerContentBody>
+            <Drawer isInline isExpanded position="bottom">
+              <DrawerContent
+                panelContent={
+                  <PipelineRunDrawerBottomContent
+                    detailsTab={detailsTab}
+                    onSelectionChange={(selection) => {
+                      setDetailsTab(selection);
+                      setSelectedId(null);
                     }}
+                    pipelineRunDetails={
+                      runResource && pipelineRuntime
+                        ? { kf: runResource.run, kind: pipelineRuntime }
+                        : undefined
+                    }
                   />
-                )}
-              </ApplicationsPage>
-            </DrawerContent>
-          </Drawer>
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+                }
+              >
+                <ApplicationsPage
+                  title={error ? 'Error loading run' : <PipelineRunTitle run={run} />}
+                  description={
+                    run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
+                  }
+                  loaded={loaded}
+                  loadError={error}
+                  breadcrumb={
+                    <Breadcrumb>
+                      {breadcrumbPath}
+                      <BreadcrumbItem isActive>
+                        {error ? 'Run details' : run?.name ?? 'Loading...'}
+                      </BreadcrumbItem>
+                    </Breadcrumb>
+                  }
+                  headerAction={
+                    loaded &&
+                    !error && (
+                      <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
+                    )
+                  }
+                  empty={false}
+                >
+                  {nodes.length === 0 ? (
+                    <PipelineTopologyEmpty />
+                  ) : (
+                    <PipelineTopology
+                      nodes={nodes}
+                      selectedIds={selectedId ? [selectedId] : []}
+                      onSelectionChange={(ids) => {
+                        const firstId = ids[0];
+                        if (ids.length === 0) {
+                          setSelectedId(null);
+                        } else if (taskMap[firstId]) {
+                          setDetailsTab(null);
+                          setSelectedId(firstId);
+                        }
+                      }}
+                    />
+                  )}
+                </ApplicationsPage>
+              </DrawerContent>
+            </Drawer>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+      <DeletePipelineCoreResourceModal
+        type="triggered run"
+        toDeleteResources={deleting && run ? [run] : []}
+        onClose={() => {
+          navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+        }}
+      />
+    </>
   );
 };
 

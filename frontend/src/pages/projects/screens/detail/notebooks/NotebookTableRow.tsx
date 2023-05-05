@@ -21,6 +21,7 @@ type NotebookTableRowProps = {
   rowIndex: number;
   onNotebookDelete: (notebook: NotebookKind) => void;
   onNotebookAddStorage: (notebook: NotebookKind) => void;
+  canEnablePipelines: boolean;
 };
 
 const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
@@ -28,6 +29,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   rowIndex,
   onNotebookDelete,
   onNotebookAddStorage,
+  canEnablePipelines,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
@@ -79,7 +81,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           </Flex>
         </Td>
         <Td dataLabel="Status">
-          <NotebookStatusToggle notebookState={obj} doListen={false} />
+          <NotebookStatusToggle
+            notebookState={obj}
+            doListen={false}
+            enablePipelines={canEnablePipelines}
+          />
         </Td>
         <Td>
           <NotebookRouteLink label="Open" notebook={obj.notebook} isRunning={obj.isRunning} />

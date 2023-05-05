@@ -5,6 +5,8 @@ import { NotebookKind } from '~/k8sTypes';
 import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';
 import AddNotebookStorage from '~/pages/projects/pvc/AddNotebookStorage';
 import { NotebookState } from '~/pages/projects/notebook/types';
+import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import NotebookTableRow from './NotebookTableRow';
 import { columns } from './data';
 
@@ -14,26 +16,32 @@ type NotebookTableProps = {
 };
 
 const NotebookTable: React.FC<NotebookTableProps> = ({ notebookStates, refresh }) => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const [addNotebookStorage, setAddNotebookStorage] = React.useState<NotebookKind | undefined>();
   const [notebookToDelete, setNotebookToDelete] = React.useState<NotebookKind | undefined>();
 
   return (
     <>
-      <Table
-        variant="compact"
-        data={notebookStates}
-        columns={columns}
-        disableRowRenderSupport
-        rowRenderer={(notebookState, i) => (
-          <NotebookTableRow
-            key={notebookState.notebook.metadata.uid}
-            rowIndex={i}
-            obj={notebookState}
-            onNotebookDelete={setNotebookToDelete}
-            onNotebookAddStorage={setAddNotebookStorage}
+      <CanEnableElyraPipelinesCheck namespace={currentProject.metadata.name}>
+        {(canEnablePipelines) => (
+          <Table
+            variant="compact"
+            data={notebookStates}
+            columns={columns}
+            disableRowRenderSupport
+            rowRenderer={(notebookState, i) => (
+              <NotebookTableRow
+                key={notebookState.notebook.metadata.uid}
+                rowIndex={i}
+                obj={notebookState}
+                onNotebookDelete={setNotebookToDelete}
+                onNotebookAddStorage={setAddNotebookStorage}
+                canEnablePipelines={canEnablePipelines}
+              />
+            )}
           />
         )}
-      />
+      </CanEnableElyraPipelinesCheck>
       <AddNotebookStorage
         notebook={addNotebookStorage}
         onClose={(submitted) => {

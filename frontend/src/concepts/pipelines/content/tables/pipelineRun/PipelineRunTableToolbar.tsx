@@ -3,7 +3,7 @@ import { Button, DatePicker, TextInput, ToolbarItem } from '@patternfly/react-co
 import { useNavigate } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import { PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunStatusesKF, PipelineRunStatusUnknown } from '~/concepts/pipelines/kfTypes';
 import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
@@ -68,10 +68,12 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
           <SimpleDropdownSelect
             {...props}
             aria-label="Select a status"
-            options={Object.keys(PipelineRunStatusesKF).map((key) => ({
-              key: PipelineRunStatusesKF[key],
-              label: PipelineRunStatusesKF[key],
-            }))}
+            options={[...Object.values(PipelineRunStatusesKF), PipelineRunStatusUnknown].map(
+              (value) => ({
+                key: value,
+                label: value,
+              }),
+            )}
           />
         ),
       }}

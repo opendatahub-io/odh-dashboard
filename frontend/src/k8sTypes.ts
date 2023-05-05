@@ -1,4 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
 
 export enum KnownLabels {
@@ -404,9 +405,14 @@ export type AWSSecretKind = SecretKind & {
       [KnownLabels.DATA_CONNECTION_AWS]: 'true';
     };
   };
+  data: Record<AWS_KEYS, string>;
 };
 
 export type DSPipelineKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   spec: Partial<{
     apiServer: Partial<{
       apiServerImage: string;
@@ -512,19 +518,27 @@ export type PipelineRunTaskSpecDigest = {
 
 type PipelineRunTaskSpecStep = {
   name: string;
-  args: string[];
+  args?: string[];
   command: string[];
   image: string;
 };
 
-type PipelineRunTaskSpecResult = {
+export type PipelineRunTaskSpecResult = {
   name: string;
   type: string;
   description?: string;
 };
 
+export type PipelineRunTaskVolumeMount = {
+  name: string;
+  mountPath: string;
+};
+
 export type PipelineRunTaskSpec = {
   steps: PipelineRunTaskSpecStep[];
+  stepTemplate?: {
+    volumeMounts?: PipelineRunTaskVolumeMount[];
+  };
   results: PipelineRunTaskSpecResult[];
   metadata: {
     annotations: {
@@ -566,6 +580,16 @@ export type SkippedTask = {
   whenExpressions: PipelineRunTaskWhen;
 };
 
+export type TaskRunResults = {
+  name: string;
+  type: string;
+  value: string;
+};
+
+export type PipelineRunTaskStatusStep = {
+  volumeMounts?: PipelineRunTaskVolumeMount[];
+};
+
 export type PipelineRunTaskRunStatusProperties = {
   conditions: K8sCondition[];
   podName: string;
@@ -573,9 +597,9 @@ export type PipelineRunTaskRunStatusProperties = {
   completionTime?: string;
   // TODO: Populate these
   steps?: unknown[];
-  taskResults?: unknown[];
+  taskResults?: TaskRunResults[];
   taskSpec?: {
-    steps?: unknown[];
+    steps?: PipelineRunTaskStatusStep[];
     results?: unknown[];
   };
 };

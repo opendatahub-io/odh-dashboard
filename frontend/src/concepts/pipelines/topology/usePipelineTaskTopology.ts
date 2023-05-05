@@ -1,66 +1,19 @@
 import * as React from 'react';
 import { RunStatus } from '@patternfly/react-topology';
 import { createNode } from '~/concepts/pipelines/topology/core/utils';
+import { PipelineRunKind, PipelineRunTask } from '~/k8sTypes';
 import {
-  PipelineRunKind,
-  PipelineRunTask,
-  PipelineRunTaskParam,
-  PipelineRunTaskRunStatusProperties,
-  PipelineRunTaskWhen,
-} from '~/k8sTypes';
-
-const getNameFromTaskRef = (taskRef: string) => {
-  const match = taskRef.match(/\$\(tasks\.([a-z0-9-]+)\./);
-  if (!match) {
-    return null;
-  }
-
-  return match[1];
-};
-
-type AsRunAfter<T> = (item: T) => string | null;
-
-const paramAsRunAfter: AsRunAfter<PipelineRunTaskParam> = (param) => {
-  if (param.value) {
-    return getNameFromTaskRef(param.value);
-  }
-  return null;
-};
-const whenAsRunAfter: AsRunAfter<PipelineRunTaskWhen> = (when) => {
-  if (when.input) {
-    return getNameFromTaskRef(when.input);
-  }
-  return null;
-};
-
-const isTruthyString = (t: unknown): t is string => !!t;
-
-const getRunStatus = (status: PipelineRunTaskRunStatusProperties): RunStatus => {
-  const successCondition = status.conditions.find((s) => s.type === 'Succeeded');
-  // const cancelledCondition = status.conditions.find((s) => s.status === 'Cancelled');
-
-  if (!successCondition || !successCondition.status) {
-    return RunStatus.Idle;
-  }
-
-  let runStatus: RunStatus | undefined;
-  if (successCondition.status === 'True') {
-    runStatus = RunStatus.Succeeded;
-  } else if (successCondition.status === 'False') {
-    runStatus = RunStatus.Failed;
-  } else {
-    runStatus = RunStatus.Running;
-  }
-
-  return runStatus;
-};
-
-export type KubeFlowTaskTopology = {
-  taskMap: Record<string, PipelineRunTask>;
-  nodes: ReturnType<typeof createNode>[];
-};
+  KubeFlowTaskTopology,
+  PipelineRunTaskDetails,
+  PipelineRunTaskRunDetails,
+} from '~/concepts/pipelines/content/types';
+import { paramAsRunAfter, whenAsRunAfter, getRunStatus } from './pipelineUtils';
 
 const EMPTY_STATE: KubeFlowTaskTopology = { taskMap: {}, nodes: [] };
+
+const isTruthyString = (t: unknown): t is string => !!t;
+const idFromTask = (t: PipelineRunTask): string => t.name;
+
 export const usePipelineTaskTopology = (
   pipelineRun?: PipelineRunKind | null,
 ): KubeFlowTaskTopology => {
@@ -96,27 +49,34 @@ export const usePipelineTaskTopology = (
       }, acc);
     }, {});
 
-    const idFromTask = (t: PipelineRunTask): string => t.name;
     return tasks.reduce<KubeFlowTaskTopology>(
       (acc, task) => {
         const runAfter: string[] | undefined = edgeLookupMap[task.name]
           ? Array.from(edgeLookupMap[task.name])
           : undefined;
 
+        let relatedStatusData: PipelineRunTaskRunDetails | undefined;
         let runStatus: RunStatus | undefined;
+        let skipped = false;
         if (status) {
           const skippedTasks = status.skippedTasks?.map((t) => t.name);
           if (skippedTasks) {
-            runStatus = skippedTasks.includes(task.name) ? RunStatus.Skipped : undefined;
+            skipped = skippedTasks.includes(task.name);
+            runStatus = skipped ? RunStatus.Skipped : undefined;
           }
 
           if (!runStatus) {
-            const taskStatusList = Object.values(status.taskRuns || {});
+            const taskRuns = status.taskRuns || {};
+            const taskStatusList = Object.keys(taskRuns).map<PipelineRunTaskRunDetails>((key) => ({
+              runID: key,
+              ...taskRuns[key],
+            }));
             if (taskStatusList.length > 0) {
               const thisTaskStatus = taskStatusList.find(
                 (status) => status.pipelineTaskName === task.name,
               );
               if (thisTaskStatus) {
+                relatedStatusData = thisTaskStatus;
                 runStatus = getRunStatus(thisTaskStatus.status);
               }
             }
@@ -131,8 +91,13 @@ export const usePipelineTaskTopology = (
           status: runStatus,
         });
 
+        const taskDetails: PipelineRunTaskDetails = { ...task, skipped };
+        if (relatedStatusData) {
+          taskDetails.runDetails = relatedStatusData;
+        }
+
         return {
-          taskMap: { ...acc.taskMap, [id]: task },
+          taskMap: { ...acc.taskMap, [id]: taskDetails },
           nodes: [...acc.nodes, node],
         };
       },

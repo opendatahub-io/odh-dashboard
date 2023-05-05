@@ -47,7 +47,10 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             activeKey={selection ?? ''}
             hidden={RunDetailsTabs.DETAILS !== selection}
           >
-            <PipelineRunTabDetails pipelineRunKF={pipelineRunDetails?.kf} />
+            <PipelineRunTabDetails
+              workflowName={pipelineRunDetails?.kind.metadata.name}
+              pipelineRunKF={pipelineRunDetails?.kf}
+            />
           </TabContent>
           <TabContent
             id={RunDetailsTabs.YAML}
@@ -59,8 +62,11 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
               filename={pipelineRunDetails?.kf.name}
               content={
                 pipelineRunDetails
-                  ? // eslint-disable-next-line camelcase
-                    { pipeline_runtime: pipelineRunDetails.kind, run: pipelineRunDetails.kf }
+                  ? {
+                      // eslint-disable-next-line camelcase
+                      pipeline_runtime: { workflow_manifest: pipelineRunDetails.kind },
+                      run: pipelineRunDetails.kf,
+                    }
                   : null
               }
             />

@@ -16,6 +16,8 @@ import {
   CreatePipelineRun,
   CreatePipelineRunJob,
   GetPipelineRunJob,
+  DeletePipelineRunJob,
+  DeletePipelineRun,
 } from '~/concepts/pipelines/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
@@ -32,6 +34,8 @@ export type GetPipelineAPI = KubeflowAPICall<GetPipeline>;
 export type GetPipelineRunAPI = KubeflowAPICall<GetPipelineRun>;
 export type GetPipelineRunJobAPI = KubeflowAPICall<GetPipelineRunJob>;
 export type DeletePipelineAPI = KubeflowAPICall<DeletePipeline>;
+export type DeletePipelineRunAPI = KubeflowAPICall<DeletePipelineRun>;
+export type DeletePipelineRunJobAPI = KubeflowAPICall<DeletePipelineRunJob>;
 export type ListExperimentsAPI = KubeflowAPICall<ListExperiments>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;
 export type ListPipelinesRunAPI = KubeflowAPICall<ListPipelineRuns>;

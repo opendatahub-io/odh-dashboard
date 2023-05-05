@@ -40,7 +40,7 @@ const ProjectSharingTableSection: React.FC<ProjectSharingTableSectionProps> = ({
           permissions={roleBindings}
           type={projectSharingTableType}
           typeAhead={typeAhead}
-          isAdding={!!addField}
+          isAdding={addField}
           onDismissNewRow={() => {
             setAddField(false);
           }}
