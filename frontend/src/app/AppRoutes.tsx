@@ -30,6 +30,10 @@ const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/Lear
 const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
+const DependencyMissingPage = React.lazy(
+  () => import('../pages/dependencies/DependencyMissingPage'),
+);
+
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
 
@@ -62,6 +66,8 @@ const AppRoutes: React.FC = () => {
         {isAdmin && <Route path="/notebookImages" element={<BYONImagesPage />} />}
         {isAdmin && <Route path="/clusterSettings" element={<ClusterSettingsPage />} />}
         {isAdmin && <Route path="/groupSettings" element={<GroupSettingsPage />} />}
+
+        <Route path="/dependency-missing/:area" element={<DependencyMissingPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </React.Suspense>

@@ -1,3 +1,6 @@
+import * as React from 'react';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Icon, Split, SplitItem } from '@patternfly/react-core';
 import { DashboardConfig } from '~/types';
 import { featureFlagEnabled } from './utils';
 
@@ -6,7 +9,7 @@ type NavDataCommon = {
 };
 
 export type NavDataHref = NavDataCommon & {
-  label: string;
+  label: React.ReactNode;
   href: string;
 };
 
@@ -89,14 +92,34 @@ export const getNavBarData = (
   }
 
   if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines)) {
-    navItems.push({
-      id: 'pipelines',
-      group: { id: 'pipelines', title: 'Data Science Pipelines' },
-      children: [
-        { id: 'global-pipelines', label: 'Pipelines', href: '/pipelines' },
-        { id: 'global-pipeline-runs', label: 'Runs', href: '/pipelineRuns' },
-      ],
-    });
+    const operatorAvailable =
+      dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
+
+    if (operatorAvailable) {
+      navItems.push({
+        id: 'pipelines',
+        group: { id: 'pipelines', title: 'Data Science Pipelines' },
+        children: [
+          { id: 'global-pipelines', label: 'Pipelines', href: '/pipelines' },
+          { id: 'global-pipeline-runs', label: 'Runs', href: '/pipelineRuns' },
+        ],
+      });
+    } else {
+      navItems.push({
+        id: 'pipelines',
+        label: (
+          <Split hasGutter>
+            <SplitItem>Data Science Pipelines</SplitItem>
+            <SplitItem>
+              <Icon status="danger" isInline>
+                <ExclamationCircleIcon />
+              </Icon>
+            </SplitItem>
+          </Split>
+        ),
+        href: `/dependency-missing/pipelines`,
+      });
+    }
   }
 
   if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableModelServing)) {
