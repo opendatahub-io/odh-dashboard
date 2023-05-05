@@ -1,6 +1,13 @@
 .odh-markdown-view {
-  padding-bottom: var(--pf-global--spacer--md);
   word-break: break-word;
+
+  &--with-padding {
+    padding-bottom: var(--pf-global--spacer--md);
+
+    p {
+      margin-bottom: var(--pf-global--spacer--sm);
+    }
+  }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--pf-global--FontFamily--heading--sans-serif);
@@ -24,10 +31,6 @@
   h4, h5, h6 {
     font-size: var(--pf-global--FontSize--md);
     margin-top: var(--pf-global--spacer--sm);
-  }
-
-  p {
-    margin-bottom: var(--pf-global--spacer--sm);
   }
 
   ul, ol {

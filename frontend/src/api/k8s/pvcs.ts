@@ -5,7 +5,7 @@ import {
   k8sListResourceItems,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sStatus, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { K8sStatus, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { PVCModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 
@@ -21,7 +21,7 @@ export const assemblePvc = (
     name: translateDisplayNameForK8s(pvcName),
     namespace: projectName,
     labels: {
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     annotations: {
       'openshift.io/display-name': pvcName,

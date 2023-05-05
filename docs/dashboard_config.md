@@ -6,21 +6,23 @@ By default the ODH Dashboard comes with a set of core features enabled that are 
 
 The following are a list of features that are supported, along with there default settings.
 
-| Feature | Default | Description |
-|-------|-------| ------- |
-|  enablement| true | Enables the ability to enable ISVs to the dashboard |
-|  disableInfo| false | Removes the information panel in Explore Application section |
-|  disableSupport| false | Disables components related to support. |
-|  disableClusterManager | false | Disables cluster management section for admins
-|  disableTracking | true | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured
-|  disableBYONImageStream| false | Disables custom notebook images that are created via image streams
-|  disableISVBadges | false | Removes the badge that indicate if a product is ISV or not.
-|  disableAppLauncher | false | Removes the application launcher that is used in OKD environments
-|  disableUserManagement | false | Removes the User Management panel in Settings.
-|  disableProjects | false | Disables Data Science Projects from the dashboard.
-|  disableModelServing | false | Disables Model Serving from the dashboard and from Data Science Projects.
-|  disableCustomServingRuntimes | false | Disables Custom Serving Runtimes from the Admin Panel.
-|  modelMetricsNamespace | false | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.
+| Feature                      | Default | Description                                                                                          |
+|------------------------------|---------|------------------------------------------------------------------------------------------------------|
+| enablement                   | true    | Enables the ability to enable ISVs to the dashboard                                                  |
+| disableInfo                  | false   | Removes the information panel in Explore Application section                                         |
+| disableSupport               | false   | Disables components related to support.                                                              |
+| disableClusterManager        | false   | Disables cluster management section for admins                                                       |
+| disableTracking              | true    | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured |
+| disableBYONImageStream       | false   | Disables custom notebook images that are created via image streams                                   |
+| disableISVBadges             | false   | Removes the badge that indicate if a product is ISV or not.                                          |
+| disableAppLauncher           | false   | Removes the application launcher that is used in OKD environments                                    |
+| disableUserManagement        | false   | Removes the User Management panel in Settings.                                                       |
+| disableProjects              | false   | Disables Data Science Projects from the dashboard.                                                   |
+| disablePipelines             | false   | Disables Data Science Pipelines from the dashboard.                                                  |
+| disableModelServing          | false   | Disables Model Serving from the dashboard and from Data Science Projects.                            |
+| disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
+| disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
+| modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
 
 ## Defaults
 
@@ -39,7 +41,9 @@ spec:
     disableAppLauncher: false
     disableUserManagement: false
     disableProjects: false
+    disablePipelines: false
     disableModelServing: false
+    disableProjectSharing: false
     disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
 ```
@@ -67,7 +71,7 @@ Note: These sizes must follow conventions such as requests smaller than limits
 ```yaml
 notebookSizes:
 - name: XSmall
-    resources:
+  resources:
     requests:
         memory: 0.5Gi
         cpu: '0.1'
@@ -127,7 +131,9 @@ spec:
     disableSupport: false
     disableTracking: true
     disableProjects: true
+    disablePipelines: true
     disableModelServing: true
+    disableProjectSharing: true
     disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
   notebookController:

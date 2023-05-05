@@ -45,10 +45,14 @@ spec:
                       type: boolean
                     disableModelServing:
                       type: boolean
+                    disableProjectSharing:
+                      type: boolean
                     disableCustomServingRuntimes:
                       type: boolean
                     modelMetricsNamespace:
                       type: string
+                    disablePipelines:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

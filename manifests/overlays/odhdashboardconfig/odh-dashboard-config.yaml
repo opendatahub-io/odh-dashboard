@@ -14,7 +14,9 @@ spec:
     disableTracking: true
     enablement: true
     disableProjects: true
+    disablePipelines: true
     disableModelServing: true
+    disableProjectSharing: true
     disableCustomServingRuntimes: true
     modelMetricsNamespace: ''
   notebookController:

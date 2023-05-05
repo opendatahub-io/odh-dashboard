@@ -57,7 +57,7 @@ module.exports = merge(
             path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
           ],
           use: [MiniCssExtractPlugin.loader, 'css-loader'],
-        }
+        },
       ],
     },
   },

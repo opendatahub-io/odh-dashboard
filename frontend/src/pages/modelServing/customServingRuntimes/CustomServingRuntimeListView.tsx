@@ -5,7 +5,7 @@ import { TemplateKind } from '~/k8sTypes';
 import { patchDashboardConfigTemplateOrder } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
-import Table from '~/components/Table';
+import Table from '~/components/table/Table';
 import useDraggableTable from '~/utilities/useDraggableTable';
 import { getServingRuntimeNameFromTemplate, getSortedTemplates } from './utils';
 import DeleteCustomServingRuntimeModal from './DeleteCustomServingRuntimeModal';

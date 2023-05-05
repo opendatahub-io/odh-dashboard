@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem } from '@patternfly/react-core';
-import Table from '~/components/Table';
+import Table from '~/components/table/Table';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { tokenColumns } from '~/pages/modelServing/screens/global/data';
 import { ServingRuntimeKind } from '~/k8sTypes';

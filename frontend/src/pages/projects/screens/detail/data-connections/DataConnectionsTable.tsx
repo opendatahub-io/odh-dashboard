@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Table from '~/components/Table';
+import Table from '~/components/table/Table';
 
 import { DataConnection } from '~/pages/projects/types';
 import { columns } from './data';

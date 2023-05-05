@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
-import Table from '~/components/Table';
+import Table from '~/components/table/Table';
 
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -24,9 +24,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   enablePagination,
   toolbarContent,
 }) => {
-  const {
-    projects: { data: projects },
-  } = React.useContext(ModelServingContext);
+  const { modelServingProjects: projects } = React.useContext(ProjectsContext);
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();

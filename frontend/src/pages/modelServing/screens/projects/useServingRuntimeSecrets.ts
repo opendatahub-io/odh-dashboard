@@ -3,6 +3,7 @@ import { getSecretsByLabel } from '~/api';
 import { SecretKind } from '~/k8sTypes';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 
 const useServingRuntimeSecrets = (namespace?: string): FetchState<SecretKind[]> => {
   const modelServingEnabled = useModelServingEnabled();
@@ -16,7 +17,7 @@ const useServingRuntimeSecrets = (namespace?: string): FetchState<SecretKind[]> 
       return Promise.reject(new NotReadyError('Model serving is not enabled'));
     }
 
-    return getSecretsByLabel('opendatahub.io/dashboard=true', namespace);
+    return getSecretsByLabel(LABEL_SELECTOR_DASHBOARD_RESOURCE, namespace);
   }, [namespace, modelServingEnabled]);
 
   return useFetchState<SecretKind[]>(fetchSecrets, []);

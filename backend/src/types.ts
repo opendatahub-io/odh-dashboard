@@ -4,6 +4,13 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import { RouteGenericInterface } from 'fastify/types/route';
 import { EitherNotBoth } from './typeHelpers';
 
+export type OperatorStatus = {
+  /** Operator is installed and will be cloned to the namespace on creation */
+  available: boolean;
+  /** Has a detection gone underway or is the available a static default */
+  queriedForStatus: boolean;
+};
+
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
     dashboardConfig: {
@@ -18,8 +25,10 @@ export type DashboardConfig = K8sResourceCommon & {
       disableUserManagement: boolean;
       disableProjects: boolean;
       disableModelServing: boolean;
+      disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
       modelMetricsNamespace: string;
+      disablePipelines: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -38,6 +47,12 @@ export type DashboardConfig = K8sResourceCommon & {
       storageClassName?: string;
     };
     templateOrder?: string[];
+  };
+  /** Faux status object -- will be replaced in the long run by a Dashboard Controller */
+  status: {
+    dependencyOperators: {
+      redhatOpenshiftPipelines: OperatorStatus;
+    };
   };
 };
 

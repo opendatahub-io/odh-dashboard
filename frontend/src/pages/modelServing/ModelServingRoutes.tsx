@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Navigate, Routes, Route } from 'react-router-dom';
+import { Navigate, Route } from 'react-router-dom';
+import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import ModelServingContextProvider from './ModelServingContext';
 import ModelServingMetricsWrapper from './screens/metrics/ModelServingMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
@@ -9,7 +10,7 @@ const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
   return (
-    <Routes>
+    <ProjectsRoutes>
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
         <Route
@@ -20,7 +21,7 @@ const ModelServingRoutes: React.FC = () => {
         />
         <Route path="*" element={<Navigate to="." />} />
       </Route>
-    </Routes>
+    </ProjectsRoutes>
   );
 };
 

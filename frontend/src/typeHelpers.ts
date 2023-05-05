@@ -1,4 +1,13 @@
 /**
+ * The type `{}` doesn't mean "any empty object", it means "any non-nullish value".
+ *
+ * Use the `AnyObject` type for objects whose structure is unknown.
+ *
+ * @see https://github.com/typescript-eslint/typescript-eslint/issues/2063#issuecomment-675156492
+ */
+export type AnyObject = Record<string, unknown>;
+
+/**
  * Takes a type and makes all properties partial within it.
  *
  * TODO: Implement the SDK & Patch logic -- this should stop being needed as things will be defined as Patches
@@ -6,6 +15,14 @@
 export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
+
+/**
+ * Partial only some properties.
+ *
+ * eg. PartialSome<FooBarBaz, 'foo' | 'bar'>
+ */
+export type PartialSome<Type, Keys extends keyof Type> = Pick<Partial<Type>, Keys> &
+  Omit<Type, Keys>;
 
 /**
  * Unions all values of an object togethers -- antithesis to `keyof myObj`.

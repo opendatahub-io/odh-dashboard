@@ -43,7 +43,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
 
     if (isLoading) {
       return (
-        <Bullseye>
+        <Bullseye style={{ minHeight: 150 }}>
           <Spinner />
         </Bullseye>
       );

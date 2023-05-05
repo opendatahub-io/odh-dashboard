@@ -54,9 +54,33 @@ let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 let quickStartWatcher: ResourceWatcher<QuickStart>;
 
-const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
+const fetchOperatorExistence = async (
+  fastify: KubeFastifyInstance,
+  operatorNamePrefix: string,
+): Promise<boolean> => {
+  const operators: K8sResourceCommon[] = await fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'operators.coreos.com',
+      'v1alpha1',
+      'openshift-operators',
+      'clusterserviceversions',
+    )
+    .then((resp) => {
+      const listObj = resp.body as K8sResourceCommon & { items?: K8sResourceCommon[] };
+
+      return listObj.items ?? [];
+    })
+    .catch((e) => {
+      fastify.log.warn(`Received error (${e.body.message}) fetching operators.`);
+      return [];
+    });
+
+  return !!operators.find((o) => o.metadata.name.startsWith(operatorNamePrefix));
+};
+
+const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
   const dashboardName = process.env['DASHBOARD_CONFIG'] || dashboardConfigMapName;
-  const crResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
+  const dashboardConfig: DashboardConfig[] = await fastify.kube.customObjectsApi
     .getNamespacedCustomObject(
       'opendatahub.io',
       'v1alpha',
@@ -74,7 +98,28 @@ const fetchDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig
       );
       return createDashboardCR(fastify);
     });
-  return crResponse;
+
+  if (dashboardConfig?.[0].spec.dashboardConfig.disablePipelines === false) {
+    fastify.log.info('Pipelines feature enabled, computing operator state...');
+    return fetchOperatorExistence(fastify, 'openshift-pipelines-operator-rh').then((exists) => {
+      fastify.log.info(`Pipeline Operator status: ${exists}`);
+      return [
+        _.merge({}, dashboardConfig[0], {
+          status: {
+            ...dashboardConfig[0].status,
+            dependencyOperators: {
+              redhatOpenshiftPipelines: {
+                queriedForStatus: true,
+                available: exists,
+              },
+            },
+          },
+        }),
+      ];
+    });
+  }
+
+  return dashboardConfig;
 };
 
 const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {

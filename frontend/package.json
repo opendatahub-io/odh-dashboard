@@ -51,6 +51,7 @@
     "@patternfly/react-icons": "4.93.6",
     "@patternfly/react-styles": "4.92.6",
     "@patternfly/react-table": "4.112.39",
+    "@patternfly/react-topology": "^4.91.27",
     "@patternfly/react-virtualized-extension": "4.88.113",
     "@types/classnames": "^2.3.1",
     "axios": "^0.21.1",
@@ -95,6 +96,7 @@
     "imagemin": "^7.0.0",
     "js-yaml-loader": "^1.2.2",
     "mini-css-extract-plugin": "^2.7.2",
+    "monaco-editor-webpack-plugin": "^7.0.1",
     "null-loader": "^4.0.1",
     "prettier": "^2.1.2",
     "raw-loader": "^4.0.2",
@@ -167,6 +169,9 @@
     "@storybook/react": {
       "react": "^18.2.0",
       "react-dom": "^18.2.0"
+    },
+    "@patternfly/react-topology": {
+      "react": "^18.2.0"
     },
     "storybook-addon-react-router-v6": {
       "react": "^18.2.0",

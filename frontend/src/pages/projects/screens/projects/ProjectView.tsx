@@ -2,8 +2,9 @@ import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
 import EmptyProjects from './EmptyProjects';
-import useUserProjects from './useUserProjects';
 import ProjectListView from './ProjectListView';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -13,7 +14,8 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 };
 
 const ProjectView: React.FC = () => {
-  const [projects, loaded, loadError, refreshProjects] = useUserProjects();
+  const { projects } = React.useContext(ProjectsContext);
+  useMountProjectRefresh();
   const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
 
   return (
@@ -24,17 +26,12 @@ const ProjectView: React.FC = () => {
           ? `View your existing projects${allowCreate ? ' or create new projects' : ''}.`
           : undefined
       }
-      loaded={loaded && rbacLoaded}
+      loaded={rbacLoaded}
       empty={projects.length === 0}
-      loadError={loadError}
       emptyStatePage={<EmptyProjects allowCreate={allowCreate} />}
       provideChildrenPadding
     >
-      <ProjectListView
-        projects={projects}
-        refreshProjects={refreshProjects}
-        allowCreate={allowCreate}
-      />
+      <ProjectListView allowCreate={allowCreate} />
     </ApplicationsPage>
   );
 };

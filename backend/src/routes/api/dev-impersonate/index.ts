@@ -17,6 +17,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           const apiPath = fastify.kube.config.getCurrentCluster().server;
           const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
           const url = `https://oauth-openshift.apps.${namedHost}/oauth/authorize?response_type=token&client_id=openshift-challenging-client`;
+          // Custom call, don't use proxy
           const httpsRequest = https
             .get(
               url,

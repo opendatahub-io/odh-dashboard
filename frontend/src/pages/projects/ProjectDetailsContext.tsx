@@ -1,22 +1,13 @@
 import * as React from 'react';
-import { Outlet, useParams } from 'react-router-dom';
-import {
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Spinner,
-  Title,
-} from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Navigate, Outlet, useParams } from 'react-router-dom';
 import {
   ServingRuntimeKind,
   PersistentVolumeClaimKind,
   ProjectKind,
   InferenceServiceKind,
   SecretKind,
+  RoleBindingKind,
+  GroupKind,
   TemplateKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
@@ -25,6 +16,12 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
+import { PipelineContextProvider } from '~/concepts/pipelines/context';
+import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import InvalidProject from '~/concepts/projects/InvalidProject';
+import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useTemplates from '~/pages/modelServing/customServingRuntimes/useTemplates';
 import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import { useDashboardNamespace } from '~/redux/selectors';
@@ -33,8 +30,9 @@ import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
-import useProject from './useProject';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
+import useProjectSharing from './projectSharing/useProjectSharing';
+import useGroups from './projectSharing/useGroups';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -48,6 +46,8 @@ type ProjectDetailsContextType = {
   servingRuntimeTemplateOrder: ContextResourceData<string>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
+  projectSharingRB: ContextResourceData<RoleBindingKind>;
+  groups: ContextResourceData<GroupKind>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -63,13 +63,17 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
+  projectSharingRB: DEFAULT_CONTEXT_DATA,
+  groups: DEFAULT_CONTEXT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
-  const navigate = useNavigate();
-  const { namespace } = useParams<{ namespace: string }>();
+  const { dashboardConfig } = useAppContext();
   const { dashboardNamespace } = useDashboardNamespace();
-  const [project, loaded, error] = useProject(namespace);
+  const { namespace } = useParams<{ namespace: string }>();
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(namespace)) ?? null;
+  useSyncPreferredProject(project);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
@@ -84,6 +88,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
     useInferenceServices(namespace),
   );
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
+  const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
+  const groups = useContextResourceData<GroupKind>(useGroups());
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
@@ -92,6 +98,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
+  const projectSharingRefresh = projectSharingRB.refresh;
+  const groupsRefresh = groups.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
@@ -99,6 +107,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
     dataConnectionRefresh();
     servingRuntimeRefresh();
     inferenceServiceRefresh();
+    projectSharingRefresh();
+    groupsRefresh();
     servingRuntimeTemplateRefresh();
     servingRuntimeTemplateOrderRefresh();
   }, [
@@ -109,6 +119,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeTemplateRefresh,
     servingRuntimeTemplateOrderRefresh,
     inferenceServiceRefresh,
+    projectSharingRefresh,
+    groupsRefresh,
   ]);
 
   const filterTokens = React.useCallback(
@@ -129,28 +141,21 @@ const ProjectDetailsContextProvider: React.FC = () => {
     [namespace, serverSecrets],
   );
 
-  if (error) {
-    return (
-      <Bullseye>
-        <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h2" size="lg">
-            Problem loading project details
-          </Title>
-          <EmptyStateBody>{error.message}</EmptyStateBody>
-          <Button variant="primary" onClick={() => navigate('/projects')}>
-            View my projects
-          </Button>
-        </EmptyState>
-      </Bullseye>
-    );
-  }
+  if (!project) {
+    if (
+      featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableProjects) &&
+      projects.length === 0
+    ) {
+      // No projects, but we do have the projects view -- navigate them so they can go through normal flows
+      return <Navigate to="/projects" replace />;
+    }
 
-  if (!loaded || !project) {
     return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
+      <InvalidProject
+        namespace={namespace}
+        title="Problem loading project details"
+        getRedirectPath={(namespace) => `/projects/${namespace}`}
+      />
     );
   }
 
@@ -168,9 +173,17 @@ const ProjectDetailsContextProvider: React.FC = () => {
         refreshAllProjectData,
         filterTokens,
         serverSecrets,
+        projectSharingRB,
+        groups,
       }}
     >
-      <Outlet />
+      {featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) ? (
+        <PipelineContextProvider namespace={project.metadata.name}>
+          <Outlet />
+        </PipelineContextProvider>
+      ) : (
+        <Outlet />
+      )}
     </ProjectDetailsContext.Provider>
   );
 };

@@ -1,4 +1,4 @@
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;
@@ -17,7 +17,7 @@ export const mockServingRuntimeK8sResource = ({
     creationTimestamp: '2023-03-17T16:05:55Z',
     labels: {
       name: name,
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     name: name,
     namespace: namespace,

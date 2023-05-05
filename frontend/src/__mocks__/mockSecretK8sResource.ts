@@ -1,4 +1,5 @@
-import { SecretKind } from '~/k8sTypes';
+import { KnownLabels, SecretKind } from '~/k8sTypes';
+import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   name?: string;
@@ -16,12 +17,12 @@ export const mockSecretK8sResource = ({
   metadata: {
     name: name,
     namespace: namespace,
-    uid: '207d7ac9-c67e-4a0d-b36b-148b7a09ef1e',
+    uid: genUID('secret'),
     resourceVersion: '5985371',
     creationTimestamp: '2023-03-22T16:18:56Z',
     labels: {
-      'opendatahub.io/dashboard': 'true',
-      'opendatahub.io/managed': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      [KnownLabels.DATA_CONNECTION_AWS]: 'true',
     },
     annotations: {
       'opendatahub.io/connection-type': 's3',

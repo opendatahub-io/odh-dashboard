@@ -1,6 +1,7 @@
-import { NotebookKind } from '~/k8sTypes';
+import { KnownLabels, NotebookKind } from '~/k8sTypes';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
 import { ContainerResources } from '~/types';
+import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   name?: string;
@@ -37,7 +38,7 @@ export const mockNotebookK8sResource = ({
     generation: 4,
     labels: {
       app: name,
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       'opendatahub.io/odh-managed': 'true',
       'opendatahub.io/user': user,
     },
@@ -45,7 +46,7 @@ export const mockNotebookK8sResource = ({
     name: name,
     namespace: namespace,
     resourceVersion: '4800689',
-    uid: '00a7904f-49b7-4105-b8ba-ce28f3b4ae11',
+    uid: genUID('notebook'),
   },
   spec: {
     template: {

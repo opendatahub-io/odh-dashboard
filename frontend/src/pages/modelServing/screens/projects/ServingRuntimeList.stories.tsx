@@ -4,7 +4,7 @@ import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { rest } from 'msw';
 import { userEvent, within } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
-import { Route, Routes } from 'react-router-dom';
+import { Route } from 'react-router-dom';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
@@ -14,6 +14,7 @@ import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
+import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
@@ -87,11 +88,11 @@ const Template: ComponentStory<typeof ServingRuntimeList> = (args) => {
   fetchDashboardConfig();
   useDetectUser();
   return (
-    <Routes>
+    <ProjectsRoutes>
       <Route path="/" element={<ProjectDetailsContextProvider />}>
         <Route index element={<ServingRuntimeList {...args} />} />
       </Route>
-    </Routes>
+    </ProjectsRoutes>
   );
 };
 

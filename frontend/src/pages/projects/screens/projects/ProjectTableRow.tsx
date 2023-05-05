@@ -4,7 +4,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebookStates';
 import ListNotebookState from '~/pages/projects/notebook/ListNotebookState';
-import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { getProjectOwner } from '~/pages/projects/utils';
 import ProjectLink from './ProjectLink';
 
@@ -38,6 +38,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           loaded={loaded}
           error={error}
           show="notebook"
+          namespace={project.metadata.name}
         />
       </Td>
       <Td dataLabel="Status">
@@ -46,6 +47,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           loaded={loaded}
           error={error}
           show="status"
+          namespace={project.metadata.name}
         />
       </Td>
       <Td dataLabel="Created">

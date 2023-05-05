@@ -1,4 +1,5 @@
 import { DashboardConfig } from '~/types';
+import { KnownLabels } from '~/k8sTypes';
 
 type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -32,7 +33,7 @@ export const mockDashboardConfig = ({
   metadata: {
     name: 'odh-dashboard-config',
     labels: {
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     namespace: 'opendatahub',
   },
@@ -51,6 +52,8 @@ export const mockDashboardConfig = ({
       disableModelServing,
       disableCustomServingRuntimes,
       modelMetricsNamespace: 'test-project',
+      disablePipelines: false,
+      disableProjectSharing: false,
     },
     notebookController: {
       enabled: true,
@@ -174,5 +177,13 @@ export const mockDashboardConfig = ({
       },
     ],
     templateOrder: ['test-model'],
+  },
+  status: {
+    dependencyOperators: {
+      redhatOpenshiftPipelines: {
+        available: false,
+        queriedForStatus: false,
+      },
+    },
   },
 });

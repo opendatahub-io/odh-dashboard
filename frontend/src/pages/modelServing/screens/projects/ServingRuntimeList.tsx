@@ -2,9 +2,9 @@ import * as React from 'react';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import { ProjectSectionTitlesExtended } from '~/pages/projects/screens/detail/const';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { getTemplateEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
@@ -36,7 +36,7 @@ const ServingRuntimeList: React.FC = () => {
     <>
       <DetailsSection
         id={ProjectSectionID.MODEL_SERVER}
-        title={ProjectSectionTitlesExtended[ProjectSectionID.MODEL_SERVER] || ''}
+        title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
         actions={[
           <ServingRuntimeListButtonAction
             emptyTemplates={emptyTemplates}

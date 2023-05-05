@@ -2,7 +2,7 @@ import * as React from 'react';
 import { DropdownDirection } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getInferenceServiceDisplayName } from './utils';
