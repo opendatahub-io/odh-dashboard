@@ -10,7 +10,7 @@ import ScrollViewOnMount from '~/components/ScrollViewOnMount';
 import EmptyInferenceServicesCell from './EmptyInferenceServicesCell';
 import { isServingRuntimeTokenEnabled } from './utils';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
-import ServingRumtimeTokensTable from './ServingRuntimeTokensTable';
+import ServingRuntimeTokensTable from './ServingRuntimeTokensTable';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
@@ -67,7 +67,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     return (
       <Td dataLabel="Tokens expansion" colSpan={6}>
         <ExpandableRowContent>
-          <ServingRumtimeTokensTable obj={obj} isTokenEnabled={isServingRuntimeTokenEnabled(obj)} />
+          <ServingRuntimeTokensTable obj={obj} isTokenEnabled={isServingRuntimeTokenEnabled(obj)} />
         </ExpandableRowContent>
       </Td>
     );

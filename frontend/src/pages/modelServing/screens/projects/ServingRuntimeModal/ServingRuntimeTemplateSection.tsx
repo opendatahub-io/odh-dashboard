@@ -22,11 +22,14 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   isEditing,
 }) => {
   const [isOpen, setOpen] = React.useState(false);
-  if (!templates) {
+
+  const templatesUsed = isEditing ? [] : templates;
+
+  if (!templatesUsed) {
     return null;
   }
 
-  const options = templates.map((template) => (
+  const options = templatesUsed.map((template) => (
     <SelectOption
       key={getServingRuntimeNameFromTemplate(template)}
       value={getServingRuntimeNameFromTemplate(template)}
@@ -63,7 +66,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                 setOpen(false);
               }
             }}
-            isDisabled={isEditing || templates.length === 0}
+            isDisabled={isEditing || templatesUsed.length === 0}
             onToggle={setOpen}
             placeholderText="Select the serving runtime"
           >

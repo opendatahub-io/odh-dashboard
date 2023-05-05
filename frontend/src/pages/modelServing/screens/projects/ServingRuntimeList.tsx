@@ -60,7 +60,6 @@ const ServingRuntimeList: React.FC = () => {
       >
         <ServingRuntimeTable
           modelServers={servingRuntimes}
-          templates={customServingRuntimesEnabled ? templatesEnabled : undefined}
           refreshServingRuntime={refreshServingRuntime}
           refreshTokens={refreshTokens}
           refreshInferenceServices={refreshInferenceServices}

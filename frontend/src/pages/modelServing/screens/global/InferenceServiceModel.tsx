@@ -24,7 +24,7 @@ const InferenceServiceModel: React.FC<InferenceServiceModelProps> = ({ inference
     return (
       <HelperText>
         <HelperTextItem variant="warning" hasIcon>
-          Failed to get model server for this deployed model. {error.message}
+          Failed to get model server for this deployed model. {error.message}.
         </HelperTextItem>
       </HelperText>
     );

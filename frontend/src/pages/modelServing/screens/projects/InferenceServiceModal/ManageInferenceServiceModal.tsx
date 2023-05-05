@@ -10,6 +10,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { useCreateInferenceServiceObject } from '~/pages/modelServing/screens/projects/utils';
 import {
   assembleSecret,
@@ -29,13 +30,16 @@ import InferenceServiceServingRuntimeSection from './InferenceServiceServingRunt
 type ManageInferenceServiceModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
-  editInfo?: InferenceServiceKind;
-  projectContext?: {
-    currentProject: ProjectKind;
-    currentServingRuntime?: ServingRuntimeKind;
-    dataConnections: DataConnection[];
-  };
-};
+} & EitherOrNone<
+  { editInfo?: InferenceServiceKind },
+  {
+    projectContext?: {
+      currentProject: ProjectKind;
+      currentServingRuntime: ServingRuntimeKind;
+      dataConnections: DataConnection[];
+    };
+  }
+>;
 
 const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = ({
   isOpen,
@@ -51,7 +55,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (projectContext) {
       const { currentProject, currentServingRuntime } = projectContext;
       setCreateData('project', currentProject.metadata.name);
-      setCreateData('servingRuntimeName', currentServingRuntime?.metadata.name || '');
+      setCreateData('servingRuntimeName', currentServingRuntime?.metadata.name);
     }
   }, [projectContext, setCreateData]);
 

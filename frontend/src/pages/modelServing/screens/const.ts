@@ -100,6 +100,7 @@ export const DEFAULT_MODEL_SERVING_TEMPLATE: ServingRuntimeKind = {
           '--file_system_poll_wait_seconds=0',
           '--grpc_bind_address=127.0.0.1',
           '--rest_bind_address=127.0.0.1',
+          '--target_device=NVIDIA',
         ],
         resources: {
           requests: {

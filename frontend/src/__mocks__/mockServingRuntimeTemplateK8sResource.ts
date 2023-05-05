@@ -54,6 +54,7 @@ export const mockTemplateK8sResource = ({
               '--file_system_poll_wait_seconds=0',
               '--grpc_bind_address=127.0.0.1',
               '--rest_bind_address=127.0.0.1',
+              '--target_device=NVIDIA',
             ],
             image:
               'quay.io/modh/openvino-model-server@sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116',

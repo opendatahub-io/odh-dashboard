@@ -10,6 +10,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { useCreateServingRuntimeObject } from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimeKind, SecretKind, TemplateKind, ProjectKind } from '~/k8sTypes';
 import { addSupportModelMeshProject, createServingRuntime, updateServingRuntime } from '~/api';
@@ -35,12 +36,15 @@ type ManageServingRuntimeModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
   currentProject: ProjectKind;
-  servingRuntimeTemplates?: TemplateKind[];
-  editInfo?: {
-    servingRuntime?: ServingRuntimeKind;
-    secrets: SecretKind[];
-  };
-};
+} & EitherOrNone<
+  { servingRuntimeTemplates?: TemplateKind[] },
+  {
+    editInfo?: {
+      servingRuntime?: ServingRuntimeKind;
+      secrets: SecretKind[];
+    };
+  }
+>;
 
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   isOpen,

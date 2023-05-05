@@ -111,19 +111,23 @@ const ProjectDetailsContextProvider: React.FC = () => {
     inferenceServiceRefresh,
   ]);
 
-  const filterTokens = (servingRuntimeName?: string): SecretKind[] => {
-    if (!namespace || !servingRuntimeName) {
-      return [];
-    }
-    const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
+  const filterTokens = React.useCallback(
+    (servingRuntimeName?: string): SecretKind[] => {
+      if (!namespace || !servingRuntimeName) {
+        return [];
+      }
+      const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
 
-    const secrets = serverSecrets.data.filter(
-      (secret) =>
-        secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
-    );
+      const secrets = serverSecrets.data.filter(
+        (secret) =>
+          secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
+          serviceAccountName,
+      );
 
-    return secrets;
-  };
+      return secrets;
+    },
+    [namespace, serverSecrets],
+  );
 
   if (error) {
     return (

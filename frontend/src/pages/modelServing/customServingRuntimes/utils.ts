@@ -39,6 +39,6 @@ export const getServingRuntimeFromTemplate = (template?: TemplateKind): ServingR
 };
 
 export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string =>
-  resource.metadata.annotations?.['opendatahub.io/template-name'] ||
   resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
+  resource.metadata.annotations?.['opendatahub.io/template-name'] ||
   '';

@@ -3,7 +3,6 @@ import { FormGroup, Text } from '@patternfly/react-core';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import { listServingRuntimes } from '~/api';
 import ExistingProjectField from '~/pages/modelServing/screens/projects/InferenceServiceModal/ExistingProjectField';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { defaultInferenceService } from '~/pages/modelServing/screens/projects/utils';
@@ -37,9 +36,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({ data, setData, project, 
           disabled={editInfo !== undefined}
           onSelect={(projectSelected) => {
             if (projectSelected) {
-              listServingRuntimes(projectSelected).then(() => {
-                updateProject(projectSelected);
-              });
+              updateProject(projectSelected);
             } else {
               updateProject('');
             }

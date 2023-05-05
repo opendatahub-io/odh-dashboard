@@ -63,6 +63,7 @@ export type NotebookAnnotations = Partial<{
 
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
+  'opendatahub.io/template-display-name': string;
   'enable-route': string;
   'enable-auth': string;
 }>;

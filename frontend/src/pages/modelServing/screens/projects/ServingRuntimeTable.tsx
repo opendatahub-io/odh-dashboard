@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Table from '~/components/Table';
-import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
+import { ServingRuntimeKind } from '~/k8sTypes';
 import useTableColumnSort from '~/utilities/useTableColumnSort';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { columns } from './data';
@@ -11,7 +11,6 @@ import ManageInferenceServiceModal from './InferenceServiceModal/ManageInference
 
 type ServingRuntimeTableProps = {
   modelServers: ServingRuntimeKind[];
-  templates?: TemplateKind[];
   refreshServingRuntime: () => void;
   refreshTokens: () => void;
   refreshInferenceServices: () => void;
@@ -19,7 +18,6 @@ type ServingRuntimeTableProps = {
 
 const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
   modelServers: unsortedModelServers,
-  templates,
   refreshServingRuntime,
   refreshTokens,
   refreshInferenceServices,
@@ -68,7 +66,6 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
       <ManageServingRuntimeModal
         isOpen={editServingRuntime !== undefined}
         currentProject={currentProject}
-        servingRuntimeTemplates={templates}
         editInfo={{
           servingRuntime: editServingRuntime,
           secrets: filterTokens(editServingRuntime?.metadata.name),
@@ -82,20 +79,22 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
           }
         }}
       />
-      <ManageInferenceServiceModal
-        isOpen={!!deployServingRuntime}
-        onClose={(submit: boolean) => {
-          setDeployServingRuntime(undefined);
-          if (submit) {
-            refreshInferenceServices();
-          }
-        }}
-        projectContext={{
-          currentProject,
-          currentServingRuntime: deployServingRuntime,
-          dataConnections,
-        }}
-      />
+      {deployServingRuntime && (
+        <ManageInferenceServiceModal
+          isOpen={!!deployServingRuntime}
+          onClose={(submit: boolean) => {
+            setDeployServingRuntime(undefined);
+            if (submit) {
+              refreshInferenceServices();
+            }
+          }}
+          projectContext={{
+            currentProject,
+            currentServingRuntime: deployServingRuntime,
+            dataConnections,
+          }}
+        />
+      )}
     </>
   );
 };
