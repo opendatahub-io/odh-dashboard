@@ -1,7 +1,7 @@
 const path = require('path');
 const { merge } = require('webpack-merge');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
 const rimraf = require('rimraf');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
@@ -25,8 +25,12 @@ rimraf(DIST_DIR, () => {});
 module.exports = merge(
   {
     plugins: [
-      ...setupWebpackDotenvFilesForEnv({ directory: RELATIVE_DIRNAME, env: 'production', isRoot: IS_PROJECT_ROOT_DIR })
-    ]
+      ...setupWebpackDotenvFilesForEnv({
+        directory: RELATIVE_DIRNAME,
+        env: 'production',
+        isRoot: IS_PROJECT_ROOT_DIR,
+      }),
+    ],
   },
   webpackCommon('production'),
   {
@@ -34,13 +38,13 @@ module.exports = merge(
     devtool: 'source-map',
     optimization: {
       minimize: true,
-      minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()]
+      minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()],
     },
     plugins: [
       new MiniCssExtractPlugin({
         filename: '[name].css',
-        chunkFilename: '[name].bundle.css'
-      })
+        chunkFilename: '[name].bundle.css',
+      }),
     ],
     module: {
       rules: [
@@ -50,15 +54,11 @@ module.exports = merge(
             SRC_DIR,
             COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
           ],
-          use: [MiniCssExtractPlugin.loader, 'css-loader']
-        },
-        {
-          test: /\.css$/,
-          include: stylesheet => stylesheet.includes('@patternfly/react-styles/css/'),
-          use: ['null-loader']
+          use: [MiniCssExtractPlugin.loader, 'css-loader'],
         }
-      ]
-    }
-  }
+      ],
+    },
+  },
 );

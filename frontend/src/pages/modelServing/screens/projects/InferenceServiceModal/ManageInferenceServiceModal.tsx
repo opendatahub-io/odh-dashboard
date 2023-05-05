@@ -10,6 +10,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { useCreateInferenceServiceObject } from '~/pages/modelServing/screens/projects/utils';
 import {
   assembleSecret,
@@ -24,17 +25,21 @@ import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
+import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
 
 type ManageInferenceServiceModalProps = {
   isOpen: boolean;
   onClose: (submit: boolean) => void;
-  editInfo?: InferenceServiceKind;
-  projectContext?: {
-    currentProject: ProjectKind;
-    currentServingRuntime: ServingRuntimeKind;
-    dataConnections: DataConnection[];
-  };
-};
+} & EitherOrNone<
+  { editInfo?: InferenceServiceKind },
+  {
+    projectContext?: {
+      currentProject: ProjectKind;
+      currentServingRuntime: ServingRuntimeKind;
+      dataConnections: DataConnection[];
+    };
+  }
+>;
 
 const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = ({
   isOpen,
@@ -194,6 +199,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 onChange={(name) => setCreateData('name', name)}
               />
             </FormGroup>
+          </StackItem>
+          <StackItem>
+            <InferenceServiceServingRuntimeSection
+              data={createData}
+              setData={setCreateData}
+              currentServingRuntime={projectContext?.currentServingRuntime}
+            />
           </StackItem>
           <StackItem>
             <InferenceServiceFrameworkSection

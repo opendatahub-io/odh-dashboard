@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import {
   TableComposable,
@@ -8,9 +9,10 @@ import {
   Caption,
   Tbody,
   Td,
+  TbodyProps,
 } from '@patternfly/react-table';
-import React, { useEffect } from 'react';
 import useTableColumnSort, { SortableData } from '~/utilities/useTableColumnSort';
+import { EitherNotBoth } from '~/typeHelpers';
 
 type TableProps<DataType> = {
   data: DataType[];
@@ -21,8 +23,11 @@ type TableProps<DataType> = {
   toolbarContent?: React.ReactElement<typeof ToolbarItem>;
   emptyTableView?: React.ReactElement<typeof Tr>;
   caption?: string;
-  disableRowRenderSupport?: boolean;
-} & Omit<TableComposableProps, 'ref' | 'data'>;
+} & EitherNotBoth<
+  { disableRowRenderSupport?: boolean },
+  { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
+> &
+  Omit<TableComposableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
   data: allData,
@@ -34,6 +39,7 @@ const Table = <T,>({
   emptyTableView,
   caption,
   disableRowRenderSupport,
+  tbodyProps,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
@@ -42,7 +48,7 @@ const Table = <T,>({
   const data = enablePagination ? allData.slice(pageSize * (page - 1), pageSize * page) : allData;
 
   // update page to 1 if data changes (common when filter is applied)
-  useEffect(() => {
+  React.useEffect(() => {
     if (data.length === 0) {
       setPage(1);
     }
@@ -91,6 +97,7 @@ const Table = <T,>({
                   key={col.field + i}
                   sort={col.sortable ? sort.getColumnSort(i) : undefined}
                   width={col.width}
+                  info={col.info}
                 >
                   {col.label}
                 </Th>
@@ -103,7 +110,7 @@ const Table = <T,>({
         {disableRowRenderSupport ? (
           sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))
         ) : (
-          <Tbody>
+          <Tbody {...tbodyProps}>
             {sort.transformData(data).map((row, rowIndex) => rowRenderer(row, rowIndex))}
           </Tbody>
         )}

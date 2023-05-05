@@ -17,8 +17,12 @@ const BACKEND_PORT = process.env._BACKEND_PORT;
 module.exports = merge(
   {
     plugins: [
-      ...setupWebpackDotenvFilesForEnv({ directory: RELATIVE_DIRNAME, env: 'development', isRoot: IS_PROJECT_ROOT_DIR })
-    ]
+      ...setupWebpackDotenvFilesForEnv({
+        directory: RELATIVE_DIRNAME,
+        env: 'development',
+        isRoot: IS_PROJECT_ROOT_DIR,
+      }),
+    ],
   },
   webpackCommon('development'),
   {
@@ -51,21 +55,12 @@ module.exports = merge(
           include: [
             SRC_DIR,
             COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-catalog-view-extension'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/styles/base.css'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/quickstarts')
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
           ],
-          use: ['style-loader', 'css-loader']
+          use: ['style-loader', 'css-loader'],
         },
-        {
-          test: /\.css$/,
-          include: stylesheet => stylesheet.includes('@patternfly/react-styles/css/'),
-          use: ['null-loader']
-        }
-      ]
-    }
-  }
+      ],
+    },
+  },
 );

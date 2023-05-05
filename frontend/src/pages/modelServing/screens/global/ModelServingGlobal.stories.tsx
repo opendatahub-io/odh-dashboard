@@ -173,11 +173,14 @@ DeployModel.play = async ({ canvasElement }) => {
   body.getAllByRole('button', { name: 'Options menu' });
   await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[0]);
   await userEvent.click(body.getByText('Test Project', { selector: 'button' }));
-  await body.findByText('Select a framework');
+  await body.findByText('Select a model server');
   await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[1]);
+  await userEvent.click(body.getAllByText('test-model')[1]);
+  await body.findByText('Select a framework');
+  await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[2]);
   await userEvent.click(body.getByText('onnx - 1'));
   await body.findByText('Select...');
-  await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[2]);
+  await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[3]);
   await body.findByText('Test Secret');
   await userEvent.click(body.getByText('Test Secret'));
   expect(updateButton).not.toBeDisabled();
