@@ -47,6 +47,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           isExpanded: expandedColumn === col,
           onToggle,
           columnIndex: col,
+          expandId: `expand-table-row-${obj.metadata.name}-${col}`,
         }
       : undefined;
 
