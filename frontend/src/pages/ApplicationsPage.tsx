@@ -22,7 +22,7 @@ type ApplicationsPageProps = {
   title: React.ReactNode;
   breadcrumb?: React.ReactNode;
   toolbar?: React.ReactNode;
-  description: React.ReactNode;
+  description?: React.ReactNode;
   loaded: boolean;
   empty: boolean;
   loadError?: Error;
@@ -59,7 +59,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             <SplitItem isFilled>
               <TextContent>
                 <Text component="h1">{title}</Text>
-                <Text component="h2">{description}</Text>
+                {description && <Text component="p">{description}</Text>}
               </TextContent>
             </SplitItem>
             {headerAction && <SplitItem>{headerAction}</SplitItem>}
