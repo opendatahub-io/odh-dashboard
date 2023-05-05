@@ -4,9 +4,6 @@ import Table from '~/components/Table';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { tokenColumns } from '~/pages/modelServing/screens/global/data';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
-import { filterTokens } from './utils';
 import ServingRuntimeTokenTableRow from './ServingRuntimeTokenTableRow';
 
 type ServingRuntimeTokensTableProps = {
@@ -19,20 +16,11 @@ const ServingRuntimeTokensTable: React.FC<ServingRuntimeTokensTableProps> = ({
   isTokenEnabled,
 }) => {
   const {
-    serverSecrets: { data: secrets, loaded, error },
-    currentProject,
+    serverSecrets: { loaded, error },
+    filterTokens,
   } = React.useContext(ProjectDetailsContext);
-  const { dashboardConfig } = useAppContext();
-  const customServingRuntimesEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
-  );
 
-  const tokens = filterTokens(
-    secrets,
-    obj.metadata.name,
-    currentProject.metadata.name,
-    customServingRuntimesEnabled,
-  );
+  const tokens = filterTokens(obj.metadata.name);
 
   if (!isTokenEnabled) {
     return (

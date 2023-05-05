@@ -28,8 +28,7 @@ import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useS
 import useTemplates from '~/pages/modelServing/customServingRuntimes/useTemplates';
 import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { featureFlagEnabled } from '~/utilities/utils';
-import { useAppContext } from '~/app/AppContext';
+import { getTokenNames } from '~/pages/modelServing/utils';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
@@ -40,6 +39,7 @@ import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
   refreshAllProjectData: () => void;
+  filterTokens: (servingRuntime?: string) => SecretKind[];
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
@@ -54,6 +54,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   // We never will get into a case without a project, so fudge the default value
   currentProject: null as unknown as ProjectKind,
   refreshAllProjectData: () => undefined,
+  filterTokens: () => [],
   notebooks: DEFAULT_CONTEXT_DATA,
   pvcs: DEFAULT_CONTEXT_DATA,
   dataConnections: DEFAULT_CONTEXT_DATA,
@@ -68,23 +69,16 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
   const { dashboardNamespace } = useDashboardNamespace();
-  const { dashboardConfig } = useAppContext();
-  const modelServingEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableModelServing,
-  );
-  const customServingRuntimesEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
-  );
   const [project, loaded, error] = useProject(namespace);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
-    useTemplates(dashboardNamespace, !modelServingEnabled || !customServingRuntimesEnabled),
+    useTemplates(dashboardNamespace),
   );
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
-    useTemplateOrder(dashboardNamespace, !modelServingEnabled || !customServingRuntimesEnabled),
+    useTemplateOrder(dashboardNamespace),
   );
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
@@ -116,6 +110,20 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeTemplateOrderRefresh,
     inferenceServiceRefresh,
   ]);
+
+  const filterTokens = (servingRuntimeName?: string): SecretKind[] => {
+    if (!namespace || !servingRuntimeName) {
+      return [];
+    }
+    const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
+
+    const secrets = serverSecrets.data.filter(
+      (secret) =>
+        secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
+    );
+
+    return secrets;
+  };
 
   if (error) {
     return (
@@ -154,6 +162,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
         servingRuntimeTemplateOrder,
         inferenceServices,
         refreshAllProjectData,
+        filterTokens,
         serverSecrets,
       }}
     >

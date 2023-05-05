@@ -7,18 +7,14 @@ import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCe
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
-import { filterTokens, isServingRuntimeTokenEnabled } from './utils';
+import { isServingRuntimeTokenEnabled } from './utils';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
   onDeleteServingRuntime: (obj: ServingRuntimeKind) => void;
   onEditServingRuntime: (obj: ServingRuntimeKind) => void;
-  onDeployModal: () => void;
-  onExpandColumn: (columnIndex?: ServingRuntimeTableTabs) => void;
-  expandedColumn?: ServingRuntimeTableTabs;
+  onDeployModal: (obj: ServingRuntimeKind) => void;
 };
 
 const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
@@ -26,34 +22,23 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   onDeleteServingRuntime,
   onEditServingRuntime,
   onDeployModal,
-  expandedColumn,
-  onExpandColumn,
 }) => {
-  const isRowExpanded = !!expandedColumn;
+  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
+
   const {
     inferenceServices: {
       data: inferenceServices,
       loaded: inferenceServicesLoaded,
       error: inferenceServicesLoadError,
     },
-    serverSecrets: { data: secrets, loaded: secretsLoaded, error: secretsLoadError },
-    currentProject,
+    serverSecrets: { loaded: secretsLoaded, error: secretsLoadError },
+    filterTokens,
   } = React.useContext(ProjectDetailsContext);
-  const { dashboardConfig } = useAppContext();
 
-  const customServingRuntimesEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
-  );
-
-  const tokens = filterTokens(
-    secrets,
-    obj.metadata.name,
-    currentProject.metadata.name,
-    customServingRuntimesEnabled,
-  );
+  const tokens = filterTokens(obj.metadata.name);
 
   const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
-    onExpandColumn(expandedColumn === colIndex ? undefined : colIndex);
+    setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
   };
 
   const compoundExpandParams = (col: ServingRuntimeTableTabs, isDisabled: boolean) =>
@@ -66,11 +51,11 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
       : undefined;
 
   return (
-    <Tbody isExpanded={isRowExpanded}>
+    <Tbody isExpanded={!!expandedColumn}>
       <Tr>
         <EmptyTableCellForAlignment />
         <Td
-          dataLabel="Type"
+          dataLabel="Model Server Name"
           compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.TYPE, false)}
         >
           {obj.metadata.annotations?.['openshift.io/display-name'] ||
@@ -128,7 +113,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td style={{ textAlign: 'end' }}>
           <Button
-            onClick={() => onDeployModal()}
+            onClick={() => onDeployModal(obj)}
             key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
             variant="secondary"
           >
@@ -150,12 +135,12 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           />
         </Td>
       </Tr>
-      <Tr isExpanded={isRowExpanded}>
+      <Tr isExpanded={!!expandedColumn}>
         <ServingRuntimeTableExpandedSection
           activeColumn={expandedColumn}
           obj={obj}
-          onClose={() => onExpandColumn(undefined)}
-          onDeployModel={onDeployModal}
+          onClose={() => setExpandedColumn(undefined)}
+          onDeployModel={() => onDeployModal(obj)}
         />
       </Tr>
     </Tbody>

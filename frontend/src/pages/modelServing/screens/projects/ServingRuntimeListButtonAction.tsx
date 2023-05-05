@@ -47,6 +47,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
   return (
     <Button
       isLoading={customServingRuntimesEnabled ? !templatesLoaded : false}
+      isDisabled={templatesLoaded}
       onClick={onClick}
       variant="secondary"
     >

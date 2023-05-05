@@ -5,16 +5,15 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionTitlesExtended } from '~/pages/projects/screens/detail/const';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
 import { getTemplateEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
+import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
 
 const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
+
   const {
     servingRuntimes: {
       data: servingRuntimes,
@@ -23,18 +22,15 @@ const ServingRuntimeList: React.FC = () => {
       refresh: refreshServingRuntime,
     },
     servingRuntimeTemplates: { data: templates, loaded: templatesLoaded, error: templateError },
-    serverSecrets: { data: secrets, refresh: refreshTokens },
+    serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const { dashboardConfig } = useAppContext();
-  const customServingRuntimesEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes,
-  );
+  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
+
   const templatesEnabled = templates.filter(getTemplateEnabled);
   const emptyTemplates = templatesEnabled?.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;
-  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   return (
     <>
@@ -64,13 +60,10 @@ const ServingRuntimeList: React.FC = () => {
       >
         <ServingRuntimeTable
           modelServers={servingRuntimes}
-          modelSecrets={secrets}
           templates={customServingRuntimesEnabled ? templatesEnabled : undefined}
           refreshServingRuntime={refreshServingRuntime}
           refreshTokens={refreshTokens}
           refreshInferenceServices={refreshInferenceServices}
-          expandedColumn={expandedColumn}
-          updateExpandedColumn={setExpandedColumn}
         />
       </DetailsSection>
       <ManageServingRuntimeModal
@@ -82,7 +75,6 @@ const ServingRuntimeList: React.FC = () => {
           if (submit) {
             refreshServingRuntime();
             refreshInferenceServices();
-            setExpandedColumn(ServingRuntimeTableTabs.DEPLOYED_MODELS);
             setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
           }
         }}

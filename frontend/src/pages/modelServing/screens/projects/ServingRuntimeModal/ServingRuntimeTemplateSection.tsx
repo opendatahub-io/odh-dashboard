@@ -35,6 +35,10 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     </SelectOption>
   ));
 
+  const templateSelected =
+    isEditing && !data.servingRuntimeTemplateName
+      ? 'Default runtime'
+      : data.servingRuntimeTemplateName;
   return (
     <>
       <StackItem>
@@ -51,7 +55,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
           <Select
             removeFindDomNode
-            selections={data.servingRuntimeTemplateName}
+            selections={templateSelected}
             isOpen={isOpen}
             onSelect={(e, selection) => {
               if (typeof selection === 'string') {

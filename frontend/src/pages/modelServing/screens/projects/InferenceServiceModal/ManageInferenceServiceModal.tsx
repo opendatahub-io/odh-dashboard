@@ -24,6 +24,7 @@ import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
+import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
 
 type ManageInferenceServiceModalProps = {
   isOpen: boolean;
@@ -31,7 +32,7 @@ type ManageInferenceServiceModalProps = {
   editInfo?: InferenceServiceKind;
   projectContext?: {
     currentProject: ProjectKind;
-    currentServingRuntime: ServingRuntimeKind;
+    currentServingRuntime?: ServingRuntimeKind;
     dataConnections: DataConnection[];
   };
 };
@@ -50,7 +51,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (projectContext) {
       const { currentProject, currentServingRuntime } = projectContext;
       setCreateData('project', currentProject.metadata.name);
-      setCreateData('servingRuntimeName', currentServingRuntime.metadata.name);
+      setCreateData('servingRuntimeName', currentServingRuntime?.metadata.name || '');
     }
   }, [projectContext, setCreateData]);
 
@@ -194,6 +195,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 onChange={(name) => setCreateData('name', name)}
               />
             </FormGroup>
+          </StackItem>
+          <StackItem>
+            <InferenceServiceServingRuntimeSection
+              data={createData}
+              setData={setCreateData}
+              currentServingRuntime={projectContext?.currentServingRuntime}
+            />
           </StackItem>
           <StackItem>
             <InferenceServiceFrameworkSection

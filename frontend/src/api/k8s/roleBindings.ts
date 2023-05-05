@@ -1,5 +1,9 @@
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { RoleBindingKind } from '~/k8sTypes';
+import {
+  k8sCreateResource,
+  k8sDeleteResource,
+  k8sGetResource,
+} from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sStatus, RoleBindingKind } from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
 
 export const generateRoleBindingData = (
@@ -71,3 +75,9 @@ export const getRoleBinding = (projectName: string, rbName: string): Promise<Rol
 
 export const createRoleBinding = (data: RoleBindingKind): Promise<RoleBindingKind> =>
   k8sCreateResource({ model: RoleBindingModel, resource: data });
+
+export const deleteRoleBinding = (name: string, ns: string): Promise<K8sStatus> =>
+  k8sDeleteResource<RoleBindingKind, K8sStatus>({
+    model: RoleBindingModel,
+    queryOptions: { name, ns },
+  });

@@ -16,9 +16,10 @@ type ProjectSectionType = {
 };
 
 const ProjectSection: React.FC<ProjectSectionType> = ({ data, setData, project, editInfo }) => {
-  const updateProject = (projectName: string, servingRuntimeName?: string) => {
+  const updateProject = (projectName: string) => {
     setData('project', projectName);
-    setData('servingRuntimeName', servingRuntimeName || '');
+    setData('servingRuntimeName', '');
+    setData('format', '');
     setData('storage', defaultInferenceService.storage);
     setData('format', defaultInferenceService.format);
   };
@@ -36,8 +37,8 @@ const ProjectSection: React.FC<ProjectSectionType> = ({ data, setData, project, 
           disabled={editInfo !== undefined}
           onSelect={(projectSelected) => {
             if (projectSelected) {
-              listServingRuntimes(projectSelected).then((servingRuntimes) => {
-                updateProject(projectSelected, servingRuntimes?.[0].metadata.name || '');
+              listServingRuntimes(projectSelected).then(() => {
+                updateProject(projectSelected);
               });
             } else {
               updateProject('');

@@ -16,10 +16,6 @@ import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import {
-  getModelServiceAccountName,
-  getModelServingPermissionName,
-} from '~/pages/modelServing/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -34,21 +30,6 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
-
-export const filterTokens = (
-  secrets: SecretKind[],
-  servingRuntimeName: string,
-  namespace: string,
-  customServingRuntimesEnabled: boolean,
-): SecretKind[] => {
-  const serviceAccountName = customServingRuntimesEnabled
-    ? getModelServingPermissionName(servingRuntimeName)
-    : getModelServiceAccountName(namespace);
-  return secrets?.filter(
-    (secret) =>
-      secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
-  );
-};
 
 export const useCreateServingRuntimeObject = (existingData?: {
   servingRuntime?: ServingRuntimeKind;
@@ -95,8 +76,9 @@ export const useCreateServingRuntimeObject = (existingData?: {
     ] || 0;
 
   const existingExternalRoute =
-    !!existingData?.servingRuntime?.metadata.annotations?.['enable-route'];
-  const existingTokenAuth = !!existingData?.servingRuntime?.metadata.annotations?.['enable-auth'];
+    existingData?.servingRuntime?.metadata.annotations?.['enable-route'] === 'true';
+  const existingTokenAuth =
+    existingData?.servingRuntime?.metadata.annotations?.['enable-auth'] === 'true';
 
   const existingTokens = useDeepCompareMemoize(
     (existingData?.secrets || []).map((secret) => ({
