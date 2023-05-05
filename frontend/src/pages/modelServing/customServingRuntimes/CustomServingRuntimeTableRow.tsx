@@ -3,7 +3,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { Label } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
-import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
