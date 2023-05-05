@@ -11,7 +11,6 @@ import {
   VisualizationSurface,
   getSpacerNodes,
 } from '@patternfly/react-topology';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 
 type PipelineVisualizationSurfaceProps = {
   nodes: PipelineNodeModel[];
@@ -19,10 +18,9 @@ type PipelineVisualizationSurfaceProps = {
 };
 
 const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> = ({
-  nodes: unsafeNodes,
+  nodes,
   selectedIds,
 }) => {
-  const nodes = useDeepCompareMemoize(unsafeNodes);
   const controller = useVisualizationController();
 
   React.useEffect(() => {
