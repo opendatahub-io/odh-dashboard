@@ -38,7 +38,6 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       },
       true,
     );
-    controller.getGraph().layout();
   }, [controller, nodes]);
 
   return (
