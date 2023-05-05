@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
+import { Label } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
@@ -24,6 +25,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
 }) => {
   const navigate = useNavigate();
   const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
+  const templateOOTB = isTemplateOOTB(template);
 
   return (
     <Tr key={rowIndex} id={servingRuntimeName} draggable {...props}>
@@ -36,6 +38,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         <ResourceNameTooltip resource={template.objects[0]}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
+        {templateOOTB && <Label>Pre-installed</Label>}
       </Td>
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />
@@ -43,12 +46,14 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
       <Td isActionCell>
         <ActionsColumn
           items={
-            isTemplateOOTB(template)
+            templateOOTB
               ? [
                   {
                     title: 'Clone',
                     onClick: () =>
-                      navigate('/servingRuntimes/addServingRuntime', { state: { template } }),
+                      navigate('/servingRuntimes/addServingRuntime', {
+                        state: { template: template.objects[0] },
+                      }),
                   },
                 ]
               : [

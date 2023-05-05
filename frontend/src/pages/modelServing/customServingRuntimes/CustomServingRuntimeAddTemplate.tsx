@@ -29,14 +29,12 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
-  const {
-    state: { template: clonedTemplate },
-  } = useLocation();
+  const { state } = useLocation();
 
   const stringifiedTemplate = existingTemplate
     ? YAML.stringify(existingTemplate.objects[0])
-    : clonedTemplate
-    ? YAML.stringify(clonedTemplate.objects[0])
+    : state
+    ? YAML.stringify(state.template)
     : '';
   const [code, setCode] = React.useState(stringifiedTemplate);
   const [loading, setIsLoading] = React.useState(false);
