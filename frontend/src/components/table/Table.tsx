@@ -31,6 +31,7 @@ type TableProps<DataType> = {
   emptyTableView?: React.ReactNode;
   caption?: string;
   disableRowRenderSupport?: boolean;
+  footerRow?: (pageNumber: number) => React.ReactElement<typeof Tr> | null;
   selectAll?: { onSelect: (value: boolean) => void; selected: boolean };
 } & Omit<TableComposableProps, 'ref' | 'data'>;
 
@@ -47,6 +48,7 @@ const Table = <T,>({
   caption,
   disableRowRenderSupport,
   selectAll,
+  footerRow,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
@@ -136,9 +138,15 @@ const Table = <T,>({
           </Tr>
         </Thead>
         {disableRowRenderSupport ? (
-          data.map((row, rowIndex) => rowRenderer(row, rowIndex))
+          <>
+            {data.map((row, rowIndex) => rowRenderer(row, rowIndex))}
+            {footerRow && footerRow(page)}
+          </>
         ) : (
-          <Tbody>{data.map((row, rowIndex) => rowRenderer(row, rowIndex))}</Tbody>
+          <>
+            <Tbody>{data.map((row, rowIndex) => rowRenderer(row, rowIndex))}</Tbody>
+            {footerRow && footerRow(page)}
+          </>
         )}
       </TableComposable>
       {emptyTableView && data.length === 0 && (

@@ -6,6 +6,8 @@ import {
   ProjectKind,
   InferenceServiceKind,
   SecretKind,
+  RoleBindingKind,
+  GroupKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
@@ -27,6 +29,8 @@ import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
+import useProjectSharing from './projectSharing/useProjectSharing';
+import useGroups from './projectSharing/useGroups';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
@@ -38,6 +42,8 @@ type ProjectDetailsContextType = {
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
+  projectSharingRB: ContextResourceData<RoleBindingKind>;
+  groups: ContextResourceData<GroupKind>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -55,6 +61,8 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
+  projectSharingRB: DEFAULT_CONTEXT_DATA,
+  groups: DEFAULT_CONTEXT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -71,6 +79,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
     useInferenceServices(namespace),
   );
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
+  const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
+  const groups = useContextResourceData<GroupKind>(useGroups());
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
@@ -78,6 +88,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const servingRuntimesConfigRefresh = servingRuntimesConfig.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
+  const projectSharingRefresh = projectSharingRB.refresh;
+  const groupsRefresh = groups.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
@@ -86,6 +98,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimesConfigRefresh();
     servingRuntimeRefresh();
     inferenceServiceRefresh();
+    projectSharingRefresh();
+    groupsRefresh();
   }, [
     notebookRefresh,
     pvcRefresh,
@@ -93,6 +107,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimesConfigRefresh,
     servingRuntimeRefresh,
     inferenceServiceRefresh,
+    projectSharingRefresh,
+    groupsRefresh,
   ]);
 
   if (!project) {
@@ -125,6 +141,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
         inferenceServices,
         refreshAllProjectData,
         serverSecrets,
+        projectSharingRB,
+        groups,
       }}
     >
       {featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) ? (

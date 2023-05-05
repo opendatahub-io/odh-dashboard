@@ -18,6 +18,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableUserManagement: boolean;
       disableProjects: boolean;
       disableModelServing: boolean;
+      disableProjectSharing: boolean;
       modelMetricsNamespace: string;
       disablePipelines: boolean;
     };

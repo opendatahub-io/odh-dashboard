@@ -3,7 +3,7 @@ export enum ProjectSectionID {
   CLUSTER_STORAGES = 'cluster-storages',
   DATA_CONNECTIONS = 'data-connections',
   MODEL_SERVER = 'model-server',
-  PIPELINES = 'pipelines',
+  PIPELINES = 'pipelines-projects',
 }
 
 export type ProjectSectionTitlesType = {

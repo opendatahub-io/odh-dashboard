@@ -71,6 +71,7 @@ export type DashboardCommonConfig = {
   disableUserManagement: boolean;
   disableProjects: boolean;
   disableModelServing: boolean;
+  disableProjectSharing: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
 };

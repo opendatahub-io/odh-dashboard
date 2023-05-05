@@ -3,6 +3,7 @@ import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResourc
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
+  PROJECT_SHARING = 'opendatahub.io/project-sharing',
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
 }
@@ -364,13 +365,17 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
 };
 
-type RoleBindingSubject = {
+export type RoleBindingSubject = {
   kind: string;
   apiGroup?: string;
   name: string;
 };
 
 export type RoleBindingKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   subjects: RoleBindingSubject[];
   roleRef: RoleBindingSubject;
 };
@@ -604,4 +609,19 @@ export type PipelineRunKind = K8sResourceCommon & {
     /** References Tekton tasks -- unlikely we will need this */
     childReferences: unknown[];
   };
+};
+
+export type UserKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  groups: string[];
+  fullName?: string;
+};
+
+export type GroupKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  users: string[];
 };

@@ -34,3 +34,17 @@ export const RouteModel: K8sModelCommon = {
   kind: 'Route',
   plural: 'routes',
 };
+
+export const UserModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'user.openshift.io',
+  kind: 'User',
+  plural: 'users',
+};
+
+export const GroupModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'user.openshift.io',
+  kind: 'Group',
+  plural: 'groups',
+};
