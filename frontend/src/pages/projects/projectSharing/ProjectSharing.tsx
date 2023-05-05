@@ -62,7 +62,9 @@ const ProjectSharing: React.FC = () => {
             roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.GROUP)}
             projectSharingTableType={ProjectSharingRBType.GROUP}
             refresh={refreshRB}
-            typeAhead={groups.map((group: GroupKind) => group.metadata.name)}
+            typeAhead={
+              groups.length > 0 ? groups.map((group: GroupKind) => group.metadata.name) : undefined
+            }
           />
         </StackItem>
       </Stack>

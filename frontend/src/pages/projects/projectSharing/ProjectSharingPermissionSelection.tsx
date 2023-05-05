@@ -1,7 +1,7 @@
 import { Select, SelectOption } from '@patternfly/react-core';
 import React from 'react';
 import { ProjectSharingRoleType } from './types';
-import { castProjectSharingRoleType } from './utils';
+import { castProjectSharingRoleType, roleLabel } from './utils';
 
 type ProjectSharingPermissionSelectionProps = {
   selection: string;
@@ -41,7 +41,9 @@ const ProjectSharingPermissionSelection: React.FC<ProjectSharingPermissionSelect
       direction="down"
     >
       {ProjectSharingPermissions.map((option) => (
-        <SelectOption key={option.type} value={option.type} description={option.description} />
+        <SelectOption key={option.type} value={option.type} description={option.description}>
+          {roleLabel(option.type)}
+        </SelectOption>
       ))}
     </Select>
   );

@@ -24,3 +24,6 @@ export const castProjectSharingRoleType = (role: string): ProjectSharingRoleType
 
 export const firstSubject = (roleBinding: RoleBindingKind): string =>
   roleBinding.subjects[0]?.name || '';
+
+export const roleLabel = (value: ProjectSharingRoleType): string =>
+  value === ProjectSharingRoleType.ADMIN ? 'Admin' : 'Edit';
