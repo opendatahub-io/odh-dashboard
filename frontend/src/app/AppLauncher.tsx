@@ -9,7 +9,7 @@ import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppSelector } from '~/redux/hooks';
-import { getOpenShiftConsoleServerURL, useOpenShiftURL } from '~/utilities/clusterUtils';
+import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
 import { useAppContext } from './AppContext';
 

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, FormSection, Radio, Stack, StackItem, Text } from '@patternfly/react-core';
+import { FormGroup, FormSection, Radio, Stack, StackItem } from '@patternfly/react-core';
 import {
   CreateRunPageSections,
   DEFAULT_PERIODIC_OPTION,
