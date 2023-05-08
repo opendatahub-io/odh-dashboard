@@ -55,6 +55,7 @@ export const generateElyraSecret = (
         engine: 'Tekton',
         auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
         api_endpoint: route,
+        user_namespace: namespace,
         cos_auth_type: 'USER_CREDENTIALS',
         cos_endpoint: atob(dataConnectionData[AWS_KEYS.S3_ENDPOINT]),
         cos_bucket: atob(dataConnectionData[AWS_KEYS.AWS_S3_BUCKET]),
