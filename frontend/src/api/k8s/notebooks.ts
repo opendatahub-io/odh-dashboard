@@ -19,10 +19,12 @@ import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import {
   generateElyraServiceAccountRoleBinding,
   getElyraVolume,
-  getPipelineSecretPatch,
+  getElyraVolumeMount,
+  getPipelineVolumeMountPatch,
+  getPipelineVolumePatch,
 } from '~/concepts/pipelines/elyra/utils';
 import { createRoleBinding } from '~/api';
-import { Volume } from '~/types';
+import { Volume, VolumeMount } from '~/types';
 import { assemblePodSpecOptions } from './utils';
 
 const assembleNotebook = (
@@ -40,7 +42,7 @@ const assembleNotebook = (
     gpus,
     image,
     volumes: formVolumes,
-    volumeMounts,
+    volumeMounts: formVolumeMounts,
     tolerationSettings,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
@@ -59,9 +61,13 @@ const assembleNotebook = (
   const origin = location.origin;
 
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
+  let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
   if (canEnablePipelines) {
     volumes = volumes || [];
     volumes.push(getElyraVolume());
+
+    volumeMounts = volumeMounts || [];
+    volumeMounts.push(getElyraVolumeMount());
   }
 
   return {
@@ -202,7 +208,8 @@ export const startNotebook = async (
   }
 
   if (enablePipelines) {
-    patches.push(getPipelineSecretPatch());
+    patches.push(getPipelineVolumePatch());
+    patches.push(getPipelineVolumeMountPatch());
     await createRoleBinding(generateElyraServiceAccountRoleBinding(name, namespace)).catch((e) => {
       // This is not ideal, but it shouldn't impact the starting of the notebook. Let us log it, and mute the error
       // eslint-disable-next-line no-console
@@ -226,10 +233,18 @@ export const createNotebook = (
 ): Promise<NotebookKind> => {
   const notebook = assembleNotebook(data, username, canEnablePipelines);
 
-  return k8sCreateResource<NotebookKind>({
+  const notebookPromise = k8sCreateResource<NotebookKind>({
     model: NotebookModel,
     resource: notebook,
   });
+
+  if (canEnablePipelines) {
+    return createRoleBinding(
+      generateElyraServiceAccountRoleBinding(notebook.metadata.name, notebook.metadata.namespace),
+    ).then(() => notebookPromise);
+  }
+
+  return notebookPromise;
 };
 
 export const updateNotebook = (
