@@ -8,7 +8,7 @@ import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineSe
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import useAPIState, { APIState } from './useAPIState';
-import usePipelineNamespaceCR from './usePipelineNamespaceCR';
+import usePipelineNamespaceCR, { dspaLoaded } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
 type PipelineContext = {
@@ -43,11 +43,11 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
-  const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = usePipelineNamespaceCR(namespace);
-  // TODO: Implement the status loading flag from the CR
-  const isCRPresent = crLoaded && !!pipelineNamespaceCR;
+  const state = usePipelineNamespaceCR(namespace);
+  const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
+  const isCRReady = dspaLoaded(state);
   const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
-    isCRPresent,
+    isCRReady,
     namespace,
   );
   const hostPath = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
@@ -75,7 +75,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   return (
     <PipelinesContext.Provider
       value={{
-        hasCR: isCRPresent,
+        hasCR: !!pipelineNamespaceCR,
         crInitializing: !crLoaded,
         project,
         apiState,

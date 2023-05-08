@@ -495,6 +495,9 @@ export type DSPipelineKind = K8sResourceCommon & {
       image: string;
     }>;
   }>;
+  status?: {
+    conditions?: K8sCondition[];
+  };
 };
 
 export type AccessReviewResourceAttributes = {

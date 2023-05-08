@@ -11,7 +11,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
   if (!apiAvailable) {
     return (
-      <Bullseye>
+      <Bullseye style={{ minHeight: 150 }}>
         <Spinner />
       </Bullseye>
     );
