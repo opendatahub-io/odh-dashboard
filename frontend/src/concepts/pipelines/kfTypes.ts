@@ -228,7 +228,6 @@ export type CreatePipelineRunJobKFData = Omit<
   | 'scheduled_at'
   | 'pipeline_spec'
   | 'storage_state'
-  | 'enabled'
   | 'mode'
   | 'error'
   | 'metrics'

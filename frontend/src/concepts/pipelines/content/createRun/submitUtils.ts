@@ -88,6 +88,7 @@ const createJob = async (
       parameters: formData.params?.map(({ value, label }) => ({ name: label, value })) ?? [],
     },
     max_concurrency: '10',
+    enabled: true,
     trigger: {
       periodic_schedule:
         formData.runType.data.triggerType === ScheduledType.PERIODIC
