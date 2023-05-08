@@ -17,6 +17,8 @@ COPY --chown=default:root ${SOURCE_CODE} /usr/src/app
 # Change file ownership to the assemble user
 USER default
 
+RUN npm cache clean --force 
+
 RUN npm ci --omit=optional
 
 RUN npm run build
@@ -37,7 +39,7 @@ COPY --chown=default:root --from=builder /usr/src/app/.npmrc /usr/src/app/backen
 COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
 COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
 
-RUN cd backend && npm ci --omit=dev --omit=optional
+RUN cd backend && npm cache clean --force && npm ci --omit=dev --omit=optional
 
 WORKDIR /usr/src/app/backend
 
