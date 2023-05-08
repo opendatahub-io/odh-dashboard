@@ -3,24 +3,16 @@ import { Button, Tooltip, Text } from '@patternfly/react-core';
 
 type ServingRuntimeListButtonActionProps = {
   emptyTemplates: boolean;
-  emptyModelServer: boolean;
-  customServingRuntimesEnabled: boolean;
   templatesLoaded: boolean;
   onClick: () => void;
 };
 
 const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionProps> = ({
   emptyTemplates,
-  emptyModelServer,
-  customServingRuntimesEnabled,
   templatesLoaded,
   onClick,
 }) => {
-  if (!customServingRuntimesEnabled && !emptyModelServer) {
-    return null;
-  }
-
-  if (customServingRuntimesEnabled && emptyTemplates) {
+  if (emptyTemplates) {
     return (
       <Tooltip
         removeFindDomNode
@@ -46,7 +38,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
 
   return (
     <Button
-      isLoading={customServingRuntimesEnabled ? !templatesLoaded : false}
+      isLoading={!templatesLoaded}
       isDisabled={!templatesLoaded}
       onClick={onClick}
       variant="secondary"

@@ -6,7 +6,6 @@ import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { getTemplateEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
@@ -26,7 +25,6 @@ const ServingRuntimeList: React.FC = () => {
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
   const templatesEnabled = templates.filter(getTemplateEnabled);
   const emptyTemplates = templatesEnabled?.length === 0;
@@ -40,8 +38,6 @@ const ServingRuntimeList: React.FC = () => {
         actions={[
           <ServingRuntimeListButtonAction
             emptyTemplates={emptyTemplates}
-            emptyModelServer={emptyModelServer}
-            customServingRuntimesEnabled={customServingRuntimesEnabled}
             templatesLoaded={templatesLoaded}
             onClick={() => setOpen(true)}
             key="serving-runtime-actions"
@@ -68,7 +64,7 @@ const ServingRuntimeList: React.FC = () => {
       <ManageServingRuntimeModal
         isOpen={isOpen}
         currentProject={currentProject}
-        servingRuntimeTemplates={customServingRuntimesEnabled ? templatesEnabled : undefined}
+        servingRuntimeTemplates={templatesEnabled}
         onClose={(submit: boolean) => {
           setOpen(false);
           if (submit) {

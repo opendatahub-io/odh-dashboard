@@ -192,7 +192,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               <ServingRuntimeTemplateSection
                 data={createData}
                 setData={setCreateData}
-                templates={servingRuntimeTemplates}
+                templates={servingRuntimeTemplates || []}
                 isEditing={!!editInfo}
               />
               <StackItem>

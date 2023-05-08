@@ -7,6 +7,7 @@ import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCe
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { isServingRuntimeTokenEnabled } from './utils';
 
@@ -63,6 +64,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             obj.spec.builtInAdapter?.serverType ||
             'Custom Runtime'}
         </Td>
+        <Td dataLabel="Serving Runtime">{getDisplayNameFromServingRuntimeTemplate(obj)}</Td>
         <Td
           dataLabel="Deployed models"
           compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)}
