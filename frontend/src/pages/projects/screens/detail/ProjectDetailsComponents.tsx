@@ -6,6 +6,7 @@ import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRun
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { featureFlagEnabled } from '~/utilities/utils';
 import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectSectionID } from './types';
 import StorageList from './storage/StorageList';
@@ -27,13 +28,14 @@ const ProjectDetailsComponents: React.FC = () => {
     dataConnections: { data: connections, loaded: connectionsLoaded },
     servingRuntimes: { data: modelServers, loaded: modelServersLoaded },
   } = React.useContext(ProjectDetailsContext);
+  const { pipelinesServer } = usePipelinesAPI();
 
   const modelServingEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableModelServing,
   );
-  const pipelinesEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disablePipelines,
-  );
+  const pipelinesEnabled =
+    featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) &&
+    dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
   useCheckLogoutParams();
 
   const scrollableSelectorID = 'project-details-list';
@@ -58,7 +60,7 @@ const ProjectDetailsComponents: React.FC = () => {
           {
             id: ProjectSectionID.PIPELINES,
             component: <PipelinesSection />,
-            isEmpty: pipelinesEnabled,
+            isEmpty: !pipelinesServer.installed,
           },
         ]
       : []),

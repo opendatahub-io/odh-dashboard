@@ -9,6 +9,8 @@ import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppSelector } from '~/redux/hooks';
+import { getOpenShiftConsoleServerURL, useOpenShiftURL } from '~/utilities/clusterUtils';
+import { useClusterInfo } from '~/redux/selectors/clusterInfo';
 import { useAppContext } from './AppContext';
 
 type ApplicationAction = {
@@ -23,7 +25,6 @@ type Section = {
 };
 
 const odhConsoleLinkName = 'rhodslink';
-const consolePrefix = 'console-openshift-console';
 
 export const getOCMAction = (
   clusterID?: string,
@@ -39,15 +40,15 @@ export const getOCMAction = (
   return null;
 };
 
-export const getOpenShiftConsoleAction = (): ApplicationAction | null => {
-  const { hostname, protocol, port } = window.location;
-  const hostParts = hostname.split('.').slice(1);
-  if (hostParts.length < 2) {
+export const getOpenShiftConsoleAction = (serverURL?: string): ApplicationAction | null => {
+  const href = getOpenShiftConsoleServerURL(serverURL);
+  if (!href) {
     return null;
   }
+
   return {
     label: 'OpenShift Console',
-    href: `${protocol}//${consolePrefix}.${hostParts.join('.')}:${port}`,
+    href,
     image: <img src={openshiftLogo} alt="" />,
   };
 };
@@ -75,6 +76,7 @@ const AppLauncher: React.FC = () => {
   ]);
   const { consoleLinks } = useWatchConsoleLinks();
   const { dashboardConfig } = useAppContext();
+  const { serverURL } = useClusterInfo();
 
   const disableClusterManager = dashboardConfig.spec.dashboardConfig.disableClusterManager;
 
@@ -87,7 +89,7 @@ const AppLauncher: React.FC = () => {
       .sort((a, b) => a.spec.text.localeCompare(b.spec.text));
 
     const getODHApplications = (): Section[] => {
-      const osConsoleAction = getOpenShiftConsoleAction();
+      const osConsoleAction = getOpenShiftConsoleAction(serverURL);
       const ocmAction = disableClusterManager ? null : getOCMAction(clusterID, clusterBranding);
 
       if (!osConsoleAction && !ocmAction) {
@@ -124,7 +126,7 @@ const AppLauncher: React.FC = () => {
     sections.sort((a, b) => sectionSortValue(a) - sectionSortValue(b));
 
     return sections;
-  }, [clusterBranding, clusterID, consoleLinks, disableClusterManager]);
+  }, [clusterBranding, clusterID, consoleLinks, disableClusterManager, serverURL]);
 
   const onToggle = () => {
     setIsOpen((prev) => !prev);

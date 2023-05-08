@@ -17,6 +17,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         userError: null,
         clusterID: '',
         clusterBranding: '',
+        serverURL: '',
         dashboardNamespace: '',
       };
     case Actions.GET_USER_FULFILLED:
@@ -27,6 +28,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
         userError: null,
         clusterID: action.payload.clusterID,
         clusterBranding: action.payload.clusterBranding,
+        serverURL: action.payload.serverURL,
         isAdmin: action.payload.isAdmin,
         isAllowed: action.payload.isAllowed,
         dashboardNamespace: action.payload.dashboardNamespace,
