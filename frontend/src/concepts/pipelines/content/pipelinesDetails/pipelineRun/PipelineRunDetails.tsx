@@ -18,7 +18,10 @@ import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
-import { RunDetailsTabSelection } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
+import {
+  RunDetailsTabs,
+  RunDetailsTabSelection,
+} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineRunTitle from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTitle';
@@ -42,7 +45,9 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
   const { namespace } = usePipelinesAPI();
   const [runResource, loaded, error] = usePipelineRunById(pipelineRunId, true);
   const [deleting, setDeleting] = React.useState(false);
-  const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(null);
+  const [detailsTab, setDetailsTab] = React.useState<RunDetailsTabSelection>(
+    RunDetailsTabs.DETAILS,
+  );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const pipelineRuntime = getPipelineRunKind(runResource?.pipeline_runtime);
   const { taskMap, nodes } = usePipelineTaskTopology(pipelineRuntime);
