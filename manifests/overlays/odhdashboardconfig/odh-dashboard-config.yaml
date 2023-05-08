@@ -46,7 +46,7 @@ spec:
         requests:
           cpu: "4"
           memory: 4Gi
-    modelServerSizes:
+  modelServerSizes:
     - name: Small
       resources:
         limits:
