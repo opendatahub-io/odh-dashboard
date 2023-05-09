@@ -48,16 +48,10 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
           );
 
           Promise.all<ServingRuntimeKind | K8sStatus>([
-            deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace, {
-              dryRun: true,
-            }),
-            deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace, {
-              dryRun: true,
-            }),
-            deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace, { dryRun: true }),
-            ...tokens.map((token) =>
-              deleteSecret(token.metadata.namespace, token.metadata.name, { dryRun: true }),
-            ),
+            deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
+            deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
+            deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
+            ...tokens.map((token) => deleteSecret(token.metadata.namespace, token.metadata.name)),
             ...inferenceServices
               .filter(
                 (inferenceService) =>
@@ -67,45 +61,19 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
                 deleteInferenceService(
                   inferenceService.metadata.name,
                   inferenceService.metadata.namespace,
-                  { dryRun: true },
                 ),
               ),
           ])
             .then(() => {
-              Promise.all<ServingRuntimeKind | K8sStatus>([
-                deleteServingRuntime(
-                  servingRuntime.metadata.name,
-                  servingRuntime.metadata.namespace,
-                ),
-                deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
-                deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
-                ...tokens.map((token) =>
-                  deleteSecret(token.metadata.namespace, token.metadata.name),
-                ),
-                ...inferenceServices
-                  .filter(
-                    (inferenceService) =>
-                      inferenceService.spec.predictor.model.runtime ===
-                      servingRuntime.metadata.name,
-                  )
-                  .map((inferenceService) =>
-                    deleteInferenceService(
-                      inferenceService.metadata.name,
-                      inferenceService.metadata.namespace,
-                    ),
-                  ),
-              ])
-                .then(() => {
-                  onBeforeClose(true);
-                })
-                .catch((e) => {
-                  setError(e);
-                  setIsDeleting(false);
-                });
+              onBeforeClose(true);
             })
             .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
+              if (e.response.status === 404) {
+                onBeforeClose(true);
+              } else {
+                setError(e);
+                setIsDeleting(false);
+              }
             });
         }
       }}
