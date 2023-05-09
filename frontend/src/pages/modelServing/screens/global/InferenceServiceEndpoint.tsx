@@ -24,7 +24,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   const isRouteEnabled =
     servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime);
 
-  const [routeLink, loaded, loadError] = useRouteForInferenceService(
+  const [routeLink, routeLinkGRPC, loaded, loadError] = useRouteForInferenceService(
     inferenceService,
     isRouteEnabled,
   );
@@ -44,7 +44,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     );
   }
 
-  if (!routeLink || !loaded) {
+  if (!loaded) {
     return <Skeleton />;
   }
 
@@ -59,9 +59,18 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   }
 
   return (
-    <ClipboardCopy removeFindDomNode hoverTip="Copy" clickTip="Copied" isReadOnly>
-      {`${routeLink}/infer`}
-    </ClipboardCopy>
+    <>
+      {routeLink && (
+        <ClipboardCopy removeFindDomNode hoverTip="Copy" clickTip="Copied" isReadOnly>
+          {`${routeLink}/infer`}
+        </ClipboardCopy>
+      )}
+      {routeLinkGRPC && (
+        <ClipboardCopy removeFindDomNode hoverTip="Copy" clickTip="Copied" isReadOnly>
+          {`${routeLinkGRPC}/infer`}
+        </ClipboardCopy>
+      )}
+    </>
   );
 };
 

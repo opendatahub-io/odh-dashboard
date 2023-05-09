@@ -399,6 +399,9 @@ export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
     path: string;
+    port: {
+      targetPort: string;
+    };
   };
 };
 
