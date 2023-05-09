@@ -5,13 +5,15 @@ import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 
+const ELYRA_VOLUME_NAME = 'elyra-dsp-details';
+
 export const getElyraVolumeMount = (): VolumeMount => ({
-  name: 'eltra-dsp-details',
+  name: ELYRA_VOLUME_NAME,
   mountPath: RUNTIME_MOUNT_PATH,
 });
 
 export const getElyraVolume = (): Volume => ({
-  name: 'elyra-dsp-details',
+  name: ELYRA_VOLUME_NAME,
   secret: {
     secretName: ELYRA_SECRET_NAME,
   },
