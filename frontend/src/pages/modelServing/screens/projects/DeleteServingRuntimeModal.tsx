@@ -47,7 +47,7 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
             servingRuntime.metadata.namespace,
           );
 
-          Promise.all<ServingRuntimeKind | K8sStatus>([
+          Promise.allSettled<ServingRuntimeKind | K8sStatus>([
             deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
             deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
             deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
