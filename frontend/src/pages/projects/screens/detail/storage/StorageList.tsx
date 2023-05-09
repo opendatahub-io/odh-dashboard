@@ -35,7 +35,7 @@ const StorageList: React.FC = () => {
         emptyState={
           <EmptyDetailsList
             title="No storage"
-            description="Choose existing, or add new on cluster storage."
+            description="To get started, add existing or create new cluster storage."
           />
         }
       >
