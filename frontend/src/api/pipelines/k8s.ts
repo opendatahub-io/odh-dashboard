@@ -32,12 +32,8 @@ export const createPipelinesCR = async (
       namespace,
     },
     spec: {
-      objectStorage: {
-        externalStorage: {
-          port: '',
-          ...spec?.objectStorage?.externalStorage,
-        },
-        ...spec?.objectStorage,
+      apiServer: {
+        enableSamplePipelines: false,
       },
       mlpipelineUI: {
         image: 'quay.io/opendatahub/odh-ml-pipelines-frontend-container:beta-ui',
