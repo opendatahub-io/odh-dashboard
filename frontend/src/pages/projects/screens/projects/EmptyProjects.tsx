@@ -10,8 +10,8 @@ import {
 import { CubesIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
+import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import NewProjectButton from './NewProjectButton';
 
 type EmptyProjectsProps = {
@@ -20,7 +20,7 @@ type EmptyProjectsProps = {
 
 const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
   const navigate = useNavigate();
-  const { dashboardConfig } = useAppContext();
+  const isJupyterEnabled = useCheckJupyterEnabled();
   return (
     <EmptyState>
       <EmptyStateIcon icon={CubesIcon} />
@@ -30,14 +30,10 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
       <EmptyStateBody>
         {allowCreate
           ? `To get started, create a data science project${
-              dashboardConfig.spec.notebookController?.enabled
-                ? ' or launch a notebook with Jupyter'
-                : ''
+              isJupyterEnabled ? ' or launch a notebook with Jupyter' : ''
             }.`
           : `To get started, ask your ${ODH_PRODUCT_NAME} admin for a data science project${
-              dashboardConfig.spec.notebookController?.enabled
-                ? ' or launch a notebook with Jupyter'
-                : ''
+              isJupyterEnabled ? ' or launch a notebook with Jupyter' : ''
             }.`}
       </EmptyStateBody>
       {allowCreate ? (
@@ -45,11 +41,9 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
           <NewProjectButton
             onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
           />
-          {dashboardConfig.spec.notebookController?.enabled && (
-            <EmptyStateSecondaryActions>
-              <LaunchJupyterButton variant={ButtonVariant.link} />
-            </EmptyStateSecondaryActions>
-          )}
+          <EmptyStateSecondaryActions>
+            <LaunchJupyterButton variant={ButtonVariant.link} />
+          </EmptyStateSecondaryActions>
         </>
       ) : (
         <LaunchJupyterButton variant={ButtonVariant.primary} />

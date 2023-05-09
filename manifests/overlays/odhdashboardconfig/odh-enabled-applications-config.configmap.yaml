@@ -5,4 +5,3 @@ metadata:
   name: odh-enabled-applications-config
 data:
   jupyter: 'true'
-  jupyterhub: 'true'

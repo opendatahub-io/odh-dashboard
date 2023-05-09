@@ -8,13 +8,11 @@ metadata:
 spec:
   applications:
   - kustomizeConfig:
-    # We just need this for creating the ODH default notebook images that are provided by ODH JupyterHub
-    #TODO: Replace with the new ODH default notebook images as part of ODH Core
       overlays:
       - additional
       repoRef:
         name: manifests
-        path: jupyterhub/notebook-images
+        path: notebook-images
     name: notebook-images
   - kustomizeConfig:
       repoRef:
