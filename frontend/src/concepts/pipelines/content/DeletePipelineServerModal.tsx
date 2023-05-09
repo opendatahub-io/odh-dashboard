@@ -3,6 +3,7 @@ import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { deletePipelineCR, deleteSecret } from '~/api';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 import { EXTERNAL_DATABASE_SECRET } from './configurePipelinesServer/const';
 
 type DeletePipelineServerModalProps = {
@@ -35,6 +36,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
         setDeleting(true);
         Promise.allSettled([
           deleteSecret(project.metadata.name, EXTERNAL_DATABASE_SECRET.NAME),
+          deleteSecret(project.metadata.name, ELYRA_SECRET_NAME),
           deletePipelineCR(namespace),
         ])
           .then(() => onBeforeClose(true))
