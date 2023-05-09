@@ -5,13 +5,14 @@ import {
   k8sListResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sStatus, KnownLabels, RoleBindingKind } from '~/k8sTypes';
+import { K8sAPIOptions, K8sStatus, KnownLabels, RoleBindingKind } from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
 import {
   ProjectSharingRBType,
   ProjectSharingRoleType,
 } from '~/pages/projects/projectSharing/types';
 import { genRandomChars } from '~/utilities/string';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const generateRoleBindingData = (
   rbName: string,
@@ -127,14 +128,23 @@ export const getRoleBinding = (projectName: string, rbName: string): Promise<Rol
     queryOptions: { name: rbName, ns: projectName },
   });
 
-export const createRoleBinding = (data: RoleBindingKind): Promise<RoleBindingKind> =>
-  k8sCreateResource({ model: RoleBindingModel, resource: data });
+export const createRoleBinding = (
+  data: RoleBindingKind,
+  opts?: K8sAPIOptions,
+): Promise<RoleBindingKind> =>
+  k8sCreateResource(applyK8sAPIOptions(opts, { model: RoleBindingModel, resource: data }));
 
-export const deleteRoleBinding = (rbName: string, namespace: string): Promise<K8sStatus> =>
-  k8sDeleteResource<RoleBindingKind, K8sStatus>({
-    model: RoleBindingModel,
-    queryOptions: { name: rbName, ns: namespace },
-  });
+export const deleteRoleBinding = (
+  rbName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<RoleBindingKind, K8sStatus>(
+    applyK8sAPIOptions(opts, {
+      model: RoleBindingModel,
+      queryOptions: { name: rbName, ns: namespace },
+    }),
+  );
 
 export const patchRoleBindingName = (
   rbName: string,

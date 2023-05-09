@@ -9,7 +9,7 @@ import {
   assembleServiceAccount,
   createServiceAccount,
 } from '~/api';
-import { SecretKind, K8sStatus } from '~/k8sTypes';
+import { SecretKind, K8sStatus, K8sAPIOptions } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
@@ -39,6 +39,7 @@ export const setUpTokenAuth = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
+  opts?: K8sAPIOptions,
 ): Promise<void> => {
   const { serviceAccountName, roleBindingName } = getTokenNames(servingRuntimeName, namespace);
 
@@ -48,12 +49,15 @@ export const setUpTokenAuth = async (
     serviceAccountName,
     namespace,
   );
-  return Promise.all([createServiceAccount(serviceAccount), createRoleBinding(tokenAuth)])
+  return Promise.all([
+    createServiceAccount(serviceAccount, opts),
+    createRoleBinding(tokenAuth, opts),
+  ])
     .then(() => {
       allSettledPromises<SecretKind, Error>(
         fillData.tokens.map((token) => {
           const secretToken = assembleSecretSA(token.name, serviceAccountName, namespace);
-          return createSecret(secretToken);
+          return createSecret(secretToken, opts);
         }),
       )
         .then(() => Promise.resolve())
@@ -67,6 +71,7 @@ export const updateSecrets = async (
   servingRuntimeName: string,
   namespace: string,
   secrets: SecretKind[],
+  opts?: K8sAPIOptions,
 ): Promise<void> => {
   const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
   const deletedSecrets = secrets
@@ -84,11 +89,11 @@ export const updateSecrets = async (
           token.editName,
         );
         if (token.editName) {
-          return replaceSecret(secretToken);
+          return replaceSecret(secretToken, opts);
         }
-        return createSecret(secretToken);
+        return createSecret(secretToken, opts);
       }),
-    ...deletedSecrets.map((secret) => deleteSecret(namespace, secret)),
+    ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
   ])
     .then(() => Promise.resolve())
     .catch((error) => Promise.reject(error));

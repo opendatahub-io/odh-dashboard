@@ -146,8 +146,14 @@ export const replaceSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<S
     }),
   );
 
-export const deleteSecret = (projectName: string, secretName: string): Promise<K8sStatus> =>
-  k8sDeleteResource<SecretKind, K8sStatus>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: projectName },
-  });
+export const deleteSecret = (
+  projectName: string,
+  secretName: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<SecretKind, K8sStatus>(
+    applyK8sAPIOptions(opts, {
+      model: SecretModel,
+      queryOptions: { name: secretName, ns: projectName },
+    }),
+  );
