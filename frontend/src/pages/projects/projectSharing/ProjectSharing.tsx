@@ -49,7 +49,7 @@ const ProjectSharing: React.FC = () => {
   return (
     <PageSection isFilled aria-label="project-sharing-page-section" variant="light">
       <Stack hasGutter>
-        <StackItem>Add users and groups that can access the project. project.</StackItem>
+        <StackItem>Add users and groups that can access the project.</StackItem>
         <StackItem>
           <ProjectSharingTableSection
             roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
