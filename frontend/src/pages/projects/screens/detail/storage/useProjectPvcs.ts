@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getPvcs } from '~/api';
+import { getDashboardPvcs } from '~/api';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
 
@@ -9,7 +9,7 @@ const useProjectPvcs = (namespace?: string): FetchState<PersistentVolumeClaimKin
       return Promise.reject(new NotReadyError('No namespace'));
     }
 
-    return getPvcs(namespace);
+    return getDashboardPvcs(namespace);
   }, [namespace]);
 
   return useFetchState<PersistentVolumeClaimKind[]>(getProjectPvcs, []);

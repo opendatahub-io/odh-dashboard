@@ -427,16 +427,17 @@ export type DSPipelineKind = K8sResourceCommon & {
     name: string;
     namespace: string;
   };
-  spec: Partial<{
-    apiServer: Partial<{
+  spec: {
+    apiServer?: Partial<{
       apiServerImage: string;
       artifactImage: string;
       artifactScriptConfigMap: Partial<{
         key: string;
         name: string;
       }>;
+      enableSamplePipelines: boolean;
     }>;
-    database: Partial<{
+    database?: Partial<{
       externalDB: Partial<{
         host: string;
         passwordSecret: Partial<{
@@ -458,29 +459,29 @@ export type DSPipelineKind = K8sResourceCommon & {
         username: string;
       }>;
     }>;
-    mlpipelineUI: Partial<{
-      configMap: string;
+    mlpipelineUI?: {
+      configMap?: string;
       image: string;
-    }>;
-    persistentAgent: Partial<{
+    };
+    persistentAgent?: Partial<{
       image: string;
       pipelineAPIServerName: string;
     }>;
-    scheduledWorkflow: Partial<{
+    scheduledWorkflow?: Partial<{
       image: string;
     }>;
     objectStorage: Partial<{
-      externalStorage: Partial<{
+      externalStorage: {
         bucket: string;
         host: string;
-        port: '';
+        port?: '';
         scheme: string;
-        s3CredentialsSecret: Partial<{
+        s3CredentialsSecret: {
           accessKey: string;
           secretKey: string;
           secretName: string;
-        }>;
-      }>;
+        };
+      };
       minio: Partial<{
         bucket: string;
         image: string;
@@ -491,10 +492,13 @@ export type DSPipelineKind = K8sResourceCommon & {
         }>;
       }>;
     }>;
-    viewerCRD: Partial<{
+    viewerCRD?: Partial<{
       image: string;
     }>;
-  }>;
+  };
+  status?: {
+    conditions?: K8sCondition[];
+  };
 };
 
 export type AccessReviewResourceAttributes = {

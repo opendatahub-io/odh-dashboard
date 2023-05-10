@@ -8,7 +8,11 @@ import {
   SplitItem,
   TimePicker,
 } from '@patternfly/react-core';
-import { convertDateToSimpleDateString, convertDateToTimeString } from '~/utilities/time';
+import {
+  convertDateToSimpleDateString,
+  convertDateToTimeString,
+  ensureTimeFormat,
+} from '~/utilities/time';
 import { RunDateTime } from '~/concepts/pipelines/content/createRun/types';
 import { DATE_FORMAT, DEFAULT_TIME } from '~/concepts/pipelines/content/createRun/const';
 
@@ -65,7 +69,7 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
           <SplitItem>
             <TimePicker
               time={value?.time ?? DEFAULT_TIME}
-              onChange={(e, time) => handleChange({ time })}
+              onChange={(e, time) => handleChange({ time: ensureTimeFormat(time) ?? undefined })}
             />
           </SplitItem>
         </Split>

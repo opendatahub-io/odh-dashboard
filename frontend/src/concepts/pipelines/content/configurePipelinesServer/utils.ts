@@ -132,8 +132,7 @@ export const configureDSPipelineResourceSpec = (
         externalStorage: {
           host: externalStorageHost.replace(/\/$/, ''),
           scheme: externalStorageScheme,
-          bucket: awsRecord.AWS_S3_BUCKET,
-          port: '',
+          bucket: awsRecord.AWS_S3_BUCKET || '',
           s3CredentialsSecret: {
             accessKey: AWS_KEYS.ACCESS_KEY_ID,
             secretKey: AWS_KEYS.SECRET_ACCESS_KEY,

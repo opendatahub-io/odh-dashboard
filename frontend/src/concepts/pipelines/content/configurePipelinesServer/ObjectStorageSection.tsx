@@ -45,7 +45,7 @@ export const ObjectStorageSection = ({ setConfig, config }: ObjectStorageSection
         <>
           <Title headingLevel="h2">Object storage connection</Title>
           <Text component="p" className="form-subtitle-text">
-            To store pipeline artifacts. Must be S3 compatible.
+            The selected S3-compatible data connection is where your pipeline artifacts are stored.
           </Text>
         </>
       }

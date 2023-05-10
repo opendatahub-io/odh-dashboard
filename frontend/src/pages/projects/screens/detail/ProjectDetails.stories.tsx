@@ -120,8 +120,7 @@ Default.play = async ({ canvasElement }) => {
   await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
 
   // we fill in the page with data, so there should be no dividers on the page
-  // TODO: Handle Pipelines -- it has no data atm
-  expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(1);
+  expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(0);
 
   // check the x-small size shown correctly
   expect(canvas.getByText('XSmall')).toBeInTheDocument();

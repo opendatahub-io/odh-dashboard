@@ -24,6 +24,8 @@ export const createPipelinesCR = async (
   spec: DSPipelineKind['spec'],
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind> => {
+  // Debug note for investigating issues on production
+  // Add mlpipelineUI.image: 'quay.io/opendatahub/odh-ml-pipelines-frontend-container:beta-ui'
   const resource: DSPipelineKind = {
     apiVersion: `${DataSciencePipelineApplicationModel.apiGroup}/${DataSciencePipelineApplicationModel.apiVersion}`,
     kind: DataSciencePipelineApplicationModel.kind,
@@ -32,15 +34,8 @@ export const createPipelinesCR = async (
       namespace,
     },
     spec: {
-      objectStorage: {
-        externalStorage: {
-          port: '',
-          ...spec?.objectStorage?.externalStorage,
-        },
-        ...spec?.objectStorage,
-      },
-      mlpipelineUI: {
-        image: 'quay.io/opendatahub/odh-ml-pipelines-frontend-container:beta-ui',
+      apiServer: {
+        enableSamplePipelines: false,
       },
       ...spec,
     },

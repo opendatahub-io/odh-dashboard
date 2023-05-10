@@ -9,12 +9,12 @@ import ParamsSection from '~/concepts/pipelines/content/createRun/contentSection
 import PipelineSection from './contentSections/PipelineSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 
-type RunPageContentProps = {
+type RunFormProps = {
   data: RunFormData;
   onValueChange: (key: keyof RunFormData, value: ValueOf<RunFormData>) => void;
 };
 
-const RunForm: React.FC<RunPageContentProps> = ({ data, onValueChange }) => (
+const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
   <Form
     maxWidth="500px"
     onSubmit={(e) => {

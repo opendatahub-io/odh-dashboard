@@ -56,7 +56,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
                 <EmptyStateSecondaryActions>
                   <Button
                     variant="link"
-                    onClick={() => navigate(`/pipeline/${namespace}/pipelineRun/create`)}
+                    onClick={() => navigate(`/pipelines/${namespace}/pipelineRun/create`)}
                   >
                     Create run
                   </Button>

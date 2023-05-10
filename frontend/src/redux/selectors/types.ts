@@ -9,3 +9,9 @@ export type UserState = {
 export type DashboardNamespace = {
   dashboardNamespace: string;
 };
+
+export type ClusterState = {
+  clusterBranding?: string;
+  clusterID?: string;
+  serverURL?: string;
+};

@@ -25,8 +25,8 @@ export const PipelinesDatabaseSection = ({ setConfig, config }: PipelinesDatabas
         <>
           <Title headingLevel="h2">Database</Title>
           <Text component="p" className="form-subtitle-text">
-            To store data science pipelines. By default we include a database that will store this
-            on your cluster.
+            This is where your pipeline data is stored. Use the default database to store data on
+            your cluster, or connect to an external database.
           </Text>
         </>
       }
