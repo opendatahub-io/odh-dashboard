@@ -1,7 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
-import { DEFAULT_MODEL_SERVING_TEMPLATE } from '~/pages/modelServing/screens/const';
 
 export const getTemplateEnabled = (template: TemplateKind) =>
   !(template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false');
@@ -30,7 +29,7 @@ export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRunt
 
 export const getServingRuntimeFromTemplate = (template?: TemplateKind): ServingRuntimeKind => {
   if (!template) {
-    return DEFAULT_MODEL_SERVING_TEMPLATE;
+    throw new Error('No Serving Runtime provided');
   }
   if (!isServingRuntimeKind(template.objects[0])) {
     throw new Error('Invalid Serving Runtime format');
@@ -41,4 +40,4 @@ export const getServingRuntimeFromTemplate = (template?: TemplateKind): ServingR
 export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string =>
   resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
   resource.metadata.annotations?.['opendatahub.io/template-name'] ||
-  '';
+  'Unknown Serving Runtime';

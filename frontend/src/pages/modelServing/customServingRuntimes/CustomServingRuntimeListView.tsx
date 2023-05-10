@@ -32,7 +32,7 @@ const CustomServingRuntimeListView: React.FC = () => {
     (itemOrder: string[]) => {
       patchDashboardConfigTemplateOrder(itemOrder, dashboardNamespace)
         .then(refreshOrder)
-        .catch((e) => notification.error(`Error update the serving runtimes order`, e.message));
+        .catch((e) => notification.error(`Error updating the serving runtimes order`, e.message));
     },
     [dashboardNamespace, refreshOrder, notification],
   );

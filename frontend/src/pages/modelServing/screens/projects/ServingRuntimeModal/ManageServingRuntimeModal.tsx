@@ -96,13 +96,26 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
         servingRuntime.metadata.name,
         servingRuntime.metadata.namespace,
         secrets,
+        { dryRun: true },
       ),
-      updateServingRuntime(fillData, servingRuntime, customServingRuntimesEnabled),
+      updateServingRuntime(fillData, servingRuntime, customServingRuntimesEnabled, {
+        dryRun: true,
+      }),
     ])
-      .then(() => {
-        setActionInProgress(false);
-        onBeforeClose(true);
-      })
+      .then(() =>
+        Promise.all([
+          updateSecrets(
+            fillData,
+            servingRuntime.metadata.name,
+            servingRuntime.metadata.namespace,
+            secrets,
+          ),
+          updateServingRuntime(fillData, servingRuntime, customServingRuntimesEnabled),
+        ]).then(() => {
+          setActionInProgress(false);
+          onBeforeClose(true);
+        }),
+      )
       .catch((e) => setErrorModal(e));
 
   const createModelServer = (
@@ -113,16 +126,27 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     const servingRuntimeName = translateDisplayNameForK8s(fillData.name);
 
     return Promise.all<ServingRuntimeKind | string | void>([
-      ...(currentProject.metadata.labels?.['modelmesh-enabled']
-        ? [addSupportModelMeshProject(currentProject.metadata.name)]
-        : []),
-      createServingRuntime(fillData, namespace, servingRuntime, customServingRuntimesEnabled),
-      setUpTokenAuth(fillData, servingRuntimeName, namespace),
+      createServingRuntime(fillData, namespace, servingRuntime, customServingRuntimesEnabled, {
+        dryRun: true,
+      }),
+      setUpTokenAuth(fillData, servingRuntimeName, namespace, { dryRun: true }),
     ])
-      .then(() => {
-        setActionInProgress(false);
-        onBeforeClose(true);
-      })
+      .then(() =>
+        Promise.all<ServingRuntimeKind | string | void>([
+          ...(currentProject.metadata.labels?.['modelmesh-enabled']
+            ? [addSupportModelMeshProject(currentProject.metadata.name)]
+            : []),
+          createServingRuntime(fillData, namespace, servingRuntime, customServingRuntimesEnabled),
+          setUpTokenAuth(fillData, servingRuntimeName, namespace),
+        ])
+          .then(() => {
+            setActionInProgress(false);
+            onBeforeClose(true);
+          })
+          .catch((e) => {
+            setErrorModal(e);
+          }),
+      )
       .catch((e) => {
         setErrorModal(e);
       });
@@ -192,7 +216,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               <ServingRuntimeTemplateSection
                 data={createData}
                 setData={setCreateData}
-                templates={servingRuntimeTemplates}
+                templates={servingRuntimeTemplates || []}
                 isEditing={!!editInfo}
               />
               <StackItem>

@@ -7,11 +7,12 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeModel } from '~/api/models';
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { K8sAPIOptions, ServingRuntimeKind } from '~/k8sTypes';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions } from './utils';
 
@@ -131,6 +132,7 @@ export const updateServingRuntime = (
   data: CreatingServingRuntimeObject,
   existingData: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
+  opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind> => {
   const updatedServingRuntime = assembleServingRuntime(
     data,
@@ -140,10 +142,12 @@ export const updateServingRuntime = (
     true,
   );
 
-  return k8sUpdateResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    resource: updatedServingRuntime,
-  });
+  return k8sUpdateResource<ServingRuntimeKind>(
+    applyK8sAPIOptions(opts, {
+      model: ServingRuntimeModel,
+      resource: updatedServingRuntime,
+    }),
+  );
 };
 
 export const createServingRuntime = (
@@ -151,6 +155,7 @@ export const createServingRuntime = (
   namespace: string,
   servingRuntime: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
+  opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind> => {
   const assembledServingRuntime = assembleServingRuntime(
     data,
@@ -159,17 +164,22 @@ export const createServingRuntime = (
     isCustomServingRuntimesEnabled,
   );
 
-  return k8sCreateResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    resource: assembledServingRuntime,
-  });
+  return k8sCreateResource<ServingRuntimeKind>(
+    applyK8sAPIOptions(opts, {
+      model: ServingRuntimeModel,
+      resource: assembledServingRuntime,
+    }),
+  );
 };
 
 export const deleteServingRuntime = (
   name: string,
   namespace: string,
+  opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind> =>
-  k8sDeleteResource<ServingRuntimeKind>({
-    model: ServingRuntimeModel,
-    queryOptions: { name, ns: namespace },
-  });
+  k8sDeleteResource<ServingRuntimeKind>(
+    applyK8sAPIOptions(opts, {
+      model: ServingRuntimeModel,
+      queryOptions: { name, ns: namespace },
+    }),
+  );

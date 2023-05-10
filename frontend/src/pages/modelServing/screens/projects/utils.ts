@@ -31,6 +31,15 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
+export const getInferenceServiceFromServingRuntime = (
+  inferenceServices: InferenceServiceKind[],
+  servingRuntime: ServingRuntimeKind,
+): InferenceServiceKind[] =>
+  inferenceServices.filter(
+    (inferenceService) =>
+      inferenceService.spec.predictor.model.runtime === servingRuntime.metadata.name,
+  );
+
 export const useCreateServingRuntimeObject = (existingData?: {
   servingRuntime?: ServingRuntimeKind;
   secrets: SecretKind[];

@@ -7,8 +7,9 @@ import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCe
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
-import { isServingRuntimeTokenEnabled } from './utils';
+import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
@@ -37,6 +38,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
 
   const tokens = filterTokens(obj.metadata.name);
 
+  const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
+
   const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
     setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
   };
@@ -63,13 +66,14 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             obj.spec.builtInAdapter?.serverType ||
             'Custom Runtime'}
         </Td>
+        <Td dataLabel="Serving Runtime">{getDisplayNameFromServingRuntimeTemplate(obj)}</Td>
         <Td
           dataLabel="Deployed models"
           compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)}
         >
           {inferenceServicesLoaded ? (
             <>
-              {inferenceServices.length}{' '}
+              {modelInferenceServices.length}{' '}
               {inferenceServicesLoadError && (
                 <Tooltip
                   removeFindDomNode

@@ -5,6 +5,7 @@ commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
 bases:
   - ../apps
+  - ../modelserving
 resources:
 - role.yaml
 - cluster-role.yaml
