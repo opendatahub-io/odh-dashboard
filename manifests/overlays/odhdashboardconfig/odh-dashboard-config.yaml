@@ -74,5 +74,4 @@ spec:
   groupsConfig:
     adminGroups: 'odh-admins'
     allowedGroups: 'system:authenticated'
-  templateOrder:
-    - 'ovms'
+  templateOrder: []
