@@ -7,7 +7,7 @@ rules:
       - get
       - list
     apiGroups:
-      - 'template.openshift.io'
+      - template.openshift.io
     resources:
       - templates
   - verbs:
