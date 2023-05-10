@@ -9,7 +9,7 @@ import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
-import { isServingRuntimeTokenEnabled } from './utils';
+import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
@@ -37,6 +37,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   } = React.useContext(ProjectDetailsContext);
 
   const tokens = filterTokens(obj.metadata.name);
+
+  const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
 
   const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
     setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
@@ -71,7 +73,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         >
           {inferenceServicesLoaded ? (
             <>
-              {inferenceServices.length}{' '}
+              {modelInferenceServices.length}{' '}
               {inferenceServicesLoadError && (
                 <Tooltip
                   removeFindDomNode
