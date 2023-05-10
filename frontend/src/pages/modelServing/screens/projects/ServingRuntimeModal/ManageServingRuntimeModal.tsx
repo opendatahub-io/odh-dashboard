@@ -111,12 +111,10 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             secrets,
           ),
           updateServingRuntime(fillData, servingRuntime, customServingRuntimesEnabled),
-        ])
-          .then(() => {
-            setActionInProgress(false);
-            onBeforeClose(true);
-          })
-          .catch((e) => setErrorModal(e)),
+        ]).then(() => {
+          setActionInProgress(false);
+          onBeforeClose(true);
+        }),
       )
       .catch((e) => setErrorModal(e));
 

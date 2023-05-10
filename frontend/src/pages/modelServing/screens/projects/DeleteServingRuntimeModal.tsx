@@ -68,12 +68,8 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
               onBeforeClose(true);
             })
             .catch((e) => {
-              if (e.response.status === 404) {
-                onBeforeClose(true);
-              } else {
-                setError(e);
-                setIsDeleting(false);
-              }
+              setError(e);
+              setIsDeleting(false);
             });
         }
       }}
