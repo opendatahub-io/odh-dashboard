@@ -142,7 +142,7 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
       <Stack hasGutter>
         <StackItem>
           <Button variant={variant} onClick={() => setConfigureModalVisible(true)}>
-            Create pipeline server
+            Create a pipeline server
           </Button>
         </StackItem>
       </Stack>
