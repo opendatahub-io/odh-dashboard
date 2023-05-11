@@ -98,7 +98,7 @@ export const assembleSecretSA = (
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: `${k8Name}-${serviceAccountName}`,
+      name: editName || `${k8Name}-${serviceAccountName}`,
       namespace,
       annotations: {
         'kubernetes.io/service-account.name': serviceAccountName,
