@@ -435,7 +435,7 @@ export type DSPipelineKind = K8sResourceCommon & {
         key: string;
         name: string;
       }>;
-      enableSamplePipelines: boolean;
+      enableSamplePipeline: boolean;
     }>;
     database?: Partial<{
       externalDB: Partial<{

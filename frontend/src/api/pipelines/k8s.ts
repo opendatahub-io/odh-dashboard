@@ -35,7 +35,7 @@ export const createPipelinesCR = async (
     },
     spec: {
       apiServer: {
-        enableSamplePipelines: false,
+        enableSamplePipeline: false,
       },
       ...spec,
     },

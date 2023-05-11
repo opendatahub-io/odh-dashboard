@@ -11,6 +11,23 @@ export const dspaLoaded = ([state, loaded]: FetchState<State>): boolean =>
   !!state &&
   !!state.status?.conditions?.find((c) => c.type === 'APIServerReady' && c.status === 'True');
 
+export const hasServerTimedOut = (
+  [state, loaded]: FetchState<State>,
+  dspaLoaded: boolean,
+): boolean => {
+  if (!state || !loaded || dspaLoaded) {
+    return false;
+  }
+
+  const createTime = state.metadata.creationTimestamp;
+  if (!createTime) {
+    return false;
+  }
+
+  // If we are here, and 5 mins have past, we are having issues
+  return Date.now() - new Date(createTime).getTime() > 60 * 5 * 1000;
+};
+
 const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) =>
