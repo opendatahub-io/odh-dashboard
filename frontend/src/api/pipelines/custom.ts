@@ -68,7 +68,10 @@ export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, count) =>
   );
 
 export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts) =>
-  handlePipelineFailures(proxyGET(hostPath, '/apis/v1beta1/runs', {}, opts));
+  handlePipelineFailures(
+    // eslint-disable-next-line camelcase
+    proxyGET(hostPath, '/apis/v1beta1/runs', { sort_by: 'created_at desc' }, opts),
+  );
 
 export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts) =>
   handlePipelineFailures(proxyGET(hostPath, '/apis/v1beta1/jobs', {}, opts));

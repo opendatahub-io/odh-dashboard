@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, AlertActionLink, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
 import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
@@ -7,13 +7,16 @@ import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/conf
 import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineServerModal';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
+import { deleteServer } from '~/concepts/pipelines/utils';
 import useAPIState, { APIState } from './useAPIState';
-import usePipelineNamespaceCR, { dspaLoaded } from './usePipelineNamespaceCR';
+import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
 type PipelineContext = {
   hasCR: boolean;
   crInitializing: boolean;
+  serverTimedOut: boolean;
+  ignoreTimedOut: () => void;
   namespace: string;
   project: ProjectKind;
   refreshState: () => Promise<undefined>;
@@ -24,6 +27,8 @@ type PipelineContext = {
 const PipelinesContext = React.createContext<PipelineContext>({
   hasCR: false,
   crInitializing: false,
+  serverTimedOut: false,
+  ignoreTimedOut: () => undefined,
   namespace: '',
   project: null as unknown as ProjectKind,
   refreshState: async () => undefined,
@@ -43,9 +48,16 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
+
   const state = usePipelineNamespaceCR(namespace);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
   const isCRReady = dspaLoaded(state);
+  const [disableTimeout, setDisableTimeout] = React.useState(false);
+  const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
+  const ignoreTimedOut = React.useCallback(() => {
+    setDisableTimeout(true);
+  }, []);
+
   const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
     namespace,
@@ -77,6 +89,8 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
       value={{
         hasCR: !!pipelineNamespaceCR,
         crInitializing: !crLoaded,
+        serverTimedOut,
+        ignoreTimedOut,
         project,
         apiState,
         namespace,
@@ -95,7 +109,7 @@ type UsePipelinesAPI = APIState & {
   /** The Project resource behind the namespace */
   project: ProjectKind;
   /** State of the CR */
-  pipelinesServer: { initializing: boolean; installed: boolean };
+  pipelinesServer: { initializing: boolean; installed: boolean; timedOut: boolean };
   /**
    * Allows agnostic functionality to request all watched API to be reacquired.
    * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
@@ -107,6 +121,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
   const {
     hasCR,
     crInitializing,
+    serverTimedOut,
     apiState,
     namespace,
     project,
@@ -116,6 +131,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
     initializing: crInitializing,
     installed: hasCR,
+    timedOut: serverTimedOut,
   };
 
   return {
@@ -189,5 +205,34 @@ export const ViewServerModal = ({ isOpen, onClose }: { isOpen: boolean; onClose:
       onClose={onClose}
       pipelineNamespaceCR={pipelineNamespaceCR}
     />
+  );
+};
+
+export const PipelineServerTimedOut: React.FC = () => {
+  const { namespace, refreshState, ignoreTimedOut } = React.useContext(PipelinesContext);
+
+  return (
+    <Alert
+      variant="danger"
+      isInline
+      title="Pipeline server failed"
+      actionLinks={
+        <>
+          <AlertActionLink onClick={() => deleteServer(namespace).then(() => refreshState())}>
+            Delete pipeline server
+          </AlertActionLink>
+          <AlertActionLink onClick={() => ignoreTimedOut()}>Close</AlertActionLink>
+        </>
+      }
+    >
+      <Stack hasGutter>
+        <StackItem>
+          We encountered an error creating or loading your pipeline server. To continue, delete this
+          pipeline server and create a new one. Deleting this pipeline server will delete all of its
+          resources, including pipelines, runs, and jobs.
+        </StackItem>
+        <StackItem>To get help, contact your administrator or open a support case.</StackItem>
+      </Stack>
+    </Alert>
   );
 };

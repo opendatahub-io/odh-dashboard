@@ -4,4 +4,5 @@ export {
   usePipelinesAPI,
   DeleteServerModal,
   ViewServerModal,
+  PipelineServerTimedOut,
 } from './PipelinesContext';

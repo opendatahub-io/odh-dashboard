@@ -31,7 +31,7 @@ const callPrometheus = async <T>(
   const url = `${host}/api/v1/${queryType}?${query}`;
 
   fastify.log.info(`Prometheus query: ${query}`);
-  return proxyCall(fastify, request, { method: 'GET', url })
+  return proxyCall(fastify, request, { method: 'GET', url, rejectUnauthorized: false })
     .then((rawData) => {
       try {
         const parsedData = JSON.parse(rawData);
