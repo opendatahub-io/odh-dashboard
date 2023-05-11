@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Alert, AlertActionLink, Bullseye, Button, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  AlertActionLink,
+  Bullseye,
+  Button,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
@@ -216,6 +224,7 @@ export const PipelineServerTimedOut: React.FC = () => {
       variant="danger"
       isInline
       title="Pipeline server failed"
+      actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
       actionLinks={
         <>
           <AlertActionLink onClick={() => deleteServer(namespace).then(() => refreshState())}>
@@ -231,7 +240,7 @@ export const PipelineServerTimedOut: React.FC = () => {
           pipeline server and create a new one. Deleting this pipeline server will delete all of its
           resources, including pipelines, runs, and jobs.
         </StackItem>
-        <StackItem>To get help, contact your administrator or open a support case.</StackItem>
+        <StackItem>To get help contact your administrator.</StackItem>
       </Stack>
     </Alert>
   );
