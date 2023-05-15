@@ -9,9 +9,7 @@ const GlobalNoPipelines: React.FC = () => (
     <Title headingLevel="h4" size="lg">
       No pipelines yet
     </Title>
-    <EmptyStateBody>
-      To get started, import a pipeline, or create one using the Jupyter visual editor.
-    </EmptyStateBody>
+    <EmptyStateBody>To get started, import a pipeline.</EmptyStateBody>
     <ImportPipelineButton variant="primary" />
   </EmptyState>
 );
