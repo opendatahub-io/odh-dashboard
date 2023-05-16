@@ -25,17 +25,26 @@ export const usePipelineTaskTopology = (
       return EMPTY_STATE;
     }
 
+    const hasRunAfters = tasks.some((t) => !!t.runAfter);
+
     const edgeLookupMap = tasks.reduce<Record<string, Set<string>>>((acc, task) => {
-      const { name, params, when } = task;
+      const { name, params, when, runAfter } = task;
 
       const targets: string[] = [];
-      if (params) {
-        const paramNames = params.map(paramAsRunAfter).filter(isTruthyString);
-        targets.push(...paramNames);
-      }
-      if (when) {
-        const paramNames = when.map(whenAsRunAfter).filter(isTruthyString);
-        targets.push(...paramNames);
+      if (hasRunAfters) {
+        // Run afters are to be respected, there or not, ignore dependencies
+        // They choose to use runAfters or not, don't mix and match it will cause weird graphs
+        targets.push(...(runAfter ?? []));
+      } else {
+        // Don't have runAfters, we'll have to figure out what the lines might be based on dependencies
+        if (params) {
+          const paramNames = params.map(paramAsRunAfter).filter(isTruthyString);
+          targets.push(...paramNames);
+        }
+        if (when) {
+          const paramNames = when.map(whenAsRunAfter).filter(isTruthyString);
+          targets.push(...paramNames);
+        }
       }
 
       return targets.reduce((acc, target) => {
