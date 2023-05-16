@@ -1,24 +1,20 @@
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
+import { DEV_MODE } from '~/utilities/const';
 
 const consolePrefix = 'console-openshift-console';
 
 export const getOpenShiftConsoleServerURL = (apiURL?: string): string | null => {
   const { hostname, protocol, port } = window.location;
 
-  if (apiURL) {
-    let prefixPort = `:${port}`;
+  if (DEV_MODE && apiURL) {
     let apiURLWithoutPrefix = apiURL.slice('https://api.'.length);
     if (apiURLWithoutPrefix.includes(':')) {
       const [withoutPort] = apiURLWithoutPrefix.split(':');
       apiURLWithoutPrefix = withoutPort;
     }
-    if (hostname === 'localhost') {
-      // Port here does not matter, it's a localhost port
-      prefixPort = '';
-      // Dashboard has `apps.` before the content when on route, not in localhost
-      apiURLWithoutPrefix = `apps.${apiURLWithoutPrefix}`;
-    }
-    return `${protocol}//${consolePrefix}.${apiURLWithoutPrefix}${prefixPort}`;
+    // Dashboard has `apps.` before the content when on route, not in localhost
+    apiURLWithoutPrefix = `apps.${apiURLWithoutPrefix}`;
+    return `${protocol}//${consolePrefix}.${apiURLWithoutPrefix}`;
   }
 
   const hostParts = hostname.split('.').slice(1);
