@@ -1,4 +1,5 @@
 import { RouteKind } from '~/k8sTypes';
+import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   notebookName?: string;
@@ -14,7 +15,7 @@ export const mockRouteK8sResource = ({
   metadata: {
     name: notebookName,
     namespace: namespace,
-    uid: 'e3cfc63f-c8a0-4502-adab-7b8f53c11f76',
+    uid: genUID('route'),
     resourceVersion: '4789458',
     creationTimestamp: '2023-02-14T21:44:13Z',
     labels: {
@@ -28,7 +29,7 @@ export const mockRouteK8sResource = ({
         apiVersion: 'kubeflow.org/v1',
         kind: 'Notebook',
         name: notebookName,
-        uid: '00a7904f-49b7-4105-b8ba-ce28f3b4ae11',
+        uid: genUID('notebook'),
         controller: true,
         blockOwnerDeletion: true,
       },

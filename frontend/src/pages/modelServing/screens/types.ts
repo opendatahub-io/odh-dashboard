@@ -36,6 +36,8 @@ export enum InferenceServiceModelState {
 }
 
 export type CreatingServingRuntimeObject = {
+  name: string;
+  servingRuntimeTemplateName: string;
   numReplicas: number;
   modelSize: ServingRuntimeSize;
   gpus: number;

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { DropdownDirection, Text, Title } from '@patternfly/react-core';
+import { DropdownDirection } from '@patternfly/react-core';
 import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { DataConnection } from '~/pages/projects/types';
-import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
+import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
 import {
   getDataConnectionDescription,
   getDataConnectionDisplayName,
@@ -28,12 +28,11 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
   <Tr>
     <EmptyTableCellForAlignment />
     <Td dataLabel="Name">
-      <Title headingLevel="h3" size="md">
-        <ResourceNameTooltip resource={obj.data}>
-          {getDataConnectionDisplayName(obj)}
-        </ResourceNameTooltip>
-      </Title>
-      <Text>{getDataConnectionDescription(obj)}</Text>
+      <TableRowTitleDescription
+        title={getDataConnectionDisplayName(obj)}
+        resource={obj.data}
+        description={getDataConnectionDescription(obj)}
+      />
     </Td>
     <Td dataLabel="Type">{getDataConnectionType(obj)}</Td>
     <Td dataLabel="Connected workbenches">

@@ -14,10 +14,12 @@ import {
   Split,
   SplitItem,
   PageBreadcrumb,
+  StackItem,
+  Stack,
 } from '@patternfly/react-core';
 
 type ApplicationsPageProps = {
-  title: string;
+  title: React.ReactNode;
   breadcrumb?: React.ReactNode;
   description: React.ReactNode;
   loaded: boolean;
@@ -28,6 +30,7 @@ type ApplicationsPageProps = {
   emptyMessage?: string;
   emptyStatePage?: React.ReactNode;
   headerAction?: React.ReactNode;
+  headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
 };
 
@@ -43,19 +46,25 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   emptyMessage,
   emptyStatePage,
   headerAction,
+  headerContent,
   provideChildrenPadding,
 }) => {
   const renderHeader = () => (
     <PageSection variant={PageSectionVariants.light}>
-      <Split>
-        <SplitItem isFilled>
-          <TextContent>
-            <Text component="h1">{title}</Text>
-            <Text component="p">{description}</Text>
-          </TextContent>
-        </SplitItem>
-        {headerAction && <SplitItem>{headerAction}</SplitItem>}
-      </Split>
+      <Stack hasGutter>
+        <StackItem>
+          <Split>
+            <SplitItem isFilled>
+              <TextContent>
+                <Text component="h1">{title}</Text>
+                {description && <Text component="p">{description}</Text>}
+              </TextContent>
+            </SplitItem>
+            {headerAction && <SplitItem>{headerAction}</SplitItem>}
+          </Split>
+        </StackItem>
+        {headerContent && <StackItem>{headerContent}</StackItem>}
+      </Stack>
     </PageSection>
   );
 

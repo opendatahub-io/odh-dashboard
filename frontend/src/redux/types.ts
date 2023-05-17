@@ -27,6 +27,7 @@ export interface GetUserAction {
   payload: {
     user?: string;
     clusterID?: string;
+    serverURL?: string;
     clusterBranding?: string;
     dashboardNamespace?: string;
     isAdmin?: boolean;
@@ -45,10 +46,29 @@ export type AppState = {
   userError?: Error | null;
   isImpersonating?: boolean;
 
+  serverURL?: string;
   clusterID?: string;
   clusterBranding?: string;
   isAllowed?: boolean;
   dashboardNamespace?: string;
   notifications: AppNotification[];
   forceComponentsUpdate: number;
+};
+
+export type StatusResponse = {
+  kube: {
+    currentContext: string;
+    currentUser: {
+      name: string;
+      token: string;
+    };
+    namespace: string;
+    userName: string;
+    clusterID: string;
+    clusterBranding: string;
+    isAdmin: boolean;
+    isAllowed: boolean;
+    serverURL: string;
+    isImpersonating?: boolean;
+  };
 };

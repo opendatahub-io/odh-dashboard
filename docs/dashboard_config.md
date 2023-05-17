@@ -6,20 +6,23 @@ By default the ODH Dashboard comes with a set of core features enabled that are 
 
 The following are a list of features that are supported, along with there default settings.
 
-| Feature | Default | Description |
-|-------|-------| ------- |
-|  enablement| true | Enables the ability to enable ISVs to the dashboard |
-|  disableInfo| false | Removes the information panel in Explore Application section |
-|  disableSupport| false | Disables components related to support. |
-|  disableClusterManager | false | Disables cluster management section for admins
-|  disableTracking | true | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured
-|  disableBYONImageStream| false | Disables custom notebook images that are created via image streams
-|  disableISVBadges | false | Removes the badge that indicate if a product is ISV or not.
-|  disableAppLauncher | false | Removes the application launcher that is used in OKD environments
-|  disableUserManagement | false | Removes the User Management panel in Settings.
-|  disableProjects | false | Disables Data Science Projects from the dashboard.
-|  disableModelServing | false | Disables Model Serving from the dashboard and from Data Science Projects.
-|  modelMetricsNamespace | false | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.
+| Feature                      | Default | Description                                                                                          |
+|------------------------------|---------|------------------------------------------------------------------------------------------------------|
+| enablement                   | true    | Enables the ability to enable ISVs to the dashboard                                                  |
+| disableInfo                  | false   | Removes the information panel in Explore Application section                                         |
+| disableSupport               | false   | Disables components related to support.                                                              |
+| disableClusterManager        | false   | Disables cluster management section for admins                                                       |
+| disableTracking              | true    | Disables telemetry UI data. Note for this feature to work you need woopra and segement.io configured |
+| disableBYONImageStream       | false   | Disables custom notebook images that are created via image streams                                   |
+| disableISVBadges             | false   | Removes the badge that indicate if a product is ISV or not.                                          |
+| disableAppLauncher           | false   | Removes the application launcher that is used in OKD environments                                    |
+| disableUserManagement        | false   | Removes the User Management panel in Settings.                                                       |
+| disableProjects              | false   | Disables Data Science Projects from the dashboard.                                                   |
+| disablePipelines             | false   | Disables Data Science Pipelines from the dashboard.                                                  |
+| disableModelServing          | false   | Disables Model Serving from the dashboard and from Data Science Projects.                            |
+| disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
+| disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
+| modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
 
 ## Defaults
 
@@ -38,14 +41,16 @@ spec:
     disableAppLauncher: false
     disableUserManagement: false
     disableProjects: false
+    disablePipelines: false
     disableModelServing: false
+    disableProjectSharing: false
+    disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
 ```
 
 ## Additional fields
 
 The Dashboard config enables adding additional configuration
-
 
 ### Groups
 
@@ -66,7 +71,7 @@ Note: These sizes must follow conventions such as requests smaller than limits
 ```yaml
 notebookSizes:
 - name: XSmall
-    resources:
+  resources:
     requests:
         memory: 0.5Gi
         cpu: '0.1'
@@ -105,6 +110,10 @@ New annotations we created are:
 
 `*` - We need the original user's name (we translate their name to kube safe characters for notebook name and for the label) for some functionality. If this is omitted from the Notebook (or they don't have one yet) we try to make a validation against the current logged in user. This will work most of the time (and we assume logged in user when they don't have a Notebook), if this fails because you're an Admin and we don't have this state, we consider this an invalid state -- should be rare though as it requires the subset of users that are Admins to have a bad-state Notebook they are trying to impersonate (to start or view that users Notebook information).
 
+### Serving Runtime Template Order
+
+In order for the user to rearrange their custom Serving Runtime templates, we store the order in the dashboard configuration. When new templates are created they will be added to this list in order
+
 ## Example OdhDashboard Config
 
 ```yaml
@@ -122,61 +131,67 @@ spec:
     disableSupport: false
     disableTracking: true
     disableProjects: true
+    disablePipelines: true
     disableModelServing: true
+    disableProjectSharing: true
+    disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
   notebookController:
     enabled: true
   notebookSizes:
-  - name: Small
-    resources:
-      limits:
-        cpu: "2"
-        memory: 2Gi
-      requests:
-        cpu: "1"
-        memory: 1Gi
-  - name: Medium
-    resources:
-      limits:
-        cpu: "4"
-        memory: 4Gi
-      requests:
-        cpu: "2"
-        memory: 2Gi
-  - name: Large
-    resources:
-      limits:
-        cpu: "8"
-        memory: 8Gi
-      requests:
-        cpu: "4"
-        memory: 4Gi
+    - name: Small
+      resources:
+        limits:
+          cpu: "2"
+          memory: 2Gi
+        requests:
+          cpu: "1"
+          memory: 1Gi
+    - name: Medium
+      resources:
+        limits:
+          cpu: "4"
+          memory: 4Gi
+        requests:
+          cpu: "2"
+          memory: 2Gi
+    - name: Large
+      resources:
+        limits:
+          cpu: "8"
+          memory: 8Gi
+        requests:
+          cpu: "4"
+          memory: 4Gi
   modelServerSizes:
-  - name: Small
-    resources:
-      limits:
-        cpu: "2"
-        memory: 8Gi
-      requests:
-        cpu: "1"
-        memory: 4Gi
-  - name: Medium
-    resources:
-      limits:
-        cpu: "8"
-        memory: 10Gi
-      requests:
-        cpu: "4"
-        memory: 8Gi
-  - name: Large
-    resources:
-      limits:
-        cpu: "10"
-        memory: 20Gi
-      requests:
-        cpu: "6"
-        memory: 16Gi
+    - name: Small
+      resources:
+        limits:
+          cpu: "2"
+          memory: 8Gi
+        requests:
+          cpu: "1"
+          memory: 4Gi
+    - name: Medium
+      resources:
+        limits:
+          cpu: "8"
+          memory: 10Gi
+        requests:
+          cpu: "4"
+          memory: 8Gi
+    - name: Large
+      resources:
+        limits:
+          cpu: "10"
+          memory: 20Gi
+        requests:
+          cpu: "6"
+          memory: 16Gi
   groupsConfig:
     adminGroups: 'odh-admins'
     allowedGroups: 'system:authenticated'
+  templateOrder:
+    - 'ovms'
+
 ```

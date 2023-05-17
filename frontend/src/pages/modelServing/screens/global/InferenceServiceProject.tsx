@@ -2,33 +2,30 @@ import * as React from 'react';
 import { HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 
 type InferenceServiceProjectProps = {
   inferenceService: InferenceServiceKind;
 };
 
 const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({ inferenceService }) => {
-  const {
-    projects: { data: projects, loaded, error },
-  } = React.useContext(ModelServingContext);
-  const project = projects.find(
-    ({ metadata: { name } }) => name === inferenceService.metadata.namespace,
-  );
+  const { modelServingProjects, loaded, loadError } = React.useContext(ProjectsContext);
 
   if (!loaded) {
     return <Skeleton />;
   }
 
-  if (error) {
+  if (loadError) {
     return (
       <HelperText>
         <HelperTextItem variant="warning" hasIcon>
-          Failed to get project for this deployed model. {error.message}
+          Failed to get project for this deployed model. {loadError.message}
         </HelperTextItem>
       </HelperText>
     );
   }
+
+  const project = modelServingProjects.find(byName(inferenceService.metadata.namespace));
 
   return <>{project ? getProjectDisplayName(project) : 'Unknown'}</>;
 };

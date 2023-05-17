@@ -4,7 +4,7 @@ import {
   k8sGetResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ConfigMapKind, K8sStatus } from '~/k8sTypes';
+import { ConfigMapKind, K8sStatus, KnownLabels } from '~/k8sTypes';
 import { ConfigMapModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 
@@ -19,7 +19,7 @@ export const assembleConfigMap = (
     name: configMapName || `configmap-${genRandomChars()}`,
     namespace: projectName,
     labels: {
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
   },
   data: configMapData,

@@ -9,7 +9,7 @@ const mergeK8sQueryParams = (
   ...(opts.dryRun && { dryRun: 'All' }),
 });
 
-const mergeRequestInit = (
+export const mergeRequestInit = (
   opts: K8sAPIOptions = {},
   specificOpts: RequestInit = {},
 ): RequestInit => ({

@@ -1,15 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import {
-  Flex,
-  FlexItem,
-  Icon,
-  Spinner,
-  Text,
-  TextVariants,
-  Title,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Flex, FlexItem, Icon, Spinner, Text, TextVariants, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '~/pages/projects/notebook/types';
@@ -18,8 +9,8 @@ import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle';
 import { NotebookKind } from '~/k8sTypes';
 import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
-import ResourceNameTooltip from '~/pages/projects/components/ResourceNameTooltip';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
@@ -30,6 +21,7 @@ type NotebookTableRowProps = {
   rowIndex: number;
   onNotebookDelete: (notebook: NotebookKind) => void;
   onNotebookAddStorage: (notebook: NotebookKind) => void;
+  canEnablePipelines: boolean;
 };
 
 const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
@@ -37,6 +29,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   rowIndex,
   onNotebookDelete,
   onNotebookAddStorage,
+  canEnablePipelines,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
@@ -56,12 +49,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           }}
         />
         <Td dataLabel="Name">
-          <Title headingLevel="h3" size="md">
-            <ResourceNameTooltip resource={obj.notebook}>
-              {getNotebookDisplayName(obj.notebook)}
-            </ResourceNameTooltip>
-          </Title>
-          <Text>{getNotebookDescription(obj.notebook)}</Text>
+          <TableRowTitleDescription
+            title={getNotebookDisplayName(obj.notebook)}
+            resource={obj.notebook}
+            description={getNotebookDescription(obj.notebook)}
+          />
         </Td>
         <Td dataLabel="Notebook image">
           {!loaded ? (
@@ -89,7 +81,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           </Flex>
         </Td>
         <Td dataLabel="Status">
-          <NotebookStatusToggle notebookState={obj} doListen={false} />
+          <NotebookStatusToggle
+            notebookState={obj}
+            doListen={false}
+            enablePipelines={canEnablePipelines}
+          />
         </Td>
         <Td>
           <NotebookRouteLink label="Open" notebook={obj.notebook} isRunning={obj.isRunning} />

@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
-import Table from '~/components/Table';
-import useTableColumnSort from '~/utilities/useTableColumnSort';
+import { useNavigate } from 'react-router-dom';
+import Table from '~/components/table/Table';
+import useTableColumnSort from '~/components/table/useTableColumnSort';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -13,16 +15,13 @@ import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
 
 type ProjectListViewProps = {
-  projects: ProjectKind[];
-  refreshProjects: () => Promise<void>;
   allowCreate: boolean;
 };
 
-const ProjectListView: React.FC<ProjectListViewProps> = ({
-  projects: unfilteredProjects,
-  refreshProjects,
-  allowCreate,
-}) => {
+const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
+  const { projects: unfilteredProjects, refresh: refreshProjects } =
+    React.useContext(ProjectsContext);
+  const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
   const sort = useTableColumnSort<ProjectKind>(columns, 0);
@@ -92,7 +91,9 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
             {allowCreate ? (
               <>
                 <ToolbarItem>
-                  <NewProjectButton />
+                  <NewProjectButton
+                    onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                  />
                 </ToolbarItem>
                 <ToolbarItem>
                   <LaunchJupyterButton variant={ButtonVariant.link} />
@@ -115,10 +116,9 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
           }
           setEditData(undefined);
 
-          refreshProjects()
-            .then(() => setRefreshIds((ids) => ids.filter((id) => id !== refreshId)))
-            /* eslint-disable-next-line no-console */
-            .catch((e) => console.error('Failed refresh', e));
+          refreshProjects().then(() =>
+            setRefreshIds((ids) => ids.filter((id) => id !== refreshId)),
+          );
         }}
         editProjectData={editData}
       />
@@ -127,8 +127,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({
         onClose={(deleted) => {
           setDeleteData(undefined);
           if (deleted) {
-            /* eslint-disable-next-line no-console */
-            refreshProjects().catch((e) => console.error('Failed refresh', e));
+            refreshProjects();
           }
         }}
       />

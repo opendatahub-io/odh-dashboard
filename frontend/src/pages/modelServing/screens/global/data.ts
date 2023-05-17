@@ -1,5 +1,5 @@
 import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
-import { SortableData } from '~/utilities/useTableColumnSort';
+import { SortableData } from '~/components/table/useTableColumnSort';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
 
@@ -38,6 +38,14 @@ const COL_ENDPOINT: SortableData<InferenceServiceKind> = {
   width: 45,
   sortable: false,
 };
+
+const COL_MODEL_SERVER: SortableData<InferenceServiceKind> = {
+  field: 'model',
+  label: 'Model server',
+  width: 20,
+  sortable: false,
+};
+
 const COL_STATUS: SortableData<InferenceServiceKind> = {
   field: 'status',
   label: 'Status',
@@ -54,6 +62,7 @@ export const getGlobalInferenceServiceColumns = (
 ): SortableData<InferenceServiceKind>[] => [
   COL_NAME,
   buildProjectCol(projects),
+  COL_MODEL_SERVER,
   COL_ENDPOINT,
   COL_STATUS,
   COL_KEBAB,

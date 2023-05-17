@@ -6,7 +6,7 @@ import { useUser } from '~/redux/selectors';
 import { useAppContext } from './AppContext';
 
 const checkLinkActiveStatus = (pathname: string, href: string) =>
-  href.split('/')[1] == pathname.split('/')[1];
+  href.split('/')[1] === pathname.split('/')[1];
 
 const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, pathname }) => (
   <NavItem
@@ -16,9 +16,7 @@ const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, path
     itemId={item.id}
     isActive={checkLinkActiveStatus(pathname, item.href)}
   >
-    <Link to={item.href} aria-label={item.label}>
-      {item.label}
-    </Link>
+    <Link to={item.href}>{item.label}</Link>
   </NavItem>
 );
 

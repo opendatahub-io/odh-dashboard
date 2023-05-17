@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert, Stack, StackItem, Title } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import Table from '~/components/Table';
+import Table from '~/components/table/Table';
 
-import useTableColumnSort from '~/utilities/useTableColumnSort';
+import useTableColumnSort from '~/components/table/useTableColumnSort';
 import ExternalLink from '~/components/ExternalLink';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';

@@ -15,6 +15,7 @@ import ToastNotifications from '~/components/ToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
 import { useUser } from '~/redux/selectors';
 import useDetectUser from '~/utilities/useDetectUser';
+import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -94,7 +95,9 @@ const App: React.FC = () => {
         isNotificationDrawerExpanded={notificationsOpen}
         mainContainerId="dashboard-page-main"
       >
-        <AppRoutes />
+        <ProjectsContextProvider>
+          <AppRoutes />
+        </ProjectsContextProvider>
         <ToastNotifications />
         <TelemetrySetup />
       </Page>

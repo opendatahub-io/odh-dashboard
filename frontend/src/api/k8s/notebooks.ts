@@ -9,16 +9,29 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash';
 import { NotebookModel } from '~/api/models';
-import { K8sAPIOptions, K8sStatus, NotebookKind } from '~/k8sTypes';
+import { K8sAPIOptions, K8sStatus, KnownLabels, NotebookKind } from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import {
+  generateElyraServiceAccountRoleBinding,
+  getElyraVolume,
+  getElyraVolumeMount,
+  getPipelineVolumeMountPatch,
+  getPipelineVolumePatch,
+} from '~/concepts/pipelines/elyra/utils';
+import { createRoleBinding } from '~/api';
+import { Volume, VolumeMount } from '~/types';
 import { assemblePodSpecOptions } from './utils';
 
-const assembleNotebook = (data: StartNotebookData, username: string): NotebookKind => {
+const assembleNotebook = (
+  data: StartNotebookData,
+  username: string,
+  canEnablePipelines?: boolean,
+): NotebookKind => {
   const {
     projectName,
     notebookName,
@@ -28,8 +41,8 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
     envFrom,
     gpus,
     image,
-    volumes,
-    volumeMounts,
+    volumes: formVolumes,
+    volumeMounts: formVolumeMounts,
     tolerationSettings,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
@@ -47,6 +60,16 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
   const location = new URL(window.location.href);
   const origin = location.origin;
 
+  let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
+  let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
+  if (canEnablePipelines) {
+    volumes = volumes || [];
+    volumes.push(getElyraVolume());
+
+    volumeMounts = volumeMounts || [];
+    volumeMounts.push(getElyraVolumeMount());
+  }
+
   return {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -55,7 +78,7 @@ const assembleNotebook = (data: StartNotebookData, username: string): NotebookKi
         app: notebookId,
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
-        'opendatahub.io/dashboard': 'true',
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
         'openshift.io/display-name': notebookName,
@@ -170,10 +193,11 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
     patches: [getStopPatch()],
   });
 
-export const startNotebook = (
+export const startNotebook = async (
   name: string,
   namespace: string,
   tolerationChanges: TolerationChanges,
+  enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [];
   patches.push(startPatch);
@@ -181,6 +205,18 @@ export const startNotebook = (
   const tolerationPatch = getTolerationPatch(tolerationChanges);
   if (tolerationPatch) {
     patches.push(tolerationPatch);
+  }
+
+  if (enablePipelines) {
+    patches.push(getPipelineVolumePatch());
+    patches.push(getPipelineVolumeMountPatch());
+    await createRoleBinding(generateElyraServiceAccountRoleBinding(name, namespace)).catch((e) => {
+      // This is not ideal, but it shouldn't impact the starting of the notebook. Let us log it, and mute the error
+      // eslint-disable-next-line no-console
+      console.error(
+        `Could not patch rolebinding to service account for notebook, ${name}; Reason ${e.message}`,
+      );
+    });
   }
 
   return k8sPatchResource<NotebookKind>({
@@ -193,13 +229,22 @@ export const startNotebook = (
 export const createNotebook = (
   data: StartNotebookData,
   username: string,
+  canEnablePipelines?: boolean,
 ): Promise<NotebookKind> => {
-  const notebook = assembleNotebook(data, username);
+  const notebook = assembleNotebook(data, username, canEnablePipelines);
 
-  return k8sCreateResource<NotebookKind>({
+  const notebookPromise = k8sCreateResource<NotebookKind>({
     model: NotebookModel,
     resource: notebook,
   });
+
+  if (canEnablePipelines) {
+    return createRoleBinding(
+      generateElyraServiceAccountRoleBinding(notebook.metadata.name, notebook.metadata.namespace),
+    ).then(() => notebookPromise);
+  }
+
+  return notebookPromise;
 };
 
 export const updateNotebook = (

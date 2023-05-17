@@ -5,11 +5,10 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, K8sStatus, SecretKind } from '~/k8sTypes';
+import { K8sAPIOptions, K8sStatus, KnownLabels, SecretKind } from '~/k8sTypes';
 import { SecretModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { getModelServiceAccountName } from '~/pages/modelServing/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
@@ -21,7 +20,7 @@ export const assembleSecret = (
   secretName?: string,
 ): SecretKind => {
   const labels = {
-    'opendatahub.io/dashboard': 'true',
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
   const annotations = {};
 
@@ -34,7 +33,7 @@ export const assembleSecret = (
     name = `${DATA_CONNECTION_PREFIX}-${translateDisplayNameForK8s(Name)}`;
     annotations['openshift.io/display-name'] = Name;
     annotations['opendatahub.io/connection-type'] = 's3';
-    labels['opendatahub.io/managed'] = 'true';
+    labels[KnownLabels.DATA_CONNECTION_AWS] = 'true';
   }
 
   return {
@@ -69,7 +68,7 @@ export const assembleSecretISStorage = (
   data: Record<string, string>,
 ): [SecretKind, string] => {
   const labels = {
-    'opendatahub.io/dashboard': 'true',
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
   const [stringData, secretKey] = assembleISSecretBody(data);
 
@@ -90,34 +89,40 @@ export const assembleSecretISStorage = (
 
 export const assembleSecretSA = (
   name: string,
+  serviceAccountName: string,
   namespace: string,
   editName?: string,
 ): SecretKind => {
-  const saName = getModelServiceAccountName(namespace);
   const k8Name = editName || translateDisplayNameForK8s(name);
   return {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: k8Name,
+      name: editName || `${k8Name}-${serviceAccountName}`,
       namespace,
       annotations: {
-        'kubernetes.io/service-account.name': saName,
+        'kubernetes.io/service-account.name': serviceAccountName,
         'openshift.io/display-name': name,
       },
       labels: {
-        'opendatahub.io/dashboard': 'true',
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
     },
     type: 'kubernetes.io/service-account-token',
   };
 };
 
-export const getSecret = (projectName: string, secretName: string): Promise<SecretKind> =>
-  k8sGetResource<SecretKind>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: projectName },
-  });
+export const getSecret = (
+  projectName: string,
+  secretName: string,
+  opts?: K8sAPIOptions,
+): Promise<SecretKind> =>
+  k8sGetResource<SecretKind>(
+    applyK8sAPIOptions(opts, {
+      model: SecretModel,
+      queryOptions: { name: secretName, ns: projectName },
+    }),
+  );
 
 export const getSecretsByLabel = (label: string, namespace: string): Promise<SecretKind[]> =>
   k8sListResource<SecretKind>({
@@ -141,8 +146,14 @@ export const replaceSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<S
     }),
   );
 
-export const deleteSecret = (projectName: string, secretName: string): Promise<K8sStatus> =>
-  k8sDeleteResource<SecretKind, K8sStatus>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: projectName },
-  });
+export const deleteSecret = (
+  projectName: string,
+  secretName: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<SecretKind, K8sStatus>(
+    applyK8sAPIOptions(opts, {
+      model: SecretModel,
+      queryOptions: { name: secretName, ns: projectName },
+    }),
+  );

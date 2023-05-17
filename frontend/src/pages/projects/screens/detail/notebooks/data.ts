@@ -1,4 +1,4 @@
-import { SortableData } from '~/utilities/useTableColumnSort';
+import { SortableData } from '~/components/table/useTableColumnSort';
 import { getNotebookDisplayName, getNotebookStatusPriority } from '~/pages/projects/utils';
 import { NotebookState } from '~/pages/projects/notebook/types';
 

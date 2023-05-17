@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Flex, FlexItem, Skeleton } from '@patternfly/react-core';
+import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import { NotebookState } from './types';
 import NotebookRouteLink from './NotebookRouteLink';
 import NotebookStatusToggle from './NotebookStatusToggle';
@@ -12,6 +13,7 @@ type ListNotebookStateProps = {
   loaded: boolean;
   error?: Error;
   show: 'notebook' | 'status';
+  namespace: string;
 };
 
 const ListNotebookState: React.FC<ListNotebookStateProps> = ({
@@ -19,6 +21,7 @@ const ListNotebookState: React.FC<ListNotebookStateProps> = ({
   loaded,
   error,
   show,
+  namespace,
 }) => {
   if (!loaded) {
     return <Skeleton />;
@@ -32,12 +35,18 @@ const ListNotebookState: React.FC<ListNotebookStateProps> = ({
     return <>-</>;
   }
 
-  const notebookState = (state: NotebookState) => {
+  const notebookState = (state: NotebookState, canEnablePipelines: boolean) => {
     switch (show) {
       case 'notebook':
         return <NotebookRouteLink notebook={state.notebook} isRunning={state.isRunning} />;
       case 'status':
-        return <NotebookStatusToggle notebookState={state} doListen />;
+        return (
+          <NotebookStatusToggle
+            notebookState={state}
+            doListen
+            enablePipelines={canEnablePipelines}
+          />
+        );
       default:
         /* eslint-disable-next-line no-console */
         console.error('Unknown show type', show);
@@ -47,11 +56,15 @@ const ListNotebookState: React.FC<ListNotebookStateProps> = ({
 
   return (
     <Flex direction={{ default: 'column' }}>
-      {notebookStates.map((state) => (
-        <FlexItem key={state.notebook.metadata.name} style={EQUAL_SIZE_STYLE}>
-          {notebookState(state)}
-        </FlexItem>
-      ))}
+      <CanEnableElyraPipelinesCheck namespace={namespace}>
+        {(canEnablePipelines) =>
+          notebookStates.map((state) => (
+            <FlexItem key={state.notebook.metadata.name} style={EQUAL_SIZE_STYLE}>
+              {notebookState(state, canEnablePipelines)}
+            </FlexItem>
+          ))
+        }
+      </CanEnableElyraPipelinesCheck>
     </Flex>
   );
 };

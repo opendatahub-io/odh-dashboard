@@ -1,6 +1,5 @@
-import { FastifyReply, FastifyRequest } from 'fastify';
-import { KubeFastifyInstance } from '../../../types';
-import { USER_ACCESS_TOKEN } from '../../../utils/constants';
+import { FastifyReply } from 'fastify';
+import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { passThrough } from './pass-through';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
@@ -16,11 +15,10 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     method: ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS'],
     url: '/*',
     handler: (
-      req: FastifyRequest<{
+      req: OauthFastifyRequest<{
         Querystring: Record<string, string>;
         Params: { '*': string; [key: string]: string };
         Body: { [key: string]: unknown };
-        Headers: { [USER_ACCESS_TOKEN]: string };
       }>,
       reply: FastifyReply,
     ) => {
@@ -39,9 +37,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       }
 
       return passThrough(fastify, req, { url, method: req.method, requestData: data }).catch(
-        ({ code, response }) => {
-          reply.code(code);
-          reply.send(response);
+        (error) => {
+          if (error.code && error.response) {
+            const { code, response } = error;
+            reply.code(code);
+            reply.send(response);
+          } else {
+            throw error;
+          }
         },
       );
     },

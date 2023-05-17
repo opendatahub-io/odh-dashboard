@@ -1,5 +1,5 @@
 import { ServingRuntimeKind } from '~/k8sTypes';
-import { SortableData } from '~/utilities/useTableColumnSort';
+import { SortableData } from '~/components/table/useTableColumnSort';
 
 export const columns: SortableData<ServingRuntimeKind>[] = [
   {
@@ -8,8 +8,14 @@ export const columns: SortableData<ServingRuntimeKind>[] = [
     sortable: false,
   },
   {
-    field: 'type',
-    label: 'Type',
+    field: 'model-name',
+    label: 'Model Server Name',
+    width: 25,
+    sortable: false,
+  },
+  {
+    field: 'template-name',
+    label: 'Serving Runtime',
     width: 25,
     sortable: false,
   },

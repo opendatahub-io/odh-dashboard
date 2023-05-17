@@ -13,7 +13,7 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { AWS_KEYS, AWS_REQUIRED_KEYS } from '~/pages/projects/dataConnections/const';
+import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import {
   BuildStatus,
   ImageStreamSelectOptionObjectType,
@@ -295,7 +295,13 @@ export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): b
 export const isValidGenericKey = (key: string): boolean => !!key;
 
 export const isAWSValid = (values: EnvVariableDataEntry[]): boolean =>
-  values.every(({ key, value }) => (AWS_REQUIRED_KEYS.includes(key as AWS_KEYS) ? !!value : true));
+  values.every(({ key, value }) =>
+    AWS_FIELDS.filter((field) => field.isRequired)
+      .map((field) => field.key)
+      .includes(key)
+      ? !!value
+      : true,
+  );
 
 export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => {
   if (envVariables.length === 0) {
@@ -315,6 +321,7 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
       case ConfigMapCategory.GENERIC:
       case SecretCategory.GENERIC:
       case ConfigMapCategory.UPLOAD:
+      case SecretCategory.UPLOAD:
         return values.every(({ key, value }) => isValidGenericKey(key) && !!value);
       case SecretCategory.AWS:
         return isAWSValid(values);

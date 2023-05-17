@@ -1,5 +1,24 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { PodAffinity, NotebookContainer, PodToleration, Volume, ContainerResources } from './types';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import {
+  PodAffinity,
+  NotebookContainer,
+  PodToleration,
+  Volume,
+  ContainerResources,
+  DashboardCommonConfig,
+  NotebookSize,
+  GpuSettingString,
+  TolerationSettings,
+} from './types';
+import { ServingRuntimeSize } from './pages/modelServing/screens/types';
+
+export enum KnownLabels {
+  DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
+  PROJECT_SHARING = 'opendatahub.io/project-sharing',
+  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
+  DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+}
 
 export type K8sVerb =
   | 'create'
@@ -48,6 +67,29 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+}>;
+
+export type DashboardLabels = {
+  [KnownLabels.DASHBOARD_RESOURCE]: 'true';
+};
+
+export type ModelServingProjectLabels = {
+  [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
+};
+
+export type K8sCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+};
+
+export type ServingRuntimeAnnotations = Partial<{
+  'opendatahub.io/template-name': string;
+  'opendatahub.io/template-display-name': string;
+  'enable-route': string;
+  'enable-auth': string;
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -224,12 +266,14 @@ export type PodKind = K8sResourceCommon & {
   };
 };
 
+/** Assumed Dashboard Project -- if we need more beyond that we should break this type up */
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
+    labels: DashboardLabels & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
@@ -250,11 +294,7 @@ export type ServiceAccountKind = K8sResourceCommon & {
 
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        ['enable-route']: string;
-        ['enable-auth']: string;
-      }>;
+    annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
     name: string;
     namespace: string;
   };
@@ -340,13 +380,17 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
 };
 
-type RoleBindingSubject = {
+export type RoleBindingSubject = {
   kind: string;
   apiGroup?: string;
   name: string;
 };
 
 export type RoleBindingKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   subjects: RoleBindingSubject[];
   roleRef: RoleBindingSubject;
 };
@@ -372,8 +416,88 @@ export type AWSSecretKind = SecretKind & {
   metadata: {
     annotations?: DisplayNameAnnotations;
     labels?: {
-      'opendatahub.io/managed': 'true';
+      [KnownLabels.DATA_CONNECTION_AWS]: 'true';
     };
+  };
+  data: Record<AWS_KEYS, string>;
+};
+
+export type DSPipelineKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiServer?: Partial<{
+      apiServerImage: string;
+      artifactImage: string;
+      artifactScriptConfigMap: Partial<{
+        key: string;
+        name: string;
+      }>;
+      enableSamplePipeline: boolean;
+    }>;
+    database?: Partial<{
+      externalDB: Partial<{
+        host: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        port: string;
+        username: string;
+      }>;
+      image: string;
+      mariaDB: Partial<{
+        image: string;
+        passwordSecret: Partial<{
+          key: string;
+          name: string;
+        }>;
+        pipelineDBName: string;
+        username: string;
+      }>;
+    }>;
+    mlpipelineUI?: {
+      configMap?: string;
+      image: string;
+    };
+    persistentAgent?: Partial<{
+      image: string;
+      pipelineAPIServerName: string;
+    }>;
+    scheduledWorkflow?: Partial<{
+      image: string;
+    }>;
+    objectStorage: Partial<{
+      externalStorage: {
+        bucket: string;
+        host: string;
+        port?: '';
+        scheme: string;
+        s3CredentialsSecret: {
+          accessKey: string;
+          secretKey: string;
+          secretName: string;
+        };
+      };
+      minio: Partial<{
+        bucket: string;
+        image: string;
+        s3CredentialsSecret: Partial<{
+          accessKey: string;
+          secretKey: string;
+          secretName: string;
+        }>;
+      }>;
+    }>;
+    viewerCRD?: Partial<{
+      image: string;
+    }>;
+  };
+  status?: {
+    conditions?: K8sCondition[];
   };
 };
 
@@ -401,5 +525,188 @@ export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
     denied?: boolean;
     reason?: string;
     evaluationError?: string;
+  };
+};
+
+export type PipelineRunTaskSpecDigest = {
+  name: string;
+  outputs: unknown[]; // TODO: detail outputs
+  version: string;
+};
+
+type PipelineRunTaskSpecStep = {
+  name: string;
+  args?: string[];
+  command: string[];
+  image: string;
+};
+
+export type PipelineRunTaskSpecResult = {
+  name: string;
+  type: string;
+  description?: string;
+};
+
+export type PipelineRunTaskVolumeMount = {
+  name: string;
+  mountPath: string;
+};
+
+export type PipelineRunTaskSpec = {
+  steps: PipelineRunTaskSpecStep[];
+  stepTemplate?: {
+    volumeMounts?: PipelineRunTaskVolumeMount[];
+  };
+  results: PipelineRunTaskSpecResult[];
+  metadata: {
+    annotations: {
+      /** @see PipelineRunTaskSpecDigest */
+      'pipelines.kubeflow.org/component_spec_digest': string;
+    };
+    labels: {
+      'pipelines.kubeflow.org/cache_enabled': 'true';
+    };
+  };
+};
+export type PipelineRunTaskParam = {
+  name: string;
+  value: string;
+};
+
+export type PipelineRunTaskWhen = {
+  input: string;
+  operator: string;
+  values: string[];
+};
+
+export type PipelineRunTask = {
+  name: string;
+  taskSpec: PipelineRunTaskSpec;
+  params?: PipelineRunTaskParam[];
+  when?: PipelineRunTaskWhen[];
+  // TODO: favour this
+  runAfter?: string[];
+};
+
+export type PipelineRunPipelineSpec = {
+  tasks: PipelineRunTask[];
+};
+
+export type SkippedTask = {
+  name: string;
+  reason: string;
+  whenExpressions: PipelineRunTaskWhen;
+};
+
+export type TaskRunResults = {
+  name: string;
+  type: string;
+  value: string;
+};
+
+export type PipelineRunTaskStatusStep = {
+  volumeMounts?: PipelineRunTaskVolumeMount[];
+};
+
+export type PipelineRunTaskRunStatusProperties = {
+  conditions: K8sCondition[];
+  podName: string;
+  startTime: string;
+  completionTime?: string;
+  // TODO: Populate these
+  steps?: unknown[];
+  taskResults?: TaskRunResults[];
+  taskSpec?: {
+    steps?: PipelineRunTaskStatusStep[];
+    results?: unknown[];
+  };
+};
+
+export type PipelineRunTaskRunStatus = {
+  /** The task name; pipelineSpec.tasks[].name */
+  pipelineTaskName: string;
+  status: PipelineRunTaskRunStatusProperties;
+};
+
+export type PipelineRunKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: {
+    pipelineSpec?: PipelineRunPipelineSpec;
+    /** Unsupported for Kubeflow */
+    pipelineRef?: {
+      name: string;
+    };
+  };
+  status?: {
+    startTime: string;
+    completionTime?: string;
+    succeededCondition?: string;
+    conditions?: K8sCondition[];
+    /** Keyed on a generated key for the task run */
+    taskRuns?: Record<string, PipelineRunTaskRunStatus>;
+    pipelineSpec: PipelineRunPipelineSpec;
+    skippedTasks?: SkippedTask[];
+    /** References Tekton tasks -- unlikely we will need this */
+    childReferences: unknown[];
+  };
+};
+
+export type UserKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  groups: string[];
+  fullName?: string;
+};
+
+export type GroupKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  users: string[];
+};
+
+export type TemplateKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: Partial<{
+      tags: string;
+      iconClass?: string;
+      'opendatahub.io/template-enabled': string;
+    }>;
+    name: string;
+    namespace: string;
+  };
+  objects: K8sDSGResource[];
+  parameters: TemplateParameter[];
+};
+
+export type TemplateParameter = {
+  name: string;
+  displayName: string;
+  description: string;
+  value: string;
+  required: boolean;
+};
+
+// New specification of DashboardConfig for pass through to the UI, we will have both types until we refactor the backend calls
+export type DashboardConfigKind = K8sResourceCommon & {
+  spec: {
+    dashboardConfig: DashboardCommonConfig;
+    groupsConfig?: {
+      adminGroups: string;
+      allowedGroups: string;
+    };
+    notebookSizes?: NotebookSize[];
+    modelServerSizes?: ServingRuntimeSize[];
+    notebookController?: {
+      enabled: boolean;
+      pvcSize?: string;
+      notebookNamespace?: string;
+      gpuSetting?: GpuSettingString;
+      notebookTolerationSettings?: TolerationSettings;
+    };
+    templateOrder?: string[];
   };
 };

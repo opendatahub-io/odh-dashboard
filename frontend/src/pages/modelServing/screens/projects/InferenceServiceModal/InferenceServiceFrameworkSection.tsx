@@ -24,7 +24,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   );
   const models = modelContext || modelsContextLoaded;
 
-  if (!modelContext && !loaded && data.project !== '') {
+  if (!modelContext && !loaded && data.servingRuntimeName !== '') {
     return <Skeleton />;
   }
 

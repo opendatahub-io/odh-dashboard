@@ -1,22 +1,14 @@
 import * as React from 'react';
-import { Outlet, useParams } from 'react-router-dom';
-import {
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Spinner,
-  Title,
-} from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Navigate, Outlet, useParams } from 'react-router-dom';
 import {
   ServingRuntimeKind,
   PersistentVolumeClaimKind,
   ProjectKind,
   InferenceServiceKind,
   SecretKind,
+  RoleBindingKind,
+  GroupKind,
+  TemplateKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
@@ -24,105 +16,146 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
-import {
-  useServingRuntimesConfig,
-  ServingRuntimesConfigResourceData,
-} from '~/pages/modelServing/useServingRuntimesConfig';
+import { PipelineContextProvider } from '~/concepts/pipelines/context';
+import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import InvalidProject from '~/concepts/projects/InvalidProject';
+import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
+import useTemplates from '~/pages/modelServing/customServingRuntimes/useTemplates';
+import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import { useDashboardNamespace } from '~/redux/selectors';
+import { getTokenNames } from '~/pages/modelServing/utils';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
-import useProject from './useProject';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
+import useProjectSharing from './projectSharing/useProjectSharing';
+import useGroups from './projectSharing/useGroups';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
   refreshAllProjectData: () => void;
+  filterTokens: (servingRuntime?: string) => SecretKind[];
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
   dataConnections: ContextResourceData<DataConnection>;
-  servingRuntimesConfig: ServingRuntimesConfigResourceData;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
+  servingRuntimeTemplates: ContextResourceData<TemplateKind>;
+  servingRuntimeTemplateOrder: ContextResourceData<string>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
+  projectSharingRB: ContextResourceData<RoleBindingKind>;
+  groups: ContextResourceData<GroupKind>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
   // We never will get into a case without a project, so fudge the default value
   currentProject: null as unknown as ProjectKind,
   refreshAllProjectData: () => undefined,
+  filterTokens: () => [],
   notebooks: DEFAULT_CONTEXT_DATA,
   pvcs: DEFAULT_CONTEXT_DATA,
   dataConnections: DEFAULT_CONTEXT_DATA,
-  servingRuntimesConfig: {
-    servingRuntimesConfig: undefined,
-    loaded: false,
-    refresh: () => undefined,
-  },
   servingRuntimes: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
+  projectSharingRB: DEFAULT_CONTEXT_DATA,
+  groups: DEFAULT_CONTEXT_DATA,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
-  const navigate = useNavigate();
+  const { dashboardConfig } = useAppContext();
+  const { dashboardNamespace } = useDashboardNamespace();
   const { namespace } = useParams<{ namespace: string }>();
-  const [project, loaded, error] = useProject(namespace);
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(namespace)) ?? null;
+  useSyncPreferredProject(project);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
-  const servingRuntimesConfig = useServingRuntimesConfig();
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
+  const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
+    useTemplates(dashboardNamespace),
+  );
+  const servingRuntimeTemplateOrder = useContextResourceData<string>(
+    useTemplateOrder(dashboardNamespace),
+  );
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
   );
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
+  const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
+  const groups = useContextResourceData<GroupKind>(useGroups());
 
   const notebookRefresh = notebooks.refresh;
   const pvcRefresh = pvcs.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
-  const servingRuntimesConfigRefresh = servingRuntimesConfig.refresh;
   const servingRuntimeRefresh = servingRuntimes.refresh;
+  const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
+  const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
+  const projectSharingRefresh = projectSharingRB.refresh;
+  const groupsRefresh = groups.refresh;
   const refreshAllProjectData = React.useCallback(() => {
     notebookRefresh();
     setTimeout(notebookRefresh, 2000);
     pvcRefresh();
     dataConnectionRefresh();
-    servingRuntimesConfigRefresh();
     servingRuntimeRefresh();
     inferenceServiceRefresh();
+    projectSharingRefresh();
+    groupsRefresh();
+    servingRuntimeTemplateRefresh();
+    servingRuntimeTemplateOrderRefresh();
   }, [
     notebookRefresh,
     pvcRefresh,
     dataConnectionRefresh,
-    servingRuntimesConfigRefresh,
     servingRuntimeRefresh,
+    servingRuntimeTemplateRefresh,
+    servingRuntimeTemplateOrderRefresh,
     inferenceServiceRefresh,
+    projectSharingRefresh,
+    groupsRefresh,
   ]);
 
-  if (error) {
-    return (
-      <Bullseye>
-        <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
-            Problem loading project details
-          </Title>
-          <EmptyStateBody>{error.message}</EmptyStateBody>
-          <Button variant="primary" onClick={() => navigate('/projects')}>
-            View my projects
-          </Button>
-        </EmptyState>
-      </Bullseye>
-    );
-  }
+  const filterTokens = React.useCallback(
+    (servingRuntimeName?: string): SecretKind[] => {
+      if (!namespace || !servingRuntimeName) {
+        return [];
+      }
+      const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
 
-  if (!loaded || !project) {
+      const secrets = serverSecrets.data.filter(
+        (secret) =>
+          secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
+          serviceAccountName,
+      );
+
+      return secrets;
+    },
+    [namespace, serverSecrets],
+  );
+
+  if (!project) {
+    if (
+      featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableProjects) &&
+      projects.length === 0
+    ) {
+      // No projects, but we do have the projects view -- navigate them so they can go through normal flows
+      return <Navigate to="/projects" replace />;
+    }
+
     return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
+      <InvalidProject
+        namespace={namespace}
+        title="Problem loading project details"
+        getRedirectPath={(namespace) => `/projects/${namespace}`}
+      />
     );
   }
 
@@ -133,14 +166,24 @@ const ProjectDetailsContextProvider: React.FC = () => {
         notebooks,
         pvcs,
         dataConnections,
-        servingRuntimesConfig,
         servingRuntimes,
+        servingRuntimeTemplates,
+        servingRuntimeTemplateOrder,
         inferenceServices,
         refreshAllProjectData,
+        filterTokens,
         serverSecrets,
+        projectSharingRB,
+        groups,
       }}
     >
-      <Outlet />
+      {featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) ? (
+        <PipelineContextProvider namespace={project.metadata.name}>
+          <Outlet />
+        </PipelineContextProvider>
+      ) : (
+        <Outlet />
+      )}
     </ProjectDetailsContext.Provider>
   );
 };

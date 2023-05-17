@@ -1,15 +1,26 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { ServingRuntimeKind } from '~/k8sTypes';
-import { deleteServingRuntime } from '~/api';
+import { InferenceServiceKind, K8sStatus, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import {
+  deleteInferenceService,
+  deleteRoleBinding,
+  deleteSecret,
+  deleteServiceAccount,
+  deleteServingRuntime,
+} from '~/api';
+import { getTokenNames } from '~/pages/modelServing/utils';
 
 type DeleteServingRuntimeModalProps = {
   servingRuntime?: ServingRuntimeKind;
+  inferenceServices: InferenceServiceKind[];
+  tokens: SecretKind[];
   onClose: (deleted: boolean) => void;
 };
 
 const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
   servingRuntime,
+  inferenceServices,
+  tokens,
   onClose,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -30,7 +41,29 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
       onDelete={() => {
         if (servingRuntime) {
           setIsDeleting(true);
-          deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace)
+
+          const { serviceAccountName, roleBindingName } = getTokenNames(
+            servingRuntime.metadata.name,
+            servingRuntime.metadata.namespace,
+          );
+
+          Promise.allSettled<ServingRuntimeKind | K8sStatus>([
+            deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
+            deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
+            deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
+            ...tokens.map((token) => deleteSecret(token.metadata.namespace, token.metadata.name)),
+            ...inferenceServices
+              .filter(
+                (inferenceService) =>
+                  inferenceService.spec.predictor.model.runtime === servingRuntime.metadata.name,
+              )
+              .map((inferenceService) =>
+                deleteInferenceService(
+                  inferenceService.metadata.name,
+                  inferenceService.metadata.namespace,
+                ),
+              ),
+          ])
             .then(() => {
               onBeforeClose(true);
             })

@@ -1,4 +1,4 @@
-import { ProjectKind } from '~/k8sTypes';
+import { KnownLabels, ProjectKind } from '~/k8sTypes';
 
 type MockResourceConfigType = {
   username?: string;
@@ -22,8 +22,8 @@ export const mockProjectK8sResource = ({
     creationTimestamp: '2023-02-14T21:43:59Z',
     labels: {
       'kubernetes.io/metadata.name': k8sName,
-      'modelmesh-enabled': enableModelMesh ? 'true' : 'false',
-      'opendatahub.io/dashboard': 'true',
+      [KnownLabels.MODEL_SERVING_PROJECT]: enableModelMesh ? 'true' : 'false',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     annotations: {
       'openshift.io/description': description,

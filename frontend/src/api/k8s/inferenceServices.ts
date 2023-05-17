@@ -7,9 +7,10 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '~/api/models';
-import { InferenceServiceKind, K8sStatus } from '~/k8sTypes';
+import { InferenceServiceKind, K8sAPIOptions, K8sStatus, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { getModelServingProjects } from './projects';
 
 const assembleInferenceService = (
@@ -30,7 +31,7 @@ const assembleInferenceService = (
       namespace: project,
       labels: {
         name,
-        'opendatahub.io/dashboard': 'true',
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
         'openshift.io/display-name': data.name,
@@ -127,8 +128,14 @@ export const updateInferenceService = (
   });
 };
 
-export const deleteInferenceService = (name: string, namespace: string): Promise<K8sStatus> =>
-  k8sDeleteResource<InferenceServiceKind, K8sStatus>({
-    model: InferenceServiceModel,
-    queryOptions: { name, ns: namespace },
-  });
+export const deleteInferenceService = (
+  name: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<InferenceServiceKind, K8sStatus>(
+    applyK8sAPIOptions(opts, {
+      model: InferenceServiceModel,
+      queryOptions: { name, ns: namespace },
+    }),
+  );

@@ -3,6 +3,7 @@ import { ToolbarItem } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { getInferenceServiceDisplayName, getInferenceServiceProjectDisplayName } from './utils';
 import ServeModelButton from './ServeModelButton';
 import InferenceServiceTable from './InferenceServiceTable';
@@ -18,8 +19,8 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
 }) => {
   const {
     inferenceServices: { refresh },
-    projects: { data: projects },
   } = React.useContext(ModelServingContext);
+  const { projects } = React.useContext(ProjectsContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
 

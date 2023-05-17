@@ -1,4 +1,4 @@
-import { SortableData } from '~/utilities/useTableColumnSort';
+import { SortableData } from '~/components/table/useTableColumnSort';
 import { DataConnection } from '~/pages/projects/types';
 import { getDataConnectionDisplayName } from './utils';
 

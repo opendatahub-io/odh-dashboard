@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import YAML from 'yaml';
-import { ConfigMapKind, InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
@@ -10,16 +9,13 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { ContainerResourceAttributes, DashboardConfig, GpuSettingString } from '~/types';
-import {
-  DEFAULT_MODEL_SERVER_SIZES,
-  DEFAULT_MODEL_SERVING_TEMPLATE,
-} from '~/pages/modelServing/screens/const';
+import { ContainerResourceAttributes, DashboardConfig } from '~/types';
+import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -35,29 +31,14 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
-export const getDefaultServingRuntime = (
-  servingRuntimesConfig?: ConfigMapKind,
-): ServingRuntimeKind => {
-  if (!servingRuntimesConfig) {
-    return DEFAULT_MODEL_SERVING_TEMPLATE;
-  }
-  try {
-    const overrideServingRuntime = YAML.parse(
-      servingRuntimesConfig?.data?.['override-config'] || '',
-    );
-    if (overrideServingRuntime) {
-      return overrideServingRuntime;
-    }
-    const defaultServingRuntime = YAML.parse(servingRuntimesConfig?.data?.['default-config'] || '');
-    if (defaultServingRuntime) {
-      return defaultServingRuntime;
-    }
-  } catch {
-    return DEFAULT_MODEL_SERVING_TEMPLATE;
-  }
-
-  return DEFAULT_MODEL_SERVING_TEMPLATE;
-};
+export const getInferenceServiceFromServingRuntime = (
+  inferenceServices: InferenceServiceKind[],
+  servingRuntime: ServingRuntimeKind,
+): InferenceServiceKind[] =>
+  inferenceServices.filter(
+    (inferenceService) =>
+      inferenceService.spec.predictor.model.runtime === servingRuntime.metadata.name,
+  );
 
 export const useCreateServingRuntimeObject = (existingData?: {
   servingRuntime?: ServingRuntimeKind;
@@ -67,18 +48,14 @@ export const useCreateServingRuntimeObject = (existingData?: {
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>,
   resetDefaults: () => void,
   sizes: ServingRuntimeSize[],
-  gpuSetting: GpuSettingString,
 ] => {
   const { dashboardConfig } = useAppContext();
-  const {
-    servingRuntimesConfig: { servingRuntimesConfig },
-  } = React.useContext(ProjectDetailsContext);
+
   const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
-  let gpuSetting: GpuSettingString = 'hidden';
-  const defaultServingRuntime = getDefaultServingRuntime(servingRuntimesConfig);
-  gpuSetting = defaultServingRuntime?.metadata?.annotations?.['opendatahub.io/gpu-setting'];
 
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
+    name: '',
+    servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: sizes[0],
     gpus: 0,
@@ -89,7 +66,13 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const [, setCreateData] = createModelState;
 
-  const existingServingRuntimeName = existingData?.servingRuntime?.metadata.name || '';
+  const existingServingRuntimeName = existingData?.servingRuntime
+    ? getDisplayNameFromK8sResource(existingData.servingRuntime)
+    : '';
+
+  const existingServingRuntimeTemplateName = existingData?.servingRuntime
+    ? getDisplayNameFromServingRuntimeTemplate(existingData.servingRuntime)
+    : '';
 
   const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 
@@ -102,8 +85,9 @@ export const useCreateServingRuntimeObject = (existingData?: {
     ] || 0;
 
   const existingExternalRoute =
-    !!existingData?.servingRuntime?.metadata.annotations?.['enable-route'];
-  const existingTokenAuth = !!existingData?.servingRuntime?.metadata.annotations?.['enable-auth'];
+    existingData?.servingRuntime?.metadata.annotations?.['enable-route'] === 'true';
+  const existingTokenAuth =
+    existingData?.servingRuntime?.metadata.annotations?.['enable-auth'] === 'true';
 
   const existingTokens = useDeepCompareMemoize(
     (existingData?.secrets || []).map((secret) => ({
@@ -116,6 +100,8 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   React.useEffect(() => {
     if (existingServingRuntimeName) {
+      setCreateData('name', existingServingRuntimeName);
+      setCreateData('servingRuntimeTemplateName', existingServingRuntimeTemplateName);
       setCreateData('numReplicas', existingNumReplicas);
       let foundSize = sizes.find((size) => _.isEqual(size.resources, existingResources));
       if (!foundSize) {
@@ -135,6 +121,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     }
   }, [
     existingServingRuntimeName,
+    existingServingRuntimeTemplateName,
     existingNumReplicas,
     existingResources,
     existingGpus,
@@ -144,7 +131,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     setCreateData,
     sizes,
   ]);
-  return [...createModelState, sizes, gpuSetting];
+  return [...createModelState, sizes];
 };
 
 export const defaultInferenceService: CreatingInferenceServiceObject = {

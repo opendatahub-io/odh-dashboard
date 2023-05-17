@@ -101,9 +101,9 @@ EditModel.play = async ({ canvasElement }) => {
   const showPassword = body.getByRole('button', { name: 'Show password' });
   await userEvent.click(showPassword);
 
-  const secretName = body.getByRole('textbox', { name: 'AWS field Name' });
-  const secretKey = body.getByRole('textbox', { name: 'AWS field AWS_ACCESS_KEY_ID' });
-  const secretValue = body.getByRole('textbox', { name: 'AWS field AWS_SECRET_ACCESS_KEY' });
+  const secretName = body.getByRole('textbox', { name: 'Field list Name' });
+  const secretKey = body.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' });
+  const secretValue = body.getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' });
 
   await userEvent.type(secretName, 'Test Secret', { delay: 50 });
   await userEvent.type(secretKey, 'test-secret-key', { delay: 50 });
@@ -173,11 +173,14 @@ DeployModel.play = async ({ canvasElement }) => {
   body.getAllByRole('button', { name: 'Options menu' });
   await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[0]);
   await userEvent.click(body.getByText('Test Project', { selector: 'button' }));
-  await body.findByText('Select a framework');
+  await body.findByText('Select a model server');
   await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[1]);
+  await userEvent.click(body.getAllByText('test-model')[1]);
+  await body.findByText('Select a framework');
+  await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[2]);
   await userEvent.click(body.getByText('onnx - 1'));
   await body.findByText('Select...');
-  await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[2]);
+  await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[3]);
   await body.findByText('Test Secret');
   await userEvent.click(body.getByText('Test Secret'));
   expect(updateButton).not.toBeDisabled();
@@ -189,9 +192,9 @@ DeployModel.play = async ({ canvasElement }) => {
   const showPassword = body.getByRole('button', { name: 'Show password' });
   await userEvent.click(showPassword);
 
-  const secretName = body.getByRole('textbox', { name: 'AWS field Name' });
-  const secretKey = body.getByRole('textbox', { name: 'AWS field AWS_ACCESS_KEY_ID' });
-  const secretValue = body.getByRole('textbox', { name: 'AWS field AWS_SECRET_ACCESS_KEY' });
+  const secretName = body.getByRole('textbox', { name: 'Field list Name' });
+  const secretKey = body.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' });
+  const secretValue = body.getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' });
 
   await userEvent.type(secretName, 'Test Secret', { delay: 50 });
   await userEvent.type(secretKey, 'test-secret-key', { delay: 50 });

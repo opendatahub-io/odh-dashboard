@@ -1,51 +1,57 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import { ProjectSectionTitlesExtended } from '~/pages/projects/screens/detail/const';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import {
+  getSortedTemplates,
+  getTemplateEnabled,
+} from '~/pages/modelServing/customServingRuntimes/utils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
+import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
 
 const ServingRuntimeList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
+
   const {
     servingRuntimes: {
-      data: modelServers,
-      loaded,
-      error: loadError,
+      data: servingRuntimes,
+      loaded: servingRuntimesLoaded,
+      error: servingRuntimeError,
       refresh: refreshServingRuntime,
     },
-    serverSecrets: { data: secrets, refresh: refreshTokens },
+    servingRuntimeTemplates: { data: templates, loaded: templatesLoaded, error: templateError },
+    servingRuntimeTemplateOrder: { data: templateOrder },
+    serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
+    currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const emptyModelServer = modelServers.length === 0;
-  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
+
+  const templatesSorted = getSortedTemplates(templates, templateOrder);
+  const templatesEnabled = templatesSorted.filter(getTemplateEnabled);
+
+  const emptyTemplates = templatesEnabled?.length === 0;
+  const emptyModelServer = servingRuntimes.length === 0;
 
   return (
     <>
       <DetailsSection
         id={ProjectSectionID.MODEL_SERVER}
-        title={ProjectSectionTitlesExtended[ProjectSectionID.MODEL_SERVER] || ''}
-        actions={
-          emptyModelServer
-            ? [
-                <Button
-                  onClick={() => setOpen(true)}
-                  key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-                  variant="secondary"
-                >
-                  Configure server
-                </Button>,
-              ]
-            : undefined
-        }
-        isLoading={!loaded}
+        title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
+        actions={[
+          <ServingRuntimeListButtonAction
+            emptyTemplates={emptyTemplates}
+            templatesLoaded={templatesLoaded}
+            onClick={() => setOpen(true)}
+            key="serving-runtime-actions"
+          />,
+        ]}
+        isLoading={!servingRuntimesLoaded && !templatesLoaded}
         isEmpty={emptyModelServer}
-        loadError={loadError}
+        loadError={servingRuntimeError || templateError}
         emptyState={
           <EmptyDetailsList
             title="No model servers"
@@ -55,23 +61,21 @@ const ServingRuntimeList: React.FC = () => {
         }
       >
         <ServingRuntimeTable
-          modelServers={modelServers}
-          modelSecrets={secrets}
+          modelServers={servingRuntimes}
           refreshServingRuntime={refreshServingRuntime}
           refreshTokens={refreshTokens}
           refreshInferenceServices={refreshInferenceServices}
-          expandedColumn={expandedColumn}
-          updateExpandedColumn={setExpandedColumn}
         />
       </DetailsSection>
       <ManageServingRuntimeModal
         isOpen={isOpen}
+        currentProject={currentProject}
+        servingRuntimeTemplates={templatesEnabled}
         onClose={(submit: boolean) => {
           setOpen(false);
           if (submit) {
             refreshServingRuntime();
             refreshInferenceServices();
-            setExpandedColumn(ServingRuntimeTableTabs.DEPLOYED_MODELS);
             setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
           }
         }}
