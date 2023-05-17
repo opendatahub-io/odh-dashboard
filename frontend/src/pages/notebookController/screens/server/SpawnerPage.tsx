@@ -283,17 +283,20 @@ const SpawnerPage: React.FC = () => {
           <FormSection title="Notebook image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
-                {[...images].sort(checkOrder).map((image) => (
-                  <GridItem key={image.name}>
-                    <ImageSelector
-                      data-id="image-selector"
-                      image={image}
-                      selectedImage={selectedImageTag.image}
-                      selectedTag={selectedImageTag.tag}
-                      handleSelection={handleImageTagSelection}
-                    />
-                  </GridItem>
-                ))}
+                {[...images]
+                  .filter((image) => !image.error)
+                  .sort(checkOrder)
+                  .map((image) => (
+                    <GridItem key={image.name}>
+                      <ImageSelector
+                        data-id="image-selector"
+                        image={image}
+                        selectedImage={selectedImageTag.image}
+                        selectedTag={selectedImageTag.tag}
+                        handleSelection={handleImageTagSelection}
+                      />
+                    </GridItem>
+                  ))}
               </Grid>
             </FormGroup>
           </FormSection>
