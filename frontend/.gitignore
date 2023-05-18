@@ -5,3 +5,7 @@
 /public
 
 *stats.json
+
+/test-results/
+/playwright-report/
+/playwright/.cache/

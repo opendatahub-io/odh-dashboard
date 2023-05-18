@@ -1,5 +1,5 @@
 import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
 import { within } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
@@ -100,9 +100,9 @@ export default {
       handlers: handlers(false),
     },
   },
-} as ComponentMeta<typeof ProjectDetails>;
+} as Meta<typeof ProjectDetails>;
 
-const Template: ComponentStory<typeof ProjectDetails> = (args) => {
+const Template: StoryFn<typeof ProjectDetails> = (args) => {
   useDetectUser();
   return (
     <ProjectsRoutes>
@@ -113,34 +113,41 @@ const Template: ComponentStory<typeof ProjectDetails> = (args) => {
   );
 };
 
-export const Default = Template.bind({});
-Default.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
+export const Default = {
+  render: Template,
 
-  // we fill in the page with data, so there should be no dividers on the page
-  expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(0);
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
 
-  // check the x-small size shown correctly
-  expect(canvas.getByText('XSmall')).toBeInTheDocument();
-};
+    // we fill in the page with data, so there should be no dividers on the page
+    expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(0);
 
-export const EmptyDetailsPage = Template.bind({});
-EmptyDetailsPage.parameters = {
-  ...EmptyDetailsPage.parameters,
-  msw: {
-    handlers: handlers(true),
+    // check the x-small size shown correctly
+    expect(canvas.getByText('XSmall')).toBeInTheDocument();
   },
 };
-EmptyDetailsPage.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('No model servers', undefined, { timeout: 5000 });
 
-  // the dividers number should always 1 less than the section number
-  const sections = await canvas.findAllByTestId('details-page-section');
-  expect(await canvas.findAllByTestId('details-page-section-divider')).toHaveLength(
-    sections.length - 1,
-  );
+export const EmptyDetailsPage = {
+  render: Template,
+
+  parameters: {
+    ...EmptyDetailsPage.parameters,
+    msw: {
+      handlers: handlers(true),
+    },
+  },
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('No model servers', undefined, { timeout: 5000 });
+
+    // the dividers number should always 1 less than the section number
+    const sections = await canvas.findAllByTestId('details-page-section');
+    expect(await canvas.findAllByTestId('details-page-section-divider')).toHaveLength(
+      sections.length - 1,
+    );
+  },
 };
