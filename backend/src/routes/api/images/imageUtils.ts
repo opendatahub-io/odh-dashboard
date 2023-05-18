@@ -99,7 +99,7 @@ const getBYONImageErrorMessage = (imageStream: ImageStream) => {
   const activeTag = imageStream.status?.tags?.find(
     (statusTag) => statusTag.tag === imageStream.spec.tags?.[0].name,
   );
-  return activeTag?.items === null ? activeTag.conditions?.[0].message : undefined;
+  return activeTag?.conditions?.[0]?.message;
 };
 
 export const processImageInfo = (imageStream: ImageStream): ImageInfo => {
