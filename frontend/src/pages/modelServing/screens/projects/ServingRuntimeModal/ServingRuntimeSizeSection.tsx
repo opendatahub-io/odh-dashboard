@@ -14,21 +14,27 @@ import {
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
 import useGPUSetting from '~/pages/notebookController/screens/server/useGPUSetting';
+import { ServingRuntimeKind } from '~/k8sTypes';
+import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   sizes: ServingRuntimeSize[];
+  servingRuntimeSelected?: ServingRuntimeKind;
 };
 
 const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   data,
   setData,
   sizes,
+  servingRuntimeSelected,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
   const { available: gpuAvailable, count: gpuCount } = useGPUSetting('autodetect');
+
+  const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
   const sizeCustom = [
     ...sizes,
@@ -54,6 +60,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   return (
     <FormSection title="Compute resources per replica">
       <FormGroup label="Model server size">
+        {gpuDisabled}
         <Stack hasGutter>
           <StackItem>
             <Select
@@ -82,7 +89,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
           )}
         </Stack>
       </FormGroup>
-      {gpuAvailable && (
+      {gpuAvailable && !gpuDisabled && (
         <FormGroup label="Model server gpus">
           <NumberInput
             isDisabled={!gpuCount}
