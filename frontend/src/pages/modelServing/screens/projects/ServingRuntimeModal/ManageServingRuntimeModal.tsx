@@ -15,13 +15,25 @@ import {
   isGpuDisabled,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
-import { ServingRuntimeKind, SecretKind, TemplateKind, ProjectKind } from '~/k8sTypes';
-import { addSupportModelMeshProject, createServingRuntime, updateServingRuntime } from '~/api';
+import {
+  ServingRuntimeKind,
+  SecretKind,
+  TemplateKind,
+  ProjectKind,
+  AccessReviewResourceAttributes,
+} from '~/k8sTypes';
+import {
+  addSupportModelMeshProject,
+  createServingRuntime,
+  updateServingRuntime,
+  useAccessReview,
+} from '~/api';
 import {
   requestsUnderLimits,
   resourcesArePositive,
   setUpTokenAuth,
-  updateSecrets,
+  createSecrets,
+  isTokenAuthCreated,
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
@@ -46,6 +58,12 @@ type ManageServingRuntimeModalProps = {
   }
 >;
 
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'rbac.authorization.k8s.io',
+  resource: 'rolebindings',
+  verb: 'create',
+};
+
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   isOpen,
   onClose,
@@ -60,6 +78,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
   const namespace = currentProject.metadata.name;
+
+  const [allowCreate, rbacLoaded] = useAccessReview({
+    ...accessReviewResource,
+    namespace,
+  });
+
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
   const baseInputValueValid =
     createData.numReplicas >= 0 &&
@@ -71,7 +95,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const inputValueValid = customServingRuntimesEnabled
     ? baseInputValueValid && createData.name && servingRuntimeTemplateNameValid
     : baseInputValueValid;
-  const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
+  const canCreate = !actionInProgress && !tokenErrors && inputValueValid && rbacLoaded;
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -92,73 +116,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(false);
   };
 
-  const updateModelServer = (
-    fillData: CreatingServingRuntimeObject,
-    servingRuntime: ServingRuntimeKind,
-    secrets: SecretKind[],
-  ): Promise<void> =>
-    Promise.all([
-      updateSecrets(
-        fillData,
-        servingRuntime.metadata.name,
-        servingRuntime.metadata.namespace,
-        secrets,
-        { dryRun: true },
-      ),
-      updateServingRuntime(fillData, servingRuntime, customServingRuntimesEnabled, {
-        dryRun: true,
-      }),
-    ])
-      .then(() =>
-        Promise.all([
-          updateSecrets(
-            fillData,
-            servingRuntime.metadata.name,
-            servingRuntime.metadata.namespace,
-            secrets,
-          ),
-          updateServingRuntime(fillData, servingRuntime, customServingRuntimesEnabled),
-        ]).then(() => {
-          setActionInProgress(false);
-          onBeforeClose(true);
-        }),
-      )
-      .catch((e) => setErrorModal(e));
-
-  const createModelServer = (
-    fillData: CreatingServingRuntimeObject,
-    servingRuntime: ServingRuntimeKind,
-    namespace: string,
-  ): Promise<ServingRuntimeKind | string | void> => {
-    const servingRuntimeName = translateDisplayNameForK8s(fillData.name);
-
-    return Promise.all<ServingRuntimeKind | string | void>([
-      createServingRuntime(fillData, namespace, servingRuntime, customServingRuntimesEnabled, {
-        dryRun: true,
-      }),
-      setUpTokenAuth(fillData, servingRuntimeName, namespace, { dryRun: true }),
-    ])
-      .then(() =>
-        Promise.all<ServingRuntimeKind | string | void>([
-          ...(currentProject.metadata.labels?.['modelmesh-enabled']
-            ? [addSupportModelMeshProject(currentProject.metadata.name)]
-            : []),
-          createServingRuntime(fillData, namespace, servingRuntime, customServingRuntimesEnabled),
-          setUpTokenAuth(fillData, servingRuntimeName, namespace),
-        ])
-          .then(() => {
-            setActionInProgress(false);
-            onBeforeClose(true);
-          })
-          .catch((e) => {
-            setErrorModal(e);
-          }),
-      )
-      .catch((e) => {
-        setErrorModal(e);
-      });
-  };
-
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
@@ -167,21 +124,86 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       setErrorModal(new Error('Error retrieving Serving Runtime'));
       return;
     }
-
     const servingRuntimeData = {
       ...createData,
       gpus: isGpuDisabled(servingRuntimeSelected) ? 0 : createData.gpus,
     };
+    const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
 
-    if (editInfo) {
-      if (!editInfo.secrets) {
-        setErrorModal(new Error('Error retrieving secrets'));
-        return;
-      }
-      updateModelServer(servingRuntimeData, servingRuntimeSelected, editInfo.secrets);
-    } else {
-      createModelServer(servingRuntimeData, servingRuntimeSelected, namespace);
-    }
+    setUpTokenAuth(servingRuntimeData, servingRuntimeName, namespace, editInfo?.secrets).then(() => {
+      setErrorModal(new Error('it worked'));
+    }).catch((e) => {
+      setErrorModal(e);
+    });
+
+    // if (!allowCreate) {
+    //   createServingRuntime(
+    //     servingRuntimeData,
+    //     namespace,
+    //     servingRuntimeSelected,
+    //     customServingRuntimesEnabled,
+    //     {
+    //       dryRun: true,
+    //     },
+    //   )
+    //     .then(() =>
+    //       createServingRuntime(
+    //         servingRuntimeData,
+    //         namespace,
+    //         servingRuntimeSelected,
+    //         customServingRuntimesEnabled,
+    //       )
+    //         .then(() => {
+    //           setActionInProgress(false);
+    //           onBeforeClose(true);
+    //         })
+    //         .catch((e) => {
+    //           setErrorModal(e);
+    //         }),
+    //     )
+    //     .catch((e) => {
+    //       setErrorModal(e);
+    //     });
+    // } else {
+    //   Promise.all<ServingRuntimeKind | string | void>([
+    //     createServingRuntime(
+    //       servingRuntimeData,
+    //       namespace,
+    //       servingRuntimeSelected,
+    //       customServingRuntimesEnabled,
+    //       {
+    //         dryRun: true,
+    //       },
+    //     ),
+    //     setUpTokenAuth(servingRuntimeData, servingRuntimeName, namespace, editInfo?.secrets, {
+    //       dryRun: true,
+    //     }),
+    //   ])
+    //     .then(() =>
+    //       Promise.all<ServingRuntimeKind | string | void>([
+    //         ...(currentProject.metadata.labels?.['modelmesh-enabled']
+    //           ? [addSupportModelMeshProject(currentProject.metadata.name)]
+    //           : []),
+    //         createServingRuntime(
+    //           servingRuntimeData,
+    //           namespace,
+    //           servingRuntimeSelected,
+    //           customServingRuntimesEnabled,
+    //         ),
+    //         setUpTokenAuth(servingRuntimeData, servingRuntimeName, namespace, editInfo?.secrets),
+    //       ])
+    //         .then(() => {
+    //           setActionInProgress(false);
+    //           onBeforeClose(true);
+    //         })
+    //         .catch((e) => {
+    //           setErrorModal(e);
+    //         }),
+    //     )
+    //     .catch((e) => {
+    //       setErrorModal(e);
+    //     });
+    // }
   };
 
   return (
@@ -246,7 +268,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 </FormSection>
               </StackItem>
               <StackItem>
-                <ServingRuntimeTokenSection data={createData} setData={setCreateData} />
+                <ServingRuntimeTokenSection
+                  data={createData}
+                  setData={setCreateData}
+                  allowCreate={allowCreate}
+                  rbacLoaded={rbacLoaded}
+                />
               </StackItem>
             </Stack>
           </Form>

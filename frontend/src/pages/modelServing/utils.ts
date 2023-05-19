@@ -8,8 +8,10 @@ import {
   replaceSecret,
   assembleServiceAccount,
   createServiceAccount,
+  getServiceAccount,
+  getRoleBinding,
 } from '~/api';
-import { SecretKind, K8sStatus, K8sAPIOptions } from '~/k8sTypes';
+import { SecretKind, K8sStatus, K8sAPIOptions, ServiceAccountKind, RoleBindingKind } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
@@ -35,10 +37,12 @@ export const requestsUnderLimits = (resources: ContainerResources): boolean =>
   isCpuLimitLarger(resources.requests?.cpu, resources.limits?.cpu, true) &&
   isMemoryLimitLarger(resources.requests?.memory, resources.limits?.memory, true);
 
+  
 export const setUpTokenAuth = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
+  oldSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
   const { serviceAccountName, roleBindingName } = getTokenNames(servingRuntimeName, namespace);
@@ -53,30 +57,32 @@ export const setUpTokenAuth = async (
     createServiceAccount(serviceAccount, opts),
     createRoleBinding(tokenAuth, opts),
   ])
-    .then(() => {
-      allSettledPromises<SecretKind, Error>(
-        fillData.tokens.map((token) => {
-          const secretToken = assembleSecretSA(token.name, serviceAccountName, namespace);
-          return createSecret(secretToken, opts);
-        }),
-      )
-        .then(() => Promise.resolve())
-        .catch((error) => Promise.reject(error));
-    })
+    .then(() => createSecrets(fillData, servingRuntimeName, namespace, oldSecrets, opts))
     .catch((error) => Promise.reject(error));
 };
 
-export const updateSecrets = async (
+export const isTokenAuthCreated = async (
+  servingRuntimeName: string,
+  namespace: string
+): Promise<[ ServiceAccountKind , RoleBindingKind ]> => {
+  const { serviceAccountName, roleBindingName } = getTokenNames(servingRuntimeName, namespace);
+  return Promise.all([
+    getServiceAccount(serviceAccountName, namespace),
+    getRoleBinding(roleBindingName, namespace),
+  ]);
+}
+
+export const createSecrets = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
-  secrets: SecretKind[],
+  oldSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
   const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
-  const deletedSecrets = secrets
+  const deletedSecrets = oldSecrets ? oldSecrets
     .map((secret) => secret.metadata.name)
-    .filter((token) => !fillData.tokens.some((tokenEdit) => tokenEdit.editName === token));
+    .filter((token) => !fillData.tokens.some((tokenEdit) => tokenEdit.editName === token)) : [];
 
   return Promise.all<K8sStatus | SecretKind>([
     ...fillData.tokens
