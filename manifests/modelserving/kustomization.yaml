@@ -10,6 +10,3 @@ images:
   - name: ovms-1
     newName: quay.io/opendatahub/openvino_model_server
     digest: sha256:20dbfbaf53d1afbd47c612d953984238cb0e207972ed544a5ea662c2404f276d
-  - name: ovms-gpu-1
-    newName: quay.io/modh/openvino-model-server
-    digest: sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116 
