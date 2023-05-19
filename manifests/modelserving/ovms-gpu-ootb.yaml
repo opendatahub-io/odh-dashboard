@@ -1,25 +1,28 @@
 kind: Template
 apiVersion: template.openshift.io/v1
 metadata:
-  name: ovms
+  name: ovms-gpu
   labels:
     opendatahub.io/dashboard: 'true'
     opendatahub.io/ootb: 'true'
     opendatahub.io/configurable: 'true'
   annotations:
     tags: 'ovms,servingruntime'
-    description: 'OpenVino Model Serving Definition'
+    description: 'OpenVino with GPU Support Model Serving Definition'
 objects:
   - apiVersion: serving.kserve.io/v1alpha1
     kind: ServingRuntime
     metadata:
-      name: ovms
+      name: ovms-gpu
       annotations:
-        openshift.io/display-name: 'OpenVINO Model Server'
+        openshift.io/display-name: 'OpenVINO Model Server [GPU]'
       labels:
         opendatahub.io/dashboard: 'true'
     spec:
       builtInAdapter:
+        env:
+          - name: OVMS_FORCE_TARGET_DEVICE
+            value: NVIDIA
         memBufferBytes: 134217728
         modelLoadingTimeoutMillis: 90000
         runtimeManagementPort: 8888
@@ -32,7 +35,7 @@ objects:
             - '--file_system_poll_wait_seconds=0'
             - '--grpc_bind_address=127.0.0.1'
             - '--rest_bind_address=127.0.0.1'
-          image: ovms-1
+          image: ovms-gpu-1
           name: ovms
           resources:
             limits:
