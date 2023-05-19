@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
@@ -16,6 +15,7 @@ import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -30,6 +30,9 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
+
+export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
+  servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
 
 export const getInferenceServiceFromServingRuntime = (
   inferenceServices: InferenceServiceKind[],
@@ -103,14 +106,18 @@ export const useCreateServingRuntimeObject = (existingData?: {
       setCreateData('name', existingServingRuntimeName);
       setCreateData('servingRuntimeTemplateName', existingServingRuntimeTemplateName);
       setCreateData('numReplicas', existingNumReplicas);
-      let foundSize = sizes.find((size) => _.isEqual(size.resources, existingResources));
-      if (!foundSize) {
-        foundSize = {
+      const size = sizes.find(
+        (size) =>
+          isCpuLimitEqual(size.resources.limits?.cpu, existingResources.limits?.cpu) &&
+          isMemoryLimitEqual(size.resources.limits?.memory, existingResources.limits?.memory),
+      );
+      setCreateData(
+        'modelSize',
+        size || {
           name: 'Custom',
           resources: existingResources,
-        };
-      }
-      setCreateData('modelSize', foundSize);
+        },
+      );
       setCreateData(
         'gpus',
         typeof existingGpus == 'string' ? parseInt(existingGpus) : existingGpus,

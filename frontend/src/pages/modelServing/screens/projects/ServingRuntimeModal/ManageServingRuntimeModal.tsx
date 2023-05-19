@@ -11,7 +11,10 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
-import { useCreateServingRuntimeObject } from '~/pages/modelServing/screens/projects/utils';
+import {
+  isGpuDisabled,
+  useCreateServingRuntimeObject,
+} from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimeKind, SecretKind, TemplateKind, ProjectKind } from '~/k8sTypes';
 import { addSupportModelMeshProject, createServingRuntime, updateServingRuntime } from '~/api';
 import {
@@ -21,10 +24,7 @@ import {
   updateSecrets,
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import {
-  getServingRuntimeFromTemplate,
-  getServingRuntimeNameFromTemplate,
-} from '~/pages/modelServing/customServingRuntimes/utils';
+import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
@@ -72,6 +72,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     ? baseInputValueValid && createData.name && servingRuntimeTemplateNameValid
     : baseInputValueValid;
   const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
+
+  const servingRuntimeSelected = React.useMemo(
+    () =>
+      editInfo?.servingRuntime ||
+      getServingRuntimeFromName(createData.servingRuntimeTemplateName, servingRuntimeTemplates),
+    [editInfo, servingRuntimeTemplates, createData.servingRuntimeTemplateName],
+  );
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
@@ -156,29 +163,24 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(true);
 
+    if (!servingRuntimeSelected) {
+      setErrorModal(new Error('Error retrieving Serving Runtime'));
+      return;
+    }
+
+    const servingRuntimeData = {
+      ...createData,
+      gpus: isGpuDisabled(servingRuntimeSelected) ? 0 : createData.gpus,
+    };
+
     if (editInfo) {
-      if (!editInfo.servingRuntime || !editInfo.secrets) {
-        setErrorModal(new Error('Serving Runtime or Secrets not found'));
+      if (!editInfo.secrets) {
+        setErrorModal(new Error('Error retrieving secrets'));
         return;
       }
-      updateModelServer(createData, editInfo.servingRuntime, editInfo.secrets);
+      updateModelServer(servingRuntimeData, servingRuntimeSelected, editInfo.secrets);
     } else {
-      const servingRuntimeTemplate = servingRuntimeTemplates?.find(
-        (template) =>
-          getServingRuntimeNameFromTemplate(template) === createData.servingRuntimeTemplateName,
-      );
-      if (customServingRuntimesEnabled && !servingRuntimeTemplate) {
-        setErrorModal(new Error('Serving Runtime Template not found'));
-        return;
-      }
-      try {
-        const servingRuntime = getServingRuntimeFromTemplate(servingRuntimeTemplate);
-        createModelServer(createData, servingRuntime, namespace);
-      } catch (e) {
-        if (e instanceof Error) {
-          setErrorModal(e);
-        }
-      }
+      createModelServer(servingRuntimeData, servingRuntimeSelected, namespace);
     }
   };
 
@@ -227,6 +229,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   data={createData}
                   setData={setCreateData}
                   sizes={sizes}
+                  servingRuntimeSelected={servingRuntimeSelected}
                 />
               </StackItem>
               <StackItem>

@@ -88,6 +88,7 @@ export type K8sCondition = {
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;
+  'opendatahub.io/disable-gpu': string;
   'enable-route': string;
   'enable-auth': string;
 }>;
