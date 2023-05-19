@@ -16,6 +16,7 @@ objects:
       name: ovms
       annotations:
         openshift.io/display-name: 'OpenVINO Model Server'
+        opendatahub.io/disable-gpu: 'true'
       labels:
         opendatahub.io/dashboard: 'true'
     spec:

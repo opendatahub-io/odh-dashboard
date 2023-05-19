@@ -4,8 +4,9 @@ commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
 resources:
-  -  servingruntimes-template.yaml
+  -  ovms-ootb.yaml
+  -  ovms-gpu-ootb.yaml
 images:
-- name: ovms-1
-  newName: quay.io/opendatahub/openvino_model_server
-  digest: sha256:20dbfbaf53d1afbd47c612d953984238cb0e207972ed544a5ea662c2404f276d
+  - name: ovms-1
+    newName: quay.io/opendatahub/openvino_model_server
+    digest: sha256:20dbfbaf53d1afbd47c612d953984238cb0e207972ed544a5ea662c2404f276d
