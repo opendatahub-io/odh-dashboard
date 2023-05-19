@@ -15,7 +15,7 @@ objects:
     metadata:
       name: ovms-gpu
       annotations:
-        openshift.io/display-name: 'OpenVINO Model Server [GPU]'
+        openshift.io/display-name: 'OpenVINO Model Server (Supports GPUs)'
       labels:
         opendatahub.io/dashboard: 'true'
     spec:
