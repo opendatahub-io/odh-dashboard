@@ -61,6 +61,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         url,
         overrideContentType: contentType,
         requestData,
+        rejectUnauthorized: false,
       }).catch((error) => {
         if (error.code && error.response) {
           const { code, response } = error;
