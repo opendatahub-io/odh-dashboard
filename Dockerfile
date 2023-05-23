@@ -39,7 +39,7 @@ COPY --chown=default:root --from=builder /usr/src/app/.npmrc /usr/src/app/backen
 COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
 COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
 
-RUN cd backend && npm cache clean --force && npm ci --omit=dev --omit=optional && chmod -R g+w /opt/app-root/src/.npm
+RUN cd backend && npm cache clean --force && npm ci --omit=dev --omit=optional && chmod -R g+w ${HOME}/.npm
 
 WORKDIR /usr/src/app/backend
 
