@@ -4,7 +4,6 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import NotFound from '~/pages/NotFound';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
-import InferenceGraphs from '~/pages/modelServing/screens/metrics/InferenceGraphs';
 import { MetricType } from '~/pages/modelServing/screens/types';
 import { ModelServingMetricsProvider } from './ModelServingMetricsContext';
 import MetricsPage from './MetricsPage';
@@ -45,9 +44,7 @@ const GlobalInferenceMetricsWrapper: React.FC = () => {
             isActive: true,
           },
         ]}
-      >
-        <InferenceGraphs />
-      </MetricsPage>
+      />
     </ModelServingMetricsProvider>
   );
 };

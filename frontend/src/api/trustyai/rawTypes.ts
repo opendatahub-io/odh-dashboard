@@ -25,6 +25,24 @@ export type BaseMetricRequest = {
   unprivilegedAttribute: TypedValue;
   modelId: string;
   requestName: string;
-  thresholdDelta: number;
-  batchSize: number;
+  thresholdDelta?: number;
+  batchSize?: number;
+};
+
+export type BaseMetricResponse = {
+  id: string;
+  request: BaseMetricRequest & { metricName: MetricTypes };
+};
+
+export type BaseMetricListResponse = {
+  requests: BaseMetricResponse[];
+};
+
+export type BaseMetricCreationResponse = {
+  requestId: string;
+  timestamp: string;
+};
+
+export type BaseMetricDeletionRequest = {
+  requestId: string;
 };

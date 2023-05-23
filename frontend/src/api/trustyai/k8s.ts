@@ -1,7 +1,7 @@
 import { K8sAPIOptions, RouteKind } from '~/k8sTypes';
 import { getRoute } from '~/api';
+import { TRUSTYAI_ROUTE_NAME } from '~/concepts/explainability/const';
 
-const TRUSTYAI_ROUTE_NAME = 'trustyai';
 export const getTrustyAIAPIRoute = async (
   namespace: string,
   opts?: K8sAPIOptions,

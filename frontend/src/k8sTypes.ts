@@ -197,6 +197,7 @@ export type ImageStreamSpecTagType = {
 export type K8sAPIOptions = {
   dryRun?: boolean;
   signal?: AbortSignal;
+  parseJSON?: boolean;
 };
 
 /** A status object when Kube backend can't handle a request. */
@@ -420,6 +421,14 @@ export type AWSSecretKind = SecretKind & {
     };
   };
   data: Record<AWS_KEYS, string>;
+};
+
+//TODO this type needs fleshing out when the Trusty operator is ready.
+export type TrustyAiKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
 };
 
 export type DSPipelineKind = K8sResourceCommon & {

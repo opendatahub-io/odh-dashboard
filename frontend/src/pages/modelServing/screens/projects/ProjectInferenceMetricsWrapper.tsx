@@ -8,7 +8,6 @@ import { getInferenceServiceMetricsQueries } from '~/pages/modelServing/screens/
 import NotFound from '~/pages/NotFound';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import InferenceGraphs from '~/pages/modelServing/screens/metrics/InferenceGraphs';
 import { MetricType } from '~/pages/modelServing/screens/types';
 
 const ProjectInferenceMetricsWrapper: React.FC = () => {
@@ -49,9 +48,7 @@ const ProjectInferenceMetricsWrapper: React.FC = () => {
             isActive: true,
           },
         ]}
-      >
-        <InferenceGraphs />
-      </MetricsPage>
+      />
     </ModelServingMetricsProvider>
   );
 };

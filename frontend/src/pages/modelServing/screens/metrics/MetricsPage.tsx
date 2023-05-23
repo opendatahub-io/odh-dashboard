@@ -7,7 +7,6 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
 
 type MetricsPageProps = {
-  children: React.ReactNode;
   title: string;
   breadcrumbItems: BreadcrumbItemType[];
 };
