@@ -318,7 +318,6 @@ export const assembleNotebook = async (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
         'opendatahub.io/service-mesh': serviceMeshEnabled,
-        'opendatahub.io/hub-host': url,
         'kubeflow-resource-stopped': null,
       },
       name: name,
@@ -500,7 +499,6 @@ export const createNotebook = async (
   notebookAssembled.metadata.annotations['opendatahub.io/service-mesh'] = String(
     !config.spec.dashboardConfig.disableServiceMesh,
   );
-  notebookAssembled.metadata.annotations['opendatahub.io/hub-url'] = url;
 
   const notebookContainers = notebookAssembled.spec.template.spec.containers;
 

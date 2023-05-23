@@ -406,7 +406,6 @@ export type Notebook = K8sResourceCommon & {
 
       // Openshift Service Mesh specific annotations. They're needed to orchestrate additional resources for nb namespaces.
       'opendatahub.io/service-mesh': string;
-      'opendatahub.io/hub-host': string;
 
       // TODO: Can we get this from the data in the Notebook??
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected

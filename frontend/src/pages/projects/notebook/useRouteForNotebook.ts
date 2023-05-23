@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getGatewayRoute, getRoute } from '~/api';
+import { getServiceMeshGwHost, getRoute } from '~/api';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 
@@ -23,15 +23,15 @@ const useRouteForNotebook = (
       if (notebookName && projectName) {
         // if not using service mesh fetch openshift route, otherwise get Istio Ingress Gateway route
         const getRoutePromise = dashboardConfig.spec.dashboardConfig.disableServiceMesh
-          ? getRoute(notebookName, projectName)
-          : getGatewayRoute('istio-system', 'odh-gateway');
+          ? getRoute(notebookName, projectName).then((route) => route?.spec.host)
+          : getServiceMeshGwHost(projectName);
 
         getRoutePromise
-          .then((route) => {
+          .then((host) => {
             if (cancelled) {
               return;
             }
-            setRoute(`https://${route?.spec.host}/notebook/${projectName}/${notebookName}/`);
+            setRoute(`https://${host}/notebook/${projectName}/${notebookName}/`);
             setLoadError(null);
             setLoaded(true);
           })

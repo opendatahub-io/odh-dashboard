@@ -43,7 +43,12 @@ export const getNotebookStatus = async (
       });
     }
     if (route) {
-      newNotebook = await patchNotebookRoute(fastify, route, namespace, notebookName).catch((e) => {
+      newNotebook = await patchNotebookRoute(
+        fastify,
+        route.spec.host,
+        namespace,
+        notebookName,
+      ).catch((e) => {
         fastify.log.warn(`Failed patching route to notebook ${notebookName}: ${e.message}`);
         return notebook;
       });
@@ -82,14 +87,14 @@ export const checkPodContainersReady = (pod: V1Pod): boolean => {
 
 export const patchNotebookRoute = async (
   fastify: KubeFastifyInstance,
-  route: Route,
+  host: string,
   namespace: string,
   name: string,
 ): Promise<Notebook> => {
   const patch: RecursivePartial<Notebook> = {
     metadata: {
       annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${name}/`,
+        'opendatahub.io/link': `https://${host}/notebook/${namespace}/${name}/`,
       },
     },
   };

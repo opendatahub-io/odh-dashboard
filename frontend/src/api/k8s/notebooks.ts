@@ -94,7 +94,6 @@ const assembleNotebook = (
         'opendatahub.io/service-mesh': String(
           !dashboardConfig.spec.dashboardConfig.disableServiceMesh,
         ),
-        'opendatahub.io/hub-url': origin,
         'opendatahub.io/username': username,
       },
       name: notebookId,

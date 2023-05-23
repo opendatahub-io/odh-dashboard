@@ -64,7 +64,7 @@ export const applyNamespaceChange = async (
   const disableServiceMesh = getDashboardConfig().spec.dashboardConfig.disableServiceMesh;
 
   let labels = {};
-  let annotations = {}
+  let annotations = {};
   switch (context) {
     case NamespaceApplicationCase.DSG_CREATION:
       labels = {
@@ -73,7 +73,7 @@ export const applyNamespaceChange = async (
       };
       annotations = {
         'opendatahub.io/service-mesh': String(!disableServiceMesh),
-      }
+      };
       break;
     case NamespaceApplicationCase.MODEL_SERVING_PROMOTION:
       labels = {
@@ -85,9 +85,17 @@ export const applyNamespaceChange = async (
   }
 
   return fastify.kube.coreV1Api
-    .patchNamespace(name, { metadata: { labels, annotations } }, undefined, undefined, undefined, undefined, {
-      headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-    })
+    .patchNamespace(
+      name,
+      { metadata: { labels, annotations } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+      },
+    )
     .then(() => ({ applied: true }))
     .catch((e) => {
       fastify.log.error(
