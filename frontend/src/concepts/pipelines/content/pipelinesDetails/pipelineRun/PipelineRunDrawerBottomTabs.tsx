@@ -27,7 +27,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
   pipelineRunDetails,
 }) => (
   <>
-    <Tabs activeKey={selection ?? undefined}>
+    <Tabs activeKey={selection ?? undefined} style={{ flexShrink: 0 }}>
       {Object.values(RunDetailsTabs).map((tab) => (
         <Tab
           key={tab}
@@ -39,40 +39,39 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
       ))}
     </Tabs>
     {selection && (
-      <div style={{ height: '100%', overflow: 'hidden auto' }}>
-        <DrawerPanelBody>
-          <TabContent
-            id={RunDetailsTabs.DETAILS}
-            eventKey={RunDetailsTabs.DETAILS}
-            activeKey={selection ?? ''}
-            hidden={RunDetailsTabs.DETAILS !== selection}
-          >
-            <PipelineRunTabDetails
-              workflowName={pipelineRunDetails?.kind.metadata.name}
-              pipelineRunKF={pipelineRunDetails?.kf}
-            />
-          </TabContent>
-          <TabContent
-            id={RunDetailsTabs.YAML}
-            eventKey={RunDetailsTabs.YAML}
-            activeKey={selection ?? ''}
-            hidden={RunDetailsTabs.YAML !== selection}
-          >
-            <PipelineDetailsYAML
-              filename={pipelineRunDetails?.kf.name}
-              content={
-                pipelineRunDetails
-                  ? {
-                      // eslint-disable-next-line camelcase
-                      pipeline_runtime: { workflow_manifest: pipelineRunDetails.kind },
-                      run: pipelineRunDetails.kf,
-                    }
-                  : null
-              }
-            />
-          </TabContent>
-        </DrawerPanelBody>
-      </div>
+      <DrawerPanelBody style={{ flexGrow: 1, overflow: 'hidden auto' }}>
+        <TabContent
+          id={RunDetailsTabs.DETAILS}
+          eventKey={RunDetailsTabs.DETAILS}
+          activeKey={selection ?? ''}
+          hidden={RunDetailsTabs.DETAILS !== selection}
+        >
+          <PipelineRunTabDetails
+            workflowName={pipelineRunDetails?.kind.metadata.name}
+            pipelineRunKF={pipelineRunDetails?.kf}
+          />
+        </TabContent>
+        <TabContent
+          id={RunDetailsTabs.YAML}
+          eventKey={RunDetailsTabs.YAML}
+          activeKey={selection ?? ''}
+          hidden={RunDetailsTabs.YAML !== selection}
+          style={{ height: '100%' }}
+        >
+          <PipelineDetailsYAML
+            filename={pipelineRunDetails?.kf.name}
+            content={
+              pipelineRunDetails
+                ? {
+                    // eslint-disable-next-line camelcase
+                    pipeline_runtime: { workflow_manifest: pipelineRunDetails.kind },
+                    run: pipelineRunDetails.kf,
+                  }
+                : null
+            }
+          />
+        </TabContent>
+      </DrawerPanelBody>
     )}
   </>
 );

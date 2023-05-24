@@ -69,6 +69,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               headerAction={<PipelineDetailsActions onDelete={() => setDeleting(true)} />}
             >
               <Tabs
+                style={{ flexShrink: 0 }}
                 activeKey={activeTabKey}
                 onSelect={(e, tabIndex) => {
                   setActiveTabKey(tabIndex);
@@ -90,42 +91,44 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   tabContentId={`tabContent-${PipelineDetailsTab.YAML}`}
                 />
               </Tabs>
-              <TabContent
-                id={`tabContent-${PipelineDetailsTab.GRAPH}`}
-                eventKey={PipelineDetailsTab.GRAPH}
-                activeKey={activeTabKey}
-                hidden={PipelineDetailsTab.GRAPH !== activeTabKey}
-                style={{ flexGrow: 1 }}
-              >
-                {nodes.length === 0 ? (
-                  <PipelineTopologyEmpty />
-                ) : (
-                  <PipelineTopology
-                    nodes={nodes}
-                    selectedIds={selectedId ? [selectedId] : []}
-                    onSelectionChange={(ids) => {
-                      const firstId = ids[0];
-                      if (ids.length === 0) {
-                        setSelectedId(null);
-                      } else if (taskMap[firstId]) {
-                        setSelectedId(firstId);
-                      }
-                    }}
+              <div style={{ flexGrow: 1 }}>
+                <TabContent
+                  id={`tabContent-${PipelineDetailsTab.GRAPH}`}
+                  eventKey={PipelineDetailsTab.GRAPH}
+                  activeKey={activeTabKey}
+                  hidden={PipelineDetailsTab.GRAPH !== activeTabKey}
+                  style={{ height: '100%' }}
+                >
+                  {nodes.length === 0 ? (
+                    <PipelineTopologyEmpty />
+                  ) : (
+                    <PipelineTopology
+                      nodes={nodes}
+                      selectedIds={selectedId ? [selectedId] : []}
+                      onSelectionChange={(ids) => {
+                        const firstId = ids[0];
+                        if (ids.length === 0) {
+                          setSelectedId(null);
+                        } else if (taskMap[firstId]) {
+                          setSelectedId(firstId);
+                        }
+                      }}
+                    />
+                  )}
+                </TabContent>
+                <TabContent
+                  id={`tabContent-${PipelineDetailsTab.YAML}`}
+                  eventKey={PipelineDetailsTab.YAML}
+                  activeKey={activeTabKey}
+                  hidden={PipelineDetailsTab.YAML !== activeTabKey}
+                  style={{ height: '100%' }}
+                >
+                  <PipelineDetailsYAML
+                    filename={`Pipeline ${pipelineRun?.metadata.name}`}
+                    content={pipelineRun}
                   />
-                )}
-              </TabContent>
-              <TabContent
-                id={`tabContent-${PipelineDetailsTab.YAML}`}
-                eventKey={PipelineDetailsTab.YAML}
-                activeKey={activeTabKey}
-                hidden={PipelineDetailsTab.YAML !== activeTabKey}
-                style={{ flexGrow: 1 }}
-              >
-                <PipelineDetailsYAML
-                  filename={`Pipeline ${pipelineRun?.metadata.name}`}
-                  content={pipelineRun}
-                />
-              </TabContent>
+                </TabContent>
+              </div>
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>
