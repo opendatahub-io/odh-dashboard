@@ -1,56 +1,27 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
-import { Bullseye, Spinner } from '@patternfly/react-core';
-import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
-import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
+import { Outlet } from 'react-router-dom';
 import { ModelServingMetricsProvider } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { getInferenceServiceMetricsQueries } from '~/pages/modelServing/screens/metrics/utils';
-import NotFound from '~/pages/NotFound';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getProjectDisplayName } from '~/pages/projects/utils';
 import { MetricType } from '~/pages/modelServing/screens/types';
+import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
+import ProjectInferenceMetricsPathWrapper from './ProjectInferenceMetricsPathWrapper';
 
-const ProjectInferenceMetricsWrapper: React.FC = () => {
-  const { inferenceService: modelName } = useParams<{
-    inferenceService: string;
-  }>();
-  const {
-    currentProject,
-    inferenceServices: { data: models, loaded },
-  } = React.useContext(ProjectDetailsContext);
-  const inferenceService = models.find((model) => model.metadata.name === modelName);
-  if (!loaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-  if (!inferenceService) {
-    return <NotFound />;
-  }
-  const queries = getInferenceServiceMetricsQueries(inferenceService);
-  const projectDisplayName = getProjectDisplayName(currentProject);
-  const modelDisplayName = getInferenceServiceDisplayName(inferenceService);
-
-  return (
-    <ModelServingMetricsProvider queries={queries} type={MetricType.INFERENCE}>
-      <MetricsPage
-        title={`${modelDisplayName} metrics`}
-        breadcrumbItems={[
-          { label: 'Data Science Projects', link: '/projects' },
-          {
-            label: projectDisplayName,
-            link: `/projects/${currentProject.metadata.name}`,
-          },
-          {
-            label: `${modelDisplayName} metrics`,
-            isActive: true,
-          },
-        ]}
-      />
-    </ModelServingMetricsProvider>
-  );
+export type ProjectInferenceMetricsOutletContextProps = {
+  inferenceService: InferenceServiceKind;
+  currentProject: ProjectKind;
 };
+
+const ProjectInferenceMetricsWrapper: React.FC = () => (
+  <ProjectInferenceMetricsPathWrapper>
+    {(inferenceService, currentProject) => {
+      const queries = getInferenceServiceMetricsQueries(inferenceService);
+      return (
+        <ModelServingMetricsProvider queries={queries} type={MetricType.INFERENCE}>
+          <Outlet context={{ inferenceService, currentProject }} />
+        </ModelServingMetricsProvider>
+      );
+    }}
+  </ProjectInferenceMetricsPathWrapper>
+);
 
 export default ProjectInferenceMetricsWrapper;

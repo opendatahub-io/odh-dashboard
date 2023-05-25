@@ -1,10 +1,9 @@
 import * as React from 'react';
-
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Breadcrumb } from '@patternfly/react-core';
 import { BreadcrumbItemType } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
+import { getBreadcrumbItemComponents } from './utils';
 
 type MetricsPageProps = {
   title: string;
@@ -14,19 +13,7 @@ type MetricsPageProps = {
 const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems }) => (
   <ApplicationsPage
     title={title}
-    breadcrumb={
-      <Breadcrumb>
-        {breadcrumbItems.map((item) => (
-          <BreadcrumbItem
-            isActive={item.isActive}
-            key={item.label}
-            render={() =>
-              item.link ? <Link to={item.link}>{item.label}</Link> : <>{item.label}</>
-            }
-          />
-        ))}
-      </Breadcrumb>
-    }
+    breadcrumb={<Breadcrumb>{getBreadcrumbItemComponents(breadcrumbItems)}</Breadcrumb>}
     loaded
     description={null}
     empty={false}

@@ -10,6 +10,8 @@ import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pi
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import { ExplainabilityProvider } from '~/concepts/explainability/ExplainabilityContext';
+import ProjectInferenceMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsConfigurationPage';
+import ProjectInferenceMetricsPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsPage';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -29,7 +31,10 @@ const ProjectViewRoutes: React.FC = () => {
         {modelMetricsEnabled && (
           <>
             <Route path="metrics/model" element={<ExplainabilityProvider />}>
-              <Route path=":inferenceService/:tab?" element={<ProjectInferenceMetricsWrapper />} />
+              <Route path=":inferenceService" element={<ProjectInferenceMetricsWrapper />}>
+                <Route path=":tab?" element={<ProjectInferenceMetricsPage />} />
+                <Route path="configure" element={<ProjectInferenceMetricsConfigurationPage />} />
+              </Route>
             </Route>
             <Route path="metrics/runtime" element={<ProjectRuntimeMetricsWrapper />} />
           </>
