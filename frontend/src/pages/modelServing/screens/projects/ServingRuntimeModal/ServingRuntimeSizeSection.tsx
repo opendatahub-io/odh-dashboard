@@ -60,7 +60,6 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   return (
     <FormSection title="Compute resources per replica">
       <FormGroup label="Model server size">
-        {gpuDisabled}
         <Stack hasGutter>
           <StackItem>
             <Select
@@ -100,6 +99,11 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             onChange={(event: React.FormEvent<HTMLInputElement>) => {
               const target = event.currentTarget;
               setData('gpus', parseInt(target.value) || 0);
+            }}
+            onBlur={(event: React.FormEvent<HTMLInputElement>) => {
+              const target = event.currentTarget;
+              const gpuInput = parseInt(target.value) || 0;
+              setData('gpus', Math.max(0, Math.min(gpuCount, gpuInput)));
             }}
             onMinus={() => setData('gpus', data.gpus - 1)}
             onPlus={() => setData('gpus', data.gpus + 1)}
