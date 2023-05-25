@@ -89,7 +89,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
         </Stack>
       </FormGroup>
       {gpuAvailable && !gpuDisabled && (
-        <FormGroup label="Model server gpus">
+        <FormGroup label="Model server GPUs">
           <NumberInput
             isDisabled={!gpuCount}
             value={data.gpus}
