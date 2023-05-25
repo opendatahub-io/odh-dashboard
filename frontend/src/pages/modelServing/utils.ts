@@ -8,18 +8,10 @@ import {
   replaceSecret,
   assembleServiceAccount,
   createServiceAccount,
-  getServiceAccount,
   getRoleBinding,
 } from '~/api';
-import {
-  SecretKind,
-  K8sStatus,
-  K8sAPIOptions,
-  ServiceAccountKind,
-  RoleBindingKind,
-} from '~/k8sTypes';
+import { SecretKind, K8sStatus, K8sAPIOptions, RoleBindingKind } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 
@@ -60,7 +52,7 @@ export const setUpTokenAuth = async (
     namespace,
   );
   return Promise.all([
-    ...( existingSecrets === undefined ? [createServiceAccount(serviceAccount, opts)] : []),
+    ...(existingSecrets === undefined ? [createServiceAccount(serviceAccount, opts)] : []),
     ...(createRolebinding ? [createRoleBindingIfMissing(roleBinding, namespace, opts)] : []),
   ])
     .then(() => createSecrets(fillData, servingRuntimeName, namespace, existingSecrets, opts))
@@ -71,14 +63,13 @@ export const createRoleBindingIfMissing = async (
   rolebinding: RoleBindingKind,
   namespace: string,
   opts?: K8sAPIOptions,
-): Promise<RoleBindingKind> => {
-  return getRoleBinding(namespace, rolebinding.metadata.name).catch((e) => {
-    if (e.status === 404) {
+): Promise<RoleBindingKind> =>
+  getRoleBinding(namespace, rolebinding.metadata.name).catch((e) => {
+    if (e.statusObject?.code === 404) {
       return createRoleBinding(rolebinding, opts);
     }
-    throw e;
+    return Promise.reject(e);
   });
-};
 
 export const createSecrets = async (
   fillData: CreatingServingRuntimeObject,

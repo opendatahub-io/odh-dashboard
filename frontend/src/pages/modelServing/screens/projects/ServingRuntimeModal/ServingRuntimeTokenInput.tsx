@@ -26,7 +26,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
   data,
   setData,
   token,
-  disabled
+  disabled,
 }) => {
   const checkDuplicates = (name: string): boolean => {
     const duplicates = data.tokens.filter(

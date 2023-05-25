@@ -15,8 +15,6 @@ import IndentSection from '~/pages/projects/components/IndentSection';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { useAccessReview } from '~/api';
 
 type ServingRuntimeTokenSectionProps = {
   data: CreatingServingRuntimeObject;
@@ -67,16 +65,23 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
         />
       </FormGroup>
 
+      {!allowCreate && (
+        <Alert variant="warning" isInline title="You need admin permission to edit this section." />
+      )}
+
       {data.tokenAuth && (
         <IndentSection>
           <Stack hasGutter>
-            <StackItem>
-              <Alert
-                variant="info"
-                isInline
-                title="The actual tokens will be created and displayed when the model server is configured."
-              />
-            </StackItem>
+            {allowCreate && (
+              <StackItem>
+                <Alert
+                  variant="info"
+                  isInline
+                  title="The actual tokens will be created and displayed when the model server is configured."
+                />
+              </StackItem>
+            )}
+
             {data.tokens.map((token) => (
               <StackItem key={token.uuid}>
                 <ServingRuntimeTokenInput

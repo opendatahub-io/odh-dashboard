@@ -32,11 +32,9 @@ import {
   requestsUnderLimits,
   resourcesArePositive,
   setUpTokenAuth,
-  createSecrets,
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
@@ -131,15 +129,28 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
 
     Promise.all<ServingRuntimeKind | string | void>([
-      createServingRuntime(
-        servingRuntimeData,
-        namespace,
-        servingRuntimeSelected,
-        customServingRuntimesEnabled,
-        {
-          dryRun: true,
-        },
-      ),
+      ...(editInfo?.servingRuntime
+        ? [
+            updateServingRuntime(
+              servingRuntimeData,
+              editInfo?.servingRuntime,
+              customServingRuntimesEnabled,
+              {
+                dryRun: true,
+              },
+            ),
+          ]
+        : [
+            createServingRuntime(
+              servingRuntimeData,
+              namespace,
+              servingRuntimeSelected,
+              customServingRuntimesEnabled,
+              {
+                dryRun: true,
+              },
+            ),
+          ]),
       setUpTokenAuth(
         servingRuntimeData,
         servingRuntimeName,
@@ -153,15 +164,25 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     ])
       .then(() =>
         Promise.all<ServingRuntimeKind | string | void>([
-          ...(currentProject.metadata.labels?.['modelmesh-enabled']
+          ...(currentProject.metadata.labels?.['modelmesh-enabled'] && allowCreate
             ? [addSupportModelMeshProject(currentProject.metadata.name)]
             : []),
-          createServingRuntime(
-            servingRuntimeData,
-            namespace,
-            servingRuntimeSelected,
-            customServingRuntimesEnabled,
-          ),
+          ...(editInfo?.servingRuntime
+            ? [
+                updateServingRuntime(
+                  servingRuntimeData,
+                  editInfo?.servingRuntime,
+                  customServingRuntimesEnabled,
+                ),
+              ]
+            : [
+                createServingRuntime(
+                  servingRuntimeData,
+                  namespace,
+                  servingRuntimeSelected,
+                  customServingRuntimesEnabled,
+                ),
+              ]),
           setUpTokenAuth(
             servingRuntimeData,
             servingRuntimeName,
