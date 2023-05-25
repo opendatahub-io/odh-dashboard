@@ -33,7 +33,6 @@ import {
   resourcesArePositive,
   setUpTokenAuth,
   createSecrets,
-  isTokenAuthCreated,
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
@@ -129,81 +128,59 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       gpus: isGpuDisabled(servingRuntimeSelected) ? 0 : createData.gpus,
     };
     const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
+    const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
 
-    setUpTokenAuth(servingRuntimeData, servingRuntimeName, namespace, editInfo?.secrets).then(() => {
-      setErrorModal(new Error('it worked'));
-    }).catch((e) => {
-      setErrorModal(e);
-    });
-
-    // if (!allowCreate) {
-    //   createServingRuntime(
-    //     servingRuntimeData,
-    //     namespace,
-    //     servingRuntimeSelected,
-    //     customServingRuntimesEnabled,
-    //     {
-    //       dryRun: true,
-    //     },
-    //   )
-    //     .then(() =>
-    //       createServingRuntime(
-    //         servingRuntimeData,
-    //         namespace,
-    //         servingRuntimeSelected,
-    //         customServingRuntimesEnabled,
-    //       )
-    //         .then(() => {
-    //           setActionInProgress(false);
-    //           onBeforeClose(true);
-    //         })
-    //         .catch((e) => {
-    //           setErrorModal(e);
-    //         }),
-    //     )
-    //     .catch((e) => {
-    //       setErrorModal(e);
-    //     });
-    // } else {
-    //   Promise.all<ServingRuntimeKind | string | void>([
-    //     createServingRuntime(
-    //       servingRuntimeData,
-    //       namespace,
-    //       servingRuntimeSelected,
-    //       customServingRuntimesEnabled,
-    //       {
-    //         dryRun: true,
-    //       },
-    //     ),
-    //     setUpTokenAuth(servingRuntimeData, servingRuntimeName, namespace, editInfo?.secrets, {
-    //       dryRun: true,
-    //     }),
-    //   ])
-    //     .then(() =>
-    //       Promise.all<ServingRuntimeKind | string | void>([
-    //         ...(currentProject.metadata.labels?.['modelmesh-enabled']
-    //           ? [addSupportModelMeshProject(currentProject.metadata.name)]
-    //           : []),
-    //         createServingRuntime(
-    //           servingRuntimeData,
-    //           namespace,
-    //           servingRuntimeSelected,
-    //           customServingRuntimesEnabled,
-    //         ),
-    //         setUpTokenAuth(servingRuntimeData, servingRuntimeName, namespace, editInfo?.secrets),
-    //       ])
-    //         .then(() => {
-    //           setActionInProgress(false);
-    //           onBeforeClose(true);
-    //         })
-    //         .catch((e) => {
-    //           setErrorModal(e);
-    //         }),
-    //     )
-    //     .catch((e) => {
-    //       setErrorModal(e);
-    //     });
-    // }
+    Promise.all<ServingRuntimeKind | string | void>([
+      createServingRuntime(
+        servingRuntimeData,
+        namespace,
+        servingRuntimeSelected,
+        customServingRuntimesEnabled,
+        {
+          dryRun: true,
+        },
+      ),
+      setUpTokenAuth(
+        servingRuntimeData,
+        servingRuntimeName,
+        namespace,
+        createRolebinding,
+        editInfo?.secrets,
+        {
+          dryRun: true,
+        },
+      ),
+    ])
+      .then(() =>
+        Promise.all<ServingRuntimeKind | string | void>([
+          ...(currentProject.metadata.labels?.['modelmesh-enabled']
+            ? [addSupportModelMeshProject(currentProject.metadata.name)]
+            : []),
+          createServingRuntime(
+            servingRuntimeData,
+            namespace,
+            servingRuntimeSelected,
+            customServingRuntimesEnabled,
+          ),
+          setUpTokenAuth(
+            servingRuntimeData,
+            servingRuntimeName,
+            namespace,
+            createRolebinding,
+            editInfo?.secrets,
+          ),
+        ])
+          .then(() => {
+            setActionInProgress(false);
+            onBeforeClose(true);
+          })
+          .catch((e) => {
+            setErrorModal(e);
+          }),
+      )
+      .catch((e) => {
+        setErrorModal(e);
+      });
   };
 
   return (
