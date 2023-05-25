@@ -37,7 +37,7 @@
     "test:type-check": "tsc --noEmit",
     "test:storybook": "test-storybook --verbose",
     "test:storybook-ci": "npx concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npm run build:storybook --quiet && npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:127.0.0.1:6006 && npm run test:storybook\"",
-    "storybook": "storybook dev -p 4010 -s ../config"
+    "storybook": "storybook dev -p 6006 -s ../config"
   },
   "dependencies": {
     "@openshift/dynamic-plugin-sdk": "^3.0.0",
@@ -117,18 +117,17 @@
     "webpack-merge": "^5.2.0"
   },
   "optionalDependencies": {
-    "storybook": "^7.0.12",
     "@babel/preset-env": "^7.21.5",
     "@babel/preset-react": "^7.18.6",
     "@babel/preset-typescript": "^7.21.5",
-    "@storybook/addon-a11y": "^7.0.12",
-    "@storybook/addon-actions": "^7.0.12",
-    "@storybook/addon-essentials": "^7.0.12",
-    "@storybook/addon-interactions": "^7.0.12",
-    "@storybook/addon-links": "^7.0.12",
+    "@storybook/addon-a11y": "^7.0.17",
+    "@storybook/addon-actions": "^7.0.17",
+    "@storybook/addon-essentials": "^7.0.17",
+    "@storybook/addon-interactions": "^7.0.17",
+    "@storybook/addon-links": "^7.0.17",
     "@storybook/jest": "0.1.0",
-    "@storybook/react": "^7.0.12",
-    "@storybook/react-webpack5": "^7.0.12",
+    "@storybook/react": "^7.0.17",
+    "@storybook/react-webpack5": "^7.0.17",
     "@storybook/test-runner": "^0.10.0",
     "@storybook/testing-library": "0.1.0",
     "@testing-library/dom": "^8.13.0",
@@ -152,7 +151,8 @@
     "msw-storybook-addon": "^1.8.0",
     "npm-run-all": "^4.1.5",
     "playwright": "^1.31.2",
-    "storybook-addon-react-router-v6": "^0.3.4",
+    "storybook": "^7.0.17",
+    "storybook-addon-react-router-v6": "^0.3.6",
     "ts-jest": "^28.0.8"
   },
   "overrides": {

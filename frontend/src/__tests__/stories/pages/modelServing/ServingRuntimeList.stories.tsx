@@ -20,10 +20,9 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import useDetectUser from '~/utilities/useDetectUser';
 import { fetchDashboardConfig } from '~/services/dashboardConfigService';
-import ServingRuntimeList from './ServingRuntimeList';
+import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
 
 export default {
-  title: 'ServingRuntimeList',
   component: ServingRuntimeList,
   parameters: {
     reactRouter: {

@@ -11,10 +11,9 @@ import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8s
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
-import ModelServingGlobal from './ModelServingGlobal';
+import ModelServingGlobal from '~/pages/modelServing/screens/global/ModelServingGlobal';
 
 export default {
-  title: 'ModelServingGlobal',
   component: ModelServingGlobal,
   parameters: {
     msw: {

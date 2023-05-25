@@ -1,8 +1,6 @@
 const path = require('path');
-const { merge } = require('webpack-merge');
-const webpackDev = require('../config/webpack.dev.js');
 
-module.exports = merge(webpackDev, {
+module.exports = {
   features: {
     interactionsDebugger: true,
   },
@@ -37,4 +35,4 @@ module.exports = merge(webpackDev, {
   docs: {
     autodocs: false,
   },
-});
+};

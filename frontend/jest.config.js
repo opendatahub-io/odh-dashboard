@@ -2,6 +2,8 @@
 // https://jestjs.io/docs/en/configuration.html
 
 module.exports = {
+  testMatch: ['**/__tests__/unit/**/*.ts'],
+
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 

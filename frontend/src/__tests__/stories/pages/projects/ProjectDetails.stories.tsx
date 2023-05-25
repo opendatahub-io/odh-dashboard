@@ -19,7 +19,7 @@ import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import ProjectDetails from './ProjectDetails';
+import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
   rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
@@ -89,7 +89,6 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
 ];
 
 export default {
-  title: 'ProjectDetails',
   component: ProjectDetails,
   parameters: {
     reactRouter: {
@@ -115,7 +114,6 @@ const Template: StoryFn<typeof ProjectDetails> = (args) => {
 
 export const Default = {
   render: Template,
-
   play: async ({ canvasElement }) => {
     // load page and wait until settled
     const canvas = within(canvasElement);
@@ -133,7 +131,6 @@ export const EmptyDetailsPage = {
   render: Template,
 
   parameters: {
-    ...EmptyDetailsPage.parameters,
     msw: {
       handlers: handlers(true),
     },

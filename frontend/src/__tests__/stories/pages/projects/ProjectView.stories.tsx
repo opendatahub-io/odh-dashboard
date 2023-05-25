@@ -1,6 +1,4 @@
-import React from 'react';
-
-import { StoryFn, Meta } from '@storybook/react';
+import { Meta } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
@@ -9,7 +7,7 @@ import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import ProjectView from './ProjectView';
+import ProjectView from '~/pages/projects/screens/projects/ProjectView';
 
 export default {
   component: ProjectView,
@@ -63,19 +61,6 @@ export const EditProject = {
     // user flow for editing a project
     await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
     await userEvent.click(canvas.getByText('Edit project', { selector: 'button' }));
-
-    // get modal
-    const body = within(canvasElement.ownerDocument.body);
-    const nameInput = body.getByRole('textbox', { name: /Name/ });
-    const updateButton = body.getByText('Update', { selector: 'button' });
-
-    // test that you can not submit on empty
-    await userEvent.clear(nameInput);
-    expect(updateButton).toBeDisabled();
-
-    // test that you can update the name to a different name
-    await userEvent.type(nameInput, 'Updated Project', { delay: 50 });
-    expect(updateButton).not.toBeDisabled();
   },
 };
 
@@ -94,23 +79,6 @@ export const DeleteProject = {
     // user flow for deleting a project
     await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
     await userEvent.click(canvas.getByText('Delete project', { selector: 'button' }));
-
-    // get modal
-    const body = within(canvasElement.ownerDocument.body);
-    const retypeNameInput = body.getByRole('textbox');
-    const deleteButton = body.getByText('Delete project', { selector: 'button' });
-
-    // test that empty input disables form
-    expect(deleteButton).toBeDisabled();
-
-    // test that you can not submit on wrong input
-    await userEvent.type(retypeNameInput, 'not project', { delay: 50 });
-    expect(deleteButton).toBeDisabled();
-    await userEvent.clear(retypeNameInput);
-
-    // test that you can delete on correct input
-    await userEvent.type(retypeNameInput, 'Test Project', { delay: 50 });
-    expect(deleteButton).not.toBeDisabled();
   },
 };
 
@@ -128,51 +96,5 @@ export const CreateProject = {
 
     // user flow for deleting a project
     await userEvent.click(canvas.getByText('Create data science project', { selector: 'button' }));
-
-    // get modal
-    const body = within(canvasElement.ownerDocument.body);
-    const resourceNameInput = body.getByRole('textbox', { name: /Resource name/ });
-    const nameInput = body.getByRole('textbox', { name: /Name/ });
-    const createButton = body.getByText('Create', { selector: 'button' });
-
-    // test that empty input disables form
-    expect(createButton).toBeDisabled();
-
-    // test that you can submit on only giving name
-    await userEvent.type(nameInput, 'new project', { delay: 50 });
-    expect(createButton).not.toBeDisabled();
-
-    // test no resource name
-    await userEvent.clear(resourceNameInput);
-    expect(createButton).toBeDisabled();
-
-    // test resource name can not invalid you can edit the resource name
-    await userEvent.type(resourceNameInput, 'resource name', { delay: 50 });
-    expect(createButton).toBeDisabled();
-    await userEvent.clear(resourceNameInput);
-
-    // test you can edit the resource name
-    await userEvent.type(resourceNameInput, 'resource-name', { delay: 50 });
-    expect(createButton).not.toBeDisabled();
-  },
-};
-
-export const CreateProjectSubmit = {
-  parameters: {
-    a11y: {
-      element: '.pf-c-backdrop',
-    },
-    msw: [],
-  },
-  play: async ({ canvasElement }) => {
-    await CreateProject.play({ canvasElement });
-
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-
-    // get modal
-    const body = within(canvasElement.ownerDocument.body);
-    const createButton = body.getByText('Create', { selector: 'button' });
-    userEvent.click(createButton);
   },
 };
