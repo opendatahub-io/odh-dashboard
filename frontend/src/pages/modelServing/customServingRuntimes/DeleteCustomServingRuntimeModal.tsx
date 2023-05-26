@@ -1,7 +1,7 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { TemplateKind } from '~/k8sTypes';
-import { deleteTemplate } from '~/api';
+import { deleteTemplateBackend } from '~/services/templateService';
 import { getServingRuntimeDisplayNameFromTemplate } from './utils';
 
 type DeleteCustomServingRuntimeModalProps = {
@@ -35,7 +35,8 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
       onDelete={() => {
         if (template) {
           setIsDeleting(true);
-          deleteTemplate(template.metadata.name, template.metadata.namespace)
+          // TODO: Revert back to pass through api once we migrate admin panel
+          deleteTemplateBackend(template.metadata.name, template.metadata.namespace)
             .then(() => {
               onBeforeClose(true);
             })
