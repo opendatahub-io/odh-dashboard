@@ -1,28 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-const testInvalidResourceName = async (page, resourceName, buttonName) => {
-  await page.getByLabel(resourceName).fill('test project');
-  await expect(page.getByRole('button', { name: buttonName })).toBeDisabled();
-
-  await page.getByLabel(resourceName).fill('test_project');
-  await expect(page.getByRole('button', { name: buttonName })).toBeDisabled();
-
-  await page.getByLabel(resourceName).fill('-test-project-');
-  await expect(page.getByRole('button', { name: buttonName })).toBeDisabled();
-
-  await page.getByLabel(resourceName).fill('123test-project123');
-  await expect(page.getByRole('button', { name: buttonName })).toBeEnabled();
-
-  await page.getByLabel(resourceName).fill('%^&test-project@#$');
-  await expect(page.getByRole('button', { name: buttonName })).toBeDisabled();
-
-  await page.getByLabel(resourceName).fill('test.project');
-  await expect(page.getByRole('button', { name: buttonName })).toBeDisabled();
-
-  await page.getByLabel(resourceName).fill('test-project');
-  await expect(page.getByRole('button', { name: buttonName })).toBeEnabled();
-};
-
 test('Create project', async ({ page }) => {
   await page.goto(
     'http://localhost:6006/iframe.html?id=tests-stories-pages-projects-projectview--create-project&viewMode=story',
@@ -39,7 +16,26 @@ test('Create project', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
 
   // Test invalid resource name
-  await testInvalidResourceName(page, 'Resource name *', 'Create');
+  await page.getByLabel('Resource name *').fill('test project');
+  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+
+  await page.getByLabel('Resource name *').fill('test_project');
+  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+
+  await page.getByLabel('Resource name *').fill('-test-project-');
+  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+
+  await page.getByLabel('Resource name *').fill('123test-project123');
+  await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
+
+  await page.getByLabel('Resource name *').fill('%^&test-project@#$');
+  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+
+  await page.getByLabel('Resource name *').fill('test.project');
+  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+
+  await page.getByLabel('Resource name *').fill('test-project');
+  await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
 
   // Test incomplete form
   await page.getByLabel('Name *', { exact: true }).fill('');
@@ -66,5 +62,25 @@ test('Edit project', async ({ page }) => {
   // Test that can submit on valid form
   await expect(page.getByRole('button', { name: 'Update' })).toBeEnabled();
 
-  // Test invalid resource name
+  // Test incomplete form
+  await page.getByLabel('Name *', { exact: true }).fill('');
+  await expect(page.getByRole('button', { name: 'Update' })).toBeDisabled();
+
+  await page.getByLabel('Name *', { exact: true }).fill('New Name');
+  await expect(page.getByRole('button', { name: 'Update' })).toBeEnabled();
+});
+
+test('Delete project', async ({ page }) => {
+  await page.goto(
+    'http://localhost:6006/iframe.html?id=tests-stories-pages-projects-projectview--delete-project&viewMode=story',
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Delete project?');
+
+  // Test that can submit on valid form
+  await expect(page.getByRole('button', { name: 'Delete project' })).toBeDisabled();
+
+  await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Test Project');
+  await expect(page.getByRole('button', { name: 'Delete project' })).toBeEnabled();
 });

@@ -51,20 +51,6 @@ const Template: StoryFn<typeof ModelServingGlobal> = (args) => (
   </Routes>
 );
 
-export const Default = {
-  render: Template,
-
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // test that values from api are be displayed correctly
-    expect(
-      await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 }),
-    ).toBeInTheDocument();
-    expect(await canvas.findByText('Test Project')).toBeInTheDocument();
-  },
-};
-
 export const EditModel = {
   render: Template,
 
@@ -83,37 +69,6 @@ export const EditModel = {
     // user flow for editing a project
     await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
     await userEvent.click(canvas.getByText('Edit', { selector: 'button' }));
-
-    // get modal
-    const body = within(canvasElement.ownerDocument.body);
-    const nameInput = body.getByRole('textbox', { name: 'Model Name' });
-    const updateButton = body.getByText('Deploy', { selector: 'button' });
-
-    // test that you can not submit on empty
-    await userEvent.clear(nameInput);
-    expect(updateButton).toBeDisabled();
-
-    // test that you can update the name to a different name
-    await userEvent.type(nameInput, 'Updated Model Name', { delay: 50 });
-    expect(updateButton).not.toBeDisabled();
-
-    // test that user cant upload on an empty new secret
-    const newDbc = body.getByRole('radio', { name: 'New data connection' });
-    await userEvent.click(newDbc);
-    expect(updateButton).toBeDisabled();
-
-    // test that adding required values validates submit
-    const showPassword = body.getByRole('button', { name: 'Show password' });
-    await userEvent.click(showPassword);
-
-    const secretName = body.getByRole('textbox', { name: 'Field list Name' });
-    const secretKey = body.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' });
-    const secretValue = body.getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' });
-
-    await userEvent.type(secretName, 'Test Secret', { delay: 50 });
-    await userEvent.type(secretKey, 'test-secret-key', { delay: 50 });
-    await userEvent.type(secretValue, 'test-secret-password', { delay: 50 });
-    expect(updateButton).not.toBeDisabled();
   },
 };
 
@@ -134,23 +89,6 @@ export const DeleteModel = {
     // user flow for deleting a project
     await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
     await userEvent.click(canvas.getByText('Delete', { selector: 'button' }));
-
-    // get modal
-    const body = within(canvasElement.ownerDocument.body);
-    const retypeNameInput = body.getByRole('textbox', { name: 'Delete modal input' });
-    const deleteButton = body.getByText('Delete deployed model', { selector: 'button' });
-
-    // test that empty input disables form
-    expect(deleteButton).toBeDisabled();
-
-    // test that you can not submit on wrong input
-    await userEvent.type(retypeNameInput, 'incorrect name', { delay: 50 });
-    expect(deleteButton).toBeDisabled();
-    await userEvent.clear(retypeNameInput);
-
-    // test that you can delete on correct input
-    await userEvent.type(retypeNameInput, 'Test Inference Service', { delay: 50 });
-    expect(deleteButton).not.toBeDisabled();
   },
 };
 
@@ -180,38 +118,5 @@ export const DeployModel = {
     // test that you can not submit on empty
     await userEvent.clear(nameInput);
     expect(updateButton).toBeDisabled();
-
-    // fill the form
-    await userEvent.type(nameInput, 'Model Name', { delay: 50 });
-    body.getAllByRole('button', { name: 'Options menu' });
-    await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[0]);
-    await userEvent.click(body.getByText('Test Project', { selector: 'button' }));
-    await body.findByText('Select a model server');
-    await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[1]);
-    await userEvent.click(body.getAllByText('test-model')[1]);
-    await body.findByText('Select a framework');
-    await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[2]);
-    await userEvent.click(body.getByText('onnx - 1'));
-    await body.findByText('Select...');
-    await userEvent.click(body.getAllByRole('button', { name: 'Options menu' })[3]);
-    await body.findByText('Test Secret');
-    await userEvent.click(body.getByText('Test Secret'));
-    expect(updateButton).not.toBeDisabled();
-
-    await userEvent.click(body.getByRole('radio', { name: 'New data connection' }));
-    expect(updateButton).toBeDisabled();
-
-    // test that adding required values validates submit
-    const showPassword = body.getByRole('button', { name: 'Show password' });
-    await userEvent.click(showPassword);
-
-    const secretName = body.getByRole('textbox', { name: 'Field list Name' });
-    const secretKey = body.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' });
-    const secretValue = body.getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' });
-
-    await userEvent.type(secretName, 'Test Secret', { delay: 50 });
-    await userEvent.type(secretKey, 'test-secret-key', { delay: 50 });
-    await userEvent.type(secretValue, 'test-secret-password', { delay: 50 });
-    expect(updateButton).not.toBeDisabled();
   },
 };

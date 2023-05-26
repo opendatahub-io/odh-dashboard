@@ -40,6 +40,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
     <FormGroup label="Model framework" isRequired>
       <Select
         removeFindDomNode
+        toggleId="inference-service-framework-selection"
         id="inference-service-framework-selection"
         isOpen={isOpen}
         placeholderText={

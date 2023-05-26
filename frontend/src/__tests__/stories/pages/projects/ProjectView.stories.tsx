@@ -1,7 +1,6 @@
 import { Meta } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
-import { expect } from '@storybook/jest';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
@@ -32,18 +31,6 @@ export default {
     },
   },
 } as Meta<typeof ProjectView>;
-
-export const Default = {
-  play: async ({ canvasElement }) => {
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-    await canvas.findByText('Test Project', undefined, { timeout: 5000 });
-
-    // test that values from api are be displayed correctly
-    expect(await canvas.findByText('Test Project', { selector: 'a' })).toBeInTheDocument();
-    expect(await canvas.findByText('test-user')).toBeInTheDocument();
-  },
-};
 
 export const EditProject = {
   parameters: {

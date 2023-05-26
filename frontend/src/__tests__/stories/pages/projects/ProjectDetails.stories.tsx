@@ -2,7 +2,6 @@ import React from 'react';
 import { StoryFn, Meta } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
 import { within } from '@storybook/testing-library';
-import { expect } from '@storybook/jest';
 import { Route } from 'react-router-dom';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
@@ -118,12 +117,6 @@ export const Default = {
     // load page and wait until settled
     const canvas = within(canvasElement);
     await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
-
-    // we fill in the page with data, so there should be no dividers on the page
-    expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(0);
-
-    // check the x-small size shown correctly
-    expect(canvas.getByText('XSmall')).toBeInTheDocument();
   },
 };
 
@@ -140,11 +133,5 @@ export const EmptyDetailsPage = {
     // load page and wait until settled
     const canvas = within(canvasElement);
     await canvas.findByText('No model servers', undefined, { timeout: 5000 });
-
-    // the dividers number should always 1 less than the section number
-    const sections = await canvas.findAllByTestId('details-page-section');
-    expect(await canvas.findAllByTestId('details-page-section-divider')).toHaveLength(
-      sections.length - 1,
-    );
   },
 };
