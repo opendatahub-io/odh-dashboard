@@ -9,7 +9,7 @@ export const listTemplatesBackend = async (
   labelSelector?: string,
 ): Promise<TemplateKind[]> =>
   axios
-    .get(`/api/templates/${namespace}`, { params: labelSelector })
+    .get(`/api/templates/${namespace}`, { params: { labelSelector } })
     .then((response) => response.data.items)
     .catch((e) => Promise.reject(e));
 
