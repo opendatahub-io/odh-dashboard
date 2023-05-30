@@ -3,6 +3,7 @@ import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { deleteProject } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
@@ -10,6 +11,7 @@ type DeleteProjectModalProps = {
 };
 
 const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onClose }) => {
+  const { refresh } = React.useContext(ProjectsContext);
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -32,6 +34,7 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
         if (deleteData) {
           setDeleting(true);
           deleteProject(deleteData?.metadata.name)
+            .then(() => refresh())
             .then(() => onBeforeClose(true))
             .catch((e) => {
               onBeforeClose(false);

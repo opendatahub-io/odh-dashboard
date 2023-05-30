@@ -19,8 +19,7 @@ type ProjectListViewProps = {
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
-  const { projects: unfilteredProjects, refresh: refreshProjects } =
-    React.useContext(ProjectsContext);
+  const { projects: unfilteredProjects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -109,26 +108,27 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
       />
       <ManageProjectModal
         open={!!editData}
-        onClose={() => {
+        onClose={(newProjectName) => {
+          if (newProjectName) {
+            navigate(`/projects/${newProjectName}`);
+            return;
+          }
+
           const refreshId = editData?.metadata.uid;
           if (refreshId) {
             setRefreshIds((otherIds) => [...otherIds, refreshId]);
           }
+
           setEditData(undefined);
 
-          refreshProjects().then(() =>
-            setRefreshIds((ids) => ids.filter((id) => id !== refreshId)),
-          );
+          setRefreshIds((ids) => ids.filter((id) => id !== refreshId));
         }}
         editProjectData={editData}
       />
       <DeleteProjectModal
         deleteData={deleteData}
-        onClose={(deleted) => {
+        onClose={() => {
           setDeleteData(undefined);
-          if (deleted) {
-            refreshProjects();
-          }
         }}
       />
     </>
