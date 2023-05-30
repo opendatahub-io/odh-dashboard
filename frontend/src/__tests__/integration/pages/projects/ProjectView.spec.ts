@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Create project', async ({ page }) => {
   await page.goto(
-    'http://localhost:6006/iframe.html?id=tests-stories-pages-projects-projectview--create-project&viewMode=story',
+    '/iframe.html?id=tests-integration-pages-projects-projectview--create-project&viewMode=story',
   );
 
   // wait for page to load
@@ -53,7 +53,7 @@ test('Create project', async ({ page }) => {
 
 test('Edit project', async ({ page }) => {
   await page.goto(
-    'http://localhost:6006/iframe.html?id=tests-stories-pages-projects-projectview--edit-project&viewMode=story',
+    '/iframe.html?id=tests-integration-pages-projects-projectview--edit-project&viewMode=story',
   );
 
   // wait for page to load
@@ -72,7 +72,7 @@ test('Edit project', async ({ page }) => {
 
 test('Delete project', async ({ page }) => {
   await page.goto(
-    'http://localhost:6006/iframe.html?id=tests-stories-pages-projects-projectview--delete-project&viewMode=story',
+    '/iframe.html?id=tests-integration-pages-projects-projectview--delete-project&viewMode=story',
   );
 
   // wait for page to load

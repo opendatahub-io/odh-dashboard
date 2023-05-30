@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Delete model', async ({ page }) => {
   await page.goto(
-    'http://localhost:6006/iframe.html?args=&id=tests-stories-pages-modelserving-modelservingglobal--delete-model&viewMode=story',
+    '/iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--delete-model&viewMode=story',
   );
 
   // wait for page to load
@@ -17,7 +17,7 @@ test('Delete model', async ({ page }) => {
 
 test('Edit model', async ({ page }) => {
   await page.goto(
-    'http://localhost:6006/iframe.html?args=&id=tests-stories-pages-modelserving-modelservingglobal--edit-model&viewMode=story',
+    '/iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--edit-model&viewMode=story',
   );
 
   // wait for page to load
@@ -46,7 +46,7 @@ test('Edit model', async ({ page }) => {
 
 test('Create model', async ({ page }) => {
   await page.goto(
-    'http://localhost:6006/iframe.html?args=&id=tests-stories-pages-modelserving-modelservingglobal--deploy-model&viewMode=story',
+    '/iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--deploy-model&viewMode=story',
   );
 
   // wait for page to load

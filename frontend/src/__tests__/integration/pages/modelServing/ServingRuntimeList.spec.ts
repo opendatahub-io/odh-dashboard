@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Deploy model', async ({ page }) => {
   await page.goto(
-    'http://localhost:6006/iframe.html?args=&id=tests-stories-pages-modelserving-servingruntimelist--deploy-model&viewMode=story',
+    '/iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--deploy-model&viewMode=story',
   );
 
   // wait for page to load

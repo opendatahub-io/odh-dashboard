@@ -1,7 +1,7 @@
 name: 'Storybook Interaction and Accessibility Tests'
 on: pull_request
 jobs:
-  test:
+  accessibility-tests:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:

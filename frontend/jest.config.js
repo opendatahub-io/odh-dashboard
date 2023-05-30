@@ -7,23 +7,6 @@ module.exports = {
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 
-  // Indicates whether the coverage information should be collected while executing the test
-  collectCoverage: false,
-
-  // The directory where Jest should output its coverage files
-  coverageDirectory: 'coverage',
-
-  coverageThreshold: {
-    global: {
-      branches: 0,
-      functions: 0,
-      lines: 0,
-      statements: 0,
-    },
-  },
-
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
-
   // An array of directory names to be searched recursively up from the requiring module's location
   moduleDirectories: ['node_modules', '<rootDir>/src'],
 
