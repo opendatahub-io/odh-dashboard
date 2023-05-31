@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Empty project', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-projects-projectdetails--empty-details-page&viewMode=story',
+    './iframe.html?args=&id=tests-integration-pages-projects-projectdetails--empty-details-page&viewMode=story',
   );
 
   // wait for page to load
@@ -17,7 +17,7 @@ test('Empty project', async ({ page }) => {
 
 test('Non-empty project', async ({ page }) => {
   await page.goto(
-    '/iframe.html?id=tests-integration-pages-projects-projectdetails--default&viewMode=story',
+    './iframe.html?id=tests-integration-pages-projects-projectdetails--default&viewMode=story',
   );
 
   // wait for page to load

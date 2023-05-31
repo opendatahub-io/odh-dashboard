@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/projects');
+  await page.goto('./projects');
   const projectTestRow = await page.locator('tr', { has: page.locator('text="e2e-test-project"') });
   const count = await projectTestRow.count();
   if (count > 0) {
@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async ({ page }) => {
-  await page.goto('/projects');
+  await page.goto('./projects');
   const projectTestRow = await page.locator('tr', { has: page.locator('text="e2e-test-project"') });
   const count = await projectTestRow.count();
   if (count > 0) {
@@ -25,7 +25,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test('Create, edit, and delete a project', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('');
 
   // create project
   await page.getByRole('link', { name: 'Data Science Projects' }).click();
