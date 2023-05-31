@@ -9,7 +9,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { FetchState } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -18,11 +18,13 @@ import { RenderContentList, combineRunsByColumn } from './expandedRowRenderUtils
 type PipelinesTableExpandedRowProps = {
   isExpanded: boolean;
   runsFetchState: FetchState<PipelineRunKF[]>;
+  pipeline: PipelineKF;
 };
 
 const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
   isExpanded,
   runsFetchState,
+  pipeline,
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
@@ -56,7 +58,11 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
                 <EmptyStateSecondaryActions>
                   <Button
                     variant="link"
-                    onClick={() => navigate(`/pipelines/${namespace}/pipelineRun/create`)}
+                    onClick={() =>
+                      navigate(`/pipelines/${namespace}/pipelineRun/create`, {
+                        state: { lastPipeline: pipeline },
+                      })
+                    }
                   >
                     Create run
                   </Button>

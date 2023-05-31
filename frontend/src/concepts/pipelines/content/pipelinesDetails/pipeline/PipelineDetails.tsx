@@ -66,7 +66,9 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               empty={false}
               loaded={pipelineLoad && pipelineTemplateLoaded}
               loadError={pipelineLoadError && templateLoadError}
-              headerAction={<PipelineDetailsActions onDelete={() => setDeleting(true)} />}
+              headerAction={
+                <PipelineDetailsActions onDelete={() => setDeleting(true)} pipeline={pipeline} />
+              }
             >
               <Tabs
                 style={{ flexShrink: 0 }}
