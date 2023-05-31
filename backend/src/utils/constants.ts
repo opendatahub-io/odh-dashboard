@@ -52,7 +52,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableProjectSharing: false,
       disableCustomServingRuntimes: false,
       modelMetricsNamespace: '',
-      disablePipelines: true,
+      disablePipelines: false,
     },
     notebookController: {
       enabled: true,
