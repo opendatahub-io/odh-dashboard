@@ -18,7 +18,7 @@ const useTrustyAPIRoute = (hasCR: boolean, namespace: string): FetchState<State>
 
       //TODO: API URI must use HTTPS before release.
       return getTrustyAIAPIRoute(namespace, opts)
-        .then((result: RouteKind) => `http://${result.spec.host}`)
+        .then((result: RouteKind) => `${result.spec.port.targetPort}://${result.spec.host}`)
         .catch((e) => {
           if (e.statusObject?.code === 404) {
             // Not finding is okay, not an error
