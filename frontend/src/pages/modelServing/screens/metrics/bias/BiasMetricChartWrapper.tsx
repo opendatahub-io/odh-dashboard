@@ -9,19 +9,12 @@ type BiasMetricChartWrapperProps = {
 
 //TODO
 // * Format title properly
-// * Implement hider dropdown
 const BiasMetricsChartWrapper: React.FC<BiasMetricChartWrapperProps> = ({ children, name }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   const onToggle = (isExpanded: boolean) => {
     setIsExpanded(isExpanded);
   };
-
-  // return (
-  //   <ExpandableSection toggleText={isExpanded ? 'Show less' : 'Show more'} onToggle={onToggle} isExpanded={isExpanded}>
-  //     This content is visible only when the component is expanded.
-  //   </ExpandableSection>
-  // );
 
   return (
     <ExpandableSection toggleContent={<h2>{name}</h2>} onToggle={onToggle} isExpanded={isExpanded}>
@@ -31,8 +24,3 @@ const BiasMetricsChartWrapper: React.FC<BiasMetricChartWrapperProps> = ({ childr
 };
 
 export default BiasMetricsChartWrapper;
-
-// <>
-//   <p>&gt; {name}</p>
-//   {children}
-// </>
