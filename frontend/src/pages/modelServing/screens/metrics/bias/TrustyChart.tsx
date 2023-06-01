@@ -1,8 +1,6 @@
 import React from 'react';
-import { Stack, ToolbarContent, ToolbarItem, Tooltip } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Stack } from '@patternfly/react-core';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import ScheduledMetricSelect from '~/pages/modelServing/screens/metrics/bias/ScheduledMetricSelect';
 import {
   InferenceMetricType,
   ModelServingMetricsContext,
@@ -16,45 +14,72 @@ export type TrustyChartProps = {
   tooltip?: React.ReactElement<typeof Stack>;
   thresholds: [number, number];
   domain: DomainCalculator;
-  type?: MetricsChartTypes;
+  id: string;
 };
 
 const TrustyChart: React.FC<TrustyChartProps> = ({
   title,
   abbreviation,
   metricType,
-  tooltip,
   thresholds,
   domain,
-  type = MetricsChartTypes.AREA,
+  id,
 }) => {
   const THRESHOLD_COLOR = 'red';
   const { data } = React.useContext(ModelServingMetricsContext);
-  const [selectedPayloadName, setSelectedPayloadName] = React.useState<string>();
+  // const [selectedPayloadName, setSelectedPayloadName] = React.useState<string>();
+  //
+  // const metricData = data[metricType].data;
+  //
+  // //TODO: Fix this. This is a short term hack to add a property that will be provided by TrustyAI by release time.
+  // metricData.forEach((x, i) => {
+  //   if (!x.metric?.requestName) {
+  //     x.metric.requestName = `Payload ${i}`;
+  //   }
+  // });
+  //
+  // React.useEffect(() => {
+  //   if (!selectedPayloadName) {
+  //     setSelectedPayloadName(metricData[0]?.metric?.requestName);
+  //   }
+  // }, [selectedPayloadName, metricData]);
+  //
+  // const payloadOptions: string[] = metricData.map((payload) => payload.metric.requestName);
+  //
+  // const selectedPayload = metricData.find((x) => x.metric.requestName === selectedPayloadName);
 
-  const metricData = data[metricType].data;
+  // data[metricType].data
+  //
+  // const chartData = React.useMemo(() => {
+  //   const
+  // },[]);
 
-  //TODO: Fix this. This is a short term hack to add a property that will be provided by TrustyAI by release time.
-  metricData.forEach((x, i) => {
-    if (!x.metric?.requestName) {
-      x.metric.requestName = `Payload ${i}`;
-    }
-  });
+  const metric = React.useMemo(() => {
+    const metricData = data[metricType].data;
 
-  React.useEffect(() => {
-    if (!selectedPayloadName) {
-      setSelectedPayloadName(metricData[0]?.metric?.requestName);
-    }
-  }, [selectedPayloadName, metricData]);
+    const values = metricData.find((x) => x.metric.request === id)?.values;
 
-  const payloadOptions: string[] = metricData.map((payload) => payload.metric.requestName);
+    // const values = [];
+    return {
+      ...data[metricType],
+      data: values,
+    };
+  }, [data, id, metricType]);
 
-  const selectedPayload = metricData.find((x) => x.metric.requestName === selectedPayloadName);
+  // const metric = {
+  //   ...data[metricType],
+  //   data: selectedPayload?.values,
+  // };
+  //
+  // const
 
-  const metric = {
-    ...data[metricType],
-    data: selectedPayload?.values,
-  };
+  let type;
+
+  if (metricType === InferenceMetricType.TRUSTY_AI_SPD) {
+    type = MetricsChartTypes.AREA;
+  } else {
+    type = MetricsChartTypes.LINE;
+  }
 
   return (
     <MetricsChart
