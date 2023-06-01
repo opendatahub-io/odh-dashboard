@@ -4,7 +4,7 @@ on:
     branches: [ main, f/** ]
 
 jobs:
-  Integration-checks:
+  Tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:

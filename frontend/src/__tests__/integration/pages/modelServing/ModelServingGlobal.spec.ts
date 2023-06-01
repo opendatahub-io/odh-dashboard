@@ -25,15 +25,15 @@ test('Edit model', async ({ page }) => {
 
   // test that you can not submit on empty
   await await page.getByLabel('Model Name *').fill('');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
   // test that you can update the name to a different name
   await await page.getByLabel('Model Name *').fill('Updated Model Name');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 
   // test that user cant upload on an empty new secret
   await page.getByText('New data connection').click();
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
   // test that adding required values validates submit
   await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
@@ -41,7 +41,7 @@ test('Edit model', async ({ page }) => {
   await page
     .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
     .fill('test-secret-key');
-  await expect(page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
 test('Create model', async ({ page }) => {
