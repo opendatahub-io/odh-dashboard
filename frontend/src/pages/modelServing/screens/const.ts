@@ -1,4 +1,11 @@
-import { ServingRuntimeSize, TimeframeStepType, TimeframeTimeType, TimeframeTitle } from './types';
+import {
+  RefreshIntervalTitle,
+  RefreshIntervalValueType,
+  ServingRuntimeSize,
+  TimeframeStepType,
+  TimeframeTimeType,
+  TimeframeTitle,
+} from './types';
 
 export const DEFAULT_MODEL_SERVER_SIZES: ServingRuntimeSize[] = [
   {
@@ -83,4 +90,9 @@ export const TimeframeStep: TimeframeStepType = {
   [TimeframeTitle.ONE_WEEK]: 7 * 24 * 12,
   [TimeframeTitle.ONE_MONTH]: 30 * 7 * 24 * 12,
   // [TimeframeTitle.UNLIMITED]: 30 * 7 * 24 * 12, // TODO: determine if we "zoom out" more
+};
+
+export const RefreshIntervalValue: RefreshIntervalValueType = {
+  [RefreshIntervalTitle.ONE_MINUTE]: 60 * 1000,
+  [RefreshIntervalTitle.FIVE_MINUTES]: 5 * 60 * 1000,
 };

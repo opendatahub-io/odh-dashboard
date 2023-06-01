@@ -16,6 +16,7 @@ type MetricsPageProps = {
 const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems }) => {
   const { tab } = useParams();
   const navigate = useNavigate();
+
   return (
     <ApplicationsPage
       title={title}

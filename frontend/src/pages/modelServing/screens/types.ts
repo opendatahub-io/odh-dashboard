@@ -20,6 +20,15 @@ export type TimeframeTimeType = {
 
 export type TimeframeStepType = TimeframeTimeType;
 
+export enum RefreshIntervalTitle {
+  ONE_MINUTE = '1 minute',
+  FIVE_MINUTES = '5 minutes',
+}
+
+export type RefreshIntervalValueType = {
+  [key in RefreshIntervalTitle]: number;
+};
+
 export enum ServingRuntimeTableTabs {
   TYPE = 1,
   DEPLOYED_MODELS = 2,

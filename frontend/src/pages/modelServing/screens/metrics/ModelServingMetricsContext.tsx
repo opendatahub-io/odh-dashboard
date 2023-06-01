@@ -2,7 +2,11 @@ import * as React from 'react';
 import { useModelServingMetrics } from '~/api';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
-import { MetricType, TimeframeTitle } from '~/pages/modelServing/screens/types';
+import {
+  MetricType,
+  RefreshIntervalTitle,
+  TimeframeTitle,
+} from '~/pages/modelServing/screens/types';
 
 export enum RuntimeMetricType {
   AVG_RESPONSE_TIME = 'runtime_avg-response-time',
@@ -25,6 +29,8 @@ type ModelServingMetricsContext = {
   >;
   currentTimeframe: TimeframeTitle;
   setCurrentTimeframe: (timeframe: TimeframeTitle) => void;
+  currentRefreshInterval: RefreshIntervalTitle;
+  setCurrentRefreshInterval: (interval: RefreshIntervalTitle) => void;
   refresh: () => void;
   lastUpdateTime: number;
   setLastUpdateTime: (time: number) => void;
@@ -43,6 +49,8 @@ export const ModelServingMetricsContext = React.createContext<ModelServingMetric
   },
   currentTimeframe: TimeframeTitle.ONE_HOUR,
   setCurrentTimeframe: () => undefined,
+  currentRefreshInterval: RefreshIntervalTitle.FIVE_MINUTES,
+  setCurrentRefreshInterval: () => undefined,
   refresh: () => undefined,
   lastUpdateTime: 0,
   setLastUpdateTime: () => undefined,
@@ -63,6 +71,10 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
   const [currentTimeframe, setCurrentTimeframe] = React.useState<TimeframeTitle>(
     TimeframeTitle.ONE_DAY,
   );
+
+  const [currentRefreshInterval, setCurrentRefreshInterval] = React.useState<RefreshIntervalTitle>(
+    RefreshIntervalTitle.FIVE_MINUTES,
+  );
   const [lastUpdateTime, setLastUpdateTime] = React.useState<number>(Date.now());
 
   const { data, refresh } = useModelServingMetrics(
@@ -71,6 +83,7 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
     currentTimeframe,
     lastUpdateTime,
     setLastUpdateTime,
+    currentRefreshInterval,
   );
 
   return (
@@ -79,6 +92,8 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
         data,
         currentTimeframe,
         setCurrentTimeframe,
+        currentRefreshInterval,
+        setCurrentRefreshInterval,
         refresh,
         lastUpdateTime,
         setLastUpdateTime,
