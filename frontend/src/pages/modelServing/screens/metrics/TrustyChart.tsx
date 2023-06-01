@@ -64,26 +64,25 @@ const TrustyChart: React.FC<TrustyChartProps> = ({
         metric: metric,
       }}
       domain={domain}
-      toolbar={
-        <ToolbarContent>
-          {tooltip && (
-            <ToolbarItem>
-              <Tooltip removeFindDomNode position="right" content={tooltip}>
-                <OutlinedQuestionCircleIcon />
-              </Tooltip>
-            </ToolbarItem>
-          )}
-          {/*<ToolbarItem><button onClick={() => } </ToolbarItem>*/}
-          <ToolbarItem variant="label">Scheduled Metric</ToolbarItem>
-          <ToolbarItem>
-            <ScheduledMetricSelect
-              selected={selectedPayloadName}
-              options={payloadOptions}
-              onSelect={setSelectedPayloadName}
-            />
-          </ToolbarItem>
-        </ToolbarContent>
-      }
+      // toolbar={
+      //   <ToolbarContent>
+      //     {tooltip && (
+      //       <ToolbarItem>
+      //         <Tooltip removeFindDomNode position="right" content={tooltip}>
+      //           <OutlinedQuestionCircleIcon />
+      //         </Tooltip>
+      //       </ToolbarItem>
+      //     )}
+      //     <ToolbarItem variant="label">Scheduled Metric</ToolbarItem>
+      //     <ToolbarItem>
+      //       <ScheduledMetricSelect
+      //         selected={selectedPayloadName}
+      //         options={payloadOptions}
+      //         onSelect={setSelectedPayloadName}
+      //       />
+      //     </ToolbarItem>
+      //   </ToolbarContent>
+      // }
       thresholds={thresholds.map((t) => ({
         value: t,
         color: THRESHOLD_COLOR,

@@ -9,6 +9,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
+import _ from 'lodash';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { relativeTime } from '~/utilities/time';
 import { isTimeframeTitle } from './utils';
@@ -22,7 +23,13 @@ const MetricsPageToolbar: React.FC = () => {
   return (
     <Toolbar>
       <ToolbarContent>
-        <ToolbarItem>
+        {/*<ToolbarItem>*/}
+        {/*  <Button variant="plain" onClick={refresh}>*/}
+        {/*    <SyncAltIcon />*/}
+        {/*  </Button>*/}
+        {/*</ToolbarItem>*/}
+        <ToolbarItem alignment={{ default: 'alignRight' }}>
+          <ToolbarItem variant="label">Time range</ToolbarItem>
           <Select
             isOpen={timeframeOpen}
             onToggle={(expanded) => setTimeframeOpen(expanded)}
@@ -40,14 +47,8 @@ const MetricsPageToolbar: React.FC = () => {
           </Select>
         </ToolbarItem>
         <ToolbarItem>
-          <Button variant="plain" onClick={refresh}>
-            <SyncAltIcon />
-          </Button>
-        </ToolbarItem>
-        <ToolbarItem alignment={{ default: 'alignRight' }}>
-          <Text component="small">Last update</Text>
-          <br />
-          <Text component="small">{relativeTime(Date.now(), lastUpdateTime)}</Text>
+          <ToolbarItem variant="label">Refresh interval</ToolbarItem>
+          <Select onToggle={_.noop}></Select>
         </ToolbarItem>
       </ToolbarContent>
     </Toolbar>
