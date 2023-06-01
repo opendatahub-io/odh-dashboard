@@ -9,7 +9,7 @@ import {
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { DomainCalculator, MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 
-type TrustyChartProps = {
+export type TrustyChartProps = {
   title: string;
   abbreviation: string;
   metricType: InferenceMetricType.TRUSTY_AI_SPD | InferenceMetricType.TRUSTY_AI_DIR;
@@ -64,25 +64,6 @@ const TrustyChart: React.FC<TrustyChartProps> = ({
         metric: metric,
       }}
       domain={domain}
-      // toolbar={
-      //   <ToolbarContent>
-      //     {tooltip && (
-      //       <ToolbarItem>
-      //         <Tooltip removeFindDomNode position="right" content={tooltip}>
-      //           <OutlinedQuestionCircleIcon />
-      //         </Tooltip>
-      //       </ToolbarItem>
-      //     )}
-      //     <ToolbarItem variant="label">Scheduled Metric</ToolbarItem>
-      //     <ToolbarItem>
-      //       <ScheduledMetricSelect
-      //         selected={selectedPayloadName}
-      //         options={payloadOptions}
-      //         onSelect={setSelectedPayloadName}
-      //       />
-      //     </ToolbarItem>
-      //   </ToolbarContent>
-      // }
       thresholds={thresholds.map((t) => ({
         value: t,
         color: THRESHOLD_COLOR,
