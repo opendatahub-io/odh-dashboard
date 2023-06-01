@@ -1,7 +1,7 @@
 import React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
+import TrustyChart from '~/pages/modelServing/screens/metrics/bias/TrustyChart';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 
 const DIRChart = () => {

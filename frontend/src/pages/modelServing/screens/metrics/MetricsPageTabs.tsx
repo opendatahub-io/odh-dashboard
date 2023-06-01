@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, Tab, TabTitleText } from '@patternfly/react-core';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import PerformanceTab from './PerformanceTab';
-import BiasTab from './BiasTab';
+import BiasTab from './bias/BiasTab';
 import './MetricsPageTabs.scss';
 
 const MetricsPageTabs: React.FC = () => {

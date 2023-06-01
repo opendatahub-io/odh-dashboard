@@ -1,10 +1,10 @@
 import React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
-import DIRGraph from '~/pages/modelServing/screens/metrics/DIRChart';
-import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/BiasMetricChartWrapper';
-import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
+import DIRGraph from '~/pages/modelServing/screens/metrics/bias/DIRChart';
+import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/bias/BiasMetricChartWrapper';
+import TrustyChart from '~/pages/modelServing/screens/metrics/bias/TrustyChart';
 import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import MetricsPageToolbar from './MetricsPageToolbar';
+import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
 import SPDChart from './SPDChart';
 
 const DEFAULT_MAX_THRESHOLD = 0.1;
@@ -17,12 +17,6 @@ const BiasTab = () => (
     </StackItem>
     <PageSection isFilled>
       <Stack hasGutter>
-        <StackItem>
-          <SPDChart />
-        </StackItem>
-        <StackItem>
-          <DIRGraph />
-        </StackItem>
         <StackItem>
           <BiasMetricChartWrapper name="credit score - female high">
             <TrustyChart

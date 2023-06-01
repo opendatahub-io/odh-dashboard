@@ -2,7 +2,7 @@ import React from 'react';
 import { Stack, ToolbarContent, ToolbarItem, Tooltip } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import ScheduledMetricSelect from '~/pages/modelServing/screens/metrics/ScheduledMetricSelect';
+import ScheduledMetricSelect from '~/pages/modelServing/screens/metrics/bias/ScheduledMetricSelect';
 import {
   InferenceMetricType,
   ModelServingMetricsContext,

@@ -1,5 +1,5 @@
 import React from 'react';
-import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
+import TrustyChart from '~/pages/modelServing/screens/metrics/bias/TrustyChart';
 
 type BiasMetricChartWrapperProps = {
   children: React.ReactElement<typeof TrustyChart>;
