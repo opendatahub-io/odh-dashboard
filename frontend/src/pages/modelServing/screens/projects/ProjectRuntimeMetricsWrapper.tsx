@@ -6,7 +6,6 @@ import { getRuntimeMetricsQueries } from '~/pages/modelServing/screens/metrics/u
 import NotFound from '~/pages/NotFound';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import RuntimeGraphs from '~/pages/modelServing/screens/metrics/RuntimeGraphs';
 import { MetricType } from '~/pages/modelServing/screens/types';
 
 const ProjectInferenceMetricsWrapper: React.FC = () => {
@@ -43,9 +42,7 @@ const ProjectInferenceMetricsWrapper: React.FC = () => {
             isActive: true,
           },
         ]}
-      >
-        <RuntimeGraphs />
-      </MetricsPage>
+      />
     </ModelServingMetricsProvider>
   );
 };
