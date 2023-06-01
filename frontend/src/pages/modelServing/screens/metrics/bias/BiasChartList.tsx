@@ -13,6 +13,7 @@ import {
 } from '~/pages/modelServing/screens/metrics/bias/const';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { DomainCalculator, MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
+import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
 
 type ChartData = {
   name: string;
@@ -83,36 +84,41 @@ const BiasChartList = () => {
   }
 
   return (
-    <StackItem>
-      {/*{biasMetricConfigs.map((config) => (*/}
-      {/*  <BiasMetricChartWrapper key={config.id} name={config.name}>*/}
-      {/*    <TrustyChart*/}
-      {/*      title="Statistical Parity Difference"*/}
-      {/*      abbreviation={config.metricType.toString()}*/}
-      {/*      metricType={translateType(config.metricType)}*/}
-      {/*      domain={(maxYValue) => ({*/}
-      {/*        y:*/}
-      {/*          maxYValue > DEFAULT_MAX_THRESHOLD*/}
-      {/*            ? [-1 * maxYValue - PADDING, maxYValue + PADDING]*/}
-      {/*            : [DEFAULT_MIN_THRESHOLD - PADDING, DEFAULT_MAX_THRESHOLD + PADDING],*/}
-      {/*      })}*/}
-      {/*      thresholds={[DEFAULT_MAX_THRESHOLD, DEFAULT_MIN_THRESHOLD]}*/}
-      {/*    />*/}
-      {/*  </BiasMetricChartWrapper>*/}
-      {/*))}*/}
-      {charts.map((chart) => (
-        <BiasMetricChartWrapper key={chart.id} name={chart.name}>
-          <TrustyChart
-            id={chart.id}
-            title={chart.title}
-            abbreviation={chart.abbreviation}
-            metricType={chart.metricType}
-            thresholds={chart.thresholds}
-            domain={chart.domain}
-          />
-        </BiasMetricChartWrapper>
-      ))}
-    </StackItem>
+    <>
+      <StackItem>
+        <BiasMetricConfigSelector />
+      </StackItem>
+      <StackItem>
+        {/*{biasMetricConfigs.map((config) => (*/}
+        {/*  <BiasMetricChartWrapper key={config.id} name={config.name}>*/}
+        {/*    <TrustyChart*/}
+        {/*      title="Statistical Parity Difference"*/}
+        {/*      abbreviation={config.metricType.toString()}*/}
+        {/*      metricType={translateType(config.metricType)}*/}
+        {/*      domain={(maxYValue) => ({*/}
+        {/*        y:*/}
+        {/*          maxYValue > DEFAULT_MAX_THRESHOLD*/}
+        {/*            ? [-1 * maxYValue - PADDING, maxYValue + PADDING]*/}
+        {/*            : [DEFAULT_MIN_THRESHOLD - PADDING, DEFAULT_MAX_THRESHOLD + PADDING],*/}
+        {/*      })}*/}
+        {/*      thresholds={[DEFAULT_MAX_THRESHOLD, DEFAULT_MIN_THRESHOLD]}*/}
+        {/*    />*/}
+        {/*  </BiasMetricChartWrapper>*/}
+        {/*))}*/}
+        {charts.map((chart) => (
+          <BiasMetricChartWrapper key={chart.id} name={chart.name}>
+            <TrustyChart
+              id={chart.id}
+              title={chart.title}
+              abbreviation={chart.abbreviation}
+              metricType={chart.metricType}
+              thresholds={chart.thresholds}
+              domain={chart.domain}
+            />
+          </BiasMetricChartWrapper>
+        ))}
+      </StackItem>
+    </>
   );
 };
 
