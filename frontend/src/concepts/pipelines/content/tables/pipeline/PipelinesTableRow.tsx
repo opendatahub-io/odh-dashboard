@@ -78,7 +78,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create run',
                   onClick: () => {
-                    navigate(`/pipelines/${namespace}/pipelineRun/create`);
+                    navigate(`/pipelines/${namespace}/pipelineRun/create`, {
+                      state: { lastPipeline: pipeline },
+                    });
                   },
                 },
                 {
@@ -101,7 +103,11 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           </Td>
         </Tr>
       </Tbody>
-      <PipelinesTableExpandedRow isExpanded={isExpanded} runsFetchState={runsFetchState} />
+      <PipelinesTableExpandedRow
+        isExpanded={isExpanded}
+        runsFetchState={runsFetchState}
+        pipeline={pipeline}
+      />
     </>
   );
 };
