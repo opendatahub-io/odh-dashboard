@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { createProject, updateProject } from '~/api';
 import { useUser } from '~/redux/selectors';
 import { ProjectKind } from '~/k8sTypes';
@@ -11,21 +10,20 @@ import {
 } from '~/pages/projects/utils';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
   open: boolean;
-  onClose: () => void;
-  onProjectCreated?: (projectName: string) => void;
+  onClose: (newProjectName?: string) => void;
 };
 
 const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   editProjectData,
   onClose,
   open,
-  onProjectCreated,
 }) => {
-  const navigate = useNavigate();
+  const { refresh } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [nameDesc, setNameDesc] = React.useState<NameDescType>({
@@ -34,12 +32,6 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     description: '',
   });
   const { username } = useUser();
-
-  const handleProjectCreated: ManageProjectModalProps['onProjectCreated'] =
-    onProjectCreated ??
-    ((projectName) => {
-      navigate(`/projects/${projectName}`);
-    });
 
   const canSubmit =
     !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
@@ -55,25 +47,29 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
     });
   }, [editDescriptionValue, editNameValue, editResourceNameValue]);
 
-  const onBeforeClose = () => {
-    onClose();
+  const onBeforeClose = (newProjectName?: string) => {
+    onClose(newProjectName);
     setFetching(false);
     setError(undefined);
     setNameDesc({ name: '', k8sName: undefined, description: '' });
+  };
+  const handleError = (e: Error) => {
+    setError(e);
+    setFetching(false);
   };
 
   const submit = () => {
     setFetching(true);
     const { name, description, k8sName } = nameDesc;
     if (editProjectData) {
-      updateProject(editProjectData, name, description).then(() => onBeforeClose());
+      updateProject(editProjectData, name, description)
+        .then(() => refresh())
+        .then(() => onBeforeClose())
+        .catch(handleError);
     } else {
       createProject(username, name, description, k8sName)
-        .then(handleProjectCreated)
-        .catch((e) => {
-          setError(e);
-          setFetching(false);
-        });
+        .then((projectName) => refresh(projectName).then(() => onBeforeClose(projectName)))
+        .catch(handleError);
     }
   };
 
@@ -82,7 +78,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
       title={editProjectData ? 'Edit data science project' : 'Create data science project'}
       variant="medium"
       isOpen={open}
-      onClose={onBeforeClose}
+      onClose={() => onBeforeClose()}
       actions={[
         <Button
           key="confirm"
@@ -93,7 +89,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         >
           {editProjectData ? 'Update' : 'Create'}
         </Button>,
-        <Button key="cancel" variant="link" onClick={onBeforeClose}>
+        <Button key="cancel" variant="link" onClick={() => onBeforeClose()}>
           Cancel
         </Button>,
       ]}

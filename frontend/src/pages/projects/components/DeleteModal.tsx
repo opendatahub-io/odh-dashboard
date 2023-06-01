@@ -27,14 +27,18 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const [value, setValue] = React.useState('');
 
   const onBeforeClose = (deleted: boolean) => {
-    setValue('');
-
     if (deleted) {
       onDelete();
     } else {
       onClose();
     }
   };
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setValue('');
+    }
+  }, [isOpen]);
 
   return (
     <Modal
@@ -46,6 +50,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         <Button
           key="delete-button"
           variant="danger"
+          isLoading={deleting}
           isDisabled={deleting || value !== deleteName}
           onClick={() => onBeforeClose(true)}
         >

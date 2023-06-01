@@ -17,11 +17,11 @@ type ProjectsContext = {
    * @see useSyncPreferredProject
    */
   updatePreferredProject: (project: ProjectKind) => void;
+  refresh: (waitForName?: string) => Promise<void>;
 
   // ...the rest of the state variables
   loaded: ProjectFetchState[1];
   loadError: ProjectFetchState[2];
-  refresh: ProjectFetchState[3];
 };
 
 export const ProjectsContext = React.createContext<ProjectsContext>({
@@ -61,11 +61,14 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       }>(
         (states, project) => {
           if (project.status?.phase === 'Active') {
+            // Project that is active
             states.projects.push(project);
             if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]) {
+              // Model Serving active projects
               states.modelServingProjects.push(project);
             }
           } else {
+            // Non 'Active' -- aka terminating
             states.nonActiveProjects.push(project);
           }
 
@@ -77,19 +80,29 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
   );
 
   const refresh = React.useCallback<ProjectsContext['refresh']>(
-    () =>
+    (waitForName?: string) =>
       new Promise((resolve) => {
-        refreshProjects();
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
         // TODO: When we have webhooks -- remove this
-        setTimeout(() => {
-          refreshProjects().then(() => {
-            resolve();
-          });
-        }, 500);
+        const doRefreshAgain = () => {
+          setTimeout(
+            () =>
+              // refresh until we find the name we are expecting
+              refreshProjects().then((projects) => {
+                if (!waitForName || projects?.find(byName(waitForName))) {
+                  resolve();
+                  return;
+                }
+                doRefreshAgain();
+              }),
+            500,
+          );
+        };
+        doRefreshAgain();
       }),
     [refreshProjects],
   );
+
   const updatePreferredProject = React.useCallback<ProjectsContext['updatePreferredProject']>(
     (project) => {
       setPreferredProject(project);
