@@ -177,6 +177,9 @@ const useRunFormData = (
     pipeline: lastPipeline ?? null,
     // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
+    params: lastPipeline
+      ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
+      : undefined,
   });
 
   const setFunction = objState[1];
