@@ -6,10 +6,10 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
 } from '@patternfly/react-core';
-import { MockBiasConfigurationType } from './mockConfigurations';
+import { BiasMetricConfig } from '~/concepts/explainability/types';
 
 type BiasConfigurationTableRowProps = {
-  obj: MockBiasConfigurationType;
+  obj: BiasMetricConfig;
   rowIndex: number;
 };
 

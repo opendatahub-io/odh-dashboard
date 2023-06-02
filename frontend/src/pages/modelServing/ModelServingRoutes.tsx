@@ -17,16 +17,16 @@ const ModelServingRoutes: React.FC = () => {
     <ProjectsRoutes>
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
-        <Route path="/metrics/:project" element={<ExplainabilityProvider />}>
-          {modelMetricsEnabled && (
+        {modelMetricsEnabled && (
+          <Route path="/metrics/:project" element={<ExplainabilityProvider />}>
             <Route path=":inferenceService" element={<GlobalInferenceMetricsWrapper />}>
               <Route path=":tab?" element={<GlobalInferenceMetricsPage />} />
               <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
             </Route>
-          )}
-          {/* TODO: Global Runtime metrics?? */}
-          <Route path="*" element={<Navigate to="." />} />
-        </Route>
+            {/* TODO: Global Runtime metrics?? */}
+            <Route path="*" element={<Navigate to="." />} />
+          </Route>
+        )}
       </Route>
     </ProjectsRoutes>
   );

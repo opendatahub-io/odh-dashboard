@@ -1,8 +1,8 @@
 import { SortableData } from '~/components/table/useTableColumnSort';
-import { MockBiasConfigurationType } from './mockConfigurations';
+import { BiasMetricConfig } from '~/concepts/explainability/types';
 
-// TODO: add sortable and bias configuration kind
-export const columns: SortableData<MockBiasConfigurationType>[] = [
+// TODO: add sortable
+export const columns: SortableData<BiasMetricConfig>[] = [
   {
     field: 'expand',
     label: '',
@@ -11,7 +11,7 @@ export const columns: SortableData<MockBiasConfigurationType>[] = [
   {
     field: 'name',
     label: 'Name',
-    sortable: false,
+    sortable: (a, b) => a.name.localeCompare(b.name),
   },
   {
     field: 'metric',
