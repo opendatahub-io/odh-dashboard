@@ -21,10 +21,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
       e.preventDefault();
     }}
   >
-    <FormSection
-      id={CreateRunPageSections.PROJECT}
-      title={runPageSectionTitles[CreateRunPageSections.PROJECT]}
-    >
+    <FormSection id="run-section-project-name" title="Project">
       <FormGroup label="Project">
         <Text>{getProjectDisplayName(data.project)}</Text>
       </FormGroup>
