@@ -6,7 +6,7 @@ import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-conne
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { createPipelinesCR, deleteSecret } from '~/api';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -33,12 +33,16 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   open,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const {
-    dataConnections: { data: dataConnections },
-  } = React.useContext(ProjectDetailsContext);
+  const [dataConnections, , , refresh] = useDataConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
+
+  React.useEffect(() => {
+    if (open) {
+      refresh();
+    }
+  }, [open, refresh]);
 
   const canSubmit = () => {
     const databaseIsValid = config.database.useDefault
