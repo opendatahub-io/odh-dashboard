@@ -6,6 +6,7 @@ import {
   FormGroup,
   FormSection,
   getUniqueId,
+  Skeleton,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -18,11 +19,15 @@ import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
 type ServingRuntimeTokenSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
+  allowCreate: boolean;
+  rbacLoaded: boolean;
 };
 
 const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
   data,
   setData,
+  allowCreate,
+  rbacLoaded,
 }) => {
   const createNewToken = () => {
     const name = 'default-name';
@@ -38,6 +43,10 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
     ]);
   };
 
+  if (!rbacLoaded) {
+    return <Skeleton />;
+  }
+
   return (
     <FormSection title="Token authorization">
       <FormGroup>
@@ -45,6 +54,7 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
           label="Require token authentication"
           id="alt-form-checkbox-auth"
           name="alt-form-checkbox-auth"
+          isDisabled={!allowCreate}
           isChecked={data.tokenAuth}
           onChange={(check) => {
             setData('tokenAuth', check);
@@ -55,19 +65,35 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
         />
       </FormGroup>
 
+      {!allowCreate && (
+        <Alert
+          variant="warning"
+          isInline
+          title="Administrator permissions in this namespace are required to generate tokens."
+        />
+      )}
+
       {data.tokenAuth && (
         <IndentSection>
           <Stack hasGutter>
-            <StackItem>
-              <Alert
-                variant="info"
-                isInline
-                title="The actual tokens will be created and displayed when the model server is configured."
-              />
-            </StackItem>
+            {allowCreate && (
+              <StackItem>
+                <Alert
+                  variant="info"
+                  isInline
+                  title="The actual tokens will be created and displayed when the model server is configured."
+                />
+              </StackItem>
+            )}
+
             {data.tokens.map((token) => (
               <StackItem key={token.uuid}>
-                <ServingRuntimeTokenInput token={token} data={data} setData={setData} />
+                <ServingRuntimeTokenInput
+                  token={token}
+                  data={data}
+                  setData={setData}
+                  disabled={!allowCreate}
+                />
               </StackItem>
             ))}
             <StackItem>
@@ -79,6 +105,7 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
                 iconPosition="left"
                 variant="link"
                 icon={<PlusCircleIcon />}
+                isDisabled={!allowCreate}
               >
                 Add a service account
               </Button>

@@ -1,4 +1,8 @@
-import { k8sCreateResource, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sCreateResource,
+  k8sDeleteResource,
+  k8sGetResource,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { ServiceAccountModel } from '~/api/models';
 import { K8sAPIOptions, K8sStatus, ServiceAccountKind } from '~/k8sTypes';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
@@ -15,7 +19,13 @@ export const assembleServiceAccount = (name: string, namespace: string): Service
   return serviceAccount;
 };
 
-export const createServiceAccount = async (
+export const getServiceAccount = (name: string, namespace: string): Promise<ServiceAccountKind> =>
+  k8sGetResource<ServiceAccountKind>({
+    model: ServiceAccountModel,
+    queryOptions: { name, ns: namespace },
+  });
+
+export const createServiceAccount = (
   data: ServiceAccountKind,
   opts?: K8sAPIOptions,
 ): Promise<ServiceAccountKind> =>
@@ -26,7 +36,7 @@ export const createServiceAccount = async (
     }),
   );
 
-export const deleteServiceAccount = async (
+export const deleteServiceAccount = (
   name: string,
   ns: string,
   opts?: K8sAPIOptions,

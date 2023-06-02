@@ -19,12 +19,14 @@ type ServingRuntimeTokenInputProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   token: ServingRuntimeToken;
+  disabled?: boolean;
 };
 
 const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
   data,
   setData,
   token,
+  disabled,
 }) => {
   const checkDuplicates = (name: string): boolean => {
     const duplicates = data.tokens.filter(
@@ -61,6 +63,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             name="service-account-form-name"
             aria-describedby="service-account-form-name-helper"
             validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}
+            isDisabled={disabled}
             onChange={(value) => {
               const tokens = data.tokens?.map((item) =>
                 item.uuid === token.uuid
@@ -81,6 +84,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             variant="plain"
             aria-label="Remove service account"
             icon={<MinusCircleIcon />}
+            isDisabled={disabled}
             onClick={() => {
               setData(
                 'tokens',
