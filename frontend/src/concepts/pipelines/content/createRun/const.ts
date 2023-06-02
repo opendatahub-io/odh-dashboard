@@ -6,7 +6,6 @@ export const DATE_FORMAT = 'YYYY-MM-DD';
 export const DEFAULT_TIME = '12:00 AM';
 
 export enum CreateRunPageSections {
-  PROJECT = 'run-section-project',
   NAME_DESC = 'run-section-name-desc',
   PIPELINE = 'run-section-pipeline',
   // EXPERIMENT = 'run-section-experiment',
@@ -15,7 +14,6 @@ export enum CreateRunPageSections {
 }
 
 export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
-  [CreateRunPageSections.PROJECT]: 'Project',
   [CreateRunPageSections.NAME_DESC]: 'Name and description',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
   // [CreateRunPageSections.EXPERIMENT]: 'Experiment',
