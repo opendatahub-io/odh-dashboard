@@ -10,6 +10,8 @@ import {
   NotebookSize,
   GpuSettingString,
   TolerationSettings,
+  ImageStreamStatusTagItem,
+  ImageStreamStatusTagCondition,
 } from './types';
 import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
@@ -182,6 +184,8 @@ export type ImageStreamKind = K8sResourceCommon & {
     publicDockerImageRepository?: string;
     tags?: {
       tag: string;
+      items: ImageStreamStatusTagItem[] | null;
+      conditions?: ImageStreamStatusTagCondition[];
     }[];
   };
 };

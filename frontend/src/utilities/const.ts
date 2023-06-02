@@ -42,3 +42,6 @@ export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
   loaded: false,
   refresh: () => undefined,
 };
+
+export const REPOSITORY_URL_REGEX =
+  /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;

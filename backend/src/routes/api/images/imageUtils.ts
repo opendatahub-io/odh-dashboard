@@ -1,4 +1,4 @@
-import { IMAGE_ANNOTATIONS } from '../../../utils/constants';
+import { IMAGE_ANNOTATIONS, imageUrlRegex } from '../../../utils/constants';
 import { convertLabelsToString } from '../../../utils/componentUtils';
 import {
   ImageStreamTag,
@@ -11,7 +11,6 @@ import {
   BYONImageUpdateRequest,
   BYONImagePackage,
   BYONImage,
-  BYONImageStatus,
 } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
@@ -91,6 +90,18 @@ const getImageStreams = async (
   return await requestPromise;
 };
 
+const isBYONImage = (imageStream: ImageStream) =>
+  imageStream.metadata.labels?.['app.kubernetes.io/created-by'] === 'byon';
+
+const getBYONImageErrorMessage = (imageStream: ImageStream) => {
+  // there will be always only 1 tag in the spec for BYON images
+  // status tags could be more than one
+  const activeTag = imageStream.status?.tags?.find(
+    (statusTag) => statusTag.tag === imageStream.spec.tags?.[0].name,
+  );
+  return activeTag?.conditions?.[0]?.message;
+};
+
 export const processImageInfo = (imageStream: ImageStream): ImageInfo => {
   const annotations = imageStream.metadata.annotations || {};
 
@@ -102,6 +113,7 @@ export const processImageInfo = (imageStream: ImageStream): ImageInfo => {
     tags: getTagInfo(imageStream),
     order: +annotations[IMAGE_ANNOTATIONS.IMAGE_ORDER] || 100,
     dockerImageRepo: imageStream.status?.dockerImageRepository || '',
+    error: isBYONImage && getBYONImageErrorMessage(imageStream),
   };
 
   return imageInfo;
@@ -180,11 +192,8 @@ const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   id: is.metadata.name,
   name: is.metadata.annotations['opendatahub.io/notebook-image-name'],
   description: is.metadata.annotations['opendatahub.io/notebook-image-desc'],
-  phase: is.metadata.annotations['opendatahub.io/notebook-image-phase'] as BYONImageStatus,
   visible: is.metadata.labels['opendatahub.io/notebook-image'] === 'true',
-  error: is.metadata.annotations['opendatahub.io/notebook-image-messages']
-    ? JSON.parse(is.metadata.annotations['opendatahub.io/notebook-image-messages'])
-    : [],
+  error: getBYONImageErrorMessage(is),
   packages:
     is.spec.tags &&
     (JSON.parse(
@@ -207,7 +216,14 @@ export const postImage = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
   const body = request.body as BYONImageCreateRequest;
-  const imageTag = body.url.split(':')[1];
+  const fullUrl = body.url;
+  const matchArray = fullUrl.match(imageUrlRegex);
+  // check if the host is valid
+  if (!matchArray[1]) {
+    fastify.log.error('Invalid repository URL unable to add notebook image');
+    return { success: false, error: 'Invalid repository URL: ' + fullUrl };
+  }
+  const imageTag = matchArray[4];
   const labels = {
     'app.kubernetes.io/created-by': 'byon',
     'opendatahub.io/notebook-image': 'true',
@@ -228,11 +244,8 @@ export const postImage = async (
       annotations: {
         'opendatahub.io/notebook-image-desc': body.description ? body.description : '',
         'opendatahub.io/notebook-image-name': body.name,
-        'opendatahub.io/notebook-image-url': body.url,
+        'opendatahub.io/notebook-image-url': fullUrl,
         'opendatahub.io/notebook-image-creator': body.user,
-        'opendatahub.io/notebook-image-phase': 'Succeeded',
-        'opendatahub.io/notebook-image-origin': 'Admin',
-        'opendatahub.io/notebook-image-messages': '',
       },
       name: `byon-${Date.now()}`,
       namespace: namespace,
@@ -247,13 +260,13 @@ export const postImage = async (
           annotations: {
             'opendatahub.io/notebook-software': packagesToString(body.software),
             'opendatahub.io/notebook-python-dependencies': packagesToString(body.packages),
-            'openshift.io/imported-from': body.url,
+            'openshift.io/imported-from': fullUrl,
           },
           from: {
             kind: 'DockerImage',
-            name: body.url,
+            name: fullUrl,
           },
-          name: imageTag,
+          name: imageTag || 'latest',
         },
       ],
     },

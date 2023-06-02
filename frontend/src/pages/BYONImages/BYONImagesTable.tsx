@@ -34,10 +34,12 @@ import { CubesIcon, SearchIcon } from '@patternfly/react-icons';
 import { BYONImage } from '~/types';
 import { relativeTime } from '~/utilities/time';
 import { updateBYONImage } from '~/services/imagesService';
+import ImageErrorStatus from '~/pages/BYONImages/ImageErrorStatus';
 import { ImportImageModal } from './ImportImageModal';
-import './BYONImagesTable.scss';
 import { DeleteImageModal } from './DeleteBYONImageModal';
 import { UpdateImageModal } from './UpdateImageModal';
+
+import './BYONImagesTable.scss';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
@@ -102,21 +104,24 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
   };
 
   const getSortableRowValues = (nb: BYONImage): string[] => {
-    const { name, description = '', phase = '', visible = false, user = '', uploaded = '' } = nb;
-    return [name, description, phase, visible.toString(), user, uploaded.toString()];
+    const { name, description = '', visible = false, user = '', uploaded = '' } = nb;
+    return [name, description, visible.toString(), user, uploaded.toString()];
   };
 
-  if (activeSortIndex !== undefined) {
-    [...images].sort((a, b) => {
-      const aValue = getSortableRowValues(a)[activeSortIndex];
-      const bValue = getSortableRowValues(b)[activeSortIndex];
+  const sortedImages = React.useMemo(() => {
+    if (activeSortIndex !== undefined) {
+      return [...images].sort((a, b) => {
+        const aValue = getSortableRowValues(a)[activeSortIndex];
+        const bValue = getSortableRowValues(b)[activeSortIndex];
 
-      if (activeSortDirection === 'asc') {
-        return (aValue as string).localeCompare(bValue as string);
-      }
-      return (bValue as string).localeCompare(aValue as string);
-    });
-  }
+        if (activeSortDirection === 'asc') {
+          return (aValue as string).localeCompare(bValue as string);
+        }
+        return (bValue as string).localeCompare(aValue as string);
+      });
+    }
+    return [...images];
+  }, [activeSortDirection, activeSortIndex, images]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {
@@ -298,13 +303,13 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
             <Th sort={getSortParams(0)}>{columnNames.name}</Th>
             <Th sort={getSortParams(1)}>{columnNames.description}</Th>
             <Th>Enable</Th>
-            <Th sort={getSortParams(4)}>{columnNames.user}</Th>
-            <Th sort={getSortParams(5)}>{columnNames.uploaded}</Th>
+            <Th sort={getSortParams(3)}>{columnNames.user}</Th>
+            <Th sort={getSortParams(4)}>{columnNames.uploaded}</Th>
             <Td />
           </Tr>
         </Thead>
         {tableFilter.count > 0 ? (
-          images.map((image, rowIndex) => {
+          sortedImages.map((image, rowIndex) => {
             const packages: React.ReactNode[] = [];
             image.packages?.forEach((nbpackage) => {
               packages.push(<p>{`${nbpackage.name} ${nbpackage.version}`}</p>);
@@ -319,7 +324,17 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
                       onToggle: () => setBYONImageExpanded(image, !isBYONImageExpanded(image)),
                     }}
                   />
-                  <Td dataLabel={columnNames.name}>{image.name}</Td>
+                  <Td dataLabel={columnNames.name}>
+                    <Flex
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                    >
+                      <FlexItem>{image.name}</FlexItem>
+                      <FlexItem>
+                        <ImageErrorStatus image={image} />
+                      </FlexItem>
+                    </Flex>
+                  </Td>
                   <Td dataLabel={columnNames.description}>{image.description}</Td>
                   <Td>
                     <Switch
