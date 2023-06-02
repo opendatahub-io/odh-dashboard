@@ -66,7 +66,11 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
       </FormGroup>
 
       {!allowCreate && (
-        <Alert variant="warning" isInline title="You need admin permission to edit this section." />
+        <Alert
+          variant="warning"
+          isInline
+          title="Administrator permissions in this namespace are required to generate tokens."
+        />
       )}
 
       {data.tokenAuth && (
