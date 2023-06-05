@@ -1,0 +1,29 @@
+name: Value Scan
+
+on:
+  pull_request:
+
+jobs:
+  scan:
+    name: Scan Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Trivy vulnerability scanner for filesystem
+        uses: aquasecurity/trivy-action@0.10.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          trivy-config: .github/trivy.yaml
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'scan_result.sarif'
+
+      - name: Archive scan results to GitHub
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivyResult
+          path: 'scan_result.sarif'
+          if-no-files-found: error
