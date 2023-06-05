@@ -1,15 +1,15 @@
 export enum DataTypes {
-  BOOL,
-  FLOAT,
-  DOUBLE,
-  INT32,
-  INT64,
-  STRING,
+  BOOL = 'BOOL',
+  FLOAT = 'FLOAT',
+  DOUBLE = 'DOUBLE',
+  INT32 = 'INT32',
+  INT64 = 'INT64',
+  STRING = 'STRING',
 }
 
 export enum MetricTypes {
-  SPD,
-  DIR,
+  SPD = 'SPD',
+  DIR = 'DIR',
 }
 
 export type TypedValue = {
@@ -17,21 +17,29 @@ export type TypedValue = {
   value: string;
 };
 
-export type BaseMetricRequest = {
+export type BaseMetric = {
   protectedAttribute: string;
-  favorableOutcome: TypedValue;
   outcomeName: string;
-  privilegedAttribute: TypedValue;
-  unprivilegedAttribute: TypedValue;
   modelId: string;
   requestName: string;
   thresholdDelta?: number;
   batchSize?: number;
 };
 
+export type BaseMetricRequest = {
+  favorableOutcome: string;
+  privilegedAttribute: string;
+  unprivilegedAttribute: string;
+} & BaseMetric;
+
 export type BaseMetricResponse = {
   id: string;
-  request: BaseMetricRequest & { metricName: MetricTypes };
+  request: {
+    metricName: MetricTypes;
+    favorableOutcome: TypedValue;
+    privilegedAttribute: TypedValue;
+    unprivilegedAttribute: TypedValue;
+  } & BaseMetric;
 };
 
 export type BaseMetricListResponse = {
