@@ -55,12 +55,12 @@ const BiasTab = () => {
     setSelectedBiasConfigs,
   ]);
 
-  selectedBiasConfigs.filter(byProp('favorableOutcome', selectedBiasConfigs[0].favorableOutcome));
-  selectedBiasConfigs.filter(byId(selectedBiasConfigs[1].id));
+  // selectedBiasConfigs.filter(byProp('favorableOutcome', selectedBiasConfigs[0].favorableOutcome));
+  // selectedBiasConfigs.filter(byId(selectedBiasConfigs[1].id));
+  //
+  // selectedBiasConfigs.filter((x) => x.id === selectedBiasConfigs[1].id);
 
-  selectedBiasConfigs.filter((x) => x.id === selectedBiasConfigs[1].id);
-
-  [{ id: 'hello' }].filter(byId5(5));
+  // [{ id: 'hello' }].filter(byId5(5));
 
   const charts = React.useMemo(() => {
     if (!loaded) {

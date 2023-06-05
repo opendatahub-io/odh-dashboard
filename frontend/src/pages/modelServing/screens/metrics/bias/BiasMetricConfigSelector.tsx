@@ -65,7 +65,7 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({ onChange
         variant={SelectVariant.typeaheadMulti}
         typeAheadAriaLabel="Select a metric"
         onToggle={() => setIsOpen(!isOpen)}
-        onSelect={doSelect}
+        onSelect={onSelect}
         onClear={() => {
           setSelected([]);
           setIsOpen(false);
