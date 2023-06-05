@@ -8,7 +8,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { MetricType } from '~/pages/modelServing/screens/types';
 
-const ProjectInferenceMetricsWrapper: React.FC = () => {
+const ProjectRuntimeMetricsWrapper: React.FC = () => {
   const {
     currentProject,
     servingRuntimes: { data: runtimes, loaded },
@@ -47,4 +47,4 @@ const ProjectInferenceMetricsWrapper: React.FC = () => {
   );
 };
 
-export default ProjectInferenceMetricsWrapper;
+export default ProjectRuntimeMetricsWrapper;

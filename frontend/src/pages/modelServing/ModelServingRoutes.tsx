@@ -2,6 +2,8 @@ import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { ExplainabilityProvider } from '~/concepts/explainability/ExplainabilityContext';
+import BiasConfigurationBreadcrumbPage from './screens/metrics/BiasConfigurationBreadcrumbPage';
+import GlobalInferenceMetricsPage from './screens/metrics/GlobalInferenceMetricsPage';
 import ModelServingContextProvider from './ModelServingContext';
 import GlobalInferenceMetricsWrapper from './screens/metrics/GlobalInferenceMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
@@ -15,16 +17,16 @@ const ModelServingRoutes: React.FC = () => {
     <ProjectsRoutes>
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
-        <Route path="/metrics/:project" element={<ExplainabilityProvider />}>
-          <Route
-            path=":inferenceService/:tab?"
-            element={
-              modelMetricsEnabled ? <GlobalInferenceMetricsWrapper /> : <Navigate replace to="/" />
-            }
-          />
-          {/* TODO: Global Runtime metrics?? */}
-          <Route path="*" element={<Navigate to="." />} />
-        </Route>
+        {modelMetricsEnabled && (
+          <Route path="/metrics/:project" element={<ExplainabilityProvider />}>
+            <Route path=":inferenceService" element={<GlobalInferenceMetricsWrapper />}>
+              <Route path=":tab?" element={<GlobalInferenceMetricsPage />} />
+              <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
+            </Route>
+            {/* TODO: Global Runtime metrics?? */}
+            <Route path="*" element={<Navigate to="." />} />
+          </Route>
+        )}
       </Route>
     </ProjectsRoutes>
   );

@@ -1,9 +1,10 @@
 import * as _ from 'lodash';
-import { SelectOptionObject } from '@patternfly/react-core';
+import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { DashboardConfig } from '~/types';
+import { BreadcrumbItemType, DashboardConfig } from '~/types';
 import {
   DomainCalculator,
   GraphMetricLine,
@@ -153,3 +154,12 @@ export const useStableMetrics = (
 export const defaultDomainCalculator: DomainCalculator = (maxYValue) => ({
   y: maxYValue === 0 ? [0, 1] : [0, maxYValue],
 });
+
+export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[]) =>
+  breadcrumbItems.map((item) => (
+    <BreadcrumbItem
+      isActive={item.isActive}
+      key={item.label}
+      render={() => (item.link ? <Link to={item.link}>{item.label}</Link> : <>{item.label}</>)}
+    />
+  ));
