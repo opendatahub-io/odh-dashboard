@@ -23,51 +23,12 @@ import { DomainCalculator } from '~/pages/modelServing/screens/metrics/types';
 import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { MetricTypes } from '~/api';
 import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/bias/BiasMetricChartWrapper';
-import { byId } from '~/pages/modelServing/screens/metrics/utils';
-
-// const byId =
-//   <T extends { id: string | number }>(id: T['id']) =>
-//   (obj: T) =>
-//     obj.id === id;
-//
-// function getProperty<Type, Key extends keyof Type>(obj: Type, key: Key) {
-//   return obj[key];
-// }
-// const byProp =
-//   <T, K extends keyof T>(prop: K, value: T[K]) =>
-//   (obj: T) =>
-//     obj[prop] === value;
-
-// type ObjOrId<T> = T extends { id: string | number } ? T : string | number;
-//
-//
-// const byId4 = <T,>(arg: ObjOrId<T>) =>
-
-// const byId2 = <T extends { id: string | number }, U extends string ? T['id'] : T>(id: T | T['id']) => {
-//   return (obj: T) =>
-// };
 
 const BiasTab = () => {
-  const { biasMetricConfigs, loaded } = useExplainabilityModelData();
+  const { loaded } = useExplainabilityModelData();
   const [selectedBiasConfigs, setSelectedBiasConfigs] = React.useState<BiasMetricConfig[]>([]);
 
-  const selectBiasConfigCallback = React.useCallback(setSelectedBiasConfigs, [
-    setSelectedBiasConfigs,
-  ]);
-
-  // selectedBiasConfigs.filter(byProp('favorableOutcome', selectedBiasConfigs[0].favorableOutcome));
-  // selectedBiasConfigs.filter(byId(selectedBiasConfigs[1].id));
-  //
-  // selectedBiasConfigs.filter((x) => x.id === selectedBiasConfigs[1].id);
-
-  // [{ id: 'hello' }].filter(byId5(5));
-
-  const charts = React.useMemo(() => {
-    if (!loaded) {
-      return [];
-    }
-    return selectedBiasConfigs.map(translate);
-  }, [loaded, selectedBiasConfigs]);
+  const charts = React.useMemo(() => selectedBiasConfigs.map(asChartData), [selectedBiasConfigs]);
 
   if (!loaded) {
     return (
@@ -77,16 +38,7 @@ const BiasTab = () => {
     );
   }
 
-  // if (charts.length === 0) {
-  //   return (
-  //     <Bullseye>
-  //       <h1>No Charts Selected</h1>
-  //     </Bullseye>
-  //   );
-  // }
-
   return (
-    //
     <Stack>
       <StackItem>
         <MetricsPageToolbar
@@ -94,7 +46,7 @@ const BiasTab = () => {
             <ToolbarItem>
               <ToolbarItem variant="label">Metrics to display</ToolbarItem>
               <ToolbarItem>
-                <BiasMetricConfigSelector onChange={selectBiasConfigCallback} />
+                <BiasMetricConfigSelector onChange={setSelectedBiasConfigs} />
               </ToolbarItem>
             </ToolbarItem>
           }
@@ -127,9 +79,8 @@ type ChartData = {
   id: string;
 } & TrustyChartProps;
 
-//TODO: quick hack remove when fixed.
-const translate = (biasMetricConfig: BiasMetricConfig): ChartData => {
-  console.log('ChartData:', biasMetricConfig);
+//TODO: Add separate domain calcs.
+const asChartData = (biasMetricConfig: BiasMetricConfig): ChartData => {
   const { id, name } = biasMetricConfig;
   const thresholds: [number, number] = [DEFAULT_MAX_THRESHOLD, DEFAULT_MIN_THRESHOLD];
   const domain: DomainCalculator = (maxYValue) => ({

@@ -172,6 +172,15 @@ export const byId =
     }
     return arg2.id === arg;
   };
+
+export const byNotId =
+  <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
+  (arg2: T) => {
+    if (typeof arg === 'object') {
+      return arg2.id !== arg.id;
+    }
+    return arg2.id !== arg;
+  };
 const byIds =
   <T extends { id: string | number }>(arg: T[]) =>
   (arg2: T) =>

@@ -11,6 +11,7 @@ import {
   getInfo,
   getSpdRequests,
 } from '~/api';
+import BiasTab from '~/pages/modelServing/screens/metrics/bias/BiasTab';
 
 export type TrustyAPIState = APIState<ExplainabilityAPI>;
 
