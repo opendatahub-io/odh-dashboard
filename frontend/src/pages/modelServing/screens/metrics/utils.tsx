@@ -163,3 +163,20 @@ export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[
       render={() => (item.link ? <Link to={item.link}>{item.label}</Link> : <>{item.label}</>)}
     />
   ));
+
+export const byId =
+  <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
+  (arg2: T) => {
+    if (typeof arg === 'object') {
+      return arg2.id === arg.id;
+    }
+    return arg2.id === arg;
+  };
+const byIds =
+  <T extends { id: string | number }>(arg: T[]) =>
+  (arg2: T) =>
+    arg.some(byId(arg2));
+const byName =
+  <T extends { name: string }>(name: T['name']) =>
+  (obj: T) =>
+    obj.name === name;

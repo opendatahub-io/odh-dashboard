@@ -23,6 +23,7 @@ import { DomainCalculator } from '~/pages/modelServing/screens/metrics/types';
 import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { MetricTypes } from '~/api';
 import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/bias/BiasMetricChartWrapper';
+import { byId } from '~/pages/modelServing/screens/metrics/utils';
 
 // const byId =
 //   <T extends { id: string | number }>(id: T['id']) =>
@@ -42,28 +43,9 @@ import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/bias/Bi
 //
 // const byId4 = <T,>(arg: ObjOrId<T>) =>
 
-export const byId =
-  <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
-  (arg2: T) => {
-    if (arg instanceof Object) {
-      return arg2.id === arg.id;
-    }
-    return arg2.id === arg;
-  };
-
-const byIds =
-  <T extends { id: string | number }>(arg: T[]) =>
-  (arg2: T) =>
-    !!arg.find(byId5(arg2));
-
 // const byId2 = <T extends { id: string | number }, U extends string ? T['id'] : T>(id: T | T['id']) => {
 //   return (obj: T) =>
 // };
-
-const byName =
-  <T extends { name: string }>(name: T['name']) =>
-  (obj: T) =>
-    obj.name === name;
 
 const BiasTab = () => {
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
