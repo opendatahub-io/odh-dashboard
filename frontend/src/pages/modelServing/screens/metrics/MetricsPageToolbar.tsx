@@ -12,22 +12,21 @@ import { SyncAltIcon } from '@patternfly/react-icons';
 import _ from 'lodash';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { relativeTime } from '~/utilities/time';
+import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
 import { isTimeframeTitle } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 
-const MetricsPageToolbar: React.FC = () => {
+type MetricsPageToolbarProps = {
+  leftToolbarItem?: React.ReactElement<typeof ToolbarItem>;
+};
+
+const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem }) => {
   const [timeframeOpen, setTimeframeOpen] = React.useState(false);
-  const { currentTimeframe, setCurrentTimeframe, refresh, lastUpdateTime } = React.useContext(
-    ModelServingMetricsContext,
-  );
+  const { currentTimeframe, setCurrentTimeframe } = React.useContext(ModelServingMetricsContext);
   return (
     <Toolbar>
       <ToolbarContent>
-        {/*<ToolbarItem>*/}
-        {/*  <Button variant="plain" onClick={refresh}>*/}
-        {/*    <SyncAltIcon />*/}
-        {/*  </Button>*/}
-        {/*</ToolbarItem>*/}
+        {leftToolbarItem && leftToolbarItem}
         <ToolbarItem alignment={{ default: 'alignRight' }}>
           <ToolbarItem variant="label">Time range</ToolbarItem>
           <Select
@@ -42,7 +41,7 @@ const MetricsPageToolbar: React.FC = () => {
             selections={currentTimeframe}
           >
             {Object.values(TimeframeTitle).map((value, index) => (
-              <SelectOption key={index} value={value} />
+              <SelectOption key={value} value={value} />
             ))}
           </Select>
         </ToolbarItem>

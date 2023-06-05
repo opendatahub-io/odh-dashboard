@@ -1,15 +1,15 @@
 export enum DataTypes {
-  BOOL,
-  FLOAT,
-  DOUBLE,
-  INT32,
-  INT64,
-  STRING,
+  BOOL = 'BOOL',
+  FLOAT = 'FLOAT',
+  DOUBLE = 'DOUBLE',
+  INT32 = 'INT32',
+  INT64 = 'INT64',
+  STRING = 'STRING',
 }
 
 export enum MetricTypes {
-  SPD,
-  DIR,
+  SPD = 'SPD',
+  DIR = 'DIR',
 }
 
 export type TypedValue = {
