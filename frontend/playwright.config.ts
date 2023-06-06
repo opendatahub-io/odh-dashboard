@@ -37,21 +37,23 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
   ],
 
   // start storybook server only when not running e2e tests
-  webServer: {
-    command: 'npm run storybook',
-    url: 'http://localhost:6006/',
-    reuseExistingServer: !process.env.E2E,
-  },
+  webServer: !process.env.E2E
+    ? {
+        command: 'npm run storybook',
+        url: 'http://localhost:6006/',
+        reuseExistingServer: true,
+      }
+    : undefined,
 });
