@@ -1,17 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/projects');
-  const projectTestRow = await page.locator('tr', { has: page.locator('text="e2e-test-project"') });
-  const count = await projectTestRow.count();
-  if (count > 0) {
-    await projectTestRow.getByRole('button', { name: 'Actions' }).click();
-    await page.getByRole('menuitem', { name: 'Delete project' }).click();
-    await page.getByRole('textbox', { name: 'Delete modal input' }).fill('e2e-test-project');
-    await page.getByRole('button', { name: 'Delete project' }).click();
-  }
-});
-
 test.afterEach(async ({ page }) => {
   await page.goto('/projects');
   const projectTestRow = await page.locator('tr', { has: page.locator('text="e2e-test-project"') });
