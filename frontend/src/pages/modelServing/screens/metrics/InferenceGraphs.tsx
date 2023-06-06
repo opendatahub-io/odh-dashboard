@@ -27,12 +27,12 @@ const InferenceGraphs: React.FC = () => {
             {
               name: 'Failed http requests (x100)',
               metric: data[InferenceMetricType.REQUEST_COUNT_FAILED],
-              translatePoint: (point) => {
-                // TODO: remove when real values are used
-                const newPoint = per100(point);
-                const y = Math.floor(newPoint.y / (Math.floor(Math.random() * 2) + 2));
-                return { ...newPoint, y };
-              },
+              // translatePoint: (point) => {
+              //   // TODO: remove when real values are used
+              //   const newPoint = per100(point);
+              //   const y = Math.floor(newPoint.y / (Math.floor(Math.random() * 2) + 2));
+              //   return { ...newPoint, y };
+              // },
             },
           ]}
           title={`Http requests per ${inHours ? 'hour' : 'day'} (x100)`}

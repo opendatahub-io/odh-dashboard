@@ -24,7 +24,7 @@ import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelS
 import { MetricTypes } from '~/api';
 import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/bias/BiasMetricChartWrapper';
 
-const BiasTab = () => {
+const BiasTab: React.FC = () => {
   const { loaded } = useExplainabilityModelData();
   const [selectedBiasConfigs, setSelectedBiasConfigs] = React.useState<BiasMetricConfig[]>([]);
 

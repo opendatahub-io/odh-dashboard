@@ -1,12 +1,17 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Tab, TabTitleText } from '@patternfly/react-core';
+import { Tabs, Tab, TabTitleText, Button } from '@patternfly/react-core';
+import { CogIcon } from '@patternfly/react-icons';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import PerformanceTab from './PerformanceTab';
 import BiasTab from './bias/BiasTab';
 import './MetricsPageTabs.scss';
 
-const MetricsPageTabs: React.FC = () => {
+type MetricsPageTabsProps = {
+  headerAction: (headerAction: React.ReactNode | null) => void;
+};
+
+const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ headerAction }) => {
   const DEFAULT_TAB = MetricsTabKeys.PERFORMANCE;
 
   const { tab } = useParams();
@@ -16,7 +21,22 @@ const MetricsPageTabs: React.FC = () => {
     if (!tab) {
       navigate(`./${DEFAULT_TAB}`, { replace: true });
     }
-  }, [DEFAULT_TAB, navigate, tab]);
+
+    if (tab === MetricsTabKeys.BIAS) {
+      headerAction(
+        <Button
+          onClick={() => navigate(`../configure`, { relative: 'path' })}
+          variant="link"
+          icon={<CogIcon />}
+          isInline
+        >
+          Configure
+        </Button>,
+      );
+    } else {
+      headerAction(null);
+    }
+  }, [DEFAULT_TAB, headerAction, navigate, tab]);
 
   return (
     <Tabs
