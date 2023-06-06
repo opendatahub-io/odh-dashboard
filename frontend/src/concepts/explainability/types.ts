@@ -36,7 +36,7 @@ export type ExplainabilityAPI = {
 export type BiasMetricConfig = {
   id: string;
   name: string;
-  metricType: MetricTypes;
+  metricType?: MetricTypes;
   protectedAttribute: string;
   outcomeName: string;
   favorableOutcome: string;
