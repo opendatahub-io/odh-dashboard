@@ -7,17 +7,23 @@ type BiasMetricChartWrapperProps = {
   name: string;
 };
 
-//TODO
-// * Format title properly
 const BiasMetricsChartWrapper: React.FC<BiasMetricChartWrapperProps> = ({ children, name }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(true);
 
   const onToggle = (isExpanded: boolean) => {
     setIsExpanded(isExpanded);
   };
 
   return (
-    <ExpandableSection toggleContent={<h2>{name}</h2>} onToggle={onToggle} isExpanded={isExpanded}>
+    <ExpandableSection
+      toggleContent={
+        <span className="pf-u-color-100 pf-u-font-size-xl pf-u-font-family-redhatVF-heading-sans-serif">
+          {name}
+        </span>
+      }
+      onToggle={onToggle}
+      isExpanded={isExpanded}
+    >
       {children}
     </ExpandableSection>
   );
