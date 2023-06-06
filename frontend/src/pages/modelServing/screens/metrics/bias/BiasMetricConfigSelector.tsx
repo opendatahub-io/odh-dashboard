@@ -19,12 +19,12 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({ onChange
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
 
   const [isOpen, setIsOpen] = React.useState(false);
-  const [selected, setSelected] = React.useState<BiasMetricConfigOption[]>([]);
+  const [selected, setSelected] = React.useState<BiasSelectOption[]>([]);
 
   const elementId = React.useId();
 
   const changeState = React.useCallback(
-    (options: BiasMetricConfigOption[]) => {
+    (options: BiasSelectOption[]) => {
       setSelected(options);
       onChange && onChange(options.map((x) => x.asBiasMetricConfig()));
     },
@@ -41,7 +41,7 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({ onChange
         typeAheadAriaLabel="Select a metric"
         onToggle={() => setIsOpen(!isOpen)}
         onSelect={(event, item) => {
-          if (isBiasMetricConfigOption(item)) {
+          if (isBiasSelectOption(item)) {
             if (selected.find(byId(item))) {
               // User has de-selected an item.
               changeState([...selected.filter(byNotId(item))]);
@@ -66,14 +66,14 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({ onChange
           {biasMetricConfigs
             .filter((x) => x.metricType === MetricTypes.SPD)
             .map((x) => (
-              <SelectOption key={x.id} value={createOption(x)} />
+              <SelectOption key={x.id} value={createBiasSelectOption(x)} />
             ))}
         </SelectGroup>
         <SelectGroup label="DIR" key="DIR">
           {biasMetricConfigs
             .filter((x) => x.metricType === MetricTypes.DIR)
             .map((x) => (
-              <SelectOption key={x.id} value={createOption(x)} />
+              <SelectOption key={x.id} value={createBiasSelectOption(x)} />
             ))}
         </SelectGroup>
       </Select>
@@ -81,25 +81,25 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({ onChange
   );
 };
 
-type BiasMetricConfigOption = {
+type BiasSelectOption = {
   id: string;
   name: string;
   asBiasMetricConfig: () => BiasMetricConfig;
   toString: () => string;
-  compareTo: (x: BiasMetricConfigOption) => boolean;
+  compareTo: (x: BiasSelectOption) => boolean;
 };
-const createOption = (biasMetricConfig: BiasMetricConfig): BiasMetricConfigOption => {
+const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): BiasSelectOption => {
   const { id, name } = biasMetricConfig;
   return {
     id,
     name,
     asBiasMetricConfig: () => biasMetricConfig,
     toString: () => name,
-    compareTo: (x) => x.id === id,
+    compareTo: byId(id),
   };
 };
 
-const isBiasMetricConfigOption = (obj: SelectOptionObject): obj is BiasMetricConfigOption =>
+const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
   'asBiasMetricConfig' in obj;
 
 export default BiasMetricConfigSelector;
