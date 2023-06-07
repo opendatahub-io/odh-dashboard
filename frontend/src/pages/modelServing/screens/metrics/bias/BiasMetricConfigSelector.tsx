@@ -13,20 +13,29 @@ import { byId, byNotId } from '~/pages/modelServing/screens/metrics/utils';
 
 type BiasMetricConfigSelector = {
   onChange?: (x: BiasMetricConfig[]) => void;
+  initialSelections?: BiasMetricConfig[];
 };
 
-const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({ onChange }) => {
+const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({
+  onChange,
+  initialSelections,
+}) => {
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
 
   const [isOpen, setIsOpen] = React.useState(false);
-  const [selected, setSelected] = React.useState<BiasSelectOption[]>([]);
+  const [selected, setSelected] = React.useState<BiasSelectOption[]>(() => {
+    if (initialSelections) {
+      return initialSelections.map(createBiasSelectOption);
+    }
+    return [];
+  });
 
   const elementId = React.useId();
 
   const changeState = React.useCallback(
     (options: BiasSelectOption[]) => {
       setSelected(options);
-      onChange && onChange(options.map((x) => x.asBiasMetricConfig()));
+      onChange && onChange(options.map((x) => x.biasMetricConfig));
     },
     [onChange],
   );
@@ -84,7 +93,7 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelector> = ({ onChange
 type BiasSelectOption = {
   id: string;
   name: string;
-  asBiasMetricConfig: () => BiasMetricConfig;
+  biasMetricConfig: BiasMetricConfig;
   toString: () => string;
   compareTo: (x: BiasSelectOption) => boolean;
 };
@@ -93,13 +102,13 @@ const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): BiasSelectO
   return {
     id,
     name,
-    asBiasMetricConfig: () => biasMetricConfig,
+    biasMetricConfig,
     toString: () => name,
     compareTo: byId(id),
   };
 };
 
 const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
-  'asBiasMetricConfig' in obj;
+  'biasMetricConfig' in obj;
 
 export default BiasMetricConfigSelector;

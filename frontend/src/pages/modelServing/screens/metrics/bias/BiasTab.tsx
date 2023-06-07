@@ -23,10 +23,18 @@ import { DomainCalculator } from '~/pages/modelServing/screens/metrics/types';
 import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { MetricTypes } from '~/api';
 import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/bias/BiasMetricChartWrapper';
+import { useBrowserStorage } from '~/components/browserStorage';
 
+const STORAGE_KEY = 'odh.dashboard.xai.selected_bias_charts';
 const BiasTab: React.FC = () => {
   const { loaded } = useExplainabilityModelData();
-  const [selectedBiasConfigs, setSelectedBiasConfigs] = React.useState<BiasMetricConfig[]>([]);
+
+  const [selectedBiasConfigs, setSelectedBiasConfigs] = useBrowserStorage<BiasMetricConfig[]>(
+    STORAGE_KEY,
+    [],
+    true,
+    true,
+  );
 
   const charts = React.useMemo(() => selectedBiasConfigs.map(asChartData), [selectedBiasConfigs]);
 
@@ -46,7 +54,10 @@ const BiasTab: React.FC = () => {
             <ToolbarItem>
               <ToolbarItem variant="label">Metrics to display</ToolbarItem>
               <ToolbarItem>
-                <BiasMetricConfigSelector onChange={setSelectedBiasConfigs} />
+                <BiasMetricConfigSelector
+                  onChange={setSelectedBiasConfigs}
+                  initialSelections={selectedBiasConfigs}
+                />
               </ToolbarItem>
             </ToolbarItem>
           }
