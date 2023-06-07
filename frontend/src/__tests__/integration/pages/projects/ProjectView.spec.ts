@@ -13,42 +13,42 @@ test('Create project', async ({ page }) => {
   await page.getByLabel('Name *', { exact: true }).fill('Test Project');
   await page.getByLabel('Description').click();
   await page.getByLabel('Description').fill('Test project description');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeEnabled();
 
   // Test invalid resource name
   await page.getByLabel('Resource name *').fill('test project');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
 
   await page.getByLabel('Resource name *').fill('test_project');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
 
   await page.getByLabel('Resource name *').fill('-test-project-');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
 
   await page.getByLabel('Resource name *').fill('123test-project123');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeEnabled();
 
   await page.getByLabel('Resource name *').fill('%^&test-project@#$');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
 
   await page.getByLabel('Resource name *').fill('test.project');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
 
   await page.getByLabel('Resource name *').fill('test-project');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeEnabled();
 
   // Test incomplete form
   await page.getByLabel('Name *', { exact: true }).fill('');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
 
   await page.getByLabel('Name *', { exact: true }).fill('New Name');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeEnabled();
 
   await page.getByLabel('Resource name *').fill('');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
 
   await page.getByLabel('Resource name *').fill('new-name');
-  await expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeEnabled();
 });
 
 test('Edit project', async ({ page }) => {
