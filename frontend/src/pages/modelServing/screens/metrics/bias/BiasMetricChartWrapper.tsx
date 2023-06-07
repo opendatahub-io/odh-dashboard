@@ -2,6 +2,7 @@ import React from 'react';
 import { ExpandableSection } from '@patternfly/react-core';
 import TrustyChart from '~/pages/modelServing/screens/metrics/bias/TrustyChart';
 import { useBrowserStorage } from '~/components/browserStorage';
+import './BiasMetricChartWrapper.scss';
 
 type BiasMetricChartWrapperProps = {
   children: React.ReactElement<typeof TrustyChart>;
@@ -22,11 +23,8 @@ const BiasMetricsChartWrapper: React.FC<BiasMetricChartWrapperProps> = ({
 
   return (
     <ExpandableSection
-      toggleContent={
-        <span className="pf-u-color-100 pf-u-font-size-xl pf-u-font-family-redhatVF-heading-sans-serif">
-          {name}
-        </span>
-      }
+      className="dashboard-expandable-section-heading"
+      toggleText={name}
       onToggle={onToggle}
       isExpanded={isExpanded}
     >
