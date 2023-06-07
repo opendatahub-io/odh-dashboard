@@ -14,8 +14,6 @@ const BiasMetricsChartWrapper: React.FC<BiasMetricChartWrapperProps> = ({
   name,
   storageKey,
 }) => {
-  // const [isExpanded, setIsExpanded] = React.useState(true);
-
   const [isExpanded, setIsExpanded] = useBrowserStorage(storageKey, true, true, true);
 
   const onToggle = (isExpanded: boolean) => {
