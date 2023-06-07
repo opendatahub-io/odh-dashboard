@@ -67,7 +67,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           onCancel={() => onBeforeClose(false)}
           onSubmit={onCreateConfiguration}
           submitLabel="Configure"
-          alertTitle="Error configure bias metric"
+          alertTitle="Failed to configure bias metric"
           isSubmitDisabled={
             !checkConfigurationFieldsValid(configuration, metricType) || actionInProgress
           }
