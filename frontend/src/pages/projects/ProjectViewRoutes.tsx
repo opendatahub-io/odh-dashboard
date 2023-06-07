@@ -31,10 +31,12 @@ const ProjectViewRoutes: React.FC = () => {
         {modelMetricsEnabled && (
           <>
             <Route path="metrics/model" element={<ExplainabilityProvider />}>
+              <Route index element={<Navigate to=".." />} />
               <Route path=":inferenceService" element={<ProjectInferenceMetricsWrapper />}>
                 <Route path=":tab?" element={<ProjectInferenceMetricsPage />} />
                 <Route path="configure" element={<ProjectInferenceMetricsConfigurationPage />} />
               </Route>
+              <Route path="*" element={<Navigate to="." />} />
             </Route>
             <Route path="metrics/runtime" element={<ProjectRuntimeMetricsWrapper />} />
           </>

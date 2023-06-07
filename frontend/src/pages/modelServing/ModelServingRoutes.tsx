@@ -18,8 +18,8 @@ const ModelServingRoutes: React.FC = () => {
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
         {modelMetricsEnabled && (
-          // TODO: /metrics/:project will lead to an blank page without 404
           <Route path="/metrics/:project" element={<ExplainabilityProvider />}>
+            <Route index element={<Navigate to=".." />} />
             <Route path=":inferenceService" element={<GlobalInferenceMetricsWrapper />}>
               <Route path=":tab?" element={<GlobalInferenceMetricsPage />} />
               <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
@@ -28,6 +28,7 @@ const ModelServingRoutes: React.FC = () => {
             <Route path="*" element={<Navigate to="." />} />
           </Route>
         )}
+        <Route path="*" element={<Navigate to="." />} />
       </Route>
     </ProjectsRoutes>
   );

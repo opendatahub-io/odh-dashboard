@@ -42,7 +42,6 @@ const BiasConfigurationTableRow: React.FC<BiasConfigurationTableRowProps> = ({
         <Td dataLabel="Output">{obj.outcomeName}</Td>
         <Td dataLabel="Output value">{obj.favorableOutcome}</Td>
         <Td isActionCell>
-          {/* TODO: add actions */}
           <ActionsColumn
             items={[
               {

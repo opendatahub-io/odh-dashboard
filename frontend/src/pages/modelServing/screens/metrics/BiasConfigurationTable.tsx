@@ -28,10 +28,11 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({ inferen
       return true;
     }
 
-    // TODO: add more search types
     switch (searchType) {
       case SearchType.NAME:
         return configuration.name.toLowerCase().includes(search.toLowerCase());
+      case SearchType.METRIC:
+        return configuration.metricType.toLowerCase().includes(search.toLocaleLowerCase());
       case SearchType.PROTECTED_ATTRIBUTE:
         return configuration.protectedAttribute.toLowerCase().includes(search.toLowerCase());
       case SearchType.OUTPUT:
@@ -52,6 +53,7 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({ inferen
       Object.keys(SearchType).filter(
         (key) =>
           SearchType[key] === SearchType.NAME ||
+          SearchType[key] === SearchType.METRIC ||
           SearchType[key] === SearchType.PROTECTED_ATTRIBUTE ||
           SearchType[key] === SearchType.OUTPUT,
       ),
