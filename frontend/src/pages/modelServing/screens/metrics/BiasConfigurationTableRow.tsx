@@ -11,9 +11,16 @@ import { BiasMetricConfig } from '~/concepts/explainability/types';
 type BiasConfigurationTableRowProps = {
   obj: BiasMetricConfig;
   rowIndex: number;
+  onCloneConfiguration: (obj: BiasMetricConfig) => void;
+  onDeleteConfiguration: (obj: BiasMetricConfig) => void;
 };
 
-const BiasConfigurationTableRow: React.FC<BiasConfigurationTableRowProps> = ({ obj, rowIndex }) => {
+const BiasConfigurationTableRow: React.FC<BiasConfigurationTableRowProps> = ({
+  obj,
+  rowIndex,
+  onCloneConfiguration,
+  onDeleteConfiguration,
+}) => {
   const [isExpanded, setExpanded] = React.useState(false);
 
   return (
@@ -35,8 +42,22 @@ const BiasConfigurationTableRow: React.FC<BiasConfigurationTableRowProps> = ({ o
         <Td dataLabel="Output">{obj.outcomeName}</Td>
         <Td dataLabel="Output value">{obj.favorableOutcome}</Td>
         <Td isActionCell>
-          {/* TODO: add actions */}
-          <ActionsColumn items={[]} />
+          <ActionsColumn
+            items={[
+              {
+                title: 'Duplicate',
+                onClick: () => {
+                  onCloneConfiguration(obj);
+                },
+              },
+              {
+                title: 'Delete',
+                onClick: () => {
+                  onDeleteConfiguration(obj);
+                },
+              },
+            ]}
+          />
         </Td>
       </Tr>
       <Tr isExpanded={isExpanded}>

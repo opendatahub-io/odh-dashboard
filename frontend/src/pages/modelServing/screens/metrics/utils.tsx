@@ -13,6 +13,7 @@ import {
   NamedMetricChartLine,
   TranslatePoint,
 } from '~/pages/modelServing/screens/metrics/types';
+import { BaseMetricRequest, MetricTypes } from '~/api';
 import { InferenceMetricType, RuntimeMetricType } from './ModelServingMetricsContext';
 
 export const isModelMetricsEnabled = (
@@ -163,3 +164,60 @@ export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[
       render={() => (item.link ? <Link to={item.link}>{item.label}</Link> : <>{item.label}</>)}
     />
   ));
+
+const checkThresholdValid = (metricType: MetricTypes, thresholdDelta?: number): boolean => {
+  if (thresholdDelta) {
+    if (metricType === MetricTypes.SPD) {
+      if (thresholdDelta > 0 && thresholdDelta < 1) {
+        // SPD, 0 < threshold < 1, valid
+        return true;
+      }
+      // SPD, not within the range, invalid
+      return false;
+    }
+    // DIR, no limitation, valid
+    if (metricType === MetricTypes.DIR) {
+      return true;
+    }
+    // not SPD not DIR, undefined for now, metricType should be selected, invalid
+    return false;
+  }
+  // not input anything, invalid
+  return false;
+};
+
+const checkBatchSizeValid = (batchSize?: number): boolean => {
+  if (batchSize) {
+    if (Number.isInteger(batchSize)) {
+      // size > 2, integer, valid
+      if (batchSize > 2) {
+        return true;
+      }
+      // size <= 2, invalid
+      return false;
+    }
+    // not an integer, invalid
+    return false;
+  }
+  // not input anything, invalid
+  return false;
+};
+
+export const checkConfigurationFieldsValid = (
+  configurations: BaseMetricRequest,
+  metricType?: MetricTypes,
+) =>
+  metricType !== undefined &&
+  configurations.requestName !== '' &&
+  configurations.protectedAttribute !== '' &&
+  configurations.privilegedAttribute !== '' &&
+  configurations.unprivilegedAttribute !== '' &&
+  configurations.outcomeName !== '' &&
+  configurations.favorableOutcome !== '' &&
+  configurations.batchSize !== undefined &&
+  configurations.batchSize > 0 &&
+  checkThresholdValid(metricType, configurations.thresholdDelta) &&
+  checkBatchSizeValid(configurations.batchSize);
+
+export const isMetricType = (metricType: string | SelectOptionObject): metricType is MetricTypes =>
+  Object.values(MetricTypes).includes(metricType as MetricTypes);

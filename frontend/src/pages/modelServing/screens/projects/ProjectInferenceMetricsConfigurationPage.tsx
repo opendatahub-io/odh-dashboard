@@ -8,7 +8,6 @@ import { ProjectInferenceMetricsOutletContextProps } from './ProjectInferenceMet
 const ProjectInferenceMetricsConfigurationPage: React.FC = () => {
   const { currentProject, inferenceService } =
     useOutletContext<ProjectInferenceMetricsOutletContextProps>();
-  const modelDisplayName = getInferenceServiceDisplayName(inferenceService);
   return (
     <BiasConfigurationPage
       breadcrumbItems={[
@@ -18,12 +17,12 @@ const ProjectInferenceMetricsConfigurationPage: React.FC = () => {
           link: `/projects/${currentProject.metadata.name}`,
         },
         {
-          label: modelDisplayName,
+          label: getInferenceServiceDisplayName(inferenceService),
           link: `/projects/${currentProject.metadata.name}/metrics/model/${inferenceService.metadata.name}`,
         },
         { label: 'Metric configuration', isActive: true },
       ]}
-      modelDisplayName={modelDisplayName}
+      inferenceService={inferenceService}
     />
   );
 };

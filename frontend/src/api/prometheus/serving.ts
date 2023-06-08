@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import {
+  ContextResourceData,
+  PrometheusQueryRangeResponseDataResult,
+  PrometheusQueryRangeResultValue,
+} from '~/types';
 import {
   InferenceMetricType,
   RuntimeMetricType,
@@ -16,7 +20,10 @@ export const useModelServingMetrics = (
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
 ): {
-  data: Record<RuntimeMetricType, ContextResourceData<PrometheusQueryRangeResultValue>>;
+  data: Record<
+    RuntimeMetricType | InferenceMetricType,
+    ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
+  >;
   refresh: () => void;
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
@@ -88,6 +95,8 @@ export const useModelServingMetrics = (
     runtimeMemoryUtilization,
     inferenceRequestSuccessCount,
     inferenceRequestFailedCount,
+    inferenceTrustyAIDIR,
+    inferenceTrustyAISPD,
   ]);
 
   const refreshAllMetrics = React.useCallback(() => {

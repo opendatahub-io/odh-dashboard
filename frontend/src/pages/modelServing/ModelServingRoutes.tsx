@@ -19,6 +19,7 @@ const ModelServingRoutes: React.FC = () => {
         <Route index element={<ModelServingGlobal />} />
         {modelMetricsEnabled && (
           <Route path="/metrics/:project" element={<ExplainabilityProvider />}>
+            <Route index element={<Navigate to=".." />} />
             <Route path=":inferenceService" element={<GlobalInferenceMetricsWrapper />}>
               <Route path=":tab?" element={<GlobalInferenceMetricsPage />} />
               <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
@@ -27,6 +28,7 @@ const ModelServingRoutes: React.FC = () => {
             <Route path="*" element={<Navigate to="." />} />
           </Route>
         )}
+        <Route path="*" element={<Navigate to="." />} />
       </Route>
     </ProjectsRoutes>
   );

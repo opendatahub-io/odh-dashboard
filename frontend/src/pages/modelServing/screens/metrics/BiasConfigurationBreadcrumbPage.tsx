@@ -18,7 +18,7 @@ const BiasConfigurationBreadcrumbPage: React.FC = () => {
         },
         { label: 'Metric configuration', isActive: true },
       ]}
-      modelDisplayName={modelDisplayName}
+      inferenceService={inferenceService}
     />
   );
 };

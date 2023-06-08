@@ -4,21 +4,22 @@ import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { BreadcrumbItemType } from '~/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
+import { InferenceServiceKind } from '~/k8sTypes';
+import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import { MetricsTabKeys } from './types';
 import BiasConfigurationTable from './BiasConfigurationTable';
 import { getBreadcrumbItemComponents } from './utils';
 
 type BiasConfigurationPageProps = {
   breadcrumbItems: BreadcrumbItemType[];
-  modelDisplayName: string;
+  inferenceService: InferenceServiceKind;
 };
 
 const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
   breadcrumbItems,
-  modelDisplayName,
+  inferenceService,
 }) => {
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
-  const emptyConfiguration = biasMetricConfigs.length === 0;
   const navigate = useNavigate();
   return (
     <ApplicationsPage
@@ -27,7 +28,9 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
       breadcrumb={<Breadcrumb>{getBreadcrumbItemComponents(breadcrumbItems)}</Breadcrumb>}
       headerAction={
         <Button onClick={() => navigate(`../${MetricsTabKeys.BIAS}`, { relative: 'path' })}>
-          {emptyConfiguration ? `Back to ${modelDisplayName}` : 'View metrics'}
+          {biasMetricConfigs.length === 0
+            ? `Back to ${getInferenceServiceDisplayName(inferenceService)}`
+            : 'View metrics'}
         </Button>
       }
       loaded={loaded}
@@ -35,7 +38,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
       // The page is not empty, we will handle the empty state in the table
       empty={false}
     >
-      <BiasConfigurationTable configurations={biasMetricConfigs} />
+      <BiasConfigurationTable inferenceService={inferenceService} />
     </ApplicationsPage>
   );
 };
