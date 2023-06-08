@@ -186,11 +186,3 @@ export const byNotId =
     }
     return arg2.id !== arg;
   };
-const byIds =
-  <T extends { id: string | number }>(arg: T[]) =>
-  (arg2: T) =>
-    arg.some(byId(arg2));
-const byName =
-  <T extends { name: string }>(name: T['name']) =>
-  (obj: T) =>
-    obj.name === name;

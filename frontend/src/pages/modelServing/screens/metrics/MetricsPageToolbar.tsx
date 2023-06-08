@@ -1,18 +1,6 @@
 import * as React from 'react';
-import {
-  Button,
-  Select,
-  SelectOption,
-  Text,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from '@patternfly/react-core';
-import { SyncAltIcon } from '@patternfly/react-icons';
-import _ from 'lodash';
+import { Select, SelectOption, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
-import { relativeTime } from '~/utilities/time';
-import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
 import { isRefreshIntervalTitle, isTimeframeTitle } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 
