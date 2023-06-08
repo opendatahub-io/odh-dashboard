@@ -25,12 +25,14 @@ import { MetricTypes } from '~/api';
 import BiasMetricChartWrapper from '~/pages/modelServing/screens/metrics/bias/BiasMetricChartWrapper';
 import { useBrowserStorage } from '~/components/browserStorage';
 
-const STORAGE_KEY = 'odh.dashboard.xai.selected_bias_charts';
+const SELECTED_CHARTS_STORAGE_KEY = 'odh.dashboard.xai.selected_bias_charts';
+
+const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `bias-metric-chart-wrapper`;
 const BiasTab: React.FC = () => {
   const { loaded } = useExplainabilityModelData();
 
   const [selectedBiasConfigs, setSelectedBiasConfigs] = useBrowserStorage<BiasMetricConfig[]>(
-    STORAGE_KEY,
+    SELECTED_CHARTS_STORAGE_KEY,
     [],
     true,
     true,
@@ -69,7 +71,7 @@ const BiasTab: React.FC = () => {
             <StackItem key={chart.id}>
               <BiasMetricChartWrapper
                 title={chart.name}
-                storageKey={`bias-metric-chart-wrapper-${chart.id}`}
+                storageKey={`${OPEN_WRAPPER_STORAGE_KEY_PREFIX}-${chart.id}`}
               >
                 <TrustyChart
                   id={chart.id}
