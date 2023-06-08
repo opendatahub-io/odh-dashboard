@@ -1,6 +1,10 @@
 import * as React from 'react';
-import { TimeframeStep, TimeframeTimeRange } from '~/pages/modelServing/screens/const';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import {
+  RefreshIntervalValue,
+  TimeframeStep,
+  TimeframeTimeRange,
+} from '~/pages/modelServing/screens/const';
+import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import {
   ContextResourceData,
   PrometheusQueryRangeResponseDataResult,
@@ -42,6 +46,7 @@ export const useQueryRangeResourceDataTrusty = (
   query: string,
   end: number,
   timeframe: TimeframeTitle,
+  refreshInterval: RefreshIntervalTitle,
 ): ContextResourceData<TrustyData> => {
   const responsePredicate = React.useCallback<ResponsePredicate<TrustyData>>(
     (data) => data.result,
@@ -57,7 +62,7 @@ export const useQueryRangeResourceDataTrusty = (
       TimeframeStep[timeframe],
       responsePredicate,
     ),
-    5 * 60 * 1000,
+    RefreshIntervalValue[refreshInterval],
   );
 };
 export default useQueryRangeResourceData;

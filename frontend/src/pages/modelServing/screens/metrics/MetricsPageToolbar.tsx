@@ -10,10 +10,10 @@ import {
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import _ from 'lodash';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { relativeTime } from '~/utilities/time';
 import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
-import { isTimeframeTitle } from './utils';
+import { isRefreshIntervalTitle, isTimeframeTitle } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 
 type MetricsPageToolbarProps = {
@@ -22,7 +22,15 @@ type MetricsPageToolbarProps = {
 
 const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem }) => {
   const [timeframeOpen, setTimeframeOpen] = React.useState(false);
-  const { currentTimeframe, setCurrentTimeframe } = React.useContext(ModelServingMetricsContext);
+  const {
+    currentTimeframe,
+    setCurrentTimeframe,
+    currentRefreshInterval,
+    setCurrentRefreshInterval,
+  } = React.useContext(ModelServingMetricsContext);
+
+  const [intervalOpen, setIntervalOpen] = React.useState(false);
+
   return (
     <Toolbar>
       <ToolbarContent>
@@ -40,14 +48,28 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
             }}
             selections={currentTimeframe}
           >
-            {Object.values(TimeframeTitle).map((value, index) => (
+            {Object.values(TimeframeTitle).map((value) => (
               <SelectOption key={value} value={value} />
             ))}
           </Select>
         </ToolbarItem>
         <ToolbarItem>
           <ToolbarItem variant="label">Refresh interval</ToolbarItem>
-          <Select onToggle={_.noop}></Select>
+          <Select
+            isOpen={intervalOpen}
+            onToggle={(expanded) => setIntervalOpen(expanded)}
+            onSelect={(e, selection) => {
+              if (isRefreshIntervalTitle(selection)) {
+                setCurrentRefreshInterval(selection);
+                setIntervalOpen(false);
+              }
+            }}
+            selections={currentRefreshInterval}
+          >
+            {Object.values(RefreshIntervalTitle).map((value) => (
+              <SelectOption key={value} value={value} />
+            ))}
+          </Select>
         </ToolbarItem>
       </ToolbarContent>
     </Toolbar>

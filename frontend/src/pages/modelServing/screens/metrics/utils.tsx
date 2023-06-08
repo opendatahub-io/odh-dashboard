@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { BreadcrumbItemType, DashboardConfig } from '~/types';
 import {
@@ -56,6 +56,11 @@ export const isTimeframeTitle = (
   timeframe: string | SelectOptionObject,
 ): timeframe is TimeframeTitle =>
   Object.values(TimeframeTitle).includes(timeframe as TimeframeTitle);
+
+export const isRefreshIntervalTitle = (
+  refreshInterval: string | SelectOptionObject,
+): refreshInterval is RefreshIntervalTitle =>
+  Object.values(RefreshIntervalTitle).includes(refreshInterval as RefreshIntervalTitle);
 
 export const convertTimestamp = (timestamp: number, show?: 'date' | 'second'): string => {
   const date = new Date(timestamp);

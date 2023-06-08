@@ -4,7 +4,11 @@ import {
   InferenceMetricType,
   RuntimeMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { MetricType, TimeframeTitle } from '~/pages/modelServing/screens/types';
+import {
+  MetricType,
+  RefreshIntervalTitle,
+  TimeframeTitle,
+} from '~/pages/modelServing/screens/types';
 import useQueryRangeResourceData, {
   useQueryRangeResourceDataTrusty,
 } from './useQueryRangeResourceData';
@@ -15,6 +19,7 @@ export const useModelServingMetrics = (
   timeframe: TimeframeTitle,
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
+  refreshInterval: RefreshIntervalTitle,
 ): {
   data: Record<RuntimeMetricType, ContextResourceData<PrometheusQueryRangeResultValue>>;
   refresh: () => void;
@@ -68,6 +73,7 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const inferenceTrustyAIDIR = useQueryRangeResourceDataTrusty(
@@ -75,6 +81,7 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
+    refreshInterval,
   );
 
   React.useEffect(() => {
