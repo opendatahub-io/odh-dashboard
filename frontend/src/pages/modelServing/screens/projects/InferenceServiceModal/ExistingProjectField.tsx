@@ -45,6 +45,7 @@ const ExistingProjectField: React.FC<ExistingProjectFieldProps> = ({
   return (
     <FormGroup label="Project" fieldId={fieldId}>
       <Select
+        toggleId="existing-project-selection"
         removeFindDomNode
         selections={selectedProject}
         isOpen={isOpen}

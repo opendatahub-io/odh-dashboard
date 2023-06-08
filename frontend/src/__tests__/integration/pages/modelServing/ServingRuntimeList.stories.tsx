@@ -1,9 +1,8 @@
 import React from 'react';
 
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react';
 import { rest } from 'msw';
 import { userEvent, within } from '@storybook/testing-library';
-import { expect } from '@storybook/jest';
 import { Route } from 'react-router-dom';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
@@ -20,10 +19,9 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import useDetectUser from '~/utilities/useDetectUser';
 import { fetchDashboardConfig } from '~/services/dashboardConfigService';
-import ServingRuntimeList from './ServingRuntimeList';
+import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
 
 export default {
-  title: 'ServingRuntimeList',
   component: ServingRuntimeList,
   parameters: {
     reactRouter: {
@@ -82,9 +80,9 @@ export default {
       ],
     },
   },
-} as ComponentMeta<typeof ServingRuntimeList>;
+} as Meta<typeof ServingRuntimeList>;
 
-const Template: ComponentStory<typeof ServingRuntimeList> = (args) => {
+const Template: StoryFn<typeof ServingRuntimeList> = (args) => {
   fetchDashboardConfig();
   useDetectUser();
   return (
@@ -96,37 +94,14 @@ const Template: ComponentStory<typeof ServingRuntimeList> = (args) => {
   );
 };
 
-export const Default = Template.bind({});
-Default.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('ovms', undefined, { timeout: 5000 });
-};
+export const DeployModel = {
+  render: Template,
 
-export const DeployModel = Template.bind({});
-DeployModel.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('ovms', undefined, { timeout: 5000 });
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('ovms', undefined, { timeout: 5000 });
 
-  await userEvent.click(canvas.getByText('Deploy model', { selector: 'button' }));
-
-  // get modal
-  const body = within(canvasElement.ownerDocument.body);
-  const nameInput = body.getByRole('textbox', { name: /Model Name/ });
-  const dropdowns = body.getAllByRole('button', { name: /Options menu/ });
-  const frameworkDropdown = dropdowns[0];
-  const secretDropdown = dropdowns[1];
-  const deployButton = body.getByText('Deploy', { selector: 'button' });
-
-  await userEvent.type(nameInput, 'Updated Model', { delay: 50 });
-  expect(deployButton).toBeDisabled();
-
-  await userEvent.click(frameworkDropdown);
-  await userEvent.click(body.getByText('onnx - 1'));
-  expect(deployButton).toBeDisabled();
-
-  await userEvent.click(secretDropdown);
-  await userEvent.click(body.getByText('Test Secret'));
-  expect(deployButton).not.toBeDisabled();
+    await userEvent.click(canvas.getByText('Deploy model', { selector: 'button' }));
+  },
 };

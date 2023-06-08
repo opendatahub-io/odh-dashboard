@@ -46,6 +46,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
     <FormGroup label="Model servers" isRequired>
       <Select
         removeFindDomNode
+        toggleId="inference-service-model-selection"
         id="inference-service-model-selection"
         isOpen={isOpen}
         placeholderText={
