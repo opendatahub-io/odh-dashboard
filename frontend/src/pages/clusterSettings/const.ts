@@ -18,9 +18,6 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
   userTrackingEnabled: false,
   notebookTolerationSettings: null,
 };
-export const PVC_SIZE_HINT = 'Note: PVC size must be between 1 GiB and 16384 GiB.';
-export const CULLER_TIMEOUT_HINT =
-  'Note: Notebook culler timeout must be between 10 minutes and 1000 hours.';
 export const DEFAULT_TOLERATION_VALUE = 'NotebooksOnly';
 export const TOLERATION_FORMAT = /^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$/;
 export const TOLERATION_FORMAT_ERROR =

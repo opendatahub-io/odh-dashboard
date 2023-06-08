@@ -12,7 +12,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import SettingSection from '~/components/SettingSection';
-import { DEFAULT_PVC_SIZE, MAX_PVC_SIZE, MIN_PVC_SIZE, PVC_SIZE_HINT } from './const';
+import { DEFAULT_PVC_SIZE, MAX_PVC_SIZE, MIN_PVC_SIZE } from './const';
 
 type PVCSizeSettingsProps = {
   initialValue: number | string;
@@ -78,10 +78,11 @@ all users."
         <StackItem>
           <HelperText>
             <HelperTextItem
+              data-id="pvc-size-helper-text"
               variant={pvcSize === '' ? 'error' : 'indeterminate'}
               hasIcon={pvcSize === ''}
             >
-              {PVC_SIZE_HINT}
+              Note: PVC size must be between 1 GiB and 16384 GiB.
             </HelperTextItem>
           </HelperText>
         </StackItem>

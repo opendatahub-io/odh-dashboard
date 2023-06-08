@@ -15,7 +15,6 @@ import {
 import SettingSection from '~/components/SettingSection';
 import { getHourAndMinuteByTimeout, getTimeoutByHourAndMinute } from '~/utilities/utils';
 import {
-  CULLER_TIMEOUT_HINT,
   CULLER_TIMEOUT_LIMITED,
   CULLER_TIMEOUT_UNLIMITED,
   DEFAULT_CULLER_TIMEOUT,
@@ -169,10 +168,11 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
         <StackItem>
           <HelperText>
             <HelperTextItem
+              data-id="culler-timeout-helper-text"
               variant={cullerTimeout < MIN_CULLER_TIMEOUT ? 'error' : 'indeterminate'}
               hasIcon={cullerTimeout < MIN_CULLER_TIMEOUT}
             >
-              {CULLER_TIMEOUT_HINT}
+              Note: Notebook culler timeout must be between 10 minutes and 1000 hours.
             </HelperTextItem>
           </HelperText>
         </StackItem>

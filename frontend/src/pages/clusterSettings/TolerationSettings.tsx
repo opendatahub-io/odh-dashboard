@@ -37,7 +37,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
       footer={
         <HelperText>
           {tolerationSettings.error && (
-            <HelperTextItem hasIcon variant="error">
+            <HelperTextItem data-id="toleration-helper-text-error" hasIcon variant="error">
               {tolerationSettings.error}
             </HelperTextItem>
           )}
