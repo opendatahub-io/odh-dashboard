@@ -68,7 +68,7 @@ const BiasTab: React.FC = () => {
           {charts.map((chart) => (
             <StackItem key={chart.id}>
               <BiasMetricChartWrapper
-                name={chart.name}
+                title={chart.name}
                 storageKey={`bias-metric-chart-wrapper-${chart.id}`}
               >
                 <TrustyChart

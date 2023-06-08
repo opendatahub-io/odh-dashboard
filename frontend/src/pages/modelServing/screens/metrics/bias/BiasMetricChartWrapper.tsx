@@ -6,26 +6,22 @@ import './BiasMetricChartWrapper.scss';
 
 type BiasMetricChartWrapperProps = {
   children: React.ReactElement<typeof TrustyChart>;
-  name: string;
+  title: string;
   storageKey: string;
 };
 
 const BiasMetricsChartWrapper: React.FC<BiasMetricChartWrapperProps> = ({
   children,
-  name,
+  title,
   storageKey,
 }) => {
   const [isExpanded, setIsExpanded] = useBrowserStorage(storageKey, true, true, true);
 
-  const onToggle = (isExpanded: boolean) => {
-    setIsExpanded(isExpanded);
-  };
-
   return (
     <ExpandableSection
       className="dashboard-expandable-section-heading"
-      toggleText={name}
-      onToggle={onToggle}
+      toggleText={title}
+      onToggle={setIsExpanded}
       isExpanded={isExpanded}
     >
       {children}
