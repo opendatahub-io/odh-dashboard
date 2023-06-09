@@ -23,7 +23,6 @@ export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
 
 export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
   obj.kind === 'ServingRuntime' &&
-  obj.spec?.builtInAdapter !== undefined &&
   obj.spec?.containers !== undefined &&
   obj.spec?.supportedModelFormats !== undefined;
 
