@@ -15,6 +15,7 @@ export const getDashboardConfig = (ns: string): Promise<DashboardConfigKind> =>
 
 export const getDashboardConfigTemplateOrder = (ns: string): Promise<string[]> =>
   getDashboardConfig(ns).then((dashboardConfig) => dashboardConfig.spec.templateOrder || []);
+
 export const updateDashboardConfig = (resource: DashboardConfigKind) =>
   k8sUpdateResource<DashboardConfigKind>({
     model: ODHDashboardConfigModel,

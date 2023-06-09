@@ -15,9 +15,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { TemplateKind } from '~/k8sTypes';
-import { createServingRuntimeTemplate, updateServingRuntimeTemplate } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
 import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEditor';
+import {
+  createServingRuntimeTemplateBackend,
+  updateServingRuntimeTemplateBackend,
+} from '~/services/templateService';
 import { getServingRuntimeDisplayNameFromTemplate } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
@@ -111,14 +114,15 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                 isLoading={loading}
                 onClick={() => {
                   setIsLoading(true);
+                  // TODO: Revert back to pass through api once we migrate admin panel
                   const onClickFunc = existingTemplate
-                    ? updateServingRuntimeTemplate(
+                    ? updateServingRuntimeTemplateBackend(
                         existingTemplate.metadata.name,
                         existingTemplate.objects[0].metadata.name,
                         code,
                         dashboardNamespace,
                       )
-                    : createServingRuntimeTemplate(code, dashboardNamespace);
+                    : createServingRuntimeTemplateBackend(code, dashboardNamespace);
                   onClickFunc
                     .then(() => {
                       refreshData();

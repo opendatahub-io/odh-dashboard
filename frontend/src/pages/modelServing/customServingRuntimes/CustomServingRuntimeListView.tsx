@@ -2,11 +2,11 @@ import * as React from 'react';
 import { useNavigate } from 'react-router';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
-import { patchDashboardConfigTemplateOrder } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
 import Table from '~/components/table/Table';
 import useDraggableTable from '~/utilities/useDraggableTable';
+import { patchDashboardConfigTemplateOrderBackend } from '~/services/dashboardService';
 import { getServingRuntimeNameFromTemplate, getSortedTemplates } from './utils';
 import DeleteCustomServingRuntimeModal from './DeleteCustomServingRuntimeModal';
 import { columns } from './templatedData';
@@ -30,7 +30,8 @@ const CustomServingRuntimeListView: React.FC = () => {
   );
   const setItemOrder = React.useCallback(
     (itemOrder: string[]) => {
-      patchDashboardConfigTemplateOrder(itemOrder, dashboardNamespace)
+      // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
+      patchDashboardConfigTemplateOrderBackend(itemOrder, dashboardNamespace)
         .then(refreshOrder)
         .catch((e) => notification.error(`Error updating the serving runtimes order`, e.message));
     },
