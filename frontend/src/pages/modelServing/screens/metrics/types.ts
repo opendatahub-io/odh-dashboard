@@ -1,5 +1,8 @@
 import { DomainTuple, ForAxes } from 'victory-core';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { MetricTypes } from '~/api';
+import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { BiasMetricConfig } from '~/concepts/explainability/types';
 
 export type TranslatePoint = (line: GraphMetricPoint) => GraphMetricPoint;
 
@@ -29,7 +32,6 @@ export type ProcessedMetrics = {
   minYValue: number;
 };
 
-//TODO: color should be an enum of limited PF values and red, not an openended string.
 export type MetricChartThreshold = {
   value: number;
   color?: string;
@@ -47,3 +49,22 @@ export enum MetricsTabKeys {
   PERFORMANCE = 'performance',
   BIAS = 'bias',
 }
+
+export type BiasChartConfig = {
+  title: string;
+  abbreviation: string;
+  domainCalculator: (userDelta: number | undefined) => DomainCalculator;
+  inferenceMetricKey: InferenceMetricType;
+  chartType: MetricsChartTypes;
+  thresholdOrigin: number;
+  defaultDelta: number;
+};
+export type BiasChartConfigMap = { [key in MetricTypes]: BiasChartConfig };
+
+export type BiasSelectOption = {
+  id: string;
+  name: string;
+  biasMetricConfig: BiasMetricConfig;
+  toString: () => string;
+  compareTo: (x: BiasSelectOption) => boolean;
+};

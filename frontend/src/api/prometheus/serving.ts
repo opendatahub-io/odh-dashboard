@@ -8,7 +8,11 @@ import {
   InferenceMetricType,
   RuntimeMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { MetricType, TimeframeTitle } from '~/pages/modelServing/screens/types';
+import {
+  MetricType,
+  RefreshIntervalTitle,
+  TimeframeTitle,
+} from '~/pages/modelServing/screens/types';
 import useQueryRangeResourceData, {
   useQueryRangeResourceDataTrusty,
 } from './useQueryRangeResourceData';
@@ -19,6 +23,7 @@ export const useModelServingMetrics = (
   timeframe: TimeframeTitle,
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
+  refreshInterval: RefreshIntervalTitle,
 ): {
   data: Record<
     RuntimeMetricType | InferenceMetricType,
@@ -33,6 +38,7 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.REQUEST_COUNT],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const runtimeAverageResponseTime = useQueryRangeResourceData(
@@ -40,6 +46,7 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.AVG_RESPONSE_TIME],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const runtimeCPUUtilization = useQueryRangeResourceData(
@@ -47,6 +54,7 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.CPU_UTILIZATION],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const runtimeMemoryUtilization = useQueryRangeResourceData(
@@ -54,6 +62,7 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const inferenceRequestSuccessCount = useQueryRangeResourceData(
@@ -61,6 +70,7 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const inferenceRequestFailedCount = useQueryRangeResourceData(
@@ -68,6 +78,7 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const inferenceTrustyAISPD = useQueryRangeResourceDataTrusty(
@@ -75,6 +86,7 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
+    refreshInterval,
   );
 
   const inferenceTrustyAIDIR = useQueryRangeResourceDataTrusty(
@@ -82,6 +94,7 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
+    refreshInterval,
   );
 
   React.useEffect(() => {
