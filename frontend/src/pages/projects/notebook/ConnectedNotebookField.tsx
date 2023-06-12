@@ -19,7 +19,6 @@ type SelectNotebookFieldProps = {
 const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
   loaded,
   notebooks,
-  isRequired,
   selections,
   onSelect,
   isDisabled,
