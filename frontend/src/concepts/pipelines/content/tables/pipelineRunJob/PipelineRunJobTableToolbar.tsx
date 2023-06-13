@@ -6,6 +6,7 @@ import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
 import DateRange from '~/components/dateRange/DateRange';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import ExperimentToggleGroup from '~/concepts/pipelines/content/tables/ExperimentToggleGroup';
 
 export enum FilterOptions {
   NAME = 'Name',
@@ -20,12 +21,19 @@ export type FilterProps = Pick<
   'filterData' | 'onFilterUpdate' | 'onClearFilters'
 >;
 
-type PipelineRunJobTableToolbarProps = React.ComponentProps<typeof RunTableToolbarActions> &
+type ExperimentToggleGroupProps = React.ComponentProps<typeof ExperimentToggleGroup>;
+
+type PipelineRunJobTableToolbarProps = {
+  toggleGroup: ExperimentToggleGroupProps['selectedItem'];
+  onToggleGroupChange: ExperimentToggleGroupProps['onSelection'];
+} & React.ComponentProps<typeof RunTableToolbarActions> &
   FilterProps;
 
 const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
   deleteAllEnabled,
   onDeleteAll,
+  toggleGroup,
+  onToggleGroupChange,
   ...toolbarProps
 }) => {
   const navigate = useNavigate();
@@ -71,6 +79,9 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
         ),
       }}
     >
+      <ToolbarItem>
+        <ExperimentToggleGroup selectedItem={toggleGroup} onSelection={onToggleGroupChange} />
+      </ToolbarItem>
       <ToolbarItem>
         <Button
           variant="secondary"

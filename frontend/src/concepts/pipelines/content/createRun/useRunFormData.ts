@@ -18,7 +18,10 @@ import {
   PipelineRunKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
-import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
+import {
+  getPipelineCoreResourceExperimentReference,
+  getPipelineCoreResourcePipelineReference,
+} from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { FetchState } from '~/utilities/useFetchState';
@@ -29,6 +32,7 @@ import {
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString } from '~/utilities/time';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 
 const isPipelineRunJob = (
   runOrJob?: PipelineRunJobKF | PipelineRunKF,
@@ -83,17 +87,17 @@ const useUpdatePipeline = (
   );
 };
 
-// const useUpdateExperiment = (
-//   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-//   initialData?: PipelineCoreResourceKF,
-// ) =>
-//   useUpdateData(
-//     setFunction,
-//     initialData,
-//     'experiment',
-//     getPipelineCoreResourceExperimentReference,
-//     useExperimentById,
-//   );
+const useUpdateExperiment = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+  initialData?: PipelineCoreResourceKF,
+) =>
+  useUpdateData(
+    setFunction,
+    initialData,
+    'experiment',
+    getPipelineCoreResourceExperimentReference,
+    useExperimentById,
+  );
 
 const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   if (!kfTime) {
@@ -175,7 +179,7 @@ const useRunFormData = (
       description: initialData?.description ?? '',
     },
     pipeline: lastPipeline ?? null,
-    // experiment: null,
+    experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: lastPipeline
       ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
@@ -184,7 +188,7 @@ const useRunFormData = (
 
   const setFunction = objState[1];
   useUpdatePipeline(setFunction, initialData);
-  // useUpdateExperiment(setFunction, initialData);
+  useUpdateExperiment(setFunction, initialData);
   useUpdateRunType(setFunction, initialData);
 
   return objState;

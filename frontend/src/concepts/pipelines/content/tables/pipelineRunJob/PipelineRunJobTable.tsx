@@ -10,6 +10,7 @@ import usePipelineRunJobFilter from '~/concepts/pipelines/content/tables/pipelin
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ToggleGroupOption } from '~/concepts/pipelines/content/tables/ExperimentToggleGroup';
 
 type PipelineRunTableProps = {
   jobs: PipelineRunJobKF[];
@@ -17,6 +18,9 @@ type PipelineRunTableProps = {
 
 const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs }) => {
   const { refreshAllAPI } = usePipelinesAPI();
+  const [toggleGroup, setToggleGroup] = React.useState<ToggleGroupOption>(
+    ToggleGroupOption.RUN_VIEW,
+  );
   const [filterJobs, toolbarProps] = usePipelineRunJobFilter(jobs);
   const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
     filterJobs.map(({ id }) => id),
@@ -34,6 +38,8 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs }) => {
         toolbarContent={
           <PipelineRunJobTableToolbar
             {...toolbarProps}
+            toggleGroup={toggleGroup}
+            onToggleGroupChange={(value) => setToggleGroup(value)}
             deleteAllEnabled={selections.length > 0}
             onDeleteAll={() =>
               setDeleteResources(
