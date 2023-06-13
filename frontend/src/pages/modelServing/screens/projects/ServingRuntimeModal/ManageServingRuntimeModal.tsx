@@ -118,7 +118,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(true);
 
     if (!servingRuntimeSelected) {
-      setErrorModal(new Error('Error retrieving Serving Runtime'));
+      setErrorModal(
+        new Error(
+          'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
+        ),
+      );
       return;
     }
     const servingRuntimeData = {
