@@ -2,17 +2,17 @@ import * as React from 'react';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
-import { BaseMetricRequest } from '~/api';
+import { BaseMetricRequestInput } from '~/api';
 
 const useBiasConfigurationObject = (
   modelId: string,
   existingData?: BiasMetricConfig,
 ): [
-  data: BaseMetricRequest,
-  setData: UpdateObjectAtPropAndValue<BaseMetricRequest>,
+  data: BaseMetricRequestInput,
+  setData: UpdateObjectAtPropAndValue<BaseMetricRequestInput>,
   resetDefaults: () => void,
 ] => {
-  const createConfiguration = useGenericObjectState<BaseMetricRequest>({
+  const createConfiguration = useGenericObjectState<BaseMetricRequestInput>({
     modelId: modelId,
     requestName: '',
     protectedAttribute: '',

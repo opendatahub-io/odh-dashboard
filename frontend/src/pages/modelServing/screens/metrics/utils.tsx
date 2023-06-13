@@ -15,7 +15,7 @@ import {
   NamedMetricChartLine,
   TranslatePoint,
 } from '~/pages/modelServing/screens/metrics/types';
-import { BaseMetricRequest, MetricTypes } from '~/api';
+import { BaseMetricRequest, BaseMetricRequestInput, MetricTypes } from '~/api';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import {
   BIAS_CHART_CONFIGS,
@@ -287,3 +287,25 @@ export const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): Bias
 };
 export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
   'biasMetricConfig' in obj;
+
+export const convertInputType = (input: string) => {
+  if (input !== '' && !isNaN(Number(input))) {
+    return Number(input);
+  }
+  if (input.toLowerCase() === 'true') {
+    return true;
+  }
+  if (input.toLowerCase() === 'false') {
+    return false;
+  }
+  return input;
+};
+
+export const convertConfigurationRequestType = (
+  configuration: BaseMetricRequestInput,
+): BaseMetricRequest => ({
+  ...configuration,
+  privilegedAttribute: convertInputType(configuration.privilegedAttribute),
+  unprivilegedAttribute: convertInputType(configuration.unprivilegedAttribute),
+  favorableOutcome: convertInputType(configuration.favorableOutcome),
+});
