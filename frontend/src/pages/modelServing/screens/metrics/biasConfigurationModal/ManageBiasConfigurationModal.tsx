@@ -6,9 +6,12 @@ import { MetricTypes } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import {
+  checkConfigurationFieldsValid,
+  convertConfigurationRequestType,
+} from '~/pages/modelServing/screens/metrics/utils';
 import useBiasConfigurationObject from './useBiasConfigurationObject';
 import MetricTypeField from './MetricTypeField';
-import { checkConfigurationFieldsValid, convertConfigurationRequestType } from '../utils';
 
 type ManageBiasConfigurationModalProps = {
   existingConfiguration?: BiasMetricConfig;
