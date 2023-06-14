@@ -6,7 +6,6 @@ import { NotebookKind } from '~/k8sTypes';
 type SelectNotebookFieldProps = {
   loaded: boolean;
   notebooks: NotebookKind[];
-  isRequired?: boolean;
   isDisabled?: boolean;
   selectionHelperText?: string;
   placeholder?: string;
@@ -19,7 +18,6 @@ type SelectNotebookFieldProps = {
 const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
   loaded,
   notebooks,
-  isRequired,
   selections,
   onSelect,
   isDisabled,
@@ -46,7 +44,6 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
       label="Connected workbench"
       helperText={!noNotebooks && selectionHelperText}
       fieldId="connect-existing-workbench"
-      isRequired={isRequired}
     >
       <Select
         removeFindDomNode
