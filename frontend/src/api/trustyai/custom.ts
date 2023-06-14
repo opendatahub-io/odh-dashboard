@@ -4,17 +4,17 @@ import { BaseMetricCreationResponse, BaseMetricListResponse, BaseMetricRequest }
 import { handleTrustyAIFailures } from './errorUtils';
 
 export const getInfo = (hostPath: string) => (opts: K8sAPIOptions) =>
-  proxyGET(hostPath, '/info', {}, opts);
+  handleTrustyAIFailures(proxyGET(hostPath, '/info', {}, opts));
 
 export const getAllRequests =
   (hostPath: string) =>
   (opts: K8sAPIOptions): Promise<BaseMetricListResponse> =>
-    proxyGET(hostPath, '/metrics/all/requests', {}, opts);
+    handleTrustyAIFailures(proxyGET(hostPath, '/metrics/all/requests', {}, opts));
 
 export const getSpdRequests =
   (hostPath: string) =>
   (opts: K8sAPIOptions): Promise<BaseMetricListResponse> =>
-    proxyGET(hostPath, '/metrics/spd/requests', {}, opts);
+    handleTrustyAIFailures(proxyGET(hostPath, '/metrics/spd/requests', {}, opts));
 
 export const createSpdRequest =
   (hostPath: string) =>
@@ -37,7 +37,7 @@ export const deleteSpdRequest =
 export const getDirRequests =
   (hostPath: string) =>
   (opts: K8sAPIOptions): Promise<BaseMetricListResponse> =>
-    proxyGET(hostPath, '/metrics/dir/requests', {}, opts);
+    handleTrustyAIFailures(proxyGET(hostPath, '/metrics/dir/requests', {}, opts));
 
 export const createDirRequest =
   (hostPath: string) =>
