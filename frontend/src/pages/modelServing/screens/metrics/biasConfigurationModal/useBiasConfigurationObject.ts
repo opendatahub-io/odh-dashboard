@@ -3,7 +3,7 @@ import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { BaseMetricRequestInput, MetricTypes } from '~/api';
-import { getThresholdDefaultDelta } from '../utils';
+import { getThresholdDefaultDelta } from '~/pages/modelServing/screens/metrics/utils';
 
 const useBiasConfigurationObject = (
   modelId: string,
