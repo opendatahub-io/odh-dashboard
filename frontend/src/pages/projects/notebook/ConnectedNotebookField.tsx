@@ -6,7 +6,6 @@ import { NotebookKind } from '~/k8sTypes';
 type SelectNotebookFieldProps = {
   loaded: boolean;
   notebooks: NotebookKind[];
-  isRequired?: boolean;
   isDisabled?: boolean;
   selectionHelperText?: string;
   placeholder?: string;
