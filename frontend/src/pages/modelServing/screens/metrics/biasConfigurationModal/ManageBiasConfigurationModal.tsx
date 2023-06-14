@@ -2,11 +2,14 @@ import * as React from 'react';
 import { Form, FormGroup, Modal, TextInput, Tooltip } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
-import { checkConfigurationFieldsValid } from '~/pages/modelServing/screens/metrics/utils';
 import { MetricTypes } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import {
+  checkConfigurationFieldsValid,
+  convertConfigurationRequestType,
+} from '~/pages/modelServing/screens/metrics/utils';
 import useBiasConfigurationObject from './useBiasConfigurationObject';
 import MetricTypeField from './MetricTypeField';
 
@@ -47,7 +50,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
   const onCreateConfiguration = () => {
     const createFunc = metricType === MetricTypes.SPD ? api.createSpdRequest : api.createDirRequest;
     setActionInProgress(true);
-    createFunc({}, configuration)
+    createFunc({}, convertConfigurationRequestType(configuration))
       .then(() => onBeforeClose(true))
       .catch((e) => {
         setError(e);

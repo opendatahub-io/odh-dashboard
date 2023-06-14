@@ -26,10 +26,18 @@ export type BaseMetric = {
   batchSize?: number;
 };
 
-export type BaseMetricRequest = {
+// Request type only for user input
+export type BaseMetricRequestInput = {
   favorableOutcome: string;
   privilegedAttribute: string;
   unprivilegedAttribute: string;
+} & BaseMetric;
+
+// Request type for creating
+export type BaseMetricRequest = {
+  favorableOutcome: string | number | boolean;
+  privilegedAttribute: string | number | boolean;
+  unprivilegedAttribute: string | number | boolean;
 } & BaseMetric;
 
 export type BaseMetricResponse = {

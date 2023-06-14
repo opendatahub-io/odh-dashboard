@@ -23,15 +23,16 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
 
   const [isOpen, setIsOpen] = React.useState(false);
-  const [selected, setSelected] = React.useState<BiasSelectOption[]>(
-    initialSelections.map(createBiasSelectOption),
+
+  const selected = React.useMemo(
+    () => initialSelections.map(createBiasSelectOption),
+    [initialSelections],
   );
 
   const elementId = React.useId();
 
   const changeState = React.useCallback(
     (options: BiasSelectOption[]) => {
-      setSelected(options);
       onChange(options.map((x) => x.biasMetricConfig));
     },
     [onChange],

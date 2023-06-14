@@ -17,9 +17,15 @@ type DashboardModalFooterProps = {
   error?: Error;
 };
 
-const DashboardModalFooter: React.FC<DashboardModalFooterProps> = (
-  { submitLabel, onSubmit, onCancel, isSubmitDisabled, error, alertTitle }, // make sure alert uses the full width
-) => (
+const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
+  submitLabel,
+  onSubmit,
+  onCancel,
+  isSubmitDisabled,
+  error,
+  alertTitle,
+}) => (
+  // make sure alert uses the full width
   <Stack hasGutter style={{ flex: 'auto' }}>
     {error && (
       <StackItem>

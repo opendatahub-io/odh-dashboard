@@ -24,7 +24,7 @@ const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wra
 const BiasTab: React.FC = () => {
   const { inferenceService } = useParams();
 
-  const { biasMetricConfigs, loaded } = useExplainabilityModelData();
+  const { biasMetricConfigs, loaded, loadError } = useExplainabilityModelData();
 
   const [selectedBiasConfigs, setSelectedBiasConfigs] = useBrowserStorage<BiasMetricConfig[]>(
     `${SELECTED_CHARTS_STORAGE_KEY_PREFIX}-${inferenceService}`,
@@ -32,6 +32,16 @@ const BiasTab: React.FC = () => {
     true,
     true,
   );
+
+  React.useEffect(() => {
+    if (loaded && !loadError) {
+      setSelectedBiasConfigs(
+        selectedBiasConfigs.filter((selection) =>
+          biasMetricConfigs.map((c) => c.id).includes(selection.id),
+        ),
+      );
+    }
+  }, [loaded, biasMetricConfigs, setSelectedBiasConfigs, selectedBiasConfigs, loadError]);
 
   if (!loaded) {
     return (
