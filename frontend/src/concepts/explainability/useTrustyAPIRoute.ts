@@ -7,15 +7,20 @@ import useFetchState, {
 import { getTrustyAIAPIRoute } from '~/api/';
 import { RouteKind } from '~/k8sTypes';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import useBiasMetricsEnabled from './useBiasMetricsEnabled';
 
 type State = string | null;
 const useTrustyAPIRoute = (hasCR: boolean, namespace: string): FetchState<State> => {
+  const biasMetricsEnabled = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!hasCR) {
         return Promise.reject(new NotReadyError('CR not created'));
       }
 
+      if (!biasMetricsEnabled) {
+        return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
+      }
       //TODO: API URI must use HTTPS before release.
       return getTrustyAIAPIRoute(namespace, opts)
         .then((result: RouteKind) => `${result.spec.port.targetPort}://${result.spec.host}`)
@@ -27,7 +32,7 @@ const useTrustyAPIRoute = (hasCR: boolean, namespace: string): FetchState<State>
           throw e;
         });
     },
-    [hasCR, namespace],
+    [hasCR, namespace, biasMetricsEnabled],
   );
 
   // TODO: add duplicate functionality to useFetchState.

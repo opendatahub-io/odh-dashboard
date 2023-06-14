@@ -11,6 +11,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
+import useBiasMetricsEnabled from './useBiasMetricsEnabled';
 
 // TODO create component for ensuring API availability, see pipelines for example.
 
@@ -113,10 +114,14 @@ const useFetchContextData = (apiState: TrustyAPIState): ExplainabilityContextDat
 };
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {
+  const biasMetricsEnabled = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<BiasMetricConfig[]>>(
     (opts) => {
       if (!apiState.apiAvailable) {
         return Promise.reject(new NotReadyError('API not yet available'));
+      }
+      if (!biasMetricsEnabled) {
+        return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
       }
       return apiState.api
         .listRequests(opts)
@@ -125,7 +130,7 @@ const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMet
           throw e;
         });
     },
-    [apiState.api, apiState.apiAvailable],
+    [apiState.api, apiState.apiAvailable, biasMetricsEnabled],
   );
 
   return useFetchState(callback, [], { initialPromisePurity: true });

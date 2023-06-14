@@ -19,6 +19,7 @@ spec:
     disableProjectSharing: true
     disableCustomServingRuntimes: true
     modelMetricsNamespace: ''
+    disableBiasMetrics: true
   notebookController:
     enabled: true
   notebookSizes:

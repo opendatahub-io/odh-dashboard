@@ -89,6 +89,7 @@ export type DashboardCommonConfig = {
   disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableBiasMetrics: boolean;
 };
 
 export type NotebookControllerUserState = {

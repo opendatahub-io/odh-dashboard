@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Form, FormGroup, Modal, TextInput, Tooltip } from '@patternfly/react-core';
-import { HelpIcon } from '@patternfly/react-icons';
+import { Form, FormGroup, Modal, TextInput } from '@patternfly/react-core';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { MetricTypes } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
@@ -9,7 +8,9 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   checkConfigurationFieldsValid,
   convertConfigurationRequestType,
+  getThresholdDefaultDelta,
 } from '~/pages/modelServing/screens/metrics/utils';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import useBiasConfigurationObject from './useBiasConfigurationObject';
 import MetricTypeField from './MetricTypeField';
 
@@ -29,13 +30,14 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
   const {
     apiState: { api },
   } = React.useContext(ExplainabilityContext);
-  const [configuration, setConfiguration] = useBiasConfigurationObject(
-    inferenceService.metadata.name,
-    existingConfiguration,
-  );
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [metricType, setMetricType] = React.useState<MetricTypes>();
+  const [configuration, setConfiguration, resetData] = useBiasConfigurationObject(
+    inferenceService.metadata.name,
+    metricType,
+    existingConfiguration,
+  );
 
   React.useEffect(() => {
     setMetricType(existingConfiguration?.metricType);
@@ -45,6 +47,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
     onClose(submitted);
     setError(undefined);
     setActionInProgress(false);
+    resetData();
   };
 
   const onCreateConfiguration = () => {
@@ -90,7 +93,14 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
             onChange={(value) => setConfiguration('requestName', value)}
           />
         </FormGroup>
-        <MetricTypeField fieldId="metric-type" value={metricType} setValue={setMetricType} />
+        <MetricTypeField
+          fieldId="metric-type"
+          value={metricType}
+          onChange={(value) => {
+            setMetricType(value);
+            setConfiguration('thresholdDelta', getThresholdDefaultDelta(value));
+          }}
+        />
         <FormGroup label="Protected attribute" fieldId="protected-attribute">
           <TextInput
             id="protected-attribute"
@@ -119,7 +129,13 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
             onChange={(value) => setConfiguration('outcomeName', value)}
           />
         </FormGroup>
-        <FormGroup label="Output value" fieldId="output-value">
+        <FormGroup
+          label="Output value"
+          fieldId="output-value"
+          labelIcon={
+            <DashboardHelpTooltip content='How far the metric value can be from "perfect fairness" to constitute "unfairness"' />
+          }
+        >
           <TextInput
             id="output-value"
             value={configuration.favorableOutcome}
@@ -130,9 +146,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           label="Violation threshold"
           fieldId="violation-threshold"
           labelIcon={
-            <Tooltip content="TBD">
-              <HelpIcon />
-            </Tooltip>
+            <DashboardHelpTooltip content='How far the metric value can be from "perfect fairness" to constitute "unfairness"' />
           }
         >
           <TextInput
@@ -146,9 +160,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           label="Metric batch size"
           fieldId="metric-batch-size"
           labelIcon={
-            <Tooltip content="TBD">
-              <HelpIcon />
-            </Tooltip>
+            <DashboardHelpTooltip content="How many of the previous model inferences to considered in each metric calculation" />
           }
         >
           <TextInput
