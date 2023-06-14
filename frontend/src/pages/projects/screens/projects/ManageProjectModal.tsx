@@ -115,7 +115,11 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         </StackItem>
         {error && (
           <StackItem>
-            <Alert variant="danger" isInline title="Error creating project">
+            <Alert
+              variant="danger"
+              isInline
+              title={editProjectData ? 'Error updating project' : 'Error creating project'}
+            >
               {error.message}
             </Alert>
           </StackItem>
