@@ -96,12 +96,12 @@ const ProjectDetailsComponents: React.FC = () => {
               <StackItem
                 id={id}
                 aria-label={ProjectSectionTitles[id]}
-                data-testid="details-page-section"
+                data-id="details-page-section"
               >
                 {component}
               </StackItem>
               {index !== sections.length - 1 && isEmpty && (
-                <Divider data-testid="details-page-section-divider" />
+                <Divider data-id="details-page-section-divider" />
               )}
             </React.Fragment>
           ))}
