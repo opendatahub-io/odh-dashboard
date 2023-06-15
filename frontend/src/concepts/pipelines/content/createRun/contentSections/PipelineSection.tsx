@@ -43,7 +43,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) =>
             icon={<PlusCircleIcon />}
             onCreate={(pipeline) => onChange(pipeline)}
           >
-            Upload new pipeline
+            Import pipeline
           </ImportPipelineButton>
         </StackItem>
       </Stack>
