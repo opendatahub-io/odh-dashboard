@@ -57,7 +57,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
         <ActionsColumn
           items={[
             {
-              title: 'Clone',
+              title: 'Duplicate',
               onClick: () => {
                 navigate(`/pipelineRuns/${namespace}/pipelineRun/cloneJob/${job.id}`);
               },

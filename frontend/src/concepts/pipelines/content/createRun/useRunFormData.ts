@@ -171,7 +171,7 @@ const useRunFormData = (
   const objState = useGenericObjectState<RunFormData>({
     project,
     nameDesc: {
-      name: initialData?.name ? `Clone of ${initialData.name}` : '',
+      name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
       description: initialData?.description ?? '',
     },
     pipeline: lastPipeline ?? null,
