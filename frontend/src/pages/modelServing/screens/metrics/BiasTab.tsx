@@ -33,13 +33,27 @@ const BiasTab: React.FC = () => {
     true,
   );
 
+  const firstRender = React.useRef(true);
+
   React.useEffect(() => {
     if (loaded && !loadError) {
-      setSelectedBiasConfigs(
-        selectedBiasConfigs.filter((selection) =>
-          biasMetricConfigs.map((c) => c.id).includes(selection.id),
-        ),
-      );
+      if (firstRender.current) {
+        // If the user has just navigated here AND they haven't previously selected any charts to display,
+        // don't show them the "No selected" empty state, instead show them the first available chart.
+        // However, the user still needs to be shown said empty state if they deselect all charts.
+        firstRender.current = false;
+        if (selectedBiasConfigs.length === 0 && biasMetricConfigs.length > 0) {
+          // If biasMetricConfigs is empty, the "No Configured Metrics" empty state will be shown, so no need
+          // to set anything.
+          setSelectedBiasConfigs([biasMetricConfigs[0]]);
+        }
+      } else {
+        setSelectedBiasConfigs(
+          selectedBiasConfigs.filter((selection) =>
+            biasMetricConfigs.map((c) => c.id).includes(selection.id),
+          ),
+        );
+      }
     }
   }, [loaded, biasMetricConfigs, setSelectedBiasConfigs, selectedBiasConfigs, loadError]);
 
