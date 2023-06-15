@@ -48,6 +48,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
     setError(undefined);
     setActionInProgress(false);
     resetData();
+    setMetricType(undefined);
   };
 
   const onCreateConfiguration = () => {
