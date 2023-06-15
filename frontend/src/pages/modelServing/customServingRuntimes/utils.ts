@@ -52,4 +52,6 @@ export const getServingRuntimeFromTemplate = (
 export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string =>
   resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
   resource.metadata.annotations?.['opendatahub.io/template-name'] ||
-  'Unknown Serving Runtime';
+  resource.spec.builtInAdapter?.serverType === 'ovms'
+    ? 'OpenVINO Model Server'
+    : undefined || 'Unknown Serving Runtime';
