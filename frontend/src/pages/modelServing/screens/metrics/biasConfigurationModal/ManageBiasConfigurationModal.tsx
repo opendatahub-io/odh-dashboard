@@ -101,28 +101,52 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
             setConfiguration('thresholdDelta', getThresholdDefaultDelta(value));
           }}
         />
-        <FormGroup label="Protected attribute" fieldId="protected-attribute">
+        <FormGroup
+          label="Protected attribute"
+          fieldId="protected-attribute"
+          labelIcon={
+            <DashboardHelpTooltip content="The protected attribute is the input feature that you want to investigate bias over." />
+          }
+        >
           <TextInput
             id="protected-attribute"
             value={configuration.protectedAttribute}
             onChange={(value) => setConfiguration('protectedAttribute', value)}
           />
         </FormGroup>
-        <FormGroup label="Privileged value" fieldId="privileged-value">
+        <FormGroup
+          label="Privileged value"
+          fieldId="privileged-value"
+          labelIcon={
+            <DashboardHelpTooltip content="The privileged value is the value of the protected attribute that the model might be biased towards." />
+          }
+        >
           <TextInput
             id="privileged-value"
             value={configuration.privilegedAttribute}
             onChange={(value) => setConfiguration('privilegedAttribute', value)}
           />
         </FormGroup>
-        <FormGroup label="Unprivileged value" fieldId="unprivileged-value">
+        <FormGroup
+          label="Unprivileged value"
+          fieldId="unprivileged-value"
+          labelIcon={
+            <DashboardHelpTooltip content="The unprivileged value is the value of the protected attribute that the model might be biased against." />
+          }
+        >
           <TextInput
             id="unprivileged-value"
             value={configuration.unprivilegedAttribute}
             onChange={(value) => setConfiguration('unprivilegedAttribute', value)}
           />
         </FormGroup>
-        <FormGroup label="Output" fieldId="output">
+        <FormGroup
+          label="Output"
+          fieldId="output"
+          labelIcon={
+            <DashboardHelpTooltip content="The output is the particular output of the model to monitor for bias." />
+          }
+        >
           <TextInput
             id="output"
             value={configuration.outcomeName}
@@ -133,7 +157,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           label="Output value"
           fieldId="output-value"
           labelIcon={
-            <DashboardHelpTooltip content='How far the metric value can be from "perfect fairness" to constitute "unfairness"' />
+            <DashboardHelpTooltip content="The output value is the value of the chosen output to monitor for bias." />
           }
         >
           <TextInput
@@ -146,7 +170,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           label="Violation threshold"
           fieldId="violation-threshold"
           labelIcon={
-            <DashboardHelpTooltip content='How far the metric value can be from "perfect fairness" to constitute "unfairness"' />
+            <DashboardHelpTooltip content='The violation threshold is how far the metric value can be from "perfect fairness" to constitute "unfairness".' />
           }
         >
           <TextInput
@@ -160,7 +184,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           label="Metric batch size"
           fieldId="metric-batch-size"
           labelIcon={
-            <DashboardHelpTooltip content="How many of the previous model inferences to considered in each metric calculation" />
+            <DashboardHelpTooltip content="The metric batch size is how many of the previous model inferences to consider in each metric calculation." />
           }
         >
           <TextInput
