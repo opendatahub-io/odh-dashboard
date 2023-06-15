@@ -43,7 +43,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
       onClick={onClick}
       variant="secondary"
     >
-      Configure server
+      Add server
     </Button>
   );
 };
