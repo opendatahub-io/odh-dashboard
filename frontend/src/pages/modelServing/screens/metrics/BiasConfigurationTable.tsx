@@ -1,22 +1,25 @@
 import * as React from 'react';
-import { Button, ToolbarItem } from '@patternfly/react-core';
+import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import Table from '~/components/table/Table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import { InferenceServiceKind } from '~/k8sTypes';
 import DeleteBiasConfigurationModal from '~/pages/modelServing/screens/metrics/biasConfigurationModal/DeleteBiasConfigurationModal';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import ManageBiasConfigurationModal from './biasConfigurationModal/ManageBiasConfigurationModal';
 import BiasConfigurationTableRow from './BiasConfigurationTableRow';
 import { columns } from './tableData';
-import BiasConfigurationEmptyState from './BiasConfigurationEmptyState';
-import BiasConfigurationButton from './BiasConfigurationButton';
 
 type BiasConfigurationTableProps = {
   inferenceService: InferenceServiceKind;
+  onConfigure: () => void;
 };
 
-const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({ inferenceService }) => {
+const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({
+  inferenceService,
+  onConfigure,
+}) => {
   const { biasMetricConfigs, refresh } = useExplainabilityModelData();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -75,18 +78,7 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({ inferen
             onDeleteConfiguration={setDeleteConfiguration}
           />
         )}
-        emptyTableView={
-          search ? (
-            <>
-              No metric configurations match your filters.{' '}
-              <Button variant="link" isInline onClick={resetFilters}>
-                Clear filters
-              </Button>
-            </>
-          ) : (
-            <BiasConfigurationEmptyState />
-          )
-        }
+        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         toolbarContent={
           <>
             <ToolbarItem>
@@ -103,7 +95,9 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({ inferen
               />
             </ToolbarItem>
             <ToolbarItem>
-              <BiasConfigurationButton inferenceService={inferenceService} />
+              <Button onClick={onConfigure} variant={ButtonVariant.secondary}>
+                Configure metric
+              </Button>
             </ToolbarItem>
           </>
         }

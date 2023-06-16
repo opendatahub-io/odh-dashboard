@@ -23,6 +23,7 @@ The following are a list of features that are supported, along with there defaul
 | disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
 | modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
+| disableBiasMetrics          | false   | Disables Model Bias from Model Serving metrics.                                                      |
 
 ## Defaults
 
@@ -46,6 +47,7 @@ spec:
     disableProjectSharing: false
     disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
+    disableBiasMetrics: false
 ```
 
 ## Additional fields
@@ -136,6 +138,7 @@ spec:
     disableProjectSharing: true
     disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
+    disableBiasMetrics: false
   notebookController:
     enabled: true
   notebookSizes:

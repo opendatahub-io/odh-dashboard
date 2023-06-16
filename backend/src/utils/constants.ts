@@ -53,6 +53,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableCustomServingRuntimes: false,
       modelMetricsNamespace: '',
       disablePipelines: true,
+      disableBiasMetrics: false,
     },
     notebookController: {
       enabled: true,

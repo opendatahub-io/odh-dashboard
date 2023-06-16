@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { ExplainabilityProvider } from '~/concepts/explainability/ExplainabilityContext';
+import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import BiasConfigurationBreadcrumbPage from './screens/metrics/BiasConfigurationBreadcrumbPage';
 import GlobalInferenceMetricsPage from './screens/metrics/GlobalInferenceMetricsPage';
 import ModelServingContextProvider from './ModelServingContext';
@@ -11,6 +12,7 @@ import useModelMetricsEnabled from './useModelMetricsEnabled';
 
 const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+  const [biasMetricsEnabled] = useBiasMetricsEnabled();
 
   //TODO: Split route to project and mount provider here. This will allow you to load data when model switching is later implemented.
   return (
@@ -22,7 +24,9 @@ const ModelServingRoutes: React.FC = () => {
             <Route index element={<Navigate to=".." />} />
             <Route path=":inferenceService" element={<GlobalInferenceMetricsWrapper />}>
               <Route path=":tab?" element={<GlobalInferenceMetricsPage />} />
-              <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
+              {biasMetricsEnabled && (
+                <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
+              )}
             </Route>
             {/* TODO: Global Runtime metrics?? */}
             <Route path="*" element={<Navigate to="." />} />

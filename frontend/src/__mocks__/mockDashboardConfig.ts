@@ -54,6 +54,7 @@ export const mockDashboardConfig = ({
       modelMetricsNamespace: 'test-project',
       disablePipelines: false,
       disableProjectSharing: false,
+      disableBiasMetrics: false,
     },
     notebookController: {
       enabled: true,

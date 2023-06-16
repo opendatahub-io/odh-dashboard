@@ -2,10 +2,12 @@ import * as React from 'react';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
-import { BaseMetricRequestInput } from '~/api';
+import { BaseMetricRequestInput, MetricTypes } from '~/api';
+import { getThresholdDefaultDelta } from '~/pages/modelServing/screens/metrics/utils';
 
 const useBiasConfigurationObject = (
   modelId: string,
+  metricType?: MetricTypes,
   existingData?: BiasMetricConfig,
 ): [
   data: BaseMetricRequestInput,
@@ -20,26 +22,27 @@ const useBiasConfigurationObject = (
     unprivilegedAttribute: '',
     outcomeName: '',
     favorableOutcome: '',
-    thresholdDelta: 0.1,
+    thresholdDelta: undefined,
     batchSize: 5000,
   });
 
   const [, setCreateData] = createConfiguration;
 
   const existingModelId = existingData?.modelId ?? modelId;
-  const existingName = existingData?.name ?? '';
+  const existingName = existingData?.name ? `Copy of ${existingData.name}` : '';
   const existingProtectedAttribute = existingData?.protectedAttribute ?? '';
   const existingPrivilegedAttribute = existingData?.privilegedAttribute ?? '';
   const existingUnprivilegedAttribute = existingData?.unprivilegedAttribute ?? '';
   const existingOutcomeName = existingData?.outcomeName ?? '';
   const existingFavorableOutcome = existingData?.favorableOutcome ?? '';
-  const existingThresholdDelta = existingData?.thresholdDelta ?? 0.1;
+  const existingThresholdDelta =
+    existingData?.thresholdDelta ?? getThresholdDefaultDelta(metricType);
   const existingBatchSize = existingData?.batchSize ?? 5000;
 
   React.useEffect(() => {
     if (existingData) {
       setCreateData('modelId', existingModelId);
-      setCreateData('requestName', '');
+      setCreateData('requestName', existingName);
       setCreateData('protectedAttribute', existingProtectedAttribute);
       setCreateData('privilegedAttribute', existingPrivilegedAttribute);
       setCreateData('unprivilegedAttribute', existingUnprivilegedAttribute);

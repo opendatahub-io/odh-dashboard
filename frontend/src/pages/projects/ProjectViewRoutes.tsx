@@ -12,6 +12,7 @@ import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import { ExplainabilityProvider } from '~/concepts/explainability/ExplainabilityContext';
 import ProjectInferenceMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsConfigurationPage';
 import ProjectInferenceMetricsPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsPage';
+import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -20,6 +21,7 @@ import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
 
 const ProjectViewRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+  const [biasMetricsEnabled] = useBiasMetricsEnabled();
 
   return (
     <ProjectsRoutes>
@@ -34,7 +36,9 @@ const ProjectViewRoutes: React.FC = () => {
               <Route index element={<Navigate to=".." />} />
               <Route path=":inferenceService" element={<ProjectInferenceMetricsWrapper />}>
                 <Route path=":tab?" element={<ProjectInferenceMetricsPage />} />
-                <Route path="configure" element={<ProjectInferenceMetricsConfigurationPage />} />
+                {biasMetricsEnabled && (
+                  <Route path="configure" element={<ProjectInferenceMetricsConfigurationPage />} />
+                )}
               </Route>
               <Route path="*" element={<Navigate to="." />} />
             </Route>

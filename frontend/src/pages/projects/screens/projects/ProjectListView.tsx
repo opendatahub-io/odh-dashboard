@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
+import { ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import Table from '~/components/table/Table';
 import useTableColumnSort from '~/components/table/useTableColumnSort';
@@ -8,6 +8,7 @@ import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -61,14 +62,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         enablePagination
         data={filteredProjects}
         columns={columns}
-        emptyTableView={
-          <>
-            No projects match your filters.{' '}
-            <Button variant="link" isInline onClick={resetFilters}>
-              Clear filters
-            </Button>
-          </>
-        }
+        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}

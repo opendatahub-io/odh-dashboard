@@ -12,6 +12,13 @@ export const METRIC_TYPE_DISPLAY_NAME: { [key in MetricTypes]: string } = {
   [MetricTypes.SPD]: 'Statistical parity difference (SPD)',
 };
 
+export const METRIC_TYPE_DESCRIPTION: { [key in MetricTypes]: string } = {
+  [MetricTypes.DIR]:
+    'Calculates the ratio between the proportion of the privileged and unprivileged groups getting a particular outcome.',
+  [MetricTypes.SPD]:
+    'Calculates the difference between the proportion of the privileged and unprivileged groups getting a particular outcome.',
+};
+
 export const EMPTY_BIAS_CHART_SELECTION_TITLE = 'No Bias metrics selected';
 export const EMPTY_BIAS_CHART_SELECTION_DESC =
   'No bias metrics have been selected. To display charts you must first select them using the metric selector.';

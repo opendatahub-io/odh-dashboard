@@ -178,18 +178,19 @@ export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[
   ));
 
 const checkThresholdValid = (metricType: MetricTypes, thresholdDelta?: number): boolean => {
-  if (thresholdDelta) {
+  if (thresholdDelta !== undefined) {
     if (metricType === MetricTypes.SPD) {
-      if (thresholdDelta > 0 && thresholdDelta < 1) {
-        // SPD, 0 < threshold < 1, valid
+      // SPD, no limitation, valid
+      return true;
+    }
+
+    if (metricType === MetricTypes.DIR) {
+      if (thresholdDelta >= 0 && thresholdDelta < 1) {
+        // 0<=DIR<1 , valid
         return true;
       }
-      // SPD, not within the range, invalid
+      // DIR, not within the range, invalid
       return false;
-    }
-    // DIR, no limitation, valid
-    if (metricType === MetricTypes.DIR) {
-      return true;
     }
     // not SPD not DIR, undefined for now, metricType should be selected, invalid
     return false;
@@ -199,10 +200,10 @@ const checkThresholdValid = (metricType: MetricTypes, thresholdDelta?: number): 
 };
 
 const checkBatchSizeValid = (batchSize?: number): boolean => {
-  if (batchSize) {
+  if (batchSize !== undefined) {
     if (Number.isInteger(batchSize)) {
       // size > 2, integer, valid
-      if (batchSize > 2) {
+      if (batchSize >= 2) {
         return true;
       }
       // size <= 2, invalid
@@ -309,3 +310,6 @@ export const convertConfigurationRequestType = (
   unprivilegedAttribute: convertInputType(configuration.unprivilegedAttribute),
   favorableOutcome: convertInputType(configuration.favorableOutcome),
 });
+
+export const getThresholdDefaultDelta = (metricType?: MetricTypes) =>
+  metricType && BIAS_CHART_CONFIGS[metricType].defaultDelta;
