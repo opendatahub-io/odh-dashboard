@@ -10,7 +10,7 @@ const useBiasMetricsEnabled = () => {
     },
   } = useAppContext();
 
-  return featureFlagEnabled(disableBiasMetrics);
+  return [featureFlagEnabled(disableBiasMetrics)];
 };
 
 export default useBiasMetricsEnabled;

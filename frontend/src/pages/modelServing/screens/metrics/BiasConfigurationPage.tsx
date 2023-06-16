@@ -58,7 +58,6 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
         }
         loaded={loaded}
         provideChildrenPadding
-        // The page is not empty, we will handle the empty state in the table
         empty={biasMetricConfigs.length === 0}
         emptyStatePage={
           <PageSection isFilled variant={PageSectionVariants.light}>

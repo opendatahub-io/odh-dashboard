@@ -13,6 +13,7 @@ import {
   RefreshIntervalTitle,
   TimeframeTitle,
 } from '~/pages/modelServing/screens/types';
+import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import useQueryRangeResourceData, {
   useQueryRangeResourceDataTrusty,
 } from './useQueryRangeResourceData';
@@ -32,6 +33,7 @@ export const useModelServingMetrics = (
   refresh: () => void;
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
+  const [biasMetricsEnabled] = useBiasMetricsEnabled();
 
   const runtimeRequestCount = useQueryRangeResourceData(
     type === 'runtime',
@@ -82,7 +84,7 @@ export const useModelServingMetrics = (
   );
 
   const inferenceTrustyAISPD = useQueryRangeResourceDataTrusty(
-    type === 'inference',
+    biasMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
@@ -90,7 +92,7 @@ export const useModelServingMetrics = (
   );
 
   const inferenceTrustyAIDIR = useQueryRangeResourceDataTrusty(
-    type === 'inference',
+    biasMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,

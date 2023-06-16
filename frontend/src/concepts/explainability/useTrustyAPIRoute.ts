@@ -11,16 +11,16 @@ import useBiasMetricsEnabled from './useBiasMetricsEnabled';
 
 type State = string | null;
 const useTrustyAPIRoute = (hasCR: boolean, namespace: string): FetchState<State> => {
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const [biasMetricsEnabled] = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
+      if (!biasMetricsEnabled) {
+        return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
+      }
       if (!hasCR) {
         return Promise.reject(new NotReadyError('CR not created'));
       }
 
-      if (!biasMetricsEnabled) {
-        return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
-      }
       //TODO: API URI must use HTTPS before release.
       return getTrustyAIAPIRoute(namespace, opts)
         .then((result: RouteKind) => `${result.spec.port.targetPort}://${result.spec.host}`)

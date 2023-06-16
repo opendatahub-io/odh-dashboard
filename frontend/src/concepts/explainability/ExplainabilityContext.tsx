@@ -114,14 +114,14 @@ const useFetchContextData = (apiState: TrustyAPIState): ExplainabilityContextDat
 };
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const [biasMetricsEnabled] = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<BiasMetricConfig[]>>(
     (opts) => {
-      if (!apiState.apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
-      }
       if (!biasMetricsEnabled) {
         return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
+      }
+      if (!apiState.apiAvailable) {
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
       return apiState.api
         .listRequests(opts)

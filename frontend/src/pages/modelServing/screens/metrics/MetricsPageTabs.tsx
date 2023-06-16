@@ -15,7 +15,7 @@ import './MetricsPageTabs.scss';
 const MetricsPageTabs: React.FC = () => {
   const enabledTabs = useMetricsPageEnabledTabs();
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const [biasMetricsEnabled] = useBiasMetricsEnabled();
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 

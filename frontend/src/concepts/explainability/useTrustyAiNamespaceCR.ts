@@ -9,7 +9,7 @@ import useBiasMetricsEnabled from './useBiasMetricsEnabled';
 
 type State = TrustyAiKind | null;
 const useTrustyAiNamespaceCR = (namespace: string): FetchState<State> => {
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const [biasMetricsEnabled] = useBiasMetricsEnabled();
   // TODO: the logic needs to be fleshed out once the TrustyAI operator is complete.
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {

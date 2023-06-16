@@ -311,12 +311,5 @@ export const convertConfigurationRequestType = (
   favorableOutcome: convertInputType(configuration.favorableOutcome),
 });
 
-export const getThresholdDefaultDelta = (metricType?: MetricTypes) => {
-  if (metricType === MetricTypes.SPD) {
-    return 0.1;
-  }
-  if (metricType === MetricTypes.DIR) {
-    return 0.2;
-  }
-  return undefined;
-};
+export const getThresholdDefaultDelta = (metricType?: MetricTypes) =>
+  metricType && BIAS_CHART_CONFIGS[metricType].defaultDelta;
