@@ -2,8 +2,10 @@ import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
 import useNotification from '~/utilities/useNotification';
-import { toggleTemplateEnabledStatusBackend } from '~/services/templateService';
-import { getTemplateEnabled } from './utils';
+import { useDashboardNamespace } from '~/redux/selectors';
+import { patchDashboardConfigTemplateDisablementBackend } from '~/services/dashboardService';
+import { getTemplateEnabled, setListDisabled } from './utils';
+import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type CustomServingRuntimeEnabledToggleProps = {
   template: TemplateKind;
@@ -12,16 +14,32 @@ type CustomServingRuntimeEnabledToggleProps = {
 const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledToggleProps> = ({
   template,
 }) => {
-  const [isEnabled, setEnabled] = React.useState(getTemplateEnabled(template));
+  const {
+    servingRuntimeTemplateDisablement: {
+      data: templateDisablement,
+      loaded: templateDisablementLoaded,
+      refresh: refreshDisablement,
+    },
+  } = React.useContext(CustomServingRuntimeContext);
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [isEnabled, setEnabled] = React.useState(true);
   const [isLoading, setLoading] = React.useState(false);
   const notification = useNotification();
 
+  React.useEffect(() => {
+    if (templateDisablementLoaded) {
+      setEnabled(getTemplateEnabled(template, templateDisablement));
+    }
+  }, [template, templateDisablement, templateDisablementLoaded]);
+
   const handleChange = (checked: boolean) => {
     setLoading(true);
+    const templateDisablemetUpdated = setListDisabled(template, templateDisablement, !checked);
     // TODO: Revert back to pass through api once we migrate admin panel
-    toggleTemplateEnabledStatusBackend(template.metadata.name, template.metadata.namespace, checked)
+    patchDashboardConfigTemplateDisablementBackend(templateDisablemetUpdated, dashboardNamespace)
       .then(() => {
         setEnabled(checked);
+        refreshDisablement();
       })
       .catch((e) => {
         notification.error(

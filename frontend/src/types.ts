@@ -64,6 +64,7 @@ export type DashboardConfig = K8sResourceCommon & {
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
   /** Faux status object -- computed by the service account */
   status: {

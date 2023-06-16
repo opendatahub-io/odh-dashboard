@@ -5,10 +5,7 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
-import {
-  getSortedTemplates,
-  getTemplateEnabled,
-} from '~/pages/modelServing/customServingRuntimes/utils';
+import { getSortedTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
@@ -25,13 +22,16 @@ const ServingRuntimeList: React.FC = () => {
     },
     servingRuntimeTemplates: { data: templates, loaded: templatesLoaded, error: templateError },
     servingRuntimeTemplateOrder: { data: templateOrder },
+    servingRuntimeTemplateDisablement: { data: templateDisablement },
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
 
   const templatesSorted = getSortedTemplates(templates, templateOrder);
-  const templatesEnabled = templatesSorted.filter(getTemplateEnabled);
+  const templatesEnabled = templatesSorted.filter(
+    (template) => !templateDisablement.includes(template.metadata.name),
+  );
 
   const emptyTemplates = templatesEnabled?.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;

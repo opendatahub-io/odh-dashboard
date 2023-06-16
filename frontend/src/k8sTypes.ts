@@ -713,5 +713,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
 };

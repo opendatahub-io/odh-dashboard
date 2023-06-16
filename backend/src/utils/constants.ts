@@ -62,6 +62,7 @@ export const blankDashboardCR: DashboardConfig = {
       allowedGroups: 'system:authenticated',
     },
     templateOrder: [],
+    templateDisablement: [],
   },
   status: {
     dependencyOperators: {

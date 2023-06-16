@@ -75,3 +75,4 @@ spec:
     adminGroups: 'odh-admins'
     allowedGroups: 'system:authenticated'
   templateOrder: []
+  templateDisablement: []

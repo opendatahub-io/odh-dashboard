@@ -47,6 +47,7 @@ export type DashboardConfig = K8sResourceCommon & {
       storageClassName?: string;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
   /** Faux status object -- will be replaced in the long run by a Dashboard Controller */
   status: {
@@ -826,7 +827,6 @@ export type TemplateParameter = {
   required: boolean;
 };
 
-
 export type Template = K8sResourceCommon & {
   metadata: {
     annotations?: Partial<{
@@ -869,7 +869,6 @@ export type ContainerResources = {
     'nvidia.com/gpu'?: GPUCount;
   };
 };
-
 
 export type ServingRuntime = K8sResourceCommon & {
   metadata: {
