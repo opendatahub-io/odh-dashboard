@@ -8,30 +8,20 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { useParams } from 'react-router-dom';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
 import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/BiasMetricConfigSelector';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
-import { useBrowserStorage } from '~/components/browserStorage';
 import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/EmptyBiasConfigurationCard';
 import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/EmptyBiasChartSelectionCard';
 import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandableSection';
+import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/useBiasChartsBrowserStorage';
 
-const SELECTED_CHARTS_STORAGE_KEY_PREFIX = 'odh.dashboard.xai.selected_bias_charts';
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {
-  const { inferenceService } = useParams();
-
   const { biasMetricConfigs, loaded, loadError } = useExplainabilityModelData();
 
-  const [selectedBiasConfigs, setSelectedBiasConfigs] = useBrowserStorage<BiasMetricConfig[]>(
-    `${SELECTED_CHARTS_STORAGE_KEY_PREFIX}-${inferenceService}`,
-    [],
-    true,
-    true,
-  );
+  const [selectedBiasConfigs, setSelectedBiasConfigs] = useBiasChartsBrowserStorage();
 
   const firstRender = React.useRef(true);
 
@@ -47,12 +37,6 @@ const BiasTab: React.FC = () => {
           // to set anything.
           setSelectedBiasConfigs([biasMetricConfigs[0]]);
         }
-      } else {
-        setSelectedBiasConfigs(
-          selectedBiasConfigs.filter((selection) =>
-            biasMetricConfigs.map((c) => c.id).includes(selection.id),
-          ),
-        );
       }
     }
   }, [loaded, biasMetricConfigs, setSelectedBiasConfigs, selectedBiasConfigs, loadError]);
