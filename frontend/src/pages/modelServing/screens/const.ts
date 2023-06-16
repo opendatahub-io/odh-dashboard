@@ -88,7 +88,7 @@ export const TimeframeStep: TimeframeStepType = {
   [TimeframeTitle.ONE_HOUR]: 12,
   [TimeframeTitle.ONE_DAY]: 24 * 12,
   [TimeframeTitle.ONE_WEEK]: 7 * 24 * 12,
-  [TimeframeTitle.ONE_MONTH]: 30 * 7 * 24 * 12,
+  [TimeframeTitle.ONE_MONTH]: 30 * 24 * 12,
   // [TimeframeTitle.UNLIMITED]: 30 * 7 * 24 * 12, // TODO: determine if we "zoom out" more
 };
 
