@@ -55,7 +55,7 @@ const ServingRuntimeList: React.FC = () => {
         emptyState={
           <EmptyDetailsList
             title="No model servers"
-            description="Before deploying a model, you must first configure a model server."
+            description="Before deploying a model, you must first add a model server."
             icon={PlusCircleIcon}
           />
         }
