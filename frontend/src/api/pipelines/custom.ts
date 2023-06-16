@@ -14,6 +14,7 @@ import {
   StopPipelineRunAPI,
   ListExperimentsAPI,
   CreateExperimentAPI,
+  DeleteExperimentAPI,
   GetExperimentAPI,
   CreatePipelineRunAPI,
   CreatePipelineRunJobAPI,
@@ -26,6 +27,11 @@ import { handlePipelineFailures } from './errorUtils';
 export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, name, description) =>
   handlePipelineFailures(
     proxyCREATE(hostPath, `/apis/v1beta1/experiments`, { name, description }, {}, opts),
+  );
+
+export const deleteExperiment: DeleteExperimentAPI = (hostPath) => (opts, experimentId) =>
+  handlePipelineFailures(
+    proxyDELETE(hostPath, `/apis/v1beta1/experiments/${experimentId}`, {}, opts),
   );
 
 export const createPipelineRun: CreatePipelineRunAPI = (hostPath) => (opts, data) =>

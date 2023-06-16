@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableVariant, Tr } from '@patternfly/react-table';
 import Table from '~/components/table/Table';
-import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   pipelineRunColumns,
   pipelineRunExperimentColumns,
@@ -19,9 +19,10 @@ import ExperimentsTable from '~/concepts/pipelines/content/tables/experiments/Ex
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
+  experiments: ExperimentKF[];
 };
 
-const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
+const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs, experiments }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const [toggleGroup, setToggleGroup] = React.useState<ToggleGroupOption>(
     ToggleGroupOption.RUN_VIEW,
@@ -62,14 +63,15 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
           emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
           toolbarContent={toolbarContent}
           rowRenderer={(run) => (
-            <PipelineRunTableRow
-              key={run.id}
-              isChecked={isSelected(run.id)}
-              onToggleCheck={() => toggleSelection(run.id)}
-              onDelete={() => setDeleteResources([run])}
-              run={run}
-              getJobInformation={getJobInformation}
-            />
+            <Tr key={run.id}>
+              <PipelineRunTableRow
+                isChecked={isSelected(run.id)}
+                onToggleCheck={() => toggleSelection(run.id)}
+                onDelete={() => setDeleteResources([run])}
+                run={run}
+                getJobInformation={getJobInformation}
+              />
+            </Tr>
           )}
           variant={TableVariant.compact}
         />
@@ -77,10 +79,19 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
         <ExperimentsTable
           data={filteredRuns}
           columns={pipelineRunExperimentColumns}
+          experiments={experiments}
           enablePagination
           emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
           toolbarContent={toolbarContent}
-          onDeleteRun={(run) => setDeleteResources([run])}
+          rowRenderer={(resource) => (
+            <PipelineRunTableRow
+              isExpandable
+              key={resource.id}
+              onDelete={() => setDeleteResources([resource])}
+              run={resource as PipelineRunKF}
+              getJobInformation={getJobInformation}
+            />
+          )}
         />
       )}
       <DeletePipelineCoreResourceModal

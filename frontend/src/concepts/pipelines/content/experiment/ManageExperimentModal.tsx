@@ -20,7 +20,7 @@ type ManageExperimentModalProps = {
 };
 
 const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, onClose }) => {
-  const { project, api, apiAvailable } = usePipelinesAPI();
+  const { project, api, apiAvailable, refreshAllAPI } = usePipelinesAPI();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [{ name, description }, setData, resetData] = useCreateExperimentData();
@@ -28,6 +28,7 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
   const haveEnoughData = !!name;
 
   const onBeforeClose = (experiment?: ExperimentKF) => {
+    refreshAllAPI();
     onClose(experiment);
     setSubmitting(false);
     setError(undefined);

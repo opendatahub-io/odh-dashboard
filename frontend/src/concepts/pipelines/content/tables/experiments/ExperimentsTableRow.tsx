@@ -1,27 +1,45 @@
 import * as React from 'react';
-import { Tbody, Td, Tr } from '@patternfly/react-table';
-import { Split, SplitItem } from '@patternfly/react-core';
-import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import ExperimentsTableRowExpandedRunCells from '~/concepts/pipelines/content/tables/experiments/ExperimentsTableRowExpandedRunCells';
+import { ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import {
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  EmptyStateSecondaryActions,
+  EmptyStateVariant,
+  Label,
+  Split,
+  SplitItem,
+  Title,
+} from '@patternfly/react-core';
+import { useNavigate } from 'react-router-dom';
+import { PlusCircleIcon } from '@patternfly/react-icons';
+import { ExperimentKF, PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import ExperimentActions from './ExperimentActions';
 
 type ExperimentsTableRowProps = {
   expandedData: PipelineCoreResourceKF[];
   experimentName: string;
   experimentDescription: string;
+  experimentResource?: ExperimentKF;
   rowIndex: number;
   columnCount: number;
-  onDeleteRun: (run: PipelineRunKF) => void;
+  renderRow: (resource: PipelineCoreResourceKF) => React.ReactNode;
 };
 
 const ExperimentsTableRow: React.FC<ExperimentsTableRowProps> = ({
   experimentName,
   experimentDescription,
+  experimentResource,
   expandedData,
   columnCount,
   rowIndex,
-  onDeleteRun,
+  renderRow,
 }) => {
   const [isExpanded, setExpanded] = React.useState(true);
+  const navigate = useNavigate();
+  const { namespace } = usePipelinesAPI();
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -38,20 +56,66 @@ const ExperimentsTableRow: React.FC<ExperimentsTableRowProps> = ({
           <Split hasGutter>
             <SplitItem>{experimentName}</SplitItem>
             <SplitItem>{experimentDescription}</SplitItem>
-            <SplitItem isFilled style={{ textAlign: 'right' }}>
-              Create Run
-            </SplitItem>
+            {!experimentResource && (
+              <SplitItem>
+                <Label>Deleted</Label>
+              </SplitItem>
+            )}
+            {experimentResource && (
+              <SplitItem isFilled style={{ textAlign: 'right' }}>
+                <Button
+                  variant="link"
+                  onClick={() =>
+                    navigate(`/pipelineRuns/${namespace}/pipelineRun/create`, {
+                      state: { lastExperiment: experimentResource },
+                    })
+                  }
+                >
+                  Create run
+                </Button>
+              </SplitItem>
+            )}
+            {experimentResource && experimentName !== 'Default' && (
+              <SplitItem>
+                <ExperimentActions experiment={experimentResource} />
+              </SplitItem>
+            )}
           </Split>
         </Td>
       </Tr>
-
-      {expandedData.map((resource) => (
-        <Tr key={resource.id} isExpanded={isExpanded}>
+      {expandedData.length === 0 && (
+        <Tr isExpanded={isExpanded}>
           <Td />
-          <ExperimentsTableRowExpandedRunCells
-            run={resource as PipelineRunKF}
-            onDelete={() => onDeleteRun(resource as PipelineRunKF)}
-          />
+          <Td colSpan={6}>
+            <ExpandableRowContent>
+              <EmptyState variant={EmptyStateVariant.xs}>
+                <EmptyStateIcon icon={PlusCircleIcon} />
+                <Title headingLevel="h3" size="md">
+                  No runs
+                </Title>
+                <EmptyStateBody>
+                  To add a run to this experiment, click the create run.
+                </EmptyStateBody>
+                <EmptyStateSecondaryActions>
+                  <Button
+                    variant="link"
+                    onClick={() =>
+                      navigate(`/pipelineRuns/${namespace}/pipelineRun/create`, {
+                        state: { lastExperiment: experimentResource },
+                      })
+                    }
+                  >
+                    Create run
+                  </Button>
+                </EmptyStateSecondaryActions>
+              </EmptyState>
+            </ExpandableRowContent>
+          </Td>
+        </Tr>
+      )}
+      {expandedData.map((resource, i) => (
+        <Tr key={`expandable-row-${i}`} isExpanded={isExpanded}>
+          {renderRow(resource)}
         </Tr>
       ))}
     </Tbody>

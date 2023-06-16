@@ -150,3 +150,13 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
   statusRunJobColumn,
   kebabTableColumn(),
 ];
+
+export const pipelineRunJobExperimentColumns: SortableData<PipelineRunJobKF>[] = [
+  expandTableColumn(),
+  nameColumn,
+  pipelineColumn,
+  triggerRunJobColumn,
+  scheduledRunJobColumn,
+  statusRunJobColumn,
+  kebabTableColumn(),
+];

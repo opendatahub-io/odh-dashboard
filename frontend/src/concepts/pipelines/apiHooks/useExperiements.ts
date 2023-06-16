@@ -12,7 +12,7 @@ const useExperiments = () => {
     [api],
   );
 
-  return useFetchState(call, [], { refreshRate: POLL_INTERVAL });
+  return useFetchState<ExperimentKF[]>(call, [], { refreshRate: POLL_INTERVAL });
 };
 
 export default useExperiments;

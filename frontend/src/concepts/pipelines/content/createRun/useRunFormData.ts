@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import {
@@ -13,7 +14,6 @@ import {
 import {
   DateTimeKF,
   PipelineCoreResourceKF,
-  PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
   ResourceReferenceKF,
@@ -166,11 +166,12 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-const useRunFormData = (
-  initialData?: PipelineRunKF | PipelineRunJobKF,
-  lastPipeline?: PipelineKF,
-) => {
+const useRunFormData = (initialData?: PipelineRunKF | PipelineRunJobKF) => {
   const { project } = usePipelinesAPI();
+  const location = useLocation();
+
+  const lastPipeline = location.state?.lastPipeline;
+  const lastExperiment = location.state?.lastExperiment;
 
   const objState = useGenericObjectState<RunFormData>({
     project,
@@ -179,7 +180,7 @@ const useRunFormData = (
       description: initialData?.description ?? '',
     },
     pipeline: lastPipeline ?? null,
-    experiment: null,
+    experiment: lastExperiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: lastPipeline
       ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))

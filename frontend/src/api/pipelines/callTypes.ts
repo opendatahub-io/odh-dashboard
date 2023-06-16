@@ -12,6 +12,7 @@ import {
   StopPipelineRun,
   ListExperiments,
   CreateExperiment,
+  DeleteExperiment,
   GetExperiment,
   CreatePipelineRun,
   CreatePipelineRunJob,
@@ -27,6 +28,7 @@ type KubeflowSpecificAPICall = (opts: K8sAPIOptions, ...args: any[]) => Promise<
 type KubeflowAPICall<ActualCall extends KubeflowSpecificAPICall> = (hostPath: string) => ActualCall;
 
 export type CreateExperimentAPI = KubeflowAPICall<CreateExperiment>;
+export type DeleteExperimentAPI = KubeflowAPICall<DeleteExperiment>;
 export type CreatePipelineRunAPI = KubeflowAPICall<CreatePipelineRun>;
 export type CreatePipelineRunJobAPI = KubeflowAPICall<CreatePipelineRunJob>;
 export type GetExperimentAPI = KubeflowAPICall<GetExperiment>;
