@@ -7,7 +7,7 @@ import useCheckboxTable from '~/components/table/useCheckboxTable';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
 import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import usePipelineRunJobFilter from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobFilter';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
@@ -30,7 +30,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs }) => {
         data={filterJobs}
         columns={pipelineRunJobColumns}
         enablePagination
-        emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
         toolbarContent={
           <PipelineRunJobTableToolbar
             {...toolbarProps}

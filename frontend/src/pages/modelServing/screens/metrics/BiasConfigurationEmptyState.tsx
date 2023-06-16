@@ -6,18 +6,25 @@ import {
   EmptyStateVariant,
   Title,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { WrenchIcon } from '@patternfly/react-icons';
+import { EMPTY_BIAS_CONFIGURATION_DESC, EMPTY_BIAS_CONFIGURATION_TITLE } from './const';
 
-const BiasConfigurationEmptyState: React.FC = () => (
-  <EmptyState variant={EmptyStateVariant.large} data-id="empty-empty-state">
-    <EmptyStateIcon icon={PlusCircleIcon} />
+type BiasConfigurationEmptyStateProps = {
+  actionButton: React.ReactNode;
+  variant: EmptyStateVariant;
+};
+
+const BiasConfigurationEmptyState: React.FC<BiasConfigurationEmptyStateProps> = ({
+  actionButton,
+  variant,
+}) => (
+  <EmptyState variant={variant} data-id="bias-metrics-empty-state">
+    <EmptyStateIcon icon={WrenchIcon} />
     <Title headingLevel="h2" size="lg">
-      No bias metrics configured
+      {EMPTY_BIAS_CONFIGURATION_TITLE}
     </Title>
-    <EmptyStateBody>
-      No bias metrics for this model have been configured. To monitor model bias, you must first
-      configure metrics
-    </EmptyStateBody>
+    <EmptyStateBody>{EMPTY_BIAS_CONFIGURATION_DESC}</EmptyStateBody>
+    {actionButton}
   </EmptyState>
 );
 
