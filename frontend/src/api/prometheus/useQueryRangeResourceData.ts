@@ -1,11 +1,7 @@
-import {
-  RefreshIntervalValue,
-  TimeframeStep,
-  TimeframeTimeRange,
-} from '~/pages/modelServing/screens/const';
+import { TimeframeStep, TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
+import useRestructureContextResourceData from '~/utilities/useRestructureContextResourceData';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 
 const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
@@ -17,7 +13,7 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
   refreshInterval: RefreshIntervalTitle,
   responsePredicate: ResponsePredicate<T>,
 ): ContextResourceData<T> =>
-  useContextResourceData<T>(
+  useRestructureContextResourceData<T>(
     usePrometheusQueryRange<T>(
       active,
       '/api/prometheus/serving',
@@ -27,7 +23,6 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
       TimeframeStep[timeframe],
       responsePredicate,
     ),
-    RefreshIntervalValue[refreshInterval],
   );
 
 export default useQueryRangeResourceData;

@@ -15,6 +15,8 @@ import {
 } from '~/pages/modelServing/screens/types';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
+import useRefreshInterval from '~/utilities/useRefreshInterval';
+import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
@@ -133,6 +135,8 @@ export const useModelServingMetrics = (
   const refreshAllMetrics = React.useCallback(() => {
     setEnd(Date.now());
   }, []);
+
+  useRefreshInterval(RefreshIntervalValue[refreshInterval], refreshAllMetrics);
 
   return React.useMemo(
     () => ({
