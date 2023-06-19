@@ -841,6 +841,13 @@ export type Template = K8sResourceCommon & {
   parameters: TemplateParameter[];
 };
 
+export type TemplateList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Template[];
+} & K8sResourceCommon;
+
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;

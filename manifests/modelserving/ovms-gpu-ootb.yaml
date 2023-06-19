@@ -56,4 +56,7 @@ objects:
         - autoSelect: true
           name: onnx
           version: '1'
+        - autoSelect: true
+          name: tensorflow
+          version: "2" 
 parameters: []

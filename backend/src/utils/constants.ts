@@ -62,7 +62,7 @@ export const blankDashboardCR: DashboardConfig = {
       allowedGroups: 'system:authenticated',
     },
     templateOrder: [],
-    templateDisablement: [],
+    // templateDisablement: [], Don't create this field, will be used in migration
   },
   status: {
     dependencyOperators: {
