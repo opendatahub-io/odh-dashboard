@@ -3,6 +3,8 @@ import { MetricTypes } from '~/api';
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
+import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/useBiasChartsBrowserStorage';
+import { byNotId } from '~/pages/modelServing/screens/metrics/utils';
 
 type DeleteBiasConfigurationModalProps = {
   configurationToDelete?: BiasMetricConfig;
@@ -18,6 +20,12 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
   const {
     apiState: { api },
   } = React.useContext(ExplainabilityContext);
+
+  const [selectedBiasConfigCharts, setSelectedBiasConfigCharts] = useBiasChartsBrowserStorage();
+
+  const deselectDeleted = (biasConfigId: string) => {
+    setSelectedBiasConfigCharts(selectedBiasConfigCharts.filter(byNotId(biasConfigId)));
+  };
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -41,6 +49,7 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
               : api.deleteSpdRequest;
           deleteFunc({}, configurationToDelete.id)
             .then(() => onBeforeClose(true))
+            .then(() => deselectDeleted(configurationToDelete.id))
             .catch((e) => {
               setError(e);
               setDeleting(false);

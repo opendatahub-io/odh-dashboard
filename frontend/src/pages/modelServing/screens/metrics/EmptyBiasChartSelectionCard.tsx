@@ -7,7 +7,7 @@ import {
   EmptyStateIcon,
   Title,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { SearchIcon } from '@patternfly/react-icons';
 import {
   EMPTY_BIAS_CHART_SELECTION_DESC,
   EMPTY_BIAS_CHART_SELECTION_TITLE,
@@ -17,7 +17,7 @@ const EmptyBiasChartSelectionCard = () => (
   <Card>
     <CardBody>
       <EmptyState>
-        <EmptyStateIcon icon={PlusCircleIcon} />
+        <EmptyStateIcon icon={SearchIcon} />
         <Title headingLevel="h2" size="lg">
           {EMPTY_BIAS_CHART_SELECTION_TITLE}
         </Title>

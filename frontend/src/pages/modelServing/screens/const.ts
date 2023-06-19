@@ -88,11 +88,18 @@ export const TimeframeStep: TimeframeStepType = {
   [TimeframeTitle.ONE_HOUR]: 12,
   [TimeframeTitle.ONE_DAY]: 24 * 12,
   [TimeframeTitle.ONE_WEEK]: 7 * 24 * 12,
-  [TimeframeTitle.ONE_MONTH]: 30 * 7 * 24 * 12,
+  [TimeframeTitle.ONE_MONTH]: 30 * 24 * 12,
   // [TimeframeTitle.UNLIMITED]: 30 * 7 * 24 * 12, // TODO: determine if we "zoom out" more
 };
 
 export const RefreshIntervalValue: RefreshIntervalValueType = {
+  [RefreshIntervalTitle.FIFTEEN_SECONDS]: 15 * 1000,
+  [RefreshIntervalTitle.THIRTY_SECONDS]: 30 * 1000,
   [RefreshIntervalTitle.ONE_MINUTE]: 60 * 1000,
   [RefreshIntervalTitle.FIVE_MINUTES]: 5 * 60 * 1000,
+  [RefreshIntervalTitle.FIFTEEN_MINUTES]: 15 * 60 * 1000,
+  [RefreshIntervalTitle.THIRTY_MINUTES]: 30 * 60 * 1000,
+  [RefreshIntervalTitle.ONE_HOUR]: 60 * 60 * 1000,
+  [RefreshIntervalTitle.TWO_HOURS]: 2 * 60 * 60 * 1000,
+  [RefreshIntervalTitle.ONE_DAY]: 24 * 60 * 60 * 1000,
 };
