@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import { ExplainabilityProvider } from '~/concepts/explainability/ExplainabilityContext';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
+import ModelServingExplainabilityWrapper from '~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
 import BiasConfigurationBreadcrumbPage from './screens/metrics/BiasConfigurationBreadcrumbPage';
 import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';
 import ModelServingContextProvider from './ModelServingContext';
@@ -20,7 +20,7 @@ const ModelServingRoutes: React.FC = () => {
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
         {modelMetricsEnabled && (
-          <Route path="/metrics/:project" element={<ExplainabilityProvider />}>
+          <Route path="/metrics/:project" element={<ModelServingExplainabilityWrapper />}>
             <Route index element={<Navigate to=".." />} />
             <Route path=":inferenceService" element={<GlobalModelMetricsWrapper />}>
               <Route path=":tab?" element={<GlobalModelMetricsPage />} />

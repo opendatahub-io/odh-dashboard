@@ -1,6 +1,6 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Tab, TabTitleText, TabAction } from '@patternfly/react-core';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
@@ -15,7 +15,11 @@ import './MetricsPageTabs.scss';
 
 const MetricsPageTabs: React.FC = () => {
   const enabledTabs = useMetricsPageEnabledTabs();
-  const { biasMetricConfigs, loaded } = useExplainabilityModelData();
+  const {
+    biasMetricConfigs,
+    loaded,
+    serviceStatus: { installed },
+  } = useExplainabilityModelData();
   const [biasMetricsEnabled] = useBiasMetricsEnabled();
   const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
@@ -56,7 +60,7 @@ const MetricsPageTabs: React.FC = () => {
           <PerformanceTab />
         </Tab>
       )}
-      {biasMetricsEnabled && (
+      {biasMetricsEnabled && installed && (
         <Tab
           eventKey={MetricsTabKeys.BIAS}
           title={<TabTitleText>Model Bias</TabTitleText>}
@@ -64,6 +68,7 @@ const MetricsPageTabs: React.FC = () => {
           className="odh-tabcontent-fix"
           actions={
             loaded &&
+            installed &&
             biasMetricConfigs.length === 0 && (
               <TabAction>
                 <BiasConfigurationAlertPopover

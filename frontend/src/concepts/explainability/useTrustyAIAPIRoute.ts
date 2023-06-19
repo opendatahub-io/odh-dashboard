@@ -10,20 +10,21 @@ import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import useBiasMetricsEnabled from './useBiasMetricsEnabled';
 
 type State = string | null;
-const useTrustyAPIRoute = (hasCR: boolean, namespace: string): FetchState<State> => {
+const useTrustyAIAPIRoute = (hasCR: boolean, namespace: string): FetchState<State> => {
   const [biasMetricsEnabled] = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!biasMetricsEnabled) {
         return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
       }
+
       if (!hasCR) {
         return Promise.reject(new NotReadyError('CR not created'));
       }
 
       //TODO: API URI must use HTTPS before release.
       return getTrustyAIAPIRoute(namespace, opts)
-        .then((result: RouteKind) => `${result.spec.port.targetPort}://${result.spec.host}`)
+        .then((result: RouteKind) => `https://${result.spec.host}`)
         .catch((e) => {
           if (e.statusObject?.code === 404) {
             // Not finding is okay, not an error
@@ -55,4 +56,4 @@ const useTrustyAPIRoute = (hasCR: boolean, namespace: string): FetchState<State>
   return state;
 };
 
-export default useTrustyAPIRoute;
+export default useTrustyAIAPIRoute;

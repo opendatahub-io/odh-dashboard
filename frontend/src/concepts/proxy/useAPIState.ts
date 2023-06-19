@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { APIState } from '~/concepts/proxy/types';
 
-//TODO move this to new folder called: proxy
 const useAPIState = <T>(
   hostPath: string | null,
   createAPI: (path: string) => T,
@@ -22,7 +21,6 @@ const useAPIState = <T>(
       // TODO: we need to figure out maybe a stopgap or something
       path = '';
     }
-
     const api = createAPI(path);
 
     return {

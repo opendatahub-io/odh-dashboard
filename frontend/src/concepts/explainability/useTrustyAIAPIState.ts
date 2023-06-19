@@ -15,7 +15,7 @@ import {
 
 export type TrustyAPIState = APIState<ExplainabilityAPI>;
 
-const useTrustyAPIState = (
+const useTrustyAIAPIState = (
   hostPath: string | null,
 ): [apiState: TrustyAPIState, refreshAPIState: () => void] => {
   const createAPI = React.useCallback(
@@ -35,4 +35,4 @@ const useTrustyAPIState = (
   return useAPIState<ExplainabilityAPI>(hostPath, createAPI);
 };
 
-export default useTrustyAPIState;
+export default useTrustyAIAPIState;

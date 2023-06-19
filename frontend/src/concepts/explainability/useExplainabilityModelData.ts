@@ -5,6 +5,7 @@ import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityC
 
 export type ExplainabilityModelData = {
   biasMetricConfigs: BiasMetricConfig[];
+  serviceStatus: { initializing: boolean; installed: boolean; timedOut: boolean };
   loaded: boolean;
   loadError?: Error;
   refresh: () => Promise<unknown>;
@@ -12,7 +13,13 @@ export type ExplainabilityModelData = {
 export const useExplainabilityModelData = (): ExplainabilityModelData => {
   const { inferenceService } = useParams();
 
-  const { data } = React.useContext(ExplainabilityContext);
+  const { data, crInitializing, hasCR, serverTimedOut } = React.useContext(ExplainabilityContext);
+
+  const serviceStatus: ExplainabilityModelData['serviceStatus'] = {
+    initializing: crInitializing,
+    installed: hasCR,
+    timedOut: serverTimedOut,
+  };
 
   const [biasMetricConfigs] = React.useMemo(() => {
     let configs: BiasMetricConfig[] = [];
@@ -25,6 +32,7 @@ export const useExplainabilityModelData = (): ExplainabilityModelData => {
   }, [data.biasMetricConfigs, data.loaded, inferenceService]);
 
   return {
+    serviceStatus,
     biasMetricConfigs,
     loaded: data.loaded,
     loadError: data.error,

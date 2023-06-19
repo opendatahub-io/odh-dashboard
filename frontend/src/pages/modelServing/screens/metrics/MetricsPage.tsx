@@ -7,6 +7,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 import { getBreadcrumbItemComponents } from './utils';
 import PerformanceTab from './PerformanceTab';
 
@@ -20,6 +21,11 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type 
   const { tab } = useParams();
   const navigate = useNavigate();
 
+  const {
+    hasCR,
+    apiState: { apiAvailable },
+  } = React.useContext(ExplainabilityContext);
+
   return (
     <ApplicationsPage
       title={title}
@@ -31,6 +37,7 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type 
       headerAction={
         tab === MetricsTabKeys.BIAS && (
           <Button
+            isDisabled={!hasCR || !apiAvailable}
             variant="link"
             icon={<CogIcon />}
             onClick={() => navigate('../configure', { replace: true })}
