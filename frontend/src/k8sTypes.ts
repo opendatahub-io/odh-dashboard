@@ -10,6 +10,8 @@ import {
   NotebookSize,
   GpuSettingString,
   TolerationSettings,
+  ImageStreamStatusTagItem,
+  ImageStreamStatusTagCondition,
 } from './types';
 import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
@@ -88,6 +90,7 @@ export type K8sCondition = {
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;
+  'opendatahub.io/disable-gpu': string;
   'enable-route': string;
   'enable-auth': string;
 }>;
@@ -181,6 +184,8 @@ export type ImageStreamKind = K8sResourceCommon & {
     publicDockerImageRepository?: string;
     tags?: {
       tag: string;
+      items: ImageStreamStatusTagItem[] | null;
+      conditions?: ImageStreamStatusTagCondition[];
     }[];
   };
 };

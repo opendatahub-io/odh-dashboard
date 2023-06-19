@@ -8,10 +8,10 @@ import {
   replaceSecret,
   assembleServiceAccount,
   createServiceAccount,
+  getRoleBinding,
 } from '~/api';
-import { SecretKind, K8sStatus, K8sAPIOptions } from '~/k8sTypes';
+import { SecretKind, K8sStatus, K8sAPIOptions, RoleBindingKind } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 
@@ -39,44 +39,50 @@ export const setUpTokenAuth = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
+  createRolebinding: boolean,
+  existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
   const { serviceAccountName, roleBindingName } = getTokenNames(servingRuntimeName, namespace);
 
   const serviceAccount = assembleServiceAccount(serviceAccountName, namespace);
-  const tokenAuth = generateRoleBindingServingRuntime(
+  const roleBinding = generateRoleBindingServingRuntime(
     roleBindingName,
     serviceAccountName,
     namespace,
   );
   return Promise.all([
-    createServiceAccount(serviceAccount, opts),
-    createRoleBinding(tokenAuth, opts),
+    ...(existingSecrets === undefined ? [createServiceAccount(serviceAccount, opts)] : []),
+    ...(createRolebinding ? [createRoleBindingIfMissing(roleBinding, namespace, opts)] : []),
   ])
-    .then(() => {
-      allSettledPromises<SecretKind, Error>(
-        fillData.tokens.map((token) => {
-          const secretToken = assembleSecretSA(token.name, serviceAccountName, namespace);
-          return createSecret(secretToken, opts);
-        }),
-      )
-        .then(() => Promise.resolve())
-        .catch((error) => Promise.reject(error));
-    })
+    .then(() => createSecrets(fillData, servingRuntimeName, namespace, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
 };
 
-export const updateSecrets = async (
+export const createRoleBindingIfMissing = async (
+  rolebinding: RoleBindingKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<RoleBindingKind> =>
+  getRoleBinding(namespace, rolebinding.metadata.name).catch((e) => {
+    if (e.statusObject?.code === 404) {
+      return createRoleBinding(rolebinding, opts);
+    }
+    return Promise.reject(e);
+  });
+
+export const createSecrets = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
-  secrets: SecretKind[],
+  existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
   const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
-  const deletedSecrets = secrets
-    .map((secret) => secret.metadata.name)
-    .filter((token) => !fillData.tokens.some((tokenEdit) => tokenEdit.editName === token));
+  const deletedSecrets =
+    existingSecrets
+      ?.map((secret) => secret.metadata.name)
+      .filter((token) => !fillData.tokens.some((tokenEdit) => tokenEdit.editName === token)) || [];
 
   return Promise.all<K8sStatus | SecretKind>([
     ...fillData.tokens

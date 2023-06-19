@@ -1,14 +1,12 @@
 import * as React from 'react';
 import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import { DataConnection } from '~/pages/projects/types';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import './ConfigurePipelinesServerModal.scss';
 import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { createPipelinesCR, deleteSecret } from '~/api';
+import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -35,10 +33,16 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   open,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
+  const [dataConnections, , , refresh] = useDataConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
+
+  React.useEffect(() => {
+    if (open) {
+      refresh();
+    }
+  }, [open, refresh]);
 
   const canSubmit = () => {
     const databaseIsValid = config.database.useDefault
@@ -69,9 +73,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     let objectStorage: PipelineServerConfigType['objectStorage'];
     if (config.objectStorage.useExisting) {
       const existingName = config.objectStorage.existingName;
-      const existingValue = dataConnections.data?.find(
-        (dc) => dc.data.metadata.name === existingName,
-      );
+      const existingValue = dataConnections?.find((dc) => dc.data.metadata.name === existingName);
       if (existingValue) {
         objectStorage = {
           existingValue: convertAWSSecretData(existingValue),
@@ -144,7 +146,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               submit();
             }}
           >
-            <ObjectStorageSection setConfig={setConfig} config={config} />
+            <ObjectStorageSection
+              setConfig={setConfig}
+              config={config}
+              dataConnections={dataConnections}
+            />
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />
           </Form>
         </StackItem>

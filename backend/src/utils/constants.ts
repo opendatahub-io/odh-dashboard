@@ -52,8 +52,8 @@ export const blankDashboardCR: DashboardConfig = {
       disableProjectSharing: false,
       disableCustomServingRuntimes: false,
       modelMetricsNamespace: '',
-      disablePipelines: true,
       disableBiasMetrics: false,
+      disablePipelines: false,
     },
     notebookController: {
       enabled: true,
@@ -131,3 +131,6 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
     },
   },
 ];
+
+export const imageUrlRegex =
+  /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;

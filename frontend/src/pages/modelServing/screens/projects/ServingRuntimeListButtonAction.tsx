@@ -30,7 +30,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
           onClick={onClick}
           variant="secondary"
         >
-          Configure server working
+          Configure server
         </Button>
       </Tooltip>
     );

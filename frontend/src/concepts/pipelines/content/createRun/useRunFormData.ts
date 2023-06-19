@@ -13,6 +13,7 @@ import {
 import {
   DateTimeKF,
   PipelineCoreResourceKF,
+  PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
   ResourceReferenceKF,
@@ -161,7 +162,10 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-const useRunFormData = (initialData?: PipelineRunKF | PipelineRunJobKF) => {
+const useRunFormData = (
+  initialData?: PipelineRunKF | PipelineRunJobKF,
+  lastPipeline?: PipelineKF,
+) => {
   const { project } = usePipelinesAPI();
 
   const objState = useGenericObjectState<RunFormData>({
@@ -170,9 +174,12 @@ const useRunFormData = (initialData?: PipelineRunKF | PipelineRunJobKF) => {
       name: initialData?.name ? `Clone of ${initialData.name}` : '',
       description: initialData?.description ?? '',
     },
-    pipeline: null,
+    pipeline: lastPipeline ?? null,
     // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
+    params: lastPipeline
+      ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
+      : undefined,
   });
 
   const setFunction = objState[1];

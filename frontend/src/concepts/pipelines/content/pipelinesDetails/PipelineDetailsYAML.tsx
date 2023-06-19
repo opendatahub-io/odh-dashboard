@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { CodeEditor, Language } from '@patternfly/react-code-editor';
+import { Language } from '@patternfly/react-code-editor';
 import YAML from 'yaml';
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEditor';
 
 type PipelineDetailsYAMLProps = {
   filename?: string;
@@ -25,10 +26,8 @@ const PipelineDetailsYAML: React.FC<PipelineDetailsYAMLProps> = ({ filename, con
   const pipelineYAML = YAML.stringify(content);
 
   return (
-    <CodeEditor
+    <DashboardCodeEditor
       code={pipelineYAML}
-      // TODO: PF doesn't want to expand into the space
-      height="400px"
       downloadFileName={filename ?? 'Pipeline content'}
       isDownloadEnabled
       isCopyEnabled

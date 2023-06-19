@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { PageSection } from '@patternfly/react-core';
+import { useLocation } from 'react-router-dom';
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import GenericSidebar from '~/components/GenericSidebar';
 import {
@@ -19,8 +20,9 @@ type RunPageProps = {
 
 const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath }) => {
   const { namespace } = usePipelinesAPI();
+  const location = useLocation();
 
-  const [formData, setFormDataValue] = useRunFormData(cloneRun);
+  const [formData, setFormDataValue] = useRunFormData(cloneRun, location.state?.lastPipeline);
 
   return (
     <>

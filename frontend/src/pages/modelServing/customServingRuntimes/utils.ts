@@ -27,12 +27,25 @@ export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRunt
   obj.spec?.containers !== undefined &&
   obj.spec?.supportedModelFormats !== undefined;
 
-export const getServingRuntimeFromTemplate = (template?: TemplateKind): ServingRuntimeKind => {
-  if (!template) {
-    throw new Error('No Serving Runtime provided');
+export const getServingRuntimeFromName = (
+  templateName: string,
+  templateList?: TemplateKind[],
+): ServingRuntimeKind | undefined => {
+  if (!templateList) {
+    return undefined;
   }
+  const template = templateList.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
+  if (!template) {
+    return undefined;
+  }
+  return getServingRuntimeFromTemplate(template);
+};
+
+export const getServingRuntimeFromTemplate = (
+  template: TemplateKind,
+): ServingRuntimeKind | undefined => {
   if (!isServingRuntimeKind(template.objects[0])) {
-    throw new Error('Invalid Serving Runtime format');
+    return undefined;
   }
   return template.objects[0];
 };

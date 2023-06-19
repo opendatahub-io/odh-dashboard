@@ -12,11 +12,8 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
 import { DataConnection } from '~/pages/projects/types';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { PipelineServerConfigType } from './types';
 import './ConfigurePipelinesServerModal.scss';
@@ -33,11 +30,14 @@ const DISABLED_FOLDER_PATH = (
 type ObjectStorageSectionProps = {
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
+  dataConnections: DataConnection[];
 };
 
-export const ObjectStorageSection = ({ setConfig, config }: ObjectStorageSectionProps) => {
-  const { namespace } = usePipelinesAPI();
-  const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
+export const ObjectStorageSection = ({
+  setConfig,
+  config,
+  dataConnections,
+}: ObjectStorageSectionProps) => {
   const [existingDataConnectionOpen, setExistingDataConnectionOpen] = React.useState(false);
   return (
     <FormSection
@@ -76,11 +76,11 @@ export const ObjectStorageSection = ({ setConfig, config }: ObjectStorageSection
                     id="pipelines-data-connection"
                     isOpen={existingDataConnectionOpen}
                     placeholderText={
-                      dataConnections.data.length === 0
+                      dataConnections.length === 0
                         ? 'No data connections available to select'
                         : 'Select...'
                     }
-                    isDisabled={dataConnections.data.length === 0}
+                    isDisabled={dataConnections.length === 0}
                     onToggle={(open) => setExistingDataConnectionOpen(open)}
                     onSelect={(_, option) => {
                       if (typeof option === 'string') {
@@ -98,7 +98,7 @@ export const ObjectStorageSection = ({ setConfig, config }: ObjectStorageSection
                     selections={config.objectStorage.existingName}
                     menuAppendTo="parent"
                   >
-                    {dataConnections.data.map((connection) => (
+                    {dataConnections.map((connection) => (
                       <SelectOption
                         key={connection.data.metadata.name}
                         value={connection.data.metadata.name}

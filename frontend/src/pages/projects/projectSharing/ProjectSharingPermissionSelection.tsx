@@ -11,7 +11,7 @@ type ProjectSharingPermissionSelectionProps = {
 const ProjectSharingPermissions = [
   {
     type: ProjectSharingRoleType.EDIT,
-    description: 'View and edit the project',
+    description: 'View and edit the project components',
   },
   {
     type: ProjectSharingRoleType.ADMIN,
