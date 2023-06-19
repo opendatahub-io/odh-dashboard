@@ -14,9 +14,8 @@ import {
   TimeframeTitle,
 } from '~/pages/modelServing/screens/types';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
-import useQueryRangeResourceData, {
-  useQueryRangeResourceDataTrusty,
-} from './useQueryRangeResourceData';
+import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
+import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
   type: MetricType,
@@ -35,12 +34,22 @@ export const useModelServingMetrics = (
   const [end, setEnd] = React.useState(lastUpdateTime);
   const [biasMetricsEnabled] = useBiasMetricsEnabled();
 
+  const defaultResponsePredicate = React.useCallback<ResponsePredicate>(
+    (data) => data.result?.[0]?.values || [],
+    [],
+  );
+
+  const trustyResponsePredicate = React.useCallback<
+    ResponsePredicate<PrometheusQueryRangeResponseDataResult>
+  >((data) => data.result, []);
+
   const runtimeRequestCount = useQueryRangeResourceData(
     type === 'runtime',
     queries[RuntimeMetricType.REQUEST_COUNT],
     end,
     timeframe,
     refreshInterval,
+    defaultResponsePredicate,
   );
 
   const runtimeAverageResponseTime = useQueryRangeResourceData(
@@ -49,6 +58,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     refreshInterval,
+    defaultResponsePredicate,
   );
 
   const runtimeCPUUtilization = useQueryRangeResourceData(
@@ -57,6 +67,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     refreshInterval,
+    defaultResponsePredicate,
   );
 
   const runtimeMemoryUtilization = useQueryRangeResourceData(
@@ -65,6 +76,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     refreshInterval,
+    defaultResponsePredicate,
   );
 
   const inferenceRequestSuccessCount = useQueryRangeResourceData(
@@ -73,6 +85,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     refreshInterval,
+    defaultResponsePredicate,
   );
 
   const inferenceRequestFailedCount = useQueryRangeResourceData(
@@ -81,22 +94,25 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     refreshInterval,
+    defaultResponsePredicate,
   );
 
-  const inferenceTrustyAISPD = useQueryRangeResourceDataTrusty(
+  const inferenceTrustyAISPD = useQueryRangeResourceData(
     biasMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
     refreshInterval,
+    trustyResponsePredicate,
   );
 
-  const inferenceTrustyAIDIR = useQueryRangeResourceDataTrusty(
+  const inferenceTrustyAIDIR = useQueryRangeResourceData(
     biasMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
     refreshInterval,
+    trustyResponsePredicate,
   );
 
   React.useEffect(() => {
