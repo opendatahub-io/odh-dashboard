@@ -18,7 +18,7 @@ export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
   // [CreateRunPageSections.EXPERIMENT]: 'Experiment',
   [CreateRunPageSections.RUN_TYPE]: 'Run type',
-  [CreateRunPageSections.PARAMS]: 'Parameters',
+  [CreateRunPageSections.PARAMS]: 'Pipeline input parameters',
 };
 
 export const SCROLL_ID = 'create-run-scroll-content';
