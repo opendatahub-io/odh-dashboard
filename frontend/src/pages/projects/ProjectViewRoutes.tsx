@@ -13,6 +13,7 @@ import { ExplainabilityProvider } from '~/concepts/explainability/Explainability
 import ProjectInferenceMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsConfigurationPage';
 import ProjectInferenceMetricsPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsPage';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
+import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -22,6 +23,7 @@ import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
 const ProjectViewRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
 
   return (
     <ProjectsRoutes>
@@ -42,7 +44,12 @@ const ProjectViewRoutes: React.FC = () => {
               </Route>
               <Route path="*" element={<Navigate to="." />} />
             </Route>
-            <Route path="metrics/runtime" element={<ProjectRuntimeMetricsWrapper />} />
+            {performanceMetricsEnabled && (
+              <Route
+                path="metrics/runtime/:servingRuntime"
+                element={<ProjectRuntimeMetricsWrapper />}
+              />
+            )}
           </>
         )}
         <Route

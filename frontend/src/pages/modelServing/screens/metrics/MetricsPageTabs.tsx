@@ -9,6 +9,7 @@ import PerformanceTab from './PerformanceTab';
 import BiasTab from './BiasTab';
 import BiasConfigurationAlertPopover from './BiasConfigurationAlertPopover';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
+import usePerformanceMetricsEnabled from './usePerformanceMetricsEnabled';
 
 import './MetricsPageTabs.scss';
 
@@ -16,6 +17,7 @@ const MetricsPageTabs: React.FC = () => {
   const enabledTabs = useMetricsPageEnabledTabs();
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
   const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
@@ -44,14 +46,16 @@ const MetricsPageTabs: React.FC = () => {
       role="region"
       className="odh-tabs-fix"
     >
-      <Tab
-        eventKey={MetricsTabKeys.PERFORMANCE}
-        title={<TabTitleText>Endpoint Performance</TabTitleText>}
-        aria-label="Performance tab"
-        className="odh-tabcontent-fix"
-      >
-        <PerformanceTab />
-      </Tab>
+      {performanceMetricsEnabled && (
+        <Tab
+          eventKey={MetricsTabKeys.PERFORMANCE}
+          title={<TabTitleText>Endpoint Performance</TabTitleText>}
+          aria-label="Performance tab"
+          className="odh-tabcontent-fix"
+        >
+          <PerformanceTab />
+        </Tab>
+      )}
       {biasMetricsEnabled && (
         <Tab
           eventKey={MetricsTabKeys.BIAS}

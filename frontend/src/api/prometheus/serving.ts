@@ -17,6 +17,7 @@ import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabl
 import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
+import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
@@ -35,6 +36,7 @@ export const useModelServingMetrics = (
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
   const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
 
   const defaultResponsePredicate = React.useCallback<ResponsePredicate>(
     (data) => data.result?.[0]?.values || [],
@@ -46,7 +48,7 @@ export const useModelServingMetrics = (
   >((data) => data.result, []);
 
   const runtimeRequestCount = useQueryRangeResourceData(
-    type === 'runtime',
+    performanceMetricsEnabled && type === 'runtime',
     queries[RuntimeMetricType.REQUEST_COUNT],
     end,
     timeframe,
@@ -54,7 +56,7 @@ export const useModelServingMetrics = (
   );
 
   const runtimeAverageResponseTime = useQueryRangeResourceData(
-    type === 'runtime',
+    performanceMetricsEnabled && type === 'runtime',
     queries[RuntimeMetricType.AVG_RESPONSE_TIME],
     end,
     timeframe,
@@ -62,7 +64,7 @@ export const useModelServingMetrics = (
   );
 
   const runtimeCPUUtilization = useQueryRangeResourceData(
-    type === 'runtime',
+    performanceMetricsEnabled && type === 'runtime',
     queries[RuntimeMetricType.CPU_UTILIZATION],
     end,
     timeframe,
@@ -70,7 +72,7 @@ export const useModelServingMetrics = (
   );
 
   const runtimeMemoryUtilization = useQueryRangeResourceData(
-    type === 'runtime',
+    performanceMetricsEnabled && type === 'runtime',
     queries[RuntimeMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
@@ -78,7 +80,7 @@ export const useModelServingMetrics = (
   );
 
   const inferenceRequestSuccessCount = useQueryRangeResourceData(
-    type === 'inference',
+    performanceMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
@@ -86,7 +88,7 @@ export const useModelServingMetrics = (
   );
 
   const inferenceRequestFailedCount = useQueryRangeResourceData(
-    type === 'inference',
+    performanceMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,

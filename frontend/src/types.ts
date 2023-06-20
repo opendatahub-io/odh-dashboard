@@ -90,6 +90,7 @@ export type DashboardCommonConfig = {
   modelMetricsNamespace: string;
   disablePipelines: boolean;
   disableBiasMetrics: boolean;
+  disablePerformanceMetrics: boolean;
 };
 
 export type NotebookControllerUserState = {

@@ -1,50 +1,39 @@
 import * as React from 'react';
-import { Bullseye, Spinner } from '@patternfly/react-core';
 import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
 import { ModelServingMetricsProvider } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { getRuntimeMetricsQueries } from '~/pages/modelServing/screens/metrics/utils';
-import NotFound from '~/pages/NotFound';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { MetricType } from '~/pages/modelServing/screens/types';
+import ProjectRuntimeMetricsPathWrapper from './ProjectRuntimeMetricsPathWrapper';
+import { getModelServerDisplayName } from './utils';
 
-const ProjectRuntimeMetricsWrapper: React.FC = () => {
-  const {
-    currentProject,
-    servingRuntimes: { data: runtimes, loaded },
-  } = React.useContext(ProjectDetailsContext);
-  const runtime = runtimes[0];
-  if (!loaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-  if (!runtime) {
-    return <NotFound />;
-  }
-  const queries = getRuntimeMetricsQueries(runtime);
-  const projectDisplayName = getProjectDisplayName(currentProject);
-
-  return (
-    <ModelServingMetricsProvider queries={queries} type={MetricType.RUNTIME}>
-      <MetricsPage
-        title={`ovm metrics`}
-        breadcrumbItems={[
-          { label: 'Data Science Projects', link: '/projects' },
-          {
-            label: projectDisplayName,
-            link: `/projects/${currentProject.metadata.name}`,
-          },
-          {
-            label: `ovm metrics`,
-            isActive: true,
-          },
-        ]}
-      />
-    </ModelServingMetricsProvider>
-  );
-};
+const ProjectRuntimeMetricsWrapper: React.FC = () => (
+  <ProjectRuntimeMetricsPathWrapper>
+    {(servingRuntime, currentProject) => {
+      const queries = getRuntimeMetricsQueries(servingRuntime);
+      const projectDisplayName = getProjectDisplayName(currentProject);
+      const serverName = getModelServerDisplayName(servingRuntime);
+      return (
+        <ModelServingMetricsProvider queries={queries} type={MetricType.RUNTIME}>
+          <MetricsPage
+            title={`${serverName} metrics`}
+            breadcrumbItems={[
+              { label: 'Data Science Projects', link: '/projects' },
+              {
+                label: projectDisplayName,
+                link: `/projects/${currentProject.metadata.name}`,
+              },
+              {
+                label: serverName,
+                isActive: true,
+              },
+            ]}
+            type={MetricType.RUNTIME}
+          />
+        </ModelServingMetricsProvider>
+      );
+    }}
+  </ProjectRuntimeMetricsPathWrapper>
+);
 
 export default ProjectRuntimeMetricsWrapper;

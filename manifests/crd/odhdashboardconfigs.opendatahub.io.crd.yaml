@@ -55,6 +55,8 @@ spec:
                       type: boolean
                     disableBiasMetrics:
                       type: boolean
+                    disablePerformanceMetrics:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:
