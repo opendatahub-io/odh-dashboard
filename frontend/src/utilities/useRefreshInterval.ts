@@ -1,6 +1,6 @@
 import React from 'react';
 
-const useRefreshInterval = (refreshInterval, callback: () => void) => {
+const useRefreshInterval = (refreshInterval: number, callback: () => void) => {
   const cb = React.useRef<typeof callback>(() => undefined);
 
   cb.current = callback;

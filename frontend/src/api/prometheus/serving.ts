@@ -50,7 +50,6 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.REQUEST_COUNT],
     end,
     timeframe,
-    refreshInterval,
     defaultResponsePredicate,
   );
 
@@ -59,7 +58,6 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.AVG_RESPONSE_TIME],
     end,
     timeframe,
-    refreshInterval,
     defaultResponsePredicate,
   );
 
@@ -68,7 +66,6 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.CPU_UTILIZATION],
     end,
     timeframe,
-    refreshInterval,
     defaultResponsePredicate,
   );
 
@@ -77,7 +74,6 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
-    refreshInterval,
     defaultResponsePredicate,
   );
 
@@ -86,7 +82,6 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
-    refreshInterval,
     defaultResponsePredicate,
   );
 
@@ -95,7 +90,6 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
-    refreshInterval,
     defaultResponsePredicate,
   );
 
@@ -104,7 +98,6 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
-    refreshInterval,
     trustyResponsePredicate,
   );
 
@@ -113,7 +106,6 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
-    refreshInterval,
     trustyResponsePredicate,
   );
 
