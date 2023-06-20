@@ -14,9 +14,10 @@ import {
   TimeframeTitle,
 } from '~/pages/modelServing/screens/types';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
-import useQueryRangeResourceData, {
-  useQueryRangeResourceDataTrusty,
-} from './useQueryRangeResourceData';
+import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
+import useRefreshInterval from '~/utilities/useRefreshInterval';
+import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
+import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
   type: MetricType,
@@ -35,12 +36,21 @@ export const useModelServingMetrics = (
   const [end, setEnd] = React.useState(lastUpdateTime);
   const [biasMetricsEnabled] = useBiasMetricsEnabled();
 
+  const defaultResponsePredicate = React.useCallback<ResponsePredicate>(
+    (data) => data.result?.[0]?.values || [],
+    [],
+  );
+
+  const trustyResponsePredicate = React.useCallback<
+    ResponsePredicate<PrometheusQueryRangeResponseDataResult>
+  >((data) => data.result, []);
+
   const runtimeRequestCount = useQueryRangeResourceData(
     type === 'runtime',
     queries[RuntimeMetricType.REQUEST_COUNT],
     end,
     timeframe,
-    refreshInterval,
+    defaultResponsePredicate,
   );
 
   const runtimeAverageResponseTime = useQueryRangeResourceData(
@@ -48,7 +58,7 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.AVG_RESPONSE_TIME],
     end,
     timeframe,
-    refreshInterval,
+    defaultResponsePredicate,
   );
 
   const runtimeCPUUtilization = useQueryRangeResourceData(
@@ -56,7 +66,7 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.CPU_UTILIZATION],
     end,
     timeframe,
-    refreshInterval,
+    defaultResponsePredicate,
   );
 
   const runtimeMemoryUtilization = useQueryRangeResourceData(
@@ -64,7 +74,7 @@ export const useModelServingMetrics = (
     queries[RuntimeMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
-    refreshInterval,
+    defaultResponsePredicate,
   );
 
   const inferenceRequestSuccessCount = useQueryRangeResourceData(
@@ -72,7 +82,7 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
-    refreshInterval,
+    defaultResponsePredicate,
   );
 
   const inferenceRequestFailedCount = useQueryRangeResourceData(
@@ -80,23 +90,23 @@ export const useModelServingMetrics = (
     queries[InferenceMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
-    refreshInterval,
+    defaultResponsePredicate,
   );
 
-  const inferenceTrustyAISPD = useQueryRangeResourceDataTrusty(
+  const inferenceTrustyAISPD = useQueryRangeResourceData(
     biasMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
-    refreshInterval,
+    trustyResponsePredicate,
   );
 
-  const inferenceTrustyAIDIR = useQueryRangeResourceDataTrusty(
+  const inferenceTrustyAIDIR = useQueryRangeResourceData(
     biasMetricsEnabled && type === 'inference',
     queries[InferenceMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
-    refreshInterval,
+    trustyResponsePredicate,
   );
 
   React.useEffect(() => {
@@ -117,6 +127,8 @@ export const useModelServingMetrics = (
   const refreshAllMetrics = React.useCallback(() => {
     setEnd(Date.now());
   }, []);
+
+  useRefreshInterval(RefreshIntervalValue[refreshInterval], refreshAllMetrics);
 
   return React.useMemo(
     () => ({
