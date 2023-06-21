@@ -90,7 +90,7 @@ const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<Dashboard
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
-      return [dashboardCR];
+      return [_.merge({}, blankDashboardCR, dashboardCR)]; // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
       fastify.log.warn(
@@ -562,8 +562,7 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
 };
 
 export const getDashboardConfig = (): DashboardConfig => {
-  const config = dashboardConfigWatcher.getResources()?.[0];
-  return _.merge({}, blankDashboardCR, config); // merge with blank CR to prevent any missing values
+  return dashboardConfigWatcher.getResources()?.[0];
 };
 
 export const updateDashboardConfig = (): Promise<void> => {
