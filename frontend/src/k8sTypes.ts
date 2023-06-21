@@ -304,7 +304,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     namespace: string;
   };
   spec: {
-    builtInAdapter: {
+    builtInAdapter?: {
       serverType: string;
       runtimeManagementPort: number;
       memBufferBytes?: number;
