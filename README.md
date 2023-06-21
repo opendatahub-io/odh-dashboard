@@ -12,8 +12,8 @@ A dashboard for Open Data Hub components.
 ODH requires the following to run:
 
 - [NodeJS and NPM](https://nodejs.org/)
-  - Node recommended version -> `18.14.0`
-  - NPM recommended version -> `8.19.4`
+  - Node recommended version -> `18.16.0`
+  - NPM recommended version -> `9.6.7`
 - [OpenShift CLI](https://docs.openshift.com/container-platform/4.12/cli_reference/openshift_cli/getting-started-cli.html)
 - [kustomize](https://github.com/kubernetes-sigs/kustomize)
 - [podman](https://github.com/containers/podman)
