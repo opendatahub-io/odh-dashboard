@@ -28,7 +28,12 @@ const useManageElyraSecret = (
   React.useEffect(() => {
     if (fullLoadedState && !elyraSecret && dataConnection && routePath) {
       createSecret(
-        generateElyraSecret(dataConnection.data, dataConnection.metadata.namespace, routePath),
+        generateElyraSecret(
+          dataConnection.data,
+          dataConnection.metadata.name,
+          dataConnection.metadata.namespace,
+          routePath,
+        ),
       );
     }
   }, [fullLoadedState, routePath, elyraSecret, dataConnection]);

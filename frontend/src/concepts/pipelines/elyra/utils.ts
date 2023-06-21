@@ -37,6 +37,7 @@ export const currentlyHasPipelines = (notebook: NotebookKind): boolean =>
 
 export const generateElyraSecret = (
   dataConnectionData: AWSSecretKind['data'],
+  dataConnectionName: string,
   namespace: string,
   route: string,
 ): SecretKind => ({
@@ -58,7 +59,8 @@ export const generateElyraSecret = (
         auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
         api_endpoint: route,
         public_api_endpoint: `${location.origin}/pipelineRuns/${namespace}`,
-        cos_auth_type: 'USER_CREDENTIALS',
+        cos_auth_type: 'KUBERNETES_SECRET',
+        cos_secret: dataConnectionName,
         cos_endpoint: atob(dataConnectionData[AWS_KEYS.S3_ENDPOINT]),
         cos_bucket: atob(dataConnectionData[AWS_KEYS.AWS_S3_BUCKET]),
         cos_username: atob(dataConnectionData[AWS_KEYS.ACCESS_KEY_ID]),
