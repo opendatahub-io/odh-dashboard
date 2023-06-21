@@ -563,7 +563,6 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
 
 export const getDashboardConfig = (): DashboardConfig => {
   return dashboardConfigWatcher.getResources()?.[0];
-  // return _.merge({}, blankDashboardCR, config); // merge with blank CR to prevent any missing values
 };
 
 export const updateDashboardConfig = (): Promise<void> => {
