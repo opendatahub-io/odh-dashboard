@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Button, Modal, Stack, StackItem, TextInput } from '@patternfly/react-core';
+import { Alert, Button, Modal, Stack, StackItem, TextInput, Form } from '@patternfly/react-core';
 
 type DeleteModalProps = {
   title: string;
@@ -73,6 +73,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             aria-label="Delete modal input"
             value={value}
             onChange={(newValue) => setValue(newValue)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && value === deleteName) {
+                onDelete();
+              }
+            }}
           />
         </StackItem>
         {error && (
