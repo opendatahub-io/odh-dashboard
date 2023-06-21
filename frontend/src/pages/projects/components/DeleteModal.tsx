@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Button, Modal, Stack, StackItem, TextInput, Form } from '@patternfly/react-core';
+import { Alert, Button, Modal, Stack, StackItem, TextInput } from '@patternfly/react-core';
 
 type DeleteModalProps = {
   title: string;
