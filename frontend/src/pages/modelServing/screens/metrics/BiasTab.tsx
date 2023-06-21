@@ -72,7 +72,7 @@ const BiasTab: React.FC = () => {
           }
         />
       </StackItem>
-      <PageSection style={{ flexShrink: 1, overflow: 'auto' }}>
+      <PageSection isFilled>
         <Stack hasGutter>
           {(biasMetricConfigs.length === 0 && (
             <StackItem>

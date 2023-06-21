@@ -10,11 +10,11 @@ type PerformanceTabProps = {
 };
 
 const PerformanceTab: React.FC<PerformanceTabProps> = ({ type }) => (
-  <Stack style={{ overflow: 'auto' }}>
+  <Stack>
     <StackItem>
       <MetricsPageToolbar />
     </StackItem>
-    <PageSection style={{ overflow: 'auto', flexShrink: '1' }}>
+    <PageSection isFilled>
       {type === MetricType.RUNTIME ? <RuntimeGraphs /> : <InferenceGraphs />}
     </PageSection>
   </Stack>
