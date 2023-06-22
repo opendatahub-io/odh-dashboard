@@ -38,7 +38,7 @@ test('Legacy Serving Runtime', async ({ page }) => {
   );
 
   // wait for page to load
-  await page.waitForSelector('text=Configure server');
+  await page.waitForSelector('text=Add server');
 
   // Check that the legacy serving runtime is shown with the default runtime name
   expect(await page.getByText('ovms')).toBeTruthy();
