@@ -3,14 +3,20 @@ import { StoryFn, Meta } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
 import { within } from '@storybook/testing-library';
 import { Route } from 'react-router-dom';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
+import {
+  mockRouteK8sResource,
+  mockRouteK8sResourceModelServing,
+} from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import {
+  mockServingRuntimeK8sResource,
+  mockServingRuntimeK8sResourceLegacy,
+} from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
@@ -63,7 +69,13 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
     (req, res, ctx) =>
-      res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockInferenceServiceK8sResource({})]))),
+      res(
+        ctx.json(
+          mockK8sResourceList(
+            isEmpty ? [] : [mockInferenceServiceK8sResource({ name: 'test-inference' })],
+          ),
+        ),
+      ),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]))),
@@ -71,7 +83,35 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
     (req, res, ctx) =>
-      res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockServingRuntimeK8sResource({})]))),
+      res(
+        ctx.json(
+          mockK8sResourceList(
+            isEmpty
+              ? []
+              : [
+                  mockServingRuntimeK8sResourceLegacy({}),
+                  mockServingRuntimeK8sResource({
+                    name: 'test-model',
+                    namespace: 'test-project',
+                    auth: true,
+                    route: true,
+                  }),
+                ],
+          ),
+        ),
+      ),
+  ),
+  rest.get(
+    '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-inference',
+    (req, res, ctx) =>
+      res(
+        ctx.json(
+          mockRouteK8sResourceModelServing({
+            inferenceServiceName: 'test-inference',
+            namespace: 'test-project',
+          }),
+        ),
+      ),
   ),
   rest.get(
     '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',

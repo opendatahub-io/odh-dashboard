@@ -60,9 +60,11 @@ test('Create model', async ({ page }) => {
   await page.getByRole('option', { name: 'Test Project' }).click();
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#inference-service-model-selection').click();
-  await page.getByRole('option', { name: 'test-model' }).click();
+  await page.getByRole('option', { name: 'ovms' }).click();
   await page
-    .getByText('Project Test ProjectModel Name * Model servers * test-modelModel framework * Sel')
+    .getByText(
+      'Project Test ProjectModel Name * Model servers * OVMS Model ServingModel framework * Sel',
+    )
     .click();
   await page.getByRole('option', { name: 'onnx - 1' }).click();
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
