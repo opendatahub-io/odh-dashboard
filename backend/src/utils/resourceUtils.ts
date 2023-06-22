@@ -33,7 +33,6 @@ import {
   getRouteForClusterId,
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
-import fastify from 'fastify';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
