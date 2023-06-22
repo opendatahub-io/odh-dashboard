@@ -7,7 +7,7 @@ import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchSt
 const useTemplateDisablement = (namespace?: string, adminPanel?: boolean): FetchState<string[]> => {
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
-  const getTemplateOrder = React.useCallback(() => {
+  const getTemplateEnablement = React.useCallback(() => {
     if (!namespace) {
       return Promise.reject(new Error('No namespace provided'));
     }
@@ -20,7 +20,7 @@ const useTemplateDisablement = (namespace?: string, adminPanel?: boolean): Fetch
     if (adminPanel) {
       return getDashboardConfigTemplateDisablementBackend(namespace).catch((e) => {
         if (e.statusObject?.code === 404) {
-          throw new Error('Dashboard config template order is not configured.');
+          throw new Error('Dashboard config template enablement is not configured.');
         }
         throw e;
       });
@@ -28,13 +28,13 @@ const useTemplateDisablement = (namespace?: string, adminPanel?: boolean): Fetch
 
     return getDashboardConfigTemplateDisablement(namespace).catch((e) => {
       if (e.statusObject?.code === 404) {
-        throw new Error('Dashboard config template order is not configured.');
+        throw new Error('Dashboard config template enablement is not configured.');
       }
       throw e;
     });
   }, [namespace, customServingRuntimesEnabled, adminPanel]);
 
-  return useFetchState<string[]>(getTemplateOrder, []);
+  return useFetchState<string[]>(getTemplateEnablement, []);
 };
 
 export default useTemplateDisablement;
