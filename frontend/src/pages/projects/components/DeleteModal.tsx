@@ -74,7 +74,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             value={value}
             onChange={(newValue) => setValue(newValue)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && value === deleteName) {
+              if (event.key === 'Enter' && value === deleteName && !deleting) {
                 onDelete();
               }
             }}
