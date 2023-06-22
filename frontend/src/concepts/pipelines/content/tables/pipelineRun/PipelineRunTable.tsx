@@ -10,6 +10,7 @@ import usePipelineRunFilter from '~/concepts/pipelines/content/tables/pipelineRu
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import useJobRelatedInformation from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -22,6 +23,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
     filteredRuns.map(({ id }) => id),
   );
   const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
+  const { getJobInformation } = useJobRelatedInformation();
 
   return (
     <>
@@ -53,6 +55,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
             onToggleCheck={() => toggleSelection(run.id)}
             onDelete={() => setDeleteResources([run])}
             run={run}
+            getJobInformation={getJobInformation}
           />
         )}
         variant={TableVariant.compact}

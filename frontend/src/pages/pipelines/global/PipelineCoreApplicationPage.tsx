@@ -2,7 +2,7 @@ import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;
@@ -30,7 +30,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
       provideChildrenPadding={!overrideChildPadding}
     >
-      {children}
+      {pipelinesAPi.pipelinesServer.timedOut ? <PipelineServerTimedOut /> : children}
     </ApplicationsPage>
   );
 };

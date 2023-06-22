@@ -14,12 +14,8 @@ export const getDashboardConfig = (ns: string): Promise<DashboardConfigKind> =>
   });
 
 export const getDashboardConfigTemplateOrder = (ns: string): Promise<string[]> =>
-  getDashboardConfig(ns).then((dashboardConfig) => {
-    if (!dashboardConfig.spec.templateOrder) {
-      throw new Error('Template order is not configured.');
-    }
-    return dashboardConfig.spec.templateOrder;
-  });
+  getDashboardConfig(ns).then((dashboardConfig) => dashboardConfig.spec.templateOrder || []);
+
 export const updateDashboardConfig = (resource: DashboardConfigKind) =>
   k8sUpdateResource<DashboardConfigKind>({
     model: ODHDashboardConfigModel,
@@ -40,4 +36,10 @@ export const patchDashboardConfigTemplateOrder = (
         value: templateOrder,
       },
     ],
-  }).then((dashboardConfig) => dashboardConfig.spec?.templateOrder || []);
+  }).then((dashboardConfig) => {
+    // Patch doesn't return an error if the attribute is disabled, it just return the object without changes
+    if (dashboardConfig.spec?.templateOrder === undefined) {
+      throw new Error('Template order is not configured');
+    }
+    return dashboardConfig.spec?.templateOrder;
+  });

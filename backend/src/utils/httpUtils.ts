@@ -27,6 +27,8 @@ type ProxyData = {
   requestData?: string | Buffer;
   /** Option to substitute your own content type for the API call -- defaults to JSON */
   overrideContentType?: string;
+  /** Allow for unauthorized SSL connections to succeed */
+  rejectUnauthorized?: boolean;
 };
 
 /** Make a very basic pass-on / proxy call to another endpoint */
@@ -36,7 +38,7 @@ export const proxyCall = (
   data: ProxyData,
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const { method, requestData, overrideContentType, url } = data;
+    const { method, requestData, overrideContentType, url, rejectUnauthorized } = data;
 
     getDirectCallOptions(fastify, request, url)
       .then((requestOptions) => {
@@ -55,6 +57,10 @@ export const proxyCall = (
             'Content-Type': contentType,
             'Content-Length': requestData.length,
           };
+        }
+
+        if (rejectUnauthorized !== undefined) {
+          requestOptions.rejectUnauthorized = rejectUnauthorized;
         }
 
         fastify.log.info(`Making ${method} proxy request to ${url}`);

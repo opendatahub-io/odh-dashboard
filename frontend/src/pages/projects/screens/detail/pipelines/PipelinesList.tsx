@@ -23,7 +23,7 @@ const PipelinesList: React.FC = () => {
 
   if (!loaded) {
     return (
-      <Bullseye>
+      <Bullseye style={{ minHeight: 150 }}>
         <Spinner />
       </Bullseye>
     );

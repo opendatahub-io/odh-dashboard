@@ -3,7 +3,6 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useFetchState, { FetchStateCallbackPromise } from '~/utilities/useFetchState';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { POLL_INTERVAL } from '~/utilities/const';
-import usePipelineRefreshHack from '~/concepts/pipelines/apiHooks/usePipelineRefreshHack';
 
 const usePipelines = (limit?: number) => {
   const { api } = usePipelinesAPI();
@@ -13,7 +12,7 @@ const usePipelines = (limit?: number) => {
     [api, limit],
   );
 
-  return usePipelineRefreshHack(useFetchState(call, [], { refreshRate: POLL_INTERVAL }));
+  return useFetchState(call, [], { refreshRate: POLL_INTERVAL });
 };
 
 export default usePipelines;

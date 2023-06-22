@@ -17,10 +17,10 @@ const NotFound: React.FC = () => (
       <EmptyStateIcon icon={PathMissingIcon} />
 
       <Title headingLevel="h2" size="lg">
-        Page Not Found
+        We can&lsquo;t find that page
       </Title>
       <EmptyStateBody>
-        Uh oh, this page appears to be missing. Move along. Nothing to see here...
+        Another page might have what you need. Return to the home page.
       </EmptyStateBody>
       <Button component="a" href="/" variant="primary">
         <HomeIcon /> Home

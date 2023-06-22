@@ -6,9 +6,8 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import ScrollViewOnMount from '~/components/ScrollViewOnMount';
-
 import EmptyInferenceServicesCell from './EmptyInferenceServicesCell';
-import { isServingRuntimeTokenEnabled } from './utils';
+import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
 import ServingRuntimeTokensTable from './ServingRuntimeTokensTable';
 
@@ -30,6 +29,8 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
 
+  const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
+
   if (activeColumn === ServingRuntimeTableTabs.TYPE) {
     return (
       <>
@@ -46,9 +47,9 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     return (
       <Td dataLabel="Deployed models expansion" colSpan={6}>
         <ExpandableRowContent>
-          {inferenceServices.length > 0 ? (
+          {modelInferenceServices.length > 0 ? (
             <InferenceServiceTable
-              inferenceServices={inferenceServices}
+              inferenceServices={modelInferenceServices}
               servingRuntimes={[obj]}
               refresh={() => {
                 refreshAllProjectData();

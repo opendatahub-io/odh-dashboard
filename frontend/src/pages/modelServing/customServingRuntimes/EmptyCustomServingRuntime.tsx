@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Button, EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 
 const EmptyCustomServingRuntime: React.FC = () => {
   const navigate = useNavigate();
   return (
     <EmptyState>
-      <EmptyStateIcon icon={CubesIcon} />
+      <EmptyStateIcon icon={PlusCircleIcon} />
       <Title headingLevel="h2" size="lg">
         No custom serving runtimes.
       </Title>

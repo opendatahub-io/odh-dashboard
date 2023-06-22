@@ -27,6 +27,7 @@ export interface GetUserAction {
   payload: {
     user?: string;
     clusterID?: string;
+    serverURL?: string;
     clusterBranding?: string;
     dashboardNamespace?: string;
     isAdmin?: boolean;
@@ -45,6 +46,7 @@ export type AppState = {
   userError?: Error | null;
   isImpersonating?: boolean;
 
+  serverURL?: string;
   clusterID?: string;
   clusterBranding?: string;
   isAllowed?: boolean;
@@ -61,7 +63,7 @@ export type StatusResponse = {
       token: string;
     };
     namespace: string;
-    userName: string | string[];
+    userName: string;
     clusterID: string;
     clusterBranding: string;
     isAdmin: boolean;

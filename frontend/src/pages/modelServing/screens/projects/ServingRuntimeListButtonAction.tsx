@@ -3,31 +3,23 @@ import { Button, Tooltip, Text } from '@patternfly/react-core';
 
 type ServingRuntimeListButtonActionProps = {
   emptyTemplates: boolean;
-  emptyModelServer: boolean;
-  customServingRuntimesEnabled: boolean;
   templatesLoaded: boolean;
   onClick: () => void;
 };
 
 const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionProps> = ({
   emptyTemplates,
-  emptyModelServer,
-  customServingRuntimesEnabled,
   templatesLoaded,
   onClick,
 }) => {
-  if (!customServingRuntimesEnabled && !emptyModelServer) {
-    return null;
-  }
-
-  if (customServingRuntimesEnabled && emptyTemplates) {
+  if (emptyTemplates) {
     return (
       <Tooltip
         removeFindDomNode
-        aria-label="Configure Server Info"
+        aria-label="Add Server Info"
         content={
           <Text>
-            At least one serving runtime must be enabled to configure a model server. Contact your
+            At least one serving runtime must be enabled to add a model server. Contact your
             administrator
           </Text>
         }
@@ -38,7 +30,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
           onClick={onClick}
           variant="secondary"
         >
-          Configure server working
+          Add server
         </Button>
       </Tooltip>
     );
@@ -46,12 +38,12 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
 
   return (
     <Button
-      isLoading={customServingRuntimesEnabled ? !templatesLoaded : false}
+      isLoading={!templatesLoaded}
       isDisabled={!templatesLoaded}
       onClick={onClick}
       variant="secondary"
     >
-      Configure server
+      Add server
     </Button>
   );
 };

@@ -84,6 +84,11 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
       />
     </StackItem>
     <StackItem>
+      <Text>
+        <b>Duration</b>
+      </Text>
+    </StackItem>
+    <StackItem>
       <RunTypeSectionDateTime
         id="start-date"
         label="Start date"

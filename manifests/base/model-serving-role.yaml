@@ -5,9 +5,15 @@ metadata:
 rules:
   - verbs:
       - get
+      - list
     apiGroups:
-      - ''
+      - template.openshift.io
     resources:
-      - configmaps
-    resourceNames:
-      - servingruntimes-config
+      - templates
+  - verbs:
+      - get
+      - list
+    apiGroups:
+      - opendatahub.io
+    resources:
+      - odhdashboardconfigs

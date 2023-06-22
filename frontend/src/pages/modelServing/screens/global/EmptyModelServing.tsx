@@ -16,7 +16,7 @@ const EmptyModelServing: React.FC = () => {
       <EmptyState>
         <EmptyStateIcon icon={PlusCircleIcon} />
         <Title headingLevel="h2" size="lg">
-          No model servers.
+          No model servers
         </Title>
         <EmptyStateBody>
           Before deploying a model, you must first configure a model server.

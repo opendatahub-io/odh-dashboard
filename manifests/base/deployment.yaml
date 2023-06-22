@@ -57,6 +57,12 @@ spec:
           successThreshold: 1
           failureThreshold: 3
       - name: oauth-proxy
+        env:
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
         args:
           - --https-address=:8443
           - --provider=openshift
@@ -69,7 +75,7 @@ spec:
           - --cookie-secret-file=/etc/oauth/config/cookie_secret
           - --cookie-expire=23h0m0s
           - --pass-access-token
-          - '--openshift-delegate-urls={"/": {"resource": "services", "verb": "get", "name": "odh-dashboard"}}'
+          - '--openshift-delegate-urls={"/": {"resource": "services", "verb": "get", "name": "odh-dashboard", "namespace": "$(NAMESPACE)"}}'
           - --skip-auth-regex=^/metrics
         image: oauth-proxy
         ports:

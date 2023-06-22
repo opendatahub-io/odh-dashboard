@@ -8,6 +8,7 @@ import {
 import { K8sStatus, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { PVCModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 
 export const assemblePvc = (
   pvcName: string,
@@ -48,16 +49,19 @@ export const getPvc = (projectName: string, pvcName: string): Promise<Persistent
     queryOptions: { name: pvcName, ns: projectName },
   });
 
-export const getPvcs = (projectName: string): Promise<PersistentVolumeClaimKind[]> =>
+export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeClaimKind[]> =>
   k8sListResourceItems<PersistentVolumeClaimKind>({
     model: PVCModel,
-    queryOptions: { ns: projectName },
+    queryOptions: {
+      ns: projectName,
+      queryParams: { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },
+    },
   });
 
 export const getAvailableMultiUsePvcs = (
   projectName: string,
 ): Promise<PersistentVolumeClaimKind[]> =>
-  getPvcs(projectName).then((pvcs) =>
+  getDashboardPvcs(projectName).then((pvcs) =>
     pvcs.filter((pvc) => {
       const accessModes = pvc.spec.accessModes;
       return accessModes.includes('ReadOnlyMany') || accessModes.includes('ReadWriteMany');

@@ -10,7 +10,7 @@ import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/Delete
 type PipelinesTableProps = {
   pipelines: PipelineKF[];
   pipelineDetailsPath: (namespace: string, id: string) => string;
-  refreshPipelines: FetchStateRefreshPromise;
+  refreshPipelines: FetchStateRefreshPromise<PipelineKF[]>;
   contentLimit?: number;
 } & Pick<
   React.ComponentProps<typeof Table>,

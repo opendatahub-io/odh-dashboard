@@ -29,8 +29,9 @@ export const isCommonStateError = (e: Error) => {
   return false;
 };
 
-/** Provided as a promise, so you can await a refresh before enabling buttons / closing modals */
-export type FetchStateRefreshPromise = () => Promise<void>;
+/** Provided as a promise, so you can await a refresh before enabling buttons / closing modals.
+ * Returns the successful value or nothing if the call was cancelled / didn't complete. */
+export type FetchStateRefreshPromise<Type> = () => Promise<Type | undefined>;
 
 /** Return state */
 export type FetchState<Type, Default extends Type = Type> = [
@@ -38,7 +39,7 @@ export type FetchState<Type, Default extends Type = Type> = [
   loaded: boolean,
   loadError: Error | undefined,
   /** This promise should never throw to the .catch */
-  refresh: FetchStateRefreshPromise,
+  refresh: FetchStateRefreshPromise<Type>,
 ];
 
 type SetStateLazy<Type> = (lastState: Type) => Type;
@@ -133,7 +134,7 @@ const useFetchState = <Type, Default extends Type = Type>(
     cleanupRef.current();
   }, [fetchCallbackPromise]);
 
-  const call = React.useCallback<() => [Promise<void>, () => void]>(() => {
+  const call = React.useCallback<() => [Promise<Type>, () => void]>(() => {
     let alreadyAborted = false;
     const abortController = new AbortController();
 
@@ -164,10 +165,13 @@ const useFetchState = <Type, Default extends Type = Type>(
               setResult(setState);
               setLoaded(true);
             });
-          } else {
-            setResult(r);
-            setLoaded(true);
+            return undefined;
           }
+
+          setResult(r);
+          setLoaded(true);
+
+          return r;
         })
         .catch((e) => {
           if (alreadyAborted) {
@@ -214,7 +218,7 @@ const useFetchState = <Type, Default extends Type = Type>(
     };
   }, [call, refreshRate]);
 
-  const refresh = React.useCallback<FetchStateRefreshPromise>(() => {
+  const refresh = React.useCallback<FetchStateRefreshPromise<Type>>(() => {
     abortCallbackRef.current();
     const [callPromise, unload] = call();
     abortCallbackRef.current = unload;

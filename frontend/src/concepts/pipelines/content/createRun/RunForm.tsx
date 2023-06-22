@@ -1,34 +1,30 @@
 import * as React from 'react';
-import { Form, FormSection } from '@patternfly/react-core';
+import { Form, FormGroup, FormSection, Text } from '@patternfly/react-core';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
 import RunTypeSection from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSection';
 import ParamsSection from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
+import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineSection from './contentSections/PipelineSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 
-type RunPageContentProps = {
+type RunFormProps = {
   data: RunFormData;
   onValueChange: (key: keyof RunFormData, value: ValueOf<RunFormData>) => void;
 };
 
-const RunForm: React.FC<RunPageContentProps> = ({ data, onValueChange }) => (
+const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
   <Form
     maxWidth="500px"
     onSubmit={(e) => {
       e.preventDefault();
     }}
   >
-    <FormSection
-      id={CreateRunPageSections.PROJECT}
-      title={runPageSectionTitles[CreateRunPageSections.PROJECT]}
-    >
-      <ProjectSelector
-        onSelection={(project) => onValueChange('project', project)}
-        namespace={data.project.metadata.name}
-      />
+    <FormSection id="run-section-project-name" title="Project">
+      <FormGroup label="Project">
+        <Text>{getProjectDisplayName(data.project)}</Text>
+      </FormGroup>
     </FormSection>
     <FormSection
       id={CreateRunPageSections.NAME_DESC}

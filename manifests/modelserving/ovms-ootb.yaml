@@ -5,6 +5,7 @@ metadata:
   labels:
     opendatahub.io/dashboard: 'true'
     opendatahub.io/ootb: 'true'
+    opendatahub.io/configurable: 'true'
   annotations:
     tags: 'ovms,servingruntime'
     description: 'OpenVino Model Serving Definition'
@@ -12,7 +13,10 @@ objects:
   - apiVersion: serving.kserve.io/v1alpha1
     kind: ServingRuntime
     metadata:
-      annotations: []
+      name: ovms
+      annotations:
+        openshift.io/display-name: 'OpenVINO Model Server'
+        opendatahub.io/disable-gpu: 'true'
       labels:
         opendatahub.io/dashboard: 'true'
     spec:
@@ -29,9 +33,7 @@ objects:
             - '--file_system_poll_wait_seconds=0'
             - '--grpc_bind_address=127.0.0.1'
             - '--rest_bind_address=127.0.0.1'
-            - '--target_device=NVIDIA'
-          image: >-
-            quay.io/modh/openvino-model-server@sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116
+          image: ovms-1
           name: ovms
           resources:
             limits:
@@ -53,4 +55,7 @@ objects:
         - autoSelect: true
           name: onnx
           version: '1'
+        - autoSelect: true
+          name: tensorflow
+          version: "2"
 parameters: []

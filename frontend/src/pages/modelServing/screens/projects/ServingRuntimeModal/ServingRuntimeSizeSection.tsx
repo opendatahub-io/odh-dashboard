@@ -14,21 +14,27 @@ import {
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
 import useGPUSetting from '~/pages/notebookController/screens/server/useGPUSetting';
+import { ServingRuntimeKind } from '~/k8sTypes';
+import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   sizes: ServingRuntimeSize[];
+  servingRuntimeSelected?: ServingRuntimeKind;
 };
 
 const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   data,
   setData,
   sizes,
+  servingRuntimeSelected,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
   const { available: gpuAvailable, count: gpuCount } = useGPUSetting('autodetect');
+
+  const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
   const sizeCustom = [
     ...sizes,
@@ -82,8 +88,8 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
           )}
         </Stack>
       </FormGroup>
-      {gpuAvailable && (
-        <FormGroup label="Model server gpus">
+      {gpuAvailable && !gpuDisabled && (
+        <FormGroup label="Model server GPUs">
           <NumberInput
             isDisabled={!gpuCount}
             value={data.gpus}
@@ -93,6 +99,11 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             onChange={(event: React.FormEvent<HTMLInputElement>) => {
               const target = event.currentTarget;
               setData('gpus', parseInt(target.value) || 0);
+            }}
+            onBlur={(event: React.FormEvent<HTMLInputElement>) => {
+              const target = event.currentTarget;
+              const gpuInput = parseInt(target.value) || 0;
+              setData('gpus', Math.max(0, Math.min(gpuCount, gpuInput)));
             }}
             onMinus={() => setData('gpus', data.gpus - 1)}
             onPlus={() => setData('gpus', data.gpus + 1)}

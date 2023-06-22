@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
-import { toggleTemplateEnabledStatus } from '~/api';
 import useNotification from '~/utilities/useNotification';
+import { toggleTemplateEnabledStatusBackend } from '~/services/templateService';
 import { getTemplateEnabled } from './utils';
 
 type CustomServingRuntimeEnabledToggleProps = {
@@ -18,7 +18,8 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
-    toggleTemplateEnabledStatus(template.metadata.name, template.metadata.namespace, checked)
+    // TODO: Revert back to pass through api once we migrate admin panel
+    toggleTemplateEnabledStatusBackend(template.metadata.name, template.metadata.namespace, checked)
       .then(() => {
         setEnabled(checked);
       })

@@ -10,6 +10,8 @@ import {
   NotebookSize,
   GpuSettingString,
   TolerationSettings,
+  ImageStreamStatusTagItem,
+  ImageStreamStatusTagCondition,
 } from './types';
 import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
@@ -88,6 +90,7 @@ export type K8sCondition = {
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;
+  'opendatahub.io/disable-gpu': string;
   'enable-route': string;
   'enable-auth': string;
 }>;
@@ -181,6 +184,8 @@ export type ImageStreamKind = K8sResourceCommon & {
     publicDockerImageRepository?: string;
     tags?: {
       tag: string;
+      items: ImageStreamStatusTagItem[] | null;
+      conditions?: ImageStreamStatusTagCondition[];
     }[];
   };
 };
@@ -299,7 +304,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     namespace: string;
   };
   spec: {
-    builtInAdapter: {
+    builtInAdapter?: {
       serverType: string;
       runtimeManagementPort: number;
       memBufferBytes?: number;
@@ -427,16 +432,17 @@ export type DSPipelineKind = K8sResourceCommon & {
     name: string;
     namespace: string;
   };
-  spec: Partial<{
-    apiServer: Partial<{
+  spec: {
+    apiServer?: Partial<{
       apiServerImage: string;
       artifactImage: string;
       artifactScriptConfigMap: Partial<{
         key: string;
         name: string;
       }>;
+      enableSamplePipeline: boolean;
     }>;
-    database: Partial<{
+    database?: Partial<{
       externalDB: Partial<{
         host: string;
         passwordSecret: Partial<{
@@ -458,29 +464,29 @@ export type DSPipelineKind = K8sResourceCommon & {
         username: string;
       }>;
     }>;
-    mlpipelineUI: Partial<{
-      configMap: string;
+    mlpipelineUI?: {
+      configMap?: string;
       image: string;
-    }>;
-    persistentAgent: Partial<{
+    };
+    persistentAgent?: Partial<{
       image: string;
       pipelineAPIServerName: string;
     }>;
-    scheduledWorkflow: Partial<{
+    scheduledWorkflow?: Partial<{
       image: string;
     }>;
     objectStorage: Partial<{
-      externalStorage: Partial<{
+      externalStorage: {
         bucket: string;
         host: string;
-        port: '';
+        port?: '';
         scheme: string;
-        s3CredentialsSecret: Partial<{
+        s3CredentialsSecret: {
           accessKey: string;
           secretKey: string;
           secretName: string;
-        }>;
-      }>;
+        };
+      };
       minio: Partial<{
         bucket: string;
         image: string;
@@ -491,10 +497,13 @@ export type DSPipelineKind = K8sResourceCommon & {
         }>;
       }>;
     }>;
-    viewerCRD: Partial<{
+    viewerCRD?: Partial<{
       image: string;
     }>;
-  }>;
+  };
+  status?: {
+    conditions?: K8sCondition[];
+  };
 };
 
 export type AccessReviewResourceAttributes = {

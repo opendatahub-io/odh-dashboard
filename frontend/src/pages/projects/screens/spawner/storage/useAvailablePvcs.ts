@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { getPvcs } from '~/api';
+import { getDashboardPvcs } from '~/api';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { NotebookState } from '~/pages/projects/notebook/types';
 import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
@@ -16,7 +16,7 @@ const useAvailablePvcs = (
 
   React.useEffect(() => {
     if (projectName) {
-      getPvcs(projectName)
+      getDashboardPvcs(projectName)
         .then((newPvcs) => {
           const usedPvcs = _.uniq(
             notebooks.flatMap((notebook) => getNotebookPVCNames(notebook.notebook)),

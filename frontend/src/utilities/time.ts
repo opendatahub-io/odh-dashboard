@@ -37,6 +37,20 @@ export const convertDateToTimeString = (date?: Date): string | null => {
   return `${hoursIn12}:${leadZero(date.getMinutes())} ${hours >= 12 ? 'PM' : 'AM'}`;
 };
 
+/** The TimeField component can sometimes cause '6:00PM' instead of '6:00 PM' if the user edits directly */
+export const ensureTimeFormat = (time: string): string | null => {
+  if (/\s[AP]M/.test(time)) {
+    // Not a problem, return the value
+    return time;
+  }
+  const match = time.match(/(\d{1,2}:\d{2})\s?([AP]M)/);
+  if (!match) {
+    return null;
+  }
+
+  return `${match[1]} ${match[2]}`;
+};
+
 export const printSeconds = (seconds: number) => {
   const timeBlocks = [
     { unit: 'second', maxPer: 60 },

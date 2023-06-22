@@ -45,7 +45,7 @@ const PipelineRunDetailsActions: React.FC<PipelineDetailsActionsProps> = ({ onDe
                 key="clone-run"
                 onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`)}
               >
-                Clone run
+                Duplicate run
               </DropdownItem>,
               <DropdownSeparator key="separator" />,
               <DropdownItem key="delete-run" onClick={() => onDelete()}>

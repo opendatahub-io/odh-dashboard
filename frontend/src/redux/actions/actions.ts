@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { ThunkAction } from 'redux-thunk';
 import { Action } from 'redux';
-import { Actions, AppNotification, AppState, GetUserAction } from '~/redux/types';
+import { Actions, AppNotification, AppState, GetUserAction, StatusResponse } from '~/redux/types';
 import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
 
 export const getUserPending = (): GetUserAction => ({
@@ -9,17 +9,7 @@ export const getUserPending = (): GetUserAction => ({
   payload: {},
 });
 
-export const getUserFulfilled = (response: {
-  kube: {
-    userName: string;
-    clusterID: string;
-    clusterBranding: string;
-    isAdmin: boolean;
-    isAllowed: boolean;
-    namespace: string;
-    isImpersonating?: boolean;
-  };
-}): GetUserAction => ({
+export const getUserFulfilled = (response: StatusResponse): GetUserAction => ({
   type: Actions.GET_USER_FULFILLED,
   payload: {
     user: response.kube.userName,
@@ -29,6 +19,7 @@ export const getUserFulfilled = (response: {
     isAllowed: response.kube.isAllowed,
     dashboardNamespace: response.kube.namespace,
     isImpersonating: response.kube.isImpersonating,
+    serverURL: response.kube.serverURL,
   },
 });
 

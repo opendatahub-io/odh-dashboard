@@ -42,6 +42,10 @@ export const getRunResourceReference = (
 ): ResourceReferenceKF | undefined =>
   resource.resource_references?.find((ref) => ref.key.type === type);
 
+export const getPipelineCoreResourceJobReference = (
+  resource: PipelineCoreResourceKF,
+): ResourceReferenceKF | undefined => getRunResourceReference(resource, ResourceTypeKF.JOB);
+
 export const getPipelineCoreResourcePipelineReference = (
   resource: PipelineCoreResourceKF,
 ): ResourceReferenceKF | undefined =>

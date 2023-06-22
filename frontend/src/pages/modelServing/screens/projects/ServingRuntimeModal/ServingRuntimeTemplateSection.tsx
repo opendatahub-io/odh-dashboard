@@ -11,7 +11,7 @@ import {
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
-  templates?: TemplateKind[];
+  templates: TemplateKind[];
   isEditing?: boolean;
 };
 
@@ -23,13 +23,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
 }) => {
   const [isOpen, setOpen] = React.useState(false);
 
-  const templatesUsed = isEditing ? [] : templates;
-
-  if (!templatesUsed) {
-    return null;
-  }
-
-  const options = templatesUsed.map((template) => (
+  const options = templates.map((template) => (
     <SelectOption
       key={getServingRuntimeNameFromTemplate(template)}
       value={getServingRuntimeNameFromTemplate(template)}
@@ -62,9 +56,9 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                 setOpen(false);
               }
             }}
-            isDisabled={isEditing || templatesUsed.length === 0}
+            isDisabled={isEditing || templates.length === 0}
             onToggle={setOpen}
-            placeholderText="Select one"
+            placeholderText={'Select one'}
           >
             {options}
           </Select>

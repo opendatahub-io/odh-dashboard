@@ -28,7 +28,7 @@ const isValidDate = (value?: RunDateTime): boolean => {
   }
 
   const date = new Date(`${value.date} ${value.time}`);
-  return date.toString() !== 'Invalid date';
+  return date.toString() !== 'Invalid Date';
 };
 
 const runTypeSafeDates = (runType: RunFormData['runType']): boolean =>

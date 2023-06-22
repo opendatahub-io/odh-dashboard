@@ -1,7 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
-import { DEFAULT_MODEL_SERVING_TEMPLATE } from '~/pages/modelServing/screens/const';
 
 export const getTemplateEnabled = (template: TemplateKind) =>
   !(template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false');
@@ -24,16 +23,28 @@ export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
 
 export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
   obj.kind === 'ServingRuntime' &&
-  obj.spec?.builtInAdapter !== undefined &&
   obj.spec?.containers !== undefined &&
   obj.spec?.supportedModelFormats !== undefined;
 
-export const getServingRuntimeFromTemplate = (template?: TemplateKind): ServingRuntimeKind => {
-  if (!template) {
-    return DEFAULT_MODEL_SERVING_TEMPLATE;
+export const getServingRuntimeFromName = (
+  templateName: string,
+  templateList?: TemplateKind[],
+): ServingRuntimeKind | undefined => {
+  if (!templateList) {
+    return undefined;
   }
+  const template = templateList.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
+  if (!template) {
+    return undefined;
+  }
+  return getServingRuntimeFromTemplate(template);
+};
+
+export const getServingRuntimeFromTemplate = (
+  template: TemplateKind,
+): ServingRuntimeKind | undefined => {
   if (!isServingRuntimeKind(template.objects[0])) {
-    throw new Error('Invalid Serving Runtime format');
+    return undefined;
   }
   return template.objects[0];
 };
@@ -41,4 +52,4 @@ export const getServingRuntimeFromTemplate = (template?: TemplateKind): ServingR
 export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string =>
   resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
   resource.metadata.annotations?.['opendatahub.io/template-name'] ||
-  '';
+  'Unknown Serving Runtime';

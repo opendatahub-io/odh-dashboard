@@ -464,19 +464,11 @@ export type ODHSegmentKey = {
   segmentKey: string;
 };
 
-export type BYONImageError = {
-  severity: string;
-  message: string;
-};
-
-export type BYONImageStatus = 'Importing' | 'Validating' | 'Succeeded' | 'Failed';
-
 export type BYONImage = {
   id: string;
-  phase?: BYONImageStatus;
   user?: string;
   uploaded?: Date;
-  error?: BYONImageError;
+  error?: string;
 } & BYONImageCreateRequest &
   BYONImageUpdateRequest;
 
@@ -530,6 +522,14 @@ export type ImageStreamStatusTagItem = {
 export type ImageStreamStatusTag = {
   tag: string;
   items: ImageStreamStatusTagItem[];
+  conditions?: ImageStreamStatusTagCondition[];
+};
+
+export type ImageStreamStatusTagCondition = {
+  type: string;
+  status: string;
+  reason: string;
+  message: string;
 };
 
 export type ImageStreamStatus = {
@@ -589,6 +589,7 @@ export type ImageInfo = {
   default?: boolean;
   order?: number;
   dockerImageRepo?: string;
+  error?: string;
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
@@ -804,3 +805,92 @@ export type NotebookData = {
 };
 
 export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
+
+type DisplayNameAnnotations = Partial<{
+  'openshift.io/description': string; // the description provided by the user
+  'openshift.io/display-name': string; // the name provided by the user
+}>;
+
+export type K8sDSGResource = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+  };
+};
+
+export type TemplateParameter = {
+  name: string;
+  displayName: string;
+  description: string;
+  value: string;
+  required: boolean;
+};
+
+
+export type Template = K8sResourceCommon & {
+  metadata: {
+    annotations?: Partial<{
+      tags: string;
+      iconClass?: string;
+      'opendatahub.io/template-enabled': string;
+    }>;
+    name: string;
+    namespace: string;
+  };
+  objects: K8sDSGResource[];
+  parameters: TemplateParameter[];
+};
+
+export type ServingRuntimeAnnotations = Partial<{
+  'opendatahub.io/template-name': string;
+  'opendatahub.io/template-display-name': string;
+  'opendatahub.io/disable-gpu': string;
+  'enable-route': string;
+  'enable-auth': string;
+}>;
+
+export type SupportedModelFormats = {
+  name: string;
+  version?: string;
+  autoSelect?: boolean;
+};
+
+export type GPUCount = string | number;
+
+export type ContainerResources = {
+  requests?: {
+    cpu?: string;
+    memory?: string;
+    'nvidia.com/gpu'?: GPUCount;
+  };
+  limits?: {
+    cpu?: string;
+    memory?: string;
+    'nvidia.com/gpu'?: GPUCount;
+  };
+};
+
+
+export type ServingRuntime = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    builtInAdapter?: {
+      serverType: string;
+      runtimeManagementPort: number;
+      memBufferBytes?: number;
+      modelLoadingTimeoutMillis?: number;
+    };
+    containers: {
+      args: string[];
+      image: string;
+      name: string;
+      resources: ContainerResources;
+    }[];
+    supportedModelFormats: SupportedModelFormats[];
+    replicas: number;
+  };
+};

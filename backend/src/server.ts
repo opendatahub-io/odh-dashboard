@@ -19,7 +19,7 @@ const app = fastify({
 
 app.register(initializeApp);
 
-app.listen(PORT, IP, (err) => {
+app.listen({ port: PORT, host: IP}, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1); // eslint-disable-line

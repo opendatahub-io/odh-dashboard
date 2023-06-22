@@ -2,19 +2,34 @@ import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { AWSSecretKind, KnownLabels, NotebookKind, RoleBindingKind, SecretKind } from '~/k8sTypes';
 import { ELYRA_ROLE_NAME, ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
-import { Volume } from '~/types';
+import { Volume, VolumeMount } from '~/types';
+import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
+
+const ELYRA_VOLUME_NAME = 'elyra-dsp-details';
+
+export const getElyraVolumeMount = (): VolumeMount => ({
+  name: ELYRA_VOLUME_NAME,
+  mountPath: RUNTIME_MOUNT_PATH,
+});
 
 export const getElyraVolume = (): Volume => ({
-  name: 'elyra-dsp-details',
+  name: ELYRA_VOLUME_NAME,
   secret: {
     secretName: ELYRA_SECRET_NAME,
   },
 });
 
-export const getPipelineSecretPatch = (): Patch => ({
+export const getPipelineVolumePatch = (): Patch => ({
   path: '/spec/template/spec/volumes/-',
   op: 'add',
   value: getElyraVolume(),
+});
+
+export const getPipelineVolumeMountPatch = (): Patch => ({
+  // TODO: can we assume first container?
+  path: '/spec/template/spec/containers/0/volumeMounts/-',
+  op: 'add',
+  value: getElyraVolumeMount(),
 });
 
 export const currentlyHasPipelines = (notebook: NotebookKind): boolean =>
@@ -22,6 +37,7 @@ export const currentlyHasPipelines = (notebook: NotebookKind): boolean =>
 
 export const generateElyraSecret = (
   dataConnectionData: AWSSecretKind['data'],
+  dataConnectionName: string,
   namespace: string,
   route: string,
 ): SecretKind => ({
@@ -35,18 +51,20 @@ export const generateElyraSecret = (
   stringData: {
     /* eslint-disable camelcase */
     'odh_dsp.json': JSON.stringify({
-      display_name: 'ODH_DSP',
+      display_name: 'Data Science Pipeline',
       metadata: {
         tags: [],
-        display_name: 'ODH_DSP',
+        display_name: 'Data Science Pipeline',
         engine: 'Tekton',
-        auth_type: 'EXISTING_BEARER_TOKEN',
+        auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
         api_endpoint: route,
-        cos_auth_type: 'USER_CREDENTIALS',
-        cos_endpoint: btoa(dataConnectionData[AWS_KEYS.S3_ENDPOINT]),
-        cos_bucket: 'default',
-        cos_username: btoa(dataConnectionData[AWS_KEYS.ACCESS_KEY_ID]),
-        cos_password: btoa(dataConnectionData[AWS_KEYS.SECRET_ACCESS_KEY]),
+        public_api_endpoint: `${location.origin}/pipelineRuns/${namespace}`,
+        cos_auth_type: 'KUBERNETES_SECRET',
+        cos_secret: dataConnectionName,
+        cos_endpoint: atob(dataConnectionData[AWS_KEYS.S3_ENDPOINT]),
+        cos_bucket: atob(dataConnectionData[AWS_KEYS.AWS_S3_BUCKET]),
+        cos_username: atob(dataConnectionData[AWS_KEYS.ACCESS_KEY_ID]),
+        cos_password: atob(dataConnectionData[AWS_KEYS.SECRET_ACCESS_KEY]),
         runtime_type: 'KUBEFLOW_PIPELINES',
       },
       schema_name: 'kfp',

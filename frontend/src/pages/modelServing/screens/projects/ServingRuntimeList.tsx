@@ -5,8 +5,10 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
-import { getTemplateEnabled } from '~/pages/modelServing/customServingRuntimes/utils';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import {
+  getSortedTemplates,
+  getTemplateEnabled,
+} from '~/pages/modelServing/customServingRuntimes/utils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ServingRuntimeTable from './ServingRuntimeTable';
 import ServingRuntimeListButtonAction from './ServingRuntimeListButtonAction';
@@ -22,13 +24,15 @@ const ServingRuntimeList: React.FC = () => {
       refresh: refreshServingRuntime,
     },
     servingRuntimeTemplates: { data: templates, loaded: templatesLoaded, error: templateError },
+    servingRuntimeTemplateOrder: { data: templateOrder },
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
-  const templatesEnabled = templates.filter(getTemplateEnabled);
+  const templatesSorted = getSortedTemplates(templates, templateOrder);
+  const templatesEnabled = templatesSorted.filter(getTemplateEnabled);
+
   const emptyTemplates = templatesEnabled?.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;
 
@@ -40,8 +44,6 @@ const ServingRuntimeList: React.FC = () => {
         actions={[
           <ServingRuntimeListButtonAction
             emptyTemplates={emptyTemplates}
-            emptyModelServer={emptyModelServer}
-            customServingRuntimesEnabled={customServingRuntimesEnabled}
             templatesLoaded={templatesLoaded}
             onClick={() => setOpen(true)}
             key="serving-runtime-actions"
@@ -53,7 +55,7 @@ const ServingRuntimeList: React.FC = () => {
         emptyState={
           <EmptyDetailsList
             title="No model servers"
-            description="Before deploying a model, you must first configure a model server."
+            description="Before deploying a model, you must first add a model server."
             icon={PlusCircleIcon}
           />
         }
@@ -68,7 +70,7 @@ const ServingRuntimeList: React.FC = () => {
       <ManageServingRuntimeModal
         isOpen={isOpen}
         currentProject={currentProject}
-        servingRuntimeTemplates={customServingRuntimesEnabled ? templatesEnabled : undefined}
+        servingRuntimeTemplates={templatesEnabled}
         onClose={(submit: boolean) => {
           setOpen(false);
           if (submit) {

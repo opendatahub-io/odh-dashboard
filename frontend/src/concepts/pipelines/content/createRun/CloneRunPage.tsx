@@ -10,13 +10,13 @@ const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contex
 
   return (
     <ApplicationsPage
-      title={resource ? `Clone of ${resource.name}` : 'Loading...'}
+      title={resource ? `Duplicate of ${resource.name}` : 'Loading...'}
       description={resource ? `Create a new run from ${resource.name}.` : ''}
       breadcrumb={
         <Breadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive>
-            {resource ? `Clone of ${resource.name}` : 'Clone'}
+            {resource ? `Duplicate of ${resource.name}` : 'Duplicate'}
           </BreadcrumbItem>
         </Breadcrumb>
       }

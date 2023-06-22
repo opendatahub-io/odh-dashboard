@@ -83,8 +83,8 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                   dispatch(
                     addNotification({
                       status: 'danger',
-                      title: 'Error',
-                      message: `Unable to add notebook image ${name}`,
+                      title: `Unable to add notebook image ${name}`,
+                      message: value.error,
                       timestamp: new Date(),
                     }),
                   );
