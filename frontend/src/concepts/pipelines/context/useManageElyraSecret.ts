@@ -1,9 +1,10 @@
 import * as React from 'react';
 import useElyraSecret from '~/concepts/pipelines/elyra/useElyraSecret';
-import { createSecret } from '~/api';
+import { createSecret, replaceSecret } from '~/api';
 import { DSPipelineKind } from '~/k8sTypes';
 import { generateElyraSecret } from '~/concepts/pipelines/elyra/utils';
 import useAWSSecret from '~/concepts/secrets/apiHooks/useAWSSecret';
+import { ELYRA_SECRET_DATA_KEY, ELYRA_SECRET_DATA_TYPE } from '~/concepts/pipelines/elyra/const';
 
 const useManageElyraSecret = (
   namespace: string,
@@ -26,15 +27,35 @@ const useManageElyraSecret = (
 
   const fullLoadedState = elyraSecretLoaded && dataConnectionLoaded;
   React.useEffect(() => {
-    if (fullLoadedState && !elyraSecret && dataConnection && routePath) {
-      createSecret(
-        generateElyraSecret(
-          dataConnection.data,
-          dataConnection.metadata.name,
-          dataConnection.metadata.namespace,
-          routePath,
-        ),
-      );
+    if (fullLoadedState && dataConnection && routePath) {
+      if (!elyraSecret) {
+        // Create a new secret
+        createSecret(
+          generateElyraSecret(
+            dataConnection.data,
+            dataConnection.metadata.name,
+            dataConnection.metadata.namespace,
+            routePath,
+          ),
+        );
+        return;
+      }
+      try {
+        const secretValue = JSON.parse(atob(elyraSecret.data?.[ELYRA_SECRET_DATA_KEY] || '{}'));
+        if (secretValue.metadata[ELYRA_SECRET_DATA_TYPE] === 'USER_CREDENTIALS') {
+          // Secret is invalid -- update it
+          replaceSecret(
+            generateElyraSecret(
+              dataConnection.data,
+              dataConnection.metadata.name,
+              dataConnection.metadata.namespace,
+              routePath,
+            ),
+          );
+        }
+      } catch (e) {
+        // do nothing
+      }
     }
   }, [fullLoadedState, routePath, elyraSecret, dataConnection]);
 };
