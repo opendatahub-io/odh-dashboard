@@ -5,11 +5,11 @@ import NotFound from '~/pages/NotFound';
 import { ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
-type ProjectRuntimeMetricsPathWrapperProps = {
+type ProjectServerMetricsPathWrapperProps = {
   children: (servingRuntime: ServingRuntimeKind, currentProject: ProjectKind) => React.ReactNode;
 };
 
-const ProjectRuntimeMetricsPathWrapper: React.FC<ProjectRuntimeMetricsPathWrapperProps> = ({
+const ProjectServerMetricsPathWrapper: React.FC<ProjectServerMetricsPathWrapperProps> = ({
   children,
 }) => {
   const { servingRuntime: serverName } = useParams<{
@@ -34,4 +34,4 @@ const ProjectRuntimeMetricsPathWrapper: React.FC<ProjectRuntimeMetricsPathWrappe
   return <>{children(servingRuntime, currentProject)}</>;
 };
 
-export default ProjectRuntimeMetricsPathWrapper;
+export default ProjectServerMetricsPathWrapper;

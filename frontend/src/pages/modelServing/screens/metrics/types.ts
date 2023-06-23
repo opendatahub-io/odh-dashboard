@@ -1,7 +1,7 @@
 import { DomainTuple, ForAxes } from 'victory-core';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { MetricTypes } from '~/api';
-import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { BiasMetricType } from '~/api';
+import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 
 export type TranslatePoint = (line: GraphMetricPoint) => GraphMetricPoint;
@@ -54,12 +54,12 @@ export type BiasChartConfig = {
   title: string;
   abbreviation: string;
   domainCalculator: (userDelta: number | undefined) => DomainCalculator;
-  inferenceMetricKey: InferenceMetricType;
+  modelMetricKey: ModelMetricType;
   chartType: MetricsChartTypes;
   thresholdOrigin: number;
   defaultDelta: number;
 };
-export type BiasChartConfigMap = { [key in MetricTypes]: BiasChartConfig };
+export type BiasChartConfigMap = { [key in BiasMetricType]: BiasChartConfig };
 
 export type BiasSelectOption = {
   id: string;

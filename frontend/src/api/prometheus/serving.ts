@@ -5,11 +5,11 @@ import {
   PrometheusQueryRangeResultValue,
 } from '~/types';
 import {
-  InferenceMetricType,
-  RuntimeMetricType,
+  ModelMetricType,
+  ServerMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import {
-  MetricType,
+  PerformanceMetricType,
   RefreshIntervalTitle,
   TimeframeTitle,
 } from '~/pages/modelServing/screens/types';
@@ -21,15 +21,15 @@ import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/u
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
-  type: MetricType,
-  queries: Record<RuntimeMetricType, string> | Record<InferenceMetricType, string>,
+  type: PerformanceMetricType,
+  queries: Record<ServerMetricType, string> | Record<ModelMetricType, string>,
   timeframe: TimeframeTitle,
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
   refreshInterval: RefreshIntervalTitle,
 ): {
   data: Record<
-    RuntimeMetricType | InferenceMetricType,
+    ServerMetricType | ModelMetricType,
     ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
   >;
   refresh: () => void;
@@ -47,65 +47,65 @@ export const useModelServingMetrics = (
     ResponsePredicate<PrometheusQueryRangeResponseDataResult>
   >((data) => data.result, []);
 
-  const runtimeRequestCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === 'runtime',
-    queries[RuntimeMetricType.REQUEST_COUNT],
+  const serverRequestCount = useQueryRangeResourceData(
+    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+    queries[ServerMetricType.REQUEST_COUNT],
     end,
     timeframe,
     defaultResponsePredicate,
   );
 
-  const runtimeAverageResponseTime = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === 'runtime',
-    queries[RuntimeMetricType.AVG_RESPONSE_TIME],
+  const serverAverageResponseTime = useQueryRangeResourceData(
+    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+    queries[ServerMetricType.AVG_RESPONSE_TIME],
     end,
     timeframe,
     defaultResponsePredicate,
   );
 
-  const runtimeCPUUtilization = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === 'runtime',
-    queries[RuntimeMetricType.CPU_UTILIZATION],
+  const serverCPUUtilization = useQueryRangeResourceData(
+    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+    queries[ServerMetricType.CPU_UTILIZATION],
     end,
     timeframe,
     defaultResponsePredicate,
   );
 
-  const runtimeMemoryUtilization = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === 'runtime',
-    queries[RuntimeMetricType.MEMORY_UTILIZATION],
+  const serverMemoryUtilization = useQueryRangeResourceData(
+    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+    queries[ServerMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
     defaultResponsePredicate,
   );
 
-  const inferenceRequestSuccessCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === 'inference',
-    queries[InferenceMetricType.REQUEST_COUNT_SUCCESS],
+  const modelRequestSuccessCount = useQueryRangeResourceData(
+    performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
+    queries[ModelMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
     defaultResponsePredicate,
   );
 
-  const inferenceRequestFailedCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === 'inference',
-    queries[InferenceMetricType.REQUEST_COUNT_FAILED],
+  const modelRequestFailedCount = useQueryRangeResourceData(
+    performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
+    queries[ModelMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
     defaultResponsePredicate,
   );
 
-  const inferenceTrustyAISPD = useQueryRangeResourceData(
-    biasMetricsEnabled && type === 'inference',
-    queries[InferenceMetricType.TRUSTY_AI_SPD],
+  const modelTrustyAISPD = useQueryRangeResourceData(
+    biasMetricsEnabled && type === PerformanceMetricType.MODEL,
+    queries[ModelMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
     trustyResponsePredicate,
   );
 
-  const inferenceTrustyAIDIR = useQueryRangeResourceData(
-    biasMetricsEnabled && type === 'inference',
-    queries[InferenceMetricType.TRUSTY_AI_DIR],
+  const modelTrustyAIDIR = useQueryRangeResourceData(
+    biasMetricsEnabled && type === PerformanceMetricType.MODEL,
+    queries[ModelMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
     trustyResponsePredicate,
@@ -116,14 +116,14 @@ export const useModelServingMetrics = (
     // re-compute lastUpdateTime when data changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    runtimeRequestCount,
-    runtimeAverageResponseTime,
-    runtimeCPUUtilization,
-    runtimeMemoryUtilization,
-    inferenceRequestSuccessCount,
-    inferenceRequestFailedCount,
-    inferenceTrustyAIDIR,
-    inferenceTrustyAISPD,
+    serverRequestCount,
+    serverAverageResponseTime,
+    serverCPUUtilization,
+    serverMemoryUtilization,
+    modelRequestSuccessCount,
+    modelRequestFailedCount,
+    modelTrustyAIDIR,
+    modelTrustyAISPD,
   ]);
 
   const refreshAllMetrics = React.useCallback(() => {
@@ -135,26 +135,26 @@ export const useModelServingMetrics = (
   return React.useMemo(
     () => ({
       data: {
-        [RuntimeMetricType.REQUEST_COUNT]: runtimeRequestCount,
-        [RuntimeMetricType.AVG_RESPONSE_TIME]: runtimeAverageResponseTime,
-        [RuntimeMetricType.CPU_UTILIZATION]: runtimeCPUUtilization,
-        [RuntimeMetricType.MEMORY_UTILIZATION]: runtimeMemoryUtilization,
-        [InferenceMetricType.REQUEST_COUNT_SUCCESS]: inferenceRequestSuccessCount,
-        [InferenceMetricType.REQUEST_COUNT_FAILED]: inferenceRequestFailedCount,
-        [InferenceMetricType.TRUSTY_AI_SPD]: inferenceTrustyAISPD,
-        [InferenceMetricType.TRUSTY_AI_DIR]: inferenceTrustyAIDIR,
+        [ServerMetricType.REQUEST_COUNT]: serverRequestCount,
+        [ServerMetricType.AVG_RESPONSE_TIME]: serverAverageResponseTime,
+        [ServerMetricType.CPU_UTILIZATION]: serverCPUUtilization,
+        [ServerMetricType.MEMORY_UTILIZATION]: serverMemoryUtilization,
+        [ModelMetricType.REQUEST_COUNT_SUCCESS]: modelRequestSuccessCount,
+        [ModelMetricType.REQUEST_COUNT_FAILED]: modelRequestFailedCount,
+        [ModelMetricType.TRUSTY_AI_SPD]: modelTrustyAISPD,
+        [ModelMetricType.TRUSTY_AI_DIR]: modelTrustyAIDIR,
       },
       refresh: refreshAllMetrics,
     }),
     [
-      runtimeRequestCount,
-      runtimeAverageResponseTime,
-      runtimeCPUUtilization,
-      runtimeMemoryUtilization,
-      inferenceRequestSuccessCount,
-      inferenceRequestFailedCount,
-      inferenceTrustyAISPD,
-      inferenceTrustyAIDIR,
+      serverRequestCount,
+      serverAverageResponseTime,
+      serverCPUUtilization,
+      serverMemoryUtilization,
+      modelRequestSuccessCount,
+      modelRequestFailedCount,
+      modelTrustyAIDIR,
+      modelTrustyAISPD,
       refreshAllMetrics,
     ],
   );

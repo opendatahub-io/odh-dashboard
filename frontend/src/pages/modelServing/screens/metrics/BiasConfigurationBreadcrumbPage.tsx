@@ -2,23 +2,22 @@ import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import BiasConfigurationPage from './BiasConfigurationPage';
-import { GlobalInferenceMetricsOutletContextProps } from './GlobalInferenceMetricsWrapper';
+import { GlobalModelMetricsOutletContextProps } from './GlobalModelMetricsWrapper';
 
 const BiasConfigurationBreadcrumbPage: React.FC = () => {
-  const { inferenceService, projectName } =
-    useOutletContext<GlobalInferenceMetricsOutletContextProps>();
-  const modelDisplayName = getInferenceServiceDisplayName(inferenceService);
+  const { model, projectName } = useOutletContext<GlobalModelMetricsOutletContextProps>();
+  const modelDisplayName = getInferenceServiceDisplayName(model);
   return (
     <BiasConfigurationPage
       breadcrumbItems={[
         { label: 'Model serving', link: '/modelServing' },
         {
           label: modelDisplayName,
-          link: `/modelServing/metrics/${projectName}/${inferenceService.metadata.name}`,
+          link: `/modelServing/metrics/${projectName}/${model.metadata.name}`,
         },
         { label: 'Metric configuration', isActive: true },
       ]}
-      inferenceService={inferenceService}
+      inferenceService={model}
     />
   );
 };

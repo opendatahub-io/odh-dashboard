@@ -3,20 +3,19 @@ import { useOutletContext } from 'react-router-dom';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import { MetricType } from '~/pages/modelServing/screens/types';
-import { ProjectInferenceMetricsOutletContextProps } from './ProjectInferenceMetricsWrapper';
+import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 
-const ProjectInferenceMetricsPage: React.FC = () => {
-  const { inferenceService, currentProject } =
-    useOutletContext<ProjectInferenceMetricsOutletContextProps>();
+const ProjectModelMetricsPage: React.FC = () => {
+  const { model, currentProject } = useOutletContext<ProjectModelMetricsOutletContextProps>();
   const projectDisplayName = getProjectDisplayName(currentProject);
-  const modelDisplayName = getInferenceServiceDisplayName(inferenceService);
+  const modelDisplayName = getInferenceServiceDisplayName(model);
 
   return (
     <MetricsPage
       title={`${modelDisplayName} metrics`}
       breadcrumbItems={[
-        { label: 'Data Science Projects', link: '/projects' },
+        { label: 'Data science projects', link: '/projects' },
         {
           label: projectDisplayName,
           link: `/projects/${currentProject.metadata.name}`,
@@ -26,9 +25,9 @@ const ProjectInferenceMetricsPage: React.FC = () => {
           isActive: true,
         },
       ]}
-      type={MetricType.INFERENCE}
+      type={PerformanceMetricType.MODEL}
     />
   );
 };
 
-export default ProjectInferenceMetricsPage;
+export default ProjectModelMetricsPage;

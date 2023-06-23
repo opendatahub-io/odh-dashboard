@@ -1,12 +1,12 @@
 import React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
-import InferenceGraphs from '~/pages/modelServing/screens/metrics/InferenceGraphs';
+import ModelGraphs from '~/pages/modelServing/screens/metrics/ModelGraphs';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
-import { MetricType } from '~/pages/modelServing/screens/types';
-import RuntimeGraphs from './RuntimeGraphs';
+import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import ServerGraphs from './ServerGraphs';
 
 type PerformanceTabProps = {
-  type?: MetricType;
+  type?: PerformanceMetricType;
 };
 
 const PerformanceTab: React.FC<PerformanceTabProps> = ({ type }) => (
@@ -15,7 +15,7 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ type }) => (
       <MetricsPageToolbar />
     </StackItem>
     <PageSection isFilled>
-      {type === MetricType.RUNTIME ? <RuntimeGraphs /> : <InferenceGraphs />}
+      {type === PerformanceMetricType.SERVER ? <ServerGraphs /> : <ModelGraphs />}
     </PageSection>
   </Stack>
 );

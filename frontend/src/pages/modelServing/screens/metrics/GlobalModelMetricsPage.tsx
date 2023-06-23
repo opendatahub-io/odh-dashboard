@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
-import { MetricType } from '~/pages/modelServing/screens/types';
+import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import MetricsPage from './MetricsPage';
-import { GlobalInferenceMetricsOutletContextProps } from './GlobalInferenceMetricsWrapper';
+import { GlobalModelMetricsOutletContextProps } from './GlobalModelMetricsWrapper';
 
-const GlobalInferenceMetricsPage: React.FC = () => {
-  const { inferenceService } = useOutletContext<GlobalInferenceMetricsOutletContextProps>();
-  const modelDisplayName = getInferenceServiceDisplayName(inferenceService);
+const GlobalModelMetricsPage: React.FC = () => {
+  const { model } = useOutletContext<GlobalModelMetricsOutletContextProps>();
+  const modelDisplayName = getInferenceServiceDisplayName(model);
   return (
     <MetricsPage
       title={`${modelDisplayName} metrics`}
@@ -18,9 +18,9 @@ const GlobalInferenceMetricsPage: React.FC = () => {
           isActive: true,
         },
       ]}
-      type={MetricType.INFERENCE}
+      type={PerformanceMetricType.MODEL}
     />
   );
 };
 
-export default GlobalInferenceMetricsPage;
+export default GlobalModelMetricsPage;

@@ -6,14 +6,14 @@ import { BreadcrumbItemType } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
-import { MetricType } from '~/pages/modelServing/screens/types';
+import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { getBreadcrumbItemComponents } from './utils';
 import PerformanceTab from './PerformanceTab';
 
 type MetricsPageProps = {
   title: string;
   breadcrumbItems: BreadcrumbItemType[];
-  type: MetricType;
+  type: PerformanceMetricType;
 };
 
 const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type }) => {
@@ -40,7 +40,7 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type 
         )
       }
     >
-      {type === MetricType.RUNTIME ? <PerformanceTab type={type} /> : <MetricsPageTabs />}
+      {type === PerformanceMetricType.SERVER ? <PerformanceTab type={type} /> : <MetricsPageTabs />}
     </ApplicationsPage>
   );
 };

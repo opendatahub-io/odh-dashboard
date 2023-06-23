@@ -4,13 +4,13 @@ import {
   METRIC_TYPE_DESCRIPTION,
   METRIC_TYPE_DISPLAY_NAME,
 } from '~/pages/modelServing/screens/metrics/const';
-import { MetricTypes } from '~/api';
+import { BiasMetricType } from '~/api';
 import { isMetricType } from '~/pages/modelServing/screens/metrics/utils';
 
 type MetricTypeFieldProps = {
   fieldId: string;
-  value?: MetricTypes;
-  onChange: (value: MetricTypes) => void;
+  value?: BiasMetricType;
+  onChange: (value: BiasMetricType) => void;
 };
 
 const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onChange }) => {
@@ -32,7 +32,7 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
         selections={value}
         menuAppendTo="parent"
       >
-        {Object.keys(MetricTypes).map((type) => (
+        {Object.keys(BiasMetricType).map((type) => (
           <SelectOption key={type} value={type} description={METRIC_TYPE_DESCRIPTION[type]}>
             {METRIC_TYPE_DISPLAY_NAME[type]}
           </SelectOption>

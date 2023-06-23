@@ -5,11 +5,11 @@ import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import NotFound from '~/pages/NotFound';
 import { InferenceServiceKind } from '~/k8sTypes';
 
-type InferenceMetricsPathWrapperProps = {
+type ModelMetricsPathWrapperProps = {
   children: (inferenceService: InferenceServiceKind, projectName: string) => React.ReactNode;
 };
 
-const InferenceMetricsPathWrapper: React.FC<InferenceMetricsPathWrapperProps> = ({ children }) => {
+const ModelMetricsPathWrapper: React.FC<ModelMetricsPathWrapperProps> = ({ children }) => {
   const { project: projectName, inferenceService: modelName } = useParams<{
     project: string;
     inferenceService: string;
@@ -34,4 +34,4 @@ const InferenceMetricsPathWrapper: React.FC<InferenceMetricsPathWrapperProps> = 
   return <>{children(inferenceService, projectName)}</>;
 };
 
-export default InferenceMetricsPathWrapper;
+export default ModelMetricsPathWrapper;

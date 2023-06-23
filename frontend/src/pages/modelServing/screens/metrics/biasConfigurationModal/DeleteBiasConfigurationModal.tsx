@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MetricTypes } from '~/api';
+import { BiasMetricType } from '~/api';
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
@@ -44,7 +44,7 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
         if (configurationToDelete) {
           setDeleting(true);
           const deleteFunc =
-            configurationToDelete.metricType === MetricTypes.DIR
+            configurationToDelete.metricType === BiasMetricType.DIR
               ? api.deleteDirRequest
               : api.deleteSpdRequest;
           deleteFunc({}, configurationToDelete.id)

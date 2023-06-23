@@ -1,21 +1,21 @@
-import { MetricTypes } from '~/api';
+import { BiasMetricType } from '~/api';
 import { BiasChartConfigMap, MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
-import { InferenceMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { calculateThresholds } from '~/pages/modelServing/screens/metrics/utils';
 
 export const EMPTY_BIAS_CONFIGURATION_TITLE = 'Bias metrics not configured';
 export const EMPTY_BIAS_CONFIGURATION_DESC =
   'Bias metrics for this model have not been configured. To monitor model bias, you must first configure metrics.';
 
-export const METRIC_TYPE_DISPLAY_NAME: { [key in MetricTypes]: string } = {
-  [MetricTypes.DIR]: 'Disparate impact ratio (DIR)',
-  [MetricTypes.SPD]: 'Statistical parity difference (SPD)',
+export const METRIC_TYPE_DISPLAY_NAME: { [key in BiasMetricType]: string } = {
+  [BiasMetricType.DIR]: 'Disparate impact ratio (DIR)',
+  [BiasMetricType.SPD]: 'Statistical parity difference (SPD)',
 };
 
-export const METRIC_TYPE_DESCRIPTION: { [key in MetricTypes]: string } = {
-  [MetricTypes.DIR]:
+export const METRIC_TYPE_DESCRIPTION: { [key in BiasMetricType]: string } = {
+  [BiasMetricType.DIR]:
     'Calculates the ratio between the proportion of the privileged and unprivileged groups getting a particular outcome.',
-  [MetricTypes.SPD]:
+  [BiasMetricType.SPD]:
     'Calculates the difference between the proportion of the privileged and unprivileged groups getting a particular outcome.',
 };
 
@@ -25,21 +25,21 @@ export const EMPTY_BIAS_CHART_SELECTION_DESC =
 
 export const BIAS_THRESHOLD_COLOR = 'red';
 export const BIAS_DOMAIN_PADDING = 0.1;
-export const DEFAULT_BIAS_THRESHOLD_DELTAS: { [key in MetricTypes]: number } = {
-  [MetricTypes.SPD]: 0.1,
-  [MetricTypes.DIR]: 0.2,
+export const DEFAULT_BIAS_THRESHOLD_DELTAS: { [key in BiasMetricType]: number } = {
+  [BiasMetricType.SPD]: 0.1,
+  [BiasMetricType.DIR]: 0.2,
 };
 
 export const BIAS_CHART_CONFIGS: BiasChartConfigMap = {
-  [MetricTypes.SPD]: {
+  [BiasMetricType.SPD]: {
     title: 'Statistical Parity Difference',
     abbreviation: 'SPD',
-    inferenceMetricKey: InferenceMetricType.TRUSTY_AI_SPD,
+    modelMetricKey: ModelMetricType.TRUSTY_AI_SPD,
     chartType: MetricsChartTypes.AREA,
     thresholdOrigin: 0,
     defaultDelta: 0.1,
     domainCalculator: (delta) => (maxYValue, minYValue) => {
-      const { thresholdOrigin, defaultDelta } = BIAS_CHART_CONFIGS[MetricTypes.SPD];
+      const { thresholdOrigin, defaultDelta } = BIAS_CHART_CONFIGS[BiasMetricType.SPD];
 
       const [maxThreshold, minThreshold] = calculateThresholds(
         thresholdOrigin,
@@ -56,15 +56,15 @@ export const BIAS_CHART_CONFIGS: BiasChartConfigMap = {
       };
     },
   },
-  [MetricTypes.DIR]: {
+  [BiasMetricType.DIR]: {
     title: 'Disparate Impact Ratio',
     abbreviation: 'DIR',
-    inferenceMetricKey: InferenceMetricType.TRUSTY_AI_DIR,
+    modelMetricKey: ModelMetricType.TRUSTY_AI_DIR,
     chartType: MetricsChartTypes.LINE,
     thresholdOrigin: 1,
     defaultDelta: 0.2,
     domainCalculator: (delta) => (maxYValue) => {
-      const { thresholdOrigin, defaultDelta } = BIAS_CHART_CONFIGS[MetricTypes.DIR];
+      const { thresholdOrigin, defaultDelta } = BIAS_CHART_CONFIGS[BiasMetricType.DIR];
       const [maxThreshold] = calculateThresholds(thresholdOrigin, delta ?? defaultDelta);
 
       return {

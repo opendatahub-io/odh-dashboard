@@ -2,7 +2,7 @@ import {
   BaseMetricCreationResponse,
   BaseMetricListResponse,
   BaseMetricRequest,
-  MetricTypes,
+  BiasMetricType,
 } from '~/api';
 import { K8sAPIOptions } from '~/k8sTypes';
 
@@ -36,7 +36,7 @@ export type ExplainabilityAPI = {
 export type BiasMetricConfig = {
   id: string;
   name: string;
-  metricType: MetricTypes;
+  metricType: BiasMetricType;
   protectedAttribute: string;
   outcomeName: string;
   favorableOutcome: string;

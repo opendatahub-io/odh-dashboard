@@ -2,7 +2,7 @@ import React from 'react';
 import { Select, SelectGroup, SelectOption, SelectVariant } from '@patternfly/react-core';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
-import { MetricTypes } from '~/api';
+import { BiasMetricType } from '~/api';
 import {
   byId,
   byNotId,
@@ -71,14 +71,14 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
       >
         <SelectGroup label="SPD" key="SPD">
           {biasMetricConfigs
-            .filter((x) => x.metricType === MetricTypes.SPD)
+            .filter((x) => x.metricType === BiasMetricType.SPD)
             .map((x) => (
               <SelectOption key={x.id} value={createBiasSelectOption(x)} />
             ))}
         </SelectGroup>
         <SelectGroup label="DIR" key="DIR">
           {biasMetricConfigs
-            .filter((x) => x.metricType === MetricTypes.DIR)
+            .filter((x) => x.metricType === BiasMetricType.DIR)
             .map((x) => (
               <SelectOption key={x.id} value={createBiasSelectOption(x)} />
             ))}

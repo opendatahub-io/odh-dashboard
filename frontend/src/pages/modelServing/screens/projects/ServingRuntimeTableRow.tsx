@@ -150,7 +150,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                       title: 'View metrics',
                       onClick: () =>
                         navigate(
-                          `/projects/${currentProject.metadata.name}/metrics/runtime/${obj.metadata.name}`,
+                          `/projects/${currentProject.metadata.name}/metrics/server/${obj.metadata.name}`,
                         ),
                     },
                   ]
