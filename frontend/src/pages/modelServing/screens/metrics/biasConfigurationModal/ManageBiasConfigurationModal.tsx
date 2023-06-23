@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Form, FormGroup, Modal, TextInput } from '@patternfly/react-core';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
-import { MetricTypes } from '~/api';
+import { BiasMetricType } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
@@ -32,7 +32,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
   } = React.useContext(ExplainabilityContext);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error>();
-  const [metricType, setMetricType] = React.useState<MetricTypes>();
+  const [metricType, setMetricType] = React.useState<BiasMetricType>();
   const [configuration, setConfiguration, resetData] = useBiasConfigurationObject(
     inferenceService.metadata.name,
     metricType,
@@ -52,7 +52,8 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
   };
 
   const onCreateConfiguration = () => {
-    const createFunc = metricType === MetricTypes.SPD ? api.createSpdRequest : api.createDirRequest;
+    const createFunc =
+      metricType === BiasMetricType.SPD ? api.createSpdRequest : api.createDirRequest;
     setActionInProgress(true);
     createFunc({}, convertConfigurationRequestType(configuration))
       .then(() => onBeforeClose(true))

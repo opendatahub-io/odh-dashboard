@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import ProjectInferenceMetricsWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsWrapper';
-import ProjectRuntimeMetricsWrapper from '~/pages/modelServing/screens/projects/ProjectRuntimeMetricsWrapper';
+import ProjectModelMetricsWrapper from '~/pages/modelServing/screens/projects/ProjectModelMetricsWrapper';
+import ProjectServerMetricsWrapper from '~/pages/modelServing/screens/projects/ProjectServerMetricsWrapper';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import ProjectPipelineBreadcrumbPage from '~/pages/projects/screens/detail/pipelines/ProjectPipelineBreadcrumbPage';
@@ -10,8 +10,8 @@ import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pi
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import { ExplainabilityProvider } from '~/concepts/explainability/ExplainabilityContext';
-import ProjectInferenceMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsConfigurationPage';
-import ProjectInferenceMetricsPage from '~/pages/modelServing/screens/projects/ProjectInferenceMetricsPage';
+import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
+import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
 import ProjectDetails from './screens/detail/ProjectDetails';
@@ -36,18 +36,18 @@ const ProjectViewRoutes: React.FC = () => {
           <>
             <Route path="metrics/model" element={<ExplainabilityProvider />}>
               <Route index element={<Navigate to=".." />} />
-              <Route path=":inferenceService" element={<ProjectInferenceMetricsWrapper />}>
-                <Route path=":tab?" element={<ProjectInferenceMetricsPage />} />
+              <Route path=":inferenceService" element={<ProjectModelMetricsWrapper />}>
+                <Route path=":tab?" element={<ProjectModelMetricsPage />} />
                 {biasMetricsEnabled && (
-                  <Route path="configure" element={<ProjectInferenceMetricsConfigurationPage />} />
+                  <Route path="configure" element={<ProjectModelMetricsConfigurationPage />} />
                 )}
               </Route>
               <Route path="*" element={<Navigate to="." />} />
             </Route>
             {performanceMetricsEnabled && (
               <Route
-                path="metrics/runtime/:servingRuntime"
-                element={<ProjectRuntimeMetricsWrapper />}
+                path="metrics/server/:servingRuntime"
+                element={<ProjectServerMetricsWrapper />}
               />
             )}
           </>

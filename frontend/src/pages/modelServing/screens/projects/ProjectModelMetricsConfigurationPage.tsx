@@ -3,28 +3,27 @@ import { useOutletContext } from 'react-router';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import BiasConfigurationPage from '~/pages/modelServing/screens/metrics/BiasConfigurationPage';
 import { getProjectDisplayName } from '~/pages/projects/utils';
-import { ProjectInferenceMetricsOutletContextProps } from './ProjectInferenceMetricsWrapper';
+import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 
-const ProjectInferenceMetricsConfigurationPage: React.FC = () => {
-  const { currentProject, inferenceService } =
-    useOutletContext<ProjectInferenceMetricsOutletContextProps>();
+const ProjectModelMetricsConfigurationPage: React.FC = () => {
+  const { currentProject, model } = useOutletContext<ProjectModelMetricsOutletContextProps>();
   return (
     <BiasConfigurationPage
       breadcrumbItems={[
-        { label: 'Data Science Projects', link: '/projects' },
+        { label: 'Data science projects', link: '/projects' },
         {
           label: getProjectDisplayName(currentProject),
           link: `/projects/${currentProject.metadata.name}`,
         },
         {
-          label: getInferenceServiceDisplayName(inferenceService),
-          link: `/projects/${currentProject.metadata.name}/metrics/model/${inferenceService.metadata.name}`,
+          label: getInferenceServiceDisplayName(model),
+          link: `/projects/${currentProject.metadata.name}/metrics/model/${model.metadata.name}`,
         },
         { label: 'Metric configuration', isActive: true },
       ]}
-      inferenceService={inferenceService}
+      inferenceService={model}
     />
   );
 };
 
-export default ProjectInferenceMetricsConfigurationPage;
+export default ProjectModelMetricsConfigurationPage;

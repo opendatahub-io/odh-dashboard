@@ -5,14 +5,14 @@ import NotFound from '~/pages/NotFound';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 
-type ProjectInferenceMetricsPathWrapperProps = {
+type ProjectModelMetricsPathWrapperProps = {
   children: (
     inferenceService: InferenceServiceKind,
     currentProject: ProjectKind,
   ) => React.ReactNode;
 };
 
-const ProjectInferenceMetricsPathWrapper: React.FC<ProjectInferenceMetricsPathWrapperProps> = ({
+const ProjectModelMetricsPathWrapper: React.FC<ProjectModelMetricsPathWrapperProps> = ({
   children,
 }) => {
   const { inferenceService: modelName } = useParams<{
@@ -22,7 +22,7 @@ const ProjectInferenceMetricsPathWrapper: React.FC<ProjectInferenceMetricsPathWr
     currentProject,
     inferenceServices: { data: models, loaded },
   } = React.useContext(ProjectDetailsContext);
-  const inferenceService = models.find((model) => model.metadata.name === modelName);
+  const model = models.find((model) => model.metadata.name === modelName);
   if (!loaded) {
     return (
       <Bullseye>
@@ -30,11 +30,11 @@ const ProjectInferenceMetricsPathWrapper: React.FC<ProjectInferenceMetricsPathWr
       </Bullseye>
     );
   }
-  if (!inferenceService) {
+  if (!model) {
     return <NotFound />;
   }
 
-  return <>{children(inferenceService, currentProject)}</>;
+  return <>{children(model, currentProject)}</>;
 };
 
-export default ProjectInferenceMetricsPathWrapper;
+export default ProjectModelMetricsPathWrapper;

@@ -1,6 +1,6 @@
+import * as React from 'react';
 import * as _ from 'lodash';
 import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
-import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -15,13 +15,13 @@ import {
   NamedMetricChartLine,
   TranslatePoint,
 } from '~/pages/modelServing/screens/metrics/types';
-import { BaseMetricRequest, BaseMetricRequestInput, MetricTypes } from '~/api';
+import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import {
   BIAS_CHART_CONFIGS,
   BIAS_THRESHOLD_COLOR,
 } from '~/pages/modelServing/screens/metrics/const';
-import { InferenceMetricType, RuntimeMetricType } from './ModelServingMetricsContext';
+import { ModelMetricType, ServerMetricType } from './ModelServingMetricsContext';
 
 export const isModelMetricsEnabled = (
   dashboardNamespace: string,
@@ -33,30 +33,30 @@ export const isModelMetricsEnabled = (
   return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
 };
 
-export const getRuntimeMetricsQueries = (
-  runtime: ServingRuntimeKind,
-): Record<RuntimeMetricType, string> => {
-  const namespace = runtime.metadata.namespace;
+export const getServerMetricsQueries = (
+  server: ServingRuntimeKind,
+): Record<ServerMetricType, string> => {
+  const namespace = server.metadata.namespace;
   return {
     // TODO: Get new queries
-    [RuntimeMetricType.REQUEST_COUNT]: `TBD`,
-    [RuntimeMetricType.AVG_RESPONSE_TIME]: `rate(modelmesh_api_request_milliseconds_sum{exported_namespace="${namespace}"}[1m])/rate(modelmesh_api_request_milliseconds_count{exported_namespace="${namespace}"}[1m])`,
-    [RuntimeMetricType.CPU_UTILIZATION]: `TBD`,
-    [RuntimeMetricType.MEMORY_UTILIZATION]: `TBD`,
+    [ServerMetricType.REQUEST_COUNT]: `TBD`,
+    [ServerMetricType.AVG_RESPONSE_TIME]: `rate(modelmesh_api_request_milliseconds_sum{exported_namespace="${namespace}"}[1m])/rate(modelmesh_api_request_milliseconds_count{exported_namespace="${namespace}"}[1m])`,
+    [ServerMetricType.CPU_UTILIZATION]: `TBD`,
+    [ServerMetricType.MEMORY_UTILIZATION]: `TBD`,
   };
 };
 
-export const getInferenceServiceMetricsQueries = (
-  inferenceService: InferenceServiceKind,
-): Record<InferenceMetricType, string> => {
-  const namespace = inferenceService.metadata.namespace;
-  const name = inferenceService.metadata.name;
+export const getModelMetricsQueries = (
+  model: InferenceServiceKind,
+): Record<ModelMetricType, string> => {
+  const namespace = model.metadata.namespace;
+  const name = model.metadata.name;
 
   return {
-    [InferenceMetricType.REQUEST_COUNT_SUCCESS]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
-    [InferenceMetricType.REQUEST_COUNT_FAILED]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
-    [InferenceMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
-    [InferenceMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
+    [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
+    [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
   };
 };
 
@@ -177,14 +177,14 @@ export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[
     />
   ));
 
-const checkThresholdValid = (metricType: MetricTypes, thresholdDelta?: number): boolean => {
+const checkThresholdValid = (metricType: BiasMetricType, thresholdDelta?: number): boolean => {
   if (thresholdDelta !== undefined) {
-    if (metricType === MetricTypes.SPD) {
+    if (metricType === BiasMetricType.SPD) {
       // SPD, no limitation, valid
       return true;
     }
 
-    if (metricType === MetricTypes.DIR) {
+    if (metricType === BiasMetricType.DIR) {
       if (thresholdDelta >= 0 && thresholdDelta < 1) {
         // 0<=DIR<1 , valid
         return true;
@@ -218,7 +218,7 @@ const checkBatchSizeValid = (batchSize?: number): boolean => {
 
 export const checkConfigurationFieldsValid = (
   configurations: BaseMetricRequest,
-  metricType?: MetricTypes,
+  metricType?: BiasMetricType,
 ) =>
   metricType !== undefined &&
   configurations.requestName !== '' &&
@@ -232,8 +232,10 @@ export const checkConfigurationFieldsValid = (
   checkThresholdValid(metricType, configurations.thresholdDelta) &&
   checkBatchSizeValid(configurations.batchSize);
 
-export const isMetricType = (metricType: string | SelectOptionObject): metricType is MetricTypes =>
-  Object.values(MetricTypes).includes(metricType as MetricTypes);
+export const isMetricType = (
+  metricType: string | SelectOptionObject,
+): metricType is BiasMetricType =>
+  Object.values(BiasMetricType).includes(metricType as BiasMetricType);
 
 export const byId =
   <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
@@ -311,5 +313,5 @@ export const convertConfigurationRequestType = (
   favorableOutcome: convertInputType(configuration.favorableOutcome),
 });
 
-export const getThresholdDefaultDelta = (metricType?: MetricTypes) =>
+export const getThresholdDefaultDelta = (metricType?: BiasMetricType) =>
   metricType && BIAS_CHART_CONFIGS[metricType].defaultDelta;

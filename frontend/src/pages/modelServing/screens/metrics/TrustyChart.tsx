@@ -14,19 +14,19 @@ const TrustyChart: React.FC<TrustyChartProps> = ({ biasMetricConfig }) => {
 
   const { id, metricType, thresholdDelta } = biasMetricConfig;
 
-  const { title, abbreviation, inferenceMetricKey, chartType, domainCalculator } =
+  const { title, abbreviation, modelMetricKey, chartType, domainCalculator } =
     BIAS_CHART_CONFIGS[metricType];
 
   const metric = React.useMemo(() => {
-    const metricData = data[inferenceMetricKey].data;
+    const metricData = data[modelMetricKey].data;
 
     const values = metricData.find((x) => x.metric.request === id)?.values;
 
     return {
-      ...data[inferenceMetricKey],
+      ...data[modelMetricKey],
       data: values,
     };
-  }, [data, id, inferenceMetricKey]);
+  }, [data, id, modelMetricKey]);
 
   return (
     <MetricsChart

@@ -7,7 +7,7 @@ export enum DataTypes {
   STRING = 'STRING',
 }
 
-export enum MetricTypes {
+export enum BiasMetricType {
   SPD = 'SPD',
   DIR = 'DIR',
 }
@@ -43,7 +43,7 @@ export type BaseMetricRequest = {
 export type BaseMetricResponse = {
   id: string;
   request: {
-    metricName: MetricTypes;
+    metricName: BiasMetricType;
     favorableOutcome: TypedValue;
     privilegedAttribute: TypedValue;
     unprivilegedAttribute: TypedValue;

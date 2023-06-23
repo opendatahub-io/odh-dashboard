@@ -1,9 +1,9 @@
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
-export enum MetricType {
-  RUNTIME = 'runtime',
-  INFERENCE = 'inference',
+export enum PerformanceMetricType {
+  SERVER = 'server',
+  MODEL = 'model',
 }
 
 export enum TimeframeTitle {
