@@ -1,6 +1,11 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { AWSSecretKind, KnownLabels, NotebookKind, RoleBindingKind, SecretKind } from '~/k8sTypes';
-import { ELYRA_ROLE_NAME, ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
+import {
+  ELYRA_ROLE_NAME,
+  ELYRA_SECRET_DATA_KEY,
+  ELYRA_SECRET_DATA_TYPE,
+  ELYRA_SECRET_NAME,
+} from '~/concepts/pipelines/elyra/const';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
@@ -50,7 +55,7 @@ export const generateElyraSecret = (
   type: 'Opaque',
   stringData: {
     /* eslint-disable camelcase */
-    'odh_dsp.json': JSON.stringify({
+    [ELYRA_SECRET_DATA_KEY]: JSON.stringify({
       display_name: 'Data Science Pipeline',
       metadata: {
         tags: [],
@@ -59,7 +64,7 @@ export const generateElyraSecret = (
         auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
         api_endpoint: route,
         public_api_endpoint: `${location.origin}/pipelineRuns/${namespace}`,
-        cos_auth_type: 'KUBERNETES_SECRET',
+        [ELYRA_SECRET_DATA_TYPE]: 'KUBERNETES_SECRET',
         cos_secret: dataConnectionName,
         cos_endpoint: atob(dataConnectionData[AWS_KEYS.S3_ENDPOINT]),
         cos_bucket: atob(dataConnectionData[AWS_KEYS.AWS_S3_BUCKET]),
