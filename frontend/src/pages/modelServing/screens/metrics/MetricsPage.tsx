@@ -6,14 +6,17 @@ import { BreadcrumbItemType } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
+import { MetricType } from '~/pages/modelServing/screens/types';
 import { getBreadcrumbItemComponents } from './utils';
+import PerformanceTab from './PerformanceTab';
 
 type MetricsPageProps = {
   title: string;
   breadcrumbItems: BreadcrumbItemType[];
+  type: MetricType;
 };
 
-const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems }) => {
+const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type }) => {
   const { tab } = useParams();
   const navigate = useNavigate();
 
@@ -37,7 +40,7 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems }) => 
         )
       }
     >
-      <MetricsPageTabs />
+      {type === MetricType.RUNTIME ? <PerformanceTab type={type} /> : <MetricsPageTabs />}
     </ApplicationsPage>
   );
 };

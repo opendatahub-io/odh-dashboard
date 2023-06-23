@@ -9,6 +9,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
 
@@ -43,6 +44,8 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   const tokens = filterTokens(obj.metadata.name);
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
+
+  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
 
   const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
     setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
@@ -141,11 +144,17 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                 title: 'Delete model server',
                 onClick: () => onDeleteServingRuntime(obj),
               },
-              {
-                title: 'View metrics',
-                onClick: () =>
-                  navigate(`/projects/${currentProject.metadata.name}/metrics/runtime`),
-              },
+              ...(performanceMetricsEnabled
+                ? [
+                    {
+                      title: 'View metrics',
+                      onClick: () =>
+                        navigate(
+                          `/projects/${currentProject.metadata.name}/metrics/runtime/${obj.metadata.name}`,
+                        ),
+                    },
+                  ]
+                : []),
             ]}
           />
         </Td>

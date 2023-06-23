@@ -55,6 +55,7 @@ export const mockDashboardConfig = ({
       disablePipelines: false,
       disableProjectSharing: false,
       disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
     },
     notebookController: {
       enabled: true,

@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import MetricsPage from '~/pages/modelServing/screens/metrics/MetricsPage';
 import { getProjectDisplayName } from '~/pages/projects/utils';
+import { MetricType } from '~/pages/modelServing/screens/types';
 import { ProjectInferenceMetricsOutletContextProps } from './ProjectInferenceMetricsWrapper';
 
 const ProjectInferenceMetricsPage: React.FC = () => {
@@ -25,6 +26,7 @@ const ProjectInferenceMetricsPage: React.FC = () => {
           isActive: true,
         },
       ]}
+      type={MetricType.INFERENCE}
     />
   );
 };
