@@ -64,7 +64,7 @@ export const patchDashboardConfigTemplateDisablement = (
   }).then((dashboardConfig) => {
     // Patch doesn't return an error if the attribute is disabled, it just return the object without changes
     if (dashboardConfig.spec?.templateDisablement === undefined) {
-      throw new Error('Template order is not configured');
+      throw new Error('Template disablement is not configured');
     }
     return dashboardConfig.spec?.templateDisablement;
   });
