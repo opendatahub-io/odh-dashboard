@@ -21,6 +21,7 @@ import { getUserName, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
 import {
   PatchUtils,
+  V1Namespace,
   V1PersistentVolumeClaim,
   V1Role,
   V1RoleBinding,
@@ -68,52 +69,33 @@ export const getRoute = async (
   return kubeResponse.body as Route;
 };
 
-interface RouteListResponse {
-  apiVersion: string;
-  kind: string;
-  metadata: {
-    resourceVersion: string;
-  };
-  items: Route[];
-}
-
-export const getGatewayRoute = async (
+export const getServiceMeshGwHost = async (
   fastify: KubeFastifyInstance,
   namespace: string,
-  gatewayName: string,
-): Promise<Route> => {
-  const selector = `maistra.io/gateway-name=${gatewayName}`;
-  const kubeResponse = await fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
-      'route.openshift.io',
-      'v1',
-      namespace,
-      'routes',
-      undefined,
-      undefined,
-      undefined,
-      selector,
-    )
-    .catch((res) => {
-      const e = res.response.body;
-      const error = createCustomError('Error getting Gateway Route', e.message, e.code);
-      fastify.log.error(error);
-      throw error;
-    });
+): Promise<string> => {
+  const kubeResponse = await fastify.kube.coreV1Api.readNamespace(namespace).catch((res) => {
+    const e = res.response.body;
+    const error = createCustomError('Error getting Namespace', e.message, e.code);
+    fastify.log.error(error);
+    throw error;
+  });
 
   const body = kubeResponse.body as unknown;
-  const typedResponse = body as RouteListResponse;
+  const typedResponse = body as V1Namespace;
 
-  if (typedResponse.items.length === 0) {
+  const annotations = typedResponse.metadata?.annotations;
+
+  if (!annotations || !annotations['service-mesh.opendatahub.io/public-gateway-host-external']) {
     const error = createCustomError(
-      'Route not found',
-      `Could not find Route with label: ${selector}`,
+      'Annotation not found',
+      `Could not find annotation 'service-mesh.opendatahub.io/public-gateway-host-external' for namespace: ${namespace}`,
       404,
     );
     fastify.log.error(error);
     throw error;
   }
-  return typedResponse.items[0];
+
+  return annotations['service-mesh.opendatahub.io/public-gateway-host-external'];
 };
 
 export const createRBAC = async (

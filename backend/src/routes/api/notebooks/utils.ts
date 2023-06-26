@@ -10,7 +10,7 @@ import {
   getNamespaces,
   getNotebook,
   getRoute,
-  getGatewayRoute,
+  getServiceMeshGwHost,
   updateNotebook,
 } from '../../../utils/notebookUtils';
 import { FastifyRequest } from 'fastify';
@@ -30,25 +30,23 @@ export const getNotebookStatus = async (
   let newNotebook: Notebook;
   if (isRunning && !notebook?.metadata.annotations?.['opendatahub.io/link']) {
     const disableServiceMesh = getDashboardConfig().spec.dashboardConfig.disableServiceMesh;
-    let route: Route;
+    let host: string;
     if (!disableServiceMesh) {
-      route = await getGatewayRoute(fastify, 'istio-system', 'odh-gateway').catch((e) => {
+      host = await getServiceMeshGwHost(fastify, namespace).catch((e) => {
         fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
         return undefined;
       });
     } else {
-      route = await getRoute(fastify, namespace, notebookName).catch((e) => {
+      const route = await getRoute(fastify, namespace, notebookName).catch((e) => {
         fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
         return undefined;
       });
+      if (route) {
+        host = route.spec.host;
+      }
     }
-    if (route) {
-      newNotebook = await patchNotebookRoute(
-        fastify,
-        route.spec.host,
-        namespace,
-        notebookName,
-      ).catch((e) => {
+    if (host) {
+      newNotebook = await patchNotebookRoute(fastify, host, namespace, notebookName).catch((e) => {
         fastify.log.warn(`Failed patching route to notebook ${notebookName}: ${e.message}`);
         return notebook;
       });

@@ -20,5 +20,8 @@ export const getServiceMeshGwHost = async (namespace: string): Promise<string | 
     name: namespace,
   };
   const project = await k8sGetResource<NamespaceKind>({ model: NamespaceModel, queryOptions });
-  return project?.metadata?.annotations?.['opendatahub.io/service-mesh-gw-host'] || null;
+  return (
+    project?.metadata?.annotations?.['service-mesh.opendatahub.io/public-gateway-host-external'] ||
+    null
+  );
 };
