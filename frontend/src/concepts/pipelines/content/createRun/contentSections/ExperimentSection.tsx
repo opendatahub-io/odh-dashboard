@@ -2,10 +2,14 @@ import * as React from 'react';
 import { Button, FormSection, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import useExperiements from '~/concepts/pipelines/apiHooks/useExperiements';
+import useExperiments from '~/concepts/pipelines/apiHooks/useExperiements';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import ManageExperimentModal from '~/concepts/pipelines/content/experiment/ManageExperimentModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import {
+  CreateRunPageSections,
+  runPageSectionTitles,
+} from '~/concepts/pipelines/content/createRun/const';
 
 type ExperimentSectionProps = {
   value: ExperimentKF | null;
@@ -14,7 +18,7 @@ type ExperimentSectionProps = {
 
 const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const [experiments] = useExperiements();
+  const [experiments, , , refresh] = useExperiments();
   const [openCreate, setOpenCreate] = React.useState(false);
 
   const changeRef = React.useRef<ExperimentSectionProps['onChange']>(onChange);
@@ -28,8 +32,8 @@ const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }
   return (
     <>
       <FormSection
-      // id={CreateRunPageSections.EXPERIMENT}
-      // title={runPageSectionTitles[CreateRunPageSections.EXPERIMENT]}
+        id={CreateRunPageSections.EXPERIMENT}
+        title={runPageSectionTitles[CreateRunPageSections.EXPERIMENT]}
       >
         <Stack hasGutter>
           <StackItem>
@@ -56,8 +60,12 @@ const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }
         isOpen={openCreate}
         onClose={(experiment) => {
           if (experiment) {
-            refreshAllAPI();
-            onChange(experiment);
+            refresh().then(() => {
+              refreshAllAPI();
+              onChange(experiment);
+              setOpenCreate(false);
+              return;
+            });
           }
           setOpenCreate(false);
         }}

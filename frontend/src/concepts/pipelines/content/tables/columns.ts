@@ -45,84 +45,118 @@ export const pipelineColumns: SortableData<PipelineKF>[] = [
   kebabTableColumn(),
 ];
 
-const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
-  checkboxTableColumn(),
-  {
-    label: 'Name',
-    field: 'runName',
-    sortable: (a, b) => a.name.localeCompare(b.name),
-    width: 20,
+/* Shared Run Columns */
+const nameColumn: SortableData<PipelineCoreResourceKF> = {
+  label: 'Name',
+  field: 'runName',
+  sortable: (a, b) => a.name.localeCompare(b.name),
+  width: 20,
+};
+const experimentColumn: SortableData<PipelineCoreResourceKF> = {
+  label: 'Experiment',
+  field: 'experiment',
+  sortable: (a, b) =>
+    getPipelineCoreResourceExperimentName(a).localeCompare(
+      getPipelineCoreResourceExperimentName(b),
+    ),
+  width: 10,
+};
+const pipelineColumn: SortableData<PipelineCoreResourceKF> = {
+  label: 'Pipeline',
+  field: 'pipeline',
+  sortable: (a, b) =>
+    getPipelineCoreResourcePipelineName(a)?.localeCompare(getPipelineCoreResourcePipelineName(b)),
+  width: 15,
+};
+
+/* Run Columns */
+const startedRunColumn: SortableData<PipelineRunKF> = {
+  label: 'Started',
+  field: 'started',
+  sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+};
+const durationRunColumn: SortableData<PipelineRunKF> = {
+  label: 'Duration',
+  field: 'duration',
+  sortable: (a, b) => getRunDuration(a) - getRunDuration(b),
+};
+const statusRunColumn: SortableData<PipelineRunKF> = {
+  label: 'Status',
+  field: 'status',
+  sortable: (a, b) => getStatusWeight(a) - getStatusWeight(b),
+};
+
+/* Run Job Columns */
+const triggerRunJobColumn: SortableData<PipelineRunJobKF> = {
+  label: 'Trigger',
+  field: 'trigger',
+  sortable: (a, b) => {
+    if (a.trigger.periodic_schedule && b.trigger.periodic_schedule) {
+      return (
+        parseInt(a.trigger.periodic_schedule.interval_second) -
+        parseInt(b.trigger.periodic_schedule.interval_second)
+      );
+    }
+    if (a.trigger.cron_schedule && b.trigger.cron_schedule) {
+      return 0;
+    }
+
+    // Different types, arbitrarily sort one above the other
+    return a.trigger.periodic_schedule ? -1 : 1;
   },
-  {
-    label: 'Experiment',
-    field: 'experiment',
-    sortable: (a, b) =>
-      getPipelineCoreResourceExperimentName(a).localeCompare(
-        getPipelineCoreResourceExperimentName(b),
-      ),
-    width: 10,
-  },
-  {
-    label: 'Pipeline',
-    field: 'pipeline',
-    sortable: (a, b) =>
-      getPipelineCoreResourcePipelineName(a)?.localeCompare(getPipelineCoreResourcePipelineName(b)),
-    width: 15,
-  },
-];
+  width: 15,
+};
+const scheduledRunJobColumn: SortableData<PipelineRunJobKF> = {
+  label: 'Scheduled',
+  field: 'scheduled',
+  sortable: (a, b) => getScheduledStateWeight(a) - getScheduledStateWeight(b),
+  width: 15,
+};
+const statusRunJobColumn: SortableData<PipelineRunJobKF> = {
+  label: 'Status',
+  field: 'status',
+  sortable: (a, b) => Number(a.enabled ?? false) - Number(b.enabled ?? false),
+  width: 10,
+};
 
 export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
-  ...sharedRunLikeColumns,
-  {
-    label: 'Started',
-    field: 'started',
-    sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  },
-  {
-    label: 'Duration',
-    field: 'duration',
-    sortable: (a, b) => getRunDuration(a) - getRunDuration(b),
-  },
-  {
-    label: 'Status',
-    field: 'status',
-    sortable: (a, b) => getStatusWeight(a) - getStatusWeight(b),
-  },
+  checkboxTableColumn(),
+  nameColumn,
+  experimentColumn,
+  pipelineColumn,
+  startedRunColumn,
+  durationRunColumn,
+  statusRunColumn,
+  kebabTableColumn(),
+];
+
+export const pipelineRunExperimentColumns: SortableData<PipelineRunKF>[] = [
+  expandTableColumn(),
+  nameColumn,
+  pipelineColumn,
+  startedRunColumn,
+  durationRunColumn,
+  statusRunColumn,
   kebabTableColumn(),
 ];
 
 export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
-  ...sharedRunLikeColumns,
-  {
-    label: 'Trigger',
-    field: 'trigger',
-    sortable: (a, b) => {
-      if (a.trigger.periodic_schedule && b.trigger.periodic_schedule) {
-        return (
-          parseInt(a.trigger.periodic_schedule.interval_second) -
-          parseInt(b.trigger.periodic_schedule.interval_second)
-        );
-      }
-      if (a.trigger.cron_schedule && b.trigger.cron_schedule) {
-        return 0;
-      }
+  checkboxTableColumn(),
+  nameColumn,
+  experimentColumn,
+  pipelineColumn,
+  triggerRunJobColumn,
+  scheduledRunJobColumn,
+  statusRunJobColumn,
+  kebabTableColumn(),
+];
 
-      // Different types, arbitrarily sort one above the other
-      return a.trigger.periodic_schedule ? -1 : 1;
-    },
-    width: 15,
-  },
-  {
-    label: 'Scheduled',
-    field: 'scheduled',
-    sortable: (a, b) => getScheduledStateWeight(a) - getScheduledStateWeight(b),
-    width: 15,
-  },
-  {
-    label: 'Status',
-    field: 'status',
-    sortable: (a, b) => Number(a.enabled ?? false) - Number(b.enabled ?? false),
-    width: 10,
-  },
+export const pipelineRunJobExperimentColumns: SortableData<PipelineRunJobKF>[] = [
+  expandTableColumn(),
+  nameColumn,
+  pipelineColumn,
+  triggerRunJobColumn,
+  scheduledRunJobColumn,
+  statusRunJobColumn,
   kebabTableColumn(),
 ];

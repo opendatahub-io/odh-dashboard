@@ -21,7 +21,7 @@ import useTableColumnSort, { SortableData } from '~/components/table/useTableCol
 import { CHECKBOX_FIELD_ID } from '~/components/table/const';
 import { EitherNotBoth } from '~/typeHelpers';
 
-type TableProps<DataType> = {
+export type TableProps<DataType> = {
   data: DataType[];
   columns: SortableData<DataType>[];
   defaultSortColumn?: number;
