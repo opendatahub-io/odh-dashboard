@@ -18,7 +18,7 @@ type ExperimentSectionProps = {
 
 const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const [experiments] = useExperiments();
+  const [experiments, , , refresh] = useExperiments();
   const [openCreate, setOpenCreate] = React.useState(false);
 
   const changeRef = React.useRef<ExperimentSectionProps['onChange']>(onChange);
@@ -60,8 +60,12 @@ const ExperimentSection: React.FC<ExperimentSectionProps> = ({ value, onChange }
         isOpen={openCreate}
         onClose={(experiment) => {
           if (experiment) {
-            refreshAllAPI();
-            onChange(experiment);
+            refresh().then(() => {
+              refreshAllAPI();
+              onChange(experiment);
+              setOpenCreate(false);
+              return;
+            });
           }
           setOpenCreate(false);
         }}
