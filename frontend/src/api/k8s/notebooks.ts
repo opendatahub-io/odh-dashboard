@@ -181,6 +181,18 @@ const getStopPatch = (): Patch => ({
   value: getStopPatchDataString(),
 });
 
+const getInjectOAuthPatch = (disableServiceMesh: boolean): Patch => ({
+  op: 'add',
+  path: '/metadata/annotations/notebooks.opendatahub.io~1inject-oauth',
+  value: String(disableServiceMesh),
+});
+
+const getServiceMeshPatch = (disableServiceMesh: boolean): Patch => ({
+  op: 'add',
+  path: '/metadata/annotations/opendatahub.io~1service-mesh',
+  value: String(!disableServiceMesh),
+});
+
 export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
   k8sListResource<NotebookKind>({
     model: NotebookModel,
@@ -204,10 +216,14 @@ export const startNotebook = async (
   name: string,
   namespace: string,
   tolerationChanges: TolerationChanges,
+  dashboardConfig: DashboardConfig,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
-  const patches: Patch[] = [];
-  patches.push(startPatch);
+  const patches: Patch[] = [
+    startPatch,
+    getInjectOAuthPatch(dashboardConfig.spec.dashboardConfig.disableServiceMesh),
+    getServiceMeshPatch(dashboardConfig.spec.dashboardConfig.disableServiceMesh),
+  ];
 
   const tolerationPatch = getTolerationPatch(tolerationChanges);
   if (tolerationPatch) {
