@@ -368,7 +368,7 @@ export const updateImage = async (
       );
     }
 
-    if (typeof body.visible !== undefined) {
+    if (body.visible !== undefined) {
       if (body.visible) {
         imageStream.metadata.labels['opendatahub.io/notebook-image'] = 'true';
       } else {
