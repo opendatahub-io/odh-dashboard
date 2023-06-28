@@ -6,7 +6,6 @@ import {
 } from '~/api';
 import { K8sAPIOptions } from '~/k8sTypes';
 
-//TODO refine return types
 export type GetInfo = (opts: K8sAPIOptions) => Promise<unknown>;
 export type ListRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;
 export type ListSpdRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;

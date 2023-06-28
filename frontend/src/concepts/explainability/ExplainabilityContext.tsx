@@ -1,9 +1,10 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
-import useTrustyAPIRoute from '~/concepts/explainability/useTrustyAPIRoute';
-import useTrustyAiNamespaceCR from '~/concepts/explainability/useTrustyAiNamespaceCR';
-import { useDashboardNamespace } from '~/redux/selectors';
-import useTrustyAPIState, { TrustyAPIState } from '~/concepts/explainability/useTrustyAPIState';
+import useTrustyAIAPIRoute from '~/concepts/explainability/useTrustyAIAPIRoute';
+import useTrustyAINamespaceCR, {
+  taiHasServerTimedOut,
+  taiLoaded,
+} from '~/concepts/explainability/useTrustyAINamespaceCR';
+import useTrustyAIAPIState, { TrustyAPIState } from '~/concepts/explainability/useTrustyAIAPIState';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { formatListResponse } from '~/concepts/explainability/utils';
 import useFetchState, {
@@ -12,8 +13,6 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import useBiasMetricsEnabled from './useBiasMetricsEnabled';
-
-// TODO create component for ensuring API availability, see pipelines for example.
 
 type ExplainabilityContextData = {
   refresh: () => Promise<void>;
@@ -29,9 +28,11 @@ const defaultExplainabilityContextData: ExplainabilityContextData = {
 };
 
 type ExplainabilityContextProps = {
+  namespace: string;
   hasCR: boolean;
   crInitializing: boolean;
   serverTimedOut: boolean;
+  serviceLoadError?: Error;
   ignoreTimedOut: () => void;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
@@ -40,6 +41,7 @@ type ExplainabilityContextProps = {
 };
 
 export const ExplainabilityContext = React.createContext<ExplainabilityContextProps>({
+  namespace: '',
   hasCR: false,
   crInitializing: false,
   serverTimedOut: false,
@@ -50,20 +52,27 @@ export const ExplainabilityContext = React.createContext<ExplainabilityContextPr
   apiState: { apiAvailable: false, api: null as unknown as TrustyAPIState['api'] },
 });
 
-export const ExplainabilityProvider: React.FC = () => {
-  //TODO: when TrustyAI operator is ready, we will need to use the current DSProject namespace instead.
-  const namespace = useDashboardNamespace().dashboardNamespace;
+type ExplainabilityContextProviderProps = {
+  children: React.ReactNode;
+  namespace: string;
+};
+export const ExplainabilityContextProvider: React.FC<ExplainabilityContextProviderProps> = ({
+  children,
+  namespace,
+}) => {
+  const state = useTrustyAINamespaceCR(namespace);
+  const [explainabilityNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
+  const isCRReady = taiLoaded(state);
+  const [disableTimeout, setDisableTimeout] = React.useState(false);
+  const serverTimedOut = !disableTimeout && taiHasServerTimedOut(state, isCRReady);
+  const ignoreTimedOut = React.useCallback(() => {
+    setDisableTimeout(true);
+  }, []);
 
-  const state = useTrustyAiNamespaceCR(namespace);
-  //TODO handle CR loaded error - when TIA operator is ready
-  const [explainabilityNamespaceCR, crLoaded, , refreshCR] = state;
-  const isCRReady = crLoaded;
-  //TODO: needs logic to handle server timeouts - when TIA operator is ready
-  const serverTimedOut = false;
-  const ignoreTimedOut = React.useCallback(() => true, []);
-
-  //TODO handle routeLoadedError - when TIA operator is ready
-  const [routeHost, routeLoaded, , refreshRoute] = useTrustyAPIRoute(isCRReady, namespace);
+  const [routeHost, routeLoaded, routeLoadError, refreshRoute] = useTrustyAIAPIRoute(
+    isCRReady,
+    namespace,
+  );
 
   const hostPath = routeLoaded && routeHost ? routeHost : null;
 
@@ -72,31 +81,34 @@ export const ExplainabilityProvider: React.FC = () => {
     [refreshRoute, refreshCR],
   );
 
-  const [apiState, refreshAPIState] = useTrustyAPIState(hostPath);
+  const serviceLoadError = crLoadError || routeLoadError;
+
+  const [apiState, refreshAPIState] = useTrustyAIAPIState(hostPath);
 
   const data = useFetchContextData(apiState);
 
   return (
     <ExplainabilityContext.Provider
       value={{
+        namespace,
         hasCR: !!explainabilityNamespaceCR,
         crInitializing: !crLoaded,
         serverTimedOut,
         ignoreTimedOut,
+        serviceLoadError,
         refreshState,
         refreshAPIState,
         apiState,
         data,
       }}
     >
-      <Outlet />
+      {children}
     </ExplainabilityContext.Provider>
   );
 };
 
-//TODO handle errors.
 const useFetchContextData = (apiState: TrustyAPIState): ExplainabilityContextData => {
-  const [biasMetricConfigs, biasMetricConfigsLoaded, , refreshBiasMetricConfigs] =
+  const [biasMetricConfigs, biasMetricConfigsLoaded, error, refreshBiasMetricConfigs] =
     useFetchBiasMetricConfigs(apiState);
 
   const refresh = React.useCallback(
@@ -110,6 +122,7 @@ const useFetchContextData = (apiState: TrustyAPIState): ExplainabilityContextDat
     biasMetricConfigs,
     refresh,
     loaded,
+    error,
   };
 };
 

@@ -9,11 +9,11 @@ import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipel
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
-import { ExplainabilityProvider } from '~/concepts/explainability/ExplainabilityContext';
 import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
+import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -34,7 +34,7 @@ const ProjectViewRoutes: React.FC = () => {
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
         {modelMetricsEnabled && (
           <>
-            <Route path="metrics/model" element={<ExplainabilityProvider />}>
+            <Route path="metrics/model" element={<ProjectInferenceExplainabilityWrapper />}>
               <Route index element={<Navigate to=".." />} />
               <Route path=":inferenceService" element={<ProjectModelMetricsWrapper />}>
                 <Route path=":tab?" element={<ProjectModelMetricsPage />} />
