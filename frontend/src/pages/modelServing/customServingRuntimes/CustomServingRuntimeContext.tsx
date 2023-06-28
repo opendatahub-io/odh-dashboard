@@ -32,12 +32,14 @@ export const CustomServingRuntimeContext = React.createContext<CustomServingRunt
 const CustomServingRuntimeContextProvider: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
 
+  // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
   const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
-    useTemplates(dashboardNamespace),
+    useTemplates(dashboardNamespace, true),
   );
 
+  // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
-    useTemplateOrder(dashboardNamespace),
+    useTemplateOrder(dashboardNamespace, true),
     2 * 60 * 1000,
   );
 

@@ -118,7 +118,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(true);
 
     if (!servingRuntimeSelected) {
-      setErrorModal(new Error('Error retrieving Serving Runtime'));
+      setErrorModal(
+        new Error(
+          'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
+        ),
+      );
       return;
     }
     const servingRuntimeData = {
@@ -206,7 +210,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   return (
     <Modal
-      title="Configure model server"
+      title="Add model server"
       variant="medium"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
@@ -219,7 +223,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
           onClick={submit}
           isLoading={actionInProgress}
         >
-          Configure
+          Add
         </Button>,
         <Button key="cancel-model" variant="secondary" onClick={() => onBeforeClose(false)}>
           Cancel

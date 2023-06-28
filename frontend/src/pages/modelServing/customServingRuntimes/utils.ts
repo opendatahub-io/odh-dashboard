@@ -23,7 +23,6 @@ export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
 
 export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
   obj.kind === 'ServingRuntime' &&
-  obj.spec?.builtInAdapter !== undefined &&
   obj.spec?.containers !== undefined &&
   obj.spec?.supportedModelFormats !== undefined;
 
@@ -50,7 +49,12 @@ export const getServingRuntimeFromTemplate = (
   return template.objects[0];
 };
 
-export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string =>
-  resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
-  resource.metadata.annotations?.['opendatahub.io/template-name'] ||
-  'Unknown Serving Runtime';
+export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string => {
+  const templateName =
+    resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
+    resource.metadata.annotations?.['opendatahub.io/template-name'];
+  const legacyTemplateName =
+    resource.spec.builtInAdapter?.serverType === 'ovms' ? 'OpenVINO Model Server' : undefined;
+
+  return templateName || legacyTemplateName || 'Unknown Serving Runtime';
+};

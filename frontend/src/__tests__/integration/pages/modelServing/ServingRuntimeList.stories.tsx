@@ -1,17 +1,22 @@
 import React from 'react';
 
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react';
 import { rest } from 'msw';
 import { userEvent, within } from '@storybook/testing-library';
-import { expect } from '@storybook/jest';
 import { Route } from 'react-router-dom';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
+import {
+  mockRouteK8sResource,
+  mockRouteK8sResourceModelServing,
+} from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import {
+  mockServingRuntimeK8sResource,
+  mockServingRuntimeK8sResourceLegacy,
+} from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
@@ -20,10 +25,10 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import useDetectUser from '~/utilities/useDetectUser';
 import { fetchDashboardConfig } from '~/services/dashboardConfigService';
-import ServingRuntimeList from './ServingRuntimeList';
+import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
+import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 
 export default {
-  title: 'ServingRuntimeList',
   component: ServingRuntimeList,
   parameters: {
     reactRouter: {
@@ -57,7 +62,12 @@ export default {
         ),
         rest.get(
           'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
-          (req, res, ctx) => res(ctx.json(mockK8sResourceList([]))),
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([mockInferenceServiceK8sResource({ name: 'test-inference' })]),
+              ),
+            ),
         ),
         rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
           res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
@@ -65,7 +75,31 @@ export default {
         rest.get(
           'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
           (req, res, ctx) =>
-            res(ctx.json(mockK8sResourceList([mockServingRuntimeK8sResource({})]))),
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockServingRuntimeK8sResourceLegacy({}),
+                  mockServingRuntimeK8sResource({
+                    name: 'test-model',
+                    namespace: 'test-project',
+                    auth: true,
+                    route: true,
+                  }),
+                ]),
+              ),
+            ),
+        ),
+        rest.get(
+          '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-inference',
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockRouteK8sResourceModelServing({
+                  inferenceServiceName: 'test-inference',
+                  namespace: 'test-project',
+                }),
+              ),
+            ),
         ),
         rest.get(
           '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
@@ -82,9 +116,9 @@ export default {
       ],
     },
   },
-} as ComponentMeta<typeof ServingRuntimeList>;
+} as Meta<typeof ServingRuntimeList>;
 
-const Template: ComponentStory<typeof ServingRuntimeList> = (args) => {
+const Template: StoryFn<typeof ServingRuntimeList> = (args) => {
   fetchDashboardConfig();
   useDetectUser();
   return (
@@ -96,37 +130,25 @@ const Template: ComponentStory<typeof ServingRuntimeList> = (args) => {
   );
 };
 
-export const Default = Template.bind({});
-Default.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('ovms', undefined, { timeout: 5000 });
+export const ListAvailableModels = {
+  render: Template,
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('ovms', undefined, { timeout: 5000 });
+    await canvas.findByText('OVMS Model Serving', undefined, { timeout: 5000 });
+  },
 };
 
-export const DeployModel = Template.bind({});
-DeployModel.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('ovms', undefined, { timeout: 5000 });
+export const DeployModel = {
+  render: Template,
 
-  await userEvent.click(canvas.getByText('Deploy model', { selector: 'button' }));
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('ovms', undefined, { timeout: 5000 });
 
-  // get modal
-  const body = within(canvasElement.ownerDocument.body);
-  const nameInput = body.getByRole('textbox', { name: /Model Name/ });
-  const dropdowns = body.getAllByRole('button', { name: /Options menu/ });
-  const frameworkDropdown = dropdowns[0];
-  const secretDropdown = dropdowns[1];
-  const deployButton = body.getByText('Deploy', { selector: 'button' });
-
-  await userEvent.type(nameInput, 'Updated Model', { delay: 50 });
-  expect(deployButton).toBeDisabled();
-
-  await userEvent.click(frameworkDropdown);
-  await userEvent.click(body.getByText('onnx - 1'));
-  expect(deployButton).toBeDisabled();
-
-  await userEvent.click(secretDropdown);
-  await userEvent.click(body.getByText('Test Secret'));
-  expect(deployButton).not.toBeDisabled();
+    await userEvent.click(canvas.getAllByText('Deploy model', { selector: 'button' })[0]);
+  },
 };

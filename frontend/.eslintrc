@@ -43,10 +43,7 @@
       "version": "detect"
     },
     "import/parsers": {
-      "@typescript-eslint/parser": [
-        ".ts",
-        ".tsx"
-      ]
+      "@typescript-eslint/parser": [".ts", ".tsx"]
     }
   },
   "rules": {
@@ -59,9 +56,7 @@
       {
         "patterns": [
           {
-            "group": [
-              "~/api/**"
-            ],
+            "group": ["~/api/**"],
             "message": "Read from '~/api' instead."
           }
         ]
@@ -89,9 +84,7 @@
             "position": "after"
           }
         ],
-        "pathGroupsExcludedImportTypes": [
-          "builtin"
-        ],
+        "pathGroupsExcludedImportTypes": ["builtin"],
         "groups": [
           "builtin",
           "external",
@@ -125,16 +118,12 @@
   },
   "overrides": [
     {
-      "files": [
-        "./src/api/**"
-      ],
+      "files": ["./src/api/**"],
       "rules": {
         "no-restricted-imports": [
           "off",
           {
-            "patterns": [
-              "~/api/**"
-            ]
+            "patterns": ["~/api/**"]
           }
         ]
       }

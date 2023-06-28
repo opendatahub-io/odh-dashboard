@@ -49,7 +49,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
             templateOOTB
               ? [
                   {
-                    title: 'Clone',
+                    title: 'Duplicate',
                     onClick: () =>
                       navigate('/servingRuntimes/addServingRuntime', {
                         state: { template: template.objects[0] },

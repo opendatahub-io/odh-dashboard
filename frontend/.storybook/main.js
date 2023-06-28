@@ -1,25 +1,20 @@
 const path = require('path');
-const SRC_DIR = process.env._ODH_SRC_DIR;
-
 
 module.exports = {
   features: {
     interactionsDebugger: true,
   },
-  "stories": [
-    "../src/**/*.stories.mdx",
-    "../src/**/*.stories.@(js|jsx|ts|tsx)"
+  stories: ['../src/**/*.stories.mdx', '../src/**/*.stories.@(js|jsx|ts|tsx)'],
+  addons: [
+    '@storybook/addon-links',
+    '@storybook/addon-essentials',
+    '@storybook/addon-interactions',
+    '@storybook/addon-a11y',
+    'storybook-addon-react-router-v6',
   ],
-  "addons": [
-    "@storybook/addon-links",
-    "@storybook/addon-essentials",
-    "@storybook/addon-interactions",
-    "@storybook/addon-a11y",
-    "storybook-addon-react-router-v6"
-  ],
-  "framework": "@storybook/react",
-  "core": {
-    "builder": "@storybook/builder-webpack5"
+  framework: {
+    name: '@storybook/react-webpack5',
+    options: {},
   },
   webpackFinal: async (config) => {
     config.module.rules.push({
@@ -30,13 +25,14 @@ module.exports = {
         // Translates CSS into CommonJS
         'css-loader',
         // Compiles Sass to CSS
-        'sass-loader'
-      ]
-    })
-
+        'sass-loader',
+      ],
+    });
     config.resolve.alias['~'] = path.resolve(__dirname, '../src/');
-    config.resolve.extensions.push(".ts", ".tsx", ".js", ".jsx");
-
+    config.resolve.extensions.push('.ts', '.tsx', '.js', '.jsx');
     return config;
   },
-}
+  docs: {
+    autodocs: false,
+  },
+};

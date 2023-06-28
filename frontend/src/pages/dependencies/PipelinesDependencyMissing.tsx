@@ -7,17 +7,34 @@ import {
   EmptyStateVariant,
   Bullseye,
   Button,
+  Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useOpenShiftURL } from '~/utilities/clusterUtils';
-import { useUser } from '~/redux/selectors';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { useAccessReview } from '~/api';
+import { AccessReviewResourceAttributes } from '~/k8sTypes';
+
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'operators.coreos.com/v1alpha1',
+  resource: 'ClusterServiceVersion',
+  verb: 'create',
+};
 
 const PipelinesDependencyMissing: React.FC = () => {
   const url = useOpenShiftURL();
-  const { isAdmin } = useUser();
 
-  if (isAdmin) {
+  const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
+
+  if (!rbacLoaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (allowCreate) {
     return (
       <Bullseye>
         <EmptyState variant={EmptyStateVariant.large}>
@@ -36,7 +53,7 @@ const PipelinesDependencyMissing: React.FC = () => {
               variant="primary"
               onClick={() => {
                 window.open(
-                  `${url}/operatorhub/ns/startup-pipeline-state?details-item=openshift-pipelines-operator-rh-redhat-operators-openshift-marketplace`,
+                  `${url}/operatorhub/ns/openshift-operators?keyword=red+hat+openshift+pipelines`,
                 );
               }}
             >

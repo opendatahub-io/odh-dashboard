@@ -2,9 +2,9 @@ const { injectAxe, checkA11y, configureAxe } = require('axe-playwright');
 
 const { getStoryContext } = require('@storybook/test-runner');
 /*
-* See https://storybook.js.org/docs/react/writing-tests/test-runner#test-hook-api-experimental
-* to learn more about the test-runner hooks API.
-*/
+ * See https://storybook.js.org/docs/react/writing-tests/test-runner#test-hook-api-experimental
+ * to learn more about the test-runner hooks API.
+ */
 module.exports = {
   async preRender(page) {
     await injectAxe(page);
@@ -18,7 +18,7 @@ module.exports = {
       rules: storyContext.parameters?.a11y?.config?.rules,
     });
 
-    await checkA11y(page, storyContext.parameters?.a11y?.element ?? "#root", {
+    await checkA11y(page, storyContext.parameters?.a11y?.element ?? '#storybook-root', {
       detailedReport: true,
       detailedReportOptions: {
         html: true,

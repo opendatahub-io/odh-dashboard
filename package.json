@@ -39,12 +39,13 @@
     "test": "run-s test:backend test:frontend",
     "test:backend": "cd ./backend && npm run test",
     "test:frontend": "cd ./frontend && npm run test",
+    "test:e2e": "cd ./frontend && npm run test:e2e",
+    "test:accessibility": "cd ./frontend && npm run test:accessibility",
+    "test:integration": "cd ./frontend && npm run test:integration",
+    "test:unit": "cd ./frontend && npm run test:unit",
     "test:fix": "run-s test:fix-backend test:fix-frontend",
     "test:fix-backend": "cd ./backend && npm run test:fix",
-    "test:fix-frontend": "cd ./frontend && npm run test:fix",
-    "test:integration": "jest --roots=./tests",
-    "test:integration-dev": "npm run build; jest --roots=./tests --watchAll",
-    "test:integration-fix": "npm run build; jest --roots=./tests --update-snapshot"
+    "test:fix-frontend": "cd ./frontend && npm run test:fix"
   },
   "dependencies": {
     "dotenv": "^8.2.0",

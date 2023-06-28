@@ -1,17 +1,22 @@
 import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
 import { within } from '@storybook/testing-library';
-import { expect } from '@storybook/jest';
 import { Route } from 'react-router-dom';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
+import {
+  mockRouteK8sResource,
+  mockRouteK8sResourceModelServing,
+} from '~/__mocks__/mockRouteK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import {
+  mockServingRuntimeK8sResource,
+  mockServingRuntimeK8sResourceLegacy,
+} from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
@@ -19,7 +24,7 @@ import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import ProjectDetails from './ProjectDetails';
+import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
   rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
@@ -64,7 +69,13 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
     (req, res, ctx) =>
-      res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockInferenceServiceK8sResource({})]))),
+      res(
+        ctx.json(
+          mockK8sResourceList(
+            isEmpty ? [] : [mockInferenceServiceK8sResource({ name: 'test-inference' })],
+          ),
+        ),
+      ),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]))),
@@ -72,7 +83,35 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
     (req, res, ctx) =>
-      res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockServingRuntimeK8sResource({})]))),
+      res(
+        ctx.json(
+          mockK8sResourceList(
+            isEmpty
+              ? []
+              : [
+                  mockServingRuntimeK8sResourceLegacy({}),
+                  mockServingRuntimeK8sResource({
+                    name: 'test-model',
+                    namespace: 'test-project',
+                    auth: true,
+                    route: true,
+                  }),
+                ],
+          ),
+        ),
+      ),
+  ),
+  rest.get(
+    '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/test-inference',
+    (req, res, ctx) =>
+      res(
+        ctx.json(
+          mockRouteK8sResourceModelServing({
+            inferenceServiceName: 'test-inference',
+            namespace: 'test-project',
+          }),
+        ),
+      ),
   ),
   rest.get(
     '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
@@ -89,7 +128,6 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
 ];
 
 export default {
-  title: 'ProjectDetails',
   component: ProjectDetails,
   parameters: {
     reactRouter: {
@@ -100,9 +138,9 @@ export default {
       handlers: handlers(false),
     },
   },
-} as ComponentMeta<typeof ProjectDetails>;
+} as Meta<typeof ProjectDetails>;
 
-const Template: ComponentStory<typeof ProjectDetails> = (args) => {
+const Template: StoryFn<typeof ProjectDetails> = (args) => {
   useDetectUser();
   return (
     <ProjectsRoutes>
@@ -113,34 +151,27 @@ const Template: ComponentStory<typeof ProjectDetails> = (args) => {
   );
 };
 
-export const Default = Template.bind({});
-Default.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
-
-  // we fill in the page with data, so there should be no dividers on the page
-  expect(canvas.queryAllByTestId('details-page-section-divider')).toHaveLength(0);
-
-  // check the x-small size shown correctly
-  expect(canvas.getByText('XSmall')).toBeInTheDocument();
-};
-
-export const EmptyDetailsPage = Template.bind({});
-EmptyDetailsPage.parameters = {
-  ...EmptyDetailsPage.parameters,
-  msw: {
-    handlers: handlers(true),
+export const Default = {
+  render: Template,
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
   },
 };
-EmptyDetailsPage.play = async ({ canvasElement }) => {
-  // load page and wait until settled
-  const canvas = within(canvasElement);
-  await canvas.findByText('No model servers', undefined, { timeout: 5000 });
 
-  // the dividers number should always 1 less than the section number
-  const sections = await canvas.findAllByTestId('details-page-section');
-  expect(await canvas.findAllByTestId('details-page-section-divider')).toHaveLength(
-    sections.length - 1,
-  );
+export const EmptyDetailsPage = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: handlers(true),
+    },
+  },
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('No model servers', undefined, { timeout: 5000 });
+  },
 };

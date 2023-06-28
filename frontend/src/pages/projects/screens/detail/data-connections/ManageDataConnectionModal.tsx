@@ -173,7 +173,6 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
             <ConnectedNotebookField
               loaded={notebooksLoaded}
               notebooks={allAvailableNotebooks}
-              isRequired
               isMultiSelect
               selections={selectedNotebooks}
               onSelect={(selectionItems) => {

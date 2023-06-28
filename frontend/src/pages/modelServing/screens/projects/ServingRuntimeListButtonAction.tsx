@@ -16,10 +16,10 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
     return (
       <Tooltip
         removeFindDomNode
-        aria-label="Configure Server Info"
+        aria-label="Add Server Info"
         content={
           <Text>
-            At least one serving runtime must be enabled to configure a model server. Contact your
+            At least one serving runtime must be enabled to add a model server. Contact your
             administrator
           </Text>
         }
@@ -30,7 +30,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
           onClick={onClick}
           variant="secondary"
         >
-          Configure server
+          Add server
         </Button>
       </Tooltip>
     );
@@ -43,7 +43,7 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
       onClick={onClick}
       variant="secondary"
     >
-      Configure server
+      Add server
     </Button>
   );
 };
