@@ -22,7 +22,6 @@ const useTrustyAIAPIRoute = (hasCR: boolean, namespace: string): FetchState<Stat
         return Promise.reject(new NotReadyError('CR not created'));
       }
 
-      //TODO: API URI must use HTTPS before release.
       return getTrustyAIAPIRoute(namespace, opts)
         .then((result: RouteKind) => `https://${result.spec.host}`)
         .catch((e) => {
