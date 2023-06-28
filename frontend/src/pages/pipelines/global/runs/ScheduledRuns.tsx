@@ -11,8 +11,13 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import CreateRunEmptyState from '~/pages/pipelines/global/runs/CreateRunEmptyState';
 import usePipelineRunJobs from '~/concepts/pipelines/apiHooks/usePipelineRunJobs';
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
-const ScheduledRuns: React.FC = () => {
+type ScheduledRunsProps = {
+  experiments: ExperimentKF[];
+};
+
+const ScheduledRuns: React.FC<ScheduledRunsProps> = ({ experiments }) => {
   const [jobs, loaded, error] = usePipelineRunJobs();
 
   if (error) {
@@ -46,7 +51,7 @@ const ScheduledRuns: React.FC = () => {
     );
   }
 
-  return <PipelineRunJobTable jobs={jobs} />;
+  return <PipelineRunJobTable jobs={jobs} experiments={experiments} />;
 };
 
 export default ScheduledRuns;

@@ -29,15 +29,15 @@ const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[]
       relationship: RelationshipKF.CREATOR,
     });
   }
-  // if (formData.experiment) {
-  //   refs.push({
-  //     key: {
-  //       id: formData.experiment.id,
-  //       type: ResourceTypeKF.EXPERIMENT,
-  //     },
-  //     relationship: RelationshipKF.OWNER,
-  //   });
-  // }
+  if (formData.experiment) {
+    refs.push({
+      key: {
+        id: formData.experiment.id,
+        type: ResourceTypeKF.EXPERIMENT,
+      },
+      relationship: RelationshipKF.OWNER,
+    });
+  }
 
   return refs;
 };
