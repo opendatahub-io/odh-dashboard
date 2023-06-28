@@ -20,6 +20,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
       loaded: templateDisablementLoaded,
       refresh: refreshDisablement,
     },
+    servingRuntimeTemplates: { data: templates },
   } = React.useContext(CustomServingRuntimeContext);
   const { dashboardNamespace } = useDashboardNamespace();
   const [isEnabled, setEnabled] = React.useState(true);
@@ -34,7 +35,12 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
-    const templateDisablemetUpdated = setListDisabled(template, templateDisablement, !checked);
+    const templateDisablemetUpdated = setListDisabled(
+      template,
+      templates,
+      templateDisablement,
+      !checked,
+    );
     // TODO: Revert back to pass through api once we migrate admin panel
     patchDashboardConfigTemplateDisablementBackend(templateDisablemetUpdated, dashboardNamespace)
       .then(() => {

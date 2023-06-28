@@ -17,18 +17,22 @@ export const getSortedTemplates = (templates: TemplateKind[], order: string[]) =
 
 export const setListDisabled = (
   template: TemplateKind,
+  listTemplates: TemplateKind[],
   templateDisablement: string[],
   isDisabled: boolean,
 ): string[] => {
   const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
+  const templateDisablementFiltered = templateDisablement.filter((item) =>
+    listTemplates.find((t) => getServingRuntimeNameFromTemplate(t) === item),
+  );
   if (isDisabled) {
-    if (!templateDisablement.includes(servingRuntimeName)) {
-      return [...templateDisablement, servingRuntimeName];
+    if (!templateDisablementFiltered.includes(servingRuntimeName)) {
+      return [...templateDisablementFiltered, servingRuntimeName];
     }
   } else {
-    return templateDisablement.filter((item) => item !== servingRuntimeName);
+    return templateDisablementFiltered.filter((item) => item !== servingRuntimeName);
   }
-  return templateDisablement;
+  return templateDisablementFiltered;
 };
 
 export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind) =>
