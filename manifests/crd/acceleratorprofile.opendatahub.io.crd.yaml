@@ -23,13 +23,17 @@ spec:
               type: object
               required:
                 - display-name
+                - enabled
+                - identifier
               properties:
                 display-name:
                   type: string
-                enabled: true
-                identifier: "nvidia.com/gpu" # this is the matching for supported-accelerator annotation
-                # optional
-                description: "This is nvidia.com/gpu accelerator profile"
-                # unknown yet -- tbd if this is metadata annotation
-                #modifiedDate: ... (likely iso format)
+                enabled:
+                  type: boolean
+                identifier:
+                  type: string
+                description:
+                  type: string
+                modifiedDate:
+                  type: string
    
