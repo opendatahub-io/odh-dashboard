@@ -1,4 +1,4 @@
-import { KubeFastifyInstance, Notebook, NotebookData, Route } from '../../../types';
+import { KubeFastifyInstance, Notebook, NotebookData } from '../../../types';
 import { PatchUtils, V1ContainerStatus, V1Pod, V1PodList } from '@kubernetes/client-node';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
