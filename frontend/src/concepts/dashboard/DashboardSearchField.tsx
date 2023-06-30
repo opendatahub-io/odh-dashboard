@@ -1,13 +1,20 @@
 import * as React from 'react';
 import { InputGroup, SearchInput, Select, SelectOption } from '@patternfly/react-core';
 
+// List all the possible search fields here
 export enum SearchType {
   NAME = 'Name',
   USER = 'User',
   PROJECT = 'Project',
+  METRIC = 'Metric',
+  PROTECTED_ATTRIBUTE = 'Protected attribute',
+  PRIVILEGED_VALUE = 'Privileged value',
+  UNPRIVILEGED_VALUE = 'Unprivileged value',
+  OUTPUT = 'Output',
+  OUTPUT_VALUE = 'Output value',
 }
 
-type SearchFieldProps = {
+type DashboardSearchFieldProps = {
   types: string[];
   searchType: SearchType;
   onSearchTypeChange: (searchType: SearchType) => void;
@@ -15,7 +22,7 @@ type SearchFieldProps = {
   onSearchValueChange: (searchValue: string) => void;
 };
 
-const SearchField: React.FC<SearchFieldProps> = ({
+const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
   types,
   searchValue,
   searchType,
@@ -57,4 +64,4 @@ const SearchField: React.FC<SearchFieldProps> = ({
   );
 };
 
-export default SearchField;
+export default DashboardSearchField;

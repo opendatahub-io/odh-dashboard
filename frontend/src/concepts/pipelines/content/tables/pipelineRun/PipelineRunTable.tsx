@@ -8,7 +8,7 @@ import {
 } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import useCheckboxTable from '~/components/table/useCheckboxTable';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineRunFilter from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunFilter';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
@@ -60,7 +60,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs, experiments }
           data={filteredRuns}
           columns={pipelineRunColumns}
           enablePagination
-          emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
+          emptyTableView={<DashboardEmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
           toolbarContent={toolbarContent}
           rowRenderer={(run) => (
             <Tr key={run.id}>
@@ -81,7 +81,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs, experiments }
           columns={pipelineRunExperimentColumns}
           experiments={experiments}
           enablePagination
-          emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
+          emptyTableView={<DashboardEmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
           toolbarContent={toolbarContent}
           rowRenderer={(resource) => (
             <PipelineRunTableRow
