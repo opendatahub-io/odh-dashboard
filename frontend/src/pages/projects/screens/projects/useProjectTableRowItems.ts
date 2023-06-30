@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, ProjectKind } from '~/k8sTypes';
 
-type Item = {
+type KebabItem = {
   title?: string;
   isDisabled?: boolean;
   isSeparator?: boolean;
@@ -18,13 +18,13 @@ const useProjectTableRowItems = (
   isRefreshing: boolean,
   setEditData: (data: ProjectKind) => void,
   setDeleteData: (data: ProjectKind) => void,
-): Item[] => {
+): KebabItem[] => {
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
     namespace: project.metadata.name,
   });
   const navigate = useNavigate();
-  const item: Item[] = [
+  const item: KebabItem[] = [
     {
       title: 'Edit project',
       isDisabled: isRefreshing,
