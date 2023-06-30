@@ -16,6 +16,9 @@ const storage: { lastFetch: number; lastValue: GPUInfo } = {
   lastFetch: 0,
 };
 
+/**
+ * @deprecated
+ */
 export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInfo> => {
   if (storage.lastFetch >= Date.now() - 30_000) {
     fastify.log.info(`Returning cached gpu value (${JSON.stringify(storage)})`);
@@ -67,11 +70,15 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
     available: maxGpuNumber,
     autoscalers: scalingLimit,
   };
+
   storage.lastFetch = Date.now();
   storage.lastValue = data;
   return data;
 };
 
+/**
+ * @deprecated
+ */
 export const getGPUData = async (
   fastify: KubeFastifyInstance,
   podIP: string,

@@ -1,3 +1,4 @@
+import { AcceleratorState } from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
@@ -34,7 +35,7 @@ export type CreatingServingRuntimeObject = {
   servingRuntimeTemplateName: string;
   numReplicas: number;
   modelSize: ServingRuntimeSize;
-  gpus: number;
+  accelerator: AcceleratorState;
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];

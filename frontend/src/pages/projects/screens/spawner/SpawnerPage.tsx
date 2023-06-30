@@ -21,14 +21,14 @@ import {
   getNotebookDisplayName,
   getProjectDisplayName,
 } from '~/pages/projects/utils';
-import GPUSelectField from '~/pages/notebookController/screens/server/GPUSelectField';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
-import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useNotebookGPUNumber';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
+import AcceleratorSelectField from '~/pages/notebookController/screens/server/AcceleratorSelectField';
+import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -38,7 +38,11 @@ import { useNotebookSize } from './useNotebookSize';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
-import { getRootVolumeName, useMergeDefaultPVCName } from './spawnerUtils';
+import {
+  getCompatibleAcceleratorIdentifiers,
+  getRootVolumeName,
+  useMergeDefaultPVCName,
+} from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
@@ -61,7 +65,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageVersion: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = useNotebookSize();
-  const [selectedGpu, setSelectedGpu] = React.useState('0');
+  const [supportedAccelerators, setSupportedAccelerators] = React.useState<string[] | undefined>();
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
@@ -97,10 +101,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [notebookSize, setSelectedSize]);
 
-  const notebookGPU = useNotebookGPUNumber(existingNotebook);
+  const [notebookAcceleratorState, setNotebookAcceleratorState] =
+    useNotebookAccelerator(existingNotebook);
+
   React.useEffect(() => {
-    setSelectedGpu(notebookGPU.toString());
-  }, [notebookGPU, setSelectedGpu]);
+    if (selectedImage.imageStream) {
+      setSupportedAccelerators(getCompatibleAcceleratorIdentifiers(selectedImage.imageStream));
+    } else {
+      setSupportedAccelerators(undefined);
+    }
+  }, [selectedImage.imageStream]);
 
   const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
 
@@ -162,6 +172,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <ImageSelectorField
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
+                compatibleAccelerator={notebookAcceleratorState.accelerator?.spec?.identifier}
               />
             </FormSection>
             <FormSection
@@ -174,9 +185,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 setValue={setSelectedSize}
                 value={selectedSize}
               />
-              <GPUSelectField
-                value={selectedGpu}
-                setValue={(value: string) => setSelectedGpu(value)}
+              <AcceleratorSelectField
+                accelerator={notebookAcceleratorState.accelerator}
+                setAccelerator={(accelerator) =>
+                  setNotebookAcceleratorState('accelerator', accelerator)
+                }
+                acceleratorCount={notebookAcceleratorState.count}
+                setAcceleratorCount={(acceleratorCount) =>
+                  setNotebookAcceleratorState('count', acceleratorCount)
+                }
+                supportedAccelerators={supportedAccelerators}
               />
             </FormSection>
             <FormSection
@@ -234,7 +252,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     projectName: currentProject.metadata.name,
                     image: selectedImage,
                     notebookSize: selectedSize,
-                    gpus: parseInt(selectedGpu),
+                    accelerator: notebookAcceleratorState,
                     volumes: [],
                     volumeMounts: [],
                   }}
