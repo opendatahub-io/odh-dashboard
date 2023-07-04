@@ -2,6 +2,7 @@ import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { AWSSecretKind, KnownLabels, NotebookKind, RoleBindingKind, SecretKind } from '~/k8sTypes';
 import {
   ELYRA_ROLE_NAME,
+  ELYRA_SECRET_DATA_ENDPOINT,
   ELYRA_SECRET_DATA_KEY,
   ELYRA_SECRET_DATA_TYPE,
   ELYRA_SECRET_NAME,
@@ -63,7 +64,8 @@ export const generateElyraSecret = (
         engine: 'Tekton',
         auth_type: 'KUBERNETES_SERVICE_ACCOUNT_TOKEN',
         api_endpoint: route,
-        public_api_endpoint: `${location.origin}/pipelineRuns/${namespace}`,
+        // Append the id on the end to navigate to the details page for that PipelineRun
+        [ELYRA_SECRET_DATA_ENDPOINT]: `${location.origin}/pipelineRuns/${namespace}/pipelineRun/view/`,
         [ELYRA_SECRET_DATA_TYPE]: 'KUBERNETES_SECRET',
         cos_secret: dataConnectionName,
         cos_endpoint: atob(dataConnectionData[AWS_KEYS.S3_ENDPOINT]),
