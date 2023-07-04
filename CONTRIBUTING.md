@@ -120,7 +120,7 @@ npm run test:accessibility
 npm run test:integration
 ```
 
-## Build
+## Environment variables
 
 ### dotenv files
 
@@ -147,52 +147,29 @@ The dotenv files have access to default settings grouped by facet; frontend, bac
 
 ...
 
-## Deploy your version
+## Deploy a new dashboard version in your cluster
 
-Edit the opendatahub KfDef in your project, remove the section:
+For testing purposes, we recommend deploying a new version of the dashboard in your cluster following the steps below.
 
-```yaml
-    - kustomizeConfig:
-        repoRef:
-          name: manifests
-          path: odh-dashboard
-      name: odh-dashboard
-```
+### Prerequisites
 
-Remove the current deployment of the ODH Dashboard
-
-```bash
-make undeploy
-```
-
-or
-
-```bash
-npm run make:undeploy
-```
+1. Make sure you have the `oc` command line tool installed and configured to access your cluster.
+2. Make sure you have the `Open Data Hub Operator` installed in your cluster.
+3. Remove the `dashboard` component from your `KfDef` CR if already deployed.
+4. You can remove previous dashboard deployments by running `make undeploy` or `npm run make:undeploy`  in the root of this repository.
 
 ### Customize your env
 
-Customize `.env.local` file to image and source information as desired. `npm` and the `s2i` command line tool is required.
+We use `IMAGE_REPOSITORY` as the environment variable to specify the image to use for the dashboard. You can set it in the `.env.local` file in the root of this repository.
+This environment variable is used in the `Makefile` to build and deploy the dashboard image, and can be set to a new image tag to build or to a pre-built image to deploy.
 
-```.env.local
-IMAGE_REPOSITORY=quay.io/my-org/odh-dashboard:latest
-OC_URL=https://specify.in.env:6443
-OC_PROJECT=specify_in_.env
+### Building your image
 
-# user and password login
-OC_USER=specify_in_.env
-OC_PASSWORD=specify_in_.env
+To deploy a new image, you can either build it locally or use the one built by the CI.
 
-# or token login
-#OC_TOKEN=specify_in_.env
-```
+#### Local Build
 
-### Build command
-
-Push your branch to your repo for it to be visible to the s2i build.
-
-Then build:
+You can build your image by running
 
 ```bash
 make build
@@ -204,7 +181,9 @@ or
 npm run make:build
 ```
 
-### Pushing the image
+in the root of this repository. By default, we use [podman](https://podman.io/) as the default container tool, but you can change it by setting the `CONTAINER_TOOL` environment variable to `docker`.
+
+After building the image, you need to push it to a container registry accessible by your cluster. You can do that by running
 
 ```bash
 make push
@@ -216,9 +195,15 @@ or
 npm run make:push
 ```
 
+in the root of this repository.
+
+#### Pull Request Images
+
+All pull requests will have an associated `pr-<PULL REQUEST NUMBER>` image built and pushed to [quay.io](https://quay.io/repository/opendatahub/odh-dashboard) for use in testing and verifying code changes as part of the PR code review.  Any updates to the PR code will automatically trigger a new PR image build, replacing the previous hash that was referenced by `pr-<PULL REQUEST NUMBER>`.
+
 ### Deploying your image
 
-Required: The OpenShift, `oc`, command line tool is required.
+To deploy your image, you just need to run the following command in the root of this repository
 
 ```bash
 make deploy
@@ -230,6 +215,4 @@ or
 npm run make:deploy
 ```
 
-### Pull Request Images
-
-All pull requests will have an associated `pr-<PULL REQUEST NUMBER>` image built and pushed to [quay.io](https://quay.io/repository/opendatahub/odh-dashboard) for use in testing and verifying code changes as part of the PR code review.  Any updates to the PR code will automatically trigger a new PR image build, replacing the previous hash that was referenced by `pr-<PULL REQUEST NUMBER>`.
+you will deploy all the resources located in the `manifests` folder alongside the image you selected in the previous step.
