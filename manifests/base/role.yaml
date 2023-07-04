@@ -125,24 +125,12 @@ rules:
   - apiGroups:
       - template.openshift.io
     verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
+      - '*'
     resources:
       - templates
   - apiGroups:
       - serving.kserve.io
     verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
+      - '*'
     resources:
       - servingruntimes
