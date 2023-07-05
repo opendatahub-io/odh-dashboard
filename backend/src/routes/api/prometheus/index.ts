@@ -6,7 +6,7 @@ import {
   PrometheusQueryResponse,
   QueryType,
 } from '../../../types';
-import { callPrometheusPVC, callPrometheusServing } from '../../../utils/prometheusUtils';
+import { callPrometheusThanos, callPrometheusServing } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
@@ -36,12 +36,12 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     ): Promise<{ code: number; response: PrometheusQueryResponse }> => {
       const { query } = request.body;
 
-      return callPrometheusPVC(fastify, request, query).catch(handleError);
+      return callPrometheusThanos(fastify, request, query).catch(handleError);
     },
   );
 
   fastify.post(
-    '/pvc-range',
+    '/bias',
     async (
       request: OauthFastifyRequest<{
         Body: { query: string };
@@ -49,7 +49,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     ): Promise<{ code: number; response: PrometheusQueryResponse }> => {
       const { query } = request.body;
 
-      return callPrometheusPVC(fastify, request, query, QueryType.QUERY_RANGE).catch(handleError);
+      return callPrometheusThanos(fastify, request, query, QueryType.QUERY_RANGE).catch(
+        handleError,
+      );
     },
   );
 

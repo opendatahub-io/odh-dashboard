@@ -84,7 +84,7 @@ const generatePrometheusHostURL = (
   return `https://${instanceName}.${namespace}.svc.cluster.local:${port}`;
 };
 
-export const callPrometheusPVC = (
+export const callPrometheusThanos = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   query: string,

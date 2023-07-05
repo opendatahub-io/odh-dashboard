@@ -101,7 +101,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     trustyResponsePredicate,
-    '/api/prometheus/pvc-range',
+    '/api/prometheus/bias',
   );
 
   const modelTrustyAIDIR = useQueryRangeResourceData(
@@ -110,7 +110,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     trustyResponsePredicate,
-    '/api/prometheus/pvc-range',
+    '/api/prometheus/bias',
   );
 
   React.useEffect(() => {
