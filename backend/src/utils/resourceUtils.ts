@@ -769,7 +769,7 @@ export const migrateTemplateDisablement = async (
       const templatesDisabled = templateList.items
         .filter(
           (template) =>
-            template.metadata.annotations['opendatahub.io/template-enabled'] === 'false',
+            template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false',
         )
         .map((template) => getServingRuntimeNameFromTemplate(template));
       if (templatesDisabled.length > 0) {
@@ -802,6 +802,12 @@ export const migrateTemplateDisablement = async (
       } else {
         return dashboardConfig;
       }
+    })
+    .catch((e) => {
+      fastify.log.error(
+        `Error migrating template disablement: ${e.response?.body?.message || e.message || e}`,
+      );
+      return dashboardConfig;
     });
 };
 
