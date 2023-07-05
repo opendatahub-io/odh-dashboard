@@ -4,6 +4,7 @@ import {
   OauthFastifyRequest,
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
+  QueryType,
 } from '../../../types';
 import { callPrometheusPVC, callPrometheusServing } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
@@ -36,6 +37,19 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       const { query } = request.body;
 
       return callPrometheusPVC(fastify, request, query).catch(handleError);
+    },
+  );
+
+  fastify.post(
+    '/pvc-range',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryResponse }> => {
+      const { query } = request.body;
+
+      return callPrometheusPVC(fastify, request, query, QueryType.QUERY_RANGE).catch(handleError);
     },
   );
 

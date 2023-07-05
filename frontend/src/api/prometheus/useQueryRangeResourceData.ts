@@ -11,11 +11,12 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
   end: number,
   timeframe: TimeframeTitle,
   responsePredicate: ResponsePredicate<T>,
+  apiPath = '/api/prometheus/serving',
 ): ContextResourceData<T> =>
   useRestructureContextResourceData<T>(
     usePrometheusQueryRange<T>(
       active,
-      '/api/prometheus/serving',
+      apiPath,
       query,
       TimeframeTimeRange[timeframe],
       end,

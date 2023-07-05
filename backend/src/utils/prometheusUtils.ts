@@ -88,13 +88,14 @@ export const callPrometheusPVC = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   query: string,
+  queryType: QueryType = QueryType.QUERY,
 ): Promise<{ code: number; response: PrometheusQueryResponse }> =>
   callPrometheus(
     fastify,
     request,
     query,
     generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', '9092'),
-    QueryType.QUERY,
+    queryType,
   );
 
 export const callPrometheusServing = (
