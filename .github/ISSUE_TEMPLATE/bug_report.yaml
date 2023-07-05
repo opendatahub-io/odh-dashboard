@@ -1,7 +1,7 @@
 name: Bug Report
-description: File a bug report
+description: File a bug report.
 title: "[Bug]: "
-labels: ["kind/bug", "untriaged"]
+labels: ["kind/bug", "priority/normal", "untriaged"]
 body:
   - type: markdown
     attributes:
@@ -14,6 +14,27 @@ body:
       options:
       - label: I have searched the existing issues
         required: true
+  - type: dropdown
+    id: deploy-type
+    attributes:
+      label: Deploy type
+      description: |
+        How did you deploy the Dashboard?
+
+        Eg. what is the repo location, `odh-manifests` or `odh-dashboard`?
+      multiple: false
+      options:
+        - Using an OpenDataHub main version (eg. `v1.6.0`)
+        - Directly installing the Dashboard at the latest (eg. `odh-dashboard/main`)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What was the version this was found on?
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Current Behavior
@@ -55,12 +76,6 @@ body:
         - Microsoft Edge
     validations:
       required: false
-  - type: textarea
-    id: opendatahub-version
-    attributes:
-      label: Open Data Hub Version
-      description: Please attach relevant kfdef manifest if applicable
-      render: yml
   - type: textarea
     id: anything-else
     attributes:
