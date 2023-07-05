@@ -832,7 +832,7 @@ export type Template = K8sResourceCommon & {
     annotations?: Partial<{
       tags: string;
       iconClass?: string;
-      'opendatahub.io/template-enabled': string;
+      'opendatahub.io/template-enabled'?: string;
     }>;
     name: string;
     namespace: string;
