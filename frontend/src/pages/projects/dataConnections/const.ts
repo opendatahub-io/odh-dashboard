@@ -3,11 +3,11 @@ import { AWSDataEntry } from '~/pages/projects/types';
 
 export enum AWS_KEYS {
   NAME = 'Name',
-  ACCESS_KEY_ID = 'Access-Key',
-  SECRET_ACCESS_KEY = 'Secret-Key',
-  S3_ENDPOINT = 'Endpoint',
-  DEFAULT_REGION = 'Region',
-  AWS_S3_BUCKET = 'Bucket',
+  ACCESS_KEY_ID = 'AWS_ACCESS_KEY_ID',
+  SECRET_ACCESS_KEY = 'AWS_SECRET_ACCESS_KEY',
+  S3_ENDPOINT = 'AWS_S3_ENDPOINT',
+  DEFAULT_REGION = 'AWS_DEFAULT_REGION',
+  AWS_S3_BUCKET = 'AWS_S3_BUCKET',
 }
 
 export const AWS_FIELDS: FieldOptions[] = [
@@ -18,27 +18,27 @@ export const AWS_FIELDS: FieldOptions[] = [
   },
   {
     key: AWS_KEYS.ACCESS_KEY_ID,
-    label: AWS_KEYS.ACCESS_KEY_ID,
+    label: 'Access key',
     isRequired: true,
   },
   {
     key: AWS_KEYS.SECRET_ACCESS_KEY,
-    label: AWS_KEYS.SECRET_ACCESS_KEY,
+    label: 'Secret key',
     isPassword: true,
     isRequired: true,
   },
   {
     key: AWS_KEYS.S3_ENDPOINT,
-    label: AWS_KEYS.S3_ENDPOINT,
+    label: 'Endpoint',
     isRequired: true,
   },
   {
     key: AWS_KEYS.DEFAULT_REGION,
-    label: AWS_KEYS.DEFAULT_REGION,
+    label: 'Region',
   },
   {
     key: AWS_KEYS.AWS_S3_BUCKET,
-    label: AWS_KEYS.AWS_S3_BUCKET,
+    label: 'Bucket',
   },
 ];
 

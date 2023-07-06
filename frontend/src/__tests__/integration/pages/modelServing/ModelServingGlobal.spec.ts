@@ -37,8 +37,11 @@ test('Edit model', async ({ page }) => {
 
   // test that adding required values validates submit
   await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
-  await page.getByRole('textbox', { name: 'Field list Access-Key' }).fill('test-key');
-  await page.getByRole('textbox', { name: 'Field list Secret-Key' }).fill('test-secret-key');
+  await page.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' }).fill('test-key');
+  await page
+    .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
+    .fill('test-secret-key');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
   await expect(page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
@@ -75,7 +78,10 @@ test('Create model', async ({ page }) => {
   await page.getByText('New data connection').click();
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
-  await page.getByRole('textbox', { name: 'Field list Access-Key' }).fill('test-key');
-  await page.getByRole('textbox', { name: 'Field list Secret-Key' }).fill('test-secret-key');
+  await page.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' }).fill('test-key');
+  await page
+    .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
+    .fill('test-secret-key');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
 });
