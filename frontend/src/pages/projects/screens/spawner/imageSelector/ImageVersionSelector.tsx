@@ -59,7 +59,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     <FormGroup
       isRequired
       label="Version selection"
-      helperText="Hover an option to learn more information about the package."
+      helperText="Hover an option to learn more information about the packages included."
       fieldId="workbench-image-version-selection"
     >
       <Select
