@@ -5,14 +5,10 @@ import {
   ModelMetricType,
   ModelServingMetricsContext,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { per100 } from './utils';
 
 const ModelGraphs: React.FC = () => {
-  const { data, currentTimeframe } = React.useContext(ModelServingMetricsContext);
-
-  const inHours =
-    currentTimeframe === TimeframeTitle.ONE_HOUR || currentTimeframe === TimeframeTitle.ONE_DAY;
+  const { data } = React.useContext(ModelServingMetricsContext);
 
   return (
     <Stack hasGutter>
@@ -27,9 +23,10 @@ const ModelGraphs: React.FC = () => {
             {
               name: 'Failed http requests (x100)',
               metric: data[ModelMetricType.REQUEST_COUNT_FAILED],
+              translatePoint: per100,
             },
           ]}
-          title={`Http requests per ${inHours ? 'hour' : 'day'} (x100)`}
+          title="Http requests (x100)"
         />
       </StackItem>
     </Stack>

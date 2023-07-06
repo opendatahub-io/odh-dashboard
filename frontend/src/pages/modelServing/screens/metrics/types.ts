@@ -27,9 +27,11 @@ export type GraphMetricPoint = {
 export type GraphMetricLine = GraphMetricPoint[];
 
 export type ProcessedMetrics = {
-  data: GraphMetricLine[];
+  data: { points: GraphMetricLine; name: string }[];
   maxYValue: number;
   minYValue: number;
+  maxXValue: number;
+  minXValue: number;
 };
 
 export type MetricChartThreshold = {

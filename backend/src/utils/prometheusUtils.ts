@@ -2,7 +2,6 @@ import {
   KubeFastifyInstance,
   OauthFastifyRequest,
   PrometheusQueryRangeResponse,
-  PrometheusQueryResponse,
   QueryType,
 } from '../types';
 import { DEV_MODE } from './constants';
@@ -84,13 +83,13 @@ const generatePrometheusHostURL = (
   return `https://${instanceName}.${namespace}.svc.cluster.local:${port}`;
 };
 
-export const callPrometheusThanos = (
+export const callPrometheusThanos = <T>(
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   query: string,
   queryType: QueryType = QueryType.QUERY,
-): Promise<{ code: number; response: PrometheusQueryResponse }> =>
-  callPrometheus(
+): Promise<{ code: number; response: T }> =>
+  callPrometheus<T>(
     fastify,
     request,
     query,

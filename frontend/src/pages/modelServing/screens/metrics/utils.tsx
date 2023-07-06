@@ -4,7 +4,14 @@ import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { BreadcrumbItemType, DashboardConfig } from '~/types';
+import { BreadcrumbItemType, DashboardConfig, PrometheusQueryRangeResultValue } from '~/types';
+import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
+import { BiasMetricConfig } from '~/concepts/explainability/types';
+import {
+  BIAS_CHART_CONFIGS,
+  BIAS_THRESHOLD_COLOR,
+} from '~/pages/modelServing/screens/metrics/const';
+import { QueryTimeframeStep } from '~/pages/modelServing/screens/const';
 import {
   BiasSelectOption,
   DomainCalculator,
@@ -14,13 +21,7 @@ import {
   MetricChartThreshold,
   NamedMetricChartLine,
   TranslatePoint,
-} from '~/pages/modelServing/screens/metrics/types';
-import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
-import {
-  BIAS_CHART_CONFIGS,
-  BIAS_THRESHOLD_COLOR,
-} from '~/pages/modelServing/screens/metrics/const';
+} from './types';
 import { ModelMetricType, ServerMetricType } from './ModelServingMetricsContext';
 
 export const isModelMetricsEnabled = (
@@ -35,26 +36,35 @@ export const isModelMetricsEnabled = (
 
 export const getServerMetricsQueries = (
   server: ServingRuntimeKind,
+  currentTimeframe: TimeframeTitle,
 ): Record<ServerMetricType, string> => {
   const namespace = server.metadata.namespace;
+  const name = server.metadata.name;
+  const responseTimeStep = QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME][currentTimeframe];
   return {
-    // TODO: Get new queries
-    [ServerMetricType.REQUEST_COUNT]: `TBD`,
-    [ServerMetricType.AVG_RESPONSE_TIME]: `rate(modelmesh_api_request_milliseconds_sum{exported_namespace="${namespace}"}[1m])/rate(modelmesh_api_request_milliseconds_count{exported_namespace="${namespace}"}[1m])`,
-    [ServerMetricType.CPU_UTILIZATION]: `TBD`,
-    [ServerMetricType.MEMORY_UTILIZATION]: `TBD`,
+    [ServerMetricType.REQUEST_COUNT]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${
+      QueryTimeframeStep[ServerMetricType.REQUEST_COUNT][currentTimeframe]
+    }s]))`,
+    [ServerMetricType.AVG_RESPONSE_TIME]: `increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])/increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])`,
+    [ServerMetricType.CPU_UTILIZATION]: `sum(pod:container_cpu_usage:sum{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="cpu", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
+    [ServerMetricType.MEMORY_UTILIZATION]: `sum(container_memory_working_set_bytes{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="memory", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
   };
 };
 
 export const getModelMetricsQueries = (
   model: InferenceServiceKind,
+  currentTimeframe: TimeframeTitle,
 ): Record<ModelMetricType, string> => {
   const namespace = model.metadata.namespace;
   const name = model.metadata.name;
 
   return {
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}"})`,
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="2xx"}[${
+      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
+    }s]))`,
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="4xx|5xx"}[${
+      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED][currentTimeframe]
+    }s]))`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
   };
@@ -96,9 +106,10 @@ export const convertTimestamp = (timestamp: number, show?: 'date' | 'second'): s
   hour = hour ? hour : 12;
   const minuteString = minute < 10 ? '0' + minute : minute;
   const secondString = second < 10 ? '0' + second : second;
-  return `${show === 'date' ? `${day} ${month} ` : ''}${hour}:${minuteString}${
-    show === 'second' ? `:${secondString}` : ''
-  } ${ampm}`;
+  if (show === 'date') {
+    return `${day} ${month}`;
+  }
+  return `${hour}:${minuteString}${show === 'second' ? `:${secondString}` : ''} ${ampm}`;
 };
 
 export const getThresholdData = (data: GraphMetricLine[], threshold: number): GraphMetricLine =>
@@ -125,7 +136,12 @@ export const formatToShow = (timeframe: TimeframeTitle): 'date' | 'second' | und
 
 export const per100: TranslatePoint = (point) => ({
   ...point,
-  y: point.y / 100,
+  y: Number((point.y / 100).toFixed(2)),
+});
+
+export const toPercentage: TranslatePoint = (point) => ({
+  ...point,
+  y: point.y * 100,
 });
 
 export const createGraphMetricLine = ({
@@ -315,3 +331,6 @@ export const convertConfigurationRequestType = (
 
 export const getThresholdDefaultDelta = (metricType?: BiasMetricType) =>
   metricType && BIAS_CHART_CONFIGS[metricType].defaultDelta;
+
+export const convertPrometheusNaNToZero = (data: PrometheusQueryRangeResultValue[]) =>
+  data.map((value) => [value[0], isNaN(Number(value[1])) ? '0' : value[1]]);

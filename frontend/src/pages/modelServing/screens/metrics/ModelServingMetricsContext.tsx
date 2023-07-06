@@ -7,6 +7,7 @@ import {
   RefreshIntervalTitle,
   TimeframeTitle,
 } from '~/pages/modelServing/screens/types';
+import useCurrentTimeframeBrowserStorage from './useCurrentTimeframeBrowserStorage';
 
 export enum ServerMetricType {
   AVG_RESPONSE_TIME = 'runtime_avg-response-time',
@@ -68,9 +69,7 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
   children,
   type,
 }) => {
-  const [currentTimeframe, setCurrentTimeframe] = React.useState<TimeframeTitle>(
-    TimeframeTitle.ONE_DAY,
-  );
+  const [currentTimeframe, setCurrentTimeframe] = useCurrentTimeframeBrowserStorage();
 
   const [currentRefreshInterval, setCurrentRefreshInterval] = React.useState<RefreshIntervalTitle>(
     RefreshIntervalTitle.FIVE_MINUTES,
