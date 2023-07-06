@@ -125,14 +125,14 @@ export const configureDSPipelineResourceSpec = (
     const databaseRecord = dataEntryToRecord(config.database.value);
 
     const [, externalStorageScheme, externalStorageHost] =
-      awsRecord.AWS_S3_ENDPOINT?.match(/^(\w+):\/\/(.*)/) ?? [];
+      awsRecord.Endpoint?.match(/^(\w+):\/\/(.*)/) ?? [];
 
     return {
       objectStorage: {
         externalStorage: {
           host: externalStorageHost.replace(/\/$/, ''),
           scheme: externalStorageScheme,
-          bucket: awsRecord.AWS_S3_BUCKET || '',
+          bucket: awsRecord.Bucket || '',
           s3CredentialsSecret: {
             accessKey: AWS_KEYS.ACCESS_KEY_ID,
             secretKey: AWS_KEYS.SECRET_ACCESS_KEY,
