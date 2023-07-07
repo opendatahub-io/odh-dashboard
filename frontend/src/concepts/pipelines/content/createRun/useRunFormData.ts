@@ -174,6 +174,7 @@ const useRunFormData = (
       name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
       description: initialData?.description ?? '',
     },
+    pipelinesLoaded: false,
     pipeline: lastPipeline ?? null,
     // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
