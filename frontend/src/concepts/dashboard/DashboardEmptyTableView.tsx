@@ -10,11 +10,11 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 
-type EmptyTableViewProps = {
+type DashboardEmptyTableViewProps = {
   onClearFilters: () => void;
 };
 
-const EmptyTableView: React.FC<EmptyTableViewProps> = ({ onClearFilters }) => (
+const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({ onClearFilters }) => (
   <Bullseye>
     <EmptyState>
       <EmptyStateIcon icon={SearchIcon} />
@@ -33,4 +33,4 @@ const EmptyTableView: React.FC<EmptyTableViewProps> = ({ onClearFilters }) => (
   </Bullseye>
 );
 
-export default EmptyTableView;
+export default DashboardEmptyTableView;

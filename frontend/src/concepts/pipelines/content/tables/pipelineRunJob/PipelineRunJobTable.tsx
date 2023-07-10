@@ -14,7 +14,7 @@ import useCheckboxTable from '~/components/table/useCheckboxTable';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
 import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import usePipelineRunJobFilter from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobFilter';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ToggleGroupOption } from '~/concepts/pipelines/content/tables/ExperimentToggleGroup';
@@ -62,7 +62,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs, experiment
           data={filterJobs}
           columns={pipelineRunJobColumns}
           enablePagination
-          emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
+          emptyTableView={<DashboardEmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
           toolbarContent={toolbarContent}
           rowRenderer={(job) => (
             <Tr key={job.id}>
@@ -82,7 +82,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs, experiment
           experiments={experiments}
           columns={pipelineRunJobExperimentColumns}
           enablePagination
-          emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
+          emptyTableView={<DashboardEmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
           toolbarContent={toolbarContent}
           rowRenderer={(resource) => (
             <PipelineRunJobTableRow
@@ -94,7 +94,6 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs, experiment
           )}
         />
       )}
-
       <DeletePipelineCoreResourceModal
         toDeleteResources={deleteResources}
         type="scheduled run"

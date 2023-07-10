@@ -1,54 +1,96 @@
 import * as React from 'react';
 import {
   Card,
+  CardActions,
   CardBody,
+  CardHeader,
   CardTitle,
   EmptyState,
   EmptyStateIcon,
   Spinner,
   Title,
+  Toolbar,
+  ToolbarContent,
 } from '@patternfly/react-core';
 import {
   Chart,
   ChartArea,
   ChartAxis,
   ChartGroup,
+  ChartLine,
+  ChartThemeColor,
   ChartThreshold,
   ChartVoronoiContainer,
   getResizeObserver,
 } from '@patternfly/react-charts';
 import { CubesIcon } from '@patternfly/react-icons';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { TimeframeTime } from '~/pages/modelServing/screens/const';
+import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
-import { convertTimestamp, formatToShow, getThresholdData } from './utils';
+import {
+  DomainCalculator,
+  MetricChartLine,
+  MetricChartThreshold,
+  MetricsChartTypes,
+  ProcessedMetrics,
+} from './types';
+import {
+  convertTimestamp,
+  createGraphMetricLine,
+  defaultDomainCalculator,
+  formatToShow,
+  getThresholdData,
+  useStableMetrics,
+} from './utils';
 
 type MetricsChartProps = {
   title: string;
-  color: string;
-  metrics: ContextResourceData<PrometheusQueryRangeResultValue>;
-  unit?: string;
-  threshold?: number;
+  color?: string;
+  metrics: MetricChartLine;
+  thresholds?: MetricChartThreshold[];
+  domain?: DomainCalculator;
+  toolbar?: React.ReactElement<typeof ToolbarContent>;
+  type?: MetricsChartTypes;
 };
-
-const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit, threshold }) => {
+const MetricsChart: React.FC<MetricsChartProps> = ({
+  title,
+  color,
+  metrics: unstableMetrics,
+  thresholds = [],
+  domain = defaultDomainCalculator,
+  toolbar,
+  type = MetricsChartTypes.AREA,
+}) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
   const { currentTimeframe, lastUpdateTime } = React.useContext(ModelServingMetricsContext);
+  const metrics = useStableMetrics(unstableMetrics, title);
 
-  const processedData = React.useMemo(
+  const {
+    data: graphLines,
+    maxYValue,
+    minYValue,
+  } = React.useMemo(
     () =>
-      metrics.data?.map((data) => ({
-        x: data[0] * 1000,
-        y: parseInt(data[1]),
-        name: title,
-      })) || [],
-    [metrics, title],
+      metrics.reduce<ProcessedMetrics>(
+        (acc, metric) => {
+          const lineValues = createGraphMetricLine(metric);
+          const newMaxValue = Math.max(...lineValues.map((v) => v.y));
+          const newMinValue = Math.min(...lineValues.map((v) => v.y));
+
+          return {
+            data: [...acc.data, lineValues],
+            maxYValue: Math.max(acc.maxYValue, newMaxValue),
+            minYValue: Math.min(acc.minYValue, newMinValue),
+          };
+        },
+        { data: [], maxYValue: 0, minYValue: 0 },
+      ),
+    [metrics],
   );
 
-  const maxValue = Math.max(...processedData.map((e) => e.y));
-
-  const hasData = processedData.length > 0;
+  const error = metrics.find((line) => line.metric.error)?.metric.error;
+  const isAllLoaded = metrics.every((line) => line.metric.loaded);
+  const hasSomeData = graphLines.some((line) => line.length > 0);
 
   React.useEffect(() => {
     const ref = bodyRef.current;
@@ -61,14 +103,31 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit
       handleResize();
     }
     return () => observer();
-  }, [bodyRef]);
+  }, []);
+
+  let legendProps: Partial<React.ComponentProps<typeof Chart>> = {};
+  if (metrics.length > 1 && metrics.every(({ name }) => !!name)) {
+    // We don't need a label if there is only one line & we need a name for every item (or it won't align)
+    legendProps = {
+      legendData: metrics.map(({ name }) => ({ name })),
+      legendOrientation: 'horizontal',
+      legendPosition: 'bottom-left',
+    };
+  }
 
   return (
     <Card>
-      <CardTitle>{`${title}${unit ? ` (${unit})` : ''}`}</CardTitle>
-      <CardBody style={{ height: hasData ? 400 : 200, padding: 0 }}>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {toolbar && (
+          <CardActions>
+            <Toolbar>{toolbar}</Toolbar>
+          </CardActions>
+        )}
+      </CardHeader>
+      <CardBody style={{ height: hasSomeData ? 400 : 200, padding: 0 }}>
         <div ref={bodyRef}>
-          {hasData ? (
+          {hasSomeData ? (
             <Chart
               ariaTitle={title}
               containerComponent={
@@ -77,33 +136,52 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit
                   constrainToVisibleArea
                 />
               }
-              domain={{ y: maxValue === 0 ? [-1, 1] : [0, maxValue + 1] }}
+              domain={domain(maxYValue, minYValue)}
               height={400}
               width={chartWidth}
               padding={{ left: 70, right: 50, bottom: 70, top: 50 }}
-              themeColor={color}
+              themeColor={color ?? ChartThemeColor.multi}
+              {...legendProps}
             >
               <ChartAxis
-                tickCount={10}
                 tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
+                tickValues={[]}
                 domain={{
-                  x: [lastUpdateTime - TimeframeTime[currentTimeframe] * 1000, lastUpdateTime],
+                  x: [lastUpdateTime - TimeframeTimeRange[currentTimeframe] * 1000, lastUpdateTime],
                 }}
                 fixLabelOverlap
               />
               <ChartAxis dependentAxis tickCount={10} fixLabelOverlap />
               <ChartGroup>
-                <ChartArea data={processedData} />
+                {graphLines.map((line, i) => {
+                  switch (type) {
+                    case MetricsChartTypes.AREA:
+                      return <ChartArea key={i} data={line} />;
+                      break;
+                    case MetricsChartTypes.LINE:
+                      return <ChartLine key={i} data={line} />;
+                      break;
+                    default:
+                      return null;
+                  }
+                })}
               </ChartGroup>
-              {threshold && <ChartThreshold data={getThresholdData(processedData, threshold)} />}
+              {thresholds.map((t) => (
+                <ChartThreshold
+                  key={t.value}
+                  data={getThresholdData(graphLines, t.value)}
+                  style={t.color ? { data: { stroke: t.color } } : undefined}
+                  name={t.label}
+                />
+              ))}
             </Chart>
           ) : (
             <EmptyState>
-              {metrics.loaded ? (
+              {isAllLoaded ? (
                 <>
                   <EmptyStateIcon icon={CubesIcon} />
                   <Title headingLevel="h4" size="lg">
-                    {metrics.error ? metrics.error.message : 'No available data'}
+                    {error ? error.message : 'No available data'}
                   </Title>
                 </>
               ) : (
