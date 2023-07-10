@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { ButtonVariant, ToolbarItem } from '@patternfly/react-core';
+import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import Table from '~/components/table/Table';
 import useTableColumnSort from '~/components/table/useTableColumnSort';
+import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -44,12 +43,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     setSearch('');
   };
 
-  const searchTypes = Object.keys(SearchType).filter(
-    (key) =>
-      SearchType[key] === SearchType.NAME ||
-      SearchType[key] === SearchType.PROJECT ||
-      SearchType[key] === SearchType.USER,
-  );
+  const searchTypes = React.useMemo(() => Object.keys(SearchType), []);
 
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
@@ -61,7 +55,14 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         enablePagination
         data={filteredProjects}
         columns={columns}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        emptyTableView={
+          <>
+            No projects match your filters.{' '}
+            <Button variant="link" isInline onClick={resetFilters}>
+              Clear filters
+            </Button>
+          </>
+        }
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}
@@ -74,7 +75,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         toolbarContent={
           <React.Fragment>
             <ToolbarItem>
-              <DashboardSearchField
+              <SearchField
                 types={searchTypes}
                 searchType={searchType}
                 searchValue={search}

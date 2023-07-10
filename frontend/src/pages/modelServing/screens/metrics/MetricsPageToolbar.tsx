@@ -1,87 +1,54 @@
 import * as React from 'react';
 import {
+  Button,
   Select,
   SelectOption,
-  Stack,
-  StackItem,
+  Text,
   Toolbar,
   ToolbarContent,
-  ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
-import { isRefreshIntervalTitle, isTimeframeTitle } from './utils';
+import { SyncAltIcon } from '@patternfly/react-icons';
+import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { relativeTime } from '~/utilities/time';
+import { isTimeframeTitle } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
 
-type MetricsPageToolbarProps = {
-  leftToolbarItem?: React.ReactElement<typeof ToolbarItem>;
-};
-
-const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem }) => {
+const MetricsPageToolbar: React.FC = () => {
   const [timeframeOpen, setTimeframeOpen] = React.useState(false);
-  const {
-    currentTimeframe,
-    setCurrentTimeframe,
-    currentRefreshInterval,
-    setCurrentRefreshInterval,
-  } = React.useContext(ModelServingMetricsContext);
-
-  const [intervalOpen, setIntervalOpen] = React.useState(false);
-
+  const { currentTimeframe, setCurrentTimeframe, refresh, lastUpdateTime } = React.useContext(
+    ModelServingMetricsContext,
+  );
   return (
-    <Toolbar isSticky>
+    <Toolbar style={{ paddingBottom: 0 }}>
       <ToolbarContent>
-        {leftToolbarItem}
-        <ToolbarGroup alignment={{ default: 'alignRight' }}>
-          <ToolbarGroup>
-            <Stack>
-              <StackItem>
-                <ToolbarItem variant="label">Time range</ToolbarItem>
-              </StackItem>
-              <StackItem>
-                <Select
-                  isOpen={timeframeOpen}
-                  onToggle={(expanded) => setTimeframeOpen(expanded)}
-                  onSelect={(e, selection) => {
-                    if (isTimeframeTitle(selection)) {
-                      setCurrentTimeframe(selection);
-                      setTimeframeOpen(false);
-                    }
-                  }}
-                  selections={currentTimeframe}
-                >
-                  {Object.values(TimeframeTitle).map((value) => (
-                    <SelectOption key={value} value={value} />
-                  ))}
-                </Select>
-              </StackItem>
-            </Stack>
-          </ToolbarGroup>
-          <ToolbarGroup>
-            <Stack>
-              <StackItem>
-                <ToolbarItem variant="label">Refresh interval</ToolbarItem>
-              </StackItem>
-              <StackItem>
-                <Select
-                  isOpen={intervalOpen}
-                  onToggle={(expanded) => setIntervalOpen(expanded)}
-                  onSelect={(e, selection) => {
-                    if (isRefreshIntervalTitle(selection)) {
-                      setCurrentRefreshInterval(selection);
-                      setIntervalOpen(false);
-                    }
-                  }}
-                  selections={currentRefreshInterval}
-                >
-                  {Object.values(RefreshIntervalTitle).map((value) => (
-                    <SelectOption key={value} value={value} />
-                  ))}
-                </Select>
-              </StackItem>
-            </Stack>
-          </ToolbarGroup>
-        </ToolbarGroup>
+        <ToolbarItem>
+          <Select
+            isOpen={timeframeOpen}
+            onToggle={(expanded) => setTimeframeOpen(expanded)}
+            onSelect={(e, selection) => {
+              if (isTimeframeTitle(selection)) {
+                setCurrentTimeframe(selection);
+                setTimeframeOpen(false);
+              }
+            }}
+            selections={currentTimeframe}
+          >
+            {Object.values(TimeframeTitle).map((value, index) => (
+              <SelectOption key={index} value={value} />
+            ))}
+          </Select>
+        </ToolbarItem>
+        <ToolbarItem>
+          <Button variant="plain" onClick={refresh}>
+            <SyncAltIcon />
+          </Button>
+        </ToolbarItem>
+        <ToolbarItem alignment={{ default: 'alignRight' }}>
+          <Text component="small">Last update</Text>
+          <br />
+          <Text component="small">{relativeTime(Date.now(), lastUpdateTime)}</Text>
+        </ToolbarItem>
       </ToolbarContent>
     </Toolbar>
   );

@@ -1,8 +1,6 @@
 import https from 'https';
-import http from 'http';
 import { getDirectCallOptions } from './directCallUtils';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
-import { DEV_MODE } from './constants';
 
 export enum ProxyErrorType {
   /** Failed during startup */
@@ -67,20 +65,7 @@ export const proxyCall = (
 
         fastify.log.info(`Making ${method} proxy request to ${url}`);
 
-        const web = (url: string) => {
-          if (url.startsWith('http:')) {
-            if (!DEV_MODE) {
-              throw new ProxyError(
-                ProxyErrorType.SETUP_FAILURE,
-                'Insecure HTTP requests are prohibited when not in development mode.',
-              );
-            }
-            return http;
-          }
-          return https;
-        };
-
-        const httpsRequest = web(url)
+        const httpsRequest = https
           .request(url, { method, ...requestOptions }, (res) => {
             let data = '';
             res

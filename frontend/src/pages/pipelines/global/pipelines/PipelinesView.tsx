@@ -4,7 +4,7 @@ import GlobalNoPipelines from '~/pages/pipelines/global/pipelines/GlobalNoPipeli
 import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
 import GlobalPipelinesTableToolbar, { FilterType, FilterData } from './GlobalPipelinesTableToolbar';
 
 const DEFAULT_FILTER_DATA: FilterData = {
@@ -61,9 +61,7 @@ const PipelinesView: React.FC = () => {
           onClearFilters={() => setFilterData(DEFAULT_FILTER_DATA)}
         />
       }
-      emptyTableView={
-        <DashboardEmptyTableView onClearFilters={() => setFilterData(DEFAULT_FILTER_DATA)} />
-      }
+      emptyTableView={<EmptyTableView onClearFilters={() => setFilterData(DEFAULT_FILTER_DATA)} />}
       refreshPipelines={refresh}
       pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
     />

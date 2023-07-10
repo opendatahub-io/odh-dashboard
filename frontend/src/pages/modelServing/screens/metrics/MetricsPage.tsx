@@ -1,53 +1,80 @@
 import * as React from 'react';
-import { Breadcrumb, Button } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
-import { CogIcon } from '@patternfly/react-icons';
+import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { BreadcrumbItemType } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
-import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
-import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
-import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
-import { getBreadcrumbItemComponents } from './utils';
-import PerformanceTab from './PerformanceTab';
+import MetricsChart from './MetricsChart';
+import MetricsPageToolbar from './MetricsPageToolbar';
+import { ModelServingMetricsContext, ModelServingMetricType } from './ModelServingMetricsContext';
 
 type MetricsPageProps = {
   title: string;
   breadcrumbItems: BreadcrumbItemType[];
-  type: PerformanceMetricType;
 };
 
-const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type }) => {
-  const { tab } = useParams();
-  const navigate = useNavigate();
-
-  const {
-    hasCR,
-    apiState: { apiAvailable },
-  } = React.useContext(ExplainabilityContext);
-
+const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems }) => {
+  const { data } = React.useContext(ModelServingMetricsContext);
   return (
     <ApplicationsPage
       title={title}
-      breadcrumb={<Breadcrumb>{getBreadcrumbItemComponents(breadcrumbItems)}</Breadcrumb>}
-      // TODO: decide whether we need to set the loaded based on the feature flag and explainability loaded
+      breadcrumb={
+        <Breadcrumb>
+          {breadcrumbItems.map((item) => (
+            <BreadcrumbItem
+              isActive={item.isActive}
+              key={item.label}
+              render={() =>
+                item.link ? <Link to={item.link}>{item.label}</Link> : <>{item.label}</>
+              }
+            />
+          ))}
+        </Breadcrumb>
+      }
+      toolbar={<MetricsPageToolbar />}
       loaded
       description={null}
       empty={false}
-      headerAction={
-        tab === MetricsTabKeys.BIAS && (
-          <Button
-            isDisabled={!hasCR || !apiAvailable}
-            variant="link"
-            icon={<CogIcon />}
-            onClick={() => navigate('../configure', { replace: true })}
-          >
-            Configure
-          </Button>
-        )
-      }
     >
-      {type === PerformanceMetricType.SERVER ? <PerformanceTab type={type} /> : <MetricsPageTabs />}
+      <PageSection isFilled>
+        <Stack hasGutter>
+          <StackItem>
+            <MetricsChart
+              metrics={data[ModelServingMetricType.ENDPOINT_HEALTH]}
+              color="orange"
+              title="Endpoint health"
+            />
+          </StackItem>
+          <StackItem>
+            <MetricsChart
+              metrics={data[ModelServingMetricType.INFERENCE_PERFORMANCE]}
+              color="purple"
+              title="Inference performance"
+            />
+          </StackItem>
+          <StackItem>
+            <MetricsChart
+              metrics={data[ModelServingMetricType.AVG_RESPONSE_TIME]}
+              color="blue"
+              title="Average response time"
+              unit="ms"
+            />
+          </StackItem>
+          <StackItem>
+            <MetricsChart
+              metrics={data[ModelServingMetricType.REQUEST_COUNT]}
+              color="green"
+              title="Total request"
+            />
+          </StackItem>
+          <StackItem>
+            <MetricsChart
+              metrics={data[ModelServingMetricType.FAILED_REQUEST_COUNT]}
+              color="cyan"
+              title="Failed request"
+            />
+          </StackItem>
+        </Stack>
+      </PageSection>
     </ApplicationsPage>
   );
 };

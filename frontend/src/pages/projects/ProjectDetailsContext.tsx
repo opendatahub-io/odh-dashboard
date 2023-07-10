@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import {
-  GroupKind,
-  InferenceServiceKind,
+  ServingRuntimeKind,
   PersistentVolumeClaimKind,
   ProjectKind,
-  RoleBindingKind,
+  InferenceServiceKind,
   SecretKind,
-  ServingRuntimeKind,
+  RoleBindingKind,
+  GroupKind,
   TemplateKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';

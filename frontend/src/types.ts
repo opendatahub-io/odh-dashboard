@@ -17,17 +17,17 @@ export type PrometheusQueryResponse = {
   status: string;
 };
 
-export type PrometheusQueryRangeResponseDataResult = {
-  // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
-  metric: unknown;
-  values: PrometheusQueryRangeResultValue[];
-};
-export type PrometheusQueryRangeResponseData = {
-  result: PrometheusQueryRangeResponseDataResult[];
-  resultType: string;
-};
 export type PrometheusQueryRangeResponse = {
-  data: PrometheusQueryRangeResponseData;
+  data: {
+    result: [
+      {
+        // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
+        metric: unknown;
+        values: PrometheusQueryRangeResultValue[];
+      },
+    ];
+    resultType: string;
+  };
   status: string;
 };
 
@@ -89,8 +89,6 @@ export type DashboardCommonConfig = {
   disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
-  disableBiasMetrics: boolean;
-  disablePerformanceMetrics: boolean;
 };
 
 export type NotebookControllerUserState = {

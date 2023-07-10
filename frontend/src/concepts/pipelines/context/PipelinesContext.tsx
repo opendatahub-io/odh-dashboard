@@ -16,7 +16,7 @@ import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineSe
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import { deleteServer } from '~/concepts/pipelines/utils';
-import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
+import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
@@ -29,7 +29,7 @@ type PipelineContext = {
   project: ProjectKind;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
-  apiState: PipelineAPIState;
+  apiState: APIState;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -41,7 +41,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   project: null as unknown as ProjectKind,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
-  apiState: { apiAvailable: false, api: null as unknown as PipelineAPIState['api'] },
+  apiState: { apiAvailable: false, api: null as unknown as APIState['api'] },
 });
 
 type PipelineContextProviderProps = {
@@ -78,7 +78,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     [refreshRoute, refreshCR],
   );
 
-  const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
+  const [apiState, refreshAPIState] = useAPIState(hostPath);
 
   let error = crLoadError || routeLoadError;
   if (error || !project) {
@@ -111,7 +111,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   );
 };
 
-type UsePipelinesAPI = PipelineAPIState & {
+type UsePipelinesAPI = APIState & {
   /** The contextual namespace */
   namespace: string;
   /** The Project resource behind the namespace */

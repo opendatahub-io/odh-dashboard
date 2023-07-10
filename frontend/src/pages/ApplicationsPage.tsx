@@ -21,7 +21,8 @@ import {
 type ApplicationsPageProps = {
   title: React.ReactNode;
   breadcrumb?: React.ReactNode;
-  description: React.ReactNode;
+  toolbar?: React.ReactNode;
+  description?: React.ReactNode;
   loaded: boolean;
   empty: boolean;
   loadError?: Error;
@@ -37,6 +38,7 @@ type ApplicationsPageProps = {
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   title,
   breadcrumb,
+  toolbar,
   description,
   loaded,
   empty,
@@ -65,6 +67,8 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         </StackItem>
         {headerContent && <StackItem>{headerContent}</StackItem>}
       </Stack>
+      {/* Deprecated */}
+      {toolbar}
     </PageSection>
   );
 

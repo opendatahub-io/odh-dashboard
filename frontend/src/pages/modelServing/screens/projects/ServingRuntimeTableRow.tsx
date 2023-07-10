@@ -1,15 +1,13 @@
 import * as React from 'react';
-import { Button, DropdownDirection, Icon, Skeleton, Tooltip } from '@patternfly/react-core';
+import { Button, Icon, Skeleton, Tooltip } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
 
@@ -26,12 +24,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   onEditServingRuntime,
   onDeployModal,
 }) => {
-  const navigate = useNavigate();
-
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   const {
-    currentProject,
     inferenceServices: {
       data: inferenceServices,
       loaded: inferenceServicesLoaded,
@@ -44,8 +39,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   const tokens = filterTokens(obj.metadata.name);
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
-
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
 
   const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
     setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
@@ -134,7 +127,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td isActionCell>
           <ActionsColumn
-            dropdownDirection={DropdownDirection.up}
             items={[
               {
                 title: 'Edit model server',
@@ -144,17 +136,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                 title: 'Delete model server',
                 onClick: () => onDeleteServingRuntime(obj),
               },
-              ...(performanceMetricsEnabled
-                ? [
-                    {
-                      title: 'View metrics',
-                      onClick: () =>
-                        navigate(
-                          `/projects/${currentProject.metadata.name}/metrics/server/${obj.metadata.name}`,
-                        ),
-                    },
-                  ]
-                : []),
             ]}
           />
         </Td>

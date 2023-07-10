@@ -1,160 +1,73 @@
 import * as React from 'react';
-import {
-  ContextResourceData,
-  PrometheusQueryRangeResponseDataResult,
-  PrometheusQueryRangeResultValue,
-} from '~/types';
-import {
-  ModelMetricType,
-  ServerMetricType,
-} from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import {
-  PerformanceMetricType,
-  RefreshIntervalTitle,
-  TimeframeTitle,
-} from '~/pages/modelServing/screens/types';
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
-import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
-import useRefreshInterval from '~/utilities/useRefreshInterval';
-import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
-import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
+import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import { ModelServingMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
-  type: PerformanceMetricType,
-  queries: Record<ServerMetricType, string> | Record<ModelMetricType, string>,
+  queries: Record<ModelServingMetricType, string>,
   timeframe: TimeframeTitle,
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
-  refreshInterval: RefreshIntervalTitle,
 ): {
-  data: Record<
-    ServerMetricType | ModelMetricType,
-    ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
-  >;
+  data: Record<ModelServingMetricType, ContextResourceData<PrometheusQueryRangeResultValue>>;
   refresh: () => void;
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
 
-  const defaultResponsePredicate = React.useCallback<ResponsePredicate>(
-    (data) => data.result?.[0]?.values || [],
-    [],
-  );
-
-  const trustyResponsePredicate = React.useCallback<
-    ResponsePredicate<PrometheusQueryRangeResponseDataResult>
-  >((data) => data.result, []);
-
-  const serverRequestCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.REQUEST_COUNT],
+  const endpointHealth = useQueryRangeResourceData(
+    queries[ModelServingMetricType.ENDPOINT_HEALTH],
     end,
     timeframe,
-    defaultResponsePredicate,
   );
-
-  const serverAverageResponseTime = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.AVG_RESPONSE_TIME],
+  const inferencePerformance = useQueryRangeResourceData(
+    queries[ModelServingMetricType.INFERENCE_PERFORMANCE],
     end,
     timeframe,
-    defaultResponsePredicate,
   );
-
-  const serverCPUUtilization = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.CPU_UTILIZATION],
+  const averageResponseTime = useQueryRangeResourceData(
+    queries[ModelServingMetricType.AVG_RESPONSE_TIME],
     end,
     timeframe,
-    defaultResponsePredicate,
   );
-
-  const serverMemoryUtilization = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.MEMORY_UTILIZATION],
+  const requestCount = useQueryRangeResourceData(
+    queries[ModelServingMetricType.REQUEST_COUNT],
     end,
     timeframe,
-    defaultResponsePredicate,
   );
-
-  const modelRequestSuccessCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.REQUEST_COUNT_SUCCESS],
+  const failedRequestCount = useQueryRangeResourceData(
+    queries[ModelServingMetricType.FAILED_REQUEST_COUNT],
     end,
     timeframe,
-    defaultResponsePredicate,
-  );
-
-  const modelRequestFailedCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.REQUEST_COUNT_FAILED],
-    end,
-    timeframe,
-    defaultResponsePredicate,
-  );
-
-  const modelTrustyAISPD = useQueryRangeResourceData(
-    biasMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.TRUSTY_AI_SPD],
-    end,
-    timeframe,
-    trustyResponsePredicate,
-  );
-
-  const modelTrustyAIDIR = useQueryRangeResourceData(
-    biasMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.TRUSTY_AI_DIR],
-    end,
-    timeframe,
-    trustyResponsePredicate,
   );
 
   React.useEffect(() => {
     setLastUpdateTime(Date.now());
     // re-compute lastUpdateTime when data changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    serverRequestCount,
-    serverAverageResponseTime,
-    serverCPUUtilization,
-    serverMemoryUtilization,
-    modelRequestSuccessCount,
-    modelRequestFailedCount,
-    modelTrustyAIDIR,
-    modelTrustyAISPD,
-  ]);
+  }, [endpointHealth, inferencePerformance, averageResponseTime, requestCount, failedRequestCount]);
 
   const refreshAllMetrics = React.useCallback(() => {
     setEnd(Date.now());
   }, []);
 
-  useRefreshInterval(RefreshIntervalValue[refreshInterval], refreshAllMetrics);
-
   return React.useMemo(
     () => ({
       data: {
-        [ServerMetricType.REQUEST_COUNT]: serverRequestCount,
-        [ServerMetricType.AVG_RESPONSE_TIME]: serverAverageResponseTime,
-        [ServerMetricType.CPU_UTILIZATION]: serverCPUUtilization,
-        [ServerMetricType.MEMORY_UTILIZATION]: serverMemoryUtilization,
-        [ModelMetricType.REQUEST_COUNT_SUCCESS]: modelRequestSuccessCount,
-        [ModelMetricType.REQUEST_COUNT_FAILED]: modelRequestFailedCount,
-        [ModelMetricType.TRUSTY_AI_SPD]: modelTrustyAISPD,
-        [ModelMetricType.TRUSTY_AI_DIR]: modelTrustyAIDIR,
+        [ModelServingMetricType.ENDPOINT_HEALTH]: endpointHealth,
+        [ModelServingMetricType.INFERENCE_PERFORMANCE]: inferencePerformance,
+        [ModelServingMetricType.AVG_RESPONSE_TIME]: averageResponseTime,
+        [ModelServingMetricType.REQUEST_COUNT]: requestCount,
+        [ModelServingMetricType.FAILED_REQUEST_COUNT]: failedRequestCount,
       },
       refresh: refreshAllMetrics,
     }),
     [
-      serverRequestCount,
-      serverAverageResponseTime,
-      serverCPUUtilization,
-      serverMemoryUtilization,
-      modelRequestSuccessCount,
-      modelRequestFailedCount,
-      modelTrustyAIDIR,
-      modelTrustyAISPD,
+      endpointHealth,
+      inferencePerformance,
+      averageResponseTime,
+      requestCount,
+      failedRequestCount,
       refreshAllMetrics,
     ],
   );
