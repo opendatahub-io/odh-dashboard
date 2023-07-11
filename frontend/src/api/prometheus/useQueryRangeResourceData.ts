@@ -1,7 +1,7 @@
-import { TimeframeStep, TimeframeTimeRange } from '~/pages/modelServing/screens/const';
+import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import useRestructureContextResourceData from '~/utilities/useRestructureContextResourceData';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { TimeframeStepType, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 
 const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
@@ -10,6 +10,7 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
   query: string,
   end: number,
   timeframe: TimeframeTitle,
+  timeframeStep: TimeframeStepType,
   responsePredicate: ResponsePredicate<T>,
   apiPath = '/api/prometheus/serving',
 ): ContextResourceData<T> =>
@@ -20,7 +21,7 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
       query,
       TimeframeTimeRange[timeframe],
       end,
-      TimeframeStep[timeframe],
+      timeframeStep[timeframe],
       responsePredicate,
     ),
   );

@@ -1,5 +1,6 @@
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
+import { ModelMetricType, ServerMetricType } from './metrics/ModelServingMetricsContext';
 
 export enum PerformanceMetricType {
   SERVER = 'server',
@@ -19,6 +20,10 @@ export type TimeframeTimeType = {
 };
 
 export type TimeframeStepType = TimeframeTimeType;
+
+export type QueryTimeframeStepType = {
+  [key in ServerMetricType | ModelMetricType]: TimeframeStepType;
+};
 
 export enum RefreshIntervalTitle {
   FIFTEEN_SECONDS = '15 seconds',

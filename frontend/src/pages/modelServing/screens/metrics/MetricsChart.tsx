@@ -17,10 +17,13 @@ import {
   ChartArea,
   ChartAxis,
   ChartGroup,
+  ChartLegendTooltip,
   ChartLine,
+  ChartStack,
   ChartThemeColor,
   ChartThreshold,
   ChartVoronoiContainer,
+  createContainer,
   getResizeObserver,
 } from '@patternfly/react-charts';
 import { CubesIcon } from '@patternfly/react-icons';
@@ -50,6 +53,7 @@ type MetricsChartProps = {
   domain?: DomainCalculator;
   toolbar?: React.ReactElement<typeof ToolbarContent>;
   type?: MetricsChartTypes;
+  isStack?: boolean;
 };
 const MetricsChart: React.FC<MetricsChartProps> = ({
   title,
@@ -59,38 +63,52 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   domain = defaultDomainCalculator,
   toolbar,
   type = MetricsChartTypes.AREA,
+  isStack = false,
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
   const { currentTimeframe, lastUpdateTime } = React.useContext(ModelServingMetricsContext);
   const metrics = useStableMetrics(unstableMetrics, title);
+  const CursorVoronoiContainer = React.useMemo(() => createContainer('voronoi', 'cursor'), []);
+  const [tooltipDisabled, setTooltipDisabled] = React.useState(false);
+  const [tooltipTitle, setTooltipTitle] = React.useState(
+    convertTimestamp(Date.now(), formatToShow(currentTimeframe)),
+  );
 
   const {
     data: graphLines,
     maxYValue,
     minYValue,
+    maxXValue,
+    minXValue,
   } = React.useMemo(
     () =>
       metrics.reduce<ProcessedMetrics>(
         (acc, metric) => {
           const lineValues = createGraphMetricLine(metric);
-          const newMaxValue = Math.max(...lineValues.map((v) => v.y));
-          const newMinValue = Math.min(...lineValues.map((v) => v.y));
+          const newMaxYValue = Math.max(...lineValues.map((v) => v.y));
+          const newMinYValue = Math.min(...lineValues.map((v) => v.y));
+          const newMaxXValue = Math.max(...lineValues.map((v) => v.x));
+          const newMinXValue = Math.min(...lineValues.map((v) => v.x));
 
           return {
-            data: [...acc.data, lineValues],
-            maxYValue: Math.max(acc.maxYValue, newMaxValue),
-            minYValue: Math.min(acc.minYValue, newMinValue),
+            data: [...acc.data, { points: lineValues, name: metric.name }],
+            maxYValue: Math.max(acc.maxYValue, newMaxYValue),
+            minYValue: Math.min(acc.minYValue, newMinYValue),
+            maxXValue: Math.max(acc.maxXValue, newMaxXValue),
+            minXValue: Math.min(acc.minXValue, newMinXValue),
           };
         },
-        { data: [], maxYValue: 0, minYValue: 0 },
+        { data: [], maxYValue: 0, minYValue: 0, maxXValue: 0, minXValue: Date.now() },
       ),
     [metrics],
   );
 
   const error = metrics.find((line) => line.metric.error)?.metric.error;
   const isAllLoaded = metrics.every((line) => line.metric.loaded);
-  const hasSomeData = graphLines.some((line) => line.length > 0);
+  const hasSomeData = graphLines.some((line) => line.points.length > 0);
+
+  const ChartGroupWrapper = React.useMemo(() => (isStack ? ChartStack : ChartGroup), [isStack]);
 
   React.useEffect(() => {
     const ref = bodyRef.current;
@@ -105,14 +123,49 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     return () => observer();
   }, []);
 
+  const handleCursorChange = React.useCallback(
+    (xValue: number) => {
+      if (!xValue) {
+        return;
+      }
+      setTooltipTitle(convertTimestamp(xValue, formatToShow(currentTimeframe)));
+      if (xValue < minXValue || xValue > maxXValue) {
+        setTooltipDisabled(true);
+      } else {
+        setTooltipDisabled(false);
+      }
+    },
+    [minXValue, currentTimeframe, maxXValue],
+  );
+
   let legendProps: Partial<React.ComponentProps<typeof Chart>> = {};
+  let containerComponent;
   if (metrics.length > 1 && metrics.every(({ name }) => !!name)) {
     // We don't need a label if there is only one line & we need a name for every item (or it won't align)
+    const legendData = metrics.map(({ name }) => ({ name, childName: name }));
     legendProps = {
-      legendData: metrics.map(({ name }) => ({ name })),
+      legendData,
       legendOrientation: 'horizontal',
       legendPosition: 'bottom-left',
     };
+    containerComponent = (
+      <CursorVoronoiContainer
+        cursorDimension="x"
+        labels={({ datum }) => (tooltipDisabled ? 'No data' : datum.y)}
+        labelComponent={<ChartLegendTooltip legendData={legendData} title={tooltipTitle} />}
+        onCursorChange={handleCursorChange}
+        mouseFollowTooltips
+        voronoiDimension="x"
+        voronoiPadding={50}
+      />
+    );
+  } else {
+    containerComponent = (
+      <ChartVoronoiContainer
+        labels={({ datum }) => `${datum.name}: ${datum.y}`}
+        constrainToVisibleArea
+      />
+    );
   }
 
   return (
@@ -130,12 +183,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
           {hasSomeData ? (
             <Chart
               ariaTitle={title}
-              containerComponent={
-                <ChartVoronoiContainer
-                  labels={({ datum }) => `${datum.name}: ${datum.y}`}
-                  constrainToVisibleArea
-                />
-              }
+              containerComponent={containerComponent}
               domain={domain(maxYValue, minYValue)}
               height={400}
               width={chartWidth}
@@ -152,24 +200,25 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                 fixLabelOverlap
               />
               <ChartAxis dependentAxis tickCount={10} fixLabelOverlap />
-              <ChartGroup>
+              <ChartGroupWrapper>
                 {graphLines.map((line, i) => {
                   switch (type) {
                     case MetricsChartTypes.AREA:
-                      return <ChartArea key={i} data={line} />;
-                      break;
+                      return <ChartArea key={i} data={line.points} name={line.name} />;
                     case MetricsChartTypes.LINE:
-                      return <ChartLine key={i} data={line} />;
-                      break;
+                      return <ChartLine key={i} data={line.points} name={line.name} />;
                     default:
                       return null;
                   }
                 })}
-              </ChartGroup>
+              </ChartGroupWrapper>
               {thresholds.map((t) => (
                 <ChartThreshold
                   key={t.value}
-                  data={getThresholdData(graphLines, t.value)}
+                  data={getThresholdData(
+                    graphLines.map((lines) => lines.points),
+                    t.value,
+                  )}
                   style={t.color ? { data: { stroke: t.color } } : undefined}
                   name={t.label}
                 />

@@ -1,4 +1,6 @@
+import { ModelMetricType, ServerMetricType } from './metrics/ModelServingMetricsContext';
 import {
+  QueryTimeframeStepType,
   RefreshIntervalTitle,
   RefreshIntervalValueType,
   ServingRuntimeSize,
@@ -72,7 +74,7 @@ export const TimeframeTimeRange: TimeframeTimeType = {
   [TimeframeTitle.ONE_HOUR]: 60 * 60,
   [TimeframeTitle.ONE_DAY]: 24 * 60 * 60,
   [TimeframeTitle.ONE_WEEK]: 7 * 24 * 60 * 60,
-  [TimeframeTitle.ONE_MONTH]: 30 * 7 * 24 * 60 * 60,
+  [TimeframeTitle.ONE_MONTH]: 30 * 24 * 60 * 60,
   // [TimeframeTitle.UNLIMITED]: 0,
 };
 
@@ -84,12 +86,30 @@ export const TimeframeTimeRange: TimeframeTimeType = {
  *   24h * 60m * 60s => 86,400 seconds of space
  *   86,400 / (24 * 12) => 300 points of prometheus data
  */
-export const TimeframeStep: TimeframeStepType = {
+const TimeframeStep: TimeframeStepType = {
   [TimeframeTitle.ONE_HOUR]: 12,
   [TimeframeTitle.ONE_DAY]: 24 * 12,
   [TimeframeTitle.ONE_WEEK]: 7 * 24 * 12,
   [TimeframeTitle.ONE_MONTH]: 30 * 24 * 12,
   // [TimeframeTitle.UNLIMITED]: 30 * 7 * 24 * 12, // TODO: determine if we "zoom out" more
+};
+
+const TimeframeStepForRequestCountAndAverageTime = {
+  [TimeframeTitle.ONE_HOUR]: 5 * 60,
+  [TimeframeTitle.ONE_DAY]: 60 * 60,
+  [TimeframeTitle.ONE_WEEK]: 12 * 60 * 60,
+  [TimeframeTitle.ONE_MONTH]: 24 * 60 * 60,
+};
+
+export const QueryTimeframeStep: QueryTimeframeStepType = {
+  [ServerMetricType.REQUEST_COUNT]: TimeframeStepForRequestCountAndAverageTime,
+  [ServerMetricType.AVG_RESPONSE_TIME]: TimeframeStepForRequestCountAndAverageTime,
+  [ServerMetricType.CPU_UTILIZATION]: TimeframeStep,
+  [ServerMetricType.MEMORY_UTILIZATION]: TimeframeStep,
+  [ModelMetricType.REQUEST_COUNT_FAILED]: TimeframeStepForRequestCountAndAverageTime,
+  [ModelMetricType.REQUEST_COUNT_SUCCESS]: TimeframeStepForRequestCountAndAverageTime,
+  [ModelMetricType.TRUSTY_AI_DIR]: TimeframeStep,
+  [ModelMetricType.TRUSTY_AI_SPD]: TimeframeStep,
 };
 
 export const RefreshIntervalValue: RefreshIntervalValueType = {

@@ -4,6 +4,7 @@ import { ModelServingMetricsProvider } from '~/pages/modelServing/screens/metric
 import { getModelMetricsQueries } from '~/pages/modelServing/screens/metrics/utils';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
+import useCurrentTimeframeBrowserStorage from '~/pages/modelServing/screens/metrics/useCurrentTimeframeBrowserStorage';
 import ProjectModelMetricsPathWrapper from './ProjectModelMetricsPathWrapper';
 
 export type ProjectModelMetricsOutletContextProps = {
@@ -11,17 +12,20 @@ export type ProjectModelMetricsOutletContextProps = {
   currentProject: ProjectKind;
 };
 
-const ProjectModelMetricsWrapper: React.FC = () => (
-  <ProjectModelMetricsPathWrapper>
-    {(model, currentProject) => {
-      const queries = getModelMetricsQueries(model);
-      return (
-        <ModelServingMetricsProvider queries={queries} type={PerformanceMetricType.MODEL}>
-          <Outlet context={{ model, currentProject }} />
-        </ModelServingMetricsProvider>
-      );
-    }}
-  </ProjectModelMetricsPathWrapper>
-);
+const ProjectModelMetricsWrapper: React.FC = () => {
+  const [currentTimeframe] = useCurrentTimeframeBrowserStorage();
+  return (
+    <ProjectModelMetricsPathWrapper>
+      {(model, currentProject) => {
+        const queries = getModelMetricsQueries(model, currentTimeframe);
+        return (
+          <ModelServingMetricsProvider queries={queries} type={PerformanceMetricType.MODEL}>
+            <Outlet context={{ model, currentProject }} />
+          </ModelServingMetricsProvider>
+        );
+      }}
+    </ProjectModelMetricsPathWrapper>
+  );
+};
 
 export default ProjectModelMetricsWrapper;
