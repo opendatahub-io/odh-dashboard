@@ -101,6 +101,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     trustyResponsePredicate,
+    '/api/prometheus/bias',
   );
 
   const modelTrustyAIDIR = useQueryRangeResourceData(
@@ -109,6 +110,7 @@ export const useModelServingMetrics = (
     end,
     timeframe,
     trustyResponsePredicate,
+    '/api/prometheus/bias',
   );
 
   React.useEffect(() => {

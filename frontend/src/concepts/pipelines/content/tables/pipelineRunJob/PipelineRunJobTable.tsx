@@ -94,7 +94,6 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs, experiment
           )}
         />
       )}
-
       <DeletePipelineCoreResourceModal
         toDeleteResources={deleteResources}
         type="scheduled run"
