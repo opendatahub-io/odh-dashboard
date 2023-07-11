@@ -7,12 +7,11 @@ import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-
-const CONTENT_LIMIT = 5;
+import { TABLE_CONTENT_LIMIT, LIMIT_MAX_ITEM_COUNT } from '~/concepts/pipelines/const';
 
 const PipelinesList: React.FC = () => {
   const { namespace } = usePipelinesAPI();
-  const [pipelines, loaded, loadError, refresh] = usePipelines();
+  const [pipelines, loaded, loadError, refresh] = usePipelines(LIMIT_MAX_ITEM_COUNT);
   const navigate = useNavigate();
 
   if (loadError) {
@@ -40,12 +39,12 @@ const PipelinesList: React.FC = () => {
       <StackItem>
         <PipelinesTable
           pipelines={pipelines}
-          contentLimit={CONTENT_LIMIT}
+          contentLimit={TABLE_CONTENT_LIMIT}
           pipelineDetailsPath={(namespace, id) => `/projects/${namespace}/pipeline/view/${id}`}
           refreshPipelines={refresh}
         />
       </StackItem>
-      {pipelines.length > CONTENT_LIMIT && (
+      {pipelines.length > TABLE_CONTENT_LIMIT && (
         <StackItem>
           <IndentSection>
             <Button variant="link" onClick={() => navigate(`/pipelines/${namespace}`)}>
