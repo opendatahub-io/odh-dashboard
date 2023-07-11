@@ -23,6 +23,7 @@ import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/t
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
+import PipelineNotFound from './PipelineNotFound';
 
 enum PipelineDetailsTab {
   GRAPH,
@@ -39,7 +40,23 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(PipelineDetailsTab.GRAPH);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const { taskMap, nodes } = usePipelineTaskTopology(pipelineRun);
-
+  if (pipelineLoadError) {
+    return (
+      <ApplicationsPage
+        breadcrumb={
+          <Breadcrumb>
+            {breadcrumbPath}
+            <BreadcrumbItem isActive>{'Pipeline not found'}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        title={'Pipeline not found'}
+        empty={false}
+        loaded={!pipelineLoad}
+      >
+        <PipelineNotFound />
+      </ApplicationsPage>
+    );
+  }
   return (
     <>
       <Drawer isExpanded={!!selectedId}>
@@ -65,9 +82,12 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               }
               empty={false}
               loaded={pipelineLoad && pipelineTemplateLoaded}
-              loadError={pipelineLoadError || templateLoadError}
+              loadError={templateLoadError}
               headerAction={
-                <PipelineDetailsActions onDelete={() => setDeleting(true)} pipeline={pipeline} />
+                pipelineLoad &&
+                pipelineTemplateLoaded && (
+                  <PipelineDetailsActions onDelete={() => setDeleting(true)} pipeline={pipeline} />
+                )
               }
             >
               <Tabs
