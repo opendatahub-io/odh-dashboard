@@ -7,8 +7,6 @@ import {
   ImageStream,
   TagContent,
   KubeFastifyInstance,
-  BYONImageCreateRequest,
-  BYONImageUpdateRequest,
   BYONImagePackage,
   BYONImage,
 } from '../../../types';
@@ -189,24 +187,19 @@ const packagesToString = (packages: BYONImagePackage[]): string => {
   return '[]';
 };
 const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
-  id: is.metadata.name,
-  name: is.metadata.annotations['opendatahub.io/notebook-image-name'],
-  description: is.metadata.annotations['opendatahub.io/notebook-image-desc'],
+  id: is.metadata.uid,
+  name: is.metadata.name,
+  display_name: is.metadata.annotations['opendatahub.io/notebook-image-name'] || is.metadata.name,
+  description: is.metadata.annotations['opendatahub.io/notebook-image-desc'] || '',
   visible: is.metadata.labels['opendatahub.io/notebook-image'] === 'true',
   error: getBYONImageErrorMessage(is),
-  packages:
-    is.spec.tags &&
-    (JSON.parse(
-      is.spec.tags[0].annotations['opendatahub.io/notebook-python-dependencies'],
-    ) as BYONImagePackage[]),
-  software:
-    is.spec.tags &&
-    (JSON.parse(
-      is.spec.tags[0].annotations['opendatahub.io/notebook-software'],
-    ) as BYONImagePackage[]),
-  uploaded: is.metadata.creationTimestamp,
+  packages: JSON.parse(
+    is.spec.tags?.[0].annotations['opendatahub.io/notebook-python-dependencies'] || '[]',
+  ),
+  software: JSON.parse(is.spec.tags?.[0].annotations['opendatahub.io/notebook-software'] || '[]'),
+  imported_time: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
-  user: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
+  provider: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
 });
 
 export const postImage = async (
@@ -215,7 +208,7 @@ export const postImage = async (
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const body = request.body as BYONImageCreateRequest;
+  const body = request.body as BYONImage;
   const fullUrl = body.url;
   const matchArray = fullUrl.match(imageUrlRegex);
   // check if the host is valid
@@ -234,7 +227,7 @@ export const postImage = async (
 
   if (validName.length > 0) {
     fastify.log.error('Duplicate name unable to add notebook image');
-    return { success: false, error: 'Unable to add notebook image: ' + body.name };
+    return { success: false, error: 'Unable to add notebook image: ' + body.display_name };
   }
 
   const payload: ImageStream = {
@@ -242,10 +235,10 @@ export const postImage = async (
     apiVersion: 'image.openshift.io/v1',
     metadata: {
       annotations: {
-        'opendatahub.io/notebook-image-desc': body.description ? body.description : '',
-        'opendatahub.io/notebook-image-name': body.name,
+        'opendatahub.io/notebook-image-desc': body.description || '',
+        'opendatahub.io/notebook-image-name': body.display_name,
         'opendatahub.io/notebook-image-url': fullUrl,
-        'opendatahub.io/notebook-image-creator': body.user,
+        'opendatahub.io/notebook-image-creator': body.provider,
       },
       name: `byon-${Date.now()}`,
       namespace: namespace,
@@ -325,7 +318,7 @@ export const updateImage = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
   const params = request.params as { image: string };
-  const body = request.body as BYONImageUpdateRequest;
+  const body = request.body as BYONImage;
   const labels = {
     'app.kubernetes.io/created-by': 'byon',
     'opendatahub.io/notebook-image': 'true',
@@ -334,8 +327,8 @@ export const updateImage = async (
   const imageStreams = await getImageStreams(fastify, labels);
   const validName = imageStreams.filter(
     (is) =>
-      is.metadata.annotations['opendatahub.io/notebook-image-name'] === body.name &&
-      is.metadata.name !== body.id,
+      is.metadata.annotations['opendatahub.io/notebook-image-name'] === body.display_name &&
+      is.metadata.name !== body.name,
   );
 
   if (validName.length > 0) {
@@ -375,8 +368,8 @@ export const updateImage = async (
         imageStream.metadata.labels['opendatahub.io/notebook-image'] = 'false';
       }
     }
-    if (body.name) {
-      imageStream.metadata.annotations['opendatahub.io/notebook-image-name'] = body.name;
+    if (body.display_name) {
+      imageStream.metadata.annotations['opendatahub.io/notebook-image-name'] = body.display_name;
     }
 
     if (body.description !== undefined) {
