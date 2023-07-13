@@ -6,6 +6,7 @@ import useTableColumnSort from '~/components/table/useTableColumnSort';
 import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
+import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import NewProjectButton from './NewProjectButton';
@@ -19,6 +20,7 @@ type ProjectListViewProps = {
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
+  const { dashboardConfig } = useAppContext();
   const { projects: unfilteredProjects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
@@ -87,20 +89,16 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
                 }}
               />
             </ToolbarItem>
-            {allowCreate ? (
-              <>
-                <ToolbarItem>
-                  <NewProjectButton
-                    onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
-                  />
-                </ToolbarItem>
-                <ToolbarItem>
-                  <LaunchJupyterButton variant={ButtonVariant.link} />
-                </ToolbarItem>
-              </>
-            ) : (
+            {allowCreate && (
               <ToolbarItem>
-                <LaunchJupyterButton variant={ButtonVariant.primary} />
+                <NewProjectButton
+                  onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                />
+              </ToolbarItem>
+            )}
+            {dashboardConfig.spec.notebookController?.enabled && (
+              <ToolbarItem>
+                <LaunchJupyterButton variant={ButtonVariant.link} />
               </ToolbarItem>
             )}
           </React.Fragment>
