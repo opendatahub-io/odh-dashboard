@@ -64,7 +64,13 @@ export const listExperiments: ListExperimentsAPI = (hostPath) => (opts) =>
 export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, count) =>
   handlePipelineFailures(
     // eslint-disable-next-line camelcase
-    proxyGET(hostPath, '/apis/v1beta1/pipelines', { page_size: count }, opts),
+    proxyGET(
+      hostPath,
+      '/apis/v1beta1/pipelines',
+      // eslint-disable-next-line camelcase
+      { page_size: count, sort_by: 'created_at desc' },
+      opts,
+    ),
   );
 
 export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts) =>
@@ -77,7 +83,7 @@ export const listPipelineRunJobs: ListPipelinesRunJobAPI = (hostPath) => (opts) 
   handlePipelineFailures(proxyGET(hostPath, '/apis/v1beta1/jobs', {}, opts));
 
 export const listPipelineRunsByPipeline: ListPipelineRunsByPipelineAPI =
-  (hostPath) => (opts, pipelineId) =>
+  (hostPath) => (opts, pipelineId, count) =>
     handlePipelineFailures(
       proxyGET(
         hostPath,
@@ -85,6 +91,10 @@ export const listPipelineRunsByPipeline: ListPipelineRunsByPipelineAPI =
         {
           'resource_reference_key.id': pipelineId,
           'resource_reference_key.type': ResourceTypeKF.PIPELINE_VERSION,
+          // eslint-disable-next-line camelcase
+          page_size: count,
+          // eslint-disable-next-line camelcase
+          sort_by: 'created_at desc',
         },
         opts,
       ),

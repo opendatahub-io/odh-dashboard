@@ -7,7 +7,6 @@ import {
   RunNameForPipeline,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
-import { sortRunsByCreated } from '~/concepts/pipelines/content/tables/utils';
 
 type RenderContentListProps = {
   firstItem?: React.ReactNode;
@@ -30,7 +29,7 @@ type RenderContentByColumn = {
 };
 
 export const combineRunsByColumn = (runs: PipelineRunKF[], sliceCount?: number) =>
-  sortRunsByCreated(runs).reduce<RenderContentByColumn>(
+  runs.reduce<RenderContentByColumn>(
     (acc, run, i) => {
       if (sliceCount && i >= sliceCount) {
         return acc;
