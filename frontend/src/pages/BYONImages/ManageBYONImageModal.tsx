@@ -7,102 +7,137 @@ import {
   EmptyStateVariant,
   Form,
   FormGroup,
-  Tab,
-  Tabs,
-  TabTitleText,
   TextInput,
   Title,
   Modal,
   ModalVariant,
+  Tabs,
+  Tab,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
-import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { updateBYONImage } from '~/services/imagesService';
-import { BYONImage, BYONImagePackage } from '~/types';
+import { CubesIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { importBYONImage, updateBYONImage } from '~/services/imagesService';
+import { ResponseStatus, BYONImagePackage, BYONImage } from '~/types';
 import { addNotification } from '~/redux/actions/actions';
-import { useAppDispatch } from '~/redux/hooks';
+import { useAppDispatch, useAppSelector } from '~/redux/hooks';
 import { EditStepTableRow } from './EditStepTableRow';
 
-import './UpdateImageModal.scss';
+import './ImportImageModal.scss';
 
-export type UpdateImageModalProps = {
+export type ManageBYONImageModalProps = {
+  existingImage?: BYONImage;
   isOpen: boolean;
-  image: BYONImage;
-  onCloseHandler: () => void;
-  onUpdateHandler();
+  onClose: (submitted: boolean) => void;
 };
-export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
+
+export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
+  existingImage,
   isOpen,
-  image,
-  onUpdateHandler,
-  onCloseHandler,
+  onClose,
 }) => {
-  const [name, setName] = React.useState<string>(image.name);
-  const [description, setDescription] = React.useState<string>(
-    image.description != undefined ? image.description : '',
-  );
-  const [packages, setPackages] = React.useState<BYONImagePackage[]>(
-    image.packages != undefined ? image.packages : [],
-  );
-  const [software, setSoftware] = React.useState<BYONImagePackage[]>(
-    image.software != undefined ? image.software : [],
-  );
+  const [isProgress, setIsProgress] = React.useState(false);
+  const [repository, setRepository] = React.useState('');
+  const [displayName, setDisplayName] = React.useState('');
+  const [description, setDescription] = React.useState('');
+  const [software, setSoftware] = React.useState<BYONImagePackage[]>([]);
+  const [packages, setPackages] = React.useState<BYONImagePackage[]>([]);
   const [activeTabKey, setActiveTabKey] = React.useState(0);
-  const [validName, setValidName] = React.useState(true);
+  const userName = useAppSelector((state) => state.user || '');
   const dispatch = useAppDispatch();
 
+  const isDisabled = isProgress || displayName === '' || repository === '';
+
   React.useEffect(() => {
-    if (isOpen === true) {
-      setName(image.name);
-      setDescription(image.description != undefined ? image.description : '');
-      setPackages(image.packages != undefined ? image.packages : []);
-      setSoftware(image.software != undefined ? image.software : []);
-      setValidName(true);
+    if (existingImage) {
+      setRepository(existingImage.url);
+      setDisplayName(existingImage.display_name);
+      setDescription(existingImage.description);
+      setPackages(existingImage.packages);
+      setSoftware(existingImage.software);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [existingImage]);
+
+  const onBeforeClose = (submitted: boolean) => {
+    onClose(submitted);
+    setIsProgress(false);
+    setRepository('');
+    setDisplayName('');
+    setDescription('');
+    setSoftware([]);
+    setPackages([]);
+  };
+
+  const submit = () => {
+    if (existingImage) {
+      updateBYONImage({
+        name: existingImage.name,
+        // eslint-disable-next-line camelcase
+        display_name: displayName,
+        description: description,
+        packages: packages,
+        software: software,
+      }).then((value) => {
+        if (value.success === false) {
+          dispatch(
+            addNotification({
+              status: 'danger',
+              title: 'Error',
+              message: `Unable to update image ${name}`,
+              timestamp: new Date(),
+            }),
+          );
+        }
+        onBeforeClose(true);
+      });
+    } else {
+      importBYONImage({
+        // eslint-disable-next-line camelcase
+        display_name: displayName,
+        url: repository,
+        description: description,
+        provider: userName,
+        software: software,
+        packages: packages,
+      }).then((value: ResponseStatus) => {
+        if (value.success === false) {
+          dispatch(
+            addNotification({
+              status: 'danger',
+              title: `Unable to add notebook image ${name}`,
+              message: value.error,
+              timestamp: new Date(),
+            }),
+          );
+        }
+        onBeforeClose(true);
+      });
+    }
+  };
 
   return (
     <Modal
       variant={ModalVariant.medium}
-      title={`Edit Package Documentation for ${image.name}`}
+      title={`${existingImage ? 'Update' : 'Import'} notebook image`}
       isOpen={isOpen}
-      onClose={onCloseHandler}
+      onClose={() => onBeforeClose(false)}
+      showClose
       actions={[
         <Button
           data-id="import-confirm-button"
           key="confirm"
           variant="primary"
-          onClick={() => {
-            if (name.length > 0) {
-              updateBYONImage({
-                id: image.id,
-                name: name,
-                description: description,
-                packages: packages,
-                software: software,
-              }).then((value) => {
-                if (value.success === false) {
-                  dispatch(
-                    addNotification({
-                      status: 'danger',
-                      title: 'Error',
-                      message: `Unable to update image ${name}`,
-                      timestamp: new Date(),
-                    }),
-                  );
-                }
-                onUpdateHandler();
-                onCloseHandler();
-              });
-            } else {
-              name.length > 0 ? setValidName(true) : setValidName(false);
-            }
-          }}
+          isDisabled={isDisabled}
+          onClick={submit}
         >
-          Save Changes
+          {existingImage ? 'Update' : 'Import'}
         </Button>,
-        <Button data-id="import-cancel-button" key="cancel" variant="link" onClick={onCloseHandler}>
+        <Button
+          data-id="import-cancel-button"
+          key="cancel"
+          variant="link"
+          onClick={() => onBeforeClose(false)}
+        >
           Cancel
         </Button>,
       ]}
@@ -110,25 +145,40 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
       <Form
         onSubmit={(e) => {
           e.preventDefault();
+          submit();
         }}
       >
-        <FormGroup
-          label="Name"
-          isRequired
-          fieldId="byon-image-name-input"
-          helperTextInvalid="This field is required."
-          helperTextInvalidIcon={<ExclamationCircleIcon />}
-          validated={validName ? undefined : 'error'}
-        >
+        {!existingImage && (
+          <FormGroup
+            label="Repository"
+            isRequired
+            fieldId="byon-image-repository-input"
+            helperText="Repo where notebook images are stored."
+          >
+            <TextInput
+              id="byon-image-repository-input"
+              isRequired
+              type="text"
+              data-id="byon-image-repository-input"
+              name="byon-image-repository-input"
+              aria-describedby="byon-image-repository-input"
+              value={repository}
+              onChange={(value) => {
+                setRepository(value);
+              }}
+            />
+          </FormGroup>
+        )}
+        <FormGroup label="Name" isRequired fieldId="byon-image-name-input">
           <TextInput
             id="byon-image-name-input"
             isRequired
             type="text"
             data-id="byon-image-name-input"
             name="byon-image-name-input"
-            value={name}
+            value={displayName}
             onChange={(value) => {
-              setName(value);
+              setDisplayName(value);
             }}
           />
         </FormGroup>
@@ -146,7 +196,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
             }}
           />
         </FormGroup>
-        <FormGroup fieldId="image-software-packages">
+        <FormGroup fieldId="byon-image-software-packages">
           <Tabs
             activeKey={activeTabKey}
             onSelect={(_event, indexKey) => {
@@ -158,13 +208,13 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                 <>
                   <TableComposable aria-label="Simple table" variant="compact">
                     <Caption>
-                      Change the advertised software shown with this notebook image. Modifying the
+                      Add the advertised software shown with this notebook image. Modifying the
                       software here does not effect the contents of the notebook image.
                     </Caption>
                     <Thead>
                       <Tr>
-                        <Th data-id="software-column">Software</Th>
-                        <Th data-id="version-column">Version</Th>
+                        <Th>Software</Th>
+                        <Th>Version</Th>
                         <Th />
                       </Tr>
                     </Thead>
@@ -233,18 +283,18 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
                 </EmptyState>
               )}
             </Tab>
-            <Tab eventKey={1} title={<TabTitleText>Packages</TabTitleText>}>
+            <Tab data-id="packages-tab" eventKey={1} title={<TabTitleText>Packages</TabTitleText>}>
               {packages.length > 0 ? (
                 <>
                   <TableComposable aria-label="Simple table" variant="compact" isStickyHeader>
                     <Caption>
-                      Change the advertised packages shown with this notebook image. Modifying the
+                      Add the advertised packages shown with this notebook image. Modifying the
                       packages here does not effect the contents of the notebook image.
                     </Caption>
                     <Thead>
                       <Tr>
-                        <Th data-id="package-column">Package</Th>
-                        <Th data-id="version-column">Version</Th>
+                        <Th>Package</Th>
+                        <Th>Version</Th>
                         <Th />
                       </Tr>
                     </Thead>
@@ -320,4 +370,4 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
   );
 };
 
-export default UpdateImageModal;
+export default ManageBYONImageModal;

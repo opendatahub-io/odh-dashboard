@@ -438,29 +438,16 @@ export type Route = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
-  description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {
