@@ -21,7 +21,7 @@ import {
 type ApplicationsPageProps = {
   title: React.ReactNode;
   breadcrumb?: React.ReactNode;
-  description: React.ReactNode;
+  description?: React.ReactNode;
   loaded: boolean;
   empty: boolean;
   loadError?: Error;

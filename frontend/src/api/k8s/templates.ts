@@ -32,10 +32,6 @@ export const assembleServingRuntimeTemplate = (
       labels: {
         'opendatahub.io/dashboard': 'true',
       },
-      annotations: {
-        'opendatahub.io/template-enabled': 'true',
-        tags: `${servingRuntimeName},servingruntime`,
-      },
     },
     objects: [servingRuntime],
     parameters: [],

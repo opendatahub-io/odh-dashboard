@@ -43,7 +43,7 @@ Take a look at [the priority labels](https://github.com/opendatahub-io/odh-dashb
 
 We have a UX team that helps us make clean and clear user interface and user experience decisions. They should be able to quickly find issues as we go through. Naturally we loop them in when we do major UX/UI changes, but for smaller things, it's easier for them to be able to track it themselves.
 
-To that extent, we want to use the `viusal changes` label to track any issue that will change the flow for the user (or fix a flow). Here are some broad strokes to when we want to label the issue with this label:
+To that extent, we want to use the `visual changes` label to track any issue that will change the flow for the user (or fix a flow). Here are some broad strokes to when we want to label the issue with this label:
 
 - If there is a UI shift -- new section, moving something around (indenting, etc)
 - If there is a change to the UX -- the user couldn't do something before, now they can

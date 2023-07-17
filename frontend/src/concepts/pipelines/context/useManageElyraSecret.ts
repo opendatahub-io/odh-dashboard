@@ -4,7 +4,11 @@ import { createSecret, replaceSecret } from '~/api';
 import { DSPipelineKind } from '~/k8sTypes';
 import { generateElyraSecret } from '~/concepts/pipelines/elyra/utils';
 import useAWSSecret from '~/concepts/secrets/apiHooks/useAWSSecret';
-import { ELYRA_SECRET_DATA_KEY, ELYRA_SECRET_DATA_TYPE } from '~/concepts/pipelines/elyra/const';
+import {
+  ELYRA_SECRET_DATA_ENDPOINT,
+  ELYRA_SECRET_DATA_KEY,
+  ELYRA_SECRET_DATA_TYPE,
+} from '~/concepts/pipelines/elyra/const';
 
 const useManageElyraSecret = (
   namespace: string,
@@ -41,9 +45,14 @@ const useManageElyraSecret = (
         return;
       }
       try {
-        const secretValue = JSON.parse(atob(elyraSecret.data?.[ELYRA_SECRET_DATA_KEY] || '{}'));
-        if (secretValue.metadata[ELYRA_SECRET_DATA_TYPE] === 'USER_CREDENTIALS') {
-          // Secret is invalid -- update it
+        const secretValue = JSON.parse(
+          atob(elyraSecret.data?.[ELYRA_SECRET_DATA_KEY] || '{ metadata: {} }'),
+        );
+        const usingOldDataType =
+          secretValue.metadata[ELYRA_SECRET_DATA_TYPE] === 'USER_CREDENTIALS';
+        const usingOldUrl = !secretValue.metadata[ELYRA_SECRET_DATA_ENDPOINT].endsWith('/view/');
+        if (usingOldDataType || usingOldUrl) {
+          // Secret is out of date, update it
           replaceSecret(
             generateElyraSecret(
               dataConnection.data,

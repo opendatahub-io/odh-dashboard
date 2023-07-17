@@ -5,7 +5,6 @@ metadata:
   labels:
     opendatahub.io/dashboard: 'true'
     opendatahub.io/ootb: 'true'
-    opendatahub.io/configurable: 'true'
   annotations:
     tags: 'ovms,servingruntime'
     description: 'OpenVino with GPU Support Model Serving Definition'
