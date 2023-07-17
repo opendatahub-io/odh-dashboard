@@ -2,7 +2,7 @@
 // https://jestjs.io/docs/en/configuration.html
 
 module.exports = {
-  testMatch: ['**/__tests__/unit/**/*.ts'],
+  roots: ['<rootDir>/src/__tests__/unit'],
 
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
@@ -18,16 +18,14 @@ module.exports = {
     '~/(.*)': '<rootDir>/src/$1',
   },
 
-  // A preset that is used as a base for Jest's configuration
-  preset: 'ts-jest/presets/js-with-ts',
-
   // The test environment that will be used for testing.
-  testEnvironment: 'jsdom',
+  testEnvironment: 'jest-environment-jsdom',
 
-  transform: {
-    'node_modules/.+\\.(j|t)sx?$': 'ts-jest',
-  },
+  transformIgnorePatterns: [
+    'node_modules/(?!@openshift|@patternfly|yaml)',
+  ],
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing
   snapshotSerializers: [],
+
 };
