@@ -10,14 +10,20 @@ type BYONImageStatusToggleProps = {
 
 const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) => {
   const [isLoading, setLoading] = React.useState(false);
-  const [isEnabled, setEnabled] = React.useState(image.visible);
+  const [isEnabled, setEnabled] = React.useState(!image.error && image.visible);
   const notification = useNotification();
+
+  React.useEffect(() => {
+    if (image.error) {
+      setEnabled(false);
+    }
+  }, [image.error]);
+
   const handleChange = (checked: boolean) => {
     setLoading(true);
     updateBYONImage({
       name: image.name,
       visible: checked,
-      packages: image.packages,
     })
       .then(() => {
         setEnabled(checked);
@@ -40,7 +46,7 @@ const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) 
       data-id={`enabled-disable-${image.id}`}
       isChecked={isEnabled}
       onChange={handleChange}
-      isDisabled={isLoading}
+      isDisabled={!!image.error || isLoading}
     />
   );
 };

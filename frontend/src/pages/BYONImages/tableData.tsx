@@ -1,5 +1,6 @@
 import { SortableData } from '~/components/table/useTableColumnSort';
 import { BYONImage } from '~/types';
+import { getEnabledStatus } from './utils';
 
 export const columns: SortableData<BYONImage>[] = [
   {
@@ -20,7 +21,7 @@ export const columns: SortableData<BYONImage>[] = [
   {
     field: 'enable',
     label: 'Enable',
-    sortable: false,
+    sortable: (a, b) => getEnabledStatus(a) - getEnabledStatus(b),
     info: {
       tooltip: 'Enabled images are selectable when creating workbenches.',
     },

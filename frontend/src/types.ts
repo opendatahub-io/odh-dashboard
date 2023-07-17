@@ -437,6 +437,7 @@ export type Route = {
 
 export type BYONImage = {
   id: string;
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
   provider: string;
   imported_time: string;
   error: string;

@@ -2,9 +2,6 @@ import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   Flex,
   FlexItem,
   Timestamp,
@@ -12,8 +9,11 @@ import {
 } from '@patternfly/react-core';
 import { BYONImage } from '~/types';
 import { relativeTime } from '~/utilities/time';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
+import { convertBYONImageToK8sResource } from './utils';
+import BYONImageDependenciesList from './BYONImageDependenciesList';
 
 type BYONImagesTableRowProps = {
   obj: BYONImage;
@@ -52,7 +52,11 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             spaceItems={{ default: 'spaceItemsSm' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
-            <FlexItem>{obj.display_name}</FlexItem>
+            <FlexItem>
+              <ResourceNameTooltip resource={convertBYONImageToK8sResource(obj)}>
+                {obj.display_name}
+              </ResourceNameTooltip>
+            </FlexItem>
             <FlexItem>
               <ImageErrorStatus image={obj} />
             </FlexItem>
@@ -104,30 +108,15 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
         <Td dataLabel="Other information" colSpan={6}>
           <ExpandableRowContent>
             <DescriptionList columnModifier={{ default: columnModifier }}>
-              {obj.software.length > 0 && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Displayed software</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {obj.software.map((s, i) => (
-                      <p key={`${s.name}-${i}`}>{`${s.name} ${s.version}`}</p>
-                    ))}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-              {obj.packages.length > 0 && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Displayed packages</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {obj.packages.map((p, i) => (
-                      <p key={`${p.name}-${i}`}>{`${p.name} ${p.version}`}</p>
-                    ))}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Image location</DescriptionListTerm>
-                <DescriptionListDescription>{obj.url}</DescriptionListDescription>
-              </DescriptionListGroup>
+              <BYONImageDependenciesList
+                term="Displayed software"
+                dependencies={obj.software.map((s) => `${s.name} ${s.version}`)}
+              />
+              <BYONImageDependenciesList
+                term="Displayed packages"
+                dependencies={obj.packages.map((p) => `${p.name} ${p.version}`)}
+              />
+              <BYONImageDependenciesList term="Image location" dependencies={[obj.url]} />
             </DescriptionList>
           </ExpandableRowContent>
         </Td>

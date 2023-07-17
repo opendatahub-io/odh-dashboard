@@ -1,4 +1,4 @@
-import { IMAGE_ANNOTATIONS, imageUrlRegex } from '../../../utils/constants';
+import { IMAGE_ANNOTATIONS } from '../../../utils/constants';
 import { convertLabelsToString } from '../../../utils/componentUtils';
 import {
   ImageStreamTag,
@@ -12,6 +12,42 @@ import {
 } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
+
+const translateDisplayNameForK8s = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/\s/g, '-')
+    .replace(/[^A-Za-z0-9-]/g, '');
+
+/**
+ * This function uses a regex to match the image location string
+ * The match result will return an array of 4 elements:
+ * Full URL, host, repo/image and tag(if any)
+ * @param imageString
+ */
+export const parseImageURL = (
+  imageString: string,
+): { fullURL: string; host: string; image: string; tag: string } => {
+  const imageUrlRegex =
+    /^([\w.\-_]+(?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+)|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
+  const trimmedString = imageString.trim();
+  const result = trimmedString.match(imageUrlRegex);
+  if (!result) {
+    return {
+      fullURL: trimmedString,
+      host: undefined,
+      image: undefined,
+      tag: undefined,
+    };
+  }
+  return {
+    fullURL: result[0],
+    host: result[1],
+    image: result[2],
+    tag: result[3],
+  };
+};
 
 export const getImageList = async (
   fastify: KubeFastifyInstance,
@@ -189,8 +225,14 @@ const packagesToString = (packages: BYONImagePackage[]): string => {
 const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   id: is.metadata.uid,
   name: is.metadata.name,
-  display_name: is.metadata.annotations['opendatahub.io/notebook-image-name'] || is.metadata.name,
-  description: is.metadata.annotations['opendatahub.io/notebook-image-desc'] || '',
+  display_name:
+    is.metadata.annotations['opendatahub.io/notebook-image-name'] ||
+    is.metadata.annotations['openshift.io/display-name'] ||
+    is.metadata.name,
+  description:
+    is.metadata.annotations['opendatahub.io/notebook-image-desc'] ||
+    is.metadata.annotations['openshift.io/description'] ||
+    '',
   visible: is.metadata.labels['opendatahub.io/notebook-image'] === 'true',
   error: getBYONImageErrorMessage(is),
   packages: JSON.parse(
@@ -209,14 +251,12 @@ export const postImage = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
   const body = request.body as BYONImage;
-  const fullUrl = body.url;
-  const matchArray = fullUrl.match(imageUrlRegex);
-  // check if the host is valid
-  if (!matchArray[1]) {
+  const inputURL = body.url;
+  const { fullURL, host, tag } = parseImageURL(inputURL);
+  if (!host) {
     fastify.log.error('Invalid repository URL unable to add notebook image');
-    return { success: false, error: 'Invalid repository URL: ' + fullUrl };
+    return { success: false, error: 'Invalid repository URL: ' + fullURL };
   }
-  const imageTag = matchArray[4];
   const labels = {
     'app.kubernetes.io/created-by': 'byon',
     'opendatahub.io/notebook-image': 'true',
@@ -227,7 +267,10 @@ export const postImage = async (
 
   if (validName.length > 0) {
     fastify.log.error('Duplicate name unable to add notebook image');
-    return { success: false, error: 'Unable to add notebook image: ' + body.display_name };
+    return {
+      success: false,
+      error: 'Duplicated name. Unable to add notebook image: ' + body.display_name,
+    };
   }
 
   const payload: ImageStream = {
@@ -237,10 +280,10 @@ export const postImage = async (
       annotations: {
         'opendatahub.io/notebook-image-desc': body.description || '',
         'opendatahub.io/notebook-image-name': body.display_name,
-        'opendatahub.io/notebook-image-url': fullUrl,
+        'opendatahub.io/notebook-image-url': fullURL,
         'opendatahub.io/notebook-image-creator': body.provider,
       },
-      name: `byon-${Date.now()}`,
+      name: `custom-${translateDisplayNameForK8s(body.display_name)}`,
       namespace: namespace,
       labels: labels,
     },
@@ -253,13 +296,13 @@ export const postImage = async (
           annotations: {
             'opendatahub.io/notebook-software': packagesToString(body.software),
             'opendatahub.io/notebook-python-dependencies': packagesToString(body.packages),
-            'openshift.io/imported-from': fullUrl,
+            'openshift.io/imported-from': fullURL,
           },
           from: {
             kind: 'DockerImage',
-            name: fullUrl,
+            name: fullURL,
           },
-          name: imageTag || 'latest',
+          name: tag || 'latest',
         },
       ],
     },
