@@ -135,6 +135,3 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
 
 export const imageUrlRegex =
   /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
-
-export const THANOS_DEFAULT_RBAC_PORT = '9092';
-export const THANOS_DEFAULT_OAUTH_PORT = '9091';
