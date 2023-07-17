@@ -4,7 +4,7 @@ import {
   PrometheusQueryRangeResponse,
   QueryType,
 } from '../types';
-import { DEV_MODE, THANOS_DEFAULT_RBAC_PORT } from './constants';
+import { DEV_MODE } from './constants';
 import { getNamespaces } from './notebookUtils';
 import { getDashboardConfig } from './resourceUtils';
 import { createCustomError } from './requestUtils';
@@ -88,13 +88,12 @@ export const callPrometheusThanos = <T>(
   request: OauthFastifyRequest,
   query: string,
   queryType: QueryType = QueryType.QUERY,
-  port = THANOS_DEFAULT_RBAC_PORT,
 ): Promise<{ code: number; response: T }> =>
   callPrometheus<T>(
     fastify,
     request,
     query,
-    generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', port),
+    generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', '9092'),
     queryType,
   );
 
