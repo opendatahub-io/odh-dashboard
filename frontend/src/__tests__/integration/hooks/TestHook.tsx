@@ -11,11 +11,24 @@ import {
 } from '@patternfly/react-core';
 import { TableComposable, Thead, Tr, Th, Tbody, Td, Caption } from '@patternfly/react-table';
 
+const getType = (value: unknown) => {
+  if (typeof value === 'object') {
+    if (Array.isArray(value)) {
+      return 'array';
+    }
+    return 'object';
+  }
+  return typeof value;
+};
+
+const isPrimitive = (value: unknown) => value !== Object(value);
+
 type TestHookProps<T extends unknown[]> = {
   hook: (...args: T) => unknown;
   defaultHookParams: T;
   hookParams: T[];
 };
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const TestHook = <T extends any[]>({
   hook,
@@ -63,18 +76,6 @@ export const TestHook = <T extends any[]>({
   });
   previousResultArrayRef.current = hookResultArray;
 
-  const getType = (value: unknown) => {
-    if (typeof value === 'object') {
-      if (Array.isArray(value)) {
-        return 'array';
-      }
-      return 'object';
-    }
-    return typeof value;
-  };
-
-  const isPrimitive = (value: unknown) => value !== Object(value);
-
   const renderTable = (
     statusRef: string[],
     dataArray: unknown[],
@@ -97,7 +98,10 @@ export const TestHook = <T extends any[]>({
               {getType(value)}
             </Td>
             <Td width={70} dataLabel="value" data-testid={`${dataIdPrefix}-value-${index}`}>
-              {typeof value === 'function' ? String(value) : JSON.stringify(value)}
+              {(() => {
+                const result = typeof value === 'function' ? String(value) : JSON.stringify(value);
+                return result === '{}' ? value?.toString?.() : result;
+              })()}
             </Td>
             <Td dataLabel="status" data-testid={`${dataIdPrefix}-status-${index}`}>
               <span style={{ color: statusRef[index] === 'stable' ? 'green' : 'red' }}>
