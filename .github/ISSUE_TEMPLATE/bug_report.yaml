@@ -12,20 +12,18 @@ body:
       label: Is there an existing issue for this?
       description: Please search to see if an issue already exists for the bug you encountered.
       options:
-      - label: I have searched the existing issues
-        required: true
+        - label: I have searched the existing issues
+          required: true
   - type: dropdown
     id: deploy-type
     attributes:
       label: Deploy type
-      description: |
-        How did you deploy the Dashboard?
-
-        Eg. what is the repo location, `odh-manifests` or `odh-dashboard`?
+      description: How did you deploy the Dashboard?
       multiple: false
       options:
-        - Using an OpenDataHub main version (eg. `v1.6.0`)
-        - Directly installing the Dashboard at the latest (eg. `odh-dashboard/main`)
+        - OpenDataHub core version (eg. `v1.6.0`)
+        - Installing Dashboard directly (eg. `v2.12.0`, `commit xyz`, `branch name`)
+        - Downstream version (eg. `RHODS 1.29`)
     validations:
       required: true
   - type: input

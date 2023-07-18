@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { Spinner, EmptyStateVariant, EmptyState, Title } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
@@ -15,7 +14,6 @@ import {
   DetailItem,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF;
   workflowName?: string;
@@ -29,14 +27,11 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
 
   if (!pipelineRunKF || !workflowName) {
     return (
-      <EmptyState>
-        <EmptyStateIcon icon={ExclamationCircleIcon} />
-        <Title headingLevel="h2" size="lg">
-          Error with the run
+      <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
+        <Spinner size="xl" />
+        <Title headingLevel="h4" size="lg">
+          Loading
         </Title>
-        <EmptyStateBody>
-          There was an issue trying to render the details information.
-        </EmptyStateBody>
       </EmptyState>
     );
   }
