@@ -1,8 +1,15 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { TemplateKind } from '~/k8sTypes';
+import { useDashboardNamespace } from '~/redux/selectors';
 import { deleteTemplateBackend } from '~/services/templateService';
-import { getServingRuntimeDisplayNameFromTemplate } from './utils';
+import { patchDashboardConfigTemplateDisablementBackend } from '~/services/dashboardService';
+import {
+  getServingRuntimeDisplayNameFromTemplate,
+  getTemplateEnabled,
+  setListDisabled,
+} from './utils';
+import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type DeleteCustomServingRuntimeModalProps = {
   template?: TemplateKind;
@@ -15,6 +22,13 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+
+  const {
+    servingRuntimeTemplateDisablement: { data: templateDisablement },
+    servingRuntimeTemplates: { data: templates },
+  } = React.useContext(CustomServingRuntimeContext);
+
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -36,7 +50,23 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
         if (template) {
           setIsDeleting(true);
           // TODO: Revert back to pass through api once we migrate admin panel
-          deleteTemplateBackend(template.metadata.name, template.metadata.namespace)
+          const templateDisablemetUpdated = setListDisabled(
+            template,
+            templates,
+            templateDisablement,
+            false,
+          );
+          Promise.all([
+            ...(!getTemplateEnabled(template, templateDisablement)
+              ? [
+                  patchDashboardConfigTemplateDisablementBackend(
+                    templateDisablemetUpdated,
+                    dashboardNamespace,
+                  ),
+                ]
+              : []),
+            deleteTemplateBackend(template.metadata.name, template.metadata.namespace),
+          ])
             .then(() => {
               onBeforeClose(true);
             })

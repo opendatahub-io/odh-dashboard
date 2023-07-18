@@ -78,13 +78,13 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>AWS_ACCESS_KEY_ID</DescriptionListTerm>
+                  <DescriptionListTerm>Access key</DescriptionListTerm>
                   <DescriptionListDescription>
                     {objectStorageRecord?.AWS_ACCESS_KEY_ID}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>AWS_SECRET_ACCESS_KEY</DescriptionListTerm>
+                  <DescriptionListTerm>Secret key</DescriptionListTerm>
                   <DescriptionListDescription>
                     <PasswordHiddenText
                       password={objectStorageRecord?.AWS_SECRET_ACCESS_KEY ?? ''}
@@ -92,7 +92,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>AWS_S3_ENDPOINT</DescriptionListTerm>
+                  <DescriptionListTerm>Endpoint</DescriptionListTerm>
                   <DescriptionListDescription>
                     {pipelineNamespaceCR.spec.objectStorage.externalStorage?.scheme &&
                     pipelineNamespaceCR.spec.objectStorage.externalStorage?.host
@@ -101,7 +101,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>AWS_S3_BUCKET</DescriptionListTerm>
+                  <DescriptionListTerm>Bucket</DescriptionListTerm>
                   <DescriptionListDescription>
                     {pipelineNamespaceCR.spec.objectStorage.externalStorage?.bucket}
                   </DescriptionListDescription>

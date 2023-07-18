@@ -12,6 +12,7 @@ import {
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
 type GenericHorizontalBarProps = {
+  activeKey: string;
   sections: {
     title: string;
     component: React.ReactNode;
@@ -20,9 +21,9 @@ type GenericHorizontalBarProps = {
   }[];
 };
 
-const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ sections }) => {
+const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, sections }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number | undefined>(
-    sections[0].title || undefined,
+    activeKey || sections[0].title || undefined,
   );
 
   return (

@@ -49,6 +49,7 @@ export type ListPipelineRunJobs = (opts: K8sAPIOptions) => Promise<ListPipelineR
 export type ListPipelineRunsByPipeline = (
   opts: K8sAPIOptions,
   pipelineId: string,
+  limit?: number,
 ) => Promise<ListPipelineRunsResourceKF>;
 export type ListPipelineTemplates = (
   opts: K8sAPIOptions,

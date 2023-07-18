@@ -32,7 +32,6 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         {...tableProps}
         data={pipelines}
         columns={pipelineColumns}
-        defaultSortColumn={1}
         variant={TableVariant.compact}
         truncateRenderingAt={contentLimit}
         rowRenderer={(pipeline, rowIndex) => (

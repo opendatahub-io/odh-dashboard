@@ -179,6 +179,7 @@ export const mockDashboardConfig = ({
       },
     ],
     templateOrder: ['test-model'],
+    templateDisablement: ['test-model'],
   },
   status: {
     dependencyOperators: {
