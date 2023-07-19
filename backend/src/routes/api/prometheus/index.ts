@@ -9,6 +9,7 @@ import {
 import { callPrometheusThanos } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
+import { THANOS_DEFAULT_ADMIN_PORT } from '../../../utils/constants';
 
 const handleError = (e: createError.HttpError) => {
   if (e?.code) {
@@ -56,6 +57,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         request,
         query,
         QueryType.QUERY_RANGE,
+        THANOS_DEFAULT_ADMIN_PORT,
       ).catch(handleError);
     },
   );
@@ -75,6 +77,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         request,
         query,
         QueryType.QUERY_RANGE,
+        THANOS_DEFAULT_ADMIN_PORT,
       ).catch(handleError);
     },
   );

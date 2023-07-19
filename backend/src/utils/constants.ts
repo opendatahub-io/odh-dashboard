@@ -136,3 +136,8 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
 
 export const imageUrlRegex =
   /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
+
+export const THANOS_DEFAULT_RBAC_PORT = '9092';
+
+// NOTE: This port only works for cluster-admins, it won't work for basic users - regardless of namespace privs.
+export const THANOS_DEFAULT_ADMIN_PORT = '9091';
