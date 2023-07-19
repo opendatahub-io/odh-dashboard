@@ -297,19 +297,6 @@ export type K8sResourceCommon = {
   metadata: K8sMetadata;
 };
 
-// Minimal type for ConsoleLinks
-export type ConsoleLinkKind = {
-  spec: {
-    text: string;
-    location: string;
-    href: string;
-    applicationMenu: {
-      section: string;
-      imageURL: string;
-    };
-  };
-} & K8sResourceCommon;
-
 //
 // Used for Telemetry
 //
@@ -323,6 +310,17 @@ declare global {
 
 export type ODHSegmentKey = {
   segmentKey: string;
+};
+
+export type ApplicationAction = {
+  label: string;
+  href: string;
+  image: React.ReactNode;
+};
+
+export type Section = {
+  label?: string;
+  actions: ApplicationAction[];
 };
 
 export type TrackingEventProperties = {
