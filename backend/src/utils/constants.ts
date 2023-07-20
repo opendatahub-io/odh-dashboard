@@ -139,5 +139,5 @@ export const imageUrlRegex =
 
 export const THANOS_DEFAULT_RBAC_PORT = '9092';
 
-// NOTE: This port only works for cluster-admins, it won't work for basic users - regardless of namespace privs.
+// NOTE: This won't work for basic users.
 export const THANOS_DEFAULT_ADMIN_PORT = '9091';
