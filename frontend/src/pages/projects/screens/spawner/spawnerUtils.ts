@@ -1,6 +1,7 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
-import { NotebookSize, Volume, VolumeMount } from '~/types';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { BYONImage, NotebookSize, Volume, VolumeMount } from '~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
 import {
   ConfigMapCategory,
@@ -388,3 +389,14 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind) => {
     (activeTag === undefined || activeTag.items === null)
   );
 };
+
+export const convertBYONImageToK8sResource = (image: BYONImage): K8sResourceCommon => ({
+  kind: 'ImageStream',
+  apiVersion: 'image.openshift.io/v1',
+  metadata: {
+    name: image.id,
+    annotations: {
+      'openshift.io/display-name': image.name,
+    },
+  },
+});
