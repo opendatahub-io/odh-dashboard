@@ -16,6 +16,7 @@ const callPrometheus = async <T>(
   query: string,
   host: string,
   queryType: QueryType,
+  rejectOnHttpErrorCode = false,
 ): Promise<{ code: number; response: T }> => {
   if (!query) {
     fastify.log.warn('Prometheus call was made without a query');
@@ -30,8 +31,15 @@ const callPrometheus = async <T>(
   const url = `${host}/api/v1/${queryType}?${query}`;
 
   fastify.log.info(`Prometheus query: ${query}`);
-  return proxyCall(fastify, request, { method: 'GET', url, rejectUnauthorized: false })
-    .then((rawData) => {
+  return proxyCall(fastify, request, {
+    method: 'GET',
+    url,
+    rejectUnauthorized: false,
+  })
+    .then(([rawData, status]) => {
+      if (rejectOnHttpErrorCode && status.code >= 400) {
+        throw createCustomError(status.message, rawData, status.code);
+      }
       try {
         const parsedData = JSON.parse(rawData);
         if (parsedData.status === 'error') {
@@ -96,6 +104,7 @@ export const callPrometheusThanos = <T>(
     query,
     generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', port),
     queryType,
+    true,
   );
 
 export const callPrometheusServing = (

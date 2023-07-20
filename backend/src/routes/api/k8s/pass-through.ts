@@ -51,7 +51,7 @@ export const safeURLPassThrough = <T extends K8sResourceCommon>(
   data: PassThroughData,
 ): Promise<T | K8sStatus> => {
   return proxyCall(fastify, request, data)
-    .then((rawData) => {
+    .then(([rawData]) => {
       let parsedData: T | K8sStatus;
       try {
         parsedData = JSON.parse(rawData);
