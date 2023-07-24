@@ -807,8 +807,14 @@ export const migrateTemplateDisablement = async (
             undefined,
             options,
           )
-          .then((response) => {
-            return response.body as DashboardConfig;
+          .then(() => {
+            return {
+              ...dashboardConfig,
+              spec: {
+                ...dashboardConfig.spec,
+                templateDisablement: templatesDisabled,
+              },
+            };
           });
       } else {
         return dashboardConfig;
