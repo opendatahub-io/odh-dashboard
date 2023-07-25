@@ -10,6 +10,7 @@ import usePipelineRunJobFilter from '~/concepts/pipelines/content/tables/pipelin
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
 
 type PipelineRunTableProps = {
   jobs: PipelineRunJobKF[];
@@ -59,7 +60,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({ jobs }) => {
       />
       <DeletePipelineCoreResourceModal
         toDeleteResources={deleteResources}
-        type="scheduled run"
+        type={PipelineType.SCHEDULED_RUN}
         onClose={(deleted) => {
           if (deleted) {
             refreshAllAPI();

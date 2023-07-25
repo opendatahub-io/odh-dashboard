@@ -33,6 +33,7 @@ type ApplicationsPageProps = {
   headerAction?: React.ReactNode;
   headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
+  jobReferenceName?: React.ReactNode;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -50,6 +51,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerAction,
   headerContent,
   provideChildrenPadding,
+  jobReferenceName,
 }) => {
   const renderHeader = () => (
     <PageSection variant={PageSectionVariants.light}>
@@ -59,6 +61,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             <SplitItem isFilled>
               <TextContent>
                 <Text component="h1">{title}</Text>
+                {jobReferenceName}
                 {description && <Text component="p">{description}</Text>}
               </TextContent>
             </SplitItem>

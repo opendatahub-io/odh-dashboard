@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   getPipelineCoreResourceExperimentName,
   getPipelineCoreResourcePipelineName,
+  getPipelineCoreResourcePipelineReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import {
   PipelineRunKF,
@@ -9,6 +10,7 @@ import {
   PipelineRunStatusUnknown,
 } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { FilterOptions, FilterProps } from './PipelineRunTableToolbar';
 
 type FilterData = Record<FilterOptions, string>;
@@ -24,6 +26,7 @@ const usePipelineRunFilter = (
   runs: PipelineRunKF[],
 ): [filterJobs: PipelineRunKF[], toolbarProps: FilterProps] => {
   const [filterData, setFilterData] = React.useState<FilterData>(DEFAULT_FILTER_DATA);
+  const { getJobInformation } = usePipelinesAPI();
 
   const filteredRuns = runs.filter((run) => {
     const runValue = filterData[FilterOptions.NAME];
@@ -31,9 +34,16 @@ const usePipelineRunFilter = (
     const pipelineValue = filterData[FilterOptions.PIPELINE];
     const startedValue = filterData[FilterOptions.STARTED];
     const statusValue = filterData[FilterOptions.STATUS];
+    const { data } = getJobInformation(run);
 
     if (runValue && !run.name.toLowerCase().includes(runValue.toLowerCase())) {
       return false;
+    }
+    if (data && pipelineValue && !getPipelineCoreResourcePipelineName(run)) {
+      const pipelineName = getPipelineCoreResourcePipelineReference(data)
+        ?.name?.toLowerCase()
+        .includes(pipelineValue.toLowerCase());
+      return pipelineName;
     }
     if (
       experimentValue &&

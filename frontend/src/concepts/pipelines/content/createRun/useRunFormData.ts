@@ -18,8 +18,12 @@ import {
   PipelineRunKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
-import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
+import {
+  getPipelineCoreResourcePipelineReference,
+  getPipelineCoreResourceJobReference,
+} from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { FetchState } from '~/utilities/useFetchState';
 import { ValueOf } from '~/typeHelpers';
@@ -45,6 +49,7 @@ const useUpdateData = <T extends PipelineCoreResourceKF>(
   const [resource, loaded] = useFetchHookFnc(reference?.key.id);
   const resourceRef = React.useRef<ValueOf<RunFormData>>(resource);
   resourceRef.current = resource;
+
   const setData = React.useCallback(() => {
     if (loaded && resourceRef.current) {
       setFunction(fieldId, resourceRef.current);
@@ -53,6 +58,33 @@ const useUpdateData = <T extends PipelineCoreResourceKF>(
   React.useEffect(() => {
     setData();
   }, [setData]);
+};
+
+const useUpdatePipelineRun = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+  initialData?: PipelineRunKF | PipelineRunJobKF,
+) => {
+  const reference = getPipelineCoreResourceJobReference(initialData);
+  const [pipelineRunJob] = usePipelineRunJobById(reference?.key.id);
+  const updatedSetFunction = React.useCallback<UpdateObjectAtPropAndValue<RunFormData>>(
+    (key, resource) => {
+      setFunction(key, resource);
+      const nameDesc: ValueOf<RunFormData> = {
+        name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
+        description: pipelineRunJob?.description ?? initialData?.description ?? '',
+      };
+      setFunction('nameDesc', nameDesc);
+    },
+    [setFunction, initialData, pipelineRunJob],
+  );
+
+  return useUpdateData(
+    updatedSetFunction,
+    pipelineRunJob,
+    'pipeline',
+    getPipelineCoreResourcePipelineReference,
+    usePipelineById,
+  );
 };
 
 const useUpdatePipeline = (
@@ -72,13 +104,16 @@ const useUpdatePipeline = (
     },
     [setFunction, initialData?.pipeline_spec.parameters],
   );
-  return useUpdateData(
+
+  const updatedData = useUpdateData(
     updatedSetFunction,
     initialData,
     'pipeline',
     getPipelineCoreResourcePipelineReference,
     usePipelineById,
   );
+
+  return updatedData;
 };
 
 // const useUpdateExperiment = (
@@ -180,9 +215,9 @@ const useRunFormData = (
       ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
       : undefined,
   });
-
   const setFunction = objState[1];
   useUpdatePipeline(setFunction, initialData);
+  useUpdatePipelineRun(setFunction, initialData);
   // useUpdateExperiment(setFunction, initialData);
   useUpdateRunType(setFunction, initialData);
 

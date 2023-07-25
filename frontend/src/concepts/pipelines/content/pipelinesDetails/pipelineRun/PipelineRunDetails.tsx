@@ -32,7 +32,8 @@ import {
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineRunTitle from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTitle';
+import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
+import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 
 const getPipelineRunKind = (
   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
@@ -113,7 +114,14 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                 }
               >
                 <ApplicationsPage
-                  title={error ? 'Error loading run' : <PipelineRunTitle run={run} />}
+                  title={
+                    run && !error ? (
+                      <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
+                    ) : (
+                      'Error loading run'
+                    )
+                  }
+                  jobReferenceName={run && <PipelineJobReferenceName resource={run} />}
                   description={
                     run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
                   }
@@ -161,8 +169,12 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
       <DeletePipelineCoreResourceModal
         type="triggered run"
         toDeleteResources={deleting && run ? [run] : []}
-        onClose={() => {
-          navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+        onClose={(deleteComplete) => {
+          if (deleteComplete) {
+            navigate(contextPath ?? `/pipelineRuns/${namespace}`);
+          } else {
+            setDeleting(false);
+          }
         }}
       />
     </>

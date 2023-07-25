@@ -1,11 +1,26 @@
 import * as React from 'react';
-import { Icon, List, ListItem, Stack, StackItem, Text, Tooltip } from '@patternfly/react-core';
+import {
+  Icon,
+  List,
+  ListItem,
+  Stack,
+  StackItem,
+  TextContent,
+  Text,
+  TextVariants,
+  Tooltip,
+  ExpandableSection,
+  Badge,
+} from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, PendingIcon } from '@patternfly/react-icons';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import { K8sAPIOptions } from '~/k8sTypes';
 import useNotification from '~/utilities/useNotification';
+import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
+import PipelineJobReferenceName from './PipelineJobReferenceName';
+import PipelineRunTypeLabel from './PipelineRunTypeLabel';
 
 type DeletePipelineCoreResourceModalProps = {
   type: 'triggered run' | 'scheduled run' | 'pipeline';
@@ -24,7 +39,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
   const [deleteStatuses, setDeleteStatus] = React.useState<(true | Error | undefined)[]>([]);
   const abortControllerRef = React.useRef(new AbortController());
   const notification = useNotification();
-
+  const [isExpanded, setIsExpanded] = React.useState(true);
   const resourceCount = toDeleteResources.length;
 
   const onBeforeCloseRef = React.useRef<(v: boolean) => void>(() => undefined);
@@ -54,10 +69,14 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
     setDeleteStatus([]);
     abortControllerRef.current = new AbortController();
   };
-
+  const onToggle = (isExpanded: boolean) => {
+    setIsExpanded(isExpanded);
+  };
   return (
     <DeleteModal
-      title={`Delete ${type}${resourceCount > 1 ? 's' : ''}`}
+      title={`Delete ${resourceCount > 1 ? resourceCount : ''} ${type}${
+        resourceCount > 1 ? 's' : ''
+      }?`}
       isOpen={resourceCount !== 0}
       onClose={() => onBeforeCloseRef.current(false)}
       deleting={deleting}
@@ -118,7 +137,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
             });
         }
       }}
-      submitButtonLabel={`Delete ${type}${resourceCount > 1 ? 's' : ''}`}
+      submitButtonLabel="Delete"
       deleteName={
         resourceCount === 1 ? toDeleteResources[0].name : `Delete ${resourceCount} ${type}s`
       }
@@ -133,39 +152,61 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
             </Text>
           </StackItem>
           <StackItem>
-            <List>
-              {toDeleteResources.map((resource, i) => {
-                let icon: React.ReactNode;
-                if (!deleting) {
-                  icon = null;
-                } else {
-                  const state = deleteStatuses[i];
-                  if (state === undefined) {
-                    icon = <PendingIcon />;
-                  } else if (state === true) {
-                    icon = (
-                      <Icon status="success">
-                        <CheckCircleIcon />
-                      </Icon>
-                    );
+            <ExpandableSection
+              toggleContent={
+                <>
+                  <span>Selected {resourceCount > 1 ? 'runs' : 'run'}</span>
+                  {resourceCount > 0 && <Badge isRead={true}>{resourceCount}</Badge>}
+                </>
+              }
+              onToggle={onToggle}
+              isExpanded={isExpanded}
+            >
+              <List>
+                {toDeleteResources.map((resource, i) => {
+                  let icon: React.ReactNode;
+                  if (!deleting) {
+                    icon = null;
                   } else {
-                    icon = (
-                      <Tooltip content={state.message}>
-                        <Icon status="danger">
-                          <ExclamationCircleIcon />
+                    const state = deleteStatuses[i];
+                    if (state === undefined) {
+                      icon = <PendingIcon />;
+                    } else if (state === true) {
+                      icon = (
+                        <Icon status="success">
+                          <CheckCircleIcon />
                         </Icon>
-                      </Tooltip>
-                    );
+                      );
+                    } else {
+                      icon = (
+                        <Tooltip content={state.message}>
+                          <Icon status="danger">
+                            <ExclamationCircleIcon />
+                          </Icon>
+                        </Tooltip>
+                      );
+                    }
                   }
-                }
 
-                return (
-                  <ListItem key={resource.id} icon={icon}>
-                    {resource.name}
-                  </ListItem>
-                );
-              })}
-            </List>
+                  return (
+                    <ListItem key={resource.id} icon={icon}>
+                      <TextContent>
+                        <Text component={TextVariants.h6}>
+                          {resource.name}{' '}
+                          {type === PipelineType.TRIGGERED_RUN && (
+                            <PipelineRunTypeLabel resource={resource} />
+                          )}
+                        </Text>
+
+                        {type === PipelineType.TRIGGERED_RUN && (
+                          <PipelineJobReferenceName resource={resource} />
+                        )}
+                      </TextContent>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </ExpandableSection>
           </StackItem>
         </Stack>
       )}

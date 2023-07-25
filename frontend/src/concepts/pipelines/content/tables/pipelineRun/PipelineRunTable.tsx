@@ -10,20 +10,19 @@ import usePipelineRunFilter from '~/concepts/pipelines/content/tables/pipelineRu
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useJobRelatedInformation from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
+import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
 };
 
 const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
-  const { refreshAllAPI } = usePipelinesAPI();
+  const { refreshAllAPI, getJobInformation } = usePipelinesAPI();
   const [filteredRuns, toolbarProps] = usePipelineRunFilter(runs);
   const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
     filteredRuns.map(({ id }) => id),
   );
   const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
-  const { getJobInformation } = useJobRelatedInformation();
 
   return (
     <>
@@ -62,7 +61,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
       />
       <DeletePipelineCoreResourceModal
         toDeleteResources={deleteResources}
-        type="triggered run"
+        type={PipelineType.TRIGGERED_RUN}
         onClose={(deleted) => {
           if (deleted) {
             refreshAllAPI();

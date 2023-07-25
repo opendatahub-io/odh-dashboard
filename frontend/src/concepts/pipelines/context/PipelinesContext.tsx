@@ -9,6 +9,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ProjectKind } from '~/k8sTypes';
+import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
@@ -16,10 +17,17 @@ import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineSe
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import { deleteServer } from '~/concepts/pipelines/utils';
+import useJobRelatedInformation from '~/concepts/pipelines/context/useJobRelatedInformation';
 import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
+type JobStatus = {
+  loading: boolean;
+  data: PipelineRunJobKF | null;
+};
+
+type GetJobInformation = (resource: PipelineCoreResourceKF) => JobStatus;
 type PipelineContext = {
   hasCR: boolean;
   crInitializing: boolean;
@@ -30,6 +38,7 @@ type PipelineContext = {
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
   apiState: APIState;
+  getJobInformation: GetJobInformation;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -41,6 +50,10 @@ const PipelinesContext = React.createContext<PipelineContext>({
   project: null as unknown as ProjectKind,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
+  getJobInformation: () => ({
+    loading: false,
+    data: null,
+  }),
   apiState: { apiAvailable: false, api: null as unknown as APIState['api'] },
 });
 
@@ -70,6 +83,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
     isCRReady,
     namespace,
   );
+
   const hostPath = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
   useManageElyraSecret(namespace, pipelineNamespaceCR, hostPath);
 
@@ -79,7 +93,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
   );
 
   const [apiState, refreshAPIState] = useAPIState(hostPath);
-
+  const { getJobInformation } = useJobRelatedInformation(apiState);
   let error = crLoadError || routeLoadError;
   if (error || !project) {
     error = error || new Error('Project not found');
@@ -104,6 +118,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
         namespace,
         refreshState,
         refreshAPIState,
+        getJobInformation,
       }}
     >
       {children}
@@ -122,6 +137,7 @@ type UsePipelinesAPI = APIState & {
    * Allows agnostic functionality to request all watched API to be reacquired.
    * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
    */
+  getJobInformation: GetJobInformation;
   refreshAllAPI: () => void;
 };
 
@@ -134,6 +150,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     namespace,
     project,
     refreshAPIState: refreshAllAPI,
+    getJobInformation,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -147,6 +164,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     namespace,
     project,
     refreshAllAPI,
+    getJobInformation,
     ...apiState,
   };
 };

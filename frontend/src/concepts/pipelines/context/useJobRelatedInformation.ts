@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getPipelineCoreResourceJobReference } from '~/concepts/pipelines/content/tables/utils';
+import { APIState } from '~/concepts/pipelines/context/useAPIState';
 
 type JobStatus = {
   loading: boolean;
@@ -10,14 +10,16 @@ type JobStatus = {
 
 export type GetJobInformation = (resource: PipelineCoreResourceKF) => JobStatus;
 
-const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } => {
-  const { api } = usePipelinesAPI();
+const useJobRelatedInformation = (apiState: APIState): { getJobInformation: GetJobInformation } => {
   const [jobStorage, setJobStorage] = React.useState<{ [jobId: string]: JobStatus }>({});
   const loadedIds = React.useRef<string[]>([]);
 
   return {
     getJobInformation: React.useCallback<GetJobInformation>(
       (resource) => {
+        if (!apiState.apiAvailable) {
+          return { loading: false, data: null };
+        }
         const jobReference = getPipelineCoreResourceJobReference(resource);
         if (!jobReference) {
           return { loading: false, data: null };
@@ -31,7 +33,7 @@ const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } =>
         }
         loadedIds.current.push(jobId);
 
-        api
+        apiState.api
           .getPipelineRunJob({}, jobId)
           .then((job) => {
             setJobStorage((jobState) => ({ ...jobState, [jobId]: { loading: false, data: job } }));
@@ -45,7 +47,7 @@ const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } =>
 
         return { loading: true, data: null };
       },
-      [api, jobStorage],
+      [apiState, jobStorage],
     ),
   };
 };

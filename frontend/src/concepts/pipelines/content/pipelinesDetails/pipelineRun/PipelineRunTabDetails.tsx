@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Spinner, EmptyStateVariant, EmptyState, Title } from '@patternfly/react-core';
+import {
+  Spinner,
+  EmptyStateVariant,
+  EmptyState,
+  Title,
+  Split,
+  SplitItem,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
@@ -14,6 +21,10 @@ import {
   DetailItem,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
+import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
+import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
+
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF;
   workflowName?: string;
@@ -23,7 +34,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   pipelineRunKF,
   workflowName,
 }) => {
-  const { namespace, project } = usePipelinesAPI();
+  const { namespace, project, getJobInformation } = usePipelinesAPI();
 
   if (!pipelineRunKF || !workflowName) {
     return (
@@ -36,7 +47,11 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     );
   }
 
-  const pipelineReference = getPipelineCoreResourcePipelineReference(pipelineRunKF);
+  const { data } = getJobInformation(pipelineRunKF);
+  const pipelineReference =
+    getPipelineCoreResourcePipelineReference(pipelineRunKF) ??
+    getPipelineCoreResourcePipelineReference(data ?? undefined);
+
   const pipelineRef = pipelineReference
     ? [
         {
@@ -51,8 +66,45 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
       ]
     : [];
 
+  const jobRefDescription = data
+    ? [
+        {
+          key: 'Description',
+          value: (
+            <>
+              <PipelineJobReferenceName resource={pipelineRunKF} />
+              {data.description ?? ''}
+            </>
+          ),
+        },
+      ]
+    : null;
+  const pipelineDescription = pipelineRunKF.description
+    ? [
+        {
+          key: 'Description',
+          value: pipelineRunKF.description,
+        },
+      ]
+    : null;
+  const description = (pipelineDescription || jobRefDescription) ?? [];
+
+  const renderRunName = {
+    key: 'Name',
+    value: (
+      <Split hasGutter>
+        <SplitItem>
+          <PipelineDetailsTitle run={pipelineRunKF} />{' '}
+        </SplitItem>
+        <SplitItem>
+          <PipelineRunTypeLabel resource={pipelineRunKF} />
+        </SplitItem>
+      </Split>
+    ),
+  };
   const details: DetailItem[] = [
-    { key: 'Name', value: pipelineRunKF.name },
+    renderRunName,
+    ...description,
     ...pipelineRef,
     {
       key: 'Project',
