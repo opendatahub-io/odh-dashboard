@@ -7,6 +7,12 @@ export enum PerformanceMetricType {
   MODEL = 'model',
 }
 
+export enum MetricType {
+  SERVER = 'server',
+  MODEL = 'model',
+  BIAS = 'bias',
+}
+
 export enum TimeframeTitle {
   ONE_HOUR = '1 hour',
   ONE_DAY = '24 hours',
