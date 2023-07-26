@@ -104,7 +104,7 @@ const assembleNotebook = (
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
-        'openshift.io/display-name': notebookName,
+        'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,

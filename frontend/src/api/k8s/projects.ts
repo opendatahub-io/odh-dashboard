@@ -132,7 +132,7 @@ export const updateProject = (
       ...editProjectData.metadata,
       annotations: {
         ...editProjectData.metadata.annotations,
-        'openshift.io/display-name': displayName,
+        'openshift.io/display-name': displayName.trim(),
         'openshift.io/description': description,
       },
     },
