@@ -43,6 +43,7 @@ export type RunParam = {
 export type RunFormData = {
   project: ProjectKind;
   nameDesc: { name: string; description: string };
+  pipelinesLoaded: boolean;
   pipeline: PipelineKF | null;
   // experiment: ExperimentKF | null;
   runType: RunType;

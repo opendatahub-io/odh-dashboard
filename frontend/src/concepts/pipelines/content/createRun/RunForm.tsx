@@ -38,6 +38,9 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
       />
     </FormSection>
     <PipelineSection
+      onLoaded={(loaded) => {
+        onValueChange('pipelinesLoaded', loaded);
+      }}
       value={data.pipeline}
       onChange={(pipeline) => {
         onValueChange('pipeline', pipeline);
