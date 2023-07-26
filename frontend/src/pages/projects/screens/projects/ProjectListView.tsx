@@ -22,7 +22,7 @@ type ProjectListViewProps = {
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const { dashboardConfig } = useAppContext();
-  const { projects: unfilteredProjects } = React.useContext(ProjectsContext);
+  const { projects: unfilteredProjects, refresh } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -124,7 +124,10 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
       />
       <DeleteProjectModal
         deleteData={deleteData}
-        onClose={() => {
+        onClose={(deleted) => {
+          if (deleted) {
+            refresh();
+          }
           setDeleteData(undefined);
         }}
       />

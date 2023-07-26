@@ -83,4 +83,8 @@ test('Delete project', async ({ page }) => {
 
   await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Test Project');
   await expect(page.getByRole('button', { name: 'Delete project' })).toBeEnabled();
+
+  // Test if error alert will pop up
+  await page.getByRole('button', { name: 'Delete project' }).click();
+  expect(page.getByText('Error deleting Test Project')).toBeTruthy();
 });
