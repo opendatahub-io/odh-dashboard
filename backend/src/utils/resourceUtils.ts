@@ -192,6 +192,7 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionK
   return fetchAll();
 };
 
+/** @deprecated -- we are moving away from KfDefs */
 const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDefApplication[]> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
@@ -211,6 +212,16 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
       return acc;
     }, [] as KfDefApplication[]);
   } catch (e) {
+    const errorResponse = e.response.body;
+    if (errorResponse?.trim() === '404 page not found') {
+      // 404s like this are because the CRD does not exist
+      // If there were no resources, we would get an empty array
+      // This is not an error case, we are supporting the new Operator that does not use KfDefs
+      fastify.log.info('Detected no KfDef CRD installed -- suppressing issue pulling KfDef');
+      return [];
+    }
+
+    // Old flow, if it fails in other ways, we'll need to still handle a failed KfDef issue
     fastify.log.error(e, 'failed to get kfdefs');
     const error = createError(500, 'failed to get kfdefs');
     error.explicitInternalServerError = true;
@@ -796,8 +807,14 @@ export const migrateTemplateDisablement = async (
             undefined,
             options,
           )
-          .then((response) => {
-            return response.body as DashboardConfig;
+          .then(() => {
+            return {
+              ...dashboardConfig,
+              spec: {
+                ...dashboardConfig.spec,
+                templateDisablement: templatesDisabled,
+              },
+            };
           });
       } else {
         return dashboardConfig;
