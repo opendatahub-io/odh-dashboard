@@ -7,6 +7,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import ProjectView from '~/pages/projects/screens/projects/ProjectView';
+import { mock403Error } from '~/__mocks__/mock403Error';
 
 export default {
   component: ProjectView,
@@ -26,6 +27,18 @@ export default {
         ),
         rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
           res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
+        ),
+        rest.delete(
+          '/api/k8s/apis/project.openshift.io/v1/projects/test-project',
+          (req, res, ctx) =>
+            res(
+              ctx.status(403),
+              ctx.json(
+                mock403Error({
+                  message: 'projects.project.openshift.io "test-project" is forbidden',
+                }),
+              ),
+            ),
         ),
       ],
     },
