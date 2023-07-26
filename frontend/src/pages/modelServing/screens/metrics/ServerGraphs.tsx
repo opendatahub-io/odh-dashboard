@@ -5,14 +5,15 @@ import {
   ModelServingMetricsContext,
   ServerMetricType,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
-import { per100 } from '~/pages/modelServing/screens/metrics/utils';
+import {
+  convertPrometheusNaNToZero,
+  per100,
+  toPercentage,
+} from '~/pages/modelServing/screens/metrics/utils';
+import { NamedMetricChartLine } from './types';
 
 const ServerGraphs: React.FC = () => {
-  const { data, currentTimeframe } = React.useContext(ModelServingMetricsContext);
-
-  const inHours =
-    currentTimeframe === TimeframeTitle.ONE_HOUR || currentTimeframe === TimeframeTitle.ONE_DAY;
+  const { data } = React.useContext(ModelServingMetricsContext);
 
   return (
     <Stack hasGutter>
@@ -20,28 +21,46 @@ const ServerGraphs: React.FC = () => {
         <MetricsChart
           metrics={{ metric: data[ServerMetricType.REQUEST_COUNT], translatePoint: per100 }}
           color="blue"
-          title={`Http requests per ${inHours ? 'hour' : 'day'} (x100)`}
+          title="Http requests (x100)"
         />
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={{ metric: data[ServerMetricType.AVG_RESPONSE_TIME] }}
+          metrics={data[ServerMetricType.AVG_RESPONSE_TIME].data.map(
+            (line): NamedMetricChartLine => ({
+              name: line.metric.pod,
+              metric: {
+                ...data[ServerMetricType.AVG_RESPONSE_TIME],
+                data: convertPrometheusNaNToZero(line.values),
+              },
+            }),
+          )}
           color="green"
           title="Average response time (ms)"
+          isStack
         />
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={{ metric: data[ServerMetricType.CPU_UTILIZATION] }}
+          metrics={{ metric: data[ServerMetricType.CPU_UTILIZATION], translatePoint: toPercentage }}
           color="purple"
           title="CPU utilization %"
+          domain={() => ({
+            y: [0, 100],
+          })}
         />
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={{ metric: data[ServerMetricType.MEMORY_UTILIZATION] }}
+          metrics={{
+            metric: data[ServerMetricType.MEMORY_UTILIZATION],
+            translatePoint: toPercentage,
+          }}
           color="orange"
           title="Memory utilization %"
+          domain={() => ({
+            y: [0, 100],
+          })}
         />
       </StackItem>
     </Stack>

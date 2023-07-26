@@ -16,7 +16,7 @@ import {
 import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
-import { RefreshIntervalValue } from '~/pages/modelServing/screens/const';
+import { QueryTimeframeStep, RefreshIntervalValue } from '~/pages/modelServing/screens/const';
 import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
@@ -45,29 +45,33 @@ export const useModelServingMetrics = (
 
   const trustyResponsePredicate = React.useCallback<
     ResponsePredicate<PrometheusQueryRangeResponseDataResult>
-  >((data) => data.result, []);
+  >((data) => data.result || [], []);
 
   const serverRequestCount = useQueryRangeResourceData(
     performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
     queries[ServerMetricType.REQUEST_COUNT],
     end,
     timeframe,
+    QueryTimeframeStep[ServerMetricType.REQUEST_COUNT],
     defaultResponsePredicate,
   );
 
-  const serverAverageResponseTime = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.AVG_RESPONSE_TIME],
-    end,
-    timeframe,
-    defaultResponsePredicate,
-  );
+  const serverAverageResponseTime =
+    useQueryRangeResourceData<PrometheusQueryRangeResponseDataResult>(
+      performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+      queries[ServerMetricType.AVG_RESPONSE_TIME],
+      end,
+      timeframe,
+      QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME],
+      trustyResponsePredicate,
+    );
 
   const serverCPUUtilization = useQueryRangeResourceData(
     performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
     queries[ServerMetricType.CPU_UTILIZATION],
     end,
     timeframe,
+    QueryTimeframeStep[ServerMetricType.CPU_UTILIZATION],
     defaultResponsePredicate,
   );
 
@@ -76,6 +80,7 @@ export const useModelServingMetrics = (
     queries[ServerMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
+    QueryTimeframeStep[ServerMetricType.MEMORY_UTILIZATION],
     defaultResponsePredicate,
   );
 
@@ -84,6 +89,7 @@ export const useModelServingMetrics = (
     queries[ModelMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
+    QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS],
     defaultResponsePredicate,
   );
 
@@ -92,6 +98,7 @@ export const useModelServingMetrics = (
     queries[ModelMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
+    QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED],
     defaultResponsePredicate,
   );
 
@@ -100,6 +107,7 @@ export const useModelServingMetrics = (
     queries[ModelMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
+    QueryTimeframeStep[ModelMetricType.TRUSTY_AI_SPD],
     trustyResponsePredicate,
     '/api/prometheus/bias',
   );
@@ -109,6 +117,7 @@ export const useModelServingMetrics = (
     queries[ModelMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
+    QueryTimeframeStep[ModelMetricType.TRUSTY_AI_DIR],
     trustyResponsePredicate,
     '/api/prometheus/bias',
   );

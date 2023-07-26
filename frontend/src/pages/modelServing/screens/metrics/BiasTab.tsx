@@ -1,13 +1,20 @@
 import React from 'react';
 import {
   Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  EmptyStateVariant,
   PageSection,
+  PageSectionVariants,
   Spinner,
   Stack,
   StackItem,
+  Title,
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
 import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/BiasMetricConfigSelector';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
@@ -16,6 +23,8 @@ import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/Emp
 import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/EmptyBiasChartSelectionCard';
 import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandableSection';
 import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/useBiasChartsBrowserStorage';
+import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
 
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {
@@ -49,57 +58,81 @@ const BiasTab: React.FC = () => {
     );
   }
 
-  return (
-    <Stack>
-      <StackItem>
-        <MetricsPageToolbar
-          leftToolbarItem={
-            <ToolbarGroup>
-              <Stack>
-                <StackItem>
-                  <ToolbarItem variant="label">Metrics to display</ToolbarItem>
-                </StackItem>
-                <StackItem>
-                  <ToolbarItem>
-                    <BiasMetricConfigSelector
-                      onChange={setSelectedBiasConfigs}
-                      initialSelections={selectedBiasConfigs}
-                    />
-                  </ToolbarItem>
-                </StackItem>
-              </Stack>
-            </ToolbarGroup>
-          }
-        />
-      </StackItem>
-      <PageSection isFilled>
-        <Stack hasGutter>
-          {(biasMetricConfigs.length === 0 && (
-            <StackItem>
-              <EmptyBiasConfigurationCard />
-            </StackItem>
-          )) ||
-            (selectedBiasConfigs.length === 0 && (
-              <StackItem>
-                <EmptyBiasChartSelectionCard />
-              </StackItem>
-            )) || (
-              <>
-                {selectedBiasConfigs.map((x) => (
-                  <StackItem key={x.id}>
-                    <DashboardExpandableSection
-                      title={x.name}
-                      storageKey={`${OPEN_WRAPPER_STORAGE_KEY_PREFIX}-${x.id}`}
-                    >
-                      <TrustyChart biasMetricConfig={x} />
-                    </DashboardExpandableSection>
-                  </StackItem>
-                ))}
-              </>
-            )}
-        </Stack>
+  if (loadError) {
+    return (
+      <PageSection isFilled variant={PageSectionVariants.light}>
+        <EmptyState variant={EmptyStateVariant.large}>
+          <EmptyStateIcon icon={ExclamationCircleIcon} />
+          <Title headingLevel="h5" size="lg">
+            TrustyAI Error
+          </Title>
+          <EmptyStateBody>
+            <Stack hasGutter>
+              <StackItem>We encountered an error accessing the TrustyAI service:</StackItem>
+              <StackItem>{loadError?.message}</StackItem>
+            </Stack>
+          </EmptyStateBody>
+        </EmptyState>
       </PageSection>
-    </Stack>
+    );
+  }
+
+  return (
+    <EnsureMetricsAvailable
+      metrics={[ModelMetricType.TRUSTY_AI_SPD, ModelMetricType.TRUSTY_AI_DIR]}
+      accessDomain="model bias metrics"
+    >
+      <Stack>
+        <StackItem>
+          <MetricsPageToolbar
+            leftToolbarItem={
+              <ToolbarGroup>
+                <Stack>
+                  <StackItem>
+                    <ToolbarItem variant="label">Metrics to display</ToolbarItem>
+                  </StackItem>
+                  <StackItem>
+                    <ToolbarItem>
+                      <BiasMetricConfigSelector
+                        onChange={setSelectedBiasConfigs}
+                        initialSelections={selectedBiasConfigs}
+                      />
+                    </ToolbarItem>
+                  </StackItem>
+                </Stack>
+              </ToolbarGroup>
+            }
+          />
+        </StackItem>
+        <PageSection isFilled>
+          <Stack hasGutter>
+            {(biasMetricConfigs.length === 0 && (
+              <StackItem>
+                <EmptyBiasConfigurationCard />
+              </StackItem>
+            )) ||
+              (selectedBiasConfigs.length === 0 && (
+                <StackItem>
+                  <EmptyBiasChartSelectionCard />
+                </StackItem>
+              )) || (
+                <>
+                  {selectedBiasConfigs.map((x) => (
+                    <StackItem key={x.id}>
+                      <DashboardExpandableSection
+                        title={x.name}
+                        storageKey={`${OPEN_WRAPPER_STORAGE_KEY_PREFIX}-${x.id}`}
+                      >
+                        <TrustyChart biasMetricConfig={x} />
+                      </DashboardExpandableSection>
+                    </StackItem>
+                  ))}
+                </>
+              )}
+          </Stack>
+        </PageSection>
+      </Stack>
+    </EnsureMetricsAvailable>
   );
 };
 export default BiasTab;
