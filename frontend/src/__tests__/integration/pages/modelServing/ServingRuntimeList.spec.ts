@@ -21,8 +21,10 @@ test('Deploy model', async ({ page }) => {
     .getByRole('button', { name: 'Options menu' })
     .click();
   await page.getByRole('option', { name: 'Test Secret' }).click();
+  await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
   await page.getByText('New data connection').click();
+  await page.getByLabel('Path').fill('');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
   await page.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' }).fill('test-key');
@@ -30,6 +32,7 @@ test('Deploy model', async ({ page }) => {
     .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
     .fill('test-secret-key');
   await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
+  await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
