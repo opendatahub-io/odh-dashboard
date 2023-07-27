@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import createError from 'http-errors';
 import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
+  AcceleratorKind,
   BUILD_PHASE,
   BuildKind,
   BuildStatus,
@@ -606,6 +607,117 @@ export const getConsoleLinks = (): ConsoleLinkKind[] => {
   return consoleLinksWatcher.getResources();
 };
 
+/**
+ * Converts GPU usage to use accelerator by adding an accelerator profile CRD to the cluster if GPU usage is detected
+ */
+export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> => {
+  // When we startup — in kube.ts we can handle a migration (catch ALL promise errors — exit gracefully and use fastify logging)
+  // Check for migration-gpu-status configmap in dashboard namespace — if found, exit early
+  const CONFIG_MAP_NAME = 'migration-gpu-status';
+
+  const continueProcessing = await fastify.kube.coreV1Api
+    .readNamespacedConfigMap(CONFIG_MAP_NAME, fastify.kube.namespace)
+    .then(() => {
+      // Found configmap, not continuing
+      return false;
+    })
+    .catch((e) => {
+      if (e.statusCode === 404) {
+        // No config saying we have already migrated gpus, continue
+        return true;
+      }
+      throw e;
+    });
+
+  if (continueProcessing) {
+    // Read existing AcceleratorProfiles
+    const acceleratorProfilesResponse = await fastify.kube.customObjectsApi
+      .listNamespacedCustomObject(
+        'accelerator.openshift.io',
+        'v1alpha',
+        fastify.kube.namespace,
+      'acceleratorprofiles'
+      )
+
+    // If 404 shows up — CRD may not be installed, exit early
+    if (acceleratorProfilesResponse.response.statusCode === 404) {
+      return;
+    }
+
+    const acceleratorProfiles = (
+      acceleratorProfilesResponse?.body as {
+        items: AcceleratorKind[]
+      }
+    )?.items;
+
+    // If not 404 and no profiles detected:
+    if (acceleratorProfiles && Array.isArray(acceleratorProfiles) && acceleratorProfiles.length === 0) {
+      // if gpu detected on cluster, create our default migrated-gpu
+      // TODO GPU detection
+      const gpu_detected = true;
+
+      if (gpu_detected) {
+        const payload: AcceleratorKind = {
+          kind: 'AcceleratorProfile',
+          apiVersion: 'dashboard.opendatahub.io/v1alpha',
+          metadata: {
+            name: 'migrated-gpu',
+            namespace: fastify.kube.namespace,
+          },
+          spec: {
+            displayName: 'Nvidia GPU',
+            identifier: 'nvidia.com/gpu',
+            enabled: true,
+            tolerations: [
+              {
+                effect: 'NoSchedule',
+                key: 'nvidia.com/gpu',
+                operator: 'Exists',
+              }
+            ]
+          },
+        };
+
+        try {
+          await await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+            'accelerator.openshift.io',
+            'v1alpha',
+            fastify.kube.namespace,
+            'acceleratorprofiles',
+            payload
+          )
+        } catch (e) {
+          // If bad detection — exit early and dont create config
+          if (e.response?.statusCode !== 404) {
+            fastify.log.error('Unable to add migrated-gpu accelerator profile: ' + e.toString());
+            return;
+          }
+        }      
+      };          
+    }
+
+    // Create configmap to flag operation as successful
+    const configMap = {
+      metadata: {
+        name: CONFIG_MAP_NAME,
+        namespace: fastify.kube.namespace,
+      },
+      data: {
+        migratedCompleted: 'true',
+      },
+    }
+
+    await fastify.kube.coreV1Api
+    .createNamespacedConfigMap(fastify.kube.namespace, configMap)
+    .then(() => fastify.log.info('Successfully migrated GPUs to accelerator profiles'))
+    .catch((e) => {
+      throw createCustomError(
+        'Unable to create gpu migration configmap',
+        e.response?.body?.message || e.message,
+      );
+    });
+  }
+}
 /**
  * @deprecated - Look to remove asap (see comments below)
  * Converts namespaces that have a display-name annotation suffixed with `[DSP]` over to using a label.
