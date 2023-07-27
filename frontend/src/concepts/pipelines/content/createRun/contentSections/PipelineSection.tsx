@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormSection, Stack, StackItem } from '@patternfly/react-core';
+import { FormSection, Skeleton, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
@@ -11,13 +11,19 @@ import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipe
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 
 type PipelineSectionProps = {
+  onLoaded: (loaded: boolean) => void;
   value: PipelineKF | null;
   onChange: (pipeline: PipelineKF) => void;
 };
 
-const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) => {
-  const [pipelines] = usePipelines();
-
+const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onChange }) => {
+  const [pipelines, loaded] = usePipelines();
+  React.useEffect(() => {
+    onLoaded(loaded);
+  }, [onLoaded, loaded]);
+  if (!loaded) {
+    return <Skeleton />;
+  }
   return (
     <FormSection
       id={CreateRunPageSections.PIPELINE}

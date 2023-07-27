@@ -11,18 +11,8 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppSelector } from '~/redux/hooks';
 import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
+import { ApplicationAction, Section } from '~/types';
 import { useAppContext } from './AppContext';
-
-type ApplicationAction = {
-  label: string;
-  href: string;
-  image: React.ReactNode;
-};
-
-type Section = {
-  label: string;
-  actions: ApplicationAction[];
-};
 
 const odhConsoleLinkName = 'rhodslink';
 
@@ -84,7 +74,7 @@ const AppLauncher: React.FC = () => {
     const applicationLinks = consoleLinks
       .filter(
         (link) =>
-          link.spec.location === 'ApplicationMenu' && link.metadata.name !== odhConsoleLinkName,
+          link.spec.location === 'ApplicationMenu' && link.metadata?.name !== odhConsoleLinkName,
       )
       .sort((a, b) => a.spec.text.localeCompare(b.spec.text));
 
@@ -112,13 +102,13 @@ const AppLauncher: React.FC = () => {
       const action: ApplicationAction = {
         label: link.spec.text,
         href: link.spec.href,
-        image: <img src={link.spec.applicationMenu.imageURL} alt="" />,
+        image: <img src={link.spec.applicationMenu?.imageUrl} alt="" />,
       };
-      const section = acc.find((section) => section.label === link.spec.applicationMenu.section);
+      const section = acc.find((section) => section.label === link.spec.applicationMenu?.section);
       if (section) {
         section.actions.push(action);
       } else {
-        acc.push({ label: link.spec.applicationMenu.section, actions: [action] });
+        acc.push({ label: link.spec.applicationMenu?.section, actions: [action] });
       }
       return acc;
     }, getODHApplications());
