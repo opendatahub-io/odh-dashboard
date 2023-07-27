@@ -30,6 +30,8 @@ cd backend
 npm run start:dev
 ```
 
+Once you have these running, you can open the dashboard locally at: `http://localhost:4010`. The dev server will reload automatically when you make changes.
+
 #### Give your dev env access
 
 To give your dev environment access to the ODH configuration, log in to the OpenShift cluster and set the project to the location of the ODH installation
