@@ -71,6 +71,9 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.project !== '' &&
     createData.format.name !== '' &&
     createData.project !== '' &&
+    createData.storage.path !== '' &&
+    createData.storage.path !== '/' &&
+    !createData.storage.path.includes('//') &&
     storageCanCreate();
 
   const onBeforeClose = (submitted: boolean) => {
