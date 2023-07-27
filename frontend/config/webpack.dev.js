@@ -34,7 +34,7 @@ module.exports = merge(
       compress: true,
       historyApiFallback: true,
       hot: true,
-      open: true,
+      open: false,
       proxy: {
         '/api': `http://0.0.0.0:${BACKEND_PORT}`,
       },
@@ -46,6 +46,11 @@ module.exports = merge(
       },
       static: {
         directory: DIST_DIR,
+      },
+      onListening: (devServer) => {
+        if (devServer) {
+          console.log(`\x1b[32m✓ ODH Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`);
+        }
       },
     },
     module: {

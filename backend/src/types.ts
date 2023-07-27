@@ -209,7 +209,13 @@ export type CSVKind = {
 // Minimal type for ConsoleLinks
 export type ConsoleLinkKind = {
   spec: {
-    href?: string;
+    text: string;
+    location: string;
+    href: string;
+    applicationMenu?: {
+      section: string;
+      imageUrl: string;
+    };
   };
 } & K8sResourceCommon;
 
