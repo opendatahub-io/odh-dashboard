@@ -15,7 +15,12 @@ type SelectedNodeDetailsTabProps = {
 const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task }) => {
   let details: DetailItem[];
 
-  const taskName = { key: 'Task name', value: task.name };
+  const taskName = {
+    key: 'Task name',
+    value:
+      task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
+      task.name,
+  };
 
   if (task.skipped) {
     details = [taskName, { key: 'Status', value: 'Skipped' }];
