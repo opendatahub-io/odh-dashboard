@@ -11,7 +11,7 @@ import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 
-const ELYRA_VOLUME_NAME = 'elyra-dsp-details';
+export const ELYRA_VOLUME_NAME = 'elyra-dsp-details';
 
 export const getElyraVolumeMount = (): VolumeMount => ({
   name: ELYRA_VOLUME_NAME,
