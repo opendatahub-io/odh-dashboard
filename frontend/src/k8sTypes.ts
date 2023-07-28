@@ -157,6 +157,18 @@ export type ConfigMapKind = K8sResourceCommon & {
   data?: Record<string, string>;
 };
 
+export type ConsoleLinkKind = {
+  spec: {
+    text: string;
+    location: string;
+    href: string;
+    applicationMenu?: {
+      section: string;
+      imageUrl: string;
+    };
+  };
+} & K8sResourceCommon;
+
 export type EventKind = K8sResourceCommon & {
   metadata: {
     uid?: string;
@@ -713,5 +725,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
 };

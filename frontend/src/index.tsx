@@ -6,6 +6,7 @@ import { store } from './redux/store/store';
 import App from './app/App';
 import SDKInitialize from './SDKInitialize';
 import { BrowserStorageContextProvider } from './components/browserStorage/BrowserStorageContext';
+import ErrorBoundary from './components/error/ErrorBoundary';
 
 /**
 /**
@@ -17,14 +18,16 @@ import { BrowserStorageContextProvider } from './components/browserStorage/Brows
 const root = createRoot(document.getElementById('root')!);
 root.render(
   <React.StrictMode>
-    <Provider store={store}>
-      <Router>
-        <SDKInitialize>
-          <BrowserStorageContextProvider>
-            <App />
-          </BrowserStorageContextProvider>
-        </SDKInitialize>
-      </Router>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <Router>
+          <SDKInitialize>
+            <BrowserStorageContextProvider>
+              <App />
+            </BrowserStorageContextProvider>
+          </SDKInitialize>
+        </Router>
+      </Provider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

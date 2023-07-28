@@ -21,7 +21,6 @@ export const mockTemplateK8sResource = ({
       'opendatahub.io/dashboard': 'true',
     },
     annotations: {
-      'opendatahub.io/template-enabled': 'true',
       tags: 'new-one,servingruntime',
     },
   },

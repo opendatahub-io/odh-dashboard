@@ -25,14 +25,17 @@ test('Edit model', async ({ page }) => {
 
   // test that you can not submit on empty
   await await page.getByLabel('Model Name *').fill('');
+  await await page.getByLabel('Path').fill('');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
   // test that you can update the name to a different name
   await await page.getByLabel('Model Name *').fill('Updated Model Name');
+  await await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 
   // test that user cant upload on an empty new secret
   await page.getByText('New data connection').click();
+  await await page.getByLabel('Path').fill('');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
   // test that adding required values validates submit
@@ -41,6 +44,8 @@ test('Edit model', async ({ page }) => {
   await page
     .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
     .fill('test-secret-key');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
+  await page.getByLabel('Path').fill('test-model/');
   await expect(page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
@@ -61,11 +66,8 @@ test('Create model', async ({ page }) => {
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#inference-service-model-selection').click();
   await page.getByRole('option', { name: 'ovms' }).click();
-  await page
-    .getByText(
-      'Project Test ProjectModel Name * Model servers * OVMS Model ServingModel framework * Sel',
-    )
-    .click();
+  await expect(page.getByText('Model framework (name - version)')).toBeTruthy();
+  await page.locator('#inference-service-framework-selection').click();
   await page.getByRole('option', { name: 'onnx - 1' }).click();
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
   await page
@@ -73,13 +75,17 @@ test('Create model', async ({ page }) => {
     .getByRole('button', { name: 'Options menu' })
     .click();
   await page.getByRole('option', { name: 'Test Secret' }).click();
+  await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
   await page.getByText('New data connection').click();
+  await page.getByLabel('Path').fill('');
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
   await page.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' }).fill('test-key');
   await page
     .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
     .fill('test-secret-key');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
+  await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
 });

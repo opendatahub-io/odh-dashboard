@@ -13,22 +13,6 @@ export const listTemplatesBackend = async (
     .then((response) => response.data.items)
     .catch((e) => Promise.reject(e));
 
-export const toggleTemplateEnabledStatusBackend = (
-  name: string,
-  namespace: string,
-  enable: boolean,
-): Promise<TemplateKind> =>
-  axios
-    .patch<TemplateKind>(`/api/templates/${namespace}/${name}`, [
-      {
-        op: 'replace',
-        path: '/metadata/annotations/opendatahub.io~1template-enabled',
-        value: enable ? 'true' : 'false',
-      },
-    ])
-    .then((response) => response.data)
-    .catch((e) => Promise.reject(e));
-
 const dryRunServingRuntimeForTemplateCreationBackend = (
   servingRuntime: ServingRuntimeKind,
   namespace: string,
