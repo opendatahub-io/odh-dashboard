@@ -748,6 +748,14 @@ export type GPUInfo = {
   available: number;
   autoscalers: gpuScale[];
 };
+
+export type AcceleratorInfo = {
+  configured: boolean;
+  available: {[key: string]: number};
+  total: {[key: string]: number};
+  allocated: {[key: string]: number};
+}
+
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
   { valueFrom: Record<string, unknown> }
