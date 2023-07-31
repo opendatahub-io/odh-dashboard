@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import ManageBYONImageModal from './ManageBYONImageModal';
+import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 
 type ImportBYONImageButtonProps = {
   refresh: () => void;
