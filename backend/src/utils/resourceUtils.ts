@@ -32,6 +32,7 @@ import {
   getRouteForClusterId,
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
+import { getAcceleratorNumbers } from '../routes/api/accelerators/acceleratorUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -626,23 +627,21 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
         // No config saying we have already migrated gpus, continue
         return true;
       }
-      throw e;
     });
+    
 
   if (continueProcessing) {
     // Read existing AcceleratorProfiles
     const acceleratorProfilesResponse = await fastify.kube.customObjectsApi
       .listNamespacedCustomObject(
-        'accelerator.openshift.io',
+        'dashboard.opendatahub.io',
         'v1alpha',
         fastify.kube.namespace,
       'acceleratorprofiles'
-      )
-
-    // If 404 shows up — CRD may not be installed, exit early
-    if (acceleratorProfilesResponse.response.statusCode === 404) {
-      return;
-    }
+      ).catch((e) => {
+        // If 404 shows up — CRD may not be installed, exit early
+        throw 'Unable to fetch accelerator profiles: ' + e.toString()
+      });
 
     const acceleratorProfiles = (
       acceleratorProfilesResponse?.body as {
@@ -650,7 +649,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       }
     )?.items;
 
-    // If not 404 and no profiles detected:
+    // If not error and no profiles detected:
     if (acceleratorProfiles && Array.isArray(acceleratorProfiles) && acceleratorProfiles.length === 0) {
       // if gpu detected on cluster, create our default migrated-gpu
       // TODO GPU detection
@@ -680,7 +679,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
 
         try {
           await await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-            'accelerator.openshift.io',
+            'dashboard.opendatahub.io',
             'v1alpha',
             fastify.kube.namespace,
             'acceleratorprofiles',
@@ -688,10 +687,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
           )
         } catch (e) {
           // If bad detection — exit early and dont create config
-          if (e.response?.statusCode !== 404) {
-            fastify.log.error('Unable to add migrated-gpu accelerator profile: ' + e.toString());
-            return;
-          }
+          throw 'Unable to add migrated-gpu accelerator profile: ' + e.toString()
         }      
       };          
     }
