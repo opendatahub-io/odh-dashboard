@@ -1,6 +1,6 @@
 import { AcceleratorInfo, KubeFastifyInstance } from "../../../types"
 
-const RESOURCE_TYPES = ["cpu", "memory", "pods", "ephemeral-storage", "hugepages-1Gi", "hugepages-2Mi"]
+const RESOURCE_TYPES = ["cpu", "memory", "pods", "ephemeral-storage", "hugepages-1Gi", "hugepages-2Mi", "attachable-volumes-aws-ebs"]
 
 const getIdentifiersFromResources = (resources: {[key: string]: string} = {}) => {
 	return Object.entries(resources)
