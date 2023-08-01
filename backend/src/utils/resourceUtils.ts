@@ -654,9 +654,9 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
     if (acceleratorProfiles && Array.isArray(acceleratorProfiles) && acceleratorProfiles.length === 0) {
       // if gpu detected on cluster, create our default migrated-gpu
       // TODO GPU detection
-      const gpu_detected = true;
+      const acceleratorDetected = await getAcceleratorNumbers(fastify)
 
-      if (gpu_detected) {
+      if (acceleratorDetected.configured) {
         const payload: AcceleratorKind = {
           kind: 'AcceleratorProfile',
           apiVersion: 'dashboard.opendatahub.io/v1alpha',
