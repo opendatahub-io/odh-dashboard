@@ -607,8 +607,8 @@ export type PipelineRunTaskSpec = {
     volumeMounts?: PipelineRunTaskVolumeMount[];
   };
   results: PipelineRunTaskSpecResult[];
-  metadata: {
-    annotations: {
+  metadata?: {
+    annotations?: {
       /** @see PipelineRunTaskSpecDigest */
       'pipelines.kubeflow.org/component_spec_digest': string;
     };

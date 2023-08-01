@@ -17,6 +17,7 @@ import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import {
+  ELYRA_VOLUME_NAME,
   generateElyraServiceAccountRoleBinding,
   getElyraVolume,
   getElyraVolumeMount,
@@ -26,6 +27,16 @@ import {
 import { createRoleBinding } from '~/api';
 import { Volume, VolumeMount } from '~/types';
 import { assemblePodSpecOptions } from './utils';
+
+const getshmVolumeMount = (): VolumeMount => ({
+  name: 'shm',
+  mountPath: '/dev/shm',
+});
+
+const getshmVolume = (): Volume => ({
+  name: 'shm',
+  emptyDir: { medium: 'Memory' },
+});
 
 const assembleNotebook = (
   data: StartNotebookData,
@@ -64,10 +75,22 @@ const assembleNotebook = (
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
   if (canEnablePipelines) {
     volumes = volumes || [];
-    volumes.push(getElyraVolume());
+    if (!volumes.find((volume) => volume.name === ELYRA_VOLUME_NAME)) {
+      volumes.push(getElyraVolume());
+    }
 
     volumeMounts = volumeMounts || [];
-    volumeMounts.push(getElyraVolumeMount());
+    if (!volumeMounts.find((volumeMount) => volumeMount.name === ELYRA_VOLUME_NAME)) {
+      volumeMounts.push(getElyraVolumeMount());
+    }
+  }
+  volumes = volumes || [];
+  if (!volumes.find((volume) => volume.name === 'shm')) {
+    volumes.push(getshmVolume());
+  }
+  volumeMounts = volumeMounts || [];
+  if (!volumeMounts.find((volumeMount) => volumeMount.name === 'shm')) {
+    volumeMounts.push(getshmVolumeMount());
   }
 
   return {

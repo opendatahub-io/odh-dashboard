@@ -4,6 +4,7 @@ import { InputGroup, SearchInput, Select, SelectOption } from '@patternfly/react
 // List all the possible search fields here
 export enum SearchType {
   NAME = 'Name',
+  DESCRIPTION = 'Description',
   USER = 'User',
   PROJECT = 'Project',
   METRIC = 'Metric',
@@ -12,6 +13,7 @@ export enum SearchType {
   UNPRIVILEGED_VALUE = 'Unprivileged value',
   OUTPUT = 'Output',
   OUTPUT_VALUE = 'Output value',
+  PROVIDER = 'Provider',
 }
 
 type DashboardSearchFieldProps = {
