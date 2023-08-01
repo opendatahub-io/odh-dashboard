@@ -108,7 +108,7 @@ export type PipelineSpecKF = {
   pipeline_name?: string;
   workflow_manifest?: string;
   pipeline_manifests?: string;
-  parameters: ParameterKF[];
+  parameters?: ParameterKF[];
   runtime_config: PipelineSpecRuntimeConfig;
 };
 
