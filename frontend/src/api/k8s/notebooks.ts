@@ -26,6 +26,7 @@ import {
 import { createRoleBinding } from '~/api';
 import { Volume, VolumeMount } from '~/types';
 import { DashboardConfig } from '~/types';
+import { featureFlagEnabled } from '~/utilities/utils';
 import { assemblePodSpecOptions } from './utils';
 
 const assembleNotebook = (
@@ -72,6 +73,10 @@ const assembleNotebook = (
     volumeMounts.push(getElyraVolumeMount());
   }
 
+  const enableServiceMesh = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
+  );
+
   return {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -88,12 +93,8 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
-        'notebooks.opendatahub.io/inject-oauth': String(
-          dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-        ),
-        'opendatahub.io/service-mesh': String(
-          !dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-        ),
+        'notebooks.opendatahub.io/inject-oauth': String(!enableServiceMesh),
+        'opendatahub.io/service-mesh': String(enableServiceMesh),
         'opendatahub.io/username': username,
       },
       name: notebookId,
@@ -181,16 +182,16 @@ const getStopPatch = (): Patch => ({
   value: getStopPatchDataString(),
 });
 
-const getInjectOAuthPatch = (disableServiceMesh: boolean): Patch => ({
+const getInjectOAuthPatch = (enableServiceMesh: boolean): Patch => ({
   op: 'add',
   path: '/metadata/annotations/notebooks.opendatahub.io~1inject-oauth',
-  value: String(disableServiceMesh),
+  value: String(!enableServiceMesh),
 });
 
-const getServiceMeshPatch = (disableServiceMesh: boolean): Patch => ({
+const getServiceMeshPatch = (enableServiceMesh: boolean): Patch => ({
   op: 'add',
   path: '/metadata/annotations/opendatahub.io~1service-mesh',
-  value: String(!disableServiceMesh),
+  value: String(enableServiceMesh),
 });
 
 export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
@@ -219,10 +220,14 @@ export const startNotebook = async (
   dashboardConfig: DashboardConfig,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
+  const enableServiceMesh = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
+  );
+
   const patches: Patch[] = [
     startPatch,
-    getInjectOAuthPatch(dashboardConfig.spec.dashboardConfig.disableServiceMesh),
-    getServiceMeshPatch(dashboardConfig.spec.dashboardConfig.disableServiceMesh),
+    getInjectOAuthPatch(enableServiceMesh),
+    getServiceMeshPatch(enableServiceMesh),
   ];
 
   const tolerationPatch = getTolerationPatch(tolerationChanges);

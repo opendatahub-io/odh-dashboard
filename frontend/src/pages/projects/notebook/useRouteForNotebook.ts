@@ -2,6 +2,7 @@ import * as React from 'react';
 import { getServiceMeshGwHost, getRoute } from '~/api';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
+import { featureFlagEnabled } from '~/utilities/utils';
 
 const useRouteForNotebook = (
   notebookName?: string,
@@ -21,8 +22,11 @@ const useRouteForNotebook = (
         return;
       }
       if (notebookName && projectName) {
+        const enableServiceMesh = featureFlagEnabled(
+          dashboardConfig.spec.dashboardConfig.disableServiceMesh,
+        );
         // if not using service mesh fetch openshift route, otherwise get Istio Ingress Gateway route
-        const getRoutePromise = dashboardConfig.spec.dashboardConfig.disableServiceMesh
+        const getRoutePromise = !enableServiceMesh
           ? getRoute(notebookName, projectName).then((route) => route?.spec.host)
           : getServiceMeshGwHost(projectName);
 

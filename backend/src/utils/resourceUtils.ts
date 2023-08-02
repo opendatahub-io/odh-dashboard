@@ -565,6 +565,9 @@ export const getDashboardConfig = (): DashboardConfig => {
   return dashboardConfigWatcher.getResources()?.[0];
 };
 
+export const featureFlagEnabled = (disabledSettingState?: boolean): boolean =>
+  disabledSettingState === false;
+
 export const updateDashboardConfig = (): Promise<void> => {
   return dashboardConfigWatcher.updateResults();
 };

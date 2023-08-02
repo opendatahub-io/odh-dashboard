@@ -3,7 +3,7 @@ import { PatchUtils, V1ContainerStatus, V1Pod, V1PodList } from '@kubernetes/cli
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
 import { RecursivePartial } from '../../../typeHelpers';
-import { getDashboardConfig } from '../../../utils/resourceUtils';
+import { featureFlagEnabled, getDashboardConfig } from '../../../utils/resourceUtils';
 import {
   createNotebook,
   generateNotebookNameFromUsername,
@@ -29,9 +29,11 @@ export const getNotebookStatus = async (
   const notebookName = notebook?.metadata.name;
   let newNotebook: Notebook;
   if (isRunning && !notebook?.metadata.annotations?.['opendatahub.io/link']) {
-    const disableServiceMesh = getDashboardConfig().spec.dashboardConfig.disableServiceMesh;
+    const enableServiceMesh = featureFlagEnabled(
+      getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
+    );
     let host: string;
-    if (!disableServiceMesh) {
+    if (enableServiceMesh) {
       host = await getServiceMeshGwHost(fastify, namespace).catch((e) => {
         fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
         return undefined;
@@ -41,9 +43,7 @@ export const getNotebookStatus = async (
         fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
         return undefined;
       });
-      if (route) {
-        host = route.spec.host;
-      }
+      host = route?.spec.host;
     }
     if (host) {
       newNotebook = await patchNotebookRoute(fastify, host, namespace, notebookName).catch((e) => {

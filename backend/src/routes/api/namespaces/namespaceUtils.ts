@@ -2,7 +2,7 @@ import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
-import { getDashboardConfig } from '../../../utils/resourceUtils';
+import { featureFlagEnabled, getDashboardConfig } from '../../../utils/resourceUtils';
 import { isK8sStatus, safeURLPassThrough } from '../k8s/pass-through';
 
 const checkNamespacePermission = (
@@ -61,7 +61,10 @@ export const applyNamespaceChange = async (
     throw createCustomError('Forbidden', "You don't have the access to update the namespace", 403);
   }
 
-  const disableServiceMesh = getDashboardConfig().spec.dashboardConfig.disableServiceMesh;
+  // calling featureFlagEnabled to set the bool to false if it's set to anything but false ('true', undefined, etc)
+  const enableServiceMesh = featureFlagEnabled(
+    getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
+  );
 
   let labels = {};
   let annotations = {};
@@ -72,7 +75,7 @@ export const applyNamespaceChange = async (
         'modelmesh-enabled': 'true',
       };
       annotations = {
-        'opendatahub.io/service-mesh': String(!disableServiceMesh),
+        'opendatahub.io/service-mesh': String(enableServiceMesh),
       };
       break;
     case NamespaceApplicationCase.MODEL_SERVING_PROMOTION:

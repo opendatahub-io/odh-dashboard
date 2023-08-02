@@ -1,4 +1,4 @@
-import { getDashboardConfig } from './resourceUtils';
+import { featureFlagEnabled, getDashboardConfig } from './resourceUtils';
 import {
   EnvironmentVariable,
   ImageInfo,
@@ -281,7 +281,7 @@ export const assembleNotebook = async (
   }));
 
   const serviceMeshEnabled = String(
-    !getDashboardConfig().spec?.dashboardConfig?.disableServiceMesh,
+    !featureFlagEnabled(getDashboardConfig().spec?.dashboardConfig?.disableServiceMesh),
   );
 
   return {
@@ -476,12 +476,12 @@ export const createNotebook = async (
     notebookAssembled.metadata.annotations = {};
   }
 
+  const enableServiceMesh = featureFlagEnabled(config.spec.dashboardConfig.disableServiceMesh);
+
   notebookAssembled.metadata.annotations['notebooks.opendatahub.io/inject-oauth'] = String(
-    config.spec.dashboardConfig.disableServiceMesh,
+    !enableServiceMesh,
   );
-  notebookAssembled.metadata.annotations['opendatahub.io/service-mesh'] = String(
-    !config.spec.dashboardConfig.disableServiceMesh,
-  );
+  notebookAssembled.metadata.annotations['opendatahub.io/service-mesh'] = String(enableServiceMesh);
 
   const notebookContainers = notebookAssembled.spec.template.spec.containers;
 
