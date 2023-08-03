@@ -13,6 +13,9 @@ test('Delete model', async ({ page }) => {
 
   await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Test Inference Service');
   await expect(page.getByRole('button', { name: 'Delete deployed model' })).toBeEnabled();
+
+  await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Name with trailing space ');
+  await expect(page.getByRole('button', { name: 'Delete deployed model' })).toBeDisabled();
 });
 
 test('Edit model', async ({ page }) => {

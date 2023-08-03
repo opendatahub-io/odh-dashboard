@@ -20,7 +20,9 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onCh
   const [pipelines, loaded] = usePipelines();
   React.useEffect(() => {
     onLoaded(loaded);
-  }, [onLoaded, loaded]);
+    // only run when `loaded` changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
   if (!loaded) {
     return <Skeleton />;
   }

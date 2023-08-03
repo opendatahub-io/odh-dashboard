@@ -67,7 +67,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
   const canCreate =
     !actionInProgress &&
-    createData.name !== '' &&
+    createData.name.trim() !== '' &&
     createData.project !== '' &&
     createData.format.name !== '' &&
     createData.project !== '' &&

@@ -25,6 +25,7 @@
     "build:clean": "rimraf ./public",
     "build:prod": "webpack --config ./config/webpack.prod.js",
     "format": "prettier --write \"./**/*.ts\" \"./**/*.tsx\" \"./**/*.scss\"",
+    "lint:goal": "eslint --config ./.eslintrc.goal.js --ext .json,.js,.ts,.jsx,.tsx ./src ",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
     "test": "run-s test:lint test:unit test:type-check test:integration-ci",
     "test:dev": "run-s test:lint test:unit test:accessibility test:integration",
