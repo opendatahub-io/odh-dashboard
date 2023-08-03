@@ -31,7 +31,7 @@ export const assembleSecret = (
     const { Name, ...secretBody } = data;
     stringData = secretBody;
     name = `${DATA_CONNECTION_PREFIX}-${translateDisplayNameForK8s(Name)}`;
-    annotations['openshift.io/display-name'] = Name;
+    annotations['openshift.io/display-name'] = Name.trim();
     annotations['opendatahub.io/connection-type'] = 's3';
     labels[KnownLabels.DATA_CONNECTION_AWS] = 'true';
   }
@@ -102,7 +102,7 @@ export const assembleSecretSA = (
       namespace,
       annotations: {
         'kubernetes.io/service-account.name': serviceAccountName,
-        'openshift.io/display-name': name,
+        'openshift.io/display-name': name.trim(),
       },
       labels: {
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
