@@ -46,7 +46,7 @@ spec:
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: jupyterhub-view-installed-packages
+  name: jupyter-view-installed-packages
   annotations:
     opendatahub.io/categories: 'Package management,Notebook environments,Getting started'
 spec:

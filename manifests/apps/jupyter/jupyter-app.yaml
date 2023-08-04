@@ -164,7 +164,7 @@ spec:
     3.35641 0.286707 3.70796 0.553234 3.96186 0.902636C 4.21577 1.25204 4.3607
     1.66872 4.37842 2.10027C 4.39529 2.6838 4.18131 3.25044 3.78293 3.67715C
     3.38455 4.10387 2.83392 4.35623 2.25061 4.37943Z"/>\n</defs>\n</svg>
-  getStartedLink: 'https://jupyterlab.readthedocs.io/en/stable/getting_started/overview.html'
+  getStartedLink: 'https://opendatahub.io/docs/getting-started-with-open-data-hub/#launching-jupyter-and-starting-a-notebook-server_get-started'
   internalRoute: notebookController
   displayName: Jupyter
   kfdefApplications:
@@ -177,14 +177,13 @@ spec:
   getStartedMarkDown: >-
     # Jupyter
 
-    Launch Jupyter and start a notebook server to start working with your
-    notebooks.
+    Launch Jupyter and start a notebook server to start working with your notebooks.
 
     ## Prerequisites
 
-    - You have logged in to Red Hat OpenShift Data Science.
+    - You have logged in to Open Data Hub.
 
-    - You know the names and values you want to use for any environment
+    - You know the names and values that you want to use for environment
     variables in your notebook server environment, for example,
     `AWS_SECRET_ACCESS_KEY`.
 
@@ -202,7 +201,7 @@ spec:
 
       ii. Enter your credentials and click **Log in** (or equivalent for your identity provider).
 
-      If you see **Error 403: Forbidden**, you are not in the default user group or the default administrator group for OpenShift Data Science. Contact your administrator so that they can add you to the correct group using [Adding users for OpenShift Data Science](https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/adding-users-for-openshift-data-science_useradd).
+      If you see an **Access permission needed** message, you are not in the default user group or the default administrator group for Open Data Hub. Contact your administrator so that they can add you to the correct group.
 
     3. Start a notebook server.
 
@@ -218,18 +217,15 @@ spec:
 
       v. Optional: Select and specify values for any new **Environment variables**.
 
-      For example, if you plan to integrate with Red Hat OpenShift Streams for Apache Kafka, create environment variables to store your Kafka bootstrap server and the service account username and password here.
-
-      he interface stores these variables so that you only need to enter them once. Example variable names for common environment variables are automatically provided for frequently integrated environments and frameworks, such as Amazon Web Services (AWS).
+      The interface stores these variables so that you only need to enter them once. Example variable names for common environment variables are automatically provided for frequently integrated environments and frameworks, such as Amazon Web Services (AWS).
 
       vi. Click **Start server**.
 
-      The **Starting server** progress indicator appears. If you encounter a problem during this process, an error message appears with more information. Click **Expand event log** to view additional information on the server creation process. Depending on the deployment size and resources you requested, starting the server can take up to several minutes. After the server starts, the JupyterLab interface opens.
+      The **Starting server** progress indicator appears. Click **Expand event log** to view additional information on the server creation process. Depending on the deployment size and resources you requested, starting the server can take up to several minutes. After the server starts, the JupyterLab interface opens.
 
     ## Verification
 
     The JupyterLab interface opens in the same tab.
   description: >-
-    A multi-user version of the notebook designed for companies, classrooms and
-    research labs.
+    A multi-user version of the notebook designed for companies, classrooms and research labs.
   category: Red Hat managed
