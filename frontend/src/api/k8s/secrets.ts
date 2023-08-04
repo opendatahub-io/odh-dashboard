@@ -19,10 +19,10 @@ export const assembleSecret = (
   type: 'aws' | 'generic' = 'generic',
   secretName?: string,
 ): SecretKind => {
-  const labels = {
+  const labels: Record<string, string> = {
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
-  const annotations = {};
+  const annotations: Record<string, string> = {};
 
   let stringData = data;
   let name = `secret-${genRandomChars()}`;

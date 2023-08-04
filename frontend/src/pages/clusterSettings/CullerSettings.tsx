@@ -59,7 +59,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
     }
   }, [hour, minute, cullerTimeoutChecked, setCullerTimeout]);
 
-  const radioCheckedChange = (_, event) => {
+  const radioCheckedChange: React.ComponentProps<typeof Radio>['onChange'] = (_, event) => {
     const { value } = event.currentTarget;
     setCullerTimeoutChecked(value);
   };

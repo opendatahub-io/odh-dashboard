@@ -19,8 +19,8 @@ const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
     () =>
       categoryApps.reduce(
         (acc, docApp) => {
-          if (acc[docApp.spec.type] !== undefined) {
-            acc[docApp.spec.type]++;
+          if (acc[docApp.spec.type as keyof typeof acc] !== undefined) {
+            acc[docApp.spec.type as keyof typeof acc]++;
           }
           return acc;
         },
@@ -54,7 +54,7 @@ const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
   return (
     <FilterSidePanelCategory key="enabled-filter" title="Resource type">
       {Object.keys(OdhDocumentType).map((docType) => {
-        const value = OdhDocumentType[docType];
+        const value = OdhDocumentType[docType as keyof typeof OdhDocumentType];
         return (
           <FilterSidePanelCategoryItem
             data-id={value}

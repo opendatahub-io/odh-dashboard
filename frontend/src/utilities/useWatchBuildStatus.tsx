@@ -25,7 +25,7 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
   const dispatch = useAppDispatch();
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchBuildStatuses = () => {
       fetchBuildStatuses()
         .then((statuses: BuildStatus[]) => {

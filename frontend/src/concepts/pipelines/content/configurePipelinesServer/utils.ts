@@ -99,7 +99,7 @@ const createObjectStorageSecret = (
   });
 };
 
-const createSecrets = (config: PipelineServerConfigType, projectName) =>
+const createSecrets = (config: PipelineServerConfigType, projectName: string) =>
   new Promise<SecretsResponse>((resolve, reject) => {
     Promise.all([
       createDatabaseSecret(config.database, projectName, true),

@@ -30,7 +30,7 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
     [PipelineRunStatusesKF.STARTED]: 4,
   };
 
-  return weights[run.status] ?? Infinity;
+  return weights[run.status as PipelineRunStatusesKF] ?? Infinity;
 };
 
 export const getRunResourceReference = (
