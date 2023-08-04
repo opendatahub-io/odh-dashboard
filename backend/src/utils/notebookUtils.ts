@@ -293,7 +293,8 @@ export const assembleNotebook = async (
                   value: `--ServerApp.port=8888
                   --ServerApp.token=''
                   --ServerApp.password=''
-                  --ServerApp.base_url=/notebook/${namespace}/${name}
+                  --ServerApp.base_url=/
+                  --ServerApp.default_url=/notebook/${namespace}/${name}
                   --ServerApp.quit_button=False
                   --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${url}","hub_prefix":"/notebookController/${translatedUsername}"}`,
                 },
