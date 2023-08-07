@@ -156,3 +156,8 @@ export enum NamespaceApplicationCase {
    */
   KSERVE_PROMOTION,
 }
+
+export enum ProjectScope {
+  DS_PROJECTS = 'Data science projects',
+  ALL_PROJECTS = 'All available projects',
+}
