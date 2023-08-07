@@ -42,7 +42,7 @@ export const parseImageURL = (
     };
   }
   return {
-    fullURL: result[0],
+    fullURL: trimmedString,
     host: result[1],
     image: result[2],
     tag: result[3],
