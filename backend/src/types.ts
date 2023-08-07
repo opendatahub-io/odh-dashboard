@@ -902,3 +902,19 @@ export type ServingRuntime = K8sResourceCommon & {
     replicas: number;
   };
 };
+
+export type AcceleratorKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: NotebookToleration[];
+  };
+};
