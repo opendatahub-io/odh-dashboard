@@ -127,7 +127,9 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     }
     const servingRuntimeData = {
       ...createData,
-      gpus: isGpuDisabled(servingRuntimeSelected) ? 0 : createData.gpus,
+      accelerator: isGpuDisabled(servingRuntimeSelected)
+        ? { accelerator: undefined, count: 0 }
+        : createData.accelerator,
     };
     const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
     const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;

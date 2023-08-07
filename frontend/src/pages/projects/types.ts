@@ -8,6 +8,7 @@ import {
 import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
 import { AWS_KEYS } from './dataConnections/const';
+import { AcceleratorState } from './screens/detail/notebooks/useNotebookAccelerator';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
@@ -60,7 +61,7 @@ export type StartNotebookData = {
   projectName: string;
   notebookName: string;
   notebookSize: NotebookSize;
-  gpus: number;
+  accelerator: AcceleratorState;
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];

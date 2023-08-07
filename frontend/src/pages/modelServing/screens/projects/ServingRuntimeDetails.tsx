@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { AppContext } from '~/app/AppContext';
-import { ContainerResourceAttributes } from '~/types';
 import { getServingRuntimeSizes } from './utils';
+import useServingRuntimeAccelerator from './useServingRuntimeAccelerator';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -22,6 +22,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) =>
   const container = obj.spec.containers[0]; // can we assume the first container?
   const sizes = getServingRuntimeSizes(dashboardConfig);
   const size = sizes.find((size) => _.isEqual(size.resources, container.resources));
+  const [accelerator] = useServingRuntimeAccelerator(obj);
 
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
@@ -44,10 +45,14 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) =>
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
-        <DescriptionListTerm>Number of GPUs</DescriptionListTerm>
+        <DescriptionListTerm>Accelerator</DescriptionListTerm>
         <DescriptionListDescription>
-          {container.resources.limits?.[ContainerResourceAttributes.NVIDIA_GPU] || 0}
+          {accelerator.accelerator?.spec.displayName || 'unknown'}
         </DescriptionListDescription>
+      </DescriptionListGroup>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+        <DescriptionListDescription>{accelerator.count}</DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
   );

@@ -39,7 +39,7 @@ const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    gpus,
+    accelerator,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -51,7 +51,7 @@ const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    gpus,
+    accelerator,
     tolerationSettings,
   );
 
@@ -88,6 +88,7 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
+        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -260,7 +261,7 @@ export const updateNotebook = (
 
   // clean the envFrom array in case of merging the old value again
   container.envFrom = [];
-  // clean the resources, affinity and tolerations for GPU
+  // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};

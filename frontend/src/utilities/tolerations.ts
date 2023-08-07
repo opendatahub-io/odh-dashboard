@@ -1,6 +1,6 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { DashboardConfig, PodToleration, TolerationSettings } from '~/types';
-import { NotebookKind } from '~/k8sTypes';
+import { AcceleratorKind, NotebookKind } from '~/k8sTypes';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';
@@ -8,17 +8,13 @@ export type TolerationChanges = {
 };
 
 export const determineTolerations = (
-  hasGpu: boolean,
   tolerationSettings?: TolerationSettings,
+  accelerator?: AcceleratorKind,
 ): PodToleration[] => {
   const tolerations: PodToleration[] = [];
 
-  if (hasGpu) {
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: 'nvidia.com/gpu',
-      operator: 'Exists',
-    });
+  if (accelerator?.spec.tolerations) {
+    tolerations.push(...accelerator.spec.tolerations);
   }
   if (tolerationSettings?.enabled) {
     tolerations.push({
@@ -35,15 +31,9 @@ export const computeNotebooksTolerations = (
   dashboardConfig: DashboardConfig,
   notebook: NotebookKind,
 ): TolerationChanges => {
-  const hasGPU = !!notebook.spec.template.spec.containers.find(
-    (container) =>
-      !!container.resources?.limits?.['nvidia.com/gpu'] ||
-      !!container.resources?.requests?.['nvidia.com/gpu'],
-  );
   const tolerations = notebook.spec.template.spec.tolerations || [];
 
   const settings = determineTolerations(
-    hasGPU,
     dashboardConfig.spec.notebookController?.notebookTolerationSettings,
   );
 
