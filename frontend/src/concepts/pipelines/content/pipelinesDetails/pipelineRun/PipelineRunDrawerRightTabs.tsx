@@ -5,13 +5,14 @@ import { PipelineRunTaskDetails, TaskReferenceMap } from '~/concepts/pipelines/c
 import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
 import SelectedNodeVolumeMountsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeVolumeMountsTab';
 import { PipelineRunTaskParam } from '~/k8sTypes';
+import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/LogsTab';
 
 enum PipelineRunNodeTabs {
   INPUT_OUTPUT = 'Input / Output',
   // VISUALIZATIONS = 'Visualizations',
   DETAILS = 'Details',
   VOLUMES = 'Volumes',
-  // LOGS = 'Logs',
+  LOGS = 'Logs',
   // POD = 'Pod',
   // EVENTS = 'Events',
   // ML_METADATA = 'ML Metadata',
@@ -66,7 +67,9 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
           <TabContent {...tabContentProps(PipelineRunNodeTabs.VOLUMES)}>
             <SelectedNodeVolumeMountsTab task={task} />
           </TabContent>
-          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.LOGS)}>TBD 5</TabContent>*/}
+          <TabContent {...tabContentProps(PipelineRunNodeTabs.LOGS)}>
+            <LogsTab task={task} isHidden={selection !== PipelineRunNodeTabs.LOGS} />
+          </TabContent>
           {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.POD)}>TBD 6</TabContent>*/}
           {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.EVENTS)}>TBD 7</TabContent>*/}
           {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.ML_METADATA)}>TBD 8</TabContent>*/}
