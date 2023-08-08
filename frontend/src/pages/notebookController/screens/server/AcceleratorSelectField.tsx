@@ -61,9 +61,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   );
 
   React.useEffect(() => {
-    if (acceleratorCount > 0) {
-      setAcceleratorCountWarning(validateAcceleratorCount(acceleratorCount));
-    }
+    setAcceleratorCountWarning(validateAcceleratorCount(acceleratorCount));
   }, [acceleratorCount, validateAcceleratorCount]);
 
   const [acceleratorCountWarning, setAcceleratorCountWarning] = React.useState(

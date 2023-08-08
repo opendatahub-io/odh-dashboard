@@ -33,6 +33,7 @@ import {
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
 import { getAcceleratorNumbers } from '../routes/api/accelerators/acceleratorUtils';
+import { getNotebooks } from './notebookUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -678,7 +679,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
         };
 
         try {
-          await await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+          await fastify.kube.customObjectsApi.createNamespacedCustomObject(
             'dashboard.opendatahub.io',
             'v1alpha',
             fastify.kube.namespace,
@@ -688,7 +689,34 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
         } catch (e) {
           // If bad detection — exit early and dont create config
           throw 'Unable to add migrated-gpu accelerator profile: ' + e.toString()
-        }      
+        }
+
+        // update already running notebooks to use the new profile
+        const notebooks = await getNotebooks(fastify, fastify.kube.namespace)
+        notebooks.items.forEach(async (notebook) => {
+          const gpuCount = notebook.spec.template.spec.containers[0].resources?.limits?.['nvidia.com/gpu']
+          if (gpuCount) {
+            notebook.metadata.annotations = {
+              ...notebook.metadata.annotations,
+              'opendatahub.io/recommended-accelerators' : 'migrated-gpu'
+            }
+            await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+              'kubeflow.org',
+              'v1',
+              fastify.kube.namespace,
+              'notebooks',
+              notebook.metadata.name,
+              notebook,
+              undefined,
+              undefined,
+              undefined,
+              {
+                headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+              },
+            ) 
+          }
+        }
+        )
       };          
     }
 
