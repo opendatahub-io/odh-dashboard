@@ -748,6 +748,14 @@ export type GPUInfo = {
   available: number;
   autoscalers: gpuScale[];
 };
+
+export type AcceleratorInfo = {
+  configured: boolean;
+  available: {[key: string]: number};
+  total: {[key: string]: number};
+  allocated: {[key: string]: number};
+}
+
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
   { valueFrom: Record<string, unknown> }
@@ -892,5 +900,21 @@ export type ServingRuntime = K8sResourceCommon & {
     }[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
+  };
+};
+
+export type AcceleratorKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: NotebookToleration[];
   };
 };
