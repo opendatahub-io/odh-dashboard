@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Divider } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import {
   pipelinesPageDescription,
@@ -20,7 +19,6 @@ const GlobalPipelines: React.FC = () => {
       headerAction={pipelinesAPi.pipelinesServer.installed && <PipelinesPageHeaderActions />}
       getRedirectPath={(namespace) => `/pipelines/${namespace}`}
     >
-      <Divider />
       <EnsureAPIAvailability>
         <PipelinesView />
       </EnsureAPIAvailability>
