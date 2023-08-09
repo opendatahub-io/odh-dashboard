@@ -14,12 +14,12 @@ type TaskDetailsCodeBlockProps = {
 const TaskDetailsCodeBlock: React.FC<TaskDetailsCodeBlockProps> = ({ id, content }) => {
   const [copied, setCopied] = React.useState(false);
 
-  const clipboardCopyFunc = (event, text) => {
+  const clipboardCopyFunc = (text: string) => {
     navigator.clipboard.writeText(text.toString());
   };
 
-  const onClick = (event, text) => {
-    clipboardCopyFunc(event, text);
+  const onClick = (text: string) => {
+    clipboardCopyFunc(text);
     setCopied(true);
   };
 
@@ -32,7 +32,7 @@ const TaskDetailsCodeBlock: React.FC<TaskDetailsCodeBlockProps> = ({ id, content
               id={`${id}-button`}
               textId={id}
               aria-label="Copy to clipboard"
-              onClick={(e) => onClick(e, content)}
+              onClick={() => onClick(content)}
               exitDelay={copied ? 1500 : 600}
               maxWidth="110px"
               variant="plain"

@@ -16,7 +16,7 @@ export const useApplicationSettings = (): {
   const setRefreshMarker = useTimeBasedRefresh();
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
     const watchDashboardConfig = () => {
       fetchDashboardConfig()

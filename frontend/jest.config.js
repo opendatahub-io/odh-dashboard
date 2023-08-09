@@ -23,11 +23,8 @@ module.exports = {
   testEnvironment: 'jest-environment-jsdom',
 
   // include projects from node_modules as required
-  transformIgnorePatterns: [
-    'node_modules/(?!yaml)',
-  ],
+  transformIgnorePatterns: ['node_modules/(?!yaml)'],
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing
   snapshotSerializers: [],
-
 };

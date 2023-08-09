@@ -8,7 +8,7 @@ const useDetectUser = (): void => {
   const dispatch = useAppDispatch();
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
     dispatch(getUserPending());
     const detectUser = () => {

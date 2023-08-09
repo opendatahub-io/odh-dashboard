@@ -45,6 +45,9 @@ export type FetchState<Type, Default extends Type = Type> = [
 type SetStateLazy<Type> = (lastState: Type) => Type;
 export type AdHocUpdate<Type> = (updateLater: (updater: SetStateLazy<Type>) => void) => void;
 
+const isAdHocUpdate = <Type>(r: Type | AdHocUpdate<Type>): r is AdHocUpdate<Type> =>
+  typeof r === 'function';
+
 /**
  * All callbacks will receive a K8sAPIOptions, which includes a signal to provide to a RequestInit.
  * This will allow the call to be cancelled if the hook needs to unload. It is recommended that you
@@ -134,7 +137,7 @@ const useFetchState = <Type, Default extends Type = Type>(
     cleanupRef.current();
   }, [fetchCallbackPromise]);
 
-  const call = React.useCallback<() => [Promise<Type>, () => void]>(() => {
+  const call = React.useCallback<() => [Promise<Type | undefined>, () => void]>(() => {
     let alreadyAborted = false;
     const abortController = new AbortController();
 
@@ -143,7 +146,7 @@ const useFetchState = <Type, Default extends Type = Type>(
       fetchCallbackPromise({ signal: abortController.signal })
         .then((r) => {
           if (alreadyAborted) {
-            return;
+            return undefined;
           }
 
           if (r === undefined) {
@@ -152,18 +155,19 @@ const useFetchState = <Type, Default extends Type = Type>(
             console.error(
               'useFetchState Error: Got undefined back from a promise. This is likely an error with your call. Preventing setting.',
             );
-            return;
+            return undefined;
           }
 
           setLoadError(undefined);
-          if (typeof r === 'function') {
+          if (isAdHocUpdate(r)) {
             r((setState: SetStateLazy<Type>) => {
               if (alreadyAborted) {
-                return;
+                return undefined;
               }
 
               setResult(setState);
               setLoaded(true);
+              return undefined;
             });
             return undefined;
           }
@@ -175,13 +179,14 @@ const useFetchState = <Type, Default extends Type = Type>(
         })
         .catch((e) => {
           if (alreadyAborted) {
-            return;
+            return undefined;
           }
 
           if (isCommonStateError(e)) {
-            return;
+            return undefined;
           }
           setLoadError(e);
+          return undefined;
         });
 
     const unload = () => {

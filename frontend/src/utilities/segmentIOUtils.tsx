@@ -29,8 +29,11 @@ export const fireTrackingEvent = (
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const initSegment = async (props) => {
+export const initSegment = async (props: {
+  segmentKey: string;
+  username: string;
+  enabled: boolean;
+}) => {
   const { segmentKey, username, enabled } = props;
   const analytics = (window.analytics = window.analytics || []);
   if (analytics.initialize) {
@@ -65,7 +68,7 @@ export const initSegment = async (props) => {
     ];
     analytics.factory =
       (e: string) =>
-      (...t) => {
+      (...t: unknown[]) => {
         t.unshift(e);
         analytics.push(t);
         return analytics;

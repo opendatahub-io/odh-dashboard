@@ -71,7 +71,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
     });
   }, [odhDoc.metadata.name, odhDoc.spec.type, qsContext]);
 
-  const onQuickStart = (e) => {
+  const onQuickStart = (e: React.SyntheticEvent) => {
     e.preventDefault();
     launchQuickStart(odhDoc.metadata.name, qsContext);
     fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type, qsContext)();

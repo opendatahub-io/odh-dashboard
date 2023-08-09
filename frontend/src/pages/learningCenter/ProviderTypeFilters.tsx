@@ -19,7 +19,7 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
   const [showAll, setShowAll] = React.useState(false);
 
   const providerTypes = React.useMemo(() => {
-    const allTypes = {};
+    const allTypes: Record<string, number> = {};
     docApps.forEach((docApp) => {
       if (!docApp.spec.appCategory) {
         return;

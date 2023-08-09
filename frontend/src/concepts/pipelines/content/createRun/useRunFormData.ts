@@ -110,12 +110,12 @@ const intervalSecondsAsOption = (numberString?: string): PeriodicOptions => {
 
   const isPeriodicOption = (option: string): option is PeriodicOptions => option in PeriodicOptions;
   const seconds = parseInt(numberString);
-  const option = Object.keys(PeriodicOptions).find((o) => periodicOptionAsSeconds[o] === seconds);
+  const option = Object.values(PeriodicOptions).find((o) => periodicOptionAsSeconds[o] === seconds);
   if (!option || !isPeriodicOption(option)) {
     return DEFAULT_PERIODIC_OPTION;
   }
 
-  return PeriodicOptions[option];
+  return option;
 };
 
 export const useUpdateRunType = (
