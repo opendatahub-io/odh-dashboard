@@ -52,7 +52,7 @@
     "@patternfly/react-icons": "4.93.6",
     "@patternfly/react-styles": "4.92.6",
     "@patternfly/react-table": "4.112.39",
-    "@patternfly/react-topology": "^4.91.27",
+    "@patternfly/react-topology": "^5.0.0",
     "@patternfly/react-virtualized-extension": "4.88.113",
     "@types/classnames": "^2.3.1",
     "axios": "^0.21.1",
