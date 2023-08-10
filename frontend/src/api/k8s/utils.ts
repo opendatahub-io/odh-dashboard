@@ -1,3 +1,4 @@
+import { AcceleratorState } from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
 import {
   PodAffinity,
   ContainerResources,
@@ -9,7 +10,7 @@ import { determineTolerations } from '~/utilities/tolerations';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
-  gpus: number,
+  accelerator: AcceleratorState,
   tolerationSettings?: TolerationSettings,
   affinitySettings?: PodAffinity,
 ): {
@@ -17,40 +18,34 @@ export const assemblePodSpecOptions = (
   tolerations: PodToleration[];
   resources: ContainerResources;
 } => {
-  let affinity: PodAffinity = structuredClone(affinitySettings || {});
+  const affinity: PodAffinity = structuredClone(affinitySettings || {});
   const resources = structuredClone(resourceSettings);
-  if (gpus > 0) {
+  if (accelerator.count > 0 && accelerator.accelerator) {
     if (!resources.limits) {
       resources.limits = {};
     }
     if (!resources.requests) {
       resources.requests = {};
     }
-    resources.limits[ContainerResourceAttributes.NVIDIA_GPU] = gpus;
-    resources.requests[ContainerResourceAttributes.NVIDIA_GPU] = gpus;
+    resources.limits[accelerator.accelerator.spec.identifier] = accelerator.count;
+    resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
   } else {
-    delete resources.limits?.[ContainerResourceAttributes.NVIDIA_GPU];
-    delete resources.requests?.[ContainerResourceAttributes.NVIDIA_GPU];
-    affinity = {
-      nodeAffinity: {
-        preferredDuringSchedulingIgnoredDuringExecution: [
-          {
-            preference: {
-              matchExpressions: [
-                {
-                  key: 'nvidia.com/gpu.present',
-                  operator: 'NotIn',
-                  values: ['true'],
-                },
-              ],
-            },
-            weight: 1,
-          },
-        ],
-      },
-    };
+    // step type down to string to avoid type errors
+    const containerResourceKeys: string[] = Object.values(ContainerResourceAttributes);
+
+    Object.keys(resources.limits || {}).forEach((key) => {
+      if (!containerResourceKeys.includes(key)) {
+        delete resources.limits?.[key];
+      }
+    });
+
+    Object.keys(resources.requests || {}).forEach((key) => {
+      if (!containerResourceKeys.includes(key)) {
+        delete resources.requests?.[key];
+      }
+    });
   }
 
-  const tolerations = determineTolerations(gpus > 0, tolerationSettings);
+  const tolerations = determineTolerations(tolerationSettings, accelerator.accelerator);
   return { affinity, tolerations, resources };
 };

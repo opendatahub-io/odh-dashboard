@@ -55,3 +55,10 @@ export const TemplateModel: K8sModelCommon = {
   kind: 'Template',
   plural: 'templates',
 };
+
+export const AcceleratorModel: K8sModelCommon = {
+  apiVersion: 'v1alpha',
+  apiGroup: 'dashboard.opendatahub.io',
+  kind: 'AcceleratorProfile',
+  plural: 'acceleratorprofiles',
+};

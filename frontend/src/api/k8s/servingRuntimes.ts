@@ -23,7 +23,7 @@ const assembleServingRuntime = (
   isCustomServingRuntimesEnabled: boolean,
   isEditing?: boolean,
 ): ServingRuntimeKind => {
-  const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth, gpus } = data;
+  const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth, accelerator } = data;
   const createName = isCustomServingRuntimesEnabled
     ? translateDisplayNameForK8s(displayName)
     : getModelServingRuntimeName(namespace);
@@ -50,6 +50,7 @@ const assembleServingRuntime = (
         }),
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-display-name': getDisplayNameFromK8sResource(servingRuntime),
+          'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
         }),
       },
     };
@@ -60,6 +61,7 @@ const assembleServingRuntime = (
         ...updatedServingRuntime.metadata.annotations,
         'enable-route': externalRoute ? 'true' : 'false',
         'enable-auth': tokenAuth ? 'true' : 'false',
+        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
@@ -77,7 +79,10 @@ const assembleServingRuntime = (
     },
   };
 
-  const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, gpus);
+  const { affinity, tolerations, resources } = assemblePodSpecOptions(
+    resourceSettings,
+    accelerator,
+  );
 
   updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => ({
     ...container,

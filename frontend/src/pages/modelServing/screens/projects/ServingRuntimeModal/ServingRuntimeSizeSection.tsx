@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   FormGroup,
   FormSection,
-  NumberInput,
   Select,
   SelectOption,
   Stack,
@@ -13,9 +12,10 @@ import {
   CreatingServingRuntimeObject,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import useGPUSetting from '~/pages/notebookController/screens/server/useGPUSetting';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
+import AcceleratorSelectField from '~/pages/notebookController/screens/server/AcceleratorSelectField';
+import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
@@ -32,7 +32,15 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   servingRuntimeSelected,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
-  const { available: gpuAvailable, count: gpuCount } = useGPUSetting('autodetect');
+  const [supportedAccelerators, setSupportedAccelerators] = React.useState<string[] | undefined>();
+
+  React.useEffect(() => {
+    if (servingRuntimeSelected) {
+      setSupportedAccelerators(getCompatibleAcceleratorIdentifiers(servingRuntimeSelected));
+    } else {
+      setSupportedAccelerators(undefined);
+    }
+  }, [servingRuntimeSelected]);
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
@@ -88,25 +96,17 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
           )}
         </Stack>
       </FormGroup>
-      {gpuAvailable && !gpuDisabled && (
-        <FormGroup label="Model server GPUs">
-          <NumberInput
-            isDisabled={!gpuCount}
-            value={data.gpus}
-            widthChars={10}
-            min={0}
-            max={gpuCount}
-            onChange={(event: React.FormEvent<HTMLInputElement>) => {
-              const target = event.currentTarget;
-              setData('gpus', parseInt(target.value) || 0);
-            }}
-            onBlur={(event: React.FormEvent<HTMLInputElement>) => {
-              const target = event.currentTarget;
-              const gpuInput = parseInt(target.value) || 0;
-              setData('gpus', Math.max(0, Math.min(gpuCount, gpuInput)));
-            }}
-            onMinus={() => setData('gpus', data.gpus - 1)}
-            onPlus={() => setData('gpus', data.gpus + 1)}
+      {!gpuDisabled && (
+        <FormGroup>
+          <AcceleratorSelectField
+            accelerator={data.accelerator.accelerator}
+            acceleratorCount={data.accelerator.count}
+            setAccelerator={(accelerator) =>
+              setData('accelerator', { ...data.accelerator, accelerator })
+            }
+            setAcceleratorCount={(count) => setData('accelerator', { ...data.accelerator, count })}
+            supportedAccelerators={supportedAccelerators}
+            supportedText="Compatible with serving runtime"
           />
         </FormGroup>
       )}
