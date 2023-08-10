@@ -13,7 +13,9 @@ import {
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
+  ExperimentKF,
   PipelineCoreResourceKF,
+  PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
   ResourceReferenceKF,
@@ -168,8 +170,8 @@ const useRunFormData = (initialData?: PipelineRunKF | PipelineRunJobKF) => {
   const { project } = usePipelinesAPI();
   const location = useLocation();
 
-  const lastPipeline = location.state?.lastPipeline;
-  const lastExperiment = location.state?.lastExperiment;
+  const lastPipeline: PipelineKF | undefined = location.state?.lastPipeline;
+  const lastExperiment: ExperimentKF | undefined = location.state?.lastExperiment;
 
   const objState = useGenericObjectState<RunFormData>({
     project,
