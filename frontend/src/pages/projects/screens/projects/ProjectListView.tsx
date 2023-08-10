@@ -1,13 +1,15 @@
 import * as React from 'react';
-import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
+import { ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import Table from '~/components/table/Table';
 import useTableColumnSort from '~/components/table/useTableColumnSort';
-import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
+import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -19,7 +21,8 @@ type ProjectListViewProps = {
 };
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
-  const { projects: unfilteredProjects } = React.useContext(ProjectsContext);
+  const { dashboardConfig } = useAppContext();
+  const { projects: unfilteredProjects, refresh } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
@@ -43,7 +46,12 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     setSearch('');
   };
 
-  const searchTypes = React.useMemo(() => Object.keys(SearchType), []);
+  const searchTypes = Object.keys(SearchType).filter(
+    (key) =>
+      SearchType[key] === SearchType.NAME ||
+      SearchType[key] === SearchType.PROJECT ||
+      SearchType[key] === SearchType.USER,
+  );
 
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
@@ -55,14 +63,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         enablePagination
         data={filteredProjects}
         columns={columns}
-        emptyTableView={
-          <>
-            No projects match your filters.{' '}
-            <Button variant="link" isInline onClick={resetFilters}>
-              Clear filters
-            </Button>
-          </>
-        }
+        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}
@@ -75,7 +76,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         toolbarContent={
           <React.Fragment>
             <ToolbarItem>
-              <SearchField
+              <DashboardSearchField
                 types={searchTypes}
                 searchType={searchType}
                 searchValue={search}
@@ -87,20 +88,16 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
                 }}
               />
             </ToolbarItem>
-            {allowCreate ? (
-              <>
-                <ToolbarItem>
-                  <NewProjectButton
-                    onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
-                  />
-                </ToolbarItem>
-                <ToolbarItem>
-                  <LaunchJupyterButton variant={ButtonVariant.link} />
-                </ToolbarItem>
-              </>
-            ) : (
+            {allowCreate && (
               <ToolbarItem>
-                <LaunchJupyterButton variant={ButtonVariant.primary} />
+                <NewProjectButton
+                  onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                />
+              </ToolbarItem>
+            )}
+            {dashboardConfig.spec.notebookController?.enabled && (
+              <ToolbarItem>
+                <LaunchJupyterButton variant={ButtonVariant.link} />
               </ToolbarItem>
             )}
           </React.Fragment>
@@ -127,7 +124,10 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
       />
       <DeleteProjectModal
         deleteData={deleteData}
-        onClose={() => {
+        onClose={(deleted) => {
+          if (deleted) {
+            refresh();
+          }
           setDeleteData(undefined);
         }}
       />

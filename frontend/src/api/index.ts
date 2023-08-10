@@ -32,3 +32,9 @@ export * from './errorUtils';
 
 // User access review hook
 export * from './useAccessReview';
+
+// Explainability
+
+export * from './trustyai/custom';
+export * from './trustyai/rawTypes';
+export * from './trustyai/k8s';

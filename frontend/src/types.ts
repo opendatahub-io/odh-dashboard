@@ -18,17 +18,17 @@ export type PrometheusQueryResponse = {
   status: string;
 };
 
+export type PrometheusQueryRangeResponseDataResult = {
+  // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
+  metric: unknown;
+  values: PrometheusQueryRangeResultValue[];
+};
+export type PrometheusQueryRangeResponseData = {
+  result: PrometheusQueryRangeResponseDataResult[];
+  resultType: string;
+};
 export type PrometheusQueryRangeResponse = {
-  data: {
-    result: [
-      {
-        // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
-        metric: unknown;
-        values: PrometheusQueryRangeResultValue[];
-      },
-    ];
-    resultType: string;
-  };
+  data: PrometheusQueryRangeResponseData;
   status: string;
 };
 
@@ -65,6 +65,7 @@ export type DashboardConfig = K8sResourceCommon & {
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
   /** Faux status object -- computed by the service account */
   status: {
@@ -90,6 +91,8 @@ export type DashboardCommonConfig = {
   disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableBiasMetrics: boolean;
+  disablePerformanceMetrics: boolean;
 };
 
 export type NotebookControllerUserState = {
@@ -295,19 +298,6 @@ export type K8sResourceCommon = {
   metadata: K8sMetadata;
 };
 
-// Minimal type for ConsoleLinks
-export type ConsoleLinkKind = {
-  spec: {
-    text: string;
-    location: string;
-    href: string;
-    applicationMenu: {
-      section: string;
-      imageURL: string;
-    };
-  };
-} & K8sResourceCommon;
-
 //
 // Used for Telemetry
 //
@@ -321,6 +311,17 @@ declare global {
 
 export type ODHSegmentKey = {
   segmentKey: string;
+};
+
+export type ApplicationAction = {
+  label: string;
+  href: string;
+  image: React.ReactNode;
+};
+
+export type Section = {
+  label?: string;
+  actions: ApplicationAction[];
 };
 
 export type TrackingEventProperties = {
@@ -441,29 +442,17 @@ export type Route = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
-  description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {

@@ -163,6 +163,18 @@ export type ConfigMapKind = K8sResourceCommon & {
   data?: Record<string, string>;
 };
 
+export type ConsoleLinkKind = {
+  spec: {
+    text: string;
+    location: string;
+    href: string;
+    applicationMenu?: {
+      section: string;
+      imageUrl: string;
+    };
+  };
+} & K8sResourceCommon;
+
 export type EventKind = K8sResourceCommon & {
   metadata: {
     uid?: string;
@@ -208,6 +220,7 @@ export type ImageStreamSpecTagType = {
 export type K8sAPIOptions = {
   dryRun?: boolean;
   signal?: AbortSignal;
+  parseJSON?: boolean;
 };
 
 /** A status object when Kube backend can't handle a request. */
@@ -410,6 +423,9 @@ export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
     path: string;
+    port: {
+      targetPort: string;
+    };
   };
 };
 
@@ -431,6 +447,34 @@ export type AWSSecretKind = SecretKind & {
     };
   };
   data: Record<AWS_KEYS, string>;
+};
+
+export type TrustyAIKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    storage: {
+      format: string;
+      folder: string;
+      size: string;
+    };
+    data: {
+      filename: string;
+      format: string;
+    };
+    metrics: {
+      schedule: string;
+      batchSize?: number;
+    };
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+    ready?: string;
+    replicas?: number;
+  };
 };
 
 export type DSPipelineKind = K8sResourceCommon & {
@@ -569,8 +613,8 @@ export type PipelineRunTaskSpec = {
     volumeMounts?: PipelineRunTaskVolumeMount[];
   };
   results: PipelineRunTaskSpecResult[];
-  metadata: {
-    annotations: {
+  metadata?: {
+    annotations?: {
       /** @see PipelineRunTaskSpecDigest */
       'pipelines.kubeflow.org/component_spec_digest': string;
     };
@@ -719,6 +763,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
 };
 

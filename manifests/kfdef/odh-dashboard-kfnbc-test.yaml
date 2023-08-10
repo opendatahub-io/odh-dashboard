@@ -23,10 +23,8 @@ spec:
     name: odh-notebook-controller
   - kustomizeConfig:
       overlays:
-      # Uncomment the odhdashboard overlay below to have the operator deploy the configs
-      # This should be removed from the deployed kfdef immediately after the operator deploys the configs
-      # This will prevent the operator from reconciling the configs when they have been modified externally
-      #- odhdashboardconfig
+      # Uncomment the performance overlay below to have the operator deploy more dashboard replicas
+      #- performance
       repoRef:
         name: manifests-dashboard  # Use the odh-dashboard repo as the source for this kustomize manifest
         path: manifests

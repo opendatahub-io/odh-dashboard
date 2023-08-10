@@ -16,17 +16,20 @@ import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useTemplates from './useTemplates';
 import useTemplateOrder from './useTemplateOrder';
+import useTemplateDisablement from './useTemplateDisablement';
 
 type CustomServingRuntimeContextType = {
   refreshData: () => void;
   servingRuntimeTemplates: ContextResourceData<TemplateKind>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
+  servingRuntimeTemplateDisablement: ContextResourceData<string>;
 };
 
 export const CustomServingRuntimeContext = React.createContext<CustomServingRuntimeContextType>({
   refreshData: () => undefined,
   servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
 });
 
 const CustomServingRuntimeContextProvider: React.FC = () => {
@@ -43,15 +46,31 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     2 * 60 * 1000,
   );
 
+  // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
+  const servingRuntimeTemplateDisablement = useContextResourceData<string>(
+    useTemplateDisablement(dashboardNamespace, true),
+    2 * 60 * 1000,
+  );
+
   const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
+  const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateOrder.refresh;
 
   const refreshData = React.useCallback(() => {
     servingRuntimeTemplateRefresh();
     servingRuntimeTemplateOrderRefresh();
-  }, [servingRuntimeTemplateRefresh, servingRuntimeTemplateOrderRefresh]);
+    servingRuntimeTemplateDisablementRefresh();
+  }, [
+    servingRuntimeTemplateRefresh,
+    servingRuntimeTemplateOrderRefresh,
+    servingRuntimeTemplateDisablementRefresh,
+  ]);
 
-  if (servingRuntimeTemplates.error || servingRuntimeTemplateOrder.error) {
+  if (
+    servingRuntimeTemplates.error ||
+    servingRuntimeTemplateOrder.error ||
+    servingRuntimeTemplateDisablement.error
+  ) {
     return (
       <Bullseye>
         <EmptyState>
@@ -67,7 +86,11 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
     );
   }
 
-  if (!servingRuntimeTemplates.loaded || !servingRuntimeTemplateOrder.loaded) {
+  if (
+    !servingRuntimeTemplates.loaded ||
+    !servingRuntimeTemplateOrder.loaded ||
+    !servingRuntimeTemplateDisablement.loaded
+  ) {
     return (
       <Bullseye>
         <Spinner />
@@ -80,6 +103,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
       value={{
         servingRuntimeTemplates,
         servingRuntimeTemplateOrder,
+        servingRuntimeTemplateDisablement,
         refreshData,
       }}
     >

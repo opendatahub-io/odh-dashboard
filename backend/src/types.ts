@@ -29,6 +29,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableCustomServingRuntimes: boolean;
       modelMetricsNamespace: string;
       disablePipelines: boolean;
+      disableBiasMetrics: boolean;
+      disablePerformanceMetrics: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -47,6 +49,7 @@ export type DashboardConfig = K8sResourceCommon & {
       storageClassName?: string;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
   /** Faux status object -- will be replaced in the long run by a Dashboard Controller */
   status: {
@@ -206,7 +209,13 @@ export type CSVKind = {
 // Minimal type for ConsoleLinks
 export type ConsoleLinkKind = {
   spec: {
-    href?: string;
+    text: string;
+    location: string;
+    href: string;
+    applicationMenu?: {
+      section: string;
+      imageUrl: string;
+    };
   };
 } & K8sResourceCommon;
 
@@ -467,34 +476,22 @@ export type ODHSegmentKey = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
-  description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
 };
 
 export type ImageTag = {
   image: ImageInfo | undefined;
   tag: ImageTagInfo | undefined;
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {
@@ -547,6 +544,7 @@ export type ImageStream = {
     namespace: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
+    creationTimestamp?: string;
   };
   spec: {
     lookupPolicy?: {
@@ -840,7 +838,6 @@ export type TemplateParameter = {
   required: boolean;
 };
 
-
 export type Template = K8sResourceCommon & {
   metadata: {
     annotations?: Partial<{
@@ -854,6 +851,13 @@ export type Template = K8sResourceCommon & {
   objects: K8sDSGResource[];
   parameters: TemplateParameter[];
 };
+
+export type TemplateList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata: Record<string, unknown>;
+  items: Template[];
+} & K8sResourceCommon;
 
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
@@ -885,7 +889,6 @@ export type ContainerResources = {
     memory?: string;
   };
 };
-
 
 export type ServingRuntime = K8sResourceCommon & {
   metadata: {

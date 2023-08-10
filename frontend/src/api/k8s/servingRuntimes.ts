@@ -44,7 +44,7 @@ const assembleServingRuntime = (
         ...updatedServingRuntime.metadata.annotations,
         'enable-route': externalRoute ? 'true' : 'false',
         'enable-auth': tokenAuth ? 'true' : 'false',
-        ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName }),
+        ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-name': servingRuntime.metadata.name,
         }),
@@ -62,7 +62,7 @@ const assembleServingRuntime = (
         'enable-route': externalRoute ? 'true' : 'false',
         'enable-auth': tokenAuth ? 'true' : 'false',
         'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
-        ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName }),
+        ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
   }

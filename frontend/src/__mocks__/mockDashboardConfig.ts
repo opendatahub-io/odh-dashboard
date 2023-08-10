@@ -54,6 +54,8 @@ export const mockDashboardConfig = ({
       modelMetricsNamespace: 'test-project',
       disablePipelines: false,
       disableProjectSharing: false,
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
     },
     notebookController: {
       enabled: true,
@@ -177,6 +179,7 @@ export const mockDashboardConfig = ({
       },
     ],
     templateOrder: ['test-model'],
+    templateDisablement: ['test-model'],
   },
   status: {
     dependencyOperators: {

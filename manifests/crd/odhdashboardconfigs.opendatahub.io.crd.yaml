@@ -53,6 +53,10 @@ spec:
                       type: string
                     disablePipelines:
                       type: boolean
+                    disableBiasMetrics:
+                      type: boolean
+                    disablePerformanceMetrics:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:
@@ -141,6 +145,10 @@ spec:
                     storageClassName:
                       type: string
                 templateOrder:
+                  type: array
+                  items:
+                    type: string
+                templateDisablement:
                   type: array
                   items:
                     type: string

@@ -52,6 +52,8 @@ export const blankDashboardCR: DashboardConfig = {
       disableProjectSharing: false,
       disableCustomServingRuntimes: false,
       modelMetricsNamespace: '',
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
       disablePipelines: false,
     },
     notebookController: {
@@ -62,6 +64,7 @@ export const blankDashboardCR: DashboardConfig = {
       allowedGroups: 'system:authenticated',
     },
     templateOrder: [],
+    // templateDisablement: [], Don't create this field, will be used in migration
   },
   status: {
     dependencyOperators: {
@@ -74,7 +77,7 @@ export const blankDashboardCR: DashboardConfig = {
 };
 
 export const MOUNT_PATH = '/opt/app-root/src';
-export const DEFAULT_PVC_SIZE = '20';
+export const DEFAULT_PVC_SIZE = '20Gi';
 
 export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
   {
@@ -131,7 +134,9 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
   },
 ];
 
-export const imageUrlRegex =
-  /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
+export const THANOS_DEFAULT_RBAC_PORT = '9092';
+
+// NOTE: This won't work for basic users.
+export const THANOS_DEFAULT_ADMIN_PORT = '9091';
 
   export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;

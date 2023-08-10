@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import {
@@ -13,12 +14,14 @@ import {
 import {
   DateTimeKF,
   PipelineCoreResourceKF,
-  PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
-import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
+import {
+  getPipelineCoreResourceExperimentReference,
+  getPipelineCoreResourcePipelineReference,
+} from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { FetchState } from '~/utilities/useFetchState';
@@ -29,6 +32,7 @@ import {
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString } from '~/utilities/time';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 
 const isPipelineRunJob = (
   runOrJob?: PipelineRunJobKF | PipelineRunKF,
@@ -57,23 +61,21 @@ const useUpdateData = <T extends PipelineCoreResourceKF>(
 
 const useUpdatePipeline = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineCoreResourceKF,
+  initialData?: PipelineRunKF | PipelineRunJobKF,
 ) => {
-  const updatedSetFunction = React.useCallback(
+  const updatedSetFunction = React.useCallback<UpdateObjectAtPropAndValue<RunFormData>>(
     (key, resource) => {
       setFunction(key, resource);
-      if (resource && 'parameters' in resource) {
-        setFunction(
-          'params',
-          (resource.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' })),
-        );
-      } else {
-        setFunction('params', []);
-      }
+      setFunction(
+        'params',
+        initialData?.pipeline_spec.parameters?.map((p) => ({
+          label: p.name,
+          value: p.value ?? '',
+        })) ?? [],
+      );
     },
-    [setFunction],
+    [setFunction, initialData?.pipeline_spec.parameters],
   );
-
   return useUpdateData(
     updatedSetFunction,
     initialData,
@@ -83,17 +85,17 @@ const useUpdatePipeline = (
   );
 };
 
-// const useUpdateExperiment = (
-//   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-//   initialData?: PipelineCoreResourceKF,
-// ) =>
-//   useUpdateData(
-//     setFunction,
-//     initialData,
-//     'experiment',
-//     getPipelineCoreResourceExperimentReference,
-//     useExperimentById,
-//   );
+const useUpdateExperiment = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+  initialData?: PipelineCoreResourceKF,
+) =>
+  useUpdateData(
+    setFunction,
+    initialData,
+    'experiment',
+    getPipelineCoreResourceExperimentReference,
+    useExperimentById,
+  );
 
 const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   if (!kfTime) {
@@ -162,11 +164,12 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-const useRunFormData = (
-  initialData?: PipelineRunKF | PipelineRunJobKF,
-  lastPipeline?: PipelineKF,
-) => {
+const useRunFormData = (initialData?: PipelineRunKF | PipelineRunJobKF) => {
   const { project } = usePipelinesAPI();
+  const location = useLocation();
+
+  const lastPipeline = location.state?.lastPipeline;
+  const lastExperiment = location.state?.lastExperiment;
 
   const objState = useGenericObjectState<RunFormData>({
     project,
@@ -174,8 +177,9 @@ const useRunFormData = (
       name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
       description: initialData?.description ?? '',
     },
+    pipelinesLoaded: false,
     pipeline: lastPipeline ?? null,
-    // experiment: null,
+    experiment: lastExperiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: lastPipeline
       ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
@@ -184,7 +188,7 @@ const useRunFormData = (
 
   const setFunction = objState[1];
   useUpdatePipeline(setFunction, initialData);
-  // useUpdateExperiment(setFunction, initialData);
+  useUpdateExperiment(setFunction, initialData);
   useUpdateRunType(setFunction, initialData);
 
   return objState;
