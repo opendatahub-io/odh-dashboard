@@ -52,14 +52,7 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({
   // TODO: decide what we want to search
   // Or should we reuse the complex filter search
   const searchTypes = React.useMemo(
-    () =>
-      Object.keys(SearchType).filter(
-        (key) =>
-          SearchType[key] === SearchType.NAME ||
-          SearchType[key] === SearchType.METRIC ||
-          SearchType[key] === SearchType.PROTECTED_ATTRIBUTE ||
-          SearchType[key] === SearchType.OUTPUT,
-      ),
+    () => [SearchType.NAME, SearchType.METRIC, SearchType.PROTECTED_ATTRIBUTE, SearchType.OUTPUT],
     [],
   );
   return (

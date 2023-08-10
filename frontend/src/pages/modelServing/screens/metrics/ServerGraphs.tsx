@@ -10,6 +10,11 @@ import {
   per100,
   toPercentage,
 } from '~/pages/modelServing/screens/metrics/utils';
+import {
+  ContextResourceData,
+  PrometheusQueryRangeResponseDataResult,
+  PrometheusQueryRangeResultValue,
+} from '~/types';
 import { NamedMetricChartLine } from './types';
 
 const ServerGraphs: React.FC = () => {
@@ -19,16 +24,25 @@ const ServerGraphs: React.FC = () => {
     <Stack hasGutter>
       <StackItem>
         <MetricsChart
-          metrics={{ metric: data[ServerMetricType.REQUEST_COUNT], translatePoint: per100 }}
+          metrics={{
+            metric: data[
+              ServerMetricType.REQUEST_COUNT
+            ] as ContextResourceData<PrometheusQueryRangeResultValue>,
+            translatePoint: per100,
+          }}
           color="blue"
           title="Http requests (x100)"
         />
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={data[ServerMetricType.AVG_RESPONSE_TIME].data.map(
+          metrics={(
+            data[
+              ServerMetricType.AVG_RESPONSE_TIME
+            ] as ContextResourceData<PrometheusQueryRangeResponseDataResult>
+          ).data.map(
             (line): NamedMetricChartLine => ({
-              name: line.metric.pod,
+              name: line.metric.pod || '',
               metric: {
                 ...data[ServerMetricType.AVG_RESPONSE_TIME],
                 data: convertPrometheusNaNToZero(line.values),
@@ -42,7 +56,12 @@ const ServerGraphs: React.FC = () => {
       </StackItem>
       <StackItem>
         <MetricsChart
-          metrics={{ metric: data[ServerMetricType.CPU_UTILIZATION], translatePoint: toPercentage }}
+          metrics={{
+            metric: data[
+              ServerMetricType.CPU_UTILIZATION
+            ] as ContextResourceData<PrometheusQueryRangeResultValue>,
+            translatePoint: toPercentage,
+          }}
           color="purple"
           title="CPU utilization %"
           domain={() => ({
@@ -53,7 +72,9 @@ const ServerGraphs: React.FC = () => {
       <StackItem>
         <MetricsChart
           metrics={{
-            metric: data[ServerMetricType.MEMORY_UTILIZATION],
+            metric: data[
+              ServerMetricType.MEMORY_UTILIZATION
+            ] as ContextResourceData<PrometheusQueryRangeResultValue>,
             translatePoint: toPercentage,
           }}
           color="orange"

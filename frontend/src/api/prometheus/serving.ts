@@ -22,7 +22,7 @@ import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
   type: PerformanceMetricType,
-  queries: Record<ServerMetricType, string> | Record<ModelMetricType, string>,
+  queries: { [key in ModelMetricType]: string } | { [key in ServerMetricType]: string },
   timeframe: TimeframeTitle,
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
@@ -49,7 +49,7 @@ export const useModelServingMetrics = (
 
   const serverRequestCount = useQueryRangeResourceData(
     performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.REQUEST_COUNT],
+    (queries as { [key in ServerMetricType]: string })[ServerMetricType.REQUEST_COUNT],
     end,
     timeframe,
     QueryTimeframeStep[ServerMetricType.REQUEST_COUNT],
@@ -59,7 +59,7 @@ export const useModelServingMetrics = (
   const serverAverageResponseTime =
     useQueryRangeResourceData<PrometheusQueryRangeResponseDataResult>(
       performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-      queries[ServerMetricType.AVG_RESPONSE_TIME],
+      (queries as { [key in ServerMetricType]: string })[ServerMetricType.AVG_RESPONSE_TIME],
       end,
       timeframe,
       QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME],
@@ -68,7 +68,7 @@ export const useModelServingMetrics = (
 
   const serverCPUUtilization = useQueryRangeResourceData(
     performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.CPU_UTILIZATION],
+    (queries as { [key in ServerMetricType]: string })[ServerMetricType.CPU_UTILIZATION],
     end,
     timeframe,
     QueryTimeframeStep[ServerMetricType.CPU_UTILIZATION],
@@ -77,7 +77,7 @@ export const useModelServingMetrics = (
 
   const serverMemoryUtilization = useQueryRangeResourceData(
     performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
-    queries[ServerMetricType.MEMORY_UTILIZATION],
+    (queries as { [key in ServerMetricType]: string })[ServerMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
     QueryTimeframeStep[ServerMetricType.MEMORY_UTILIZATION],
@@ -86,7 +86,7 @@ export const useModelServingMetrics = (
 
   const modelRequestSuccessCount = useQueryRangeResourceData(
     performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.REQUEST_COUNT_SUCCESS],
+    (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
     QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS],
@@ -95,7 +95,7 @@ export const useModelServingMetrics = (
 
   const modelRequestFailedCount = useQueryRangeResourceData(
     performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.REQUEST_COUNT_FAILED],
+    (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
     QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED],
@@ -104,7 +104,7 @@ export const useModelServingMetrics = (
 
   const modelTrustyAISPD = useQueryRangeResourceData(
     biasMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.TRUSTY_AI_SPD],
+    (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
     QueryTimeframeStep[ModelMetricType.TRUSTY_AI_SPD],
@@ -114,7 +114,7 @@ export const useModelServingMetrics = (
 
   const modelTrustyAIDIR = useQueryRangeResourceData(
     biasMetricsEnabled && type === PerformanceMetricType.MODEL,
-    queries[ModelMetricType.TRUSTY_AI_DIR],
+    (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
     QueryTimeframeStep[ModelMetricType.TRUSTY_AI_DIR],

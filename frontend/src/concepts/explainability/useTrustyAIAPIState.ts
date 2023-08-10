@@ -19,7 +19,7 @@ const useTrustyAIAPIState = (
   hostPath: string | null,
 ): [apiState: TrustyAPIState, refreshAPIState: () => void] => {
   const createAPI = React.useCallback(
-    (path) => ({
+    (path: string) => ({
       createDirRequest: createDirRequest(path),
       createSpdRequest: createSpdRequest(path),
       deleteDirRequest: deleteDirRequest(path),
