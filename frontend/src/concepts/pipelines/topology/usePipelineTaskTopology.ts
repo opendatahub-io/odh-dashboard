@@ -19,7 +19,6 @@ export const usePipelineTaskTopology = (
 ): KubeFlowTaskTopology => {
   const tasks: PipelineRunTask[] | undefined = pipelineRun?.spec.pipelineSpec?.tasks;
   const status = pipelineRun?.status;
-
   return React.useMemo<KubeFlowTaskTopology>(() => {
     if (!tasks) {
       return EMPTY_STATE;
@@ -29,7 +28,6 @@ export const usePipelineTaskTopology = (
 
     const edgeLookupMap = tasks.reduce<Record<string, Set<string>>>((acc, task) => {
       const { name, params, when, runAfter } = task;
-
       const targets: string[] = [];
       if (hasRunAfters) {
         // Run afters are to be respected, there or not, ignore dependencies

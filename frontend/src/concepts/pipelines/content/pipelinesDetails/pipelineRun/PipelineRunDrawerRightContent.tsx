@@ -10,16 +10,19 @@ import {
 } from '@patternfly/react-core';
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import { TaskReferenceMap, PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
+import { PipelineRunTaskParam } from '~/k8sTypes';
 
 type PipelineRunDrawerRightContentProps = {
   task?: PipelineRunTaskDetails;
   taskReferences: TaskReferenceMap;
+  parameter?: PipelineRunTaskParam[];
   onClose: () => void;
 };
 
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
   task,
   taskReferences,
+  parameter,
   onClose,
 }) => {
   if (!task) {
@@ -43,7 +46,11 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody>
-        <PipelineRunDrawerRightTabs taskReferences={taskReferences} task={task} />
+        <PipelineRunDrawerRightTabs
+          taskReferences={taskReferences}
+          task={task}
+          parameter={parameter}
+        />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

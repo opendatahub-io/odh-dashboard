@@ -652,6 +652,7 @@ export type PipelineRunKind = K8sResourceCommon & {
   };
   spec: {
     pipelineSpec?: PipelineRunPipelineSpec;
+    params?: PipelineRunTaskParam[];
     /** Unsupported for Kubeflow */
     pipelineRef?: {
       name: string;
