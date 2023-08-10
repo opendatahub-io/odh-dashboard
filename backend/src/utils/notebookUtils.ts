@@ -179,8 +179,14 @@ export const assembleNotebook = async (
     );
   }
 
-  const volumes = [{ name: pvcName, persistentVolumeClaim: { claimName: pvcName } }];
-  const volumeMounts: VolumeMount[] = [{ mountPath: MOUNT_PATH, name: pvcName }];
+  const volumes = [
+    { name: pvcName, persistentVolumeClaim: { claimName: pvcName } },
+    { name: 'shm', emptyDir: { medium: 'Memory' } },
+  ];
+  const volumeMounts: VolumeMount[] = [
+    { mountPath: MOUNT_PATH, name: pvcName },
+    { mountPath: '/dev/shm', name: 'shm' },
+  ];
 
   const resources: NotebookResources = { ...notebookSize.resources };
   const tolerations: NotebookToleration[] = [];

@@ -157,6 +157,18 @@ export type ConfigMapKind = K8sResourceCommon & {
   data?: Record<string, string>;
 };
 
+export type ConsoleLinkKind = {
+  spec: {
+    text: string;
+    location: string;
+    href: string;
+    applicationMenu?: {
+      section: string;
+      imageUrl: string;
+    };
+  };
+} & K8sResourceCommon;
+
 export type EventKind = K8sResourceCommon & {
   metadata: {
     uid?: string;
@@ -563,10 +575,11 @@ export type PipelineRunTaskSpec = {
     volumeMounts?: PipelineRunTaskVolumeMount[];
   };
   results: PipelineRunTaskSpecResult[];
-  metadata: {
-    annotations: {
+  metadata?: {
+    annotations?: {
       /** @see PipelineRunTaskSpecDigest */
       'pipelines.kubeflow.org/component_spec_digest': string;
+      'pipelines.kubeflow.org/task_display_name': string;
     };
     labels: {
       'pipelines.kubeflow.org/cache_enabled': 'true';
@@ -713,5 +726,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
 };

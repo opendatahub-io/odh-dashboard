@@ -5,7 +5,6 @@ metadata:
   labels:
     opendatahub.io/dashboard: 'true'
     opendatahub.io/ootb: 'true'
-    opendatahub.io/configurable: 'true'
   annotations:
     tags: 'ovms,servingruntime'
     description: 'OpenVino Model Serving Definition'
@@ -57,5 +56,5 @@ objects:
           version: '1'
         - autoSelect: true
           name: tensorflow
-          version: "2"
+          version: "2" 
 parameters: []

@@ -13,7 +13,7 @@ export const useWatchNotebookEvents = (
   const notification = useNotification();
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
 
     const clear = () => {

@@ -58,7 +58,8 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const hasValidNotebookRelationship = createData.forNotebook.name
     ? !!createData.forNotebook.mountPath.value && !createData.forNotebook.mountPath.error
     : true;
-  const canCreate = !actionInProgress && createData.nameDesc.name && hasValidNotebookRelationship;
+  const canCreate =
+    !actionInProgress && createData.nameDesc.name.trim() && hasValidNotebookRelationship;
 
   const submit = async () => {
     setError(undefined);

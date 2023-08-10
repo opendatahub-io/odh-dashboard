@@ -5,8 +5,16 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  EmptyState,
+  EmptyStateIcon,
+  EmptyStateVariant,
+  EmptyStateBody,
+  Title,
+  Bullseye,
+  Spinner,
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
+import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunKind } from '~/k8sTypes';
@@ -52,6 +60,26 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
   const pipelineRuntime = getPipelineRunKind(runResource?.pipeline_runtime);
   const { taskMap, nodes } = usePipelineTaskTopology(pipelineRuntime);
   const run = runResource?.run;
+
+  if (!loaded && !error) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (error) {
+    return (
+      <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
+        <EmptyStateIcon icon={ExclamationCircleIcon} />
+        <Title headingLevel="h4" size="lg">
+          Error loading pipeline run details
+        </Title>
+        <EmptyStateBody>{error.message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
 
   return (
     <>

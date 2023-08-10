@@ -5,7 +5,6 @@ import GenericSidebar from '~/components/GenericSidebar';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
-  SCROLL_ID,
 } from '~/concepts/pipelines/content/createRun/const';
 import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
@@ -24,11 +23,10 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath }) => {
 
   return (
     <>
-      <PageSection id={SCROLL_ID} isFilled variant="light">
+      <PageSection isFilled variant="light">
         <GenericSidebar
           sections={Object.values(CreateRunPageSections)}
           titles={runPageSectionTitles}
-          scrollableSelector={`#${SCROLL_ID}`}
           maxWidth={175}
         >
           <RunForm data={formData} onValueChange={(key, value) => setFormDataValue(key, value)} />

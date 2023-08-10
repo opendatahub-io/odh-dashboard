@@ -61,23 +61,21 @@ const useUpdateData = <T extends PipelineCoreResourceKF>(
 
 const useUpdatePipeline = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineCoreResourceKF,
+  initialData?: PipelineRunKF | PipelineRunJobKF,
 ) => {
-  const updatedSetFunction = React.useCallback(
+  const updatedSetFunction = React.useCallback<UpdateObjectAtPropAndValue<RunFormData>>(
     (key, resource) => {
       setFunction(key, resource);
-      if (resource && 'parameters' in resource) {
-        setFunction(
-          'params',
-          (resource.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' })),
-        );
-      } else {
-        setFunction('params', []);
-      }
+      setFunction(
+        'params',
+        initialData?.pipeline_spec.parameters?.map((p) => ({
+          label: p.name,
+          value: p.value ?? '',
+        })) ?? [],
+      );
     },
-    [setFunction],
+    [setFunction, initialData?.pipeline_spec.parameters],
   );
-
   return useUpdateData(
     updatedSetFunction,
     initialData,
@@ -116,12 +114,12 @@ const intervalSecondsAsOption = (numberString?: string): PeriodicOptions => {
 
   const isPeriodicOption = (option: string): option is PeriodicOptions => option in PeriodicOptions;
   const seconds = parseInt(numberString);
-  const option = Object.keys(PeriodicOptions).find((o) => periodicOptionAsSeconds[o] === seconds);
+  const option = Object.values(PeriodicOptions).find((o) => periodicOptionAsSeconds[o] === seconds);
   if (!option || !isPeriodicOption(option)) {
     return DEFAULT_PERIODIC_OPTION;
   }
 
-  return PeriodicOptions[option];
+  return option;
 };
 
 export const useUpdateRunType = (
@@ -179,6 +177,7 @@ const useRunFormData = (initialData?: PipelineRunKF | PipelineRunJobKF) => {
       name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
       description: initialData?.description ?? '',
     },
+    pipelinesLoaded: false,
     pipeline: lastPipeline ?? null,
     experiment: lastExperiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },

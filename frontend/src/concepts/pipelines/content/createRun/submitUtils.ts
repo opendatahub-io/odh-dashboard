@@ -93,7 +93,10 @@ const createJob = async (
       periodic_schedule:
         formData.runType.data.triggerType === ScheduledType.PERIODIC
           ? {
-              interval_second: periodicOptionAsSeconds[formData.runType.data.value].toString(),
+              interval_second:
+                periodicOptionAsSeconds[
+                  formData.runType.data.value as keyof typeof periodicOptionAsSeconds
+                ].toString(),
               start_time: startDate,
               end_time: endDate,
             }

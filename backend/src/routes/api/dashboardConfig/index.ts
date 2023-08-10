@@ -13,14 +13,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       ) => {
         const { namespace, name } = request.params;
         try {
-          const rbResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
+          const response = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
             'opendatahub.io',
             'v1alpha',
             namespace,
             'odhdashboardconfigs',
             name,
           );
-          return rbResponse.body;
+          return response.body;
         } catch (e) {
           fastify.log.error(
             `Dashboard ${name} could not be read, ${e.response?.body?.message || e.message}`,
