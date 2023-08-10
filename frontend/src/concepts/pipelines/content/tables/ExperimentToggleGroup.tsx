@@ -11,20 +11,28 @@ export enum ToggleGroupOption {
   RUN_VIEW = 'Run',
 }
 
+const ToggleGroupOptionLookup: Record<string, ToggleGroupOption> = {
+  EXPERIMENT_VIEW: ToggleGroupOption.EXPERIMENT_VIEW,
+  RUN_VIEW: ToggleGroupOption.RUN_VIEW,
+};
+
 const ExperimentToggleGroup: React.FC<ExperimentToggleGroupProps> = ({
   selectedItem,
   onSelection,
 }) => (
   <ToggleGroup aria-label="Default with single selectable">
-    {Object.keys(ToggleGroupOption).map((key) => (
-      <ToggleGroupItem
-        key={key}
-        text={ToggleGroupOption[key]}
-        buttonId={`${ToggleGroupOption[key]}-toggle`}
-        isSelected={selectedItem === ToggleGroupOption[key]}
-        onChange={() => onSelection(ToggleGroupOption[key])}
-      />
-    ))}
+    {Object.keys(ToggleGroupOption).map((key) => {
+      const optionValue = ToggleGroupOptionLookup[key];
+      return (
+        <ToggleGroupItem
+          key={key}
+          text={optionValue}
+          buttonId={`${optionValue}-toggle`}
+          isSelected={selectedItem === optionValue}
+          onChange={() => onSelection(optionValue)}
+        />
+      );
+    })}
   </ToggleGroup>
 );
 
