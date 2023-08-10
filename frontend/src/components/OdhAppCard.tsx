@@ -44,7 +44,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
 
-  const onToggle = (value) => {
+  const onToggle = (value: boolean) => {
     setIsOpen(value);
   };
 
@@ -52,7 +52,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     setIsOpen(!isOpen);
   };
 
-  const onQuickStart = (e) => {
+  const onQuickStart = (e: React.SyntheticEvent | Event) => {
     e.preventDefault();
     launchQuickStart(odhApp.spec.quickStart, qsContext);
   };
@@ -130,7 +130,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     'm-disabled': disabled,
   });
 
-  const popoverBodyContent = (hide) => (
+  const popoverBodyContent = (hide: () => void) => (
     <div>
       Subscription is no longer valid. To validate click&nbsp;
       <Button

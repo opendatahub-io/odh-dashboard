@@ -41,9 +41,9 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
                 <b>Run every</b>
               </Text>
               <SimpleDropdownSelect
-                options={Object.keys(PeriodicOptions).map((key) => ({
-                  key: PeriodicOptions[key],
-                  label: PeriodicOptions[key],
+                options={Object.values(PeriodicOptions).map((v) => ({
+                  key: v,
+                  label: v,
                 }))}
                 value={data.value}
                 onChange={(value) => onChange({ ...data, value })}

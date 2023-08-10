@@ -95,16 +95,17 @@ export const createProject = (
 export const getModelServingProjects = (): Promise<ProjectKind[]> =>
   getProjects(`${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_MODEL_SERVING_PROJECT}`);
 
-async function filter(arr, callback) {
+const filter = async (arr: ProjectKind[], callback: (project: ProjectKind) => Promise<boolean>) => {
   const fail = Symbol();
+  const isProject = (i: ProjectKind | typeof fail): i is ProjectKind => i !== fail;
   return (
     await Promise.all(arr.map(async (item) => ((await callback(item)) ? item : fail)))
-  ).filter((i) => i !== fail);
-}
+  ).filter(isProject);
+};
 
 export const getModelServingProjectsAvailable = async (): Promise<ProjectKind[]> =>
   getModelServingProjects().then((projects) =>
-    filter(projects, async (project) => {
+    filter(projects, async (project: ProjectKind) => {
       const projectServing = await listServingRuntimes(project.metadata.name);
       return projectServing.length !== 0;
     }),

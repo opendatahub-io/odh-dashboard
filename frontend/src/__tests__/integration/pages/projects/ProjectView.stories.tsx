@@ -1,4 +1,4 @@
-import { Meta } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
@@ -45,7 +45,7 @@ export default {
   },
 } as Meta<typeof ProjectView>;
 
-export const EditProject = {
+export const EditProject: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
@@ -64,7 +64,7 @@ export const EditProject = {
   },
 };
 
-export const DeleteProject = {
+export const DeleteProject: StoryObj = {
   parameters: {
     a11y: {
       element: '.pf-c-backdrop',
@@ -82,7 +82,7 @@ export const DeleteProject = {
   },
 };
 
-export const CreateProject = {
+export const CreateProject: StoryObj = {
   parameters: {
     a11y: {
       element: '.pf-c-backdrop',

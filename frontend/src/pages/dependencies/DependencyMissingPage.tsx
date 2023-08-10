@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import NotFound from '~/pages/NotFound';
 import PipelinesDependencyMissing from '~/pages/dependencies/PipelinesDependencyMissing';
 import { useAppContext } from '~/app/AppContext';
@@ -7,14 +7,16 @@ import { useAppContext } from '~/app/AppContext';
 const DependencyMissingPage: React.FC = () => {
   const { dashboardConfig } = useAppContext();
   const { area } = useParams();
+  const navigate = useNavigate();
 
   switch (area) {
     case 'pipelines':
       if (dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available) {
         // eslint-disable-next-line no-console
         console.warn(
-          'The pipelines dependency has been met, this page will not render the content.',
+          'The pipelines dependency has been met, this page will redirect to pipelines page.',
         );
+        navigate('/pipelines');
         break;
       }
       return <PipelinesDependencyMissing />;

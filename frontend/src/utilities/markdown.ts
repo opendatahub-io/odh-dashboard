@@ -16,12 +16,11 @@ export const markdownConverter = {
       // nodeType 1 = element type
       if (node.nodeType === 1 && node.nodeName.toLowerCase() === 'a') {
         node.setAttribute('rel', 'noopener noreferrer');
-        return node;
       }
     });
 
     return DOMPurify.sanitize(unsafeHtml, {
-      allowedTags: [
+      ALLOWED_TAGS: [
         'b',
         'i',
         'strike',

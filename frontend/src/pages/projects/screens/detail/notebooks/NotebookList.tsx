@@ -19,7 +19,7 @@ const NotebookList: React.FC = () => {
   const projectName = currentProject.metadata.name;
 
   React.useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval>;
     if (notebookStates.some((notebookState) => notebookState.isStarting)) {
       interval = setInterval(() => refreshNotebooks(), FAST_POLL_INTERVAL);
     }

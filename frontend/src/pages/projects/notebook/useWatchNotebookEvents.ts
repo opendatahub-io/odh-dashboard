@@ -11,7 +11,7 @@ export const useWatchNotebookEvents = (
   const [notebookEvents, setNoteBookEvents] = React.useState<EventKind[]>([]);
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
 
     const clear = () => {

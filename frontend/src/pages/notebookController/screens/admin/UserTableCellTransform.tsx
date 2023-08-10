@@ -10,7 +10,7 @@ type TableDataRendererProps = {
 };
 
 const UserTableCellTransform: React.FC<TableDataRendererProps> = ({ user, userProperty }) => {
-  const content: AdminViewUserData[keyof AdminViewUserData] = user[userProperty];
+  const content = user[userProperty as keyof AdminViewUserData];
 
   if (isField<AdminViewUserData['serverStatus']>(content, userProperty === 'serverStatus')) {
     return <ServerStatus username={user.name} data={content} />;

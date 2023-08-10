@@ -28,8 +28,8 @@ const GlobalPipelineRunsTab: React.FC = () => {
   return (
     <Tabs
       activeKey={tab}
-      onSelect={(e, tabId) => {
-        if (PipelineRunsTabs[tabId]) {
+      onSelect={(_, tabId) => {
+        if (PipelineRunsTabs[tabId as keyof typeof PipelineRunsTabs]) {
           setTab(tabId as PipelineRunsTabs);
         }
       }}

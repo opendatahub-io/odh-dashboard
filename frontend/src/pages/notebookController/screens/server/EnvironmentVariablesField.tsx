@@ -34,7 +34,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
     setVariableType(variable.type);
   }, [variable.type]);
 
-  const handleSecretChange = (checked) => {
+  const handleSecretChange = (checked: boolean) => {
     variable.type = checked ? 'password' : 'text';
     setVariableType(variable.type);
   };

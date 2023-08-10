@@ -611,6 +611,7 @@ export type PipelineRunTaskSpec = {
     annotations?: {
       /** @see PipelineRunTaskSpecDigest */
       'pipelines.kubeflow.org/component_spec_digest': string;
+      'pipelines.kubeflow.org/task_display_name': string;
     };
     labels: {
       'pipelines.kubeflow.org/cache_enabled': 'true';

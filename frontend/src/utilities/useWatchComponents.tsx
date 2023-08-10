@@ -15,7 +15,7 @@ export const useWatchComponents = (
   const initForce = React.useRef<number>(forceUpdate);
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchComponents = () => {
       fetchComponents(installed)
         .then((updatedComponents: OdhApplication[]) => {
@@ -35,8 +35,6 @@ export const useWatchComponents = (
         clearTimeout(watchHandle);
       }
     };
-    // Don't update when components are updated
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installed]);
 
   React.useEffect(() => {

@@ -46,12 +46,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     setSearch('');
   };
 
-  const searchTypes = Object.keys(SearchType).filter(
-    (key) =>
-      SearchType[key] === SearchType.NAME ||
-      SearchType[key] === SearchType.PROJECT ||
-      SearchType[key] === SearchType.USER,
-  );
+  const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROJECT, SearchType.USER], []);
 
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();

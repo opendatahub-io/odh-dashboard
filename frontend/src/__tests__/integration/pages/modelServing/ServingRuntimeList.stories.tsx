@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { StoryFn, Meta } from '@storybook/react';
+import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { userEvent, within } from '@storybook/testing-library';
 import { Route } from 'react-router-dom';
@@ -130,7 +130,7 @@ const Template: StoryFn<typeof ServingRuntimeList> = (args) => {
   );
 };
 
-export const ListAvailableModels = {
+export const ListAvailableModels: StoryObj = {
   render: Template,
 
   play: async ({ canvasElement }) => {
@@ -141,7 +141,7 @@ export const ListAvailableModels = {
   },
 };
 
-export const DeployModel = {
+export const DeployModel: StoryObj = {
   render: Template,
 
   play: async ({ canvasElement }) => {
