@@ -13,7 +13,7 @@ export const useWatchSegmentKey = (): {
   const [segmentKey, setSegmentKey] = React.useState('');
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchSegmentKey = () => {
       fetchSegmentKey()
         .then((updatedSegmentKey: ODHSegmentKey) => {
@@ -33,8 +33,6 @@ export const useWatchSegmentKey = (): {
         clearTimeout(watchHandle);
       }
     };
-    // Don't update when segment-key is updated
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { segmentKey: segmentKey || '', loaded, loadError };

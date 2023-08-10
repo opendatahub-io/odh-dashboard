@@ -8,7 +8,7 @@ export enum SearchType {
 }
 
 type SearchFieldProps = {
-  types: string[];
+  types: SearchType[];
   searchType: SearchType;
   onSearchTypeChange: (searchType: SearchType) => void;
   searchValue: string;
@@ -33,14 +33,14 @@ const SearchField: React.FC<SearchFieldProps> = ({
         selections={searchType}
         onSelect={(e, key) => {
           if (typeof key === 'string') {
-            onSearchTypeChange(SearchType[key]);
+            onSearchTypeChange(key as SearchType);
             setTypeOpen(false);
           }
         }}
       >
         {types.map((key) => (
           <SelectOption key={key} value={key}>
-            {SearchType[key]}
+            {key}
           </SelectOption>
         ))}
       </Select>

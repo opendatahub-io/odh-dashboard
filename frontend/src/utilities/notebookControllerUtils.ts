@@ -209,8 +209,8 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
       return Promise.reject();
     }
 
-    return new Promise<string>((resolve, reject) => {
-      const call = (resolve, reject) => {
+    return new Promise<string>((presolve, preject) => {
+      const call = (resolve: typeof presolve, reject: typeof preject) => {
         getRoute(notebookNamespace, routeName)
           .then((route) => {
             resolve(`https://${route.spec.host}/notebook/${notebookNamespace}/${routeName}`);
@@ -231,12 +231,12 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
           });
       };
 
-      call(resolve, () => {
+      call(presolve, () => {
         /* eslint-disable-next-line no-console */
         console.error(
           'Could not fetch route over several tries, See previous warnings for a history of why each failed call.',
         );
-        reject();
+        preject();
       });
     });
   }, [backupRoute, notebookNamespace, routeName]);

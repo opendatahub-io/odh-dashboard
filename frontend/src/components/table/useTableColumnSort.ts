@@ -58,8 +58,8 @@ const useTableColumnSort = <T>(
             return 0;
           }
 
-          const dataValueA = a[columnField.field];
-          const dataValueB = b[columnField.field];
+          const dataValueA = a[columnField.field as keyof T];
+          const dataValueB = b[columnField.field as keyof T];
           if (typeof dataValueA === 'string' && typeof dataValueB === 'string') {
             return dataValueA.localeCompare(dataValueB);
           }

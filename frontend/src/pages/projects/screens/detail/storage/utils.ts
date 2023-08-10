@@ -1,4 +1,4 @@
-export const getFullStatusFromPercentage = (percentageFull: number): string | null => {
+export const getFullStatusFromPercentage = (percentageFull: number) => {
   if (percentageFull === 100) {
     return 'error';
   } else if (percentageFull >= 95) {

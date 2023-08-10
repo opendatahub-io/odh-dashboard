@@ -25,7 +25,7 @@ export const assemblePvc = (
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     annotations: {
-      'openshift.io/display-name': pvcName,
+      'openshift.io/display-name': pvcName.trim(),
       'openshift.io/description': description,
     },
   },
