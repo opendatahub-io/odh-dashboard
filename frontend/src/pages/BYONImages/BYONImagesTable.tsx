@@ -40,13 +40,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
   };
 
   const searchTypes = React.useMemo(
-    () =>
-      Object.keys(SearchType).filter(
-        (key) =>
-          SearchType[key] === SearchType.NAME ||
-          SearchType[key] === SearchType.DESCRIPTION ||
-          SearchType[key] === SearchType.PROVIDER,
-      ),
+    () => [SearchType.NAME, SearchType.DESCRIPTION, SearchType.PROVIDER],
     [],
   );
 
