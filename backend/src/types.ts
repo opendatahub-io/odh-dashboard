@@ -247,6 +247,7 @@ export type KubeDecorator = KubeStatus & {
   customObjectsApi: k8s.CustomObjectsApi;
   rbac: k8s.RbacAuthorizationV1Api;
   currentToken: string;
+
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
@@ -806,10 +807,15 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  gpus: number;
+  accelerator: AcceleratorState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
+};
+
+export type AcceleratorState = {
+  accelerator?: AcceleratorKind;
+  count: number;
 };
 
 export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
@@ -863,18 +869,20 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
-export type GPUCount = string | number;
+
+export enum ContainerResourceAttributes {
+  CPU = 'cpu',
+  MEMORY = 'memory',
+}
 
 export type ContainerResources = {
   requests?: {
     cpu?: string;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
   };
   limits?: {
     cpu?: string;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
   };
 };
 
@@ -918,3 +926,10 @@ export type AcceleratorKind = K8sResourceCommon & {
     tolerations?: NotebookToleration[];
   };
 };
+
+export enum KnownLabels {
+  DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
+  PROJECT_SHARING = 'opendatahub.io/project-sharing',
+  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
+  DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+}

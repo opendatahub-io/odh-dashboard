@@ -31,7 +31,7 @@ export const assemblePodSpecOptions = (
     resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
   } else {
     // step type down to string to avoid type errors
-    const containerResourceKeys: string[] = Object.keys(ContainerResourceAttributes);
+    const containerResourceKeys: string[] = Object.values(ContainerResourceAttributes);
 
     Object.keys(resources.limits || {}).forEach((key) => {
       if (!containerResourceKeys.includes(key)) {

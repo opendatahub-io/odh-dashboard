@@ -1,6 +1,6 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
-import { BYONImage, K8sResourceCommon, NotebookSize, Volume, VolumeMount } from '~/types';
+import { BYONImage, NotebookSize, Volume, VolumeMount } from '~/types';
 import {
   BuildKind,
   ImageStreamKind,
@@ -414,7 +414,7 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind) => {
   );
 };
 
-export const convertBYONImageToK8sResource = (image: BYONImage): K8sResourceCommon => ({
+export const convertBYONImageToK8sResource = (image: BYONImage) => ({
   kind: 'ImageStream',
   apiVersion: 'image.openshift.io/v1',
   metadata: {
