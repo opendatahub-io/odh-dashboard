@@ -13,14 +13,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       ) => {
         const { namespace, name } = request.params;
         try {
-          const rbResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
+          const response = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
             'template.openshift.io',
             'v1',
             namespace,
             'templates',
             name,
           );
-          return rbResponse.body;
+          return response.body;
         } catch (e) {
           fastify.log.error(
             `Template ${name} could not be read, ${e.response?.body?.message || e.message}`,
@@ -44,7 +44,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         const { namespace } = request.params;
         const { labelSelector } = request.query;
         try {
-          const rbResponse = await fastify.kube.customObjectsApi.listNamespacedCustomObject(
+          const response = await fastify.kube.customObjectsApi.listNamespacedCustomObject(
             'template.openshift.io',
             'v1',
             namespace,
@@ -54,7 +54,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             undefined,
             labelSelector,
           );
-          return rbResponse.body;
+          return response.body;
         } catch (e) {
           fastify.log.error(
             `Templates could not be listed, ${e.response?.body?.message || e.message}`,
@@ -147,14 +147,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       ) => {
         const { namespace, name } = request.params;
         try {
-          const rbResponse = await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
+          const response = await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
             'template.openshift.io',
             'v1',
             namespace,
             'templates',
             name,
           );
-          return rbResponse.body;
+          return response.body;
         } catch (e) {
           fastify.log.error(
             `Template ${name} could not be deleted, ${e.response?.body?.message || e.message}`,

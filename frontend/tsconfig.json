@@ -11,7 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -23,5 +23,5 @@
     "skipLibCheck": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "public"]
 }

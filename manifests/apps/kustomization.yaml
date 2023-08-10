@@ -3,5 +3,5 @@ kind: Kustomization
 commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
-bases:
+resources:
   - ./jupyter

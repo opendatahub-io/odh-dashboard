@@ -16,6 +16,8 @@ import {
   OdhDocument,
   QuickStart,
   SubscriptionKind,
+  Template,
+  TemplateList,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -83,7 +85,18 @@ const fetchOperatorExistence = async (
 
 const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
   const dashboardName = process.env['DASHBOARD_CONFIG'] || dashboardConfigMapName;
-  const dashboardConfig: DashboardConfig[] = await fastify.kube.customObjectsApi
+  return fetchOrCreateDashboardCR(fastify, dashboardName).then((dashboardCR) => {
+    return manageOperatorStatus(fastify, dashboardCR).then((dashboardCR) => {
+      return migrateTemplateDisablement(fastify, dashboardCR).then((dashboardCR) => [dashboardCR]);
+    });
+  });
+};
+
+const fetchOrCreateDashboardCR = async (
+  fastify: KubeFastifyInstance,
+  dashboardName: string,
+): Promise<DashboardConfig> => {
+  return fastify.kube.customObjectsApi
     .getNamespacedCustomObject(
       'opendatahub.io',
       'v1alpha',
@@ -93,7 +106,7 @@ const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<Dashboard
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
-      return [_.merge({}, blankDashboardCR, dashboardCR)]; // merge with blank CR to prevent any missing values
+      return _.merge({}, blankDashboardCR, dashboardCR); // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
       fastify.log.warn(
@@ -101,32 +114,35 @@ const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<Dashboard
       );
       return createDashboardCR(fastify);
     });
+};
 
-  if (dashboardConfig?.[0].spec.dashboardConfig.disablePipelines === false) {
+const manageOperatorStatus = async (
+  fastify: KubeFastifyInstance,
+  dashboardConfig: DashboardConfig,
+): Promise<DashboardConfig> => {
+  if (dashboardConfig.spec.dashboardConfig.disablePipelines === false) {
     fastify.log.info('Pipelines feature enabled, computing operator state...');
     return fetchOperatorExistence(fastify, 'openshift-pipelines-operator-rh').then((exists) => {
       fastify.log.info(`Pipeline Operator status: ${exists}`);
-      return [
-        _.merge({}, dashboardConfig[0], {
-          status: {
-            ...dashboardConfig[0].status,
-            dependencyOperators: {
-              redhatOpenshiftPipelines: {
-                queriedForStatus: true,
-                available: exists,
-              },
+      return _.merge({}, dashboardConfig, {
+        status: {
+          ...dashboardConfig.status,
+          dependencyOperators: {
+            redhatOpenshiftPipelines: {
+              queriedForStatus: true,
+              available: exists,
             },
           },
-        }),
-      ];
+        },
+      });
     });
   }
 
   return dashboardConfig;
 };
 
-const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
-  const createResponse: Promise<DashboardConfig[]> = fastify.kube.customObjectsApi
+const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
+  return fastify.kube.customObjectsApi
     .createNamespacedCustomObject(
       'opendatahub.io',
       'v1alpha',
@@ -139,8 +155,6 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
       fastify.log.error('Error creating Dashboard CR: ', e);
       return null;
     });
-
-  return createResponse;
 };
 
 const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionKind[]> => {
@@ -181,6 +195,7 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionK
   return fetchAll();
 };
 
+/** @deprecated -- we are moving away from KfDefs */
 const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDefApplication[]> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
@@ -200,6 +215,16 @@ const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDef
       return acc;
     }, [] as KfDefApplication[]);
   } catch (e) {
+    const errorResponse = e.response.body;
+    if (errorResponse?.trim() === '404 page not found') {
+      // 404s like this are because the CRD does not exist
+      // If there were no resources, we would get an empty array
+      // This is not an error case, we are supporting the new Operator that does not use KfDefs
+      fastify.log.info('Detected no KfDef CRD installed -- suppressing issue pulling KfDef');
+      return [];
+    }
+
+    // Old flow, if it fails in other ways, we'll need to still handle a failed KfDef issue
     fastify.log.error(e, 'failed to get kfdefs');
     const error = createError(500, 'failed to get kfdefs');
     error.explicitInternalServerError = true;
@@ -860,3 +885,84 @@ export const cleanupDSPSuffix = async (fastify: KubeFastifyInstance): Promise<vo
     fastify.log.info('Completed updating Namespaces');
   });
 };
+
+/**
+ * @deprecated - Look to remove asap (see comments below)
+ * Migrate the template enablement from a current annotation in the Template Object to a list in ODHDashboardConfig
+ * We are migrating this from v2.11.0, so we can remove this code when we no longer support that version.
+ */
+export const migrateTemplateDisablement = async (
+  fastify: KubeFastifyInstance,
+  dashboardConfig: DashboardConfig,
+): Promise<DashboardConfig> => {
+  if (dashboardConfig.spec.templateDisablement) {
+    return dashboardConfig;
+  }
+
+  const namespace = fastify.kube.namespace;
+  return fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'template.openshift.io',
+      'v1',
+      namespace,
+      'templates',
+      undefined,
+      undefined,
+      undefined,
+      'opendatahub.io/dashboard=true',
+    )
+    .then((response) => response.body as TemplateList)
+    .then((templateList) => {
+      const templatesDisabled = templateList.items
+        .filter(
+          (template) =>
+            template.metadata.annotations?.['opendatahub.io/template-enabled'] === 'false',
+        )
+        .map((template) => getServingRuntimeNameFromTemplate(template));
+      if (templatesDisabled.length > 0) {
+        const options = {
+          headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH },
+        };
+
+        return fastify.kube.customObjectsApi
+          .patchNamespacedCustomObject(
+            'opendatahub.io',
+            'v1alpha',
+            dashboardConfig.metadata.namespace,
+            'odhdashboardconfigs',
+            dashboardConfig.metadata.name,
+            [
+              {
+                op: 'replace',
+                path: '/spec/templateDisablement',
+                value: templatesDisabled,
+              },
+            ],
+            undefined,
+            undefined,
+            undefined,
+            options,
+          )
+          .then(() => {
+            return {
+              ...dashboardConfig,
+              spec: {
+                ...dashboardConfig.spec,
+                templateDisablement: templatesDisabled,
+              },
+            };
+          });
+      } else {
+        return dashboardConfig;
+      }
+    })
+    .catch((e) => {
+      fastify.log.error(
+        `Error migrating template disablement: ${e.response?.body?.message || e.message || e}`,
+      );
+      return dashboardConfig;
+    });
+};
+
+export const getServingRuntimeNameFromTemplate = (template: Template): string =>
+  template.objects[0].metadata.name;

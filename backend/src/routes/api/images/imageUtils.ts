@@ -167,8 +167,8 @@ const getTagInfo = (imageStream: ImageStream): ImageTagInfo[] => {
 
 const getTagContent = (tag: ImageStreamTag): TagContent => {
   const content: TagContent = {
-    software: JSON.parse(tag.annotations[IMAGE_ANNOTATIONS.SOFTWARE] || '[]'),
-    dependencies: JSON.parse(tag.annotations[IMAGE_ANNOTATIONS.DEPENDENCIES] || '[]'),
+    software: jsonParsePackage(tag.annotations[IMAGE_ANNOTATIONS.SOFTWARE]),
+    dependencies: jsonParsePackage(tag.annotations[IMAGE_ANNOTATIONS.DEPENDENCIES]),
   };
   return content;
 };
@@ -194,16 +194,10 @@ const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   description: is.metadata.annotations['opendatahub.io/notebook-image-desc'],
   visible: is.metadata.labels['opendatahub.io/notebook-image'] === 'true',
   error: getBYONImageErrorMessage(is),
-  packages:
-    is.spec.tags &&
-    (JSON.parse(
-      is.spec.tags[0].annotations['opendatahub.io/notebook-python-dependencies'],
-    ) as BYONImagePackage[]),
-  software:
-    is.spec.tags &&
-    (JSON.parse(
-      is.spec.tags[0].annotations['opendatahub.io/notebook-software'],
-    ) as BYONImagePackage[]),
+  packages: jsonParsePackage(
+    is.spec.tags?.[0]?.annotations?.['opendatahub.io/notebook-python-dependencies'],
+  ),
+  software: jsonParsePackage(is.spec.tags?.[0]?.annotations?.['opendatahub.io/notebook-software']),
   uploaded: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
   user: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
@@ -406,5 +400,13 @@ export const updateImage = async (
       fastify.log.error('Unable to update notebook image: ' + e.toString());
       return { success: false, error: 'Unable to update notebook image: ' + e.message };
     }
+  }
+};
+
+const jsonParsePackage = (unparsedPackage: string): BYONImagePackage[] => {
+  try {
+    return JSON.parse(unparsedPackage) || [];
+  } catch {
+    return [];
   }
 };

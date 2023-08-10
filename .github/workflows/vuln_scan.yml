@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Run Trivy vulnerability scanner for filesystem
-        uses: aquasecurity/trivy-action@0.10.0
+        uses: aquasecurity/trivy-action@0.11.2
         with:
           scan-type: 'fs'
           scan-ref: '.'

@@ -2,6 +2,11 @@ html, body, #root {
   height: 100%;
 }
 
+#dashboard-page-main {
+  // Establish positioning relative to the top left of the main container.
+  position: relative;
+}
+
 .odh-dashboard {
   &__page-content {
     border: 1px solid var(--pf-global--BorderColor--100);

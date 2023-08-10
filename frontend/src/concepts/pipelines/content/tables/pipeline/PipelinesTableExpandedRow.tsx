@@ -13,6 +13,7 @@ import { PipelineKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { FetchState } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { TABLE_CONTENT_LIMIT } from '~/concepts/pipelines/const';
 import { RenderContentList, combineRunsByColumn } from './expandedRowRenderUtils';
 
 type PipelinesTableExpandedRowProps = {
@@ -75,7 +76,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
     );
   }
 
-  const renderContentByColumn = combineRunsByColumn(runs, 5);
+  const renderContentByColumn = combineRunsByColumn(runs, TABLE_CONTENT_LIMIT);
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -92,7 +93,9 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
                 }
                 items={[
                   ...renderContentByColumn.names,
-                  runs.length > 5 && <Link to={`/pipelineRuns/${namespace}`}>View all runs</Link>,
+                  runs.length > TABLE_CONTENT_LIMIT && (
+                    <Link to={`/pipelineRuns/${namespace}`}>View all runs</Link>
+                  ),
                 ]}
               />
             </IndentSection>

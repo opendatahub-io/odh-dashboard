@@ -94,7 +94,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     refreshAllProjectData();
     navigate(`/projects/${projectName}`);
   };
-  const handleError = (e) => {
+  const handleError = (e: Error) => {
     setErrorMessage(e.message || 'Error creating workbench');
     setCreateInProgress(false);
   };

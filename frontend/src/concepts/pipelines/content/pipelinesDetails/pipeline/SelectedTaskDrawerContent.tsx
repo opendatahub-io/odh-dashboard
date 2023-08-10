@@ -28,7 +28,8 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
-          {task.name}
+          {task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
+            task.name}
         </Title>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />

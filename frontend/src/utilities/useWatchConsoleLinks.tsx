@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { ConsoleLinkKind } from '~/types';
+import { ConsoleLinkKind } from '~/k8sTypes';
 import { fetchConsoleLinks } from '~/services/consoleLinksService';
 import { POLL_INTERVAL } from './const';
 
@@ -21,7 +21,7 @@ export const useWatchConsoleLinks = (): ConsoleLinkResults => {
   });
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchConsoleLinks = () => {
       fetchConsoleLinks()
         .then((consoleLinks: ConsoleLinkKind[]) => {

@@ -29,7 +29,7 @@ export type UpdateImageModalProps = {
   isOpen: boolean;
   image: BYONImage;
   onCloseHandler: () => void;
-  onUpdateHandler();
+  onUpdateHandler: () => void;
 };
 export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
   isOpen,
@@ -59,6 +59,7 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
       setSoftware(image.software != undefined ? image.software : []);
       setValidName(true);
     }
+    // Only update when isOpen is updated to true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 

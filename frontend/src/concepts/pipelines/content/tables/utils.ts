@@ -8,10 +8,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
-export const sortRunsByCreated = (runs: PipelineRunKF[]) =>
-  [...runs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-export const getLastRun = (runs: PipelineRunKF[]) => sortRunsByCreated(runs)[0];
+export const getLastRun = (runs: PipelineRunKF[]) => runs[0];
 
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);
@@ -33,7 +30,7 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
     [PipelineRunStatusesKF.STARTED]: 4,
   };
 
-  return weights[run.status] ?? Infinity;
+  return weights[run.status as PipelineRunStatusesKF] ?? Infinity;
 };
 
 export const getRunResourceReference = (

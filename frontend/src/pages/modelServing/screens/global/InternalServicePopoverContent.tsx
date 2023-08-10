@@ -22,10 +22,10 @@ const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps
 
   return (
     <DescriptionList isCompact>
-      {Object.keys(isInternalServiceEnabled).map((route) => (
+      {Object.entries(isInternalServiceEnabled).map(([route, value]) => (
         <DescriptionListGroup key={route}>
           <DescriptionListTerm>{route}</DescriptionListTerm>
-          <DescriptionListDescription>{isInternalServiceEnabled[route]}</DescriptionListDescription>
+          <DescriptionListDescription>{value}</DescriptionListDescription>
         </DescriptionListGroup>
       ))}
     </DescriptionList>
