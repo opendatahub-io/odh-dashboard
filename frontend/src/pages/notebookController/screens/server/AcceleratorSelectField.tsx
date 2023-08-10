@@ -48,7 +48,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
       )?.[1];
 
       if (detectedAcceleratorCount === undefined) {
-        return `No accelerator detected with the identifier ${accelerator?.spec.identifier} detected.`;
+        return `No accelerator detected with the identifier ${accelerator?.spec.identifier}.`;
       } else if (newSize > detectedAcceleratorCount) {
         return `Only ${detectedAcceleratorCount} accelerator${
           detectedAcceleratorCount > 1 ? 's' : ''
