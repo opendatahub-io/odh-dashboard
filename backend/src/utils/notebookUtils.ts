@@ -191,7 +191,7 @@ export const assembleNotebook = async (
   const resources: NotebookResources = { ...notebookSize.resources };
   const tolerations: NotebookToleration[] = [];
 
-  let affinity: NotebookAffinity = {};
+  const affinity: NotebookAffinity = {};
   if (accelerator.count > 0 && accelerator.accelerator) {
     if (!resources.limits) {
       resources.limits = {};

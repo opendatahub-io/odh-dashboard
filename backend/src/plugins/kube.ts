@@ -87,10 +87,9 @@ export default fp(async (fastify: FastifyInstance) => {
       `Unable to fully convert GPU to use accelerator profiles. ${
         e.response?.body?.message || e.message
       }`,
-    )
-  )
+    ),
+  );
 });
-
 
 const getCurrentNamespace = async () => {
   return new Promise((resolve, reject) => {

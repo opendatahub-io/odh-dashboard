@@ -654,7 +654,6 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
         return true;
       }
     });
-    
 
   if (continueProcessing) {
     // Read existing AcceleratorProfiles
@@ -663,23 +662,28 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
         'dashboard.opendatahub.io',
         'v1alpha',
         fastify.kube.namespace,
-      'acceleratorprofiles'
-      ).catch((e) => {
+        'acceleratorprofiles',
+      )
+      .catch((e) => {
         // If 404 shows up — CRD may not be installed, exit early
-        throw 'Unable to fetch accelerator profiles: ' + e.toString()
+        throw 'Unable to fetch accelerator profiles: ' + e.toString();
       });
 
     const acceleratorProfiles = (
       acceleratorProfilesResponse?.body as {
-        items: AcceleratorKind[]
+        items: AcceleratorKind[];
       }
     )?.items;
 
     // If not error and no profiles detected:
-    if (acceleratorProfiles && Array.isArray(acceleratorProfiles) && acceleratorProfiles.length === 0) {
+    if (
+      acceleratorProfiles &&
+      Array.isArray(acceleratorProfiles) &&
+      acceleratorProfiles.length === 0
+    ) {
       // if gpu detected on cluster, create our default migrated-gpu
       // TODO GPU detection
-      const acceleratorDetected = await getAcceleratorNumbers(fastify)
+      const acceleratorDetected = await getAcceleratorNumbers(fastify);
 
       if (acceleratorDetected.configured) {
         const payload: AcceleratorKind = {
@@ -698,8 +702,8 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
                 effect: 'NoSchedule',
                 key: 'nvidia.com/gpu',
                 operator: 'Exists',
-              }
-            ]
+              },
+            ],
           },
         };
 
@@ -709,22 +713,23 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
             'v1alpha',
             fastify.kube.namespace,
             'acceleratorprofiles',
-            payload
-          )
+            payload,
+          );
         } catch (e) {
           // If bad detection — exit early and dont create config
-          throw 'Unable to add migrated-gpu accelerator profile: ' + e.toString()
+          throw 'Unable to add migrated-gpu accelerator profile: ' + e.toString();
         }
 
         // update already running notebooks to use the new profile
-        const notebooks = await getNotebooks(fastify, fastify.kube.namespace)
+        const notebooks = await getNotebooks(fastify, fastify.kube.namespace);
         notebooks.items.forEach(async (notebook) => {
-          const gpuCount = notebook.spec.template.spec.containers[0].resources?.limits?.['nvidia.com/gpu']
+          const gpuCount =
+            notebook.spec.template.spec.containers[0].resources?.limits?.['nvidia.com/gpu'];
           if (gpuCount) {
             notebook.metadata.annotations = {
               ...notebook.metadata.annotations,
-              'opendatahub.io/recommended-accelerators' : 'migrated-gpu'
-            }
+              'opendatahub.io/recommended-accelerators': 'migrated-gpu',
+            };
             await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
               'kubeflow.org',
               'v1',
@@ -738,11 +743,10 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
               {
                 headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
               },
-            ) 
+            );
           }
-        }
-        )
-      };          
+        });
+      }
     }
 
     // Create configmap to flag operation as successful
@@ -754,19 +758,19 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       data: {
         migratedCompleted: 'true',
       },
-    }
+    };
 
     await fastify.kube.coreV1Api
-    .createNamespacedConfigMap(fastify.kube.namespace, configMap)
-    .then(() => fastify.log.info('Successfully migrated GPUs to accelerator profiles'))
-    .catch((e) => {
-      throw createCustomError(
-        'Unable to create gpu migration configmap',
-        e.response?.body?.message || e.message,
-      );
-    });
+      .createNamespacedConfigMap(fastify.kube.namespace, configMap)
+      .then(() => fastify.log.info('Successfully migrated GPUs to accelerator profiles'))
+      .catch((e) => {
+        throw createCustomError(
+          'Unable to create gpu migration configmap',
+          e.response?.body?.message || e.message,
+        );
+      });
   }
-}
+};
 /**
  * @deprecated - Look to remove asap (see comments below)
  * Converts namespaces that have a display-name annotation suffixed with `[DSP]` over to using a label.
