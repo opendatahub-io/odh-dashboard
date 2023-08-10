@@ -45,13 +45,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
     setSearch('');
   };
 
-  const searchTypes = React.useMemo(
-    () =>
-      Object.keys(SearchType).filter(
-        (key) => SearchType[key] === SearchType.NAME || SearchType[key] === SearchType.PROJECT,
-      ),
-    [],
-  );
+  const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROJECT], []);
 
   return (
     <>

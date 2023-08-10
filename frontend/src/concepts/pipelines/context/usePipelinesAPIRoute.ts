@@ -38,7 +38,7 @@ const usePipelinesAPIRoute = (hasCR: boolean, namespace: string): FetchState<Sta
   const [data, , , refresh] = state;
   const hasData = !!data;
   React.useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval>;
     if (!hasData) {
       interval = setInterval(refresh, FAST_POLL_INTERVAL);
     }

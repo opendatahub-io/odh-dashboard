@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { StoryFn, Meta } from '@storybook/react';
+import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
 import { expect } from '@storybook/jest';
@@ -51,7 +51,7 @@ const Template: StoryFn<typeof ModelServingGlobal> = (args) => (
   </Routes>
 );
 
-export const EditModel = {
+export const EditModel: StoryObj = {
   render: Template,
 
   parameters: {
@@ -72,7 +72,7 @@ export const EditModel = {
   },
 };
 
-export const DeleteModel = {
+export const DeleteModel: StoryObj = {
   render: Template,
 
   parameters: {
@@ -92,7 +92,7 @@ export const DeleteModel = {
   },
 };
 
-export const DeployModel = {
+export const DeployModel: StoryObj = {
   render: Template,
 
   parameters: {

@@ -21,7 +21,7 @@ export const useWatchConsoleLinks = (): ConsoleLinkResults => {
   });
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchConsoleLinks = () => {
       fetchConsoleLinks()
         .then((consoleLinks: ConsoleLinkKind[]) => {

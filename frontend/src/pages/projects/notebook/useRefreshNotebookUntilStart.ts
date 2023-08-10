@@ -11,7 +11,7 @@ const useRefreshNotebookUntilStart = (
   lastNotebookState.current = notebookState;
 
   React.useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval>;
     if (watchingForNotebook && doListen) {
       interval = setInterval(() => {
         const { isRunning, refresh } = lastNotebookState.current;

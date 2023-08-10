@@ -39,7 +39,7 @@ export type GetPipelineRunJob = (
 export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
 export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type DeletePipelineRunJob = (opts: K8sAPIOptions, jobId: string) => Promise<void>;
-export type ListExperiments = (opts) => Promise<ListExperimentsResponseKF>;
+export type ListExperiments = (opts: K8sAPIOptions) => Promise<ListExperimentsResponseKF>;
 export type ListPipelines = (
   opts: K8sAPIOptions,
   limit?: number,

@@ -28,7 +28,7 @@ import './ImportImageModal.scss';
 export type ImportImageModalProps = {
   isOpen: boolean;
   onCloseHandler: () => void;
-  onImportHandler();
+  onImportHandler: () => void;
 };
 export const ImportImageModal: React.FC<ImportImageModalProps> = ({
   isOpen,
@@ -55,7 +55,6 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
       setValidName(true);
       setValidRepo(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   return (

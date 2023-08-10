@@ -51,11 +51,16 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
     setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
   };
 
-  const compoundExpandParams = (col: ServingRuntimeTableTabs, isDisabled: boolean) =>
+  const compoundExpandParams = (
+    col: ServingRuntimeTableTabs,
+    isDisabled: boolean,
+  ): React.ComponentProps<typeof Td>['compoundExpand'] =>
     !isDisabled
       ? {
           isExpanded: expandedColumn === col,
-          onToggle,
+          onToggle: (_, __, colIndex: ServingRuntimeTableTabs) => {
+            setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
+          },
           columnIndex: col,
           expandId: `expand-table-row-${obj.metadata.name}-${col}`,
         }

@@ -67,6 +67,21 @@ const fireSearchedEvent = _.debounce((val: string) => {
   }
 }, 1000);
 
+const sortTypes = {
+  name: SORT_TYPE_NAME,
+  type: SORT_TYPE_TYPE,
+  application: SORT_TYPE_APPLICATION,
+  duration: SORT_TYPE_DURATION,
+};
+
+const sortOrders = {
+  ASC: 'ascending',
+  DESC: 'descending',
+};
+
+const isSortType = (e: string | null): e is keyof typeof sortTypes => !!e && e in sortTypes;
+const isSortOrder = (e: string | null): e is keyof typeof sortOrders => !!e && e in sortOrders;
+
 const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   count,
   totalCount,
@@ -85,19 +100,10 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   const applications = queryParams.get(APPLICATION_FILTER_KEY);
   const searchQuery = queryParams.get(SEARCH_FILTER_KEY) || '';
   const [searchInputText, setSearchInputText] = React.useState(searchQuery);
-  const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
-  const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
-
-  const sortTypes = {
-    name: SORT_TYPE_NAME,
-    type: SORT_TYPE_TYPE,
-    application: SORT_TYPE_APPLICATION,
-    duration: SORT_TYPE_DURATION,
-  };
-  const sortOrders = {
-    ASC: 'ascending',
-    DESC: 'descending',
-  };
+  const sortTypeQ = queryParams.get(DOC_SORT_KEY);
+  const sortType = isSortType(sortTypeQ) ? sortTypeQ : SORT_TYPE_NAME;
+  const sortOrderQ = queryParams.get(DOC_SORT_ORDER_KEY);
+  const sortOrder = isSortOrder(sortOrderQ) ? sortOrderQ : SORT_ASC;
 
   React.useEffect(() => {
     setSearchInputText(searchQuery);
@@ -108,9 +114,9 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   }, [searchInputText]);
 
   const onSortTypeSelect = React.useCallback(
-    (e) => {
+    (e: React.MouseEvent | React.ChangeEvent) => {
       setIsSortTypeDropdownOpen(false);
-      const selection = e.target.getAttribute('data-key');
+      const selection = (e.target as Element).getAttribute('data-key') ?? '';
       setQueryArgument(navigate, DOC_SORT_KEY, selection);
     },
     [navigate],
@@ -128,9 +134,9 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
     </SelectOption>
   ));
   const onSortOrderSelect = React.useCallback(
-    (e) => {
+    (e: React.MouseEvent | React.ChangeEvent) => {
       setIsSortOrderDropdownOpen(false);
-      const selection = e.target.getAttribute('data-key');
+      const selection = (e.target as Element).getAttribute('data-key') ?? '';
       setQueryArgument(navigate, DOC_SORT_ORDER_KEY, selection);
     },
     [navigate],

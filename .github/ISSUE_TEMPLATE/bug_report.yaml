@@ -30,7 +30,10 @@ body:
     id: version
     attributes:
       label: Version
-      description: What was the version this was found on?
+      description: |
+        What was the version this was found on?
+        
+        eg. a branch name, a commit id, or a version number
     validations:
       required: true
   - type: textarea

@@ -84,7 +84,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
   );
 
   React.useEffect(() => {
-    let timer;
+    let timer: ReturnType<typeof setTimeout>;
     if (isNotebookRunning && open) {
       setSpawnPercentile(100);
       setSpawnStatus({

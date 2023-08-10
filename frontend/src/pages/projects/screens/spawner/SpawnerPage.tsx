@@ -133,14 +133,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         isFilled
         id={ScrollableSelectorID}
         aria-label="spawner-page-spawner-section"
-        hasOverflowScroll
         variant="light"
       >
-        <GenericSidebar
-          sections={sectionIDs}
-          titles={SpawnerPageSectionTitles}
-          scrollableSelector={`#${ScrollableSelectorID}`}
-        >
+        <GenericSidebar sections={sectionIDs} titles={SpawnerPageSectionTitles}>
           <Form style={{ maxWidth: 600 }}>
             <FormSection
               id={SpawnerPageSectionID.NAME_DESCRIPTION}

@@ -34,7 +34,8 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
-          {task.name}
+          {task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
+            task.name}
         </Title>
         {task.runDetails && <Text component="small">{task.runDetails.status.podName}</Text>}
         <DrawerActions>

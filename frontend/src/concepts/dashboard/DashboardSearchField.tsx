@@ -15,7 +15,7 @@ export enum SearchType {
 }
 
 type DashboardSearchFieldProps = {
-  types: string[];
+  types: SearchType[];
   searchType: SearchType;
   onSearchTypeChange: (searchType: SearchType) => void;
   searchValue: string;
@@ -40,14 +40,14 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
         selections={searchType}
         onSelect={(e, key) => {
           if (typeof key === 'string') {
-            onSearchTypeChange(SearchType[key]);
+            onSearchTypeChange(key as SearchType);
             setTypeOpen(false);
           }
         }}
       >
         {types.map((key) => (
           <SelectOption key={key} value={key}>
-            {SearchType[key]}
+            {key}
           </SelectOption>
         ))}
       </Select>
