@@ -11,9 +11,11 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
 import { useUser } from '~/redux/selectors';
+import { DASHBOARD_MAIN_CONTAINER_SELECTOR } from '~/utilities/const';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
 import Header from './Header';
@@ -93,13 +95,15 @@ const App: React.FC = () => {
         sidebar={isAllowed ? <NavSidebar /> : undefined}
         notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
         isNotificationDrawerExpanded={notificationsOpen}
-        mainContainerId="dashboard-page-main"
+        mainContainerId={DASHBOARD_MAIN_CONTAINER_SELECTOR}
       >
-        <ProjectsContextProvider>
-          <AppRoutes />
-        </ProjectsContextProvider>
-        <ToastNotifications />
-        <TelemetrySetup />
+        <ErrorBoundary>
+          <ProjectsContextProvider>
+            <AppRoutes />
+          </ProjectsContextProvider>
+          <ToastNotifications />
+          <TelemetrySetup />
+        </ErrorBoundary>
       </Page>
     </AppContext.Provider>
   );

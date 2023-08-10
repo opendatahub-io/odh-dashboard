@@ -18,7 +18,7 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({ docApps, catego
   const [showAll, setShowAll] = React.useState(false);
 
   const applications = React.useMemo(() => {
-    const allApplications = {};
+    const allApplications: Record<string, number> = {};
     docApps.forEach((docApp) => {
       if (!docApp.spec.appDisplayName) {
         return;

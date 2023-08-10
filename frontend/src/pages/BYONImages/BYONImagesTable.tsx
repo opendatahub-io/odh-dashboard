@@ -53,7 +53,7 @@ type BYONImageEnabled = {
   visible?: boolean;
 };
 
-type BYONImageTableFilterOptions = 'user' | 'name' | 'description' | 'phase' | 'user' | 'uploaded';
+type BYONImageTableFilterOptions = 'user' | 'name' | 'description' | 'uploaded';
 type BYONImageTableFilter = {
   filter: string;
   option: BYONImageTableFilterOptions;
@@ -97,7 +97,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
     'asc',
   );
 
-  const getFilterCount = (value: string, option): number => {
+  const getFilterCount = (value: string, option: BYONImageTableFilterOptions): number => {
     let total = 0;
     images.forEach((image) => {
       (image[option] as string).includes(value) ? total++ : null;
@@ -138,7 +138,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
     columnIndex,
   });
 
-  const columnNames = {
+  const columnNames: Record<BYONImageTableFilterOptions, string> = {
     name: 'Name',
     description: 'Description',
     user: 'User',
@@ -178,7 +178,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
     option: 'name',
     count: images.length,
   });
-  const [selected, setSelected] = React.useState('name');
+  const [selected, setSelected] = React.useState<BYONImageTableFilterOptions>('name');
   const [tableSelectIsOpen, setTableSelectIsOpen] = React.useState(false);
 
   const items = (
@@ -193,11 +193,12 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
             setTableSelectIsOpen(isExpanded);
           }}
           onSelect={(_event, value) => {
-            setSelected(value as string);
-            const newCount = getFilterCount(tableFilter.filter, value);
+            const option = value as BYONImageTableFilterOptions;
+            setSelected(option);
+            const newCount = getFilterCount(tableFilter.filter, option);
             setTableFilter({
               filter: tableFilter.filter,
-              option: value as BYONImageTableFilterOptions,
+              option,
               count: newCount,
             });
           }}

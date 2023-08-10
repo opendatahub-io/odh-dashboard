@@ -34,7 +34,7 @@ const assembleInferenceService = (
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
-        'openshift.io/display-name': data.name,
+        'openshift.io/display-name': data.name.trim(),
         'serving.kserve.io/deploymentMode': 'ModelMesh',
       },
     },

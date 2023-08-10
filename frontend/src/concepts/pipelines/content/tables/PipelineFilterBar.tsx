@@ -74,7 +74,7 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
           chips={Object.keys(filterOptions)
             .map<ToolbarChip | null>((filterKey) => {
               const optionValue = filterOptions[filterKey];
-              const dataValue = filterData[optionValue];
+              const dataValue = filterData[optionValue as ValueOf<Options>];
               if (dataValue) {
                 return {
                   key: filterKey,
@@ -91,9 +91,9 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
               return null;
             })
             .filter(isToolbarChip)}
-          deleteChip={(category, chip) => {
+          deleteChip={(_, chip) => {
             if (isToolbarChip(chip)) {
-              onFilterUpdate(filterOptions[chip.key], '');
+              onFilterUpdate(filterOptions[chip.key as keyof Options], '');
             }
           }}
           deleteChipGroup={() => onClearFilters()}

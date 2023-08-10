@@ -4,7 +4,6 @@ import {
   K8sResourceCommon,
   KubeFastifyInstance,
   RouteKind,
-  KfDefApplication,
   CSVKind,
 } from '../types';
 import {
@@ -207,12 +206,18 @@ const getCSVForApp = (
     });
 };
 
-const getKfDefForApp = (appDef: OdhApplication): KfDefApplication | undefined => {
+const hasKfDefForApp = (appDef: OdhApplication): boolean => {
   if (!appDef.spec.kfdefApplications?.length) {
-    return undefined;
+    return false;
   }
+
   const kfdefApps = getInstalledKfdefs();
-  return kfdefApps.find((kfdefApp) => appDef.spec.kfdefApplications.includes(kfdefApp.name));
+  if (kfdefApps.length === 0) {
+    // Only way we can have no KfDef applications is if we are no longer using the KfDef
+    return true;
+  }
+
+  return !!kfdefApps.find((kfdefApp) => appDef.spec.kfdefApplications.includes(kfdefApp.name));
 };
 
 // eslint-disable-next-line
@@ -255,7 +260,7 @@ export const getIsAppEnabled = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
 ): Promise<boolean> => {
-  if (getKfDefForApp(appDef)) {
+  if (hasKfDefForApp(appDef)) {
     return true;
   }
 

@@ -95,7 +95,9 @@ export const usePipelineTaskTopology = (
         const id = idFromTask(task);
         const node = createNode({
           id,
-          label: task.name,
+          label:
+            task.taskSpec.metadata?.annotations?.['pipelines.kubeflow.org/task_display_name'] ||
+            task.name,
           runAfter,
           status: runStatus,
         });

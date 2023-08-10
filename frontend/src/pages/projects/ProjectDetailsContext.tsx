@@ -24,6 +24,7 @@ import InvalidProject from '~/concepts/projects/InvalidProject';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useTemplates from '~/pages/modelServing/customServingRuntimes/useTemplates';
 import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getTokenNames } from '~/pages/modelServing/utils';
 import { NotebookState } from './notebook/types';
@@ -44,6 +45,7 @@ type ProjectDetailsContextType = {
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   servingRuntimeTemplates: ContextResourceData<TemplateKind>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
+  servingRuntimeTemplateDisablement: ContextResourceData<string>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   serverSecrets: ContextResourceData<SecretKind>;
   projectSharingRB: ContextResourceData<RoleBindingKind>;
@@ -61,6 +63,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplates: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   serverSecrets: DEFAULT_CONTEXT_DATA,
   projectSharingRB: DEFAULT_CONTEXT_DATA,
@@ -84,6 +87,9 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
     useTemplateOrder(dashboardNamespace),
   );
+  const servingRuntimeTemplateDisablement = useContextResourceData<string>(
+    useTemplateDisablement(dashboardNamespace),
+  );
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
   );
@@ -97,6 +103,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const servingRuntimeTemplateRefresh = servingRuntimeTemplates.refresh;
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
+  const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateDisablement.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
   const projectSharingRefresh = projectSharingRB.refresh;
   const groupsRefresh = groups.refresh;
@@ -111,6 +118,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     groupsRefresh();
     servingRuntimeTemplateRefresh();
     servingRuntimeTemplateOrderRefresh();
+    servingRuntimeTemplateDisablementRefresh();
   }, [
     notebookRefresh,
     pvcRefresh,
@@ -118,6 +126,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     servingRuntimeRefresh,
     servingRuntimeTemplateRefresh,
     servingRuntimeTemplateOrderRefresh,
+    servingRuntimeTemplateDisablementRefresh,
     inferenceServiceRefresh,
     projectSharingRefresh,
     groupsRefresh,
@@ -169,6 +178,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
         servingRuntimes,
         servingRuntimeTemplates,
         servingRuntimeTemplateOrder,
+        servingRuntimeTemplateDisablement,
         inferenceServices,
         refreshAllProjectData,
         filterTokens,

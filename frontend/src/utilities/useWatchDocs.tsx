@@ -16,7 +16,7 @@ export const useWatchDocs = (
   const [docs, setDocs] = React.useState<OdhDocument[]>([]);
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchDocs = () => {
       fetchDocs(docType)
         .then((updatedDocs: OdhDocument[]) => {
@@ -36,8 +36,6 @@ export const useWatchDocs = (
         clearTimeout(watchHandle);
       }
     };
-    // Don't update when docs are updated
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docType]);
 
   const retDocs = useDeepCompareMemoize<OdhDocument[]>(docs);

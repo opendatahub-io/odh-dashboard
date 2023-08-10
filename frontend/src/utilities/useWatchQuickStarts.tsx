@@ -14,7 +14,7 @@ export const useWatchQuickStarts = (): {
   const [quickStarts, setQuickStarts] = React.useState<QuickStart[]>([]);
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchQuickStarts = () => {
       fetchQuickStarts()
         .then((updatedQuickStarts: QuickStart[]) => {
@@ -34,8 +34,6 @@ export const useWatchQuickStarts = (): {
         clearTimeout(watchHandle);
       }
     };
-    // Don't update when components are updated
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const retQuickStarts = useDeepCompareMemoize<QuickStart[]>(quickStarts);

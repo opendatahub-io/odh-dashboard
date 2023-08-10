@@ -38,7 +38,6 @@ const ProjectDetailsComponents: React.FC = () => {
     dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
   useCheckLogoutParams();
 
-  const scrollableSelectorID = 'project-details-list';
   const sections: SectionType[] = [
     {
       id: ProjectSectionID.WORKBENCHES,
@@ -75,19 +74,11 @@ const ProjectDetailsComponents: React.FC = () => {
       : []),
   ];
 
-  // TODO: scrollable selector stop working when tab mode is enabled
   return (
-    <PageSection
-      id={scrollableSelectorID}
-      hasOverflowScroll
-      isFilled
-      aria-label="project-details-page-section"
-      variant="light"
-    >
+    <PageSection isFilled aria-label="project-details-page-section" variant="light">
       <GenericSidebar
         sections={sections.map(({ id }) => id)}
         titles={ProjectSectionTitles}
-        scrollableSelector={`#${scrollableSelectorID}`}
         maxWidth={175}
       >
         <Stack hasGutter>
