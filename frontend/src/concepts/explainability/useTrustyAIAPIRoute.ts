@@ -44,7 +44,7 @@ const useTrustyAIAPIRoute = (hasCR: boolean, namespace: string): FetchState<Stat
 
   const hasData = !!data;
   React.useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setTimeout>;
     if (!hasData) {
       interval = setInterval(refresh, FAST_POLL_INTERVAL);
     }

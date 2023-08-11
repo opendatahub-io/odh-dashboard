@@ -2,6 +2,7 @@
  * Common types, should be kept up to date with backend types
  */
 
+import { AxiosError } from 'axios';
 import { ServingRuntimeSize } from '~/pages/modelServing/screens/types';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
@@ -19,8 +20,10 @@ export type PrometheusQueryResponse = {
 };
 
 export type PrometheusQueryRangeResponseDataResult = {
-  // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
-  metric: unknown;
+  metric: {
+    request?: string;
+    pod?: string;
+  };
   values: PrometheusQueryRangeResultValue[];
 };
 export type PrometheusQueryRangeResponseData = {
@@ -722,7 +725,7 @@ export type GPUInfo = {
 export type ContextResourceData<T> = {
   data: T[];
   loaded: boolean;
-  error?: Error;
+  error?: Error | AxiosError;
   refresh: () => void;
 };
 

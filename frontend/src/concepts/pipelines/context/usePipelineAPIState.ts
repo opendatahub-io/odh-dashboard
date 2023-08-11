@@ -31,7 +31,7 @@ const usePipelineAPIState = (
   hostPath: string | null,
 ): [apiState: PipelineAPIState, refreshAPIState: () => void] => {
   const createAPI = React.useCallback(
-    (path) => ({
+    (path: string) => ({
       createExperiment: createExperiment(path),
       createPipelineRun: createPipelineRun(path),
       createPipelineRunJob: createPipelineRunJob(path),

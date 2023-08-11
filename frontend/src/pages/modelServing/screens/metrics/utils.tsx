@@ -37,7 +37,7 @@ export const isModelMetricsEnabled = (
 export const getServerMetricsQueries = (
   server: ServingRuntimeKind,
   currentTimeframe: TimeframeTitle,
-): Record<ServerMetricType, string> => {
+): { [key in ServerMetricType]: string } => {
   const namespace = server.metadata.namespace;
   const name = server.metadata.name;
   const responseTimeStep = QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME][currentTimeframe];
@@ -54,7 +54,7 @@ export const getServerMetricsQueries = (
 export const getModelMetricsQueries = (
   model: InferenceServiceKind,
   currentTimeframe: TimeframeTitle,
-): Record<ModelMetricType, string> => {
+): { [key in ModelMetricType]: string } => {
   const namespace = model.metadata.namespace;
   const name = model.metadata.name;
 
@@ -332,5 +332,7 @@ export const convertConfigurationRequestType = (
 export const getThresholdDefaultDelta = (metricType?: BiasMetricType) =>
   metricType && BIAS_CHART_CONFIGS[metricType].defaultDelta;
 
-export const convertPrometheusNaNToZero = (data: PrometheusQueryRangeResultValue[]) =>
+export const convertPrometheusNaNToZero = (
+  data: PrometheusQueryRangeResultValue[],
+): PrometheusQueryRangeResultValue[] =>
   data.map((value) => [value[0], isNaN(Number(value[1])) ? '0' : value[1]]);

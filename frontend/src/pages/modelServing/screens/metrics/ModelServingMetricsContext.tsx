@@ -1,6 +1,10 @@
 import * as React from 'react';
 import { useModelServingMetrics } from '~/api';
-import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
+import {
+  ContextResourceData,
+  PrometheusQueryRangeResponseDataResult,
+  PrometheusQueryRangeResultValue,
+} from '~/types';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import {
   PerformanceMetricType,
@@ -25,8 +29,8 @@ export enum ModelMetricType {
 
 type ModelServingMetricsContext = {
   data: Record<
-    ModelMetricType & ServerMetricType,
-    ContextResourceData<PrometheusQueryRangeResultValue>
+    ModelMetricType | ServerMetricType,
+    ContextResourceData<PrometheusQueryRangeResultValue | PrometheusQueryRangeResponseDataResult>
   >;
   currentTimeframe: TimeframeTitle;
   setCurrentTimeframe: (timeframe: TimeframeTitle) => void;
@@ -60,7 +64,7 @@ export const ModelServingMetricsContext = React.createContext<ModelServingMetric
 type ModelServingMetricsProviderProps = {
   children: React.ReactNode;
   /** Prometheus query strings computed and ready to use */
-  queries: Record<ServerMetricType, string> | Record<ModelMetricType, string>;
+  queries: { [key in ModelMetricType]: string } | { [key in ServerMetricType]: string };
   type: PerformanceMetricType;
 };
 

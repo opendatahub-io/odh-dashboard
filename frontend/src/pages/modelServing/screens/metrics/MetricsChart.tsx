@@ -151,7 +151,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     containerComponent = (
       <CursorVoronoiContainer
         cursorDimension="x"
-        labels={({ datum }) => (tooltipDisabled ? 'No data' : datum.y)}
+        labels={({ datum }: { datum: { y: number } }) => (tooltipDisabled ? 'No data' : datum.y)}
         labelComponent={<ChartLegendTooltip legendData={legendData} title={tooltipTitle} />}
         onCursorChange={handleCursorChange}
         mouseFollowTooltips
