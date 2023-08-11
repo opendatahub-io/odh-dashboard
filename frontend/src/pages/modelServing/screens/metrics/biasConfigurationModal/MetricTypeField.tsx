@@ -33,8 +33,12 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
         menuAppendTo="parent"
       >
         {Object.keys(BiasMetricType).map((type) => (
-          <SelectOption key={type} value={type} description={METRIC_TYPE_DESCRIPTION[type]}>
-            {METRIC_TYPE_DISPLAY_NAME[type]}
+          <SelectOption
+            key={type}
+            value={type}
+            description={METRIC_TYPE_DESCRIPTION[type as keyof typeof BiasMetricType]}
+          >
+            {METRIC_TYPE_DISPLAY_NAME[type as keyof typeof BiasMetricType]}
           </SelectOption>
         ))}
       </Select>

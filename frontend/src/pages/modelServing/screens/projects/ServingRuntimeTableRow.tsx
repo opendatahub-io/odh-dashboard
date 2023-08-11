@@ -47,10 +47,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
 
   const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
 
-  const onToggle = (_, __, colIndex: ServingRuntimeTableTabs) => {
-    setExpandedColumn(expandedColumn === colIndex ? undefined : colIndex);
-  };
-
   const compoundExpandParams = (
     col: ServingRuntimeTableTabs,
     isDisabled: boolean,

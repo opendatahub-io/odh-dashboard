@@ -4,6 +4,7 @@ import { ModelServingMetricsContext } from '~/pages/modelServing/screens/metrics
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { createChartThresholds } from '~/pages/modelServing/screens/metrics/utils';
 import { BIAS_CHART_CONFIGS } from '~/pages/modelServing/screens/metrics/const';
+import { PrometheusQueryRangeResponseDataResult } from '~/types';
 
 export type TrustyChartProps = {
   biasMetricConfig: BiasMetricConfig;
@@ -18,9 +19,9 @@ const TrustyChart: React.FC<TrustyChartProps> = ({ biasMetricConfig }) => {
     BIAS_CHART_CONFIGS[metricType];
 
   const metric = React.useMemo(() => {
-    const metricData = data[modelMetricKey].data;
+    const metricData = data[modelMetricKey].data as PrometheusQueryRangeResponseDataResult[];
 
-    const values = metricData.find((x) => x.metric.request === id)?.values;
+    const values = metricData.find((x) => x.metric.request === id)?.values || [];
 
     return {
       ...data[modelMetricKey],

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bullseye, PageSectionVariants, Spinner } from '@patternfly/react-core';
+import { AxiosError } from 'axios';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import {
   ModelMetricType,
@@ -22,12 +23,12 @@ const EnsureMetricsAvailable: React.FC<EnsureMetricsAvailableProps> = ({
   accessDomain = DEFAULT_ACCESS_DOMAIN,
 }) => {
   const { data } = React.useContext(ModelServingMetricsContext);
-  let error;
+  let error: AxiosError | undefined;
   let readyCount = 0;
 
   metrics.forEach((metric) => {
     if (data[metric].error) {
-      error = data[metric].error;
+      error = data[metric].error as AxiosError;
     }
     data[metric].loaded && readyCount++;
   });
