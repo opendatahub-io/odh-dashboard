@@ -1,51 +1,49 @@
-import { AcceleratorState } from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
-import {
-  PodAffinity,
-  ContainerResources,
-  PodToleration,
-  TolerationSettings,
-  ContainerResourceAttributes,
-} from '~/types';
+import { PodAffinity, ContainerResources, PodToleration, TolerationSettings } from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
-  accelerator: AcceleratorState,
+  accelerator?: AcceleratorState,
   tolerationSettings?: TolerationSettings,
+  existingTolerations?: PodToleration[],
   affinitySettings?: PodAffinity,
+  existingResources?: ContainerResources,
 ): {
   affinity: PodAffinity;
   tolerations: PodToleration[];
   resources: ContainerResources;
 } => {
   const affinity: PodAffinity = structuredClone(affinitySettings || {});
-  const resources = structuredClone(resourceSettings);
-  if (accelerator.count > 0 && accelerator.accelerator) {
-    if (!resources.limits) {
-      resources.limits = {};
-    }
-    if (!resources.requests) {
-      resources.requests = {};
-    }
-    resources.limits[accelerator.accelerator.spec.identifier] = accelerator.count;
-    resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
-  } else {
-    // step type down to string to avoid type errors
-    const containerResourceKeys: string[] = Object.values(ContainerResourceAttributes);
+  let resources: ContainerResources = {
+    limits: { ...existingResources?.limits, ...resourceSettings?.limits },
+    requests: { ...existingResources?.requests, ...resourceSettings?.requests },
+  };
 
-    Object.keys(resources.limits || {}).forEach((key) => {
-      if (!containerResourceKeys.includes(key)) {
-        delete resources.limits?.[key];
-      }
-    });
-
-    Object.keys(resources.requests || {}).forEach((key) => {
-      if (!containerResourceKeys.includes(key)) {
-        delete resources.requests?.[key];
-      }
-    });
+  if (accelerator?.additionalOptions?.useExisting && !accelerator.useExisting) {
+    resources = structuredClone(resourceSettings);
   }
 
-  const tolerations = determineTolerations(tolerationSettings, accelerator.accelerator);
+  // Clear the last accelerator from the resources
+  if (accelerator?.initialAccelerator) {
+    if (resources.limits) {
+      delete resources.limits[accelerator.initialAccelerator.spec.identifier];
+    }
+    if (resources.requests) {
+      delete resources.requests[accelerator.initialAccelerator.spec.identifier];
+    }
+  }
+
+  // Add back the new accelerator to the resources if count > 0
+  if (accelerator?.accelerator && accelerator.count > 0) {
+    if (resources.limits) {
+      resources.limits[accelerator.accelerator.spec.identifier] = accelerator.count;
+    }
+    if (resources.requests) {
+      resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
+    }
+  }
+
+  const tolerations = determineTolerations(tolerationSettings, accelerator, existingTolerations);
   return { affinity, tolerations, resources };
 };

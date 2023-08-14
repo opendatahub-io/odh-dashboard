@@ -9,12 +9,14 @@ import {
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithAccelerator } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
+  acceleratorState: AcceleratorState;
 };
 
 const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps> = ({
@@ -22,6 +24,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   setData,
   templates,
   isEditing,
+  acceleratorState,
 }) => {
   const options = templates.map((template) => ({
     key: getServingRuntimeNameFromTemplate(template),
@@ -32,7 +35,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         <SplitItem isFilled />
         <SplitItem>
           {isCompatibleWithAccelerator(
-            data.accelerator.accelerator?.spec.identifier,
+            acceleratorState.accelerator?.spec.identifier,
             template.objects[0],
           ) && <Label color="blue">Compatible with accelerator</Label>}
         </SplitItem>

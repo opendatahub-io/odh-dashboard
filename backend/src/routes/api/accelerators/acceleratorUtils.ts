@@ -62,6 +62,8 @@ export const getAcceleratorNumbers = async (
       ),
     )
     .catch((e) => {
-      fastify.log.error(`Exception when listing cluster nodes: ${e}`);
+      fastify.log.error(
+        `Exception when listing cluster nodes: ${e.response?.body?.message || e.message || e}`,
+      );
       return { configured: false, available: {}, total: {}, allocated: {} };
     });

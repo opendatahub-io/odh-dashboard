@@ -892,11 +892,11 @@ export type ContainerResources = {
   requests?: {
     cpu?: string;
     memory?: string;
-  };
+  } & Record<string, unknown>;
   limits?: {
     cpu?: string;
     memory?: string;
-  };
+  } & Record<string, unknown>;
 };
 
 export type ServingRuntime = K8sResourceCommon & {
