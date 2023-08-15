@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Form, Modal, Stack, StackItem } from '@patternfly/react-core';
 import {
   assemblePvc,
   attachNotebookPVC,
@@ -20,9 +20,8 @@ import useRelatedNotebooks, {
 import { getPvcDescription, getPvcDisplayName, getPvcTotalSize } from '~/pages/projects/utils';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
-
-import './ManageStorageModal.scss';
 
 type AddStorageModalProps = {
   existingData?: PersistentVolumeClaimKind;
@@ -52,6 +51,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     onClose(submitted);
     setActionInProgress(false);
     setRemovedNotebooks([]);
+    setError(undefined);
     resetData();
   };
 
@@ -61,7 +61,12 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const canCreate =
     !actionInProgress && createData.nameDesc.name.trim() && hasValidNotebookRelationship;
 
-  const submit = async () => {
+  const handleError = (e: Error) => {
+    setError(e);
+    setActionInProgress(false);
+  };
+
+  const submit = () => {
     setError(undefined);
     setActionInProgress(true);
 
@@ -73,60 +78,49 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
 
     const pvc = assemblePvc(name, namespace, description, size);
 
-    const handleError = (e: Error) => {
-      setError(e);
-      setActionInProgress(false);
-    };
-    const handleNotebookNameConnection = (pvcName: string) => {
-      if (notebookName) {
-        attachNotebookPVC(notebookName, namespace, pvcName, mountPath.value)
-          .then(() => {
-            setActionInProgress(false);
-            onBeforeClose(true);
-          })
-          .catch((e) => {
-            setError(e);
-            setActionInProgress(false);
-          });
-      } else {
-        setActionInProgress(false);
-        onBeforeClose(true);
-      }
-    };
-
     if (existingData) {
       const pvcName = existingData.metadata.name;
+      const pvcPromises: Promise<PersistentVolumeClaimKind | NotebookKind>[] = [];
       if (getPvcDisplayName(existingData) !== createData.nameDesc.name) {
-        await updatePvcDisplayName(pvcName, namespace, createData.nameDesc.name);
+        pvcPromises.push(updatePvcDisplayName(pvcName, namespace, createData.nameDesc.name));
       }
       if (getPvcDescription(existingData) !== createData.nameDesc.description) {
-        await updatePvcDescription(pvcName, namespace, createData.nameDesc.description);
+        pvcPromises.push(updatePvcDescription(pvcName, namespace, createData.nameDesc.description));
+      }
+      if (parseInt(getPvcTotalSize(existingData)) !== createData.size) {
+        pvcPromises.push(updatePvcSize(pvcName, namespace, `${createData.size}Gi`));
       }
       if (removedNotebooks.length > 0) {
         // Remove connected pvcs
-        Promise.all(
-          removedNotebooks.map((notebookName) =>
+        pvcPromises.push(
+          ...removedNotebooks.map((notebookName) =>
             removeNotebookPVC(notebookName, namespace, pvcName),
           ),
-        )
-          .then(() => handleNotebookNameConnection(pvcName))
-          .catch(handleError);
-        return;
+        );
       }
-      handleNotebookNameConnection(pvcName);
-      if (parseInt(getPvcTotalSize(existingData)) !== createData.size) {
-        await updatePvcSize(pvcName, namespace, `${createData.size}Gi`);
-      }
+      Promise.all(pvcPromises)
+        .then(() => {
+          if (notebookName) {
+            pvcPromises.push(attachNotebookPVC(notebookName, namespace, pvcName, mountPath.value));
+          }
+        })
+        .then(() => onBeforeClose(true))
+        .catch(handleError);
     } else {
       createPvc(pvc)
-        .then((createdPvc) => handleNotebookNameConnection(createdPvc.metadata.name))
+        .then((createdPvc) => {
+          if (notebookName) {
+            attachNotebookPVC(notebookName, namespace, createdPvc.metadata.name, mountPath.value);
+          }
+        })
+        .then(() => onBeforeClose(true))
         .catch(handleError);
     }
   };
 
   return (
     <Modal
-      title={existingData ? 'Update cluster storage' : 'Add storage'}
+      title={existingData ? 'Update cluster storage' : 'Add cluster storage'}
       description={
         existingData
           ? 'Make changes to cluster storage, or connect it to additional workspaces.'
@@ -136,14 +130,16 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       showClose
-      actions={[
-        <Button key="submit-storage" variant="primary" isDisabled={!canCreate} onClick={submit}>
-          {existingData ? 'Update' : 'Add storage'}
-        </Button>,
-        <Button key="cancel-storage" variant="secondary" onClick={() => onBeforeClose(false)}>
-          Cancel
-        </Button>,
-      ]}
+      footer={
+        <DashboardModalFooter
+          submitLabel={existingData ? 'Update' : 'Add storage'}
+          onSubmit={submit}
+          onCancel={() => onBeforeClose(false)}
+          isSubmitDisabled={!canCreate}
+          error={error}
+          alertTitle="Error creating storage"
+        />
+      }
     >
       <Stack hasGutter>
         <StackItem>
@@ -181,13 +177,6 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
         {restartNotebooks.length !== 0 && (
           <StackItem>
             <NotebookRestartAlert notebooks={restartNotebooks} />
-          </StackItem>
-        )}
-        {error && (
-          <StackItem>
-            <Alert isInline variant="danger" title="Error creating storage">
-              {error.message}
-            </Alert>
           </StackItem>
         )}
       </Stack>
