@@ -17,18 +17,20 @@ type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
   onDeleteServingRuntime: (obj: ServingRuntimeKind) => void;
   onEditServingRuntime: (obj: ServingRuntimeKind) => void;
-  onDeployModal: (obj: ServingRuntimeKind) => void;
+  onDeployModel: (obj: ServingRuntimeKind) => void;
+  expandedColumn?: ServingRuntimeTableTabs;
+  setExpandedColumn: (column?: ServingRuntimeTableTabs) => void;
 };
 
 const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   obj,
   onDeleteServingRuntime,
   onEditServingRuntime,
-  onDeployModal,
+  onDeployModel,
+  expandedColumn,
+  setExpandedColumn,
 }) => {
   const navigate = useNavigate();
-
-  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs | undefined>();
 
   const {
     currentProject,
@@ -126,7 +128,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td style={{ textAlign: 'end' }}>
           <Button
-            onClick={() => onDeployModal(obj)}
+            onClick={() => onDeployModel(obj)}
             key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
             variant="secondary"
           >
@@ -165,7 +167,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           activeColumn={expandedColumn}
           obj={obj}
           onClose={() => setExpandedColumn(undefined)}
-          onDeployModel={() => onDeployModal(obj)}
+          onDeployModel={() => onDeployModel(obj)}
         />
       </Tr>
     </Tbody>

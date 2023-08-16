@@ -59,7 +59,9 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
           ) : (
             <EmptyInferenceServicesCell onDeployModel={onDeployModel} />
           )}
-          <ScrollViewOnMount />
+          <ScrollViewOnMount
+            shouldScroll={activeColumn === ServingRuntimeTableTabs.DEPLOYED_MODELS}
+          />
         </ExpandableRowContent>
       </Td>
     );
