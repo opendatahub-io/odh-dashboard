@@ -11,9 +11,9 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
   folderPath,
   setFolderPath,
 }) => {
-  type validate = React.ComponentProps<typeof FormGroup>['validated'];
+  type Validate = React.ComponentProps<typeof FormGroup>['validated'];
 
-  const [validated, setValidated] = React.useState<validate>('default');
+  const [validated, setValidated] = React.useState<Validate>('default');
 
   const handlePathChange = (folderPath: string) => {
     setFolderPath(folderPath);
@@ -45,7 +45,7 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
           aria-label="folder-path"
           type="text"
           value={folderPath}
-          placeholder="eg. data"
+          placeholder="Example, data_folder"
           onChange={handlePathChange}
         />
       </InputGroup>
