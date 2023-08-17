@@ -19,9 +19,9 @@ export const METRIC_TYPE_DESCRIPTION: { [key in BiasMetricType]: string } = {
     'Calculates the difference between the proportion of the privileged and unprivileged groups getting a particular outcome.',
 };
 
-export const EMPTY_BIAS_CHART_SELECTION_TITLE = 'No Bias metrics selected';
+export const EMPTY_BIAS_CHART_SELECTION_TITLE = 'No bias metrics selected';
 export const EMPTY_BIAS_CHART_SELECTION_DESC =
-  'No bias metrics have been selected. To display charts you must first select them using the metric selector.';
+  'To display bias metric charts, select one or more bias metrics.';
 
 export const BIAS_THRESHOLD_COLOR = 'red';
 export const BIAS_DOMAIN_PADDING = 0.1;
