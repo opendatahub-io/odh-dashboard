@@ -219,7 +219,9 @@ module.exports = (env) => {
           },
         ],
       }),
-      new MonacoWebpackPlugin(),
+      new MonacoWebpackPlugin({
+        languages: ['yaml'],
+      }),
     ],
     resolve: {
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
