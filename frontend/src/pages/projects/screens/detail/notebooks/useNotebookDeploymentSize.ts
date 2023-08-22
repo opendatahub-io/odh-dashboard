@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AppContext } from '~/app/AppContext';
-import { NotebookContainer, NotebookSize } from '~/types';
+import { PodContainer, NotebookSize } from '~/types';
 import { getNotebookSizes } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import { NotebookKind } from '~/k8sTypes';
 import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
@@ -10,7 +10,7 @@ const useNotebookDeploymentSize = (
 ): { size: NotebookSize | null; error: string } => {
   const { dashboardConfig } = React.useContext(AppContext);
 
-  const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
+  const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
   );
 
