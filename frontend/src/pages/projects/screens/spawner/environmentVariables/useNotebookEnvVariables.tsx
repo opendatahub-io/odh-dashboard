@@ -24,7 +24,7 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
       .filter((v): v is Promise<SecretKind | ConfigMapKind> => !!v),
   ).then((results) =>
     results.reduce<EnvVariable[]>((acc, resource) => {
-      const data = resource.data || [];
+      const data = resource.data;
       let envVar: EnvVariable;
       if (resource.kind === EnvVarResourceType.ConfigMap) {
         envVar = {
@@ -32,7 +32,7 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           existingName: resource.metadata.name,
           values: {
             category: ConfigMapCategory.GENERIC,
-            data: Object.keys(data).map((key) => ({ key, value: data[key] })),
+            data: data ? Object.keys(data).map((key) => ({ key, value: data[key] })) : [],
           },
         };
       } else if (
@@ -44,7 +44,7 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           existingName: resource.metadata.name,
           values: {
             category: SecretCategory.GENERIC,
-            data: Object.keys(data).map((key) => ({ key, value: atob(data[key]) })),
+            data: data ? Object.keys(data).map((key) => ({ key, value: atob(data[key]) })) : [],
           },
         };
       } else {

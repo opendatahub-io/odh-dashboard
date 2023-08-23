@@ -74,10 +74,10 @@ Once we reach a date in which we want to do a release (see other sections for mo
    - Focusing on the `odh-dashboard` folder, we'll need to copy some files over to track the latest changes of this release
    - Test the latest version of the quay image ([our quay repo](https://quay.io/repository/opendatahub/odh-dashboard?tab=tags)) on a cluster to make sure the pods can come up and the Dashboard is accessible
    - Create a PR to include the following:
+      - Switch to the `incubation` branch in `odh-dashboard`
       - First delete everything in the folder -- git will do the diff of what changed for us
       - Copy all the child folders in the [manifest folder](../manifests)
          - Exclude the `overlays` folder as this is for internal testing purposes
       - Copy the OWNERS file into the root of the odh-dashboard manifest folder
       - Update the `./base/kustomization.yaml` so that the `odh-dashboard` images section has the `newTag` equal to the current release version (aka the tag we created earlier)
-      - In the `./base/deployment.yaml` we'll want to set the ODH replicas to `2`
       - Update the top row of the component versions table on the root readme to have the latest release version (aka the tag we created earlier)

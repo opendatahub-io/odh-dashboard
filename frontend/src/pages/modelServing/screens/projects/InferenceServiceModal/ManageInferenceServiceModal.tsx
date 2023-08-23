@@ -1,14 +1,12 @@
 import * as React from 'react';
 import {
-  Alert,
-  Button,
   Form,
   FormGroup,
   FormSection,
   Modal,
+  TextInput,
   Stack,
   StackItem,
-  TextInput,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { useCreateInferenceServiceObject } from '~/pages/modelServing/screens/projects/utils';
@@ -20,6 +18,7 @@ import {
 } from '~/api';
 import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { DataConnection } from '~/pages/projects/types';
+import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import DataConnectionSection from './DataConnectionSection';
@@ -68,10 +67,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
   const canCreate =
     !actionInProgress &&
-    createData.name !== '' &&
+    createData.name.trim() !== '' &&
     createData.project !== '' &&
     createData.format.name !== '' &&
     createData.project !== '' &&
+    createData.storage.path !== '' &&
+    createData.storage.path !== '/' &&
+    !createData.storage.path.includes('//') &&
     storageCanCreate();
 
   const onBeforeClose = (submitted: boolean) => {
@@ -165,22 +167,19 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       variant="medium"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
+      footer={
+        <DashboardModalFooter
+          submitLabel="Deploy"
+          onSubmit={submit}
+          onCancel={() => onBeforeClose(false)}
+          isSubmitDisabled={!canCreate}
+          error={error}
+          alertTitle="Error creating model server"
+        />
+      }
       showClose
-      actions={[
-        <Button key="submit-model" variant="primary" isDisabled={!canCreate} onClick={submit}>
-          Deploy
-        </Button>,
-        <Button key="cancel-model" variant="secondary" onClick={() => onBeforeClose(false)}>
-          Cancel
-        </Button>,
-      ]}
     >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
+      <Form>
         <Stack hasGutter>
           <StackItem>
             <ProjectSection
@@ -225,11 +224,6 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
           </StackItem>
         </Stack>
       </Form>
-      {error && (
-        <Alert isInline variant="danger" title="Error creating model server">
-          {error.message}
-        </Alert>
-      )}
     </Modal>
   );
 };

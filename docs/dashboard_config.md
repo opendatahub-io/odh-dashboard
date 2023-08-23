@@ -194,5 +194,7 @@ spec:
     allowedGroups: 'system:authenticated'
   templateOrder:
     - 'ovms'
+  templateDisablement:
+    - 'ovms'
 
 ```

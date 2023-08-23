@@ -15,7 +15,7 @@ const useRouteForNotebook = (
   const { dashboardConfig } = useAppContext();
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
     const watchRoute = () => {
       if (cancelled) {

@@ -18,26 +18,27 @@ export const AWS_FIELDS: FieldOptions[] = [
   },
   {
     key: AWS_KEYS.ACCESS_KEY_ID,
-    label: AWS_KEYS.ACCESS_KEY_ID,
+    label: 'Access key',
     isRequired: true,
   },
   {
     key: AWS_KEYS.SECRET_ACCESS_KEY,
-    label: AWS_KEYS.SECRET_ACCESS_KEY,
+    label: 'Secret key',
     isPassword: true,
     isRequired: true,
   },
   {
     key: AWS_KEYS.S3_ENDPOINT,
-    label: AWS_KEYS.S3_ENDPOINT,
+    label: 'Endpoint',
+    isRequired: true,
   },
   {
     key: AWS_KEYS.DEFAULT_REGION,
-    label: AWS_KEYS.DEFAULT_REGION,
+    label: 'Region',
   },
   {
     key: AWS_KEYS.AWS_S3_BUCKET,
-    label: AWS_KEYS.AWS_S3_BUCKET,
+    label: 'Bucket',
   },
 ];
 
@@ -60,10 +61,10 @@ export const EMPTY_AWS_SECRET_DATA: AWSDataEntry = [
   },
   {
     key: AWS_KEYS.S3_ENDPOINT,
-    value: 'https://s3.amazonaws.com/',
+    value: '',
   },
   {
     key: AWS_KEYS.DEFAULT_REGION,
-    value: 'us-east-1',
+    value: '',
   },
 ];

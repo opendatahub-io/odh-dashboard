@@ -63,6 +63,7 @@ export const blankDashboardCR: DashboardConfig = {
       allowedGroups: 'system:authenticated',
     },
     templateOrder: [],
+    // templateDisablement: [], Don't create this field, will be used in migration
   },
   status: {
     dependencyOperators: {
@@ -75,7 +76,7 @@ export const blankDashboardCR: DashboardConfig = {
 };
 
 export const MOUNT_PATH = '/opt/app-root/src';
-export const DEFAULT_PVC_SIZE = '20';
+export const DEFAULT_PVC_SIZE = '20Gi';
 
 export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
   {

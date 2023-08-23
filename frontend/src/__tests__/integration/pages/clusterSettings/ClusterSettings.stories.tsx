@@ -1,5 +1,5 @@
 import React from 'react';
-import { Meta, StoryFn } from '@storybook/react';
+import { Meta, StoryFn, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { within } from '@storybook/testing-library';
 import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
@@ -20,7 +20,7 @@ export default {
 
 const Template: StoryFn<typeof ClusterSettings> = (args) => <ClusterSettings {...args} />;
 
-export const Default = {
+export const Default: StoryObj = {
   render: Template,
 
   play: async ({ canvasElement }) => {

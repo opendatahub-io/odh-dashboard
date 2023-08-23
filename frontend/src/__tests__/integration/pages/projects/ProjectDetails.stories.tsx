@@ -1,5 +1,5 @@
 import React from 'react';
-import { StoryFn, Meta } from '@storybook/react';
+import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
 import { within } from '@storybook/testing-library';
 import { Route } from 'react-router-dom';
@@ -151,7 +151,7 @@ const Template: StoryFn<typeof ProjectDetails> = (args) => {
   );
 };
 
-export const Default = {
+export const Default: StoryObj = {
   render: Template,
   play: async ({ canvasElement }) => {
     // load page and wait until settled
@@ -160,7 +160,7 @@ export const Default = {
   },
 };
 
-export const EmptyDetailsPage = {
+export const EmptyDetailsPage: StoryObj = {
   render: Template,
 
   parameters: {

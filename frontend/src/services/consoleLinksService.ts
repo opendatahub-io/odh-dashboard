@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ConsoleLinkKind } from '~/types';
+import { ConsoleLinkKind } from '~/k8sTypes';
 
 export const fetchConsoleLinks = (): Promise<ConsoleLinkKind[]> => {
   const url = '/api/console-links';

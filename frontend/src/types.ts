@@ -64,6 +64,7 @@ export type DashboardConfig = K8sResourceCommon & {
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
+    templateDisablement?: string[];
   };
   /** Faux status object -- computed by the service account */
   status: {
@@ -284,6 +285,7 @@ type K8sMetadata = {
   uid?: string;
   labels?: { [key: string]: string };
   annotations?: { [key: string]: string };
+  creationTimestamp?: string;
 };
 
 /**
@@ -296,19 +298,6 @@ export type K8sResourceCommon = {
   kind?: string;
   metadata: K8sMetadata;
 };
-
-// Minimal type for ConsoleLinks
-export type ConsoleLinkKind = {
-  spec: {
-    text: string;
-    location: string;
-    href: string;
-    applicationMenu: {
-      section: string;
-      imageURL: string;
-    };
-  };
-} & K8sResourceCommon;
 
 //
 // Used for Telemetry
@@ -323,6 +312,17 @@ declare global {
 
 export type ODHSegmentKey = {
   segmentKey: string;
+};
+
+export type ApplicationAction = {
+  label: string;
+  href: string;
+  image: React.ReactNode;
+};
+
+export type Section = {
+  label?: string;
+  actions: ApplicationAction[];
 };
 
 export type TrackingEventProperties = {

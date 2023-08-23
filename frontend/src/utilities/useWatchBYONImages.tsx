@@ -26,7 +26,7 @@ export const useWatchBYONImages = (): {
   };
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     const watchImages = () => {
       fetchBYONImages()
         .then((data: BYONImage[]) => {
@@ -46,8 +46,6 @@ export const useWatchBYONImages = (): {
         clearTimeout(watchHandle);
       }
     };
-    // Don't update when components are updated
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { images: images || [], loaded, loadError, forceUpdate };

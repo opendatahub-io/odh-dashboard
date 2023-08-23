@@ -55,7 +55,7 @@ export const useEnableApplication = (
 
   React.useEffect(() => {
     let cancelled = false;
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const watchStatus = () => {
         getValidationStatus(appId)
@@ -90,7 +90,7 @@ export const useEnableApplication = (
   }, [appId, dispatchResults, enableStatus.status]);
 
   React.useEffect(() => {
-    let closed;
+    let closed = false;
     if (doEnable) {
       postValidateIsv(appId, enableValues)
         .then((response) => {

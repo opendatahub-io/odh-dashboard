@@ -351,7 +351,7 @@ export const checkRequiredFieldsForNotebookStart = (
   const { storageType, creating, existing } = storageData;
   const isNotebookDataValid = !!(
     projectName &&
-    notebookName &&
+    notebookName.trim() &&
     notebookSize &&
     image.imageStream &&
     image.imageVersion

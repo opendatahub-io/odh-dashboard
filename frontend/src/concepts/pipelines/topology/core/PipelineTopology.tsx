@@ -23,7 +23,7 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
 
   React.useEffect(() => {
     if (controller && onSelectionChange) {
-      const onSelect = (ids) => {
+      const onSelect = (ids: string[]) => {
         onSelectionChange(ids);
       };
       controller.addEventListener(SELECTION_EVENT, onSelect);

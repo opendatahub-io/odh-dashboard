@@ -14,7 +14,7 @@ export const useWatchImages = (): {
   const [images, setImages] = React.useState<ImageInfo[]>([]);
 
   React.useEffect(() => {
-    let watchHandle;
+    let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
     const watchImages = () => {
       fetchImages()
@@ -42,8 +42,6 @@ export const useWatchImages = (): {
         clearTimeout(watchHandle);
       }
     };
-    // Don't update when components are updated
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const retImages = useDeepCompareMemoize<ImageInfo[]>(images);
