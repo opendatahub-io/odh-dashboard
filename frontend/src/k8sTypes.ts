@@ -2,7 +2,7 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import {
   PodAffinity,
-  NotebookContainer,
+  PodContainer,
   PodToleration,
   Volume,
   ContainerResources,
@@ -250,6 +250,14 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
   } & Record<string, unknown>;
 };
 
+export type PodSpec = {
+  affinity?: PodAffinity;
+  enableServiceLinks?: boolean;
+  containers: PodContainer[];
+  volumes?: Volume[];
+  tolerations?: PodToleration[];
+};
+
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
     annotations: DisplayNameAnnotations & NotebookAnnotations;
@@ -261,13 +269,7 @@ export type NotebookKind = K8sResourceCommon & {
   };
   spec: {
     template: {
-      spec: {
-        affinity?: PodAffinity;
-        enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
-        volumes?: Volume[];
-        tolerations?: PodToleration[];
-      };
+      spec: PodSpec;
     };
   };
   status?: {
@@ -278,6 +280,7 @@ export type NotebookKind = K8sResourceCommon & {
 };
 
 export type PodKind = K8sResourceCommon & {
+  spec: PodSpec;
   status: {
     containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
   };

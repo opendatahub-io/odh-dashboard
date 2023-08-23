@@ -348,7 +348,7 @@ export type PodToleration = {
   operator: string;
 };
 
-export type NotebookContainer = {
+export type PodContainer = {
   name: string;
   image: string;
   imagePullPolicy?: string;
@@ -385,7 +385,7 @@ export type Notebook = K8sResourceCommon & {
       spec: {
         affinity?: PodAffinity;
         enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
+        containers: PodContainer[];
         volumes?: Volume[];
         tolerations?: PodToleration[];
       };

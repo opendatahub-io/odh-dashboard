@@ -1,8 +1,8 @@
 import { NotebookKind } from '~/k8sTypes';
-import { ContainerResourceAttributes, GPUCount, NotebookContainer } from '~/types';
+import { ContainerResourceAttributes, GPUCount, PodContainer } from '~/types';
 
 const useNotebookGPUNumber = (notebook?: NotebookKind): GPUCount => {
-  const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
+  const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
   );
 
