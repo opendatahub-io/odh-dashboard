@@ -18,6 +18,13 @@ export const PodModel: K8sModelCommon = {
   plural: 'pods',
 };
 
+export const StatefulSetModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'apps',
+  kind: 'StatefulSet',
+  plural: 'statefulsets',
+};
+
 export const PVCModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'PersistentVolumeClaim',
