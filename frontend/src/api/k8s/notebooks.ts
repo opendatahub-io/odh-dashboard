@@ -118,6 +118,7 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': String(!enableServiceMesh),
         'opendatahub.io/service-mesh': String(enableServiceMesh),
+        'sidecar.istio.io/inject': String(enableServiceMesh),
         'opendatahub.io/username': username,
       },
       name: notebookId,
@@ -211,6 +212,12 @@ const getInjectOAuthPatch = (enableServiceMesh: boolean): Patch => ({
   value: String(!enableServiceMesh),
 });
 
+const getProxyInjectPatch = (enableServiceMesh: boolean): Patch => ({
+  op: 'add',
+  path: '/metadata/annotations/sidecar.istio.io~1inject',
+  value: String(enableServiceMesh),
+});
+
 const getServiceMeshPatch = (enableServiceMesh: boolean): Patch => ({
   op: 'add',
   path: '/metadata/annotations/opendatahub.io~1service-mesh',
@@ -251,6 +258,7 @@ export const startNotebook = async (
     startPatch,
     getInjectOAuthPatch(enableServiceMesh),
     getServiceMeshPatch(enableServiceMesh),
+    getProxyInjectPatch(enableServiceMesh),
   ];
 
   const tolerationPatch = getTolerationPatch(tolerationChanges);

@@ -488,6 +488,7 @@ export const createNotebook = async (
     !enableServiceMesh,
   );
   notebookAssembled.metadata.annotations['opendatahub.io/service-mesh'] = String(enableServiceMesh);
+  notebookAssembled.metadata.annotations['sidecar.istio.io/inject'] = String(enableServiceMesh);
 
   const notebookContainers = notebookAssembled.spec.template.spec.containers;
 
