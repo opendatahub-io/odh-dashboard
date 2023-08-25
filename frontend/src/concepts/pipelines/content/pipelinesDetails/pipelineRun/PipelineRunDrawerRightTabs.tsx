@@ -4,6 +4,7 @@ import SelectedNodeDetailsTab from '~/concepts/pipelines/content/pipelinesDetail
 import { PipelineRunTaskDetails, TaskReferenceMap } from '~/concepts/pipelines/content/types';
 import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
 import SelectedNodeVolumeMountsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeVolumeMountsTab';
+import { PipelineRunTaskParam } from '~/k8sTypes';
 
 enum PipelineRunNodeTabs {
   INPUT_OUTPUT = 'Input / Output',
@@ -19,11 +20,13 @@ enum PipelineRunNodeTabs {
 type PipelineRunDrawerRightTabsProps = {
   task: PipelineRunTaskDetails;
   taskReferences: TaskReferenceMap;
+  parameters?: PipelineRunTaskParam[];
 };
 
 const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
   task,
   taskReferences,
+  parameters,
 }) => {
   const [selection, setSelection] = React.useState(PipelineRunNodeTabs.INPUT_OUTPUT);
 
@@ -50,7 +53,11 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
       {selection && (
         <DrawerPanelBody>
           <TabContent {...tabContentProps(PipelineRunNodeTabs.INPUT_OUTPUT)}>
-            <SelectedNodeInputOutputTab taskReferences={taskReferences} task={task} />
+            <SelectedNodeInputOutputTab
+              taskReferences={taskReferences}
+              task={task}
+              parameters={parameters}
+            />
           </TabContent>
           {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.VISUALIZATIONS)}>TBD 2</TabContent>*/}
           <TabContent {...tabContentProps(PipelineRunNodeTabs.DETAILS)}>
