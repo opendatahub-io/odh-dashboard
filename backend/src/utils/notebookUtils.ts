@@ -299,6 +299,7 @@ export const assembleNotebook = async (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
         'opendatahub.io/dashboard': 'true',
+        'sidecar.istio.io/inject': String(serviceMeshEnabled),
       },
       annotations: {
         'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebookController/${translatedUsername}/home`,
@@ -488,7 +489,7 @@ export const createNotebook = async (
     !enableServiceMesh,
   );
   notebookAssembled.metadata.annotations['opendatahub.io/service-mesh'] = String(enableServiceMesh);
-  notebookAssembled.metadata.annotations['sidecar.istio.io/inject'] = String(enableServiceMesh);
+  notebookAssembled.metadata.labels['sidecar.istio.io/inject'] = String(enableServiceMesh);
 
   const notebookContainers = notebookAssembled.spec.template.spec.containers;
 

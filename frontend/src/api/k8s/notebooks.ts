@@ -109,6 +109,7 @@ const assembleNotebook = (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        'sidecar.istio.io/inject': String(enableServiceMesh),
       },
       annotations: {
         'openshift.io/display-name': notebookName.trim(),
@@ -118,7 +119,6 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': String(!enableServiceMesh),
         'opendatahub.io/service-mesh': String(enableServiceMesh),
-        'sidecar.istio.io/inject': String(enableServiceMesh),
         'opendatahub.io/username': username,
       },
       name: notebookId,
@@ -214,7 +214,7 @@ const getInjectOAuthPatch = (enableServiceMesh: boolean): Patch => ({
 
 const getProxyInjectPatch = (enableServiceMesh: boolean): Patch => ({
   op: 'add',
-  path: '/metadata/annotations/sidecar.istio.io~1inject',
+  path: '/metadata/labels/sidecar.istio.io~1inject',
   value: String(enableServiceMesh),
 });
 
