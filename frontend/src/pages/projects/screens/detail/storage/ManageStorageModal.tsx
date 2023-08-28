@@ -1,14 +1,6 @@
 import * as React from 'react';
-import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
-import {
-  assemblePvc,
-  attachNotebookPVC,
-  createPvc,
-  removeNotebookPVC,
-  updatePvcDescription,
-  updatePvcDisplayName,
-  updatePvcSize,
-} from '~/api';
+import { Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { attachNotebookPVC, createPvc, removeNotebookPVC, updatePvc } from '~/api';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useCreateStorageObjectForNotebook } from '~/pages/projects/screens/spawner/storage/utils';
@@ -17,12 +9,11 @@ import StorageNotebookConnections from '~/pages/projects/notebook/StorageNoteboo
 import useRelatedNotebooks, {
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
-import { getPvcDescription, getPvcDisplayName, getPvcTotalSize } from '~/pages/projects/utils';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { getPvcDescription, getPvcDisplayName } from '~/pages/projects/utils';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
-
-import './ManageStorageModal.scss';
 
 type AddStorageModalProps = {
   existingData?: PersistentVolumeClaimKind;
@@ -52,6 +43,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
     onClose(submitted);
     setActionInProgress(false);
     setRemovedNotebooks([]);
+    setError(undefined);
     resetData();
   };
 
@@ -61,72 +53,60 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
   const canCreate =
     !actionInProgress && createData.nameDesc.name.trim() && hasValidNotebookRelationship;
 
-  const submit = async () => {
-    setError(undefined);
-    setActionInProgress(true);
-
+  const runPromiseActions = async (dryRun: boolean) => {
     const {
-      nameDesc: { name, description },
-      size,
       forNotebook: { name: notebookName, mountPath },
     } = createData;
-
-    const pvc = assemblePvc(name, namespace, description, size);
-
-    const handleError = (e: Error) => {
-      setError(e);
-      setActionInProgress(false);
-    };
-    const handleNotebookNameConnection = (pvcName: string) => {
-      if (notebookName) {
-        attachNotebookPVC(notebookName, namespace, pvcName, mountPath.value)
-          .then(() => {
-            setActionInProgress(false);
-            onBeforeClose(true);
-          })
-          .catch((e) => {
-            setError(e);
-            setActionInProgress(false);
-          });
-      } else {
-        setActionInProgress(false);
-        onBeforeClose(true);
-      }
-    };
-
+    const pvcPromises: Promise<PersistentVolumeClaimKind | NotebookKind>[] = [];
     if (existingData) {
       const pvcName = existingData.metadata.name;
-      if (getPvcDisplayName(existingData) !== createData.nameDesc.name) {
-        await updatePvcDisplayName(pvcName, namespace, createData.nameDesc.name);
-      }
-      if (getPvcDescription(existingData) !== createData.nameDesc.description) {
-        await updatePvcDescription(pvcName, namespace, createData.nameDesc.description);
+      if (
+        getPvcDisplayName(existingData) !== createData.nameDesc.name ||
+        getPvcDescription(existingData) !== createData.nameDesc.description ||
+        existingData.spec.resources.requests.storage !== createData.size
+      ) {
+        pvcPromises.push(updatePvc(createData, existingData, namespace, { dryRun }));
       }
       if (removedNotebooks.length > 0) {
         // Remove connected pvcs
-        Promise.all(
-          removedNotebooks.map((notebookName) =>
-            removeNotebookPVC(notebookName, namespace, pvcName),
+        pvcPromises.push(
+          ...removedNotebooks.map((notebookName) =>
+            removeNotebookPVC(notebookName, namespace, pvcName, { dryRun }),
           ),
-        )
-          .then(() => handleNotebookNameConnection(pvcName))
-          .catch(handleError);
-        return;
+        );
       }
-      handleNotebookNameConnection(pvcName);
-      if (parseInt(getPvcTotalSize(existingData)) !== createData.size) {
-        await updatePvcSize(pvcName, namespace, `${createData.size}Gi`);
+
+      await Promise.all(pvcPromises);
+      if (notebookName) {
+        await attachNotebookPVC(notebookName, namespace, pvcName, mountPath.value, {
+          dryRun,
+        });
       }
-    } else {
-      createPvc(pvc)
-        .then((createdPvc) => handleNotebookNameConnection(createdPvc.metadata.name))
-        .catch(handleError);
+      return;
     }
+    const createdPvc = await createPvc(createData, namespace, undefined, { dryRun });
+    if (notebookName) {
+      await attachNotebookPVC(notebookName, namespace, createdPvc.metadata.name, mountPath.value, {
+        dryRun,
+      });
+    }
+  };
+
+  const submit = () => {
+    setError(undefined);
+    setActionInProgress(true);
+
+    runPromiseActions(true)
+      .then(() => runPromiseActions(false).then(() => onBeforeClose(true)))
+      .catch((e) => {
+        setError(e);
+        setActionInProgress(false);
+      });
   };
 
   return (
     <Modal
-      title={existingData ? 'Update cluster storage' : 'Add storage'}
+      title={existingData ? 'Update cluster storage' : 'Add cluster storage'}
       description={
         existingData
           ? 'Make changes to cluster storage, or connect it to additional workspaces.'
@@ -136,30 +116,34 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       showClose
-      actions={[
-        <Button key="submit-storage" variant="primary" isDisabled={!canCreate} onClick={submit}>
-          {existingData ? 'Update' : 'Add storage'}
-        </Button>,
-        <Button key="cancel-storage" variant="secondary" onClick={() => onBeforeClose(false)}>
-          Cancel
-        </Button>,
-      ]}
+      footer={
+        <DashboardModalFooter
+          submitLabel={existingData ? 'Update' : 'Add storage'}
+          onSubmit={submit}
+          onCancel={() => onBeforeClose(false)}
+          isSubmitDisabled={!canCreate}
+          error={error}
+          alertTitle="Error creating storage"
+        />
+      }
     >
-      <Stack hasGutter>
-        <StackItem>
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
+      <Form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <Stack hasGutter>
+          <StackItem>
             <CreateNewStorageSection
               data={createData}
               setData={(key, value) => setCreateData(key, value)}
               currentSize={existingData?.status?.capacity?.storage}
               autoFocusName
             />
-            {createData.hasExistingNotebookConnections && (
+          </StackItem>
+          {createData.hasExistingNotebookConnections && (
+            <StackItem>
               <ExistingConnectedNotebooks
                 connectedNotebooks={connectedNotebooks}
                 onNotebookRemove={(notebook: NotebookKind) =>
@@ -168,7 +152,9 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
                 loaded={notebookLoaded}
                 error={notebookError}
               />
-            )}
+            </StackItem>
+          )}
+          <StackItem>
             <StorageNotebookConnections
               setForNotebookData={(forNotebookData) => {
                 setCreateData('forNotebook', forNotebookData);
@@ -176,21 +162,14 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
               forNotebookData={createData.forNotebook}
               isDisabled={connectedNotebooks.length !== 0 && removedNotebooks.length === 0}
             />
-          </Form>
-        </StackItem>
-        {restartNotebooks.length !== 0 && (
-          <StackItem>
-            <NotebookRestartAlert notebooks={restartNotebooks} />
           </StackItem>
-        )}
-        {error && (
-          <StackItem>
-            <Alert isInline variant="danger" title="Error creating storage">
-              {error.message}
-            </Alert>
-          </StackItem>
-        )}
-      </Stack>
+          {restartNotebooks.length !== 0 && (
+            <StackItem>
+              <NotebookRestartAlert notebooks={restartNotebooks} />
+            </StackItem>
+          )}
+        </Stack>
+      </Form>
     </Modal>
   );
 };
