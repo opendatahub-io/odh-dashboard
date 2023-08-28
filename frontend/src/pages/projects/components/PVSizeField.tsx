@@ -21,7 +21,7 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, curre
       label="Persistent storage size"
       helperText={
         currentSize
-          ? "Increase the capacity of storage data. Note that capacity can't be less than the current storage size. This can be a time-consuming process."
+          ? 'Storage size can only be increased. If you do so, the workbench will restart and be unavailable for a period of time that is usually proportional to the size change.'
           : ''
       }
       helperTextIcon={<ExclamationTriangleIcon />}
