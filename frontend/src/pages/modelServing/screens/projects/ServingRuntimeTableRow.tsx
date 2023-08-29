@@ -148,7 +148,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
               ...(performanceMetricsEnabled
                 ? [
                     {
-                      title: 'View metrics',
+                      title: 'View model server metrics',
                       onClick: () =>
                         navigate(
                           `/projects/${currentProject.metadata.name}/metrics/server/${obj.metadata.name}`,
