@@ -33,7 +33,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
     <DrawerPanelContent
       isResizable
       widths={{ default: 'width_33', lg: 'width_50' }}
-      minSize="300px"
+      minSize="400px"
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
@@ -45,7 +45,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody>
+      <DrawerPanelBody style={{ display: 'flex', flexDirection: 'column' }}>
         <PipelineRunDrawerRightTabs
           taskReferences={taskReferences}
           task={task}
