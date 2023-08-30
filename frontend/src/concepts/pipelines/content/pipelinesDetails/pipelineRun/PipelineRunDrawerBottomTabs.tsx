@@ -4,9 +4,11 @@ import PipelineRunTabDetails from '~/concepts/pipelines/content/pipelinesDetails
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import { PipelineRunKind } from '~/k8sTypes';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import PipelineRunTabParameters from './PipelineRunTabParameters';
 
 export enum RunDetailsTabs {
   DETAILS = 'Details',
+  PARAMETERS = 'Input parameters',
   YAML = 'Run output',
 }
 
@@ -50,6 +52,14 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             workflowName={pipelineRunDetails?.kind.metadata.name}
             pipelineRunKF={pipelineRunDetails?.kf}
           />
+        </TabContent>
+        <TabContent
+          id={RunDetailsTabs.PARAMETERS}
+          eventKey={RunDetailsTabs.PARAMETERS}
+          activeKey={selection ?? ''}
+          hidden={RunDetailsTabs.PARAMETERS !== selection}
+        >
+          <PipelineRunTabParameters pipelineRunKF={pipelineRunDetails?.kf} />
         </TabContent>
         <TabContent
           id={RunDetailsTabs.YAML}
