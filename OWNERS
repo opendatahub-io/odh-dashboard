@@ -1,8 +1,17 @@
 approvers:
 - andrewballantyne
+- lucferbux
+- alexcreasy
+- christianvogt
 
 reviewers:
-- DaoDaoNoCode
-- lucferbux
-- Gkrumbach07
 - alexcreasy
+- christianvogt
+- uidoyen
+- Gkrumbach07
+- lucferbux
+- DaoDaoNoCode
+- manaswinidas
+- pnaik1
+- ppadti
+- dpanshug
