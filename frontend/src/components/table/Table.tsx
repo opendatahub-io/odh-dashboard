@@ -111,7 +111,7 @@ const Table = <T,>({
       )}
       <TableComposable {...props}>
         {caption && <Caption>{caption}</Caption>}
-        <Thead>
+        <Thead noWrap>
           <Tr>
             {columns.map((col, i) => {
               if (col.field === CHECKBOX_FIELD_ID && selectAll) {
