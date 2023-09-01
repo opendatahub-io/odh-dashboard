@@ -65,9 +65,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
   const storageData = useMergeDefaultPVCName(storageDataWithoutDefault, nameDesc.name);
   const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
-  const [dataConnection, setDataConnection] = useNotebookDataConnection(
-    existingNotebook,
+  const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,
+    existingNotebook,
   );
 
   const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
@@ -205,8 +205,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
             >
               <DataConnectionField
-                dataConnection={dataConnection}
-                setDataConnection={(connection) => setDataConnection(connection)}
+                dataConnectionData={dataConnectionData}
+                setDataConnectionData={setDataConnectionData}
               />
             </FormSection>
           </Form>
@@ -235,7 +235,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   }}
                   storageData={storageData}
                   envVariables={envVariables}
-                  dataConnection={dataConnection}
+                  dataConnection={dataConnectionData}
                   canEnablePipelines={canEnablePipelines}
                 />
               )}
