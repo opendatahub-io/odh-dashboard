@@ -17,7 +17,7 @@ const usePod = (namespace: string, podName: string): FetchState<PodState> => {
     return getPod(namespace, podName);
   }, [namespace, podName]);
 
-  return useFetchState(callback, null);
+  return useFetchState(callback, null, { initialPromisePurity: true });
 };
 
 export default usePod;

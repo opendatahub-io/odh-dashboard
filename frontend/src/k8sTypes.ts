@@ -254,6 +254,7 @@ export type PodSpec = {
   affinity?: PodAffinity;
   enableServiceLinks?: boolean;
   containers: PodContainer[];
+  initContainers?: PodContainer[];
   volumes?: Volume[];
   tolerations?: PodToleration[];
 };
