@@ -139,7 +139,7 @@ export const getImageTagVersion = (
   if (image?.tags.length > 1) {
     const defaultTag = getDefaultTag(buildStatuses, image);
     if (image.name === selectedImage && selectedTag) {
-      return `${selectedTag} ${selectedTag === defaultTag?.name ? ' (default)' : ''}`;
+      return selectedTag;
     }
     return defaultTag?.name ?? image.tags[0].name;
   }

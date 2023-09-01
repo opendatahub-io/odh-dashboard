@@ -330,10 +330,15 @@ export const useNotebookStatus = (
       evt.involvedObject.uid === currentUserNotebookPodUID,
   );
 
-  const lastActivity = useLastActivity(
-    open,
-    notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
-  );
+  const lastActivity =
+    useLastActivity(
+      open,
+      notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
+    ) ||
+    (notebook && (spawnInProgress || isNotebookRunning)
+      ? new Date(notebook.metadata.creationTimestamp ?? 0)
+      : null);
+
   if (!lastActivity) {
     // Notebook not started, we don't have a filter time, ignore
     return [null, []];

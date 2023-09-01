@@ -3,6 +3,7 @@ import Table from '~/components/table/Table';
 import useTableColumnSort from '~/components/table/useTableColumnSort';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { columns } from './data';
 import ServingRuntimeTableRow from './ServingRuntimeTableRow';
 import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
@@ -25,6 +26,7 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
   const [deployServingRuntime, setDeployServingRuntime] = React.useState<ServingRuntimeKind>();
   const [deleteServingRuntime, setDeleteServingRuntime] = React.useState<ServingRuntimeKind>();
   const [editServingRuntime, setEditServingRuntime] = React.useState<ServingRuntimeKind>();
+  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
 
   const {
     dataConnections: { data: dataConnections },
@@ -48,7 +50,9 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             obj={modelServer}
             onDeleteServingRuntime={(obj) => setDeleteServingRuntime(obj)}
             onEditServingRuntime={(obj) => setEditServingRuntime(obj)}
-            onDeployModal={(obj) => setDeployServingRuntime(obj)}
+            onDeployModel={(obj) => setDeployServingRuntime(obj)}
+            expandedColumn={expandedColumn}
+            setExpandedColumn={setExpandedColumn}
           />
         )}
       />
@@ -86,6 +90,7 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             setDeployServingRuntime(undefined);
             if (submit) {
               refreshInferenceServices();
+              setExpandedColumn(ServingRuntimeTableTabs.DEPLOYED_MODELS);
             }
           }}
           projectContext={{

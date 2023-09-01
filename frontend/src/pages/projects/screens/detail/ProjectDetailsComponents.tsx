@@ -12,7 +12,6 @@ import { ProjectSectionID } from './types';
 import StorageList from './storage/StorageList';
 import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
-import useCheckLogoutParams from './useCheckLogoutParams';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -36,7 +35,6 @@ const ProjectDetailsComponents: React.FC = () => {
   const pipelinesEnabled =
     featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) &&
     dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
-  useCheckLogoutParams();
 
   const sections: SectionType[] = [
     {
