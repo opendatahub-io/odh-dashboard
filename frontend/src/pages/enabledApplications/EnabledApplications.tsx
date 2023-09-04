@@ -5,7 +5,6 @@ import { useWatchComponents } from '~/utilities/useWatchComponents';
 import { OdhApplication } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import OdhAppCard from '~/components/OdhAppCard';
-import QuickStarts from '~/app/QuickStarts';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
@@ -74,13 +73,7 @@ const EnabledApplications: React.FC = () => {
   }, [components, loaded]);
 
   return (
-    <QuickStarts>
-      <EnabledApplicationsInner
-        loaded={loaded}
-        components={sortedComponents}
-        loadError={loadError}
-      />
-    </QuickStarts>
+    <EnabledApplicationsInner loaded={loaded} components={sortedComponents} loadError={loadError} />
   );
 };
 

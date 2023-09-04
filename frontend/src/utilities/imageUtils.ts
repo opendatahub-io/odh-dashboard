@@ -6,7 +6,7 @@ import {
   ImageSoftwareType,
   ImageTag,
   ImageTagInfo,
-  NotebookContainer,
+  PodContainer,
 } from '~/types';
 
 const PENDING_PHASES = [
@@ -134,7 +134,7 @@ export const getImageTagVersion = (
   if (image?.tags.length > 1) {
     const defaultTag = getDefaultTag(buildStatuses, image);
     if (image.name === selectedImage && selectedTag) {
-      return `${selectedTag} ${selectedTag === defaultTag?.name ? ' (default)' : ''}`;
+      return selectedTag;
     }
     return defaultTag?.name ?? image.tags[0].name;
   }
@@ -151,10 +151,7 @@ export const getDescriptionForTag = (imageTag?: ImageTagInfo): string => {
   return softwareDescriptions.join(', ');
 };
 
-export const getImageTagByContainer = (
-  images: ImageInfo[],
-  container?: NotebookContainer,
-): ImageTag => {
+export const getImageTagByContainer = (images: ImageInfo[], container?: PodContainer): ImageTag => {
   const imageTag = container?.image.split('/').at(-1)?.split(':');
   if (!imageTag || imageTag.length < 2) {
     return { image: undefined, tag: undefined };

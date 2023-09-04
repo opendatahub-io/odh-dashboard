@@ -15,6 +15,7 @@ type SimpleDropdownProps = {
   onChange: (key: string, isPlaceholder: boolean) => void;
   isFullWidth?: boolean;
   isDisabled?: boolean;
+  width?: number;
 } & Omit<React.ComponentProps<typeof Dropdown>, 'isOpen' | 'toggle' | 'dropdownItems' | 'onChange'>;
 
 const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
@@ -24,6 +25,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
   value,
   isFullWidth,
   isDisabled,
+  width,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -41,8 +43,9 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
           isDisabled={isDisabled}
           className={isFullWidth ? 'full-width' : undefined}
           onToggle={() => setOpen(!open)}
+          style={{ width }}
         >
-          <>{selectedLabel}</>
+          {selectedLabel}
         </DropdownToggle>
       }
       dropdownItems={options

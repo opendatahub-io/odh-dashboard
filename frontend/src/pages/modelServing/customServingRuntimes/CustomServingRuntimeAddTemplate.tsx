@@ -21,7 +21,10 @@ import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
 } from '~/services/templateService';
-import { getServingRuntimeDisplayNameFromTemplate } from './utils';
+import {
+  getServingRuntimeDisplayNameFromTemplate,
+  getServingRuntimeNameFromTemplate,
+} from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type CustomServingRuntimeAddTemplateProps = {
@@ -33,13 +36,35 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
-  const { state } = useLocation();
+  const { state }: { state?: { template: TemplateKind } } = useLocation();
 
-  const stringifiedTemplate = existingTemplate
-    ? YAML.stringify(existingTemplate.objects[0])
-    : state
-    ? YAML.stringify(state.template)
-    : '';
+  const copiedServingRuntimeString = React.useMemo(
+    () =>
+      state
+        ? YAML.stringify({
+            ...state.template.objects[0],
+            metadata: {
+              ...state.template.objects[0].metadata,
+              name: `${getServingRuntimeNameFromTemplate(state.template)}-copy`,
+              annotations: {
+                ...state.template.objects[0].metadata.annotations,
+                'openshift.io/display-name': `Copy of ${getServingRuntimeDisplayNameFromTemplate(
+                  state.template,
+                )}`,
+                'openshift.io/description':
+                  state.template.objects[0].metadata.annotations?.['openshift.io/description'],
+              },
+            },
+          })
+        : '',
+    [state],
+  );
+
+  const stringifiedTemplate = React.useMemo(
+    () =>
+      existingTemplate ? YAML.stringify(existingTemplate.objects[0]) : copiedServingRuntimeString,
+    [copiedServingRuntimeString, existingTemplate],
+  );
   const [code, setCode] = React.useState(stringifiedTemplate);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
@@ -108,7 +133,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
           <ActionList>
             <ActionListItem>
               <Button
-                isDisabled={code === stringifiedTemplate || code === '' || loading}
+                isDisabled={(!state && code === stringifiedTemplate) || code === '' || loading}
                 variant="primary"
                 id="create-button"
                 isLoading={loading}

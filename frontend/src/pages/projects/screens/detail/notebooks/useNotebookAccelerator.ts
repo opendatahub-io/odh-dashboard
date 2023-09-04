@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { AcceleratorKind, NotebookKind } from '~/k8sTypes';
 import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
-import { Notebook, NotebookContainer } from '~/types';
+import { Notebook, PodContainer } from '~/types';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 export type AcceleratorState = {
@@ -32,7 +32,7 @@ const useNotebookAccelerator = (
       notebook.spec.template;
       const name = notebook.metadata.annotations['opendatahub.io/accelerator-name'];
       const accelerator = accelerators.find((accelerator) => accelerator.metadata.name === name);
-      const container: NotebookContainer | undefined = notebook?.spec.template.spec.containers.find(
+      const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
         (container) => container.name === notebook.metadata.name,
       );
       if (accelerator && container) {

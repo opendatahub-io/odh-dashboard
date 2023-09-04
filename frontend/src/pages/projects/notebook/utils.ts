@@ -124,7 +124,11 @@ export const useNotebookStatus = (
   const events = useWatchNotebookEvents(notebook.metadata.namespace, podUid, spawnInProgress);
 
   const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
-  const lastActivity = annotationTime ? new Date(annotationTime) : null;
+  const lastActivity = annotationTime
+    ? new Date(annotationTime)
+    : spawnInProgress || podUid
+    ? new Date(notebook.metadata.creationTimestamp ?? 0)
+    : null;
 
   if (!lastActivity) {
     // Notebook not started, we don't have a filter time, ignore

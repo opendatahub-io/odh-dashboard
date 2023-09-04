@@ -26,6 +26,7 @@ import { AppContext } from './AppContext';
 import { useApplicationSettings } from './useApplicationSettings';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
+import QuickStarts from './QuickStarts';
 
 import './App.scss';
 
@@ -99,7 +100,9 @@ const App: React.FC = () => {
       >
         <ErrorBoundary>
           <ProjectsContextProvider>
-            <AppRoutes />
+            <QuickStarts>
+              <AppRoutes />
+            </QuickStarts>
           </ProjectsContextProvider>
           <ToastNotifications />
           <TelemetrySetup />

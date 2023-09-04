@@ -88,6 +88,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           panelContent={
             <PipelineRunDrawerRightContent
               task={selectedId ? taskMap[selectedId] : undefined}
+              parameters={pipelineRuntime?.spec.params}
               taskReferences={taskMap}
               onClose={() => setSelectedId(null)}
             />
