@@ -1,14 +1,16 @@
 import {
+  ContainerResources,
   ImageStreamAndVersion,
   NotebookSize,
+  PodToleration,
   TolerationSettings,
   Volume,
   VolumeMount,
 } from '~/types';
 import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 import { AWS_KEYS } from './dataConnections/const';
-import { AcceleratorState } from './screens/detail/notebooks/useNotebookAccelerator';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
 
@@ -66,6 +68,8 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   tolerationSettings?: TolerationSettings;
+  existingTolerations?: PodToleration[];
+  existingResources?: ContainerResources;
   envFrom?: EnvironmentFromVariable[];
   description?: string;
   /** An override for the assembleNotebook so it doesn't regen an id */

@@ -310,10 +310,8 @@ const SpawnerPage: React.FC = () => {
               sizes={sizes}
             />
             <AcceleratorSelectField
-              accelerator={accelerator.accelerator}
-              setAccelerator={(accelerator) => setAccelerator('accelerator', accelerator)}
-              acceleratorCount={accelerator.count}
-              setAcceleratorCount={(acceleratorCount) => setAccelerator('count', acceleratorCount)}
+              acceleratorState={accelerator}
+              setAcceleratorState={setAccelerator}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

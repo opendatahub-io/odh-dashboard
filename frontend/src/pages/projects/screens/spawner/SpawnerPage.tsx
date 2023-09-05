@@ -181,14 +181,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 value={selectedSize}
               />
               <AcceleratorSelectField
-                accelerator={notebookAcceleratorState.accelerator}
-                setAccelerator={(accelerator) =>
-                  setNotebookAcceleratorState('accelerator', accelerator)
-                }
-                acceleratorCount={notebookAcceleratorState.count}
-                setAcceleratorCount={(acceleratorCount) =>
-                  setNotebookAcceleratorState('count', acceleratorCount)
-                }
+                acceleratorState={notebookAcceleratorState}
+                setAcceleratorState={setNotebookAcceleratorState}
                 supportedAccelerators={supportedAccelerators}
               />
             </FormSection>
@@ -250,6 +244,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     accelerator: notebookAcceleratorState,
                     volumes: [],
                     volumeMounts: [],
+                    existingTolerations: existingNotebook?.spec.template.spec.tolerations || [],
+                    existingResources: existingNotebook?.spec.template.spec.containers[0].resources,
                   }}
                   storageData={storageData}
                   envVariables={envVariables}

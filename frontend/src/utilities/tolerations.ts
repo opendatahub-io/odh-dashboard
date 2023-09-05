@@ -1,6 +1,8 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
+import _ from 'lodash';
 import { DashboardConfig, PodToleration, TolerationSettings } from '~/types';
-import { AcceleratorKind, NotebookKind } from '~/k8sTypes';
+import { NotebookKind } from '~/k8sTypes';
+import { AcceleratorState } from './useAcceleratorState';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';
@@ -9,14 +11,34 @@ export type TolerationChanges = {
 
 export const determineTolerations = (
   tolerationSettings?: TolerationSettings,
-  accelerator?: AcceleratorKind,
+  acceleratorState?: AcceleratorState,
+  existingTolerations?: PodToleration[],
 ): PodToleration[] => {
-  const tolerations: PodToleration[] = [];
+  let tolerations = existingTolerations || [];
 
-  if (accelerator?.spec.tolerations) {
-    tolerations.push(...accelerator.spec.tolerations);
+  // remove old accelerator tolerations if they exist
+  if (acceleratorState?.initialAccelerator) {
+    tolerations = tolerations.filter(
+      (t) => !acceleratorState.initialAccelerator?.spec.tolerations?.some((t2) => _.isEqual(t2, t)),
+    );
   }
-  if (tolerationSettings?.enabled) {
+
+  // add new accelerator tolerations if they exist
+  if (acceleratorState?.accelerator?.spec.tolerations) {
+    tolerations.push(...acceleratorState.accelerator.spec.tolerations);
+  }
+
+  // remove duplicated tolerations
+  tolerations = _.uniqWith(tolerations, _.isEqual);
+
+  // add toleration from settings if they exist
+  if (
+    tolerationSettings?.enabled &&
+    !tolerations.some(
+      (t) =>
+        t.key === tolerationSettings.key && t.operator === 'Exists' && t.effect === 'NoSchedule',
+    )
+  ) {
     tolerations.push({
       effect: 'NoSchedule',
       key: tolerationSettings.key,

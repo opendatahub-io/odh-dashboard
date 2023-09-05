@@ -35,7 +35,6 @@ import {
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
 import { getAcceleratorNumbers } from '../routes/api/accelerators/acceleratorUtils';
-import { getNotebooks } from './notebookUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -666,7 +665,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       )
       .catch((e) => {
         // If 404 shows up — CRD may not be installed, exit early
-        throw 'Unable to fetch accelerator profiles: ' + e.toString();
+        throw { message: 'Unable to fetch accelerator profiles: ' + e.toString() };
       });
 
     const acceleratorProfiles = (
@@ -682,7 +681,6 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       acceleratorProfiles.length === 0
     ) {
       // if gpu detected on cluster, create our default migrated-gpu
-      // TODO GPU detection
       const acceleratorDetected = await getAcceleratorNumbers(fastify);
 
       if (acceleratorDetected.configured) {
@@ -717,35 +715,8 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
           );
         } catch (e) {
           // If bad detection — exit early and dont create config
-          throw 'Unable to add migrated-gpu accelerator profile: ' + e.toString();
+          throw { message: 'Unable to add migrated-gpu accelerator profile: ' + e.toString() };
         }
-
-        // update already running notebooks to use the new profile
-        const notebooks = await getNotebooks(fastify, fastify.kube.namespace);
-        notebooks.items.forEach(async (notebook) => {
-          const gpuCount =
-            notebook.spec.template.spec.containers[0].resources?.limits?.['nvidia.com/gpu'];
-          if (gpuCount) {
-            notebook.metadata.annotations = {
-              ...notebook.metadata.annotations,
-              'opendatahub.io/recommended-accelerators': 'migrated-gpu',
-            };
-            await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-              'kubeflow.org',
-              'v1',
-              fastify.kube.namespace,
-              'notebooks',
-              notebook.metadata.name,
-              notebook,
-              undefined,
-              undefined,
-              undefined,
-              {
-                headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-              },
-            );
-          }
-        });
       }
     }
 

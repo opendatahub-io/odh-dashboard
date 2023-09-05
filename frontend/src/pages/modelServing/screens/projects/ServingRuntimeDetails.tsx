@@ -8,10 +8,10 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
-import { ServingRuntimeKind } from '~/k8sTypes';
 import { AppContext } from '~/app/AppContext';
+import { ServingRuntimeKind } from '~/k8sTypes';
 import { getServingRuntimeSizes } from './utils';
-import useServingRuntimeAccelerator from './useServingRuntimeAccelerator';
+import useServingAccelerator from './useServingAccelerator';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -22,7 +22,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) =>
   const container = obj.spec.containers[0]; // can we assume the first container?
   const sizes = getServingRuntimeSizes(dashboardConfig);
   const size = sizes.find((size) => _.isEqual(size.resources, container.resources));
-  const [accelerator] = useServingRuntimeAccelerator(obj);
+  const [accelerator] = useServingAccelerator(obj);
 
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
