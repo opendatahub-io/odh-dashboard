@@ -1,6 +1,5 @@
 import * as React from 'react';
 import Table from '~/components/table/Table';
-import useTableColumnSort from '~/components/table/useTableColumnSort';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
@@ -10,40 +9,28 @@ import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
 
-type ServingRuntimeTableProps = {
-  modelServers: ServingRuntimeKind[];
-  refreshServingRuntime: () => void;
-  refreshTokens: () => void;
-  refreshInferenceServices: () => void;
-};
-
-const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
-  modelServers: unsortedModelServers,
-  refreshServingRuntime,
-  refreshTokens,
-  refreshInferenceServices,
-}) => {
+const ServingRuntimeTable: React.FC = () => {
   const [deployServingRuntime, setDeployServingRuntime] = React.useState<ServingRuntimeKind>();
   const [deleteServingRuntime, setDeleteServingRuntime] = React.useState<ServingRuntimeKind>();
   const [editServingRuntime, setEditServingRuntime] = React.useState<ServingRuntimeKind>();
   const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
 
   const {
-    dataConnections: { data: dataConnections },
-    inferenceServices: { data: inferenceServices },
+    servingRuntimes: { data: modelServers, refresh: refreshServingRuntime },
+    serverSecrets: { refresh: refreshTokens },
+    dataConnections: { data: dataConnections, refresh: refreshDataConnections },
+    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
     filterTokens,
     currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const sort = useTableColumnSort<ServingRuntimeKind>(columns, 1);
-
-  const sortedModelServers = sort.transformData(unsortedModelServers);
 
   return (
     <>
       <Table
-        data={sortedModelServers}
+        data={modelServers}
         columns={columns}
         disableRowRenderSupport
+        defaultSortColumn={1}
         rowRenderer={(modelServer) => (
           <ServingRuntimeTableRow
             key={modelServer.metadata.uid}
@@ -90,6 +77,7 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             setDeployServingRuntime(undefined);
             if (submit) {
               refreshInferenceServices();
+              refreshDataConnections();
               setExpandedColumn(ServingRuntimeTableTabs.DEPLOYED_MODELS);
             }
           }}
