@@ -1,5 +1,4 @@
 import * as React from 'react';
-import QuickStarts from '~/app/QuickStarts';
 import { useUser } from '~/redux/selectors';
 import NotebookServerRoutes from './screens/server/NotebookServerRoutes';
 import NotebookControllerTabs from './screens/admin/NotebookControllerTabs';
@@ -10,13 +9,11 @@ const NotebookController: React.FC = () => {
   const { isAdmin } = useUser();
 
   return (
-    <QuickStarts>
-      <NotebookControllerContextProvider>
-        <ValidateNotebookNamespace>
-          {isAdmin ? <NotebookControllerTabs /> : <NotebookServerRoutes />}
-        </ValidateNotebookNamespace>
-      </NotebookControllerContextProvider>
-    </QuickStarts>
+    <NotebookControllerContextProvider>
+      <ValidateNotebookNamespace>
+        {isAdmin ? <NotebookControllerTabs /> : <NotebookServerRoutes />}
+      </ValidateNotebookNamespace>
+    </NotebookControllerContextProvider>
   );
 };
 

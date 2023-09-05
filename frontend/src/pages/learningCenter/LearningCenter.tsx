@@ -9,7 +9,6 @@ import { useWatchDocs } from '~/utilities/useWatchDocs';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import QuickStarts from '~/app/QuickStarts';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '~/utilities/const';
 import { combineCategoryAnnotations } from '~/utilities/utils';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -230,10 +229,4 @@ export const LearningCenter: React.FC = () => {
   );
 };
 
-const LearningCenterWrapper: React.FC = () => (
-  <QuickStarts>
-    <LearningCenter />
-  </QuickStarts>
-);
-
-export default LearningCenterWrapper;
+export default LearningCenter;

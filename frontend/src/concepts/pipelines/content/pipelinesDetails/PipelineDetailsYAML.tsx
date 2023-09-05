@@ -33,6 +33,7 @@ const PipelineDetailsYAML: React.FC<PipelineDetailsYAMLProps> = ({ filename, con
       isCopyEnabled
       isLanguageLabelVisible
       language={Language.yaml}
+      isReadOnly
     />
   );
 };

@@ -52,7 +52,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                     title: 'Duplicate',
                     onClick: () =>
                       navigate('/servingRuntimes/addServingRuntime', {
-                        state: { template: template.objects[0] },
+                        state: { template: template },
                       }),
                   },
                 ]

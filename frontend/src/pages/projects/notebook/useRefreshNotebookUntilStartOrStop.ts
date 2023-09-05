@@ -2,11 +2,12 @@ import * as React from 'react';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { NotebookState } from './types';
 
-const useRefreshNotebookUntilStart = (
+const useRefreshNotebookUntilStartOrStop = (
   notebookState: NotebookState,
   doListen: boolean,
-): ((listen: boolean) => void) => {
+): ((listen: boolean, stop?: boolean) => void) => {
   const [watchingForNotebook, setWatchingForNotebook] = React.useState(false);
+  const [watchingForStop, setWatchingForStop] = React.useState(false);
   const lastNotebookState = React.useRef<NotebookState>(notebookState);
   lastNotebookState.current = notebookState;
 
@@ -14,8 +15,9 @@ const useRefreshNotebookUntilStart = (
     let interval: ReturnType<typeof setInterval>;
     if (watchingForNotebook && doListen) {
       interval = setInterval(() => {
-        const { isRunning, refresh } = lastNotebookState.current;
-        if (!isRunning) {
+        const { isRunning, isStopped, refresh } = lastNotebookState.current;
+        const condition = watchingForStop ? isStopped : isRunning;
+        if (!condition) {
           refresh().catch((e) => {
             /* eslint-disable-next-line no-console */
             console.error('Error refreshing, stopping notebook refresh', e);
@@ -30,11 +32,15 @@ const useRefreshNotebookUntilStart = (
     return () => {
       clearInterval(interval);
     };
-  }, [watchingForNotebook, doListen]);
+  }, [watchingForStop, watchingForNotebook, doListen]);
 
-  return React.useCallback((listen: boolean) => {
+  /**
+   * The second parameter allows listening for the notebook to be stopped. Default is to wait until started.
+   */
+  return React.useCallback((listen: boolean, waitForStop = false) => {
+    setWatchingForStop(waitForStop);
     setWatchingForNotebook(listen);
   }, []);
 };
 
-export default useRefreshNotebookUntilStart;
+export default useRefreshNotebookUntilStartOrStop;
