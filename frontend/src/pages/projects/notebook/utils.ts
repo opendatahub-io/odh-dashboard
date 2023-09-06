@@ -70,9 +70,9 @@ const filterEvents = (
   allEvents: EventKind[],
   lastActivity: Date,
 ): [filterEvents: EventKind[], thisInstanceEvents: EventKind[], gracePeriod: boolean] => {
-  const thisInstanceEvents = allEvents.filter(
-    (event) => new Date(getEventTimestamp(event)) >= lastActivity,
-  );
+  const thisInstanceEvents = allEvents
+    .filter((event) => new Date(getEventTimestamp(event)) >= lastActivity)
+    .sort((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
   if (thisInstanceEvents.length === 0) {
     // Filtered out all of the events, exit early
     return [[], [], false];
@@ -121,7 +121,7 @@ export const useNotebookStatus = (
   podUid: string,
   spawnInProgress: boolean,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
-  const events = useWatchNotebookEvents(notebook.metadata.namespace, podUid, spawnInProgress);
+  const events = useWatchNotebookEvents(notebook, podUid, spawnInProgress);
 
   const annotationTime = notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime
@@ -228,6 +228,11 @@ export const useNotebookStatus = (
       case 'TriggeredScaleUp': {
         currentEvent = 'Pod triggered scale-up';
         status = EventStatus.INFO;
+        break;
+      }
+      case 'FailedCreate': {
+        currentEvent = 'Failed to create pod';
+        status = EventStatus.ERROR;
         break;
       }
       default: {
