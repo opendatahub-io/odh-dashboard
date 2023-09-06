@@ -901,8 +901,10 @@ export type ServingRuntime = K8sResourceCommon & {
       image: string;
       name: string;
       resources: ContainerResources;
+      volumeMounts?: VolumeMount[];
     }[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
+    volumes?: Volume[];
   };
 };
