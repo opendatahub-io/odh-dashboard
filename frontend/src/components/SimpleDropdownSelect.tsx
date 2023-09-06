@@ -58,7 +58,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
               setOpen(false);
             }}
           >
-            {isPlaceholder ? <i>{label}</i> : label}
+            {label}
           </DropdownItem>
         ))}
     />

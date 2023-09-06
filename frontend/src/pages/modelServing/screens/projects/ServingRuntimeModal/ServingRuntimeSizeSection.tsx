@@ -107,7 +107,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             acceleratorState={acceleratorState}
             setAcceleratorState={setAcceleratorState}
             supportedAccelerators={supportedAccelerators}
-            supportedText="Compatible with serving runtime"
+            resourceDisplayName="serving runtime"
           />
         </FormGroup>
       )}
