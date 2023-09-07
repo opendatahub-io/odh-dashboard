@@ -99,8 +99,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
                   notebookState.notebook,
                 );
                 startNotebook(
-                  notebookName,
-                  notebookNamespace,
+                  notebook,
                   tolerationSettings,
                   enablePipelines && !currentlyHasPipelines(notebook),
                 ).then(() => {
