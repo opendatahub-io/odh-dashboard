@@ -1,13 +1,20 @@
 import * as React from 'react';
 import Table from '~/components/table/Table';
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { AccessReviewResourceAttributes, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import { useAccessReview } from '~/api';
 import { columns } from './data';
 import ServingRuntimeTableRow from './ServingRuntimeTableRow';
 import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
+
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'rbac.authorization.k8s.io',
+  resource: 'rolebindings',
+  verb: 'delete',
+};
 
 const ServingRuntimeTable: React.FC = () => {
   const [deployServingRuntime, setDeployServingRuntime] = React.useState<ServingRuntimeKind>();
@@ -23,6 +30,13 @@ const ServingRuntimeTable: React.FC = () => {
     filterTokens,
     currentProject,
   } = React.useContext(ProjectDetailsContext);
+
+  const namespace = currentProject.metadata.name;
+
+  const [allowDelete] = useAccessReview({
+    ...accessReviewResource,
+    namespace,
+  });
 
   return (
     <>
@@ -40,20 +54,23 @@ const ServingRuntimeTable: React.FC = () => {
             onDeployModel={(obj) => setDeployServingRuntime(obj)}
             expandedColumn={expandedColumn}
             setExpandedColumn={setExpandedColumn}
+            allowDelete={allowDelete}
           />
         )}
       />
-      <DeleteServingRuntimeModal
-        servingRuntime={deleteServingRuntime}
-        tokens={filterTokens(deleteServingRuntime?.metadata.name)}
-        inferenceServices={inferenceServices}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshServingRuntime();
-          }
-          setDeleteServingRuntime(undefined);
-        }}
-      />
+      {allowDelete && (
+        <DeleteServingRuntimeModal
+          servingRuntime={deleteServingRuntime}
+          tokens={filterTokens(deleteServingRuntime?.metadata.name)}
+          inferenceServices={inferenceServices}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshServingRuntime();
+            }
+            setDeleteServingRuntime(undefined);
+          }}
+        />
+      )}
       <ManageServingRuntimeModal
         isOpen={editServingRuntime !== undefined}
         currentProject={currentProject}
