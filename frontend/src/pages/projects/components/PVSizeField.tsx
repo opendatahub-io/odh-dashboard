@@ -40,7 +40,13 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, curre
           onChange={(event) => {
             if (isHTMLInputElement(event.target)) {
               const newSize = Number(event.target.value);
-              setSize(isNaN(newSize) ? size : Math.max(newSize, minSize));
+              setSize(isNaN(newSize) ? size : newSize);
+            }
+          }}
+          onBlur={(event) => {
+            if (isHTMLInputElement(event.target)) {
+              const blurSize = Number(event.target.value);
+              setSize(Math.max(blurSize, minSize));
             }
           }}
         />
