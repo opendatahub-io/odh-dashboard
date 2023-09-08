@@ -80,8 +80,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { accelerator, notebookSize, image } = startNotebookData;
     fireTrackingEvent(`Workbench ${type}`, {
-      acceleratorCount: accelerator.count,
-      accelerator: accelerator ? JSON.stringify(accelerator.accelerator) : 'unknown',
+      acceleratorCount: accelerator.useExisting ? undefined : accelerator.count,
+      accelerator: accelerator.accelerator
+        ? `${accelerator.accelerator.spec.displayName} (${accelerator.accelerator.metadata.name}): ${accelerator.accelerator.spec.identifier}`
+        : accelerator.useExisting
+        ? 'Unknown'
+        : 'None',
       lastSelectedSize: notebookSize.name,
       lastSelectedImage: image.imageVersion?.from
         ? `${image.imageVersion.from.name}`

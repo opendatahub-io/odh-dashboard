@@ -232,8 +232,12 @@ const SpawnerPage: React.FC = () => {
 
   const fireStartServerEvent = () => {
     fireTrackingEvent('Notebook Server Started', {
-      accelerator: accelerator.accelerator ? JSON.stringify(accelerator.accelerator) : 'unknown',
-      acceleratorCount: accelerator.count,
+      accelerator: accelerator.accelerator
+        ? `${accelerator.accelerator.spec.displayName} (${accelerator.accelerator.metadata.name}): ${accelerator.accelerator.spec.identifier}`
+        : accelerator.useExisting
+        ? 'Unknown'
+        : 'None',
+      acceleratorCount: accelerator.useExisting ? undefined : accelerator.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });

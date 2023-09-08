@@ -51,10 +51,12 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   const fireNotebookTrackingEvent = React.useCallback(
     (action: 'started' | 'stopped') => {
       fireTrackingEvent(`Workbench ${action}`, {
-        acceleratorCount: acceleratorData.count,
+        acceleratorCount: acceleratorData.useExisting ? undefined : acceleratorData.count,
         accelerator: acceleratorData.accelerator
-          ? JSON.stringify(acceleratorData.accelerator)
-          : 'unknown',
+          ? `${acceleratorData.accelerator.spec.displayName} (${acceleratorData.accelerator.metadata.name}): ${acceleratorData.accelerator.spec.identifier}`
+          : acceleratorData.useExisting
+          ? 'Unknown'
+          : 'None',
         lastSelectedSize:
           size?.name ||
           notebook.metadata.annotations?.['notebooks.opendatahub.io/last-size-selection'],

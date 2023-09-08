@@ -57,19 +57,18 @@ const useAcceleratorState = (
         // check if there is accelerator usage in the container
         // this is to handle the case where the accelerator is disabled, deleted, or empty
         const containerResourceAttributes = Object.values(ContainerResourceAttributes) as string[];
-        const possibleAcceleratorsIdentifiers = Object.entries(resources.requests ?? {}).filter(
-          ([key]) => !containerResourceAttributes.includes(key),
-        );
-        if (possibleAcceleratorsIdentifiers.length > 0) {
+        const possibleAcceleratorRequests = Object.entries(resources.requests ?? {})
+          .filter(([key]) => !containerResourceAttributes.includes(key))
+          .map(([key, value]) => ({ identifier: key, count: value }));
+        if (possibleAcceleratorRequests.length > 0) {
           // check if they are just using the nvidia.com/gpu
           // if so, lets migrate them over to using the migrated-gpu accelerator profile if it exists
-          const acceleratorRequest = possibleAcceleratorsIdentifiers.find(
-            (possibleAcceleratorIdentifiers) =>
-              possibleAcceleratorIdentifiers[0] === 'nvidia.com/gpu',
+          const nvidiaAcceleratorRequests = possibleAcceleratorRequests.find(
+            (request) => request.identifier === 'nvidia.com/gpu',
           );
 
           if (
-            acceleratorRequest &&
+            nvidiaAcceleratorRequests &&
             tolerations?.some(
               (toleration) =>
                 toleration.key === 'nvidia.com/gpu' &&
@@ -84,7 +83,7 @@ const useAcceleratorState = (
             if (migratedAccelerator) {
               setData('accelerator', migratedAccelerator);
               setData('initialAccelerator', migratedAccelerator);
-              setData('count', Number(possibleAcceleratorsIdentifiers[0][1] ?? 0));
+              setData('count', Number(nvidiaAcceleratorRequests.count ?? 0));
               if (!migratedAccelerator.spec.enabled) {
                 setData('additionalOptions', { useDisabled: accelerator });
               }
@@ -113,7 +112,7 @@ const useAcceleratorState = (
               setData('accelerator', fakeAccelerator);
               setData('accelerators', [fakeAccelerator, ...accelerators]);
               setData('initialAccelerator', fakeAccelerator);
-              setData('count', Number(possibleAcceleratorsIdentifiers[0][1] ?? 0));
+              setData('count', Number(nvidiaAcceleratorRequests.count ?? 0));
             }
           } else {
             // fallback to using the existing accelerator

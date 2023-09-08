@@ -22,14 +22,14 @@ type AcceleratorSelectFieldProps = {
   acceleratorState: AcceleratorState;
   setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
   supportedAccelerators?: string[];
-  supportedText?: string;
+  resourceDisplayName?: string;
 };
 
 const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   acceleratorState,
   setAcceleratorState,
   supportedAccelerators,
-  supportedText,
+  resourceDisplayName = 'image',
 }) => {
   const [detectedAcceleratorInfo] = useAcceleratorCounts();
 
@@ -83,7 +83,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
           <SplitItem isFilled />
           <SplitItem>
             {isAcceleratorSupported(ac) && (
-              <Label color="blue">{supportedText ?? 'Compatible with image'}</Label>
+              <Label color="blue">{`Compatible with ${resourceDisplayName}`}</Label>
             )}
           </SplitItem>
         </Split>
@@ -109,13 +109,12 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   if (accelerator && supportedAccelerators !== undefined) {
     if (supportedAccelerators?.length === 0) {
       acceleratorAlertMessage = {
-        title:
-          "The image you have selected doesn't support the selected accelerator. It is recommended to use a compatible image for optimal performance.",
+        title: `The ${resourceDisplayName} you have selected doesn't support the selected accelerator. It is recommended to use a compatible ${resourceDisplayName} for optimal performance.`,
         variant: AlertVariant.info,
       };
     } else if (!isAcceleratorSupported(accelerator)) {
       acceleratorAlertMessage = {
-        title: 'The image you have selected is not compatible with the selected accelerator',
+        title: `The ${resourceDisplayName} you have selected is not compatible with the selected accelerator`,
         variant: AlertVariant.warning,
       };
     }
@@ -139,7 +138,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   }
 
   const onStep = (step: number) => {
-    setAcceleratorState('count', Math.max(acceleratorCount + step, 0));
+    setAcceleratorState('count', Math.max(acceleratorCount + step, 1));
   };
 
   // if there is more than a none option, show the dropdown
@@ -168,6 +167,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
                 setAcceleratorState('count', 0);
               } else {
                 // normal flow
+                setAcceleratorState('count', 1);
                 setAcceleratorState('useExisting', false);
                 setAcceleratorState(
                   'accelerator',
@@ -198,13 +198,13 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
                 name="number-of-accelerators"
                 value={acceleratorCount}
                 validated={acceleratorCountWarning ? 'warning' : 'default'}
-                min={0}
+                min={1}
                 onPlus={() => onStep(1)}
                 onMinus={() => onStep(-1)}
                 onChange={(event) => {
                   if (isHTMLInputElement(event.target)) {
                     const newSize = Number(event.target.value);
-                    setAcceleratorState('count', newSize);
+                    setAcceleratorState('count', Math.max(newSize, 1));
                   }
                 }}
               />
