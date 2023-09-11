@@ -2,7 +2,7 @@ import { act } from '@testing-library/react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import useGroups from '~/pages/projects/projectSharing/useGroups';
 import { GroupKind } from '~/k8sTypes';
-import { expectHook, standardUseFetchState, testHook } from './testUtils/hooks';
+import { expectHook, standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
