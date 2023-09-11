@@ -85,7 +85,7 @@ export default fp(async (fastify: FastifyInstance) => {
   cleanupGPU(fastify).catch((e) =>
     fastify.log.error(
       `Unable to fully convert GPU to use accelerator profiles. ${
-        e.response?.body?.message || e.message
+        e.response?.body?.message || e.message || e
       }`,
     ),
   );

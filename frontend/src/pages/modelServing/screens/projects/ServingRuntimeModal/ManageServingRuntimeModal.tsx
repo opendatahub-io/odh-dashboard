@@ -36,6 +36,7 @@ import {
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
@@ -69,6 +70,9 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
+  const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
+    editInfo?.servingRuntime,
+  );
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -106,6 +110,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(false);
     resetData();
+    resetAcceleratorData();
   };
 
   const setErrorModal = (error: Error) => {
@@ -127,35 +132,39 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     }
     const servingRuntimeData = {
       ...createData,
-      accelerator: isGpuDisabled(servingRuntimeSelected)
-        ? { accelerator: undefined, count: 0 }
-        : createData.accelerator,
+      existingTolerations: servingRuntimeSelected.spec.tolerations || [],
     };
     const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
     const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
 
+    const accelerator = isGpuDisabled(servingRuntimeSelected)
+      ? { count: 0, accelerators: [], useExisting: false }
+      : acceleratorState;
+
     Promise.all<ServingRuntimeKind | string | void>([
       ...(editInfo?.servingRuntime
         ? [
-            updateServingRuntime(
-              servingRuntimeData,
-              editInfo?.servingRuntime,
-              customServingRuntimesEnabled,
-              {
+            updateServingRuntime({
+              data: servingRuntimeData,
+              existingData: editInfo?.servingRuntime,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+              opts: {
                 dryRun: true,
               },
-            ),
+              acceleratorState: accelerator,
+            }),
           ]
         : [
-            createServingRuntime(
-              servingRuntimeData,
+            createServingRuntime({
+              data: servingRuntimeData,
               namespace,
-              servingRuntimeSelected,
-              customServingRuntimesEnabled,
-              {
+              servingRuntime: servingRuntimeSelected,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+              opts: {
                 dryRun: true,
               },
-            ),
+              acceleratorState: accelerator,
+            }),
           ]),
       setUpTokenAuth(
         servingRuntimeData,
@@ -175,19 +184,22 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             : []),
           ...(editInfo?.servingRuntime
             ? [
-                updateServingRuntime(
-                  servingRuntimeData,
-                  editInfo?.servingRuntime,
-                  customServingRuntimesEnabled,
-                ),
+                updateServingRuntime({
+                  data: servingRuntimeData,
+                  existingData: editInfo?.servingRuntime,
+                  isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+
+                  acceleratorState: accelerator,
+                }),
               ]
             : [
-                createServingRuntime(
-                  servingRuntimeData,
+                createServingRuntime({
+                  data: servingRuntimeData,
                   namespace,
-                  servingRuntimeSelected,
-                  customServingRuntimesEnabled,
-                ),
+                  servingRuntime: servingRuntimeSelected,
+                  isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+                  acceleratorState: accelerator,
+                }),
               ]),
           setUpTokenAuth(
             servingRuntimeData,
@@ -246,6 +258,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 setData={setCreateData}
                 templates={servingRuntimeTemplates || []}
                 isEditing={!!editInfo}
+                acceleratorState={acceleratorState}
               />
               <StackItem>
                 <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
@@ -256,6 +269,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   setData={setCreateData}
                   sizes={sizes}
                   servingRuntimeSelected={servingRuntimeSelected}
+                  acceleratorState={acceleratorState}
+                  setAcceleratorState={setAcceleratorState}
                 />
               </StackItem>
               <StackItem>

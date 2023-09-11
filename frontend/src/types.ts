@@ -7,7 +7,7 @@ import { ServingRuntimeSize } from '~/pages/modelServing/screens/types';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
-import { AcceleratorState } from './pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import { AcceleratorState } from './utilities/useAcceleratorState';
 
 export type PrometheusQueryResponse = {
   data: {

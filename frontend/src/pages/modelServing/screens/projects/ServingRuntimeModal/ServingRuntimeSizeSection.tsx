@@ -16,6 +16,7 @@ import { ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
 import AcceleratorSelectField from '~/pages/notebookController/screens/server/AcceleratorSelectField';
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
@@ -23,6 +24,8 @@ type ServingRuntimeSizeSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   sizes: ServingRuntimeSize[];
   servingRuntimeSelected?: ServingRuntimeKind;
+  acceleratorState: AcceleratorState;
+  setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
 };
 
 const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
@@ -30,6 +33,8 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   setData,
   sizes,
   servingRuntimeSelected,
+  acceleratorState,
+  setAcceleratorState,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
   const [supportedAccelerators, setSupportedAccelerators] = React.useState<string[] | undefined>();
@@ -99,14 +104,10 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
       {!gpuDisabled && (
         <FormGroup>
           <AcceleratorSelectField
-            accelerator={data.accelerator.accelerator}
-            acceleratorCount={data.accelerator.count}
-            setAccelerator={(accelerator) =>
-              setData('accelerator', { ...data.accelerator, accelerator })
-            }
-            setAcceleratorCount={(count) => setData('accelerator', { ...data.accelerator, count })}
+            acceleratorState={acceleratorState}
+            setAcceleratorState={setAcceleratorState}
             supportedAccelerators={supportedAccelerators}
-            supportedText="Compatible with serving runtime"
+            resourceDisplayName="serving runtime"
           />
         </FormGroup>
       )}

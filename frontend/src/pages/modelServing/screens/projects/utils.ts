@@ -16,7 +16,6 @@ import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
-import useServingRuntimeAccelerator from './useServingRuntimeAccelerator';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -55,8 +54,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
 ] => {
   const { dashboardConfig } = useAppContext();
 
-  const [existingAccelerator] = useServingRuntimeAccelerator(existingData?.servingRuntime);
-
   const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
 
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
@@ -64,7 +61,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
     servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: sizes[0],
-    accelerator: existingAccelerator,
     externalRoute: false,
     tokenAuth: false,
     tokens: [],
@@ -116,7 +112,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
           resources: existingResources,
         },
       );
-      setCreateData('accelerator', existingAccelerator);
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
@@ -126,7 +121,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingServingRuntimeTemplateName,
     existingNumReplicas,
     existingResources,
-    existingAccelerator,
     existingExternalRoute,
     existingTokenAuth,
     existingTokens,

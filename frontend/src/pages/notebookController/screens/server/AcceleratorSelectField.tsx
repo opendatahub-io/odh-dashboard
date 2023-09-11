@@ -13,67 +13,85 @@ import {
 } from '@patternfly/react-core';
 import { isHTMLInputElement } from '~/utilities/utils';
 import { AcceleratorKind } from '~/k8sTypes';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import useAccelerators from './useAccelerators';
+import SimpleDropdownSelect, { SimpleDropdownOption } from '~/components/SimpleDropdownSelect';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 import useAcceleratorCounts from './useAcceleratorCounts';
 
 type AcceleratorSelectFieldProps = {
-  accelerator?: AcceleratorKind;
-  setAccelerator: (accelerator?: AcceleratorKind) => void;
-  acceleratorCount?: number;
-  setAcceleratorCount: (size: number) => void;
+  acceleratorState: AcceleratorState;
+  setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
   supportedAccelerators?: string[];
-  supportedText?: string;
+  resourceDisplayName?: string;
 };
 
 const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
-  accelerator,
-  setAccelerator,
-  acceleratorCount = 0,
-  setAcceleratorCount,
+  acceleratorState,
+  setAcceleratorState,
   supportedAccelerators,
-  supportedText,
+  resourceDisplayName = 'image',
 }) => {
-  const [accelerators, loaded, loadError] = useAccelerators();
   const [detectedAcceleratorInfo] = useAcceleratorCounts();
 
-  const validateAcceleratorCount = React.useCallback(
-    (newSize: number) => {
-      if (!accelerator) {
-        return '';
-      }
+  const {
+    accelerator,
+    count: acceleratorCount,
+    accelerators,
+    useExisting,
+    additionalOptions,
+  } = acceleratorState;
 
-      const detectedAcceleratorCount = Object.entries(detectedAcceleratorInfo.available).find(
-        ([identifier]) => accelerator?.spec.identifier === identifier,
-      )?.[1];
-
-      if (detectedAcceleratorCount === undefined) {
-        return `No accelerator detected with the identifier ${accelerator?.spec.identifier}.`;
-      } else if (newSize > detectedAcceleratorCount) {
-        return `Only ${detectedAcceleratorCount} accelerator${
-          detectedAcceleratorCount > 1 ? 's' : ''
-        } detected.`;
-      }
-
+  const generateAcceleratorCountWarning = (newSize: number) => {
+    if (!accelerator) {
       return '';
-    },
-    [accelerator, detectedAcceleratorInfo.available],
-  );
+    }
 
-  React.useEffect(() => {
-    setAcceleratorCountWarning(validateAcceleratorCount(acceleratorCount));
-  }, [acceleratorCount, validateAcceleratorCount]);
+    const identifier = accelerator?.spec.identifier;
 
-  const [acceleratorCountWarning, setAcceleratorCountWarning] = React.useState(
-    validateAcceleratorCount(acceleratorCount),
-  );
+    const detectedAcceleratorCount = Object.entries(detectedAcceleratorInfo.available).find(
+      ([id]) => identifier === id,
+    )?.[1];
+
+    if (detectedAcceleratorCount === undefined) {
+      return `No accelerator detected with the identifier ${identifier}.`;
+    } else if (newSize > detectedAcceleratorCount) {
+      return `Only ${detectedAcceleratorCount} accelerator${
+        detectedAcceleratorCount > 1 ? 's' : ''
+      } detected.`;
+    }
+
+    return '';
+  };
+
+  const acceleratorCountWarning = generateAcceleratorCountWarning(acceleratorCount);
 
   const isAcceleratorSupported = (accelerator: AcceleratorKind) =>
     supportedAccelerators?.includes(accelerator.spec.identifier);
 
   const enabledAccelerators = accelerators.filter((ac) => ac.spec.enabled);
 
-  const options = enabledAccelerators
+  const formatOption = (ac: AcceleratorKind): SimpleDropdownOption => {
+    const displayName = `${ac.spec.displayName}${!ac.spec.enabled ? ' (disabled)' : ''}`;
+
+    return {
+      key: ac.metadata.name,
+      selectedLabel: displayName,
+      description: ac.spec.description,
+      label: (
+        <Split>
+          <SplitItem>{displayName}</SplitItem>
+          <SplitItem isFilled />
+          <SplitItem>
+            {isAcceleratorSupported(ac) && (
+              <Label color="blue">{`Compatible with ${resourceDisplayName}`}</Label>
+            )}
+          </SplitItem>
+        </Split>
+      ),
+    };
+  };
+
+  const options: SimpleDropdownOption[] = enabledAccelerators
     .sort((a, b) => {
       const aSupported = isAcceleratorSupported(a);
       const bSupported = isAcceleratorSupported(b);
@@ -85,45 +103,47 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
       }
       return 0;
     })
-    .map((ac) => ({
-      key: ac.metadata.name,
-      selectedLabel: ac.spec.displayName,
-      description: ac.spec.description,
-      label: (
-        <Split>
-          <SplitItem>{ac.spec.displayName}</SplitItem>
-          <SplitItem isFilled />
-          <SplitItem>
-            {isAcceleratorSupported(ac) && (
-              <Label color="blue">{supportedText ?? 'Compatible with image'}</Label>
-            )}
-          </SplitItem>
-        </Split>
-      ),
-    }));
+    .map((ac) => formatOption(ac));
 
   let acceleratorAlertMessage: { title: string; variant: AlertVariant } | null = null;
   if (accelerator && supportedAccelerators !== undefined) {
     if (supportedAccelerators?.length === 0) {
       acceleratorAlertMessage = {
-        title:
-          "The image you have selected doesn't support the selected accelerator. It is recommended to use a compatible image for optimal performance.",
+        title: `The ${resourceDisplayName} you have selected doesn't support the selected accelerator. It is recommended to use a compatible ${resourceDisplayName} for optimal performance.`,
         variant: AlertVariant.info,
       };
     } else if (!isAcceleratorSupported(accelerator)) {
       acceleratorAlertMessage = {
-        title: 'The image you have selected is not compatible with the selected accelerator',
+        title: `The ${resourceDisplayName} you have selected is not compatible with the selected accelerator`,
         variant: AlertVariant.warning,
       };
     }
   }
 
+  // add none option
+  options.push({
+    key: '',
+    label: 'None',
+    isPlaceholder: true,
+  });
+
+  if (additionalOptions?.useExisting) {
+    options.push({
+      key: 'use-existing',
+      label: 'Existing settings',
+      description: 'Use the existing accelerator settings from the notebook server',
+    });
+  } else if (additionalOptions?.useDisabled) {
+    options.push(formatOption(additionalOptions?.useDisabled));
+  }
+
   const onStep = (step: number) => {
-    setAcceleratorCount(Math.max(acceleratorCount + step, 0));
+    setAcceleratorState('count', Math.max(acceleratorCount + step, 1));
   };
 
-  if (!loaded || loadError || enabledAccelerators.length === 0) {
-    return <></>;
+  // if there is more than a none option, show the dropdown
+  if (options.length === 1) {
+    return null;
   }
 
   return (
@@ -132,24 +152,30 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
         <FormGroup label="Accelerator" fieldId="modal-notebook-accelerator">
           <SimpleDropdownSelect
             isFullWidth
-            options={[
-              ...options,
-              {
-                key: '',
-                label: 'None',
-                isPlaceholder: true,
-              },
-            ]}
-            value={accelerator?.metadata.name ?? ''}
+            options={options}
+            value={useExisting ? 'use-existing' : accelerator?.metadata.name ?? ''}
             onChange={(key, isPlaceholder) => {
               if (isPlaceholder) {
-                setAccelerator(undefined);
-                setAcceleratorCount(0);
+                // none
+                setAcceleratorState('useExisting', false);
+                setAcceleratorState('accelerator', undefined);
+                setAcceleratorState('count', 0);
+              } else if (key === 'use-existing') {
+                // use existing settings
+                setAcceleratorState('useExisting', true);
+                setAcceleratorState('accelerator', undefined);
+                setAcceleratorState('count', 0);
               } else {
-                setAccelerator(accelerators.find((ac) => ac.metadata.name === key));
+                // normal flow
+                setAcceleratorState('count', 1);
+                setAcceleratorState('useExisting', false);
+                setAcceleratorState(
+                  'accelerator',
+                  accelerators.find((ac) => ac.metadata.name === key),
+                );
               }
             }}
-          ></SimpleDropdownSelect>
+          />
         </FormGroup>
       </StackItem>
       {acceleratorAlertMessage && (
@@ -172,13 +198,13 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
                 name="number-of-accelerators"
                 value={acceleratorCount}
                 validated={acceleratorCountWarning ? 'warning' : 'default'}
-                min={0}
+                min={1}
                 onPlus={() => onStep(1)}
                 onMinus={() => onStep(-1)}
                 onChange={(event) => {
                   if (isHTMLInputElement(event.target)) {
                     const newSize = Number(event.target.value);
-                    setAcceleratorCount(newSize);
+                    setAcceleratorState('count', Math.max(newSize, 1));
                   }
                 }}
               />

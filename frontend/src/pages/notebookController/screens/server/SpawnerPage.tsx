@@ -232,8 +232,12 @@ const SpawnerPage: React.FC = () => {
 
   const fireStartServerEvent = () => {
     fireTrackingEvent('Notebook Server Started', {
-      accelerator: accelerator.accelerator ? JSON.stringify(accelerator.accelerator) : 'unknown',
-      acceleratorCount: accelerator.count,
+      accelerator: accelerator.accelerator
+        ? `${accelerator.accelerator.spec.displayName} (${accelerator.accelerator.metadata.name}): ${accelerator.accelerator.spec.identifier}`
+        : accelerator.useExisting
+        ? 'Unknown'
+        : 'None',
+      acceleratorCount: accelerator.useExisting ? undefined : accelerator.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
@@ -310,10 +314,8 @@ const SpawnerPage: React.FC = () => {
               sizes={sizes}
             />
             <AcceleratorSelectField
-              accelerator={accelerator.accelerator}
-              setAccelerator={(accelerator) => setAccelerator('accelerator', accelerator)}
-              acceleratorCount={accelerator.count}
-              setAcceleratorCount={(acceleratorCount) => setAccelerator('count', acceleratorCount)}
+              acceleratorState={accelerator}
+              setAcceleratorState={setAccelerator}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

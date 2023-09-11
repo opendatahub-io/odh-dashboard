@@ -55,6 +55,8 @@ const assembleNotebook = (
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
     tolerationSettings,
+    existingTolerations,
+    existingResources,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
@@ -64,6 +66,9 @@ const assembleNotebook = (
     notebookSize.resources,
     accelerator,
     tolerationSettings,
+    existingTolerations,
+    undefined,
+    existingResources,
   );
 
   const translatedUsername = usernameTranslate(username);

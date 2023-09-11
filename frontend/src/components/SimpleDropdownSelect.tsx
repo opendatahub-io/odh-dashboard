@@ -2,14 +2,16 @@ import * as React from 'react';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
 import './SimpleDropdownSelect.scss';
 
+export type SimpleDropdownOption = {
+  key: string;
+  label: React.ReactNode;
+  description?: React.ReactNode;
+  selectedLabel?: React.ReactNode;
+  isPlaceholder?: boolean;
+};
+
 type SimpleDropdownProps = {
-  options: {
-    key: string;
-    label: React.ReactNode;
-    description?: React.ReactNode;
-    selectedLabel?: React.ReactNode;
-    isPlaceholder?: boolean;
-  }[];
+  options: SimpleDropdownOption[];
   value: string;
   placeholder?: string;
   onChange: (key: string, isPlaceholder: boolean) => void;
@@ -59,7 +61,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
               setOpen(false);
             }}
           >
-            {isPlaceholder ? <i>{label}</i> : label}
+            {label}
           </DropdownItem>
         ))}
     />

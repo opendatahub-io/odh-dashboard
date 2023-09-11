@@ -320,6 +320,14 @@ export type ServiceAccountKind = K8sResourceCommon & {
   }[];
 };
 
+export type ServingContainer = {
+  args: string[];
+  image: string;
+  name: string;
+  affinity?: PodAffinity;
+  resources: ContainerResources;
+};
+
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
@@ -333,14 +341,10 @@ export type ServingRuntimeKind = K8sResourceCommon & {
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
-    containers: {
-      args: string[];
-      image: string;
-      name: string;
-      resources: ContainerResources;
-    }[];
+    containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
+    tolerations?: PodToleration[];
   };
 };
 

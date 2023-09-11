@@ -35,7 +35,6 @@ import {
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
 import { getAcceleratorNumbers } from '../routes/api/accelerators/acceleratorUtils';
-import { getNotebooks } from './notebookUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -646,12 +645,17 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
     .readNamespacedConfigMap(CONFIG_MAP_NAME, fastify.kube.namespace)
     .then(() => {
       // Found configmap, not continuing
+      fastify.log.info(`GPU migration already completed, skipping`);
       return false;
     })
     .catch((e) => {
       if (e.statusCode === 404) {
         // No config saying we have already migrated gpus, continue
         return true;
+      } else {
+        throw `fetching gpu migration configmap had a ${e.statusCode} error: ${
+          e.response?.body?.message || e?.response?.statusMessage
+        }`;
       }
     });
 
@@ -665,8 +669,11 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
         'acceleratorprofiles',
       )
       .catch((e) => {
-        // If 404 shows up — CRD may not be installed, exit early
-        throw 'Unable to fetch accelerator profiles: ' + e.toString();
+        console.log(e);
+        // If error shows up — CRD may not be installed, exit early
+        throw `A ${e.statusCode} error occurred when trying to fetch accelerator profiles: ${
+          e.response?.body?.message || e?.response?.statusMessage
+        }`;
       });
 
     const acceleratorProfiles = (
@@ -682,7 +689,6 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       acceleratorProfiles.length === 0
     ) {
       // if gpu detected on cluster, create our default migrated-gpu
-      // TODO GPU detection
       const acceleratorDetected = await getAcceleratorNumbers(fastify);
 
       if (acceleratorDetected.configured) {
@@ -717,35 +723,12 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
           );
         } catch (e) {
           // If bad detection — exit early and dont create config
-          throw 'Unable to add migrated-gpu accelerator profile: ' + e.toString();
+          throw `A ${
+            e.statusCode
+          } error occurred when trying to add migrated-gpu accelerator profile: ${
+            e.response?.body?.message || e?.response?.statusMessage
+          }`;
         }
-
-        // update already running notebooks to use the new profile
-        const notebooks = await getNotebooks(fastify, fastify.kube.namespace);
-        notebooks.items.forEach(async (notebook) => {
-          const gpuCount =
-            notebook.spec.template.spec.containers[0].resources?.limits?.['nvidia.com/gpu'];
-          if (gpuCount) {
-            notebook.metadata.annotations = {
-              ...notebook.metadata.annotations,
-              'opendatahub.io/recommended-accelerators': 'migrated-gpu',
-            };
-            await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-              'kubeflow.org',
-              'v1',
-              fastify.kube.namespace,
-              'notebooks',
-              notebook.metadata.name,
-              notebook,
-              undefined,
-              undefined,
-              undefined,
-              {
-                headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-              },
-            );
-          }
-        });
       }
     }
 
@@ -764,10 +747,9 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       .createNamespacedConfigMap(fastify.kube.namespace, configMap)
       .then(() => fastify.log.info('Successfully migrated GPUs to accelerator profiles'))
       .catch((e) => {
-        throw createCustomError(
-          'Unable to create gpu migration configmap',
-          e.response?.body?.message || e.message,
-        );
+        throw `A ${e.statusCode} error occurred when trying to create gpu migration configmap: ${
+          e.response?.body?.message || e?.response?.statusMessage
+        }`;
       });
   }
 };

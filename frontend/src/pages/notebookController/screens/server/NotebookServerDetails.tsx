@@ -108,13 +108,19 @@ const NotebookServerDetails: React.FC = () => {
         <DescriptionListGroup>
           <DescriptionListTerm>Accelerator</DescriptionListTerm>
           <DescriptionListDescription>
-            {accelerator.accelerator?.spec.displayName || 'unknown'}
+            {accelerator.accelerator
+              ? accelerator.accelerator.spec.displayName
+              : accelerator.useExisting
+              ? 'Unknown'
+              : 'None'}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-          <DescriptionListDescription>{accelerator.count}</DescriptionListDescription>
-        </DescriptionListGroup>
+        {!accelerator.useExisting && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+            <DescriptionListDescription>{accelerator.count}</DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
       </DescriptionList>
     </ExpandableSection>
   );
