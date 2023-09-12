@@ -18,6 +18,7 @@ type ServingRuntimeTableRowProps = {
   onDeployModel: (obj: ServingRuntimeKind) => void;
   expandedColumn?: ServingRuntimeTableTabs;
   setExpandedColumn: (column?: ServingRuntimeTableTabs) => void;
+  allowDelete: boolean;
 };
 
 const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
@@ -27,6 +28,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   onDeployModel,
   expandedColumn,
   setExpandedColumn,
+  allowDelete,
 }) => {
   const {
     inferenceServices: {
@@ -135,10 +137,14 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                 title: 'Edit model server',
                 onClick: () => onEditServingRuntime(obj),
               },
-              {
-                title: 'Delete model server',
-                onClick: () => onDeleteServingRuntime(obj),
-              },
+              ...(allowDelete
+                ? [
+                    {
+                      title: 'Delete model server',
+                      onClick: () => onDeleteServingRuntime(obj),
+                    },
+                  ]
+                : []),
             ]}
           />
         </Td>

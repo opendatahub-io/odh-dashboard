@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { K8sEvent } from '~/types';
 
-export const getNotebookEvents = (projectName: string, podUID: string): Promise<K8sEvent[]> => {
-  const url = `/api/nb-events/${projectName}/${podUID}`;
+export const getNotebookEvents = (
+  projectName: string,
+  notebookName: string,
+  podUID?: string,
+): Promise<K8sEvent[]> => {
+  const url = `/api/nb-events/${projectName}/${notebookName}${podUID ? `/${podUID}` : ''}`;
   return axios.get(url).then((response) => response.data);
 };

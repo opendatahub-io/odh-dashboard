@@ -9,7 +9,9 @@ const TaskDetailsPrintKeyValues: React.FC<TaskDetailsPrintKeyValuesProps> = ({ i
   <Grid hasGutter>
     {items.map((result, i) => (
       <React.Fragment key={`item-${i}`}>
-        <GridItem span={4}>{result.name}</GridItem>
+        <GridItem span={4}>
+          <b>{result.name}</b>
+        </GridItem>
         <GridItem span={8}>{result.value}</GridItem>
       </React.Fragment>
     ))}
