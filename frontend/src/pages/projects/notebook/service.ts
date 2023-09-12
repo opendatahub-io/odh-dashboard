@@ -34,6 +34,8 @@ export const getNotebooksStatus = async (
           notebook: notebooks[i],
           isStarting: !isStopped && !podsReady,
           isRunning: !isStopped && podsReady,
+          isStopping: isStopped && podsReady,
+          isStopped: isStopped && !podsReady,
           runningPodUid: pods[0]?.metadata?.uid || '',
         },
       ];
