@@ -19,7 +19,7 @@ export type NameDescType = {
 
 export type CreatingStorageObject = {
   nameDesc: NameDescType;
-  size: number;
+  size: string;
 };
 
 export type MountPath = {
