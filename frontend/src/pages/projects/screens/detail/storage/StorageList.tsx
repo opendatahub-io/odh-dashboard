@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button, Divider } from '@patternfly/react-core';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
@@ -14,6 +14,8 @@ const StorageList: React.FC = () => {
     pvcs: { data: pvcs, loaded, error: loadError },
     refreshAllProjectData: refresh,
   } = React.useContext(ProjectDetailsContext);
+
+  const isPvcsEmpty = pvcs.length === 0;
 
   return (
     <>
@@ -30,7 +32,7 @@ const StorageList: React.FC = () => {
           </Button>,
         ]}
         isLoading={!loaded}
-        isEmpty={pvcs.length === 0}
+        isEmpty={isPvcsEmpty}
         loadError={loadError}
         emptyState={
           <EmptyDetailsList
@@ -41,6 +43,7 @@ const StorageList: React.FC = () => {
       >
         <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
       </DetailsSection>
+      {isPvcsEmpty && <Divider data-id="details-page-section-divider" />}
       <ManageStorageModal
         isOpen={isOpen}
         onClose={(submit: boolean) => {
