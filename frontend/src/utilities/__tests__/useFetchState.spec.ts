@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react';
 import useFetchState from '~/utilities/useFetchState';
-import { expectHook, standardUseFetchState, testHook } from './testUtils/hooks';
+import { expectHook, standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 
 jest.useFakeTimers();
 

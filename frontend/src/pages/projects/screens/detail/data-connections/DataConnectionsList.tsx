@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button, Divider } from '@patternfly/react-core';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -14,6 +14,8 @@ const DataConnectionsList: React.FC = () => {
     refreshAllProjectData,
   } = React.useContext(ProjectDetailsContext);
   const [open, setOpen] = React.useState(false);
+
+  const isDataConnectionsEmpty = connections.length === 0;
 
   return (
     <>
@@ -30,7 +32,7 @@ const DataConnectionsList: React.FC = () => {
           </Button>,
         ]}
         isLoading={!loaded}
-        isEmpty={connections.length === 0}
+        isEmpty={isDataConnectionsEmpty}
         loadError={error}
         emptyState={
           <EmptyDetailsList
@@ -41,6 +43,7 @@ const DataConnectionsList: React.FC = () => {
       >
         <DataConnectionsTable connections={connections} refreshData={refreshAllProjectData} />
       </DetailsSection>
+      {isDataConnectionsEmpty && <Divider data-id="details-page-section-divider" />}
       <ManageDataConnectionModal
         isOpen={open}
         onClose={(submitted) => {
