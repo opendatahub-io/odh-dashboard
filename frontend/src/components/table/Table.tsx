@@ -17,9 +17,10 @@ import {
   Td,
   TbodyProps,
 } from '@patternfly/react-table';
-import useTableColumnSort, { SortableData } from '~/components/table/useTableColumnSort';
-import { CHECKBOX_FIELD_ID } from '~/components/table/const';
 import { EitherNotBoth } from '~/typeHelpers';
+import useTableColumnSort from './useTableColumnSort';
+import { CHECKBOX_FIELD_ID } from './const';
+import { SortableData } from './types';
 
 type TableProps<DataType> = {
   data: DataType[];

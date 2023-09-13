@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import Table from '~/components/table/Table';
-
+import { Table } from '~/components/table';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
