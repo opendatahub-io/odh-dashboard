@@ -5,9 +5,14 @@ import { HelpIcon } from '@patternfly/react-icons';
 type ImageLocationFieldProps = {
   location: string;
   setLocation: (location: string) => void;
+  isDisabled: boolean;
 };
 
-const ImageLocationField: React.FC<ImageLocationFieldProps> = ({ location, setLocation }) => (
+const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
+  location,
+  setLocation,
+  isDisabled,
+}) => (
   <FormGroup
     label="Image location"
     isRequired
@@ -45,6 +50,7 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({ location, setLo
       onChange={(value) => {
         setLocation(value);
       }}
+      isDisabled={isDisabled}
     />
   </FormGroup>
 );
