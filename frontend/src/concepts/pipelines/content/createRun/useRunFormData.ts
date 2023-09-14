@@ -9,6 +9,7 @@ import {
   RunType,
   RunTypeOption,
   ScheduledType,
+  RunParam,
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
@@ -18,12 +19,9 @@ import {
   PipelineRunKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
-import {
-  getPipelineCoreResourcePipelineReference,
-  getPipelineCoreResourceJobReference,
-} from '~/concepts/pipelines/content/tables/utils';
+
+import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { FetchState } from '~/utilities/useFetchState';
 import { ValueOf } from '~/typeHelpers';
@@ -37,6 +35,9 @@ import { convertDateToTimeString } from '~/utilities/time';
 const isPipelineRunJob = (
   runOrJob?: PipelineRunJobKF | PipelineRunKF,
 ): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
+
+const isPipeline = (pipeline?: unknown): pipeline is PipelineKF =>
+  !!(pipeline as PipelineKF)?.default_version;
 
 const useUpdateData = <T extends PipelineCoreResourceKF>(
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
@@ -64,18 +65,22 @@ const useUpdatePipelineRun = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRunJobKF,
 ) => {
-  const reference = getPipelineCoreResourceJobReference(initialData);
-  const [pipelineRunJob] = usePipelineRunJobById(reference?.key.id);
+  const { getJobInformation } = usePipelinesAPI();
+  const { data: pipelineRunJob, loading } = getJobInformation(initialData);
+
   const updatedSetFunction = React.useCallback<UpdateObjectAtPropAndValue<RunFormData>>(
-    (key, resource) => {
-      setFunction(key, resource);
-      const nameDesc: ValueOf<RunFormData> = {
-        name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
-        description: pipelineRunJob?.description ?? initialData?.description ?? '',
-      };
-      setFunction('nameDesc', nameDesc);
+    (key, pipeline) => {
+      if (!loading && isPipeline(pipeline)) {
+        setFunction(key, pipeline);
+        setFunction('params', getParams(pipeline));
+        const nameDesc: ValueOf<RunFormData> = {
+          name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
+          description: pipelineRunJob?.description ?? initialData?.description ?? '',
+        };
+        setFunction('nameDesc', nameDesc);
+      }
     },
-    [setFunction, initialData, pipelineRunJob],
+    [setFunction, initialData, pipelineRunJob, loading],
   );
 
   return useUpdateData(
@@ -195,6 +200,11 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
+const getParams = (pipeline?: PipelineKF): RunParam[] | undefined =>
+  pipeline
+    ? (pipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
+    : undefined;
+
 const useRunFormData = (
   initialData?: PipelineRunKF | PipelineRunJobKF,
   lastPipeline?: PipelineKF,
@@ -211,9 +221,7 @@ const useRunFormData = (
     pipeline: lastPipeline ?? null,
     // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: lastPipeline
-      ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
-      : undefined,
+    params: getParams(lastPipeline),
   });
   const setFunction = objState[1];
   useUpdatePipeline(setFunction, initialData);

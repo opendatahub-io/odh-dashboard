@@ -8,7 +8,7 @@ type JobStatus = {
   data: PipelineRunJobKF | null;
 };
 
-export type GetJobInformation = (resource: PipelineCoreResourceKF) => JobStatus;
+export type GetJobInformation = (resource?: PipelineCoreResourceKF) => JobStatus;
 
 const useJobRelatedInformation = (apiState: APIState): { getJobInformation: GetJobInformation } => {
   const [jobStorage, setJobStorage] = React.useState<{ [jobId: string]: JobStatus }>({});

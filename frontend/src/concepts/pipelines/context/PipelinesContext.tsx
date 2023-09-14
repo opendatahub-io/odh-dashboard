@@ -9,7 +9,6 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ProjectKind } from '~/k8sTypes';
-import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
@@ -22,12 +21,8 @@ import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
-type JobStatus = {
-  loading: boolean;
-  data: PipelineRunJobKF | null;
-};
+type GetJobInformationType = ReturnType<typeof useJobRelatedInformation>['getJobInformation'];
 
-type GetJobInformation = (resource: PipelineCoreResourceKF) => JobStatus;
 type PipelineContext = {
   hasCR: boolean;
   crInitializing: boolean;
@@ -38,7 +33,7 @@ type PipelineContext = {
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
   apiState: APIState;
-  getJobInformation: GetJobInformation;
+  getJobInformation: GetJobInformationType;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -137,7 +132,7 @@ type UsePipelinesAPI = APIState & {
    * Allows agnostic functionality to request all watched API to be reacquired.
    * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
    */
-  getJobInformation: GetJobInformation;
+  getJobInformation: GetJobInformationType;
   refreshAllAPI: () => void;
 };
 
