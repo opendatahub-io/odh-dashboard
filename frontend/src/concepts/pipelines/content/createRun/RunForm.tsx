@@ -6,6 +6,7 @@ import { ValueOf } from '~/typeHelpers';
 import RunTypeSection from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSection';
 import ParamsSection from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import { getProjectDisplayName } from '~/pages/projects/utils';
+import ExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ExperimentSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 
@@ -50,12 +51,10 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
         );
       }}
     />
-    {/*
     <ExperimentSection
       value={data.experiment}
       onChange={(experiment) => onValueChange('experiment', experiment)}
     />
-    */}
     <RunTypeSection
       value={data.runType}
       onChange={(runType) => onValueChange('runType', runType)}

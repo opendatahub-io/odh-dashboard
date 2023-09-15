@@ -2,10 +2,12 @@
  * Common types, should be kept up to date with backend types
  */
 
+import { AxiosError } from 'axios';
 import { ServingRuntimeSize } from '~/pages/modelServing/screens/types';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+import { AcceleratorState } from './utilities/useAcceleratorState';
 
 export type PrometheusQueryResponse = {
   data: {
@@ -17,17 +19,19 @@ export type PrometheusQueryResponse = {
   status: string;
 };
 
-export type PrometheusQueryRangeResponse = {
-  data: {
-    result: [
-      {
-        // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
-        metric: unknown;
-        values: PrometheusQueryRangeResultValue[];
-      },
-    ];
-    resultType: string;
+export type PrometheusQueryRangeResponseDataResult = {
+  metric: {
+    request?: string;
+    pod?: string;
   };
+  values: PrometheusQueryRangeResultValue[];
+};
+export type PrometheusQueryRangeResponseData = {
+  result: PrometheusQueryRangeResponseDataResult[];
+  resultType: string;
+};
+export type PrometheusQueryRangeResponse = {
+  data: PrometheusQueryRangeResponseData;
   status: string;
 };
 
@@ -90,6 +94,8 @@ export type DashboardCommonConfig = {
   disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableBiasMetrics: boolean;
+  disablePerformanceMetrics: boolean;
 };
 
 export type NotebookControllerUserState = {
@@ -104,24 +110,22 @@ export type NotebookControllerUserState = {
  * OdhDashboardConfig contains gpuSetting as a string value override -- proper gpus return as numbers
  * TODO: Look to make it just number by properly parsing the value
  */
-export type GPUCount = string | number;
 
 export enum ContainerResourceAttributes {
   CPU = 'cpu',
   MEMORY = 'memory',
-  NVIDIA_GPU = 'nvidia.com/gpu',
 }
 
 export type ContainerResources = {
   requests?: {
+    [key: string]: number | string | undefined;
     cpu?: string;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
   };
   limits?: {
+    [key: string]: number | string | undefined;
     cpu?: string;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
   };
 };
 
@@ -329,7 +333,8 @@ export type TrackingEventProperties = {
   anonymousID?: string;
   type?: string;
   term?: string;
-  GPU?: GPUCount;
+  accelerator?: string;
+  acceleratorCount?: number;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
   projectName?: string;
@@ -344,12 +349,14 @@ export type NotebookPort = {
 };
 
 export type PodToleration = {
-  effect: string;
   key: string;
-  operator: string;
+  operator?: string;
+  value?: string;
+  effect?: string;
+  tolerationSeconds?: number;
 };
 
-export type NotebookContainer = {
+export type PodContainer = {
   name: string;
   image: string;
   imagePullPolicy?: string;
@@ -376,6 +383,7 @@ export type Notebook = K8sResourceCommon & {
       'opendatahub.io/username': string; // the untranslated username behind the notebook
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+      'opendatahub.io/accelerator-name': string | undefined;
     }>;
     labels: Partial<{
       'opendatahub.io/user': string; // translated username -- see translateUsername
@@ -386,7 +394,7 @@ export type Notebook = K8sResourceCommon & {
       spec: {
         affinity?: PodAffinity;
         enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
+        containers: PodContainer[];
         volumes?: Volume[];
         tolerations?: PodToleration[];
       };
@@ -438,29 +446,17 @@ export type Route = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
-  description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {
@@ -702,7 +698,7 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  gpus: number;
+  accelerator: AcceleratorState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field
@@ -730,10 +726,17 @@ export type GPUInfo = {
 export type ContextResourceData<T> = {
   data: T[];
   loaded: boolean;
-  error?: Error;
+  error?: Error | AxiosError;
   refresh: () => void;
 };
 
 export type BreadcrumbItemType = {
   label: string;
 } & EitherNotBoth<{ link: string }, { isActive: boolean }>;
+
+export type AcceleratorInfo = {
+  configured: boolean;
+  available: { [key: string]: number };
+  total: { [key: string]: number };
+  allocated: { [key: string]: number };
+};

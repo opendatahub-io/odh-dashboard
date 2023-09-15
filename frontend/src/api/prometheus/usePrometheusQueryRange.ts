@@ -1,29 +1,47 @@
 import * as React from 'react';
 import axios from 'axios';
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResultValue } from '~/types';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 
-const usePrometheusQueryRange = (
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '~/utilities/useFetchState';
+import {
+  PrometheusQueryRangeResponse,
+  PrometheusQueryRangeResponseData,
+  PrometheusQueryRangeResultValue,
+} from '~/types';
+
+export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (
+  data: PrometheusQueryRangeResponseData,
+) => T[];
+
+const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
+  active: boolean,
   apiPath: string,
   queryLang: string,
   span: number,
   endInMs: number,
   step: number,
-): FetchState<PrometheusQueryRangeResultValue[]> => {
-  const fetchData = React.useCallback<
-    FetchStateCallbackPromise<PrometheusQueryRangeResultValue[]>
-  >(() => {
+  responsePredicate: ResponsePredicate<T>,
+): FetchState<T[]> => {
+  const fetchData = React.useCallback<FetchStateCallbackPromise<T[]>>(() => {
     const endInS = endInMs / 1000;
     const start = endInS - span;
 
+    if (!active) {
+      return Promise.reject(new NotReadyError('Prometheus query is not active'));
+    }
+
     return axios
       .post<{ response: PrometheusQueryRangeResponse }>(apiPath, {
-        query: `${queryLang}&start=${start}&end=${endInS}&step=${step}`,
+        query: `query=${queryLang}&start=${start}&end=${endInS}&step=${step}`,
       })
-      .then((response) => response.data?.response.data.result?.[0]?.values || []);
-  }, [queryLang, apiPath, span, endInMs, step]);
 
-  return useFetchState<PrometheusQueryRangeResultValue[]>(fetchData, []);
+      .then((response) => responsePredicate(response.data?.response.data));
+  }, [endInMs, span, apiPath, queryLang, step, responsePredicate, active]);
+
+  return useFetchState<T[]>(fetchData, []);
 };
 
 export default usePrometheusQueryRange;

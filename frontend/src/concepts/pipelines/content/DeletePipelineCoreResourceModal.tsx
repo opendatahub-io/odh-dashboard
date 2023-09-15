@@ -8,7 +8,7 @@ import { K8sAPIOptions } from '~/k8sTypes';
 import useNotification from '~/utilities/useNotification';
 
 type DeletePipelineCoreResourceModalProps = {
-  type: 'triggered run' | 'scheduled run' | 'pipeline';
+  type: 'triggered run' | 'scheduled run' | 'pipeline' | 'experiment';
   toDeleteResources: PipelineCoreResourceKF[];
   onClose: (deleted?: boolean) => void;
 };
@@ -77,6 +77,9 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
             break;
           case 'triggered run':
             callFunc = api.deletePipelineRun;
+            break;
+          case 'experiment':
+            callFunc = api.deleteExperiment;
             break;
           default:
             // eslint-disable-next-line no-console

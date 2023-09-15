@@ -8,7 +8,7 @@ export const DEFAULT_TIME = '12:00 AM';
 export enum CreateRunPageSections {
   NAME_DESC = 'run-section-name-desc',
   PIPELINE = 'run-section-pipeline',
-  // EXPERIMENT = 'run-section-experiment',
+  EXPERIMENT = 'run-section-experiment',
   RUN_TYPE = 'run-section-run-type',
   PARAMS = 'run-section-params',
 }
@@ -16,7 +16,7 @@ export enum CreateRunPageSections {
 export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.NAME_DESC]: 'Name and description',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
-  // [CreateRunPageSections.EXPERIMENT]: 'Experiment',
+  [CreateRunPageSections.EXPERIMENT]: 'Experiment',
   [CreateRunPageSections.RUN_TYPE]: 'Run type',
   [CreateRunPageSections.PARAMS]: 'Pipeline input parameters',
 };

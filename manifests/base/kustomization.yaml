@@ -21,6 +21,7 @@ resources:
   - image-puller.clusterrolebinding.yaml
   - model-serving-role.yaml
   - model-serving-role-binding.yaml
+  - fetch-accelerators.rbac.yaml
 images:
 - name: odh-dashboard
   newName: quay.io/opendatahub/odh-dashboard

@@ -53,6 +53,10 @@ spec:
                       type: string
                     disablePipelines:
                       type: boolean
+                    disableBiasMetrics:
+                      type: boolean
+                    disablePerformanceMetrics:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

@@ -2,7 +2,7 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import {
   PodAffinity,
-  NotebookContainer,
+  PodContainer,
   PodToleration,
   Volume,
   ContainerResources,
@@ -44,7 +44,10 @@ type DisplayNameAnnotations = Partial<{
 
 export type K8sDSGResource = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'opendatahub.io/recommended-accelerators': string;
+      }>;
     name: string;
   };
 };
@@ -70,6 +73,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+  'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
 }>;
 
 export type DashboardLabels = {
@@ -92,6 +96,8 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;
   'opendatahub.io/disable-gpu': string;
+  'opendatahub.io/recommended-accelerators': string;
+  'opendatahub.io/accelerator-name': string;
   'enable-route': string;
   'enable-auth': string;
 }>;
@@ -215,6 +221,7 @@ export type ImageStreamSpecTagType = {
 export type K8sAPIOptions = {
   dryRun?: boolean;
   signal?: AbortSignal;
+  parseJSON?: boolean;
 };
 
 /** A status object when Kube backend can't handle a request. */
@@ -251,6 +258,15 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
   } & Record<string, unknown>;
 };
 
+export type PodSpec = {
+  affinity?: PodAffinity;
+  enableServiceLinks?: boolean;
+  containers: PodContainer[];
+  initContainers?: PodContainer[];
+  volumes?: Volume[];
+  tolerations?: PodToleration[];
+};
+
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
     annotations: DisplayNameAnnotations & NotebookAnnotations;
@@ -262,13 +278,7 @@ export type NotebookKind = K8sResourceCommon & {
   };
   spec: {
     template: {
-      spec: {
-        affinity?: PodAffinity;
-        enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
-        volumes?: Volume[];
-        tolerations?: PodToleration[];
-      };
+      spec: PodSpec;
     };
   };
   status?: {
@@ -279,6 +289,7 @@ export type NotebookKind = K8sResourceCommon & {
 };
 
 export type PodKind = K8sResourceCommon & {
+  spec: PodSpec;
   status: {
     containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
   };
@@ -310,6 +321,15 @@ export type ServiceAccountKind = K8sResourceCommon & {
   }[];
 };
 
+export type ServingContainer = {
+  args: string[];
+  image: string;
+  name: string;
+  affinity?: PodAffinity;
+  resources: ContainerResources;
+  volumeMounts?: VolumeMount[];
+};
+
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
@@ -323,15 +343,10 @@ export type ServingRuntimeKind = K8sResourceCommon & {
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
-    containers: {
-      args: string[];
-      image: string;
-      name: string;
-      resources: ContainerResources;
-      volumeMounts?: VolumeMount[];
-    }[];
+    containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
+    tolerations?: PodToleration[];
     volumes?: Volume[];
   };
 };
@@ -419,6 +434,9 @@ export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
     path: string;
+    port: {
+      targetPort: string;
+    };
   };
 };
 
@@ -440,6 +458,34 @@ export type AWSSecretKind = SecretKind & {
     };
   };
   data: Record<AWS_KEYS, string>;
+};
+
+export type TrustyAIKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    storage: {
+      format: string;
+      folder: string;
+      size: string;
+    };
+    data: {
+      filename: string;
+      format: string;
+    };
+    metrics: {
+      schedule: string;
+      batchSize?: number;
+    };
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+    ready?: string;
+    replicas?: number;
+  };
 };
 
 export type DSPipelineKind = K8sResourceCommon & {
@@ -655,6 +701,7 @@ export type PipelineRunKind = K8sResourceCommon & {
   };
   spec: {
     pipelineSpec?: PipelineRunPipelineSpec;
+    params?: PipelineRunTaskParam[];
     /** Unsupported for Kubeflow */
     pipelineRef?: {
       name: string;
@@ -730,5 +777,21 @@ export type DashboardConfigKind = K8sResourceCommon & {
     };
     templateOrder?: string[];
     templateDisablement?: string[];
+  };
+};
+
+export type AcceleratorKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: PodToleration[];
   };
 };

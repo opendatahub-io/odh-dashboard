@@ -17,6 +17,7 @@ export * from './k8s/users';
 export * from './k8s/groups';
 export * from './k8s/templates';
 export * from './k8s/dashboardConfig';
+export * from './k8s/accelerators';
 
 // Pipelines uses special redirected API
 export * from './pipelines/custom';
@@ -31,3 +32,9 @@ export * from './errorUtils';
 
 // User access review hook
 export * from './useAccessReview';
+
+// Explainability
+
+export * from './trustyai/custom';
+export * from './trustyai/rawTypes';
+export * from './trustyai/k8s';

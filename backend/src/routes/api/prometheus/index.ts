@@ -4,10 +4,12 @@ import {
   OauthFastifyRequest,
   PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
+  QueryType,
 } from '../../../types';
-import { callPrometheusPVC, callPrometheusServing } from '../../../utils/prometheusUtils';
+import { callPrometheusThanos } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
+import { THANOS_DEFAULT_ADMIN_PORT } from '../../../utils/constants';
 
 const handleError = (e: createError.HttpError) => {
   if (e?.code) {
@@ -35,7 +37,28 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     ): Promise<{ code: number; response: PrometheusQueryResponse }> => {
       const { query } = request.body;
 
-      return callPrometheusPVC(fastify, request, query).catch(handleError);
+      return callPrometheusThanos<PrometheusQueryResponse>(fastify, request, query).catch(
+        handleError,
+      );
+    },
+  );
+
+  fastify.post(
+    '/bias',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryRangeResponse }> => {
+      const { query } = request.body;
+
+      return callPrometheusThanos<PrometheusQueryRangeResponse>(
+        fastify,
+        request,
+        query,
+        QueryType.QUERY_RANGE,
+        THANOS_DEFAULT_ADMIN_PORT,
+      ).catch(handleError);
     },
   );
 
@@ -49,7 +72,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       logRequestDetails(fastify, request);
       const { query } = request.body;
 
-      return callPrometheusServing(fastify, request, query).catch(handleError);
+      return callPrometheusThanos<PrometheusQueryRangeResponse>(
+        fastify,
+        request,
+        query,
+        QueryType.QUERY_RANGE,
+        THANOS_DEFAULT_ADMIN_PORT,
+      ).catch(handleError);
     },
   );
 };

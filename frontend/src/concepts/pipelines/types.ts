@@ -18,6 +18,7 @@ export type CreateExperiment = (
   name: string,
   description: string,
 ) => Promise<ExperimentKF>;
+export type DeleteExperiment = (opts: K8sAPIOptions, experimentId: string) => Promise<void>;
 export type CreatePipelineRun = (
   opts: K8sAPIOptions,
   data: CreatePipelineRunKFData,
@@ -70,6 +71,7 @@ export type UploadPipeline = (
 
 export type PipelineAPIs = {
   createExperiment: CreateExperiment;
+  deleteExperiment: DeleteExperiment;
   createPipelineRun: CreatePipelineRun;
   createPipelineRunJob: CreatePipelineRunJob;
   getExperiment: GetExperiment;

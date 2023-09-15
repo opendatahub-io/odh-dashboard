@@ -11,8 +11,13 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import CreateRunEmptyState from '~/pages/pipelines/global/runs/CreateRunEmptyState';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import usePipelineRuns from '~/concepts/pipelines/apiHooks/usePipelineRuns';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
-const TriggeredRuns: React.FC = () => {
+type TriggeredRunsProps = {
+  experiments: ExperimentKF[];
+};
+
+const TriggeredRuns: React.FC<TriggeredRunsProps> = ({ experiments }) => {
   const [runs, loaded, error] = usePipelineRuns();
 
   if (error) {
@@ -46,7 +51,7 @@ const TriggeredRuns: React.FC = () => {
     );
   }
 
-  return <PipelineRunTable runs={runs} />;
+  return <PipelineRunTable runs={runs} experiments={experiments} />;
 };
 
 export default TriggeredRuns;

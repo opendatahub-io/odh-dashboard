@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
-import { NotebookContainer } from '~/types';
+import { PodContainer } from '~/types';
 
 const useNotebookImageData = (
   notebook?: NotebookKind,
@@ -22,7 +22,7 @@ const useNotebookImageData = (
       return [null, false];
     }
 
-    const container: NotebookContainer | undefined = notebook.spec.template.spec.containers.find(
+    const container: PodContainer | undefined = notebook.spec.template.spec.containers.find(
       (container) => container.name === notebook.metadata.name,
     );
     const imageTag = container?.image.split('/').at(-1)?.split(':');

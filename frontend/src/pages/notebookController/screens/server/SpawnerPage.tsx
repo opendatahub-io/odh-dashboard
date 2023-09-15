@@ -39,7 +39,7 @@ import ImpersonateAlert from '~/pages/notebookController/screens/admin/Impersona
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
-import GPUSelectField from './GPUSelectField';
+import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -49,6 +49,7 @@ import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
 
 import '~/pages/notebookController/NotebookController.scss';
+import AcceleratorSelectField from './AcceleratorSelectField';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -68,7 +69,7 @@ const SpawnerPage: React.FC = () => {
     tag: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
-  const [selectedGpu, setSelectedGpu] = React.useState('0');
+  const [accelerator, setAccelerator] = useNotebookAccelerator(currentUserNotebook);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
@@ -231,7 +232,12 @@ const SpawnerPage: React.FC = () => {
 
   const fireStartServerEvent = () => {
     fireTrackingEvent('Notebook Server Started', {
-      GPU: parseInt(selectedGpu),
+      accelerator: accelerator.accelerator
+        ? `${accelerator.accelerator.spec.displayName} (${accelerator.accelerator.metadata.name}): ${accelerator.accelerator.spec.identifier}`
+        : accelerator.useExisting
+        ? 'Unknown'
+        : 'None',
+      acceleratorCount: accelerator.useExisting ? undefined : accelerator.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
@@ -246,7 +252,7 @@ const SpawnerPage: React.FC = () => {
       notebookSizeName: selectedSize.name,
       imageName: selectedImageTag.image?.name || '',
       imageTagName: selectedImageTag.tag?.name || '',
-      gpus: parseInt(selectedGpu),
+      accelerator: accelerator,
       envVars: envVars,
       state: NotebookState.Started,
       username: impersonatedUsername || undefined,
@@ -307,7 +313,10 @@ const SpawnerPage: React.FC = () => {
               setValue={(size) => setSelectedSize(size)}
               sizes={sizes}
             />
-            <GPUSelectField value={selectedGpu} setValue={(size) => setSelectedGpu(size)} />
+            <AcceleratorSelectField
+              acceleratorState={accelerator}
+              setAcceleratorState={setAccelerator}
+            />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
             {renderEnvironmentVariableRows()}

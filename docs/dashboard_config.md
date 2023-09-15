@@ -23,6 +23,8 @@ The following are a list of features that are supported, along with there defaul
 | disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
 | modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
+| disableBiasMetrics           | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
+| disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
 
 ## Defaults
 
@@ -46,6 +48,8 @@ spec:
     disableProjectSharing: false
     disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
+    disableBiasMetrics: false
+    disablePerformanceMetrics: false
 ```
 
 ## Additional fields
@@ -87,7 +91,6 @@ The `notebookController` field controls the Notebook Controller options such as 
 ```yaml
 notebookController:
   enabled: true
-  gpuSetting: autodetect
   pvcSize: 20Gi
   notebookNamespace: odh-notebooks
   notebookTolerationSettings:
@@ -136,6 +139,8 @@ spec:
     disableProjectSharing: true
     disableCustomServingRuntimes: false
     modelMetricsNamespace: ''
+    disableBiasMetrics: false
+    disablePerformanceMetrics: false
   notebookController:
     enabled: true
   notebookSizes:

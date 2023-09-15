@@ -2,13 +2,11 @@ import compareVersions from 'compare-versions';
 import {
   BuildStatus,
   BUILD_PHASE,
-  GPUCount,
   ImageInfo,
   ImageSoftwareType,
   ImageTag,
   ImageTagInfo,
-  NotebookContainer,
-  ContainerResourceAttributes,
+  PodContainer,
 } from '~/types';
 
 const PENDING_PHASES = [
@@ -71,9 +69,6 @@ export const getVersion = (version?: string, prefix?: string): string => {
 
 export const getNameVersionString = (software: ImageSoftwareType): string =>
   `${software.name}${getVersion(software.version, ' v')}`;
-
-export const getNumGpus = (container?: NotebookContainer): GPUCount =>
-  container?.resources?.limits?.[ContainerResourceAttributes.NVIDIA_GPU] || 0;
 
 export const getDefaultTag = (
   buildStatuses: BuildStatus[],
@@ -156,10 +151,7 @@ export const getDescriptionForTag = (imageTag?: ImageTagInfo): string => {
   return softwareDescriptions.join(', ');
 };
 
-export const getImageTagByContainer = (
-  images: ImageInfo[],
-  container?: NotebookContainer,
-): ImageTag => {
+export const getImageTagByContainer = (images: ImageInfo[], container?: PodContainer): ImageTag => {
   const imageTag = container?.image.split('/').at(-1)?.split(':');
   if (!imageTag || imageTag.length < 2) {
     return { image: undefined, tag: undefined };

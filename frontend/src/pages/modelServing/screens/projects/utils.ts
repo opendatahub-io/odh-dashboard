@@ -8,7 +8,7 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { ContainerResourceAttributes, DashboardConfig } from '~/types';
+import { DashboardConfig } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -61,7 +61,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
     servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: sizes[0],
-    gpus: 0,
     externalRoute: false,
     tokenAuth: false,
     tokens: [],
@@ -81,11 +80,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingResources =
     existingData?.servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
-
-  const existingGpus =
-    existingData?.servingRuntime?.spec?.containers[0]?.resources?.requests?.[
-      ContainerResourceAttributes.NVIDIA_GPU
-    ] || 0;
 
   const existingExternalRoute =
     existingData?.servingRuntime?.metadata.annotations?.['enable-route'] === 'true';
@@ -118,10 +112,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
           resources: existingResources,
         },
       );
-      setCreateData(
-        'gpus',
-        typeof existingGpus == 'string' ? parseInt(existingGpus) : existingGpus,
-      );
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
@@ -131,7 +121,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingServingRuntimeTemplateName,
     existingNumReplicas,
     existingResources,
-    existingGpus,
     existingExternalRoute,
     existingTokenAuth,
     existingTokens,
@@ -206,3 +195,6 @@ export const useCreateInferenceServiceObject = (
 
   return createInferenceServiceState;
 };
+
+export const getModelServerDisplayName = (server: ServingRuntimeKind) =>
+  getDisplayNameFromK8sResource(server);

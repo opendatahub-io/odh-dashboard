@@ -14,6 +14,7 @@ import {
   StopPipelineRunAPI,
   ListExperimentsAPI,
   CreateExperimentAPI,
+  DeleteExperimentAPI,
   GetExperimentAPI,
   CreatePipelineRunAPI,
   CreatePipelineRunJobAPI,
@@ -26,6 +27,11 @@ import { handlePipelineFailures } from './errorUtils';
 export const createExperiment: CreateExperimentAPI = (hostPath) => (opts, name, description) =>
   handlePipelineFailures(
     proxyCREATE(hostPath, `/apis/v1beta1/experiments`, { name, description }, {}, opts),
+  );
+
+export const deleteExperiment: DeleteExperimentAPI = (hostPath) => (opts, experimentId) =>
+  handlePipelineFailures(
+    proxyDELETE(hostPath, `/apis/v1beta1/experiments/${experimentId}`, {}, opts),
   );
 
 export const createPipelineRun: CreatePipelineRunAPI = (hostPath) => (opts, data) =>
@@ -47,13 +53,15 @@ export const getPipelineRunJob: GetPipelineRunJobAPI = (hostPath) => (opts, pipe
   handlePipelineFailures(proxyGET(hostPath, `/apis/v1beta1/jobs/${pipelineRunJobId}`, {}, opts));
 
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
+  handlePipelineFailures(
+    proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, {}, opts),
+  );
 
 export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/runs/${runId}`, {}, opts));
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/runs/${runId}`, {}, {}, opts));
 
 export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts, jobId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, opts));
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, {}, opts));
 
 export const listExperiments: ListExperimentsAPI = (hostPath) => (opts) =>
   handlePipelineFailures(

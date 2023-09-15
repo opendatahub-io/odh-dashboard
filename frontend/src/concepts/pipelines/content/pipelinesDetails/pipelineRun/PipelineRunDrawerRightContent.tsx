@@ -10,16 +10,19 @@ import {
 } from '@patternfly/react-core';
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import { TaskReferenceMap, PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
+import { PipelineRunTaskParam } from '~/k8sTypes';
 
 type PipelineRunDrawerRightContentProps = {
   task?: PipelineRunTaskDetails;
   taskReferences: TaskReferenceMap;
+  parameters?: PipelineRunTaskParam[];
   onClose: () => void;
 };
 
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
   task,
   taskReferences,
+  parameters,
   onClose,
 }) => {
   if (!task) {
@@ -30,7 +33,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
     <DrawerPanelContent
       isResizable
       widths={{ default: 'width_33', lg: 'width_50' }}
-      minSize="300px"
+      minSize="400px"
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
@@ -42,8 +45,12 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody>
-        <PipelineRunDrawerRightTabs taskReferences={taskReferences} task={task} />
+      <DrawerPanelBody style={{ display: 'flex', flexDirection: 'column' }}>
+        <PipelineRunDrawerRightTabs
+          taskReferences={taskReferences}
+          task={task}
+          parameters={parameters}
+        />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

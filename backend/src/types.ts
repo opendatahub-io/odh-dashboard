@@ -29,6 +29,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableCustomServingRuntimes: boolean;
       modelMetricsNamespace: string;
       disablePipelines: boolean;
+      disableBiasMetrics: boolean;
+      disablePerformanceMetrics: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -254,6 +256,7 @@ export type KubeDecorator = KubeStatus & {
   customObjectsApi: k8s.CustomObjectsApi;
   rbac: k8s.RbacAuthorizationV1Api;
   currentToken: string;
+
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
@@ -473,34 +476,22 @@ export type ODHSegmentKey = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
-  description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
 };
 
 export type ImageTag = {
   image: ImageInfo | undefined;
   tag: ImageTagInfo | undefined;
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {
@@ -553,6 +544,7 @@ export type ImageStream = {
     namespace: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
+    creationTimestamp?: string;
   };
   spec: {
     lookupPolicy?: {
@@ -755,6 +747,14 @@ export type GPUInfo = {
   available: number;
   autoscalers: gpuScale[];
 };
+
+export type AcceleratorInfo = {
+  configured: boolean;
+  available: {[key: string]: number};
+  total: {[key: string]: number};
+  allocated: {[key: string]: number};
+}
+
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
   { valueFrom: Record<string, unknown> }
@@ -805,10 +805,15 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  gpus: number;
+  accelerator: AcceleratorState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
+};
+
+export type AcceleratorState = {
+  accelerator?: AcceleratorKind;
+  count: number;
 };
 
 export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
@@ -868,19 +873,21 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
-export type GPUCount = string | number;
+
+export enum ContainerResourceAttributes {
+  CPU = 'cpu',
+  MEMORY = 'memory',
+}
 
 export type ContainerResources = {
   requests?: {
     cpu?: string;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
-  };
+  } & Record<string, unknown>;
   limits?: {
     cpu?: string;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
-  };
+  } & Record<string, unknown>;
 };
 
 export type ServingRuntime = K8sResourceCommon & {
@@ -908,3 +915,26 @@ export type ServingRuntime = K8sResourceCommon & {
     volumes?: Volume[];
   };
 };
+
+export type AcceleratorKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: NotebookToleration[];
+  };
+};
+
+export enum KnownLabels {
+  DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
+  PROJECT_SHARING = 'opendatahub.io/project-sharing',
+  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
+  DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+}

@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { PageSection, Spinner, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import ScheduledRuns from '~/pages/pipelines/global/runs/ScheduledRuns';
 import TriggeredRuns from '~/pages/pipelines/global/runs/TriggeredRuns';
 import './GlobalPipelineRunsTabs.scss';
+import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
+import useExperiments from '~/concepts/pipelines/apiHooks/useExperiements';
 
 enum PipelineRunsTabs {
   SCHEDULED,
@@ -11,6 +13,17 @@ enum PipelineRunsTabs {
 
 const GlobalPipelineRunsTab: React.FC = () => {
   const [tab, setTab] = React.useState<PipelineRunsTabs>(PipelineRunsTabs.SCHEDULED);
+  const [experiments, loaded, loadError] = useExperiments();
+
+  if (loadError) {
+    return (
+      <EmptyStateErrorMessage title="Error displaying experiments" bodyText={loadError.message} />
+    );
+  }
+
+  if (!loaded) {
+    return <Spinner />;
+  }
 
   return (
     <Tabs
@@ -31,7 +44,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
         className="odh-tabcontent-fix"
       >
         <PageSection isFilled variant="light">
-          <ScheduledRuns />
+          <ScheduledRuns experiments={experiments} />
         </PageSection>
       </Tab>
       <Tab
@@ -41,7 +54,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
         className="odh-tabcontent-fix"
       >
         <PageSection isFilled variant="light">
-          <TriggeredRuns />
+          <TriggeredRuns experiments={experiments} />
         </PageSection>
       </Tab>
     </Tabs>
