@@ -16,8 +16,7 @@ type ServingRuntimeTableRowProps = {
   onDeleteServingRuntime: (obj: ServingRuntimeKind) => void;
   onEditServingRuntime: (obj: ServingRuntimeKind) => void;
   onDeployModel: (obj: ServingRuntimeKind) => void;
-  expandedColumn?: ServingRuntimeTableTabs;
-  setExpandedColumn: (column?: ServingRuntimeTableTabs) => void;
+  expandedServingRuntimeName?: string;
   allowDelete: boolean;
 };
 
@@ -26,8 +25,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   onDeleteServingRuntime,
   onEditServingRuntime,
   onDeployModel,
-  expandedColumn,
-  setExpandedColumn,
+  expandedServingRuntimeName,
   allowDelete,
 }) => {
   const {
@@ -39,6 +37,14 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
     serverSecrets: { loaded: secretsLoaded, error: secretsLoadError },
     filterTokens,
   } = React.useContext(ProjectDetailsContext);
+
+  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
+
+  React.useEffect(() => {
+    if (expandedServingRuntimeName === obj.metadata.name) {
+      setExpandedColumn(ServingRuntimeTableTabs.DEPLOYED_MODELS);
+    }
+  }, [expandedServingRuntimeName, obj.metadata.name]);
 
   const tokens = filterTokens(obj.metadata.name);
 
