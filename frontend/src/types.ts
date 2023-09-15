@@ -153,7 +153,7 @@ export type NotebookTolerationFormSettings = TolerationSettings & {
 
 export type ClusterSettingsType = {
   userTrackingEnabled: boolean;
-  pvcSize: number | string;
+  pvcSize: number;
   cullerTimeout: number;
   notebookTolerationSettings: TolerationSettings | null;
 };

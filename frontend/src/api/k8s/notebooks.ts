@@ -374,6 +374,7 @@ export const attachNotebookPVC = (
   namespace: string,
   pvcName: string,
   mountSuffix: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [
     {
@@ -389,17 +390,20 @@ export const attachNotebookPVC = (
     },
   ];
 
-  return k8sPatchResource<NotebookKind>({
-    model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace },
-    patches,
-  });
+  return k8sPatchResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      queryOptions: { name: notebookName, ns: namespace },
+      patches,
+    }),
+  );
 };
 
 export const removeNotebookPVC = (
   notebookName: string,
   namespace: string,
   pvcName: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> =>
   new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
@@ -428,11 +432,13 @@ export const removeNotebookPVC = (
           },
         ];
 
-        k8sPatchResource<NotebookKind>({
-          model: NotebookModel,
-          queryOptions: { name: notebookName, ns: namespace },
-          patches,
-        })
+        k8sPatchResource<NotebookKind>(
+          applyK8sAPIOptions(opts, {
+            model: NotebookModel,
+            queryOptions: { name: notebookName, ns: namespace },
+            patches,
+          }),
+        )
           .then(resolve)
           .catch(reject);
       })
