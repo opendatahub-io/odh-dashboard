@@ -116,22 +116,22 @@ const createSecrets = (config: PipelineServerConfigType, projectName: string) =>
       .catch(reject);
   });
 
-export const configureDSPipelineResourceSpec = (
+export const createDSPipelineResourceSpec = (
   config: PipelineServerConfigType,
-  projectName: string,
-): Promise<DSPipelineKind['spec']> =>
-  createSecrets(config, projectName).then(([databaseSecret, objectStorageSecret]) => {
+  [databaseSecret, objectStorageSecret]: SecretsResponse,
+): DSPipelineKind['spec'] => {
+  {
     const awsRecord = dataEntryToRecord(objectStorageSecret.awsData);
     const databaseRecord = dataEntryToRecord(config.database.value);
 
     const [, externalStorageScheme, externalStorageHost] =
-      awsRecord.AWS_S3_ENDPOINT?.match(/^(\w+):\/\/(.*)/) ?? [];
+      awsRecord.AWS_S3_ENDPOINT?.match(/^(?:(\w+):\/\/)?(.*)/) ?? [];
 
     return {
       objectStorage: {
         externalStorage: {
-          host: externalStorageHost.replace(/\/$/, ''),
-          scheme: externalStorageScheme,
+          host: externalStorageHost?.replace(/\/$/, '') || '',
+          scheme: externalStorageScheme || 'https',
           bucket: awsRecord.AWS_S3_BUCKET || '',
           s3CredentialsSecret: {
             accessKey: AWS_KEYS.ACCESS_KEY_ID,
@@ -155,4 +155,13 @@ export const configureDSPipelineResourceSpec = (
           }
         : undefined,
     };
-  });
+  }
+};
+
+export const configureDSPipelineResourceSpec = (
+  config: PipelineServerConfigType,
+  projectName: string,
+): Promise<DSPipelineKind['spec']> =>
+  createSecrets(config, projectName).then((secretsResponse) =>
+    createDSPipelineResourceSpec(config, secretsResponse),
+  );

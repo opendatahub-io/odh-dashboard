@@ -14,7 +14,7 @@ import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { getModelServingProjects } from './projects';
-import { assemblePodSpecOptions } from './utils';
+import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
 const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
@@ -79,12 +79,27 @@ const assembleServingRuntime = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(resourceSettings, gpus);
 
-  updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => ({
-    ...container,
-    resources,
-    affinity,
-    tolerations,
-  }));
+  const volumes = updatedServingRuntime.spec.volumes || [];
+  if (!volumes.find((volume) => volume.name === 'shm')) {
+    volumes.push(getshmVolume('2Gi'));
+  }
+
+  updatedServingRuntime.spec.volumes = volumes;
+
+  updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map((container) => {
+    const volumeMounts = container.volumeMounts || [];
+    if (!volumeMounts.find((volumeMount) => volumeMount.mountPath === '/dev/shm')) {
+      volumeMounts.push(getshmVolumeMount());
+    }
+
+    return {
+      ...container,
+      resources,
+      affinity,
+      tolerations,
+      volumeMounts,
+    };
+  });
 
   return updatedServingRuntime;
 };
