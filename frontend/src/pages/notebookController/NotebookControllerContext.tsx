@@ -13,6 +13,7 @@ const defaultNotebookControllerContext: NotebookControllerContextProps = {
   requestNotebookRefresh: () => undefined,
   currentUserNotebookIsRunning: false,
   currentUserNotebookPodUID: '',
+  currentUserNotebookLink: '',
   setImpersonating: () => undefined,
   impersonatedUsername: null,
   setCurrentAdminTab: () => undefined,
@@ -32,6 +33,7 @@ export const NotebookControllerContextProvider: React.FC<
     current: undefined,
     currentIsRunning: false,
     currentPodUID: '',
+    currentLink: '',
     former: null,
     requestRefresh: () => undefined,
   });
@@ -50,6 +52,7 @@ export const NotebookControllerContextProvider: React.FC<
         currentUserNotebook: notebookState.current ?? null,
         currentUserNotebookIsRunning: notebookState.currentIsRunning,
         currentUserNotebookPodUID: notebookState.currentPodUID,
+        currentUserNotebookLink: notebookState.currentLink,
       }}
     >
       <SetupCurrentNotebook
