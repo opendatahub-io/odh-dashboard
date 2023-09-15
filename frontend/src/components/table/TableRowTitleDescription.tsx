@@ -7,15 +7,19 @@ import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 type TableRowTitleDescriptionProps = {
   title: React.ReactNode;
   resource?: K8sResourceCommon;
+  subtitle?: React.ReactNode;
   description?: string;
   descriptionAsMarkdown?: boolean;
+  label?: React.ReactNode;
 };
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   title,
   description,
   resource,
+  subtitle,
   descriptionAsMarkdown,
+  label,
 }) => {
   let descriptionNode: React.ReactNode;
   if (description) {
@@ -31,7 +35,9 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
       <Title headingLevel="h3" size="md">
         {resource ? <ResourceNameTooltip resource={resource}>{title}</ResourceNameTooltip> : title}
       </Title>
+      {subtitle && <Text>{subtitle}</Text>}
       {descriptionNode}
+      {label}
     </>
   );
 };

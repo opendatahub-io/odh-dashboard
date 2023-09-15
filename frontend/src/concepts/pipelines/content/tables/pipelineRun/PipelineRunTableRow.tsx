@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+
 import {
   RunCreated,
   RunDuration,
@@ -13,7 +12,8 @@ import {
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import CheckboxTd from '~/components/table/CheckboxTd';
-import { GetJobInformation } from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
+import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
+import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -33,36 +33,18 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { namespace } = usePipelinesAPI();
   const { loading, data } = getJobInformation(run);
 
-  const loadingState = <Skeleton />;
-
   return (
     <Tr>
       <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td>
-        {loading ? (
-          loadingState
-        ) : (
-          <TableRowTitleDescription
-            title={
-              <Link to={`/pipelineRuns/${namespace}/pipelineRun/view/${run.id}`}>
-                {data ? `Run of ${data.name}` : run.name}
-              </Link>
-            }
-            description={
-              data
-                ? `${run.name}\n${run.description ?? ''}\n${data.description ?? ''}`
-                : run.description
-            }
-            descriptionAsMarkdown
-          />
-        )}
+        <PipelineRunTableRowTitle resource={run} />
       </Td>
       <Td>
         <CoreResourceExperiment resource={run} />
       </Td>
       <Td>
         {loading ? (
-          loadingState
+          <Skeleton />
         ) : (
           <CoreResourcePipeline resource={data || run} namespace={namespace} />
         )}
