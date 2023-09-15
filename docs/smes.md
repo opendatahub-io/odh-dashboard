@@ -9,7 +9,7 @@ Below there will be some terms like “previous” and “backup”, these are f
 - **backup** – a good person to lean on if there is a need for any 2nd opinions, for bouncing ideas off of, or any larger discussion about direction
 - **and** – Ping both during conversations – could be onboarding, could be a need to share information, best get both people involved at the same time
 
-General Dashboard ownership
+## General Dashboard ownership
 - Infrastructure / direction
     - Architect: `Andrew` ([andrewballantyne])
     - General UX: `Kyle` ([kywalker-rh])
@@ -19,7 +19,7 @@ General Dashboard ownership
 - Performance
     - Area lead: `Lucas` ([lucferbux])
 
-Dashboard features
+## Dashboard feature areas
 - Data Science Projects
     - Feature lead: `Andrew` ([andrewballantyne])
     - UX: `Kyle` ([kywalker-rh]) **and** `Kun` ([xianli123])
@@ -40,13 +40,16 @@ Dashboard features
     - Feature lead: `Juntao` ([DaoDaoNoCode])
         - Backup: `Andrew` ([andrewballantyne])
     - UX: `Vince` ([vconzola])
-- Habana / Accelerators
-    - Feature lead: `Gage` ([Gkrumbach07]);
+- Accelerators (Habana, GPU, etc)
+    - Feature lead: `Gage` ([Gkrumbach07])
         - Backup: `Andrew` ([andrewballantyne])
     - UX: `Yan` ([yannnz])
 - Model Registry
     - Feature lead: TBD
     - UX: `Sim` ([simrandhaliw])  **and** `Haley` ([yih-wang])
+- Edge
+    - Feature lead: TBD
+    - UX: `Vince` ([vconzola])
 
 <!-- Developers -->
 [andrewballantyne]: https://github.com/andrewballantyne
