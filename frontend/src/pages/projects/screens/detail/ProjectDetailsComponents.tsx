@@ -1,12 +1,10 @@
 import * as React from 'react';
-import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import GenericSidebar from '~/components/GenericSidebar';
 import { useAppContext } from '~/app/AppContext';
 import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { featureFlagEnabled } from '~/utilities/utils';
 import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectSectionID } from './types';
 import StorageList from './storage/StorageList';
@@ -16,19 +14,10 @@ import DataConnectionsList from './data-connections/DataConnectionsList';
 type SectionType = {
   id: ProjectSectionID;
   component: React.ReactNode;
-  isEmpty: boolean;
 };
 
 const ProjectDetailsComponents: React.FC = () => {
   const { dashboardConfig } = useAppContext();
-  const {
-    notebooks: { data: notebookStates, loaded: notebookStatesLoaded },
-    pvcs: { data: pvcs, loaded: pvcsLoaded },
-    dataConnections: { data: connections, loaded: connectionsLoaded },
-    servingRuntimes: { data: modelServers, loaded: modelServersLoaded },
-  } = React.useContext(ProjectDetailsContext);
-  const { pipelinesServer } = usePipelinesAPI();
-
   const modelServingEnabled = featureFlagEnabled(
     dashboardConfig.spec.dashboardConfig.disableModelServing,
   );
@@ -40,24 +29,20 @@ const ProjectDetailsComponents: React.FC = () => {
     {
       id: ProjectSectionID.WORKBENCHES,
       component: <NotebooksList />,
-      isEmpty: notebookStatesLoaded && notebookStates.length === 0,
     },
     {
       id: ProjectSectionID.CLUSTER_STORAGES,
       component: <StorageList />,
-      isEmpty: pvcsLoaded && pvcs.length === 0,
     },
     {
       id: ProjectSectionID.DATA_CONNECTIONS,
       component: <DataConnectionsList />,
-      isEmpty: connectionsLoaded && connections.length === 0,
     },
     ...(pipelinesEnabled
       ? [
           {
             id: ProjectSectionID.PIPELINES,
             component: <PipelinesSection />,
-            isEmpty: !pipelinesServer.installed,
           },
         ]
       : []),
@@ -66,7 +51,6 @@ const ProjectDetailsComponents: React.FC = () => {
           {
             id: ProjectSectionID.MODEL_SERVER,
             component: <ServingRuntimeList />,
-            isEmpty: modelServersLoaded && modelServers.length === 0,
           },
         ]
       : []),
@@ -80,7 +64,7 @@ const ProjectDetailsComponents: React.FC = () => {
         maxWidth={175}
       >
         <Stack hasGutter>
-          {sections.map(({ id, component, isEmpty }, index) => (
+          {sections.map(({ id, component }) => (
             <React.Fragment key={id}>
               <StackItem
                 id={id}
@@ -89,9 +73,6 @@ const ProjectDetailsComponents: React.FC = () => {
               >
                 {component}
               </StackItem>
-              {index !== sections.length - 1 && isEmpty && (
-                <Divider data-id="details-page-section-divider" />
-              )}
             </React.Fragment>
           ))}
         </Stack>

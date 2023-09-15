@@ -169,22 +169,20 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
   return (
     <Level hasGutter>
       <LevelItem>
-        <Tooltip content={isEnabled ? 'Enabled' : 'Disabled'}>
-          <Switch
-            id={`${job.id}-toggle`}
-            aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
-            isDisabled={isChangingFlag}
-            onChange={(checked) => {
-              setIsChangingFlag(true);
-              setError(null);
-              onToggle(checked).catch((e) => {
-                setError(e);
-                setIsChangingFlag(false);
-              });
-            }}
-            isChecked={isEnabled}
-          />
-        </Tooltip>
+        <Switch
+          id={`${job.id}-toggle`}
+          aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
+          isDisabled={isChangingFlag}
+          onChange={(checked) => {
+            setIsChangingFlag(true);
+            setError(null);
+            onToggle(checked).catch((e) => {
+              setError(e);
+              setIsChangingFlag(false);
+            });
+          }}
+          isChecked={isEnabled}
+        />
       </LevelItem>
       <LevelItem>
         {isChangingFlag && <Spinner size="md" />}
