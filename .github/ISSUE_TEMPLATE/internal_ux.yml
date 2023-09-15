@@ -1,0 +1,53 @@
+name: (Internal) UX Template
+description: Intended to help ux create internal flows.
+title: "[UX]: "
+labels: ["kind/ux"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A introductory description of the task
+    validations:
+      required:
+        true
+  - type: textarea
+    id: goals
+    attributes:
+      label: Goals
+      description: An itemized list of goals to complete for this ticket
+      placeholder: |
+        * Research...
+        * Design...
+    validations:
+      required: false
+  - type: textarea
+    id: output
+    attributes:
+      label: Expected Output
+      description: What would be considered the end result?
+    validations:
+      required: false
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: Related Issues
+      description: |
+        Any related issues that might be useful to mention as it relates to this ticket's goals, expectations, or follow ups.
+
+        Tip: Using a bullet list will help display links to other tickets by unraveling the name and status of that ticket.
+      placeholder: |
+        * #1234
+        * Create figma designs - Ticket TBD
+    validations:
+      required: false
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Completed artifacts
+      description: |
+        Any artifacts you want to easily note as results of the effort.
+
+        Typically this is left empty at the start. Also useful to include useful links or information you would like to share for additional context.
+    validations:
+      required: false
