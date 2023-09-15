@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { BYONImage } from '~/types';
+import { BYONImage, BYONImagePackage } from '~/types';
 
 export const convertBYONImageToK8sResource = (image: BYONImage): K8sResourceCommon => ({
   kind: 'ImageStream',
@@ -24,3 +24,6 @@ export const getEnabledStatus = (image: BYONImage): number =>
     : image.error
     ? ImageEnabledStatus.ERROR
     : ImageEnabledStatus.DISABLED;
+
+export const filterBlankPackages = (packages: BYONImagePackage[]) =>
+  packages.filter((p) => p.name.trim() || p.version.trim());

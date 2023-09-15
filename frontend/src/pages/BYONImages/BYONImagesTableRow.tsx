@@ -47,7 +47,7 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             onToggle: () => setExpanded(!isExpanded),
           }}
         />
-        <Td dataLabel="Name">
+        <Td dataLabel="Name" modifier="nowrap">
           <Flex
             spaceItems={{ default: 'spaceItemsSm' }}
             alignItems={{ default: 'alignItemsCenter' }}
@@ -62,8 +62,10 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             </FlexItem>
           </Flex>
         </Td>
-        <Td dataLabel="Description">{obj.description}</Td>
-        <Td dataLabel="Enable">
+        <Td dataLabel="Description" modifier="breakWord">
+          {obj.description}
+        </Td>
+        <Td dataLabel="Enable" modifier="nowrap">
           <BYONImageStatusToggle image={obj} />
         </Td>
         <Td dataLabel="Provider">{obj.provider}</Td>
