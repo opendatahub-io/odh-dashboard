@@ -872,12 +872,12 @@ export type GPUCount = string | number;
 
 export type ContainerResources = {
   requests?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
     'nvidia.com/gpu'?: GPUCount;
   };
   limits?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
     'nvidia.com/gpu'?: GPUCount;
   };

@@ -4,6 +4,12 @@
  */
 export type ValueUnitString = string;
 
+/**
+ * Format: '{value: number}'
+ * eg. 1; "1"
+ */
+export type ValueUnitCPU = string | number;
+
 export type UnitOption = {
   name: string;
   unit: string;
@@ -51,16 +57,19 @@ export const isEqual = (
   units: UnitOption[],
 ): boolean => calculateDelta(value1, value2, units) === 0;
 
-export const isCpuLimitEqual = (cpu1?: ValueUnitString, cpu2?: ValueUnitString): boolean => {
-  if (!cpu1 && !cpu2) {
+export const isCpuLimitEqual = (cpu1?: ValueUnitCPU, cpu2?: ValueUnitCPU): boolean => {
+  const cpu1String = typeof cpu1 === 'number' ? `${cpu1}` : cpu1;
+  const cpu2String = typeof cpu2 === 'number' ? `${cpu2}` : cpu2;
+
+  if (!cpu1String && !cpu2String) {
     return true;
   }
 
-  if (!cpu1 || !cpu2) {
+  if (!cpu1String || !cpu2String) {
     return false;
   }
 
-  return isEqual(cpu1, cpu2, CPU_UNITS);
+  return isEqual(cpu1String, cpu2String, CPU_UNITS);
 };
 
 export const isMemoryLimitEqual = (
@@ -90,15 +99,18 @@ export const isLarger = (
 };
 
 export const isCpuLimitLarger = (
-  requestCpu?: ValueUnitString,
-  limitCpu?: ValueUnitString,
+  requestCpu?: ValueUnitCPU,
+  limitCpu?: ValueUnitCPU,
   isEqualOkay = false,
 ): boolean => {
-  if (!requestCpu || !limitCpu) {
-    return true;
+  const requestCpuString = typeof requestCpu === 'number' ? `${requestCpu}` : requestCpu;
+  const limitCpuString = typeof limitCpu === 'number' ? `${limitCpu}` : limitCpu;
+
+  if (!limitCpuString || !requestCpuString) {
+    return false;
   }
 
-  return isLarger(limitCpu, requestCpu, CPU_UNITS, isEqualOkay);
+  return isLarger(limitCpuString, requestCpuString, CPU_UNITS, isEqualOkay);
 };
 
 export const isMemoryLimitLarger = (
@@ -106,8 +118,8 @@ export const isMemoryLimitLarger = (
   limitMemory?: ValueUnitString,
   isEqualOkay = false,
 ): boolean => {
-  if (requestMemory == null || limitMemory == null) {
-    return true;
+  if (!limitMemory || !requestMemory) {
+    return false;
   }
 
   return isLarger(limitMemory, requestMemory, MEMORY_UNITS, isEqualOkay);
