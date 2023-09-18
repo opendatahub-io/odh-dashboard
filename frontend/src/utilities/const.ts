@@ -46,4 +46,8 @@ export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
 export const REPOSITORY_URL_REGEX =
   /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
 
-export const DASHBOARD_MAIN_CONTAINER_SELECTOR = 'dashboard-page-main';
+export const DASHBOARD_MAIN_CONTAINER_ID = 'dashboard-page-main';
+
+// Quick starts drawer creates a new scroll container within its DrawerContentBody.
+// Not an ideal selector but components such as JumpLinks require the use of a selector instead of a direct node reference.
+export const DASHBOARD_SCROLL_CONTAINER_SELECTOR = `#${DASHBOARD_MAIN_CONTAINER_ID} > .pf-c-drawer > .pf-c-drawer__main > .pf-c-drawer__content`;
