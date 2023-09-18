@@ -1,10 +1,12 @@
+[dev setup documentation]: docs/dev-setup.md#requirements
+
 # Contributing
 
 Contributing encompasses repository specific requirements.
 
 ## Requirements
 
-You can check the requirements of ODH in the [README section](./README.md#requirements).
+To review the ODH requirements, please refer to the [dev setup documentation].
 
 ## Writing code
 
