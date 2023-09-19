@@ -9,6 +9,28 @@ type MockResourceConfigType = {
   secretName?: string;
 };
 
+export const mockInferenceServicek8sError = () => ({
+  kind: 'Status',
+  apiVersion: 'v1',
+  metadata: {},
+  status: 'Failure',
+  message:
+    'InferenceService.serving.kserve.io "trigger-error" is invalid: [metadata.name: Invalid value: "trigger-error": is invalid, metadata.labels: Invalid value: "trigger-error": must have proper format]',
+  reason: 'Invalid',
+  details: {
+    name: 'trigger-error',
+    group: 'serving.kserve.io',
+    kind: 'InferenceService',
+    causes: [
+      {
+        reason: 'FieldValueInvalid',
+        message: 'Invalid value: "trigger-error": must have proper format',
+        field: 'metadata.name',
+      },
+    ],
+  },
+});
+
 export const mockInferenceServiceK8sResource = ({
   name = 'test-inference-service',
   namespace = 'test-project',
