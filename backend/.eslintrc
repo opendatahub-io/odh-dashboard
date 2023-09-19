@@ -35,6 +35,10 @@
   "settings": {
   },
   "rules": {
+    "no-restricted-properties": [ "error", {
+      "property": "toString",
+      "message": "e.toString() should be fastify.log.error(e, 'your string'). Other use-cases should avoid obj.toString() on principle. Craft the string you want instead."
+    }],
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/interface-name-prefix": "off",
     "@typescript-eslint/no-var-requires": "off",

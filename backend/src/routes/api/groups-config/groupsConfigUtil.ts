@@ -25,7 +25,7 @@ export const getGroupsConfig = async (fastify: KubeFastifyInstance): Promise<Gro
 
     return groupsConfigProcessed.groupsConfig;
   } catch (e) {
-    fastify.log.error('Error retrieving group configuration: ' + e.toString());
+    fastify.log.error(e, 'Error retrieving group configuration.');
     const error = createError(500, 'Error retrieving group configuration');
     throw error;
   }
@@ -74,7 +74,7 @@ export const updateGroupsConfig = async (
       error: null,
     };
   } catch (e) {
-    fastify.log.error('Error updating group configuration' + e.toString());
+    fastify.log.error(e, 'Error updating group configuration.');
     const error = createError(500, 'Error updating group configuration');
     throw error;
   }
