@@ -20,7 +20,9 @@ export const renderDetailItems = (details: DetailItem[], flexKey?: boolean): Rea
     {details.map((detail) => (
       <StackItem key={detail.key}>
         <Flex flexWrap={{ default: 'wrap' }}>
-          <FlexItem style={{ width: flexKey ? undefined : 150 }}>{detail.key}</FlexItem>
+          <FlexItem style={{ width: flexKey ? undefined : 150 }}>
+            <b>{detail.key}</b>
+          </FlexItem>
           <FlexItem>{detail.value}</FlexItem>
         </Flex>
       </StackItem>

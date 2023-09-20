@@ -46,7 +46,10 @@ export default fp(async (fastify: FastifyInstance) => {
     );
     clusterID = (clusterVersion.body as { spec: { clusterID: string } }).spec.clusterID;
   } catch (e) {
-    fastify.log.error(`Failed to retrieve cluster id: ${e.response?.body?.message || e.message}.`);
+    fastify.log.error(
+      e,
+      `Failed to retrieve cluster id: ${e.response?.body?.message || e.message}.`,
+    );
   }
   let clusterBranding = 'okd';
   try {

@@ -34,7 +34,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           id: `draggable-row-${servingRuntimeName}`,
         }}
       />
-      <Td dataLabel="Name">
+      <Td dataLabel="Name" width={70} className="pf-u-text-break-word">
         <ResourceNameTooltip resource={template.objects[0]}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
@@ -52,7 +52,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                     title: 'Duplicate',
                     onClick: () =>
                       navigate('/servingRuntimes/addServingRuntime', {
-                        state: { template: template.objects[0] },
+                        state: { template: template },
                       }),
                   },
                 ]

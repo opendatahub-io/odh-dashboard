@@ -1,49 +1,49 @@
 import * as React from 'react';
 import Table from '~/components/table/Table';
-import useTableColumnSort from '~/components/table/useTableColumnSort';
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { AccessReviewResourceAttributes, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
+import { useAccessReview } from '~/api';
 import { columns } from './data';
 import ServingRuntimeTableRow from './ServingRuntimeTableRow';
 import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
 
-type ServingRuntimeTableProps = {
-  modelServers: ServingRuntimeKind[];
-  refreshServingRuntime: () => void;
-  refreshTokens: () => void;
-  refreshInferenceServices: () => void;
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'rbac.authorization.k8s.io',
+  resource: 'rolebindings',
+  verb: 'delete',
 };
 
-const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
-  modelServers: unsortedModelServers,
-  refreshServingRuntime,
-  refreshTokens,
-  refreshInferenceServices,
-}) => {
+const ServingRuntimeTable: React.FC = () => {
   const [deployServingRuntime, setDeployServingRuntime] = React.useState<ServingRuntimeKind>();
   const [deleteServingRuntime, setDeleteServingRuntime] = React.useState<ServingRuntimeKind>();
   const [editServingRuntime, setEditServingRuntime] = React.useState<ServingRuntimeKind>();
-  const [expandedColumn, setExpandedColumn] = React.useState<ServingRuntimeTableTabs>();
+  const [expandedServingRuntimeName, setExpandedServingRuntimeName] = React.useState<string>();
 
   const {
-    dataConnections: { data: dataConnections },
-    inferenceServices: { data: inferenceServices },
+    servingRuntimes: { data: modelServers, refresh: refreshServingRuntime },
+    serverSecrets: { refresh: refreshTokens },
+    dataConnections: { data: dataConnections, refresh: refreshDataConnections },
+    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
     filterTokens,
     currentProject,
   } = React.useContext(ProjectDetailsContext);
-  const sort = useTableColumnSort<ServingRuntimeKind>(columns, 1);
 
-  const sortedModelServers = sort.transformData(unsortedModelServers);
+  const namespace = currentProject.metadata.name;
+
+  const [allowDelete] = useAccessReview({
+    ...accessReviewResource,
+    namespace,
+  });
 
   return (
     <>
       <Table
-        data={sortedModelServers}
+        data={modelServers}
         columns={columns}
         disableRowRenderSupport
+        defaultSortColumn={1}
         rowRenderer={(modelServer) => (
           <ServingRuntimeTableRow
             key={modelServer.metadata.uid}
@@ -51,22 +51,24 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             onDeleteServingRuntime={(obj) => setDeleteServingRuntime(obj)}
             onEditServingRuntime={(obj) => setEditServingRuntime(obj)}
             onDeployModel={(obj) => setDeployServingRuntime(obj)}
-            expandedColumn={expandedColumn}
-            setExpandedColumn={setExpandedColumn}
+            expandedServingRuntimeName={expandedServingRuntimeName}
+            allowDelete={allowDelete}
           />
         )}
       />
-      <DeleteServingRuntimeModal
-        servingRuntime={deleteServingRuntime}
-        tokens={filterTokens(deleteServingRuntime?.metadata.name)}
-        inferenceServices={inferenceServices}
-        onClose={(deleted) => {
-          if (deleted) {
-            refreshServingRuntime();
-          }
-          setDeleteServingRuntime(undefined);
-        }}
-      />
+      {allowDelete && (
+        <DeleteServingRuntimeModal
+          servingRuntime={deleteServingRuntime}
+          tokens={filterTokens(deleteServingRuntime?.metadata.name)}
+          inferenceServices={inferenceServices}
+          onClose={(deleted) => {
+            if (deleted) {
+              refreshServingRuntime();
+            }
+            setDeleteServingRuntime(undefined);
+          }}
+        />
+      )}
       <ManageServingRuntimeModal
         isOpen={editServingRuntime !== undefined}
         currentProject={currentProject}
@@ -90,7 +92,8 @@ const ServingRuntimeTable: React.FC<ServingRuntimeTableProps> = ({
             setDeployServingRuntime(undefined);
             if (submit) {
               refreshInferenceServices();
-              setExpandedColumn(ServingRuntimeTableTabs.DEPLOYED_MODELS);
+              refreshDataConnections();
+              setExpandedServingRuntimeName(deployServingRuntime.metadata.name);
             }
           }}
           projectContext={{

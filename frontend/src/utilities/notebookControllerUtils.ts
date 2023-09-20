@@ -249,9 +249,9 @@ const filterEvents = (
   allEvents: K8sEvent[],
   lastActivity: Date,
 ): [filterEvents: K8sEvent[], thisInstanceEvents: K8sEvent[], gracePeroid: boolean] => {
-  const thisInstanceEvents = allEvents.filter(
-    (event) => new Date(getEventTimestamp(event)) >= lastActivity,
-  );
+  const thisInstanceEvents = allEvents
+    .filter((event) => new Date(getEventTimestamp(event)) >= lastActivity)
+    .sort((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
   if (thisInstanceEvents.length === 0) {
     // Filtered out all of the events, exit early
     return [[], [], false];
@@ -311,7 +311,6 @@ export const useNotebookStatus = (
   spawnInProgress: boolean,
   open: boolean,
 ): [status: NotebookStatus | null, events: K8sEvent[]] => {
-  const { notebookNamespace } = useNamespaces();
   const {
     currentUserNotebook: notebook,
     currentUserNotebookIsRunning: isNotebookRunning,
@@ -319,15 +318,9 @@ export const useNotebookStatus = (
   } = React.useContext(NotebookControllerContext);
 
   const events = useWatchNotebookEvents(
-    notebookNamespace,
+    notebook,
     currentUserNotebookPodUID,
     spawnInProgress && !isNotebookRunning,
-  ).filter(
-    (evt) =>
-      // Note: This looks redundant but is useful -- our state is stale when a new pod starts; this cleans that up
-      // This is not ideal, but the alternative is expose a reset function & thread it up to the stop call
-      // This is old code and needs to be removed in time, this will do for now.
-      evt.involvedObject.uid === currentUserNotebookPodUID,
   );
 
   const lastActivity =
@@ -339,7 +332,7 @@ export const useNotebookStatus = (
       ? new Date(notebook.metadata.creationTimestamp ?? 0)
       : null);
 
-  if (!lastActivity) {
+  if (!notebook || !lastActivity) {
     // Notebook not started, we don't have a filter time, ignore
     return [null, []];
   }
@@ -437,6 +430,11 @@ export const useNotebookStatus = (
       case 'TriggeredScaleUp': {
         currentEvent = 'Pod triggered scale-up';
         status = EventStatus.INFO;
+        break;
+      }
+      case 'FailedCreate': {
+        currentEvent = 'Failed to create pod';
+        status = EventStatus.ERROR;
         break;
       }
       default: {
