@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Empty project', async ({ page }) => {
-  await page.goto(navigateToStory('pages-projects-projectdetails', 'empty-details-page'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-projects-projectdetails--empty-details-page&viewMode=story',
+  );
 
   // wait for page to load
   await page.waitForSelector('text=No model servers');
@@ -15,7 +16,9 @@ test('Empty project', async ({ page }) => {
 });
 
 test('Non-empty project', async ({ page }) => {
-  await page.goto(navigateToStory('pages-projects-projectdetails', 'default'));
+  await page.goto(
+    './iframe.html?id=tests-integration-pages-projects-projectdetails--default&viewMode=story',
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Test Notebook');

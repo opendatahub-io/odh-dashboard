@@ -63,51 +63,6 @@ const Template: StoryFn<typeof ModelServingGlobal> = (args) => (
   </Routes>
 );
 
-export const EmptyStateNoServingRuntime: StoryObj = {
-  render: Template,
-
-  parameters: {
-    msw: {
-      handlers: [
-        rest.get(
-          'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
-          (req, res, ctx) => res(ctx.json(mockK8sResourceList([]))),
-        ),
-        rest.get(
-          'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
-          (req, res, ctx) => res(ctx.json(mockK8sResourceList([]))),
-        ),
-        rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-          res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
-        ),
-      ],
-    },
-  },
-};
-
-export const EmptyStateNoInferenceServices: StoryObj = {
-  render: Template,
-
-  parameters: {
-    msw: {
-      handlers: [
-        rest.get(
-          'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
-          (req, res, ctx) =>
-            res(ctx.json(mockK8sResourceList([mockServingRuntimeK8sResource({})]))),
-        ),
-        rest.get(
-          'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
-          (req, res, ctx) => res(ctx.json(mockK8sResourceList([]))),
-        ),
-        rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-          res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
-        ),
-      ],
-    },
-  },
-};
-
 export const EditModel: StoryObj = {
   render: Template,
 

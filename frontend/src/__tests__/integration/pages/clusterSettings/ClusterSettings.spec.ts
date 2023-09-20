@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Cluster settings', async ({ page }) => {
-  await page.goto(navigateToStory('pages-clustersettings-clustersettings', 'default'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-clustersettings-clustersettings--default&viewMode=story',
+  );
   // wait for page to load
   await page.waitForSelector('text=Save changes');
   const submitButton = page.locator('[data-id="submit-cluster-settings"]');
