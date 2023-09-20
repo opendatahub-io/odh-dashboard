@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Success', async ({ page }) => {
-  await page.goto(navigateToStory('hooks-usefetchstate', 'success'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-hooks-usefetchstate--success&viewMode=story',
+  );
 
   // wait 2 seconds to settle
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -15,7 +16,9 @@ test('Success', async ({ page }) => {
 });
 
 test('Failure', async ({ page }) => {
-  await page.goto(navigateToStory('hooks-usefetchstate', 'failure'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-hooks-usefetchstate--failure&viewMode=story',
+  );
 
   // wait 2 seconds to settle
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -31,7 +34,9 @@ test('Failure', async ({ page }) => {
 });
 
 test('Stable', async ({ page }) => {
-  await page.goto(navigateToStory('hooks-usefetchstate', 'stable'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-hooks-usefetchstate--stable&viewMode=story',
+  );
 
   // wait 2 seconds to settle
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -71,7 +76,9 @@ test('Stable', async ({ page }) => {
 });
 
 test('Refresh rate', async ({ page }) => {
-  await page.goto(navigateToStory('hooks-usefetchstate', 'refresh-rate'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-hooks-usefetchstate--refresh-rate&viewMode=story',
+  );
 
   // wait 2 seconds to settle
   await new Promise((resolve) => setTimeout(resolve, 2000));

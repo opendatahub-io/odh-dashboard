@@ -16,9 +16,8 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "baseUrl": "./src",
     "paths": {
-      "~/*": ["./*"]
+      "~/*": ["./src/*"]
     },
     "importHelpers": true,
     "skipLibCheck": true

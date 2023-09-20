@@ -1,13 +1,6 @@
 import * as React from 'react';
-import {
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateVariant,
-  Title,
-} from '@patternfly/react-core';
-import { PlusCircleIcon, WrenchIcon } from '@patternfly/react-icons';
+import { Button, EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import ServeModelButton from './ServeModelButton';
@@ -20,17 +13,16 @@ const EmptyModelServing: React.FC = () => {
 
   if (servingRuntimes.length === 0) {
     return (
-      <EmptyState variant={EmptyStateVariant.small}>
-        <EmptyStateIcon icon={WrenchIcon} />
+      <EmptyState>
+        <EmptyStateIcon icon={PlusCircleIcon} />
         <Title headingLevel="h2" size="lg">
-          No deployed models yet
+          No model servers
         </Title>
         <EmptyStateBody>
-          To get started, deploy a model from the <strong>Models and model servers</strong> section
-          of a project.
+          Before deploying a model, you must first configure a model server.
         </EmptyStateBody>
-        <Button variant="link" onClick={() => navigate('/projects')}>
-          Select a project
+        <Button variant="primary" onClick={() => navigate('/projects')}>
+          Create server
         </Button>
       </EmptyState>
     );
@@ -40,7 +32,7 @@ const EmptyModelServing: React.FC = () => {
     <EmptyState>
       <EmptyStateIcon icon={PlusCircleIcon} />
       <Title headingLevel="h2" size="lg">
-        No deployed models
+        No deployed models.
       </Title>
       <EmptyStateBody>To get started, use existing model servers to serve a model.</EmptyStateBody>
       <ServeModelButton />

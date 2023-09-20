@@ -1,35 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStory } from '~/__tests__/integration/utils';
-
-test('Empty State No Serving Runtime', async ({ page }) => {
-  await page.goto(
-    navigateToStory('pages-modelserving-modelservingglobal', 'empty-state-no-serving-runtime'),
-  );
-
-  // wait for page to load
-  await page.waitForSelector('text=No deployed models yet');
-
-  // Test that the button is enabled
-  await expect(page.getByRole('button', { name: 'Go to the Projects page' })).toBeTruthy();
-});
-
-test('Empty State No Inference Service', async ({ page }) => {
-  await page.goto(
-    navigateToStory('pages-modelserving-modelservingglobal', 'empty-state-no-inference-service'),
-  );
-
-  // wait for page to load
-  await page.waitForSelector('text=No deployed models');
-
-  // Test that the button is enabled
-  await page.getByRole('button', { name: 'Deploy model' }).click();
-
-  // test that you can not submit on empty
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
-});
 
 test('Delete model', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'delete-model'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--delete-model&viewMode=story',
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Delete deployed model?');
@@ -45,7 +19,9 @@ test('Delete model', async ({ page }) => {
 });
 
 test('Edit model', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'edit-model'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--edit-model&viewMode=story',
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Deploy model');
@@ -77,7 +53,9 @@ test('Edit model', async ({ page }) => {
 });
 
 test('Create model', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'deploy-model'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--deploy-model&viewMode=story',
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Deploy model');
@@ -116,7 +94,9 @@ test('Create model', async ({ page }) => {
 });
 
 test('Create model error', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'deploy-model'));
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--deploy-model&viewMode=story',
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Deploy model');

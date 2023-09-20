@@ -196,7 +196,9 @@ export const EditModel = {
 import { test, expect } from '@playwright/test';
 
 test('Create project', async ({ page }) => {
-  await page.goto(navigateToStory('projects-projectview', 'create-project'));
+  await page.goto(
+    './iframe.html?id=tests-stories-pages-projects-projectview--create-project&viewMode=story',
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Create data science project');
@@ -215,7 +217,9 @@ test('Create project', async ({ page }) => {
 To run storybook UI: `cd ./frontend && npm run storybook`
 
 ```ts
-await page.goto(navigateToStory('projects-projectview', 'create-project'));
+await page.goto(
+  './iframe.html?id=tests-stories-pages-projects-projectview--create-project&viewMode=story',
+);
 ```
 
 6. Wait for the page to load and the story to settle before performing any assertions or actions. Use `page.waitForSelector()` to wait for a specific element to appear as an indication of the story being loaded.
