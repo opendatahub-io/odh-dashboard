@@ -27,6 +27,7 @@ export const useModelServingMetrics = (
   lastUpdateTime: number,
   setLastUpdateTime: (time: number) => void,
   refreshInterval: RefreshIntervalTitle,
+  namespace: string,
 ): {
   data: Record<
     ServerMetricType | ModelMetricType,
@@ -54,6 +55,7 @@ export const useModelServingMetrics = (
     timeframe,
     QueryTimeframeStep[ServerMetricType.REQUEST_COUNT],
     defaultResponsePredicate,
+    namespace,
   );
 
   const serverAverageResponseTime =
@@ -64,6 +66,7 @@ export const useModelServingMetrics = (
       timeframe,
       QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME],
       trustyResponsePredicate,
+      namespace,
     );
 
   const serverCPUUtilization = useQueryRangeResourceData(
@@ -73,6 +76,7 @@ export const useModelServingMetrics = (
     timeframe,
     QueryTimeframeStep[ServerMetricType.CPU_UTILIZATION],
     defaultResponsePredicate,
+    namespace,
   );
 
   const serverMemoryUtilization = useQueryRangeResourceData(
@@ -82,6 +86,7 @@ export const useModelServingMetrics = (
     timeframe,
     QueryTimeframeStep[ServerMetricType.MEMORY_UTILIZATION],
     defaultResponsePredicate,
+    namespace,
   );
 
   const modelRequestSuccessCount = useQueryRangeResourceData(
@@ -91,6 +96,7 @@ export const useModelServingMetrics = (
     timeframe,
     QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS],
     defaultResponsePredicate,
+    namespace,
   );
 
   const modelRequestFailedCount = useQueryRangeResourceData(
@@ -100,6 +106,7 @@ export const useModelServingMetrics = (
     timeframe,
     QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED],
     defaultResponsePredicate,
+    namespace,
   );
 
   const modelTrustyAISPD = useQueryRangeResourceData(
@@ -109,6 +116,7 @@ export const useModelServingMetrics = (
     timeframe,
     QueryTimeframeStep[ModelMetricType.TRUSTY_AI_SPD],
     trustyResponsePredicate,
+    namespace,
     '/api/prometheus/bias',
   );
 
@@ -119,6 +127,7 @@ export const useModelServingMetrics = (
     timeframe,
     QueryTimeframeStep[ModelMetricType.TRUSTY_AI_DIR],
     trustyResponsePredicate,
+    namespace,
     '/api/prometheus/bias',
   );
 
