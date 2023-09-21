@@ -63,6 +63,16 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                       navigate(`/servingRuntimes/editServingRuntime/${servingRuntimeName}`),
                   },
                   {
+                    title: 'Duplicate',
+                    onClick: () =>
+                      navigate('/servingRuntimes/addServingRuntime', {
+                        state: { template: template },
+                      }),
+                  },
+                  {
+                    isSeparator: true,
+                  },
+                  {
                     title: 'Delete',
                     onClick: () => onDeleteTemplate(template),
                   },
