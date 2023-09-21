@@ -300,15 +300,6 @@ export type ProjectKind = K8sResourceCommon & {
   };
 };
 
-export type NamespaceKind = K8sResourceCommon & {
-  metadata: {
-    annotations?: DisplayNameAnnotations;
-  };
-  status?: {
-    phase: 'Active' | 'Terminating';
-  };
-};
-
 export type ServiceAccountKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;

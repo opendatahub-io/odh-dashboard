@@ -1,6 +1,6 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { RouteModel, NamespaceModel } from '~/api/models';
-import { K8sAPIOptions, RouteKind, NamespaceKind } from '~/k8sTypes';
+import { RouteModel, ProjectModel } from '~/api/models';
+import { K8sAPIOptions, RouteKind, ProjectKind } from '~/k8sTypes';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const getRoute = (
@@ -19,9 +19,11 @@ export const getServiceMeshGwHost = async (namespace: string): Promise<string | 
   const queryOptions = {
     name: namespace,
   };
-  const project = await k8sGetResource<NamespaceKind>({ model: NamespaceModel, queryOptions });
-  return (
-    project?.metadata?.annotations?.['service-mesh.opendatahub.io/public-gateway-host-external'] ||
-    null
-  );
+  return k8sGetResource<ProjectKind>({ model: ProjectModel, queryOptions })
+    .then(project => {
+      return project?.metadata?.annotations?.['service-mesh.opendatahub.io/public-gateway-host-external'] || null;
+    })
+    .catch(error => {
+      return error;
+    });
 };
