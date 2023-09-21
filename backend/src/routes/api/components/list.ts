@@ -8,7 +8,7 @@ export const listComponents = async (
   request: FastifyRequest,
 ): Promise<OdhApplication[]> => {
   const applications = getApplications().filter(
-    (component) => component.metadata.name !== (checkJupyterEnabled() ? 'jupyterhub' : 'jupyter'),
+    (component) => checkJupyterEnabled() || component.metadata.name !== 'jupyter',
   );
   const query = request.query as { [key: string]: string };
   const installedComponents = [];
