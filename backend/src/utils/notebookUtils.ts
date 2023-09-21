@@ -456,8 +456,6 @@ export const createNotebook = async (
   url: string,
   notebookData?: NotebookData,
 ): Promise<Notebook> => {
-  const config = getDashboardConfig();
-
   if (!notebookData) {
     const error = createCustomError(
       'Missing Notebook',
@@ -483,7 +481,9 @@ export const createNotebook = async (
     notebookAssembled.metadata.annotations = {};
   }
 
-  const enableServiceMesh = featureFlagEnabled(config.spec.dashboardConfig.disableServiceMesh);
+  const enableServiceMesh = featureFlagEnabled(
+    getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
+  );
 
   notebookAssembled.metadata.annotations['notebooks.opendatahub.io/inject-oauth'] = String(
     !enableServiceMesh,
