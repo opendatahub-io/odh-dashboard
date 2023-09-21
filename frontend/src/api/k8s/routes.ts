@@ -20,10 +20,11 @@ export const getServiceMeshGwHost = async (namespace: string): Promise<string | 
     name: namespace,
   };
   return k8sGetResource<ProjectKind>({ model: ProjectModel, queryOptions })
-    .then(project => {
-      return project?.metadata?.annotations?.['service-mesh.opendatahub.io/public-gateway-host-external'] || null;
-    })
-    .catch(error => {
-      return error;
-    });
+    .then(
+      (project) =>
+        project?.metadata?.annotations?.[
+          'service-mesh.opendatahub.io/public-gateway-host-external'
+        ] || null,
+    )
+    .catch((error) => error);
 };
