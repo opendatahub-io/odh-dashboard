@@ -63,12 +63,7 @@ const ServingRuntimeList: React.FC = () => {
           />
         }
       >
-        <ServingRuntimeTable
-          modelServers={servingRuntimes}
-          refreshServingRuntime={refreshServingRuntime}
-          refreshTokens={refreshTokens}
-          refreshInferenceServices={refreshInferenceServices}
-        />
+        <ServingRuntimeTable />
       </DetailsSection>
       <ManageServingRuntimeModal
         isOpen={isOpen}

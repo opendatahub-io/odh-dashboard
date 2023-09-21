@@ -5,6 +5,8 @@ export type NotebookDataState = {
   notebook: NotebookKind;
   isStarting: boolean;
   isRunning: boolean;
+  isStopping: boolean;
+  isStopped: boolean;
   runningPodUid: string;
 };
 

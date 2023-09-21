@@ -45,17 +45,33 @@ test('Legacy Serving Runtime', async ({ page }) => {
   await page.waitForSelector('text=Add server');
 
   // Check that the legacy serving runtime is shown with the default runtime name
-  expect(await page.getByText('ovms')).toBeTruthy();
+  expect(page.getByText('ovms')).toBeTruthy();
 
   // Check that the legacy serving runtime displays the correct Serving Runtime
-  expect(await page.getByText('OpenVINO Model Server')).toBeTruthy();
+  expect(page.getByText('OpenVINO Model Server')).toBeTruthy();
 
   // Check that the legacy serving runtime has tokens disabled
-  expect(await page.getByText('Tokens disabled')).toBeTruthy();
+  expect(page.getByText('Tokens disabled')).toBeTruthy();
 
   // Check that the serving runtime is shown with the default runtime name
-  expect(await page.getByText('OVMS Model Serving')).toBeTruthy();
+  expect(page.getByText('OVMS Model Serving')).toBeTruthy();
 
   // Check that the serving runtime displays the correct Serving Runtime
-  expect(await page.getByText('OpenVINO Serving Runtime (Supports GPUs)')).toBeTruthy();
+  expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)')).toBeTruthy();
+
+  // Get the first and second row
+  const firstButton = page.getByRole('button', { name: 'ovms', exact: true });
+  const secondButton = page.getByRole('button', { name: 'OVMS Model Serving', exact: true });
+  const firstRow = page.getByRole('rowgroup').filter({ has: firstButton });
+  const secondRow = page.getByRole('rowgroup').filter({ has: secondButton });
+
+  // Check that both of the rows are not expanded
+  await expect(firstRow).not.toHaveClass('pf-m-expanded');
+  await expect(secondRow).not.toHaveClass('pf-m-expanded');
+
+  await firstButton.click();
+
+  // Check that the first row is expanded while the second is not
+  await expect(firstRow).toHaveClass('pf-m-expanded');
+  await expect(secondRow).not.toHaveClass('pf-m-expanded');
 });

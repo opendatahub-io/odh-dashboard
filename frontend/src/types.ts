@@ -289,6 +289,7 @@ type K8sMetadata = {
   uid?: string;
   labels?: { [key: string]: string };
   annotations?: { [key: string]: string };
+  creationTimestamp?: string;
 };
 
 /**

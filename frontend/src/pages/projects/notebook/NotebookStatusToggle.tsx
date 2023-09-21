@@ -8,7 +8,7 @@ import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { useAppContext } from '~/app/AppContext';
 import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
 import { NotebookState } from './types';
-import useRefreshNotebookUntilStart from './useRefreshNotebookUntilStart';
+import useRefreshNotebookUntilStartOrStop from './useRefreshNotebookUntilStartOrStop';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import NotebookStatusText from './NotebookStatusText';
@@ -24,12 +24,12 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   doListen,
   enablePipelines,
 }) => {
-  const { notebook, isStarting, isRunning, refresh } = notebookState;
+  const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
   const gpuNumber = useNotebookGPUNumber(notebook);
   const { size } = useNotebookDeploymentSize(notebook);
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
-  const listenToNotebookStart = useRefreshNotebookUntilStart(notebookState, doListen);
+  const listenToNotebookStart = useRefreshNotebookUntilStartOrStop(notebookState, doListen);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const notebookName = notebook.metadata.name;
@@ -42,8 +42,8 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   let label = '';
   if (isStarting) {
     label = 'Starting...';
-  } else if (inProgress) {
-    label = isChecked ? 'Starting...' : 'Stopping...';
+  } else if (isStopping) {
+    label = 'Stopping...';
   } else {
     label = isRunning ? 'Running' : 'Stopped';
   }
@@ -72,7 +72,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
     setInProgress(true);
     stopNotebook(notebookName, notebookNamespace).then(() => {
       refresh().then(() => setInProgress(false));
-      listenToNotebookStart(false);
+      listenToNotebookStart(true, true);
     });
   }, [notebookName, notebookNamespace, refresh, listenToNotebookStart, fireNotebookTrackingEvent]);
 
@@ -82,7 +82,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         <FlexItem>
           <Switch
             aria-label={label}
-            isDisabled={inProgress}
+            isDisabled={inProgress || isStopping}
             id={`${notebookName}-${notebookNamespace}`}
             isChecked={isChecked}
             onClick={() => {
