@@ -33,7 +33,7 @@ import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils
 const assembleNotebook = (
   data: StartNotebookData,
   username: string,
-  dashboardConfig: DashboardConfig,
+  enableServiceMesh: boolean,
   canEnablePipelines?: boolean,
 ): NotebookKind => {
   const {
@@ -85,10 +85,6 @@ const assembleNotebook = (
   if (!volumeMounts.find((volumeMount) => volumeMount.name === 'shm')) {
     volumeMounts.push(getshmVolumeMount());
   }
-
-  const enableServiceMesh = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-  );
 
   return {
     apiVersion: 'kubeflow.org/v1',
@@ -278,10 +274,10 @@ export const startNotebook = async (
 export const createNotebook = (
   data: StartNotebookData,
   username: string,
-  dashboardConfig: DashboardConfig,
+  enableServiceMesh: boolean,
   canEnablePipelines?: boolean,
 ): Promise<NotebookKind> => {
-  const notebook = assembleNotebook(data, username, dashboardConfig, canEnablePipelines);
+  const notebook = assembleNotebook(data, username, enableServiceMesh, canEnablePipelines);
 
   const notebookPromise = k8sCreateResource<NotebookKind>({
     model: NotebookModel,
@@ -301,10 +297,10 @@ export const updateNotebook = (
   existingNotebook: NotebookKind,
   data: StartNotebookData,
   username: string,
-  dashboardConfig: DashboardConfig,
+  enableServiceMesh: boolean,
 ): Promise<NotebookKind> => {
   data.notebookId = existingNotebook.metadata.name;
-  const notebook = assembleNotebook(data, username, dashboardConfig);
+  const notebook = assembleNotebook(data, username, enableServiceMesh);
 
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
@@ -325,10 +321,10 @@ export const updateNotebook = (
 export const createNotebookWithoutStarting = (
   data: StartNotebookData,
   username: string,
-  dashboardConfig: DashboardConfig,
+  enableServiceMesh: boolean,
 ): Promise<NotebookKind> =>
   new Promise((resolve, reject) =>
-    createNotebook(data, username, dashboardConfig).then((notebook) =>
+    createNotebook(data, username, enableServiceMesh).then((notebook) =>
       setTimeout(
         () =>
           stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
