@@ -52,6 +52,10 @@ export const isEqual = (
 ): boolean => calculateDelta(value1, value2, units) === 0;
 
 export const isCpuLimitEqual = (cpu1?: ValueUnitString, cpu2?: ValueUnitString): boolean => {
+  if (!cpu1 && !cpu2) {
+    return true;
+  }
+
   if (!cpu1 || !cpu2) {
     return false;
   }
@@ -63,6 +67,10 @@ export const isMemoryLimitEqual = (
   memory1?: ValueUnitString,
   memory2?: ValueUnitString,
 ): boolean => {
+  if (!memory1 && !memory2) {
+    return true;
+  }
+
   if (!memory1 || !memory2) {
     return false;
   }

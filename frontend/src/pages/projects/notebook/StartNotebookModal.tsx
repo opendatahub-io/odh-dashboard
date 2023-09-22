@@ -162,11 +162,14 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         <Panel isScrollable>
           <PanelMain maxHeight="250px">
             <List isPlain isBordered data-id="event-logs">
-              {events.reverse().map((event, index) => (
-                <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
-                  {getEventFullMessage(event)}
-                </ListItem>
-              ))}
+              {events
+                .slice()
+                .reverse()
+                .map((event, index) => (
+                  <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
+                    {getEventFullMessage(event)}
+                  </ListItem>
+                ))}
               <ListItem>Server requested</ListItem>
             </List>
           </PanelMain>

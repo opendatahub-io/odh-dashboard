@@ -217,11 +217,14 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
       isIndented
     >
       <List isPlain isBordered tabIndex={0}>
-        {events.reverse().map((event, index) => (
-          <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
-            {`${getEventTimestamp(event)} [${event.type}] ${event.message}`}
-          </ListItem>
-        ))}
+        {events
+          .slice()
+          .reverse()
+          .map((event, index) => (
+            <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
+              {`${getEventTimestamp(event)} [${event.type}] ${event.message}`}
+            </ListItem>
+          ))}
         <ListItem>Server requested</ListItem>
       </List>
     </ExpandableSection>

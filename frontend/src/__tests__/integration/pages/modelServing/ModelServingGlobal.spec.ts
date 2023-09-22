@@ -92,3 +92,46 @@ test('Create model', async ({ page }) => {
   await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
 });
+
+test('Create model error', async ({ page }) => {
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-modelserving-modelservingglobal--deploy-model&viewMode=story',
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Deploy model');
+
+  // test that you can not submit on empty
+  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+
+  // test filling in minimum required fields
+  await page.locator('#existing-project-selection').click();
+  await page.getByRole('option', { name: 'Test Project' }).click();
+  await page.getByLabel('Model Name *').fill('trigger-error');
+  await page.locator('#inference-service-model-selection').click();
+  await page.getByRole('option', { name: 'ovms' }).click();
+  await expect(page.getByText('Model framework (name - version)')).toBeTruthy();
+  await page.locator('#inference-service-framework-selection').click();
+  await page.getByRole('option', { name: 'onnx - 1' }).click();
+  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await page
+    .getByRole('group', { name: 'Model location' })
+    .getByRole('button', { name: 'Options menu' })
+    .click();
+  await page.getByRole('option', { name: 'Test Secret' }).click();
+  await page.getByLabel('Path').fill('test-model/');
+  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  await page.getByLabel('Path').fill('test-model/');
+  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+
+  // Submit and check the invalid error message
+  await page.getByRole('button', { name: 'Deploy' }).click();
+  await page.waitForSelector('text=Error creating model server');
+
+  // Close the modal
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
+  // Check that the error message is gone
+  await page.getByRole('button', { name: 'Deploy model' }).click();
+  expect(await page.isVisible('text=Error creating model server')).toBeFalsy();
+});

@@ -223,12 +223,16 @@ const useFetchState = <Type, Default extends Type = Type>(
     };
   }, [call, refreshRate]);
 
+  // Use a reference for `call` to ensure a stable reference to `refresh` is always returned
+  const callRef = React.useRef(call);
+  callRef.current = call;
+
   const refresh = React.useCallback<FetchStateRefreshPromise<Type>>(() => {
     abortCallbackRef.current();
-    const [callPromise, unload] = call();
+    const [callPromise, unload] = callRef.current();
     abortCallbackRef.current = unload;
     return callPromise;
-  }, [call]);
+  }, []);
 
   return [result, loaded, loadError, refresh];
 };

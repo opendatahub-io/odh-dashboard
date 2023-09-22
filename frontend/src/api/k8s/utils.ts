@@ -4,6 +4,8 @@ import {
   PodToleration,
   TolerationSettings,
   ContainerResourceAttributes,
+  VolumeMount,
+  Volume,
 } from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
 
@@ -54,3 +56,13 @@ export const assemblePodSpecOptions = (
   const tolerations = determineTolerations(gpus > 0, tolerationSettings);
   return { affinity, tolerations, resources };
 };
+
+export const getshmVolumeMount = (): VolumeMount => ({
+  name: 'shm',
+  mountPath: '/dev/shm',
+});
+
+export const getshmVolume = (sizeLimit?: string): Volume => ({
+  name: 'shm',
+  emptyDir: { medium: 'Memory', ...(sizeLimit && { sizeLimit }) },
+});

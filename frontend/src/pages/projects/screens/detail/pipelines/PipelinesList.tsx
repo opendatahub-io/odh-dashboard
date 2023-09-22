@@ -9,10 +9,20 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { TABLE_CONTENT_LIMIT, LIMIT_MAX_ITEM_COUNT } from '~/concepts/pipelines/const';
 
-const PipelinesList: React.FC = () => {
+type PipelinesListProps = {
+  setIsPipelinesEmpty: (isEmpty: boolean) => void;
+};
+
+const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) => {
   const { namespace } = usePipelinesAPI();
   const [pipelines, loaded, loadError, refresh] = usePipelines(LIMIT_MAX_ITEM_COUNT);
   const navigate = useNavigate();
+
+  const isPipelinesEmpty = pipelines.length === 0;
+
+  React.useEffect(() => {
+    setIsPipelinesEmpty(isPipelinesEmpty);
+  }, [isPipelinesEmpty, setIsPipelinesEmpty]);
 
   if (loadError) {
     return (
