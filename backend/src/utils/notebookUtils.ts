@@ -21,7 +21,6 @@ import { getUserName, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
 import {
   PatchUtils,
-  V1Namespace,
   V1PersistentVolumeClaim,
   V1Role,
   V1RoleBinding,
@@ -80,10 +79,7 @@ export const getServiceMeshGwHost = async (
     throw error;
   });
 
-  const body = kubeResponse.body as unknown;
-  const typedResponse = body as V1Namespace;
-
-  const annotations = typedResponse.metadata?.annotations;
+  const annotations = kubeResponse.body.metadata?.annotations;
 
   if (!annotations || !annotations['service-mesh.opendatahub.io/public-gateway-host-external']) {
     const error = createCustomError(
