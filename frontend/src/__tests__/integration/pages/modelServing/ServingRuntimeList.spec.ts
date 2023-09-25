@@ -75,3 +75,36 @@ test('Legacy Serving Runtime', async ({ page }) => {
   await expect(firstRow).toHaveClass('pf-m-expanded');
   await expect(secondRow).not.toHaveClass('pf-m-expanded');
 });
+
+test('Add server', async ({ page }) => {
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--list-available-models&viewMode=story',
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Add server');
+
+  await page.getByRole('button', { name: 'Add server', exact: true }).click();
+
+  // test that you can not submit on empty
+  await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
+
+  // test filling in minimum required fields
+  await page.getByLabel('Model server name *').fill('Test Name');
+  await page.locator('#serving-runtime-template-selection').click();
+  await page.getByRole('menuitem', { name: 'New OVMS Server' }).click();
+  await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
+
+  // test the if the alert is visible when route is external while token is not set
+  await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
+  // external route, no token, show alert
+  await page.getByLabel('Make deployed models available through an external route').click();
+  await expect(page.locator('#alt-form-checkbox-auth')).toBeChecked();
+  await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
+  // external route, set token, hide alert
+  await page.getByLabel('Require token authentication').click();
+  await expect(page.locator('#external-route-no-token-alert')).toBeVisible();
+  // internal route, set token, show alert
+  await page.getByLabel('Make deployed models available through an external route').click();
+  await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
+});
