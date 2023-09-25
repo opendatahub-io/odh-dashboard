@@ -21,35 +21,6 @@ export const passThrough = <T extends K8sResourceCommon>(
   request: OauthFastifyRequest,
   data: PassThroughData,
 ): Promise<T | K8sStatus> => {
-  const { method, url } = data;
-
-  // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/HAC-1825
-  let safeURL = url;
-  if (method.toLowerCase() === 'post' && !url.endsWith('selfsubjectaccessreviews')) {
-    // Core SDK builds the wrong path for k8s -- can't post to a resource name; remove the name from the url
-    // eg: POST /.../configmaps/my-config-map => POST /.../configmaps
-    // Note: SelfSubjectAccessReviews do not include a resource name
-    const urlParts = url.split('/');
-    const queryParams = urlParts[urlParts.length - 1].split('?');
-    urlParts.pop();
-    queryParams.shift();
-    safeURL = urlParts.join('/');
-    queryParams.unshift(safeURL);
-    safeURL = queryParams.join('?');
-  }
-
-  const updatedData = {
-    ...data,
-    url: safeURL,
-  };
-  return safeURLPassThrough(fastify, request, updatedData);
-};
-
-export const safeURLPassThrough = <T extends K8sResourceCommon>(
-  fastify: KubeFastifyInstance,
-  request: OauthFastifyRequest,
-  data: PassThroughData,
-): Promise<T | K8sStatus> => {
   return proxyCall(fastify, request, data)
     .then((rawData) => {
       let parsedData: T | K8sStatus;
@@ -81,6 +52,10 @@ export const safeURLPassThrough = <T extends K8sResourceCommon>(
             }`,
           );
           throw { code: parsedData.code, response: parsedData };
+        } else if (data.method.toLowerCase() === 'delete') {
+          // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/RHCLOUD-28058
+          // Return a non-status object upon successful delete
+          return {} as K8sStatus;
         }
       }
 
