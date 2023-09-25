@@ -1,0 +1,6 @@
+# DO NOT DELETE. Check kustomization.yaml comments in overlays/service-mesh
+$patch: delete
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dashboard-oauth-client
