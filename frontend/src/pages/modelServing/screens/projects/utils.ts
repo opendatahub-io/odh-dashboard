@@ -15,7 +15,7 @@ import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
+import { getServingRuntimeSize, getServingRuntimeTokens } from '~/pages/modelServing/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -78,40 +78,21 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 
-  const existingResources =
-    existingData?.servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
+  const existingSize = getServingRuntimeSize(sizes, existingData?.servingRuntime);
 
   const existingExternalRoute =
     existingData?.servingRuntime?.metadata.annotations?.['enable-route'] === 'true';
   const existingTokenAuth =
     existingData?.servingRuntime?.metadata.annotations?.['enable-auth'] === 'true';
 
-  const existingTokens = useDeepCompareMemoize(
-    (existingData?.secrets || []).map((secret) => ({
-      name: getDisplayNameFromK8sResource(secret) || secret.metadata.name,
-      editName: secret.metadata.name,
-      uuid: secret.metadata.name,
-      error: '',
-    })),
-  );
+  const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(existingData?.secrets));
 
   React.useEffect(() => {
     if (existingServingRuntimeName) {
       setCreateData('name', existingServingRuntimeName);
       setCreateData('servingRuntimeTemplateName', existingServingRuntimeTemplateName);
       setCreateData('numReplicas', existingNumReplicas);
-      const size = sizes.find(
-        (size) =>
-          isCpuLimitEqual(size.resources.limits?.cpu, existingResources.limits?.cpu) &&
-          isMemoryLimitEqual(size.resources.limits?.memory, existingResources.limits?.memory),
-      );
-      setCreateData(
-        'modelSize',
-        size || {
-          name: 'Custom',
-          resources: existingResources,
-        },
-      );
+      setCreateData('modelSize', existingSize);
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
@@ -120,7 +101,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingServingRuntimeName,
     existingServingRuntimeTemplateName,
     existingNumReplicas,
-    existingResources,
+    existingSize,
     existingExternalRoute,
     existingTokenAuth,
     existingTokens,

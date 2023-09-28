@@ -19,7 +19,6 @@ import {
 } from '~/pages/modelServing/screens/projects/utils';
 import {
   ServingRuntimeKind,
-  SecretKind,
   TemplateKind,
   ProjectKind,
   AccessReviewResourceAttributes,
@@ -31,6 +30,7 @@ import {
   useAccessReview,
 } from '~/api';
 import {
+  isModelServerEditInfoChanged,
   requestsUnderLimits,
   resourcesArePositive,
   setUpTokenAuth,
@@ -39,6 +39,8 @@ import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingR
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
@@ -51,10 +53,7 @@ type ManageServingRuntimeModalProps = {
 } & EitherOrNone<
   { servingRuntimeTemplates?: TemplateKind[] },
   {
-    editInfo?: {
-      servingRuntime?: ServingRuntimeKind;
-      secrets: SecretKind[];
-    };
+    editInfo?: ServingRuntimeEditInfo;
   }
 >;
 
@@ -98,7 +97,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const inputValueValid = customServingRuntimesEnabled
     ? baseInputValueValid && createData.name && servingRuntimeTemplateNameValid
     : baseInputValueValid;
-  const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
+  const isDisabled =
+    actionInProgress ||
+    tokenErrors ||
+    !inputValueValid ||
+    !isModelServerEditInfoChanged(createData, sizes, acceleratorState, editInfo);
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -226,116 +229,100 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   return (
     <Modal
-      title="Add model server"
+      title={`${editInfo ? 'Edit' : 'Add'} model server`}
       variant="medium"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       showClose
-      actions={[
-        <Button
-          key="submit-model"
-          variant="primary"
-          isDisabled={!canCreate}
-          onClick={submit}
-          isLoading={actionInProgress}
-        >
-          Add
-        </Button>,
-        <Button key="cancel-model" variant="secondary" onClick={() => onBeforeClose(false)}>
-          Cancel
-        </Button>,
-      ]}
+      footer={
+        <DashboardModalFooter
+          submitLabel={editInfo ? 'Update' : 'Add'}
+          onSubmit={submit}
+          isSubmitDisabled={isDisabled}
+          onCancel={() => onBeforeClose(false)}
+          alertTitle={`Error ${editInfo ? 'updating' : 'creating'} model server`}
+          error={error}
+        />
+      }
     >
-      <Stack hasGutter>
-        <StackItem>
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
-            <Stack hasGutter>
-              <ServingRuntimeTemplateSection
-                data={createData}
-                setData={setCreateData}
-                templates={servingRuntimeTemplates || []}
-                isEditing={!!editInfo}
-                acceleratorState={acceleratorState}
-              />
-              <StackItem>
-                <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
-              </StackItem>
-              <StackItem>
-                <ServingRuntimeSizeSection
-                  data={createData}
-                  setData={setCreateData}
-                  sizes={sizes}
-                  servingRuntimeSelected={servingRuntimeSelected}
-                  acceleratorState={acceleratorState}
-                  setAcceleratorState={setAcceleratorState}
-                />
-              </StackItem>
-              {!allowCreate && (
-                <StackItem>
-                  <Popover
-                    removeFindDomNode
-                    showClose
-                    bodyContent="Model route and token authorization can only be changed by administrator users."
-                  >
-                    <Button variant="link" icon={<HelpIcon />} isInline>
-                      {"Why can't I change the model route and token authorization fields?"}
-                    </Button>
-                  </Popover>
-                </StackItem>
-              )}
-              <StackItem>
-                <FormSection title="Model route" titleElement="div">
-                  <FormGroup>
-                    <Checkbox
-                      label="Make deployed models available through an external route"
-                      id="alt-form-checkbox-route"
-                      name="alt-form-checkbox-route"
-                      isChecked={createData.externalRoute}
-                      isDisabled={!allowCreate}
-                      onChange={(check) => {
-                        setCreateData('externalRoute', check);
-                        if (check && allowCreate) {
-                          setCreateData('tokenAuth', check);
-                        }
-                      }}
-                    />
-                  </FormGroup>
-                </FormSection>
-              </StackItem>
-              <StackItem>
-                <ServingRuntimeTokenSection
-                  data={createData}
-                  setData={setCreateData}
-                  allowCreate={allowCreate}
-                />
-              </StackItem>
-              {createData.externalRoute && !createData.tokenAuth && (
-                <StackItem>
-                  <Alert
-                    id="external-route-no-token-alert"
-                    variant="warning"
-                    isInline
-                    title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
-                  />
-                </StackItem>
-              )}
-            </Stack>
-          </Form>
-        </StackItem>
-
-        {error && (
+      <Form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <Stack hasGutter>
+          <ServingRuntimeTemplateSection
+            data={createData}
+            setData={setCreateData}
+            templates={servingRuntimeTemplates || []}
+            isEditing={!!editInfo}
+            acceleratorState={acceleratorState}
+          />
           <StackItem>
-            <Alert isInline variant="danger" title="Error creating model server">
-              {error.message}
-            </Alert>
+            <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
           </StackItem>
-        )}
-      </Stack>
+          <StackItem>
+            <ServingRuntimeSizeSection
+              data={createData}
+              setData={setCreateData}
+              sizes={sizes}
+              servingRuntimeSelected={servingRuntimeSelected}
+              acceleratorState={acceleratorState}
+              setAcceleratorState={setAcceleratorState}
+            />
+          </StackItem>
+          {!allowCreate && (
+            <StackItem>
+              <Popover
+                removeFindDomNode
+                showClose
+                bodyContent="Model route and token authorization can only be changed by administrator users."
+              >
+                <Button variant="link" icon={<HelpIcon />} isInline>
+                  {"Why can't I change the model route and token authorization fields?"}
+                </Button>
+              </Popover>
+            </StackItem>
+          )}
+          <StackItem>
+            <FormSection title="Model route" titleElement="div">
+              <FormGroup>
+                <Checkbox
+                  label="Make deployed models available through an external route"
+                  id="alt-form-checkbox-route"
+                  name="alt-form-checkbox-route"
+                  isChecked={createData.externalRoute}
+                  isDisabled={!allowCreate}
+                  onChange={(check) => {
+                    setCreateData('externalRoute', check);
+                    if (check && allowCreate) {
+                      setCreateData('tokenAuth', check);
+                    }
+                  }}
+                />
+              </FormGroup>
+            </FormSection>
+          </StackItem>
+          <StackItem>
+            <ServingRuntimeTokenSection
+              data={createData}
+              setData={setCreateData}
+              allowCreate={allowCreate}
+            />
+          </StackItem>
+          {createData.externalRoute && !createData.tokenAuth && (
+            <StackItem>
+              <Alert
+                id="external-route-no-token-alert"
+                variant="warning"
+                isInline
+                title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+              />
+            </StackItem>
+          )}
+        </Stack>
+      </Form>
     </Modal>
   );
 };

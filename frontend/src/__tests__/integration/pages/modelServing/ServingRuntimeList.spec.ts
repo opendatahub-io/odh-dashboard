@@ -76,15 +76,15 @@ test('Legacy Serving Runtime', async ({ page }) => {
   await expect(secondRow).not.toHaveClass('pf-m-expanded');
 });
 
-test('Add server', async ({ page }) => {
+test('Add model server', async ({ page }) => {
   await page.goto(
     './iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--list-available-models&viewMode=story',
   );
 
   // wait for page to load
-  await page.waitForSelector('text=Add server');
+  await page.waitForSelector('text=Add model server');
 
-  await page.getByRole('button', { name: 'Add server', exact: true }).click();
+  await page.getByRole('button', { name: 'Add model server', exact: true }).click();
 
   // test that you can not submit on empty
   await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
@@ -96,15 +96,77 @@ test('Add server', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
 
   // test the if the alert is visible when route is external while token is not set
+  await expect(page.locator('#alt-form-checkbox-route')).not.toBeChecked();
+  await expect(page.locator('#alt-form-checkbox-auth')).not.toBeChecked();
   await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
-  // external route, no token, show alert
-  await page.getByLabel('Make deployed models available through an external route').click();
+  // check external route, token should be checked and no alert
+  await page.locator('#alt-form-checkbox-route').check();
   await expect(page.locator('#alt-form-checkbox-auth')).toBeChecked();
   await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
-  // external route, set token, hide alert
-  await page.getByLabel('Require token authentication').click();
+  // check external route, uncheck token, show alert
+  await page.locator('#alt-form-checkbox-auth').uncheck();
   await expect(page.locator('#external-route-no-token-alert')).toBeVisible();
-  // internal route, set token, show alert
-  await page.getByLabel('Make deployed models available through an external route').click();
+  // internal route, set token, no alert
+  await page.locator('#alt-form-checkbox-route').uncheck();
+  await page.locator('#alt-form-checkbox-auth').check();
   await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
+});
+
+test('Edit model server', async ({ page }) => {
+  await page.goto(
+    './iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--list-available-models&viewMode=story',
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Add model server');
+
+  // click on the toggle button and open edit model server
+  await page
+    .getByRole('rowgroup')
+    .filter({ has: page.getByRole('button', { name: 'ovms', exact: true }) })
+    .getByLabel('Actions')
+    .click();
+  await page.getByText('Edit model server').click();
+
+  const updateButton = page.getByRole('button', { name: 'Update', exact: true });
+
+  // test name field
+  await expect(updateButton).toBeDisabled();
+  await page.locator('#serving-runtime-name-input').fill('New name');
+  await expect(updateButton).toBeEnabled();
+  await page.locator('#serving-runtime-name-input').fill('test-model-legacy');
+  await expect(updateButton).toBeDisabled();
+
+  // test replicas field
+  await page.getByRole('button', { name: 'Plus', exact: true }).click();
+  await expect(updateButton).toBeEnabled();
+  await page.getByRole('button', { name: 'Minus', exact: true }).click();
+  await expect(updateButton).toBeDisabled();
+
+  // test size field
+  await page
+    .getByRole('group', { name: 'Compute resources per replica' })
+    .getByRole('button', { name: 'Options menu' })
+    .click();
+  await page.getByRole('option', { name: 'Medium' }).click();
+  await expect(updateButton).toBeEnabled();
+  await page
+    .getByRole('group', { name: 'Compute resources per replica' })
+    .getByRole('button', { name: 'Options menu' })
+    .click();
+  await page.getByRole('option', { name: 'Small' }).click();
+  await expect(updateButton).toBeDisabled();
+
+  // test external route field
+  await page.locator('#alt-form-checkbox-route').check();
+  await expect(updateButton).toBeEnabled();
+  await page.locator('#alt-form-checkbox-route').uncheck();
+  await page.locator('#alt-form-checkbox-auth').uncheck();
+  await expect(updateButton).toBeDisabled();
+
+  // test tokens field
+  await page.locator('#alt-form-checkbox-auth').check();
+  await expect(updateButton).toBeEnabled();
+  await page.locator('#alt-form-checkbox-auth').uncheck();
+  await expect(updateButton).toBeDisabled();
 });
