@@ -4,6 +4,14 @@ metadata:
   name: odh-dashboard
 rules:
   - verbs:
+      - create
+      - get
+      - list
+    apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - acceleratorprofiles
+  - verbs:
       - get
       - list
     apiGroups:
