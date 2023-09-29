@@ -1,6 +1,8 @@
+[Segment]: https://segment.com/
+
 # User Interaction
 
-Right now, we are using [Segment](https://segment.com/) as the user interaction tracker for the Dashboard. Segment is a user-interaction telemetry tracker that provides several features, such as multi-platform support, data normalization, and source integration, it can connect several clients with different analytic destinations.
+Right now, we are using [Segment] as the user interaction tracker for the Dashboard. Segment is a user-interaction telemetry tracker that provides several features, such as multi-platform support, data normalization, and source integration, it can connect several clients with different analytic destinations.
 
 ## How does it work
 
