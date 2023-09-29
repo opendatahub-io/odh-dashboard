@@ -1,20 +1,22 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
+import { FormGroup, Label, Split, SplitItem } from '@patternfly/react-core';
 import { BuildStatus } from '~/pages/projects/screens/spawner/types';
 import {
   checkImageStreamAvailability,
   compareImageStreamOrder,
-  getImageStreamSelectOptionObject,
+  getImageStreamDisplayName,
   getRelatedVersionDescription,
-  isImageStreamSelectOptionObject,
+  isCompatibleWithAccelerator,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '~/k8sTypes';
+import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 
 type ImageStreamSelectorProps = {
   imageStreams: ImageStreamKind[];
   buildStatuses: BuildStatus[];
   selectedImageStream?: ImageStreamKind;
   onImageStreamSelect: (selection: ImageStreamKind) => void;
+  compatibleAccelerator?: string;
 };
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
@@ -22,49 +24,47 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   selectedImageStream,
   onImageStreamSelect,
   buildStatuses,
+  compatibleAccelerator,
 }) => {
-  const [imageSelectionOpen, setImageSelectionOpen] = React.useState(false);
-
-  const selectOptionObjects = [...imageStreams]
-    .sort(compareImageStreamOrder)
-    .map((imageStream) => getImageStreamSelectOptionObject(imageStream));
-
-  const options = selectOptionObjects.map((optionObject) => {
-    const imageStream = optionObject.imageStream;
+  const options = [...imageStreams].sort(compareImageStreamOrder).map((imageStream) => {
     const description = getRelatedVersionDescription(imageStream);
-    return (
-      <SelectOption
-        key={imageStream.metadata.name}
-        value={optionObject}
-        description={description}
-        isDisabled={!checkImageStreamAvailability(imageStream, buildStatuses)}
-      />
-    );
+    const displayName = getImageStreamDisplayName(imageStream);
+
+    return {
+      key: imageStream.metadata.name,
+      selectedLabel: displayName,
+      description: description,
+      disabled: !checkImageStreamAvailability(imageStream, buildStatuses),
+      label: (
+        <Split>
+          <SplitItem>{displayName}</SplitItem>
+          <SplitItem isFilled />
+          <SplitItem>
+            {isCompatibleWithAccelerator(compatibleAccelerator, imageStream) && (
+              <Label color="blue">Compatible with accelerator</Label>
+            )}
+          </SplitItem>
+        </Split>
+      ),
+    };
   });
 
   return (
     <FormGroup isRequired label="Image selection" fieldId="workbench-image-stream-selection">
-      <Select
+      <SimpleDropdownSelect
+        isFullWidth
         id="workbench-image-stream-selection"
-        onToggle={(open) => setImageSelectionOpen(open)}
-        onSelect={(e, selection) => {
-          // We know selection here is ImageStreamSelectOptionObjectType
-          if (isImageStreamSelectOptionObject(selection)) {
-            onImageStreamSelect(selection.imageStream);
-            setImageSelectionOpen(false);
+        aria-label="Select an image"
+        options={options}
+        placeholder="Select one"
+        value={selectedImageStream?.metadata.name ?? ''}
+        onChange={(key) => {
+          const imageStream = imageStreams.find((imageStream) => imageStream.metadata.name === key);
+          if (imageStream) {
+            onImageStreamSelect(imageStream);
           }
         }}
-        aria-label="Select an image"
-        isOpen={imageSelectionOpen}
-        selections={selectOptionObjects.find(
-          (optionObject) =>
-            optionObject.imageStream.metadata.name === selectedImageStream?.metadata.name,
-        )}
-        placeholderText="Select one"
-        maxHeight={250}
-      >
-        {options}
-      </Select>
+      />
     </FormGroup>
   );
 };

@@ -35,6 +35,8 @@ import { BYONImage } from '~/types';
 import { relativeTime } from '~/utilities/time';
 import { updateBYONImage } from '~/services/imagesService';
 import ImageErrorStatus from '~/pages/BYONImages/ImageErrorStatus';
+import ResourceNameTooltip from '~/components/ResourceNameTooltip';
+import { convertBYONImageToK8sResource } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImportImageModal } from './ImportImageModal';
 import { DeleteImageModal } from './DeleteBYONImageModal';
 import { UpdateImageModal } from './UpdateImageModal';
@@ -330,7 +332,11 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
                       spaceItems={{ default: 'spaceItemsSm' }}
                       alignItems={{ default: 'alignItemsCenter' }}
                     >
-                      <FlexItem>{image.name}</FlexItem>
+                      <FlexItem>
+                        <ResourceNameTooltip resource={convertBYONImageToK8sResource(image)}>
+                          {image.name}
+                        </ResourceNameTooltip>
+                      </FlexItem>
                       <FlexItem>
                         <ImageErrorStatus image={image} />
                       </FlexItem>

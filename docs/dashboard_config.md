@@ -87,7 +87,6 @@ The `notebookController` field controls the Notebook Controller options such as 
 ```yaml
 notebookController:
   enabled: true
-  gpuSetting: autodetect
   pvcSize: 20Gi
   notebookNamespace: odh-notebooks
   notebookTolerationSettings:
