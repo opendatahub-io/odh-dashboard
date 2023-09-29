@@ -7,50 +7,25 @@ import {
 } from '@testing-library/react';
 import { queries, Queries } from '@testing-library/dom';
 
-/**
- * Set of helper functions used to perform assertions on the hook result.
- */
-export type RenderHookResultExpect<Result, Props> = {
-  /**
-   * Check that a value is what you expect. It uses `Object.is` to check strict equality.
-   * Don't use `toBe` with floating-point numbers.
-   */
-  toBe: (expected: Result) => RenderHookResultExpect<Result, Props>;
-
-  /**
-   * Check that the result has the same types as well as structure.
-   */
-  toStrictEqual: (expected: Result) => RenderHookResultExpect<Result, Props>;
-
-  /**
-   * Check the stability of the result.
-   * If the expected value is a boolean array, uses `isStableArray` for comparison, otherwise uses `isStable`.
-   *
-   * Stability is checked against the previous update.
-   */
-  toBeStable: (expected?: boolean | boolean[]) => RenderHookResultExpect<Result, Props>;
-
-  /**
-   * Check the update count is the expected number.
-   * Update count increases every time the hook is called.
-   */
-  toHaveUpdateCount: (expected: number) => RenderHookResultExpect<Result, Props>;
-};
+export type BooleanValues<T> = T extends
+  | boolean
+  | number
+  | string
+  | null
+  | undefined
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | Function
+  ? boolean | undefined
+  : boolean | undefined | { [K in keyof T]?: BooleanValues<T[K]> };
 
 /**
  * Extension of RTL RenderHookResult providing functions used query the current state of the result.
  */
 export type RenderHookResultExt<Result, Props> = RenderHookResult<Result, Props> & {
   /**
-   * Returns `true` if the previous result is equal to the current result. Uses `Object.is` for comparison.
+   * Returns the previous result.
    */
-  isStable: () => boolean;
-
-  /**
-   * Returns `true` if the previous result array items are equal to the current result array items. Uses `Object.is` for comparison.
-   * The equality of the array instances is not checked.
-   */
-  isStableArray: () => boolean[];
+  getPreviousResult: () => Result;
 
   /**
    * Get the update count for how many times the hook has been rendered.
@@ -68,61 +43,6 @@ export type RenderHookResultExt<Result, Props> = RenderHookResult<Result, Props>
 };
 
 /**
- * Helper function that wraps a render result and provides a small set of jest Matcher equivalent functions that act directly on the result.
- *
- * ```
- * expectHook(renderResult).toBeStable().toHaveUpdateCount(2);
- * ```
- * Equivalent to:
- * ```
- * expect(renderResult.isStable()).toBe(true);
- * expect(renderResult.getUpdateCount()).toBe(2);
- * ```
- *
- * See `RenderHookResultExpect`
- */
-export const expectHook = <Result, Props>(
-  renderResult: Pick<
-    RenderHookResultExt<Result, Props>,
-    'result' | 'getUpdateCount' | 'isStableArray' | 'isStable'
-  >,
-): RenderHookResultExpect<Result, Props> => {
-  const expectUtil: RenderHookResultExpect<Result, Props> = {
-    toBe: (expected) => {
-      expect(renderResult.result.current).toBe(expected);
-      return expectUtil;
-    },
-
-    toStrictEqual: (expected) => {
-      expect(renderResult.result.current).toStrictEqual(expected);
-      return expectUtil;
-    },
-
-    toBeStable: (expected = true) => {
-      if (renderResult.getUpdateCount() > 1) {
-        if (Array.isArray(expected)) {
-          expect(renderResult.isStableArray()).toStrictEqual(expected);
-        } else {
-          expect(renderResult.isStable()).toBe(expected);
-        }
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn(
-          'expectHook#toBeStable cannot assert stability as the hook has not run at least 2 times.',
-        );
-      }
-      return expectUtil;
-    },
-
-    toHaveUpdateCount: (expected) => {
-      expect(renderResult.getUpdateCount()).toBe(expected);
-      return expectUtil;
-    },
-  };
-  return expectUtil;
-};
-
-/**
  * Wrapper on top of RTL `renderHook` returning a result that implements the `RenderHookResultExt` interface.
  *
  * `renderHook` provides full control over the rendering of your hook including the ability to wrap the test component.
@@ -131,9 +51,9 @@ export const expectHook = <Result, Props>(
  *
  * ```
  * const renderResult = renderHook(({ who }: { who: string }) => useSayHello(who), { initialProps: { who: 'world' }});
- * expectHook(renderResult).toBe('Hello world!');
+ * expect(renderResult).hookToBe('Hello world!');
  * renderResult.rerender({ who: 'there' });
- * expectHook(renderResult).toBe('Hello there!');
+ * expect(renderResult).hookToBe('Hello there!');
  * ```
  */
 export const renderHook = <
@@ -160,28 +80,8 @@ export const renderHook = <
   const renderResultExt: RenderHookResultExt<Result, Props> = {
     ...renderResult,
 
-    isStable: () => (updateCount > 1 ? Object.is(renderResult.result.current, prevResult) : false),
-
-    isStableArray: () => {
-      // prefill return array with `false`
-      const stable: boolean[] = Array(
-        Math.max(
-          Array.isArray(prevResult) ? prevResult?.length : 0,
-          Array.isArray(renderResult.result.current) ? renderResult.result.current.length : 0,
-        ),
-      ).fill(false);
-
-      if (
-        updateCount > 1 &&
-        Array.isArray(prevResult) &&
-        Array.isArray(renderResult.result.current)
-      ) {
-        renderResult.result.current.forEach((v, i) => {
-          stable[i] = Object.is(v, (prevResult as unknown[])[i]);
-        });
-      }
-      return stable;
-    },
+    getPreviousResult: () =>
+      updateCount > 1 ? (prevResult as Result) : renderResult.result.current,
 
     getUpdateCount: () => updateCount,
 
@@ -204,30 +104,34 @@ export const renderHook = <
  * Prefer this method of testing over `renderHook` for simplicity.
  *
  * ```
- * const renderResult = testHook(useSayHello, 'world');
+ * const renderResult = testHook(useSayHello)('world');
  * expectHook(renderResult).toBe('Hello world!');
  * renderResult.rerender('there');
  * expectHook(renderResult).toBe('Hello there!');
  * ```
  */
+export const testHook =
+  <Result, P extends unknown[]>(hook: (...params: P) => Result) =>
+  // not ideal to nest functions in terms of API but cannot find a better way to infer P from hook and not initialParams
+  (
+    ...initialParams: P
+  ): Omit<RenderHookResultExt<Result, { $params: typeof initialParams }>, 'rerender'> & {
+    rerender: (...params: typeof initialParams) => void;
+  } => {
+    const renderResult = renderHook<Result, { $params: typeof initialParams }>(
+      ({ $params }) => hook(...$params),
+      {
+        initialProps: {
+          $params: initialParams,
+        },
+      },
+    );
 
-export const testHook = <Result, Hook extends (...params: P) => Result, P extends unknown[]>(
-  hook: (...params: P) => Result,
-  ...initialParams: Parameters<Hook>
-) => {
-  type Params = Parameters<Hook>;
-  const renderResult = renderHook(({ $params }: { $params: Params }) => hook(...$params), {
-    initialProps: {
-      $params: initialParams,
-    },
-  });
-
-  return {
-    ...renderResult,
-
-    rerender: (...params: Params) => renderResult.rerender({ $params: params }),
+    return {
+      ...renderResult,
+      rerender: (...params) => renderResult.rerender({ $params: params }),
+    };
   };
-};
 
 /**
  * A helper function for asserting the return value of hooks based on `useFetchState`.
@@ -251,3 +155,49 @@ export const standardUseFetchState = <D>(
   loadError: Error | undefined,
   refresh: () => Promise<D | undefined>,
 ] => [data, loaded, error, expect.any(Function)];
+
+/**
+ * Extracts a subset of values from the source that can be used to compare equality.
+ *
+ * Recursively traverses the `booleanTarget`. For every property or array index equal to `true`,
+ * adds the value of the source to the result wrapped in custom matcher `expect.isIdentityEqual`.
+ * If the entry is `false` or `undefined`, adds matcher `expect.anything()` to the result.
+ */
+export const createComparativeValue = <T>(source: T, booleanTarget: BooleanValues<T>) =>
+  createComparativeValueRecursive(source, booleanTarget);
+
+const createComparativeValueRecursive = <T>(
+  source: unknown,
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  booleanTarget: boolean | string | number | Function | BooleanValues<T>,
+) => {
+  if (typeof booleanTarget === 'boolean') {
+    return booleanTarget ? expect.isIdentityEqual(source) : expect.anything();
+  }
+  if (Array.isArray(booleanTarget)) {
+    if (Array.isArray(source)) {
+      return expect.arrayContaining(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        booleanTarget.map((b, i): any =>
+          b == null ? expect.anything() : createComparativeValueRecursive(source[i], b),
+        ),
+      );
+    }
+    return undefined;
+  }
+  if (
+    source == null ||
+    typeof source === 'string' ||
+    typeof source === 'number' ||
+    typeof source === 'function'
+  ) {
+    return source;
+  }
+  const obj: { [k: string]: unknown } = {};
+  const btObj = booleanTarget as { [k: string]: unknown };
+  Object.keys(btObj).forEach((key) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    obj[key] = createComparativeValueRecursive((source as any)[key] as unknown, btObj[key] as any);
+  });
+  return expect.objectContaining(obj);
+};
