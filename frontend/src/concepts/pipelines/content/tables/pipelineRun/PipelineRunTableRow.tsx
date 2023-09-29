@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
 import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
 import {
   RunCreated,
@@ -14,6 +14,7 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import CheckboxTd from '~/components/table/CheckboxTd';
 import { GetJobInformation } from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
+import useNotification from '~/utilities/useNotification';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -30,8 +31,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   run,
   getJobInformation,
 }) => {
-  const { namespace } = usePipelinesAPI();
+  const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const { loading, data } = getJobInformation(run);
+  const notification = useNotification();
+  const navigate = useNavigate();
 
   const loadingState = <Skeleton />;
 
@@ -79,6 +82,25 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td isActionCell>
         <ActionsColumn
           items={[
+            {
+              title: 'Stop',
+              isDisabled: run.status !== PipelineRunStatusesKF.RUNNING,
+              onClick: () => {
+                api
+                  .stopPipelineRun({}, run.id)
+                  .then(refreshAllAPI)
+                  .catch((e) => notification.error('Unable to stop pipeline run', e.message));
+              },
+            },
+            {
+              title: 'Duplicate',
+              onClick: () => {
+                navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`);
+              },
+            },
+            {
+              isSeparator: true,
+            },
             {
               title: 'Delete',
               onClick: () => {

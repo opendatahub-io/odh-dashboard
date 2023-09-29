@@ -1,5 +1,5 @@
 import { OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
-import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_SELECTOR, ODH_PRODUCT_NAME } from './const';
+import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
 /**
  * Feature flags are required in the config -- but upgrades can be mixed and omission of the property
@@ -144,7 +144,7 @@ export const isGroupEmpty = <T extends { enabled: boolean }>(groupList: Array<T>
   groupList.filter((element) => element.enabled).length === 0;
 
 export const getDashboardMainContainer = (): HTMLElement =>
-  document.getElementById(DASHBOARD_MAIN_CONTAINER_SELECTOR) || document.body;
+  document.getElementById(DASHBOARD_MAIN_CONTAINER_ID) || document.body;
 
 export const isHTMLInputElement = (object: unknown): object is HTMLInputElement =>
   (object as HTMLInputElement).value !== undefined;

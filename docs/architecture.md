@@ -100,20 +100,26 @@ When building new client features, there are a few things worth noting about the
 
 Tests can be divided into the following categories: unit, integration, accessibility, and end to end testing. To keep organized of the different types of tests, there will be a test folder at the root of the frontend project with the following structure.
 
+E2e and integration tests are located in a single root directory:
 ```
-/frontend/tests
-	/integration => ComponentName.stories.tsx, ComponentName.spec.ts
-	/unit => functionName.test.ts
+/frontend/src/__tests__
 	/e2e => storyName.spec.ts
+	/integration => ComponentName.stories.tsx, ComponentName.spec.ts
 ```
 
 Some nesting can be used to organize testing groups together. For example, the _projects_ page has screens for _details_, _projects_, and, _spawner_ which can be all grouped together under a projects folder.
+
+Unit tests are co-located in a `__tests__` directory adjacent to the target source file they are testing.
+```
+/frontend/src/**/__tests__
+  /targetFile.spec.ts
+```
 
 #### Testing Types
 
 ##### Unit Testing
 
-Unit tests cover util functions and other non React based functions. These tests are stored in the `/unit `folder and can be organized into folders depending on their parent page and/or screen. Use Jest to test each function using `describe` to group together the utils file and the specific function. Then each test is described using `it`. Some functions are very basic and don't need a test. Use your best judgment if a test is needed.
+Unit tests cover util functions and other non React based functions. Use Jest to test each function using `describe` to group together the utils file and the specific function. Then each test is described using `it`.
 
 _Example_
 

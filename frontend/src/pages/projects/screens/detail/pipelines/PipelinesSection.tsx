@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Divider } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -13,29 +14,34 @@ const PipelinesSection: React.FC = () => {
     pipelinesServer: { initializing, installed, timedOut },
   } = usePipelinesAPI();
 
+  const [isPipelinesEmpty, setIsPipelinesEmpty] = React.useState(false);
+
   return (
-    <DetailsSection
-      id={ProjectSectionID.PIPELINES}
-      title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
-      actions={[
-        <ImportPipelineButton
-          isDisabled={!installed}
-          key={`action-${ProjectSectionID.PIPELINES}`}
-          variant="secondary"
-        />,
-      ]}
-      isLoading={initializing}
-      isEmpty={!installed}
-      emptyState={<NoPipelineServer variant="secondary" />}
-    >
-      {timedOut ? (
-        <PipelineServerTimedOut />
-      ) : (
-        <EnsureAPIAvailability>
-          <PipelinesList />
-        </EnsureAPIAvailability>
-      )}
-    </DetailsSection>
+    <>
+      <DetailsSection
+        id={ProjectSectionID.PIPELINES}
+        title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
+        actions={[
+          <ImportPipelineButton
+            isDisabled={!installed}
+            key={`action-${ProjectSectionID.PIPELINES}`}
+            variant="secondary"
+          />,
+        ]}
+        isLoading={initializing}
+        isEmpty={!installed}
+        emptyState={<NoPipelineServer variant="secondary" />}
+      >
+        {timedOut ? (
+          <PipelineServerTimedOut />
+        ) : (
+          <EnsureAPIAvailability>
+            <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
+          </EnsureAPIAvailability>
+        )}
+      </DetailsSection>
+      {(isPipelinesEmpty || !installed) && <Divider data-id="details-page-section-divider" />}
+    </>
   );
 };
 

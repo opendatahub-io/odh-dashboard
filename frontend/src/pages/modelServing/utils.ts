@@ -22,8 +22,8 @@ export const getModelServiceAccountName = (name: string): string => `${name}-sa`
 
 export const getModelRoleBinding = (name: string): string => `${name}-view`;
 
-const isValidCpuOrMemoryValue = (value?: string) =>
-  value === undefined ? true : parseInt(value) > 0;
+const isValidCpuOrMemoryValue = (value?: string | number) =>
+  value === undefined ? true : parseInt(String(value)) > 0;
 
 export const resourcesArePositive = (resources: ContainerResources): boolean =>
   isValidCpuOrMemoryValue(resources.limits?.cpu) &&

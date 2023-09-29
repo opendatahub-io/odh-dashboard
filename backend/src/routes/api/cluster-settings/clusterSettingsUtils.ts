@@ -111,9 +111,7 @@ export const updateClusterSettings = async (
     }
     return { success: true, error: null };
   } catch (e) {
-    fastify.log.error(
-      'Setting cluster settings error: ' + e.toString() + e.response?.body?.message,
-    );
+    fastify.log.error(e, 'Setting cluster settings error: ' + e.response?.body?.message);
     if (e.response?.statusCode !== 404) {
       return { success: false, error: 'Unable to update cluster settings. ' + e.message };
     }
@@ -137,7 +135,7 @@ export const getClusterSettings = async (
       clusterSettings.userTrackingEnabled =
         segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
     } catch (e) {
-      fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
+      fastify.log.error(e, 'Error retrieving segment key enabled.');
     }
   }
   if (isJupyterEnabled) {
@@ -165,7 +163,7 @@ export const getClusterSettings = async (
         if (e.statusCode === 404) {
           fastify.log.warn('Notebook controller culling config not found, culling disabled...');
         } else {
-          fastify.log.error('Error getting notebook controller culling settings: ' + e.toString());
+          fastify.log.error(e, 'Error getting notebook controller culling settings.');
           throw e;
         }
       });
@@ -175,7 +173,7 @@ export const getClusterSettings = async (
       clusterSettings.pvcSize = pvcSize;
       clusterSettings.cullerTimeout = cullerTimeout;
     } catch (e) {
-      fastify.log.error('Error retrieving cluster settings: ' + e.toString());
+      fastify.log.error(e, 'Error retrieving cluster settings.');
     }
   }
 

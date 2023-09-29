@@ -26,17 +26,7 @@ import {
 } from '~/concepts/pipelines/elyra/utils';
 import { createRoleBinding } from '~/api';
 import { Volume, VolumeMount } from '~/types';
-import { assemblePodSpecOptions } from './utils';
-
-const getshmVolumeMount = (): VolumeMount => ({
-  name: 'shm',
-  mountPath: '/dev/shm',
-});
-
-const getshmVolume = (): Volume => ({
-  name: 'shm',
-  emptyDir: { medium: 'Memory' },
-});
+import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
 const assembleNotebook = (
   data: StartNotebookData,

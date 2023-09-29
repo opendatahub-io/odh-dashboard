@@ -1,4 +1,11 @@
-import { PodAffinity, ContainerResources, PodToleration, TolerationSettings } from '~/types';
+import {
+  PodAffinity,
+  ContainerResources,
+  PodToleration,
+  TolerationSettings,
+  VolumeMount,
+  Volume,
+} from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
 import { AcceleratorState } from '~/utilities/useAcceleratorState';
 
@@ -47,3 +54,13 @@ export const assemblePodSpecOptions = (
   const tolerations = determineTolerations(tolerationSettings, accelerator, existingTolerations);
   return { affinity, tolerations, resources };
 };
+
+export const getshmVolumeMount = (): VolumeMount => ({
+  name: 'shm',
+  mountPath: '/dev/shm',
+});
+
+export const getshmVolume = (sizeLimit?: string): Volume => ({
+  name: 'shm',
+  emptyDir: { medium: 'Memory', ...(sizeLimit && { sizeLimit }) },
+});

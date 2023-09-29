@@ -890,11 +890,11 @@ export enum ContainerResourceAttributes {
 
 export type ContainerResources = {
   requests?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
   } & Record<string, unknown>;
   limits?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
   } & Record<string, unknown>;
 };
@@ -917,9 +917,11 @@ export type ServingRuntime = K8sResourceCommon & {
       image: string;
       name: string;
       resources: ContainerResources;
+      volumeMounts?: VolumeMount[];
     }[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
+    volumes?: Volume[];
   };
 };
 

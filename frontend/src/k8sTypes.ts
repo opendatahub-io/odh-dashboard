@@ -12,6 +12,7 @@ import {
   TolerationSettings,
   ImageStreamStatusTagItem,
   ImageStreamStatusTagCondition,
+  VolumeMount,
 } from './types';
 import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
@@ -321,6 +322,7 @@ export type ServingContainer = {
   name: string;
   affinity?: PodAffinity;
   resources: ContainerResources;
+  volumeMounts?: VolumeMount[];
 };
 
 export type ServingRuntimeKind = K8sResourceCommon & {
@@ -340,6 +342,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
     tolerations?: PodToleration[];
+    volumes?: Volume[];
   };
 };
 

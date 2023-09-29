@@ -11,7 +11,7 @@ export const getSegmentKey = async (fastify: KubeFastifyInstance): Promise<ODHSe
     segmentKeyEnabled = resEnabled?.body.data?.segmentKeyEnabled === 'true';
     if (segmentKeyEnabled) {
       const res = await coreV1Api.readNamespacedSecret('odh-segment-key', namespace);
-      decodedSegmentKey = Buffer.from(res.body.data.segmentKey, 'base64').toString();
+      decodedSegmentKey = String(Buffer.from(res.body.data.segmentKey, 'base64'));
     } else {
       decodedSegmentKey = '';
     }

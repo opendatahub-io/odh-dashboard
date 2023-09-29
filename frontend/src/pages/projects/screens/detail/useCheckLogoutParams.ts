@@ -17,7 +17,7 @@ const useCheckLogoutParams = (): void => {
   React.useEffect(() => {
     const deleteLogoutParam = () => {
       queryParams.delete('notebookLogout');
-      setQueryParams(queryParams);
+      setQueryParams(queryParams, { replace: true });
     };
     if (notebookLogout) {
       if (notebook) {
