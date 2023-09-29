@@ -3,7 +3,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
 import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import {
   RunCreated,
   RunDuration,
@@ -12,7 +12,6 @@ import {
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import CheckboxTd from '~/components/table/CheckboxTd';
 import { GetJobInformation } from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
 import useNotification from '~/utilities/useNotification';
 
