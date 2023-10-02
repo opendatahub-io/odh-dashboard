@@ -1,19 +1,21 @@
 import * as React from 'react';
-import { Button, DatePicker, TextInput, ToolbarItem } from '@patternfly/react-core';
+import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import { PipelineRunStatusesKF, PipelineRunStatusUnknown } from '~/concepts/pipelines/kfTypes';
 import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
+import { PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import DashboardDatePicker from '~/components/DashboardDatePicker';
 
-export enum FilterOptions {
-  NAME = 'Name',
-  EXPERIMENT = 'Experiment',
-  PIPELINE = 'Pipeline',
-  STARTED = 'Started',
-  STATUS = 'Status',
-}
+const options = {
+  [FilterOptions.NAME]: 'Name',
+  [FilterOptions.EXPERIMENT]: 'Experiment',
+  [FilterOptions.CREATED_AT]: 'Started',
+  [FilterOptions.STATUS]: 'Status',
+};
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -32,48 +34,45 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
   const { namespace } = usePipelinesAPI();
 
   return (
-    <PipelineFilterBar
+    <PipelineFilterBar<keyof typeof options>
       {...toolbarProps}
-      filterOptions={FilterOptions}
+      filterOptions={options}
       filterOptionRenders={{
-        [FilterOptions.NAME]: (props) => (
+        [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
             {...props}
+            onChange={(value) => onChange(value)}
             aria-label="Search for a triggered run name"
             placeholder="Triggered run name"
           />
         ),
-        [FilterOptions.EXPERIMENT]: (props) => (
-          <TextInput
-            {...props}
-            aria-label="Search for a experiment name"
-            placeholder="Experiment name"
+        [FilterOptions.EXPERIMENT]: ({ onChange, value, label }) => (
+          <ExperimentSearchInput
+            onChange={(data) => onChange(data?.value, data?.label)}
+            selected={value && label ? { value, label } : undefined}
           />
         ),
-        [FilterOptions.PIPELINE]: (props) => (
-          <TextInput
+        [FilterOptions.CREATED_AT]: ({ onChange, ...props }) => (
+          <DashboardDatePicker
             {...props}
-            aria-label="Search for a pipeline name"
-            placeholder="Pipeline name"
-          />
-        ),
-        [FilterOptions.STARTED]: ({ onChange, ...props }) => (
-          <DatePicker
-            {...props}
+            hideError
             aria-label="Select a start date"
-            onChange={(event, value) => onChange(value)}
+            onChange={(_, value, date) => {
+              if (date || !value) {
+                onChange(value);
+              }
+            }}
           />
         ),
-        [FilterOptions.STATUS]: (props) => (
+        [FilterOptions.STATUS]: ({ value, ...props }) => (
           <SimpleDropdownSelect
             {...props}
+            value={value ?? ''}
             aria-label="Select a status"
-            options={[...Object.values(PipelineRunStatusesKF), PipelineRunStatusUnknown].map(
-              (value) => ({
-                key: value,
-                label: value,
-              }),
-            )}
+            options={Object.values(PipelineRunStatusesKF).map((value) => ({
+              key: value,
+              label: value,
+            }))}
           />
         ),
       }}

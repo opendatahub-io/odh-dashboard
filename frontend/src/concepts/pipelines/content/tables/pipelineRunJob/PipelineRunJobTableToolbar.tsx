@@ -2,18 +2,15 @@ import * as React from 'react';
 import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTableToolbarActions';
-import DateRange from '~/components/dateRange/DateRange';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
 
-export enum FilterOptions {
-  NAME = 'Name',
-  EXPERIMENT = 'Experiment',
-  PIPELINE = 'Pipeline',
-  SCHEDULED = 'Scheduled',
-  STATUS = 'Status',
-}
+const options = {
+  [FilterOptions.NAME]: 'Name',
+  [FilterOptions.EXPERIMENT]: 'Experiment',
+};
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -32,41 +29,22 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
   const { namespace } = usePipelinesAPI();
 
   return (
-    <PipelineFilterBar
+    <PipelineFilterBar<keyof typeof options>
       {...toolbarProps}
-      filterOptions={FilterOptions}
+      filterOptions={options}
       filterOptionRenders={{
-        [FilterOptions.NAME]: (props) => (
+        [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
             {...props}
+            onChange={(value) => onChange(value)}
             aria-label="Search for a scheduled run name"
             placeholder="Scheduled run name"
           />
         ),
-        [FilterOptions.EXPERIMENT]: (props) => (
-          <TextInput
-            {...props}
-            aria-label="Search for a experiment name"
-            placeholder="Experiment name"
-          />
-        ),
-        [FilterOptions.PIPELINE]: (props) => (
-          <TextInput
-            {...props}
-            aria-label="Search for a pipeline name"
-            placeholder="Pipeline name"
-          />
-        ),
-        [FilterOptions.SCHEDULED]: (props) => (
-          <DateRange {...props} aria-label="Select a scheduled date range" />
-        ),
-        [FilterOptions.STATUS]: (props) => (
-          <SimpleDropdownSelect
-            {...props}
-            options={[
-              { key: 'Enabled', label: 'Enabled' },
-              { key: 'Disabled', label: 'Disabled' },
-            ]}
+        [FilterOptions.EXPERIMENT]: ({ onChange, value, label }) => (
+          <ExperimentSearchInput
+            onChange={(data) => onChange(data?.value, data?.label)}
+            selected={value && label ? { value, label } : undefined}
           />
         ),
       }}

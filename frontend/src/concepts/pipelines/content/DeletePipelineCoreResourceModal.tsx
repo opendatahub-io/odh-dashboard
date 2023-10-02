@@ -5,9 +5,6 @@ import {
   ListItem,
   Stack,
   StackItem,
-  TextContent,
-  Text,
-  TextVariants,
   Tooltip,
   ExpandableSection,
   Badge,
@@ -35,7 +32,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
 }) => {
   const { api } = usePipelinesAPI();
   const [deleting, setDeleting] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
+  const [error, setError] = React.useState<Error>();
   const [deleteStatuses, setDeleteStatus] = React.useState<(true | Error | undefined)[]>([]);
   const abortControllerRef = React.useRef(new AbortController());
   const notification = useNotification();
@@ -65,7 +62,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
     }
 
     setDeleting(false);
-    setError(null);
+    setError(undefined);
     setDeleteStatus([]);
     abortControllerRef.current = new AbortController();
   };
@@ -80,7 +77,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
       isOpen={resourceCount !== 0}
       onClose={() => onBeforeCloseRef.current(false)}
       deleting={deleting}
-      error={error ?? undefined}
+      error={error}
       onDelete={() => {
         if (resourceCount === 0) {
           return;
@@ -104,7 +101,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
             return;
         }
         setDeleting(true);
-        setError(null);
+        setError(undefined);
 
         if (resourceCount === 1) {
           callFunc({ signal: abortControllerRef.current.signal }, toDeleteResources[0].id)
@@ -147,9 +144,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
       ) : (
         <Stack hasGutter>
           <StackItem>
-            <Text>
-              You are about to delete {resourceCount} {type}s. This action cannot be undone.
-            </Text>
+            You are about to delete {resourceCount} {type}s. This action cannot be undone.
           </StackItem>
           <StackItem>
             <ExpandableSection
@@ -162,7 +157,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
               onToggle={onToggle}
               isExpanded={isExpanded}
             >
-              <List>
+              <List isPlain className="pf-u-pl-lg">
                 {toDeleteResources.map((resource, i) => {
                   let icon: React.ReactNode;
                   if (!deleting) {
@@ -190,18 +185,15 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
 
                   return (
                     <ListItem key={resource.id} icon={icon}>
-                      <TextContent>
-                        <Text component={TextVariants.h6}>
-                          {resource.name}{' '}
-                          {type === PipelineType.TRIGGERED_RUN && (
-                            <PipelineRunTypeLabel resource={resource} />
-                          )}
-                        </Text>
-
+                      <div>
+                        <b>{resource.name}</b>{' '}
+                        {type === PipelineType.TRIGGERED_RUN && (
+                          <PipelineRunTypeLabel resource={resource} isCompact />
+                        )}
                         {type === PipelineType.TRIGGERED_RUN && (
                           <PipelineJobReferenceName resource={resource} />
                         )}
-                      </TextContent>
+                      </div>
                     </ListItem>
                   );
                 })}
