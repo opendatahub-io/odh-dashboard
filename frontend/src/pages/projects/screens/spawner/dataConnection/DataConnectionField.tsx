@@ -4,18 +4,19 @@ import {
   DataConnectionData,
   EnvironmentVariableType,
   SecretCategory,
+  UpdateObjectAtPropAndValue,
 } from '~/pages/projects/types';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import ExistingDataConnectionField from './ExistingDataConnectionField';
 
 type DataConnectionFieldProps = {
-  dataConnection: DataConnectionData;
-  setDataConnection: (dataConnection: DataConnectionData) => void;
+  dataConnectionData: DataConnectionData;
+  setDataConnectionData: UpdateObjectAtPropAndValue<DataConnectionData>;
 };
 const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
-  dataConnection,
-  setDataConnection,
+  dataConnectionData,
+  setDataConnectionData,
 }) => (
   <FormGroup fieldId="cluster-storage" role="radiogroup">
     <Checkbox
@@ -23,10 +24,10 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
       name="enable-data-connection-checkbox"
       id="enable-data-connection-checkbox"
       label="Use a data connection"
-      isChecked={dataConnection.enabled}
-      onChange={() => setDataConnection({ ...dataConnection, enabled: !dataConnection.enabled })}
+      isChecked={dataConnectionData.enabled}
+      onChange={() => setDataConnectionData('enabled', !dataConnectionData.enabled)}
       body={
-        dataConnection.enabled && (
+        dataConnectionData.enabled && (
           <Stack hasGutter>
             <StackItem>
               <Radio
@@ -34,19 +35,16 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
                 name="new-data-connection-radio"
                 id="new-data-connection-radio"
                 label="Create new data connection"
-                isChecked={dataConnection.type === 'creating'}
-                onChange={() => setDataConnection({ ...dataConnection, type: 'creating' })}
+                isChecked={dataConnectionData.type === 'creating'}
+                onChange={() => setDataConnectionData('type', 'creating')}
                 body={
-                  dataConnection.type === 'creating' && (
+                  dataConnectionData.type === 'creating' && (
                     <AWSField
-                      values={dataConnection.creating?.values?.data ?? EMPTY_AWS_SECRET_DATA}
+                      values={dataConnectionData.creating?.values?.data ?? EMPTY_AWS_SECRET_DATA}
                       onUpdate={(newEnvData) => {
-                        setDataConnection({
-                          ...dataConnection,
-                          creating: {
-                            type: EnvironmentVariableType.SECRET,
-                            values: { category: SecretCategory.AWS, data: newEnvData },
-                          },
+                        setDataConnectionData('creating', {
+                          type: EnvironmentVariableType.SECRET,
+                          values: { category: SecretCategory.AWS, data: newEnvData },
                         });
                       }}
                     />
@@ -60,18 +58,15 @@ const DataConnectionField: React.FC<DataConnectionFieldProps> = ({
                 name="existing-data-connection-type-radio"
                 id="existing-data-connection-type-radio"
                 label="Use existing data connection"
-                isChecked={dataConnection.type === 'existing'}
-                onChange={() => setDataConnection({ ...dataConnection, type: 'existing' })}
+                isChecked={dataConnectionData.type === 'existing'}
+                onChange={() => setDataConnectionData('type', 'existing')}
                 body={
-                  dataConnection.type === 'existing' && (
+                  dataConnectionData.type === 'existing' && (
                     <ExistingDataConnectionField
                       fieldId="select-existing-data-connection"
-                      selectedDataConnection={dataConnection?.existing?.secretRef.name}
+                      selectedDataConnection={dataConnectionData?.existing?.secretRef.name}
                       setDataConnection={(name) =>
-                        setDataConnection({
-                          ...dataConnection,
-                          existing: { secretRef: { name: name ?? '' } },
-                        })
+                        setDataConnectionData('existing', { secretRef: { name: name ?? '' } })
                       }
                     />
                   )
