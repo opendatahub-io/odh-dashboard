@@ -11,41 +11,28 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
   emptyTemplates,
   templatesLoaded,
   onClick,
-}) => {
-  if (emptyTemplates) {
-    return (
-      <Tooltip
-        removeFindDomNode
-        aria-label="Add Server Info"
-        content={
-          <Text>
-            At least one serving runtime must be enabled to add a model server. Contact your
-            administrator
-          </Text>
-        }
-      >
-        <Button
-          isLoading={!templatesLoaded}
-          isAriaDisabled={true}
-          onClick={onClick}
-          variant="secondary"
-        >
-          Add server
-        </Button>
-      </Tooltip>
-    );
-  }
-
-  return (
+}) => (
+  <Tooltip
+    removeFindDomNode
+    aria-label="Add Server Info"
+    content={
+      <Text>
+        {emptyTemplates
+          ? 'At least one serving runtime must be enabled to add a model server. Contact your administrator.'
+          : 'A model server specifies resources available for use by one or more supported models, and includes a serving runtime.'}
+      </Text>
+    }
+  >
     <Button
       isLoading={!templatesLoaded}
+      isAriaDisabled={emptyTemplates}
       isDisabled={!templatesLoaded}
       onClick={onClick}
       variant="secondary"
     >
-      Add server
+      Add model server
     </Button>
-  );
-};
+  </Tooltip>
+);
 
 export default ServingRuntimeListButtonAction;

@@ -36,7 +36,7 @@ const ServingRuntimeList: React.FC = () => {
     getTemplateEnabled(template, templateDisablement),
   );
 
-  const emptyTemplates = templatesEnabled?.length === 0;
+  const emptyTemplates = templatesEnabled.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;
 
   return (
