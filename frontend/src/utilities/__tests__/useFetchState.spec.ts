@@ -1,97 +1,125 @@
-import { act } from '@testing-library/react';
-import useFetchState from '~/utilities/useFetchState';
-import { expectHook, standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
+import { act, waitFor } from '@testing-library/react';
+import useFetchState, { FetchState } from '~/utilities/useFetchState';
+import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 
 jest.useFakeTimers();
 
 describe('useFetchState', () => {
   it('should be successful', async () => {
-    const renderResult = testHook(
-      useFetchState,
+    const renderResult = testHook(useFetchState)(
       () => Promise.resolve('success-test-state'),
       'default-test-state',
     );
 
-    expectHook(renderResult)
-      .toStrictEqual(standardUseFetchState('default-test-state'))
-      .toHaveUpdateCount(1);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState('default-test-state'));
+    expect(renderResult).hookToHaveUpdateCount(1);
 
     await renderResult.waitForNextUpdate();
 
-    expectHook(renderResult)
-      .toStrictEqual(standardUseFetchState('success-test-state', true))
-      .toHaveUpdateCount(2)
-      .toBeStable([false, false, true, true]);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState('success-test-state', true));
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should fail', async () => {
-    const renderResult = testHook(
-      useFetchState,
+    const renderResult = testHook(useFetchState)(
       () => Promise.reject<string>(new Error('error-test-state')),
       'default-test-state',
     );
-
-    expectHook(renderResult)
-      .toStrictEqual(standardUseFetchState('default-test-state'))
-      .toHaveUpdateCount(1);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState('default-test-state'));
+    expect(renderResult).hookToHaveUpdateCount(1);
 
     await renderResult.waitForNextUpdate();
 
-    expectHook(renderResult)
-      .toStrictEqual(
-        standardUseFetchState('default-test-state', false, new Error('error-test-state')),
-      )
-      .toHaveUpdateCount(2)
-      .toBeStable([true, true, false, true]);
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState('default-test-state', false, new Error('error-test-state')),
+    );
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable([true, true, false, true]);
   });
 
   it('should refresh', async () => {
-    const renderResult = testHook(useFetchState, () => Promise.resolve([1, 2, 3]), [], {
+    const renderResult = testHook(useFetchState)(() => Promise.resolve([1, 2, 3]), [], {
       refreshRate: 1000,
     });
-    expectHook(renderResult).toStrictEqual(standardUseFetchState([])).toHaveUpdateCount(1);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
+    expect(renderResult).hookToHaveUpdateCount(1);
 
     await renderResult.waitForNextUpdate();
 
-    expectHook(renderResult)
-      .toStrictEqual(standardUseFetchState([1, 2, 3], true))
-      .toHaveUpdateCount(2)
-      .toBeStable([false, false, true, true]);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([1, 2, 3], true));
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable([false, false, true, true]);
 
     await act(() => {
       jest.advanceTimersByTime(900);
     });
-    expectHook(renderResult).toHaveUpdateCount(2);
+    expect(renderResult).hookToHaveUpdateCount(2);
 
     await act(async () => {
       jest.advanceTimersByTime(100);
     });
-    expectHook(renderResult).toHaveUpdateCount(3);
+    expect(renderResult).hookToHaveUpdateCount(3);
 
     await renderResult.waitForNextUpdate();
-    expectHook(renderResult)
-      .toStrictEqual(standardUseFetchState([1, 2, 3], true))
-      .toHaveUpdateCount(4)
-      .toBeStable([false, true, true, true]);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([1, 2, 3], true));
+    expect(renderResult).hookToHaveUpdateCount(4);
+    expect(renderResult).hookToBeStable([false, true, true, true]);
   });
 
   it('should test stability', async () => {
-    const renderResult = testHook(useFetchState, () => Promise.resolve([1, 2, 3]), []);
-    expectHook(renderResult).toStrictEqual(standardUseFetchState([])).toHaveUpdateCount(1);
+    const renderResult = testHook(useFetchState)(() => Promise.resolve([1, 2, 3]), []);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
+    expect(renderResult).hookToHaveUpdateCount(1);
 
     await renderResult.waitForNextUpdate();
-    expectHook(renderResult)
-      .toStrictEqual(standardUseFetchState([1, 2, 3], true))
-      .toHaveUpdateCount(2)
-      .toBeStable([false, false, true, true]);
+
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([1, 2, 3], true));
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable([false, false, true, true]);
 
     renderResult.rerender(() => Promise.resolve([1, 2, 4]), []);
-    expectHook(renderResult).toHaveUpdateCount(3).toBeStable([true, true, true, true]);
+    expect(renderResult).hookToHaveUpdateCount(3);
+    expect(renderResult).hookToBeStable([true, true, true, true]);
 
     await renderResult.waitForNextUpdate();
-    expectHook(renderResult)
-      .toStrictEqual(standardUseFetchState([1, 2, 4], true))
-      .toHaveUpdateCount(4)
-      .toBeStable([false, true, true, true]);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([1, 2, 4], true));
+    expect(renderResult).hookToHaveUpdateCount(4);
+    expect(renderResult).hookToBeStable([false, true, true, true]);
+  });
+
+  it('should have a stable default values when initialPromisePurity=true', async () => {
+    const oriDefaultValue = [10];
+    const result: FetchState<number[]>[] = [];
+
+    const renderResult = testHook((...args: Parameters<typeof useFetchState<number[]>>) => {
+      // wrap useFetchState to capture all executions inbetween useEffects
+      const state = useFetchState(...args);
+      result.push(state);
+      return state;
+    })(() => Promise.resolve([1, 2, 3]), oriDefaultValue, {
+      initialPromisePurity: true,
+    });
+
+    expect(result[0][0]).toBe(oriDefaultValue);
+    expect(result[0][1]).toBe(false);
+
+    await waitFor(() => expect(result).toHaveLength(2));
+    expect(result[1][0]).toStrictEqual([1, 2, 3]);
+    expect(result[1][1]).toBe(true);
+
+    // rerender but with a promise that doens't resolve
+    renderResult.rerender(() => new Promise(() => null), [11], {
+      initialPromisePurity: true,
+    });
+
+    expect(result).toHaveLength(4);
+
+    // update immediately after hook completes but before useEffects are run
+    expect(result[2][0]).toBe(oriDefaultValue);
+    expect(result[2][1]).toBe(false);
+
+    // final update after all useEffects are run
+    expect(result[3][0]).toBe(oriDefaultValue);
+    expect(result[3][1]).toBe(false);
   });
 });

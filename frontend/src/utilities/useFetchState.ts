@@ -111,7 +111,7 @@ type FetchOptions = {
  */
 const useFetchState = <Type, Default extends Type = Type>(
   /** React.useCallback result. */
-  fetchCallbackPromise: FetchStateCallbackPromise<Type> | FetchStateCallbackPromiseAdHoc<Type>,
+  fetchCallbackPromise: FetchStateCallbackPromise<Type | AdHocUpdate<Type>>,
   /**
    * A preferred default states - this is ignored after the first render
    * Note: This is only read as initial value; changes do nothing.
@@ -120,10 +120,13 @@ const useFetchState = <Type, Default extends Type = Type>(
   /** Configurable features */
   { refreshRate = 0, initialPromisePurity = false }: Partial<FetchOptions> = {},
 ): FetchState<Type, Default> => {
+  const initialDefaultStateRef = React.useRef(initialDefaultState);
   const [result, setResult] = React.useState<Type | Default>(initialDefaultState);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
   const abortCallbackRef = React.useRef<() => void>(() => undefined);
+  const changePendingRef = React.useRef(true);
+
   /** Setup on initial hook a singular reset function. DefaultState & resetDataOnNewPromise are initial render states. */
   const cleanupRef = React.useRef(() => {
     if (initialPromisePurity) {
@@ -145,6 +148,7 @@ const useFetchState = <Type, Default extends Type = Type>(
     const doRequest = () =>
       fetchCallbackPromise({ signal: abortController.signal })
         .then((r) => {
+          changePendingRef.current = false;
           if (alreadyAborted) {
             return undefined;
           }
@@ -178,6 +182,7 @@ const useFetchState = <Type, Default extends Type = Type>(
           return r;
         })
         .catch((e) => {
+          changePendingRef.current = false;
           if (alreadyAborted) {
             return undefined;
           }
@@ -190,6 +195,7 @@ const useFetchState = <Type, Default extends Type = Type>(
         });
 
     const unload = () => {
+      changePendingRef.current = false;
       if (alreadyAborted) {
         return;
       }
@@ -200,6 +206,13 @@ const useFetchState = <Type, Default extends Type = Type>(
 
     return [doRequest(), unload];
   }, [fetchCallbackPromise]);
+
+  // Use a memmo to update the `changePendingRef` immediately on change.
+  React.useMemo(() => {
+    changePendingRef.current = true;
+    // React to changes to the `call` reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [call]);
 
   React.useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -233,6 +246,11 @@ const useFetchState = <Type, Default extends Type = Type>(
     abortCallbackRef.current = unload;
     return callPromise;
   }, []);
+
+  // Return the default reset state if a change is pending and initialPromisePurity is true
+  if (initialPromisePurity && changePendingRef.current) {
+    return [initialDefaultStateRef.current, false, undefined, refresh];
+  }
 
   return [result, loaded, loadError, refresh];
 };
