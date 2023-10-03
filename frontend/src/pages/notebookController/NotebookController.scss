@@ -3,106 +3,108 @@
     &-content {
       max-width: 1000px;
     }
-    .pf-c-select {
+    .pf-v5-c-select {
       width: 70%;
     }
-    .pf-c-form__section:not(:first-child) {
-      margin-top: var(--pf-global--spacer--sm);
-      padding-top: var(--pf-global--spacer--sm);
-      border-top: 1px solid var(--pf-global--BorderColor--100);
+    .pf-v5-c-form__section:not(:first-child) {
+      margin-top: var(--pf-v5-global--spacer--sm);
+      padding-top: var(--pf-v5-global--spacer--sm);
+      border-top: 1px solid var(--pf-v5-global--BorderColor--100);
     }
   }
   &__env-var {
-    gap: var(--pf-global--gutter);
-    .pf-c-form__section-title {
-      margin-bottom: var(--pf-global--spacer--sm);
+    gap: var(--pf-v5-global--gutter);
+    .pf-v5-c-form__section-title {
+      margin-bottom: var(--pf-v5-global--spacer--sm);
     }
     &-add-button {
-      margin-left: var(--pf-global--spacer--md);
+      margin-left: var(--pf-v5-global--spacer--md);
     }
     &-row {
       width: 85%;
-      .pf-c-select {
+      .pf-v5-c-select {
         width: 70%;
       }
       & ~ & {
-        padding-top: var(--pf-global--spacer--md);
-        border-top: 1px solid var(--pf-global--BorderColor--100);
+        padding-top: var(--pf-v5-global--spacer--md);
+        border-top: 1px solid var(--pf-v5-global--BorderColor--100);
       }
     }
     &-field {
-      margin-left: var(--pf-global--spacer--md);
-      .pf-c-form-control, .pf-c-input-group {
+      margin-left: var(--pf-v5-global--spacer--md);
+      .pf-v5-c-form-control,
+      .pf-v5-c-input-group {
         width: calc(70%);
       }
     }
   }
   &__server-details {
     &-title {
-      font-size: var(--pf-global--FontSize--lg);
-      padding-bottom: var(--pf-global--spacer--md);
+      font-size: var(--pf-v5-global--FontSize--lg);
+      padding-bottom: var(--pf-v5-global--spacer--md);
     }
     &-image-name {
-      padding-bottom: var(--pf-global--spacer--md);
+      padding-bottom: var(--pf-v5-global--spacer--md);
     }
-    .pf-c-description-list {
+    .pf-v5-c-description-list {
       font-size: small;
-      padding-bottom: var(--pf-global--spacer--xl);
+      padding-bottom: var(--pf-v5-global--spacer--xl);
     }
   }
   &__notebook-image {
     &-option {
-      .pf-c-radio__label {
+      .pf-v5-c-radio__label {
         white-space: nowrap;
       }
     }
     &-tags {
-      margin-left: var(--pf-global--spacer--md);
-      .pf-c-expandable-section__content {
+      margin-left: var(--pf-v5-global--spacer--md);
+      .pf-v5-c-expandable-section__content {
         margin-top: 0;
-        margin-left: var(--pf-global--spacer--md);
+        margin-left: var(--pf-v5-global--spacer--md);
       }
       .odh-data-projects__notebook-image-option:not(:last-of-type) {
-        margin-bottom: var(--pf-global--spacer--sm);
+        margin-bottom: var(--pf-v5-global--spacer--sm);
       }
     }
     &-title {
-      > svg, &-version {
-        margin-left: var(--pf-global--spacer--xs);
+      > svg,
+      &-version {
+        margin-left: var(--pf-v5-global--spacer--xs);
       }
-      .pf-c-label {
-        margin-left: var(--pf-global--spacer--sm);
+      .pf-v5-c-label {
+        margin-left: var(--pf-v5-global--spacer--sm);
       }
     }
     &-popover {
       &-title {
-        font-weight: var(--pf-global--FontWeight--bold);
-        margin-bottom: var(--pf-global--spacer--sm);
+        font-weight: var(--pf-v5-global--FontWeight--bold);
+        margin-bottom: var(--pf-v5-global--spacer--sm);
       }
       &-package-title {
-        font-weight: var(--pf-global--FontWeight--bold);
+        font-weight: var(--pf-v5-global--FontWeight--bold);
       }
     }
   }
   &__start-server-modal {
-    .pf-c-list {
-      font-size: var(--pf-global--FontSize--sm);
+    .pf-v5-c-list {
+      font-size: var(--pf-v5-global--FontSize--sm);
     }
-    .pf-c-expandable-section {
+    .pf-v5-c-expandable-section {
       width: 100%;
-      padding-right: var(--pf-global--spacer--lg);
-      margin-top: var(--pf-global--spacer--sm);
+      padding-right: var(--pf-v5-global--spacer--lg);
+      margin-top: var(--pf-v5-global--spacer--sm);
       &__content {
         margin-top: 0;
         max-height: 250px;
         overflow: auto;
       }
     }
-    .pf-c-progress {
-      margin-bottom: var(--pf-global--spacer--md);
+    .pf-v5-c-progress {
+      margin-bottom: var(--pf-v5-global--spacer--md);
     }
-    .pf-c-alert {
-      margin-bottom: var(--pf-global--spacer--md);
+    .pf-v5-c-alert {
+      margin-bottom: var(--pf-v5-global--spacer--md);
     }
   }
 }

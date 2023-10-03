@@ -4,7 +4,7 @@ import {
   ApplicationLauncherGroup,
   ApplicationLauncherItem,
   ApplicationLauncherSeparator,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/deprecated';
 import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
@@ -132,7 +132,6 @@ const AppLauncher: React.FC = () => {
 
   return (
     <ApplicationLauncher
-      removeFindDomNode
       aria-label="Application launcher"
       onSelect={onSelect}
       onToggle={onToggle}

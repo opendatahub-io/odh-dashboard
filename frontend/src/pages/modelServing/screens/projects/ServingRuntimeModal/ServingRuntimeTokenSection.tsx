@@ -56,7 +56,7 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
           name="alt-form-checkbox-auth"
           isDisabled={!allowCreate}
           isChecked={data.tokenAuth}
-          onChange={(check) => {
+          onChange={(e, check) => {
             setData('tokenAuth', check);
             if (data.tokens.length === 0) {
               createNewToken();

@@ -32,7 +32,6 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   if (!isRouteEnabled) {
     return (
       <Popover
-        removeFindDomNode
         headerContent="Internal Service can be accessed inside the cluster"
         aria-label="Internal Service Info"
         bodyContent={<InternalServicePopoverContent inferenceService={inferenceService} />}
@@ -59,7 +58,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   }
 
   return (
-    <ClipboardCopy removeFindDomNode hoverTip="Copy" clickTip="Copied" isReadOnly>
+    <ClipboardCopy hoverTip="Copy" clickTip="Copied" isReadOnly>
       {`${routeLink}/infer`}
     </ClipboardCopy>
   );

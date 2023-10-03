@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Title,
   Button,
   EmptyState,
   EmptyStateVariant,
@@ -8,23 +7,27 @@ import {
   EmptyStateBody,
   PageSection,
   PageSectionVariants,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { HomeIcon, PathMissingIcon } from '@patternfly/react-icons';
 
 const NotFound: React.FC = () => (
   <PageSection variant={PageSectionVariants.light}>
     <EmptyState variant={EmptyStateVariant.full}>
-      <EmptyStateIcon icon={PathMissingIcon} />
-
-      <Title headingLevel="h2" size="lg">
-        We can&lsquo;t find that page
-      </Title>
+      <EmptyStateHeader
+        titleText="We can‘t find that page"
+        icon={<EmptyStateIcon icon={PathMissingIcon} />}
+        headingLevel="h2"
+      />
       <EmptyStateBody>
         Another page might have what you need. Return to the home page.
       </EmptyStateBody>
-      <Button component="a" href="/" variant="primary">
-        <HomeIcon /> Home
-      </Button>
+      <EmptyStateFooter>
+        <Button component="a" href="/" variant="primary">
+          <HomeIcon /> Home
+        </Button>
+      </EmptyStateFooter>
     </EmptyState>
   </PageSection>
 );

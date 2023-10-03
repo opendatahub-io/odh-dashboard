@@ -72,7 +72,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           >
             <FlexItem>{notebookSize?.name ?? 'Unknown'}</FlexItem>
             {sizeError && (
-              <Tooltip removeFindDomNode content={sizeError}>
+              <Tooltip content={sizeError}>
                 <Icon aria-label="error icon" role="button" status="danger" tabIndex={0}>
                   <ExclamationCircleIcon />
                 </Icon>

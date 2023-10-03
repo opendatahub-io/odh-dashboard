@@ -23,7 +23,7 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ categ
   }
 
   return (
-    <Tooltip content={content} removeFindDomNode>
+    <Tooltip content={content}>
       <span>{category}</span>
     </Tooltip>
   );

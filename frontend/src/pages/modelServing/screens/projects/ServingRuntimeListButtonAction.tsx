@@ -15,7 +15,6 @@ const ServingRuntimeListButtonAction: React.FC<ServingRuntimeListButtonActionPro
   if (emptyTemplates) {
     return (
       <Tooltip
-        removeFindDomNode
         aria-label="Add Server Info"
         content={
           <Text>

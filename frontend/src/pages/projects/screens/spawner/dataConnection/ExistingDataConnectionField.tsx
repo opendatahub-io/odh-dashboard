@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Alert, FormGroup, Select, SelectOption } from '@patternfly/react-core';
+import { Alert, FormGroup } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
 
@@ -40,7 +41,6 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
   return (
     <FormGroup isRequired label="Data connection" fieldId={fieldId}>
       <Select
-        removeFindDomNode
         variant="typeahead"
         selections={selectedDataConnection}
         isOpen={isOpen}
@@ -55,7 +55,7 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
             setOpen(false);
           }
         }}
-        onToggle={setOpen}
+        onToggle={(e, isExpanded) => setOpen(isExpanded)}
         placeholderText={placeholderText}
         direction="up"
         menuAppendTo="parent"

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { DropdownDirection } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
@@ -68,7 +67,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       </Td>
       <Td isActionCell>
         <ActionsColumn
-          dropdownDirection={isGlobal ? DropdownDirection.down : DropdownDirection.up}
           items={[
             {
               title: 'Edit',

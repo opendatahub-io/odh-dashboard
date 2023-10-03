@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import { Tooltip } from '@patternfly/react-core';
+import { Icon, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '~/types';
 import { getQuickStartLabel, launchQuickStart } from '~/utilities/quickStartUtils';
@@ -34,7 +34,7 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
       'odh-m-how-to': docType === OdhDocumentType.HowTo,
     });
     return (
-      <Tooltip removeFindDomNode content={DOC_TYPE_TOOLTIPS[docType]}>
+      <Tooltip content={DOC_TYPE_TOOLTIPS[docType]}>
         <div className={typeBadgeClasses}>{odhDoc.spec.type}</div>
       </Tooltip>
     );
@@ -71,7 +71,11 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
     return (
       <a className="odh-list-item__link" href={href} {...linkProps}>
         {title}
-        {external ? <ExternalLinkAltIcon noVerticalAlign /> : null}
+        {external ? (
+          <Icon isInline>
+            <ExternalLinkAltIcon />
+          </Icon>
+        ) : null}
       </a>
     );
   };
@@ -81,12 +85,12 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
       <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
       <div className="odh-list-item__doc-text">
         <div id={odhDoc.metadata.name} className="odh-list-item__doc-title">
-          <Tooltip removeFindDomNode content={odhDoc.spec.displayName}>
+          <Tooltip content={odhDoc.spec.displayName}>
             <span>{odhDoc.spec.displayName}</span>
           </Tooltip>
         </div>
         <div className="odh-list-item__doc-description">
-          <Tooltip removeFindDomNode content={odhDoc.spec.description}>
+          <Tooltip content={odhDoc.spec.description}>
             <span>{odhDoc.spec.description}</span>
           </Tooltip>
         </div>
@@ -97,14 +101,14 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
             id={`${odhDoc.spec.type}-${odhDoc.spec.displayName}`}
             className="odh-list-item__doc-title"
           >
-            <Tooltip removeFindDomNode content={odhDoc.spec.appDisplayName}>
+            <Tooltip content={odhDoc.spec.appDisplayName}>
               <span>{odhDoc.spec.appDisplayName}</span>
             </Tooltip>
           </div>
         ) : null}
         {odhDoc.spec.provider ? (
           <div className="odh-list-item__doc-description">
-            <Tooltip removeFindDomNode content={odhDoc.spec.provider}>
+            <Tooltip content={odhDoc.spec.provider}>
               <span>by {odhDoc.spec.provider}</span>
             </Tooltip>
           </div>

@@ -51,7 +51,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             isRequired
             id="serving-runtime-name-input"
             value={data.name}
-            onChange={(name) => setData('name', name)}
+            onChange={(e, name) => setData('name', name)}
           />
         </FormGroup>
       </StackItem>

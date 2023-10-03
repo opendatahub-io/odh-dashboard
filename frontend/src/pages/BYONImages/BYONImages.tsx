@@ -10,7 +10,8 @@ import {
   EmptyStateBody,
   PageSection,
   PageSectionVariants,
-  Title,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/pages/ApplicationsPage';
@@ -29,20 +30,23 @@ const BYONImages: React.FC = () => {
   const noImagesPageSection = (
     <PageSection isFilled>
       <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state">
-        <EmptyStateIcon icon={PlusCircleIcon} />
-        <Title headingLevel="h5" size="lg">
-          No custom notebook images found.
-        </Title>
+        <EmptyStateHeader
+          titleText="No custom notebook images found."
+          icon={<EmptyStateIcon icon={PlusCircleIcon} />}
+          headingLevel="h5"
+        />
         <EmptyStateBody>To get started import a custom notebook image.</EmptyStateBody>
-        <Button
-          data-id="display-image-modal-button"
-          variant={ButtonVariant.primary}
-          onClick={() => {
-            setImportImageModalVisible(true);
-          }}
-        >
-          Import image
-        </Button>
+        <EmptyStateFooter>
+          <Button
+            data-id="display-image-modal-button"
+            variant={ButtonVariant.primary}
+            onClick={() => {
+              setImportImageModalVisible(true);
+            }}
+          >
+            Import image
+          </Button>
+        </EmptyStateFooter>
       </EmptyState>
       <ImportImageModal
         isOpen={importImageModalVisible}

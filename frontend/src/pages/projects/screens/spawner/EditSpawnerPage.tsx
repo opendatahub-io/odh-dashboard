@@ -7,7 +7,8 @@ import {
   EmptyStateBody,
   EmptyStateIcon,
   Spinner,
-  Title,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -34,14 +35,17 @@ const EditSpawnerPage: React.FC = () => {
     return (
       <Bullseye>
         <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
-            Problem loading project details
-          </Title>
+          <EmptyStateHeader
+            titleText="Problem loading project details"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h4"
+          />
           <EmptyStateBody>{error.message}</EmptyStateBody>
-          <Button variant="primary" onClick={() => navigate('/projects')}>
-            View my projects
-          </Button>
+          <EmptyStateFooter>
+            <Button variant="primary" onClick={() => navigate('/projects')}>
+              View my projects
+            </Button>
+          </EmptyStateFooter>
         </EmptyState>
       </Bullseye>
     );
@@ -59,20 +63,23 @@ const EditSpawnerPage: React.FC = () => {
     return (
       <Bullseye>
         <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h4" size="lg">
-            Unable to edit workbench
-          </Title>
+          <EmptyStateHeader
+            titleText="Unable to edit workbench"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h4"
+          />
           <EmptyStateBody>
             We were unable to find a notebook by this name in your project{' '}
             {getProjectDisplayName(currentProject)}.
           </EmptyStateBody>
-          <Button
-            variant="primary"
-            onClick={() => navigate(`/projects/${currentProject.metadata.name}`)}
-          >
-            Return to {getProjectDisplayName(currentProject)}
-          </Button>
+          <EmptyStateFooter>
+            <Button
+              variant="primary"
+              onClick={() => navigate(`/projects/${currentProject.metadata.name}`)}
+            >
+              Return to {getProjectDisplayName(currentProject)}
+            </Button>
+          </EmptyStateFooter>
         </EmptyState>
       </Bullseye>
     );

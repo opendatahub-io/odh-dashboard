@@ -1,14 +1,12 @@
 import * as React from 'react';
 import {
-  Dropdown,
-  DropdownItem,
-  DropdownToggle,
   ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
   ToolbarChip,
   Tooltip,
 } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { FilterIcon } from '@patternfly/react-icons';
 import { ValueOf } from '~/typeHelpers';
 
@@ -81,7 +79,7 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
                   node: (
                     <>
                       <b>{optionValue}:</b>{' '}
-                      <Tooltip removeFindDomNode content={dataValue} position="top-start">
+                      <Tooltip content={dataValue} position="top-start">
                         <span>{dataValue}</span>
                       </Tooltip>
                     </>

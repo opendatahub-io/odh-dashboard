@@ -1,6 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Nav, NavExpandable, NavItem, NavList, PageSidebar } from '@patternfly/react-core';
+import {
+  Nav,
+  NavExpandable,
+  NavItem,
+  NavList,
+  PageSidebar,
+  PageSidebarBody,
+} from '@patternfly/react-core';
 import { getNavBarData, isNavDataGroup, NavDataGroup, NavDataHref } from '~/utilities/NavData';
 import { useUser } from '~/redux/selectors';
 import { useAppContext } from './AppContext';
@@ -10,7 +17,6 @@ const checkLinkActiveStatus = (pathname: string, href: string) =>
 
 const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, pathname }) => (
   <NavItem
-    removeFindDomNode
     key={item.id}
     data-id={item.id}
     itemId={item.id}
@@ -62,7 +68,11 @@ const NavSidebar: React.FC = () => {
       </NavList>
     </Nav>
   );
-  return <PageSidebar nav={nav} theme="dark" />;
+  return (
+    <PageSidebar theme="dark">
+      <PageSidebarBody>{nav}</PageSidebarBody>
+    </PageSidebar>
+  );
 };
 
 export default NavSidebar;

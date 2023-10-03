@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Alert, FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
+import { Alert, FormGroup, Skeleton } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import useModelServingProjects from './useModelServingProjects';
 
@@ -46,7 +47,6 @@ const ExistingProjectField: React.FC<ExistingProjectFieldProps> = ({
     <FormGroup label="Project" fieldId={fieldId}>
       <Select
         toggleId="existing-project-selection"
-        removeFindDomNode
         selections={selectedProject}
         isOpen={isOpen}
         onSelect={(e, selection) => {
@@ -56,7 +56,7 @@ const ExistingProjectField: React.FC<ExistingProjectFieldProps> = ({
           }
         }}
         isDisabled={disabled}
-        onToggle={setOpen}
+        onToggle={(e, isExpanded) => setOpen(isExpanded)}
         placeholderText="Select the project"
         direction={selectDirection}
         menuAppendTo={menuAppendTo}

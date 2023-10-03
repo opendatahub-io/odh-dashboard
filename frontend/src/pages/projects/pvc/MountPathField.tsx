@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { FormGroup, InputGroup, InputGroupText, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  InputGroup,
+  InputGroupText,
+  TextInput,
+  InputGroupItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+} from '@patternfly/react-core';
 import { MountPath } from '~/pages/projects/types';
 
 type MountPathFieldProps = {
@@ -13,34 +22,39 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
   mountPath,
   setMountPath,
 }) => (
-  <FormGroup
-    isRequired
-    helperText="Must consist of lower case letters and dashes"
-    helperTextInvalid={mountPath.error}
-    label="Mount folder name"
-    validated={mountPath.error ? 'error' : 'default'}
-  >
+  <FormGroup isRequired label="Mount folder name">
     <InputGroup>
-      <InputGroupText variant="plain">/</InputGroupText>
-      <TextInput
-        isRequired
-        aria-label="mount-path-folder-value"
-        type="text"
-        value={mountPath.value}
-        placeholder="eg. data"
-        onChange={(value) => {
-          let error = '';
-          if (value.length === 0) {
-            error = 'Required';
-          } else if (!/^[a-z-]+$/.test(value)) {
-            error = 'Must only consist of lower case letters and dashes';
-          } else if (inUseMountPaths.includes(`/${value}`)) {
-            error = 'Mount folder is already in use for this workbench';
-          }
-          setMountPath({ value, error });
-        }}
-      />
+      <InputGroupText>/</InputGroupText>
+      <InputGroupItem isFill>
+        <TextInput
+          isRequired
+          aria-label="mount-path-folder-value"
+          type="text"
+          value={mountPath.value}
+          placeholder="eg. data"
+          validated={mountPath.error ? 'error' : 'default'}
+          onChange={(e, value) => {
+            let error = '';
+            if (value.length === 0) {
+              error = 'Required';
+            } else if (!/^[a-z-]+$/.test(value)) {
+              error = 'Must only consist of lower case letters and dashes';
+            } else if (inUseMountPaths.includes(`/${value}`)) {
+              error = 'Mount folder is already in use for this workbench';
+            }
+            setMountPath({ value, error });
+          }}
+        />
+      </InputGroupItem>
     </InputGroup>
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem variant={mountPath.error ? 'error' : 'default'}>
+          {mountPath.error ??
+            'Enter a path to a model or folder. This path cannot point to a root folder.'}
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
   </FormGroup>
 );
 

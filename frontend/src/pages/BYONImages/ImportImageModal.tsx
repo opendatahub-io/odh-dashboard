@@ -8,14 +8,19 @@ import {
   Form,
   FormGroup,
   TextInput,
-  Title,
   Modal,
   ModalVariant,
   Tabs,
   Tab,
   TabTitleText,
+  EmptyStateHeader,
+  EmptyStateFooter,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  AlertVariant,
 } from '@patternfly/react-core';
-import { Caption, TableComposable, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
+import { Caption, Table, Tbody, Thead, Th, Tr } from '@patternfly/react-table';
 import { CubesIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { importBYONImage } from '~/services/imagesService';
 import { ResponseStatus, BYONImagePackage } from '~/types';
@@ -81,7 +86,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                 if (value.success === false) {
                   dispatch(
                     addNotification({
-                      status: 'danger',
+                      status: AlertVariant.danger,
                       title: `Unable to add notebook image ${name}`,
                       message: value.error,
                       timestamp: new Date(),
@@ -109,15 +114,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
           e.preventDefault();
         }}
       >
-        <FormGroup
-          label="Repository"
-          isRequired
-          fieldId="byon-image-repository-input"
-          helperText="Repo where notebook images are stored."
-          helperTextInvalid="This field is required."
-          helperTextInvalidIcon={<ExclamationCircleIcon />}
-          validated={validRepo ? undefined : 'error'}
-        >
+        <FormGroup label="Repository" isRequired fieldId="byon-image-repository-input">
           <TextInput
             id="byon-image-repository-input"
             isRequired
@@ -126,30 +123,44 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
             name="byon-image-repository-input"
             aria-describedby="byon-image-repository-input"
             value={repository}
-            onChange={(value) => {
+            validated={validRepo ? undefined : 'error'}
+            onChange={(e, value) => {
               setRepository(value);
             }}
           />
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem
+                variant={validRepo ? 'default' : 'error'}
+                {...(!validRepo && { icon: <ExclamationCircleIcon /> })}
+              >
+                {validRepo ? 'Repo where notebook images are stored.' : 'This field is required.'}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
         </FormGroup>
-        <FormGroup
-          label="Name"
-          isRequired
-          fieldId="byon-image-name-input"
-          helperTextInvalid="This field is required."
-          helperTextInvalidIcon={<ExclamationCircleIcon />}
-          validated={validName ? undefined : 'error'}
-        >
+        <FormGroup label="Name" isRequired fieldId="byon-image-name-input">
           <TextInput
             id="byon-image-name-input"
             isRequired
+            validated={validName ? 'default' : 'error'}
             type="text"
             data-id="byon-image-name-input"
             name="byon-image-name-input"
             value={name}
-            onChange={(value) => {
+            onChange={(e, value) => {
               setName(value);
             }}
           />
+          {!validName && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem icon={<ExclamationCircleIcon />} variant={'error'}>
+                  {'This field is required.'}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
         <FormGroup label="Description" fieldId="byon-image-description-input">
           <TextInput
@@ -160,7 +171,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
             name="byon-image-description-input"
             aria-describedby="byon-image-description-input"
             value={description}
-            onChange={(value) => {
+            onChange={(e, value) => {
               setDescription(value);
             }}
           />
@@ -168,14 +179,14 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
         <FormGroup fieldId="byon-image-software-packages">
           <Tabs
             activeKey={activeTabKey}
-            onSelect={(_event, indexKey) => {
+            onSelect={(e, indexKey) => {
               setActiveTabKey(indexKey as number);
             }}
           >
             <Tab data-id="software-tab" eventKey={0} title={<TabTitleText>Software</TabTitleText>}>
               {software.length > 0 ? (
                 <>
-                  <TableComposable aria-label="Simple table" variant="compact">
+                  <Table aria-label="Simple table" variant="compact">
                     <Caption>
                       Add the advertised software shown with this notebook image. Modifying the
                       software here does not effect the contents of the notebook image.
@@ -203,7 +214,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                         />
                       ))}
                     </Tbody>
-                  </TableComposable>
+                  </Table>
                   <Button
                     data-id="add-software-secondary-button"
                     variant="link"
@@ -223,39 +234,42 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                   </Button>
                 </>
               ) : (
-                <EmptyState variant={EmptyStateVariant.small}>
-                  <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h2" size="lg">
-                    No software added
-                  </Title>
+                <EmptyState variant={EmptyStateVariant.sm}>
+                  <EmptyStateHeader
+                    titleText="No software added"
+                    icon={<EmptyStateIcon icon={CubesIcon} />}
+                    headingLevel="h2"
+                  />
                   <EmptyStateBody>
                     Add software to be advertised with your notebook image. Making changes here
                     won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
-                  <Button
-                    data-id="add-software-button"
-                    className="empty-button"
-                    variant="secondary"
-                    onClick={() => {
-                      setSoftware((previous) => [
-                        ...previous,
-                        {
-                          name: '',
-                          version: '',
-                          visible: true,
-                        },
-                      ]);
-                    }}
-                  >
-                    Add software
-                  </Button>
+                  <EmptyStateFooter>
+                    <Button
+                      data-id="add-software-button"
+                      className="empty-button"
+                      variant="secondary"
+                      onClick={() => {
+                        setSoftware((previous) => [
+                          ...previous,
+                          {
+                            name: '',
+                            version: '',
+                            visible: true,
+                          },
+                        ]);
+                      }}
+                    >
+                      Add software
+                    </Button>
+                  </EmptyStateFooter>
                 </EmptyState>
               )}
             </Tab>
             <Tab data-id="packages-tab" eventKey={1} title={<TabTitleText>Packages</TabTitleText>}>
               {packages.length > 0 ? (
                 <>
-                  <TableComposable aria-label="Simple table" variant="compact" isStickyHeader>
+                  <Table aria-label="Simple table" variant="compact" isStickyHeader>
                     <Caption>
                       Add the advertised packages shown with this notebook image. Modifying the
                       packages here does not effect the contents of the notebook image.
@@ -283,7 +297,7 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                         />
                       ))}
                     </Tbody>
-                  </TableComposable>
+                  </Table>
                   <Button
                     data-id="add-package-secondary-button"
                     variant="link"
@@ -303,32 +317,35 @@ export const ImportImageModal: React.FC<ImportImageModalProps> = ({
                   </Button>
                 </>
               ) : (
-                <EmptyState variant={EmptyStateVariant.small}>
-                  <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h2" size="lg">
-                    No packages added
-                  </Title>
+                <EmptyState variant={EmptyStateVariant.sm}>
+                  <EmptyStateHeader
+                    titleText="No packages added"
+                    icon={<EmptyStateIcon icon={CubesIcon} />}
+                    headingLevel="h2"
+                  />
                   <EmptyStateBody>
                     Add packages to be advertised with your notebook image. Making changes here
                     won’t affect the contents of the image.{' '}
                   </EmptyStateBody>
-                  <Button
-                    data-id="add-package-button"
-                    className="empty-button"
-                    variant="secondary"
-                    onClick={() => {
-                      setPackages((previous) => [
-                        ...previous,
-                        {
-                          name: '',
-                          version: '',
-                          visible: true,
-                        },
-                      ]);
-                    }}
-                  >
-                    Add package
-                  </Button>
+                  <EmptyStateFooter>
+                    <Button
+                      data-id="add-package-button"
+                      className="empty-button"
+                      variant="secondary"
+                      onClick={() => {
+                        setPackages((previous) => [
+                          ...previous,
+                          {
+                            name: '',
+                            version: '',
+                            visible: true,
+                          },
+                        ]);
+                      }}
+                    >
+                      Add package
+                    </Button>
+                  </EmptyStateFooter>
                 </EmptyState>
               )}
             </Tab>

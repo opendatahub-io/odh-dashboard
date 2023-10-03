@@ -7,9 +7,14 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 type SupportedAppTitleProps = {
   odhApp: OdhApplication;
   showProvider?: boolean;
+  onClick?: () => void;
 };
 
-const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvider = false }) => {
+const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({
+  odhApp,
+  showProvider = false,
+  onClick,
+}) => {
   let title = odhApp.spec.displayName;
   let icon;
 
@@ -18,11 +23,13 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
     title = `${splitTitle.slice(0, -1).join(' ')} `;
     icon = (
       <span style={{ whiteSpace: 'nowrap' }}>
-        <span style={{ verticalAlign: 'text-bottom' }}>{splitTitle[splitTitle.length - 1]}</span>
-        <Tooltip removeFindDomNode content={`${ODH_PRODUCT_NAME} certified and supported`}>
+        <Button variant="link" onClick={onClick} isInline style={{ verticalAlign: 'text-bottom' }}>
+          {splitTitle[splitTitle.length - 1]}
+        </Button>
+        <Tooltip content={`${ODH_PRODUCT_NAME} certified and supported`}>
           <Button variant="plain" style={{ padding: 0 }}>
             <img
-              style={{ marginLeft: 'var(--pf-global--spacer--xs)' }}
+              style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}
               src="../images/CheckStar.svg"
               alt={`${ODH_PRODUCT_NAME} certified and supported`}
             />
@@ -34,7 +41,13 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
 
   return (
     <CardTitle>
-      <span style={{ verticalAlign: 'text-bottom' }}>{title}</span>
+      {onClick ? (
+        <Button variant="link" isInline onClick={onClick}>
+          {title}
+        </Button>
+      ) : (
+        title
+      )}
       {icon}
       {showProvider && odhApp.spec.provider && (
         <div>
