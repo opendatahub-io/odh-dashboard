@@ -881,11 +881,11 @@ export enum ContainerResourceAttributes {
 
 export type ContainerResources = {
   requests?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
   } & Record<string, unknown>;
   limits?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
   } & Record<string, unknown>;
 };

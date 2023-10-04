@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
-import Table from '~/components/table/Table';
+import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';

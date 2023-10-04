@@ -1,3 +1,5 @@
+<!-- Deprecated: Move to documenting the CRD -->
+
 # Dashboard Config
 
 By default the ODH Dashboard comes with a set of core features enabled that are design to work for most scenarios.  The dashboard can be configured from its OdhDashboard CR, `odh-dashboard-config`.
@@ -111,7 +113,7 @@ New annotations we created are:
 | `notebooks.opendatahub.io/last-image-selection` | The last image the user selected (on create notebook) |
 | `notebooks.opendatahub.io/last-size-selection` | The last notebook size the user selected (on create notebook) |
 
-`*` - We need the original user's name (we translate their name to kube safe characters for notebook name and for the label) for some functionality. If this is omitted from the Notebook (or they don't have one yet) we try to make a validation against the current logged in user. This will work most of the time (and we assume logged in user when they don't have a Notebook), if this fails because you're an Admin and we don't have this state, we consider this an invalid state -- should be rare though as it requires the subset of users that are Admins to have a bad-state Notebook they are trying to impersonate (to start or view that users Notebook information).
+`*` - We need the original user's name (we translate their name to kube safe characters for notebook name and for the label) for some functionality. If this is omitted from the Notebook (or they don't have one yet) we try to make a validation against the current logged in user. This will work most of the time (and we assume logged in user when they don't have a Notebook), if this fails because you're an Admin and we don't have this state, we consider this an invalid state - should be rare though as it requires the subset of users that are Admins to have a bad-state Notebook they are trying to impersonate (to start or view that users Notebook information).
 
 ### Serving Runtime Template Order
 

@@ -30,4 +30,6 @@ module.exports = {
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing
   snapshotSerializers: [],
+
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/unit/jest.setup.ts'],
 };

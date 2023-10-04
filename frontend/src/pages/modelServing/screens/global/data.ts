@@ -1,5 +1,5 @@
 import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
-import { SortableData } from '~/components/table/useTableColumnSort';
+import { SortableData } from '~/components/table';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
 

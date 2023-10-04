@@ -49,7 +49,7 @@ export const getAcceleratorNumbers = async (
 
           // if any accelerators are available, the cluster is configured
           const configured =
-            info.configured ?? Object.values(info.available).some((value) => value > 0);
+            info.configured || Object.values(info.available).some((value) => value > 0);
 
           return {
             total: info.total,

@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { ActionsColumn, ExpandableRowContent, Td } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
+import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
+import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import { TableRowTitleDescription, CheckboxCell } from '~/components/table';
 import {
   RunCreated,
   RunDuration,
@@ -12,9 +12,9 @@ import {
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import CheckboxCell from '~/components/table/CheckboxCell';
 import { GetJobInformation } from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
 import { EitherNotBoth } from '~/typeHelpers';
+import useNotification from '~/utilities/useNotification';
 
 type PipelineRunTableRowProps = {
   onDelete: () => void;
@@ -30,8 +30,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   isExpandable,
   getJobInformation,
 }) => {
-  const { namespace } = usePipelinesAPI();
+  const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const { loading, data } = getJobInformation(run);
+  const notification = useNotification();
+  const navigate = useNavigate();
 
   const loadingState = <Skeleton />;
 
@@ -66,6 +68,25 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     <ActionsColumn
       key="action-cell"
       items={[
+        {
+          title: 'Stop',
+          isDisabled: run.status !== PipelineRunStatusesKF.RUNNING,
+          onClick: () => {
+            api
+              .stopPipelineRun({}, run.id)
+              .then(refreshAllAPI)
+              .catch((e) => notification.error('Unable to stop pipeline run', e.message));
+          },
+        },
+        {
+          title: 'Duplicate',
+          onClick: () => {
+            navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`);
+          },
+        },
+        {
+          isSeparator: true,
+        },
         {
           title: 'Delete',
           onClick: () => {

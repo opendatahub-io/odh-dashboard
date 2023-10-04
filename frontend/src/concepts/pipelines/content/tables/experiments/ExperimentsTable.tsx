@@ -1,8 +1,7 @@
 import * as React from 'react';
-import Table, { TableProps } from '~/components/table/Table';
+import { Table, TableProps, SortableData } from '~/components/table';
 import { ExperimentKF, PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import ExperimentsTableRow from '~/concepts/pipelines/content/tables/experiments/ExperimentsTableRow';
-import { SortableData } from '~/components/table/useTableColumnSort';
 import { getPipelineCoreResourceExperimentReference } from '~/concepts/pipelines/content/tables/utils';
 
 type BaseTableProps<T> = Omit<TableProps<T>, 'data' | 'variant' | 'rowRenderer' | 'tbodyProps'>;

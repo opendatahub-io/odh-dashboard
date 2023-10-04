@@ -119,12 +119,12 @@ export enum ContainerResourceAttributes {
 export type ContainerResources = {
   requests?: {
     [key: string]: number | string | undefined;
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
   };
   limits?: {
     [key: string]: number | string | undefined;
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
   };
 };

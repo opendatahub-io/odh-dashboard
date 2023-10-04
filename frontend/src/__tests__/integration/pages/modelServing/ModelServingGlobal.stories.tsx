@@ -8,7 +8,10 @@ import { Route, Routes } from 'react-router-dom';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
+import {
+  mockInferenceServiceK8sResource,
+  mockInferenceServicek8sError,
+} from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import ModelServingGlobal from '~/pages/modelServing/screens/global/ModelServingGlobal';
@@ -37,6 +40,15 @@ export default {
         ),
         rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
           res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
+        ),
+        rest.post(
+          'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test',
+          (req, res, ctx) => res(ctx.json(mockInferenceServiceK8sResource({}))),
+        ),
+        rest.post(
+          'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/trigger-error',
+          (req, res, ctx) =>
+            res(ctx.status(422, 'Unprocessable Entity'), ctx.json(mockInferenceServicek8sError())),
         ),
       ],
     },

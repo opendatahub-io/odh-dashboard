@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Panel, PanelFooter, PanelHeader, PanelMainBody } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import Table from '~/components/table/Table';
+import { Table } from '~/components/table';
 import { BYONImagePackage } from '~/types';
 import { DisplayedContentTab } from './ManageBYONImageModal';
 import { getColumns } from './tableData';

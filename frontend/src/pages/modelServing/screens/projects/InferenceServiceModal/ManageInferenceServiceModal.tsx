@@ -78,6 +78,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
+    setError(undefined);
     setActionInProgress(false);
     resetData();
   };
