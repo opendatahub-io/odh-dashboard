@@ -1,17 +1,18 @@
 import * as React from 'react';
 import {
+  ClipboardCopy,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Icon,
+  Popover,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import '~/pages/notebookController/NotebookController.scss';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
@@ -23,10 +24,10 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
     {children}{' '}
     {resource.metadata?.name && (
       <div style={{ display: 'inline-block' }}>
-        <Tooltip
+        <Popover
           removeFindDomNode
           position="right"
-          content={
+          bodyContent={
             <Stack hasGutter>
               <StackItem>
                 Resource names and types are used to find your resources in OpenShift.
@@ -36,7 +37,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
                   <DescriptionListGroup>
                     <DescriptionListTerm>Resource name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resource.metadata.name}
+                      <ClipboardCopy hoverTip="Copy" clickTip="Copied" variant="inline-compact">
+                        {resource.metadata?.name}
+                      </ClipboardCopy>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
@@ -48,10 +51,8 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
             </Stack>
           }
         >
-          <Icon isInline aria-label="More info" role="button" tabIndex={0}>
-            <OutlinedQuestionCircleIcon />
-          </Icon>
-        </Tooltip>
+          <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} aria-label="More info" />
+        </Popover>
       </div>
     )}
   </div>

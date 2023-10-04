@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
+import { SortableData } from '~/components/table';
 import { TemplateKind } from '~/k8sTypes';
 
 export const columns: SortableData<TemplateKind>[] = [

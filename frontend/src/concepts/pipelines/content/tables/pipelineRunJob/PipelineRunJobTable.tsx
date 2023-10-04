@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import Table from '~/components/table/Table';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunJobColumns } from '~/concepts/pipelines/content/tables/columns';
-import useCheckboxTable from '~/components/table/useCheckboxTable';
+import { useCheckboxTable, Table } from '~/components/table';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
 import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import usePipelineRunJobFilter from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobFilter';

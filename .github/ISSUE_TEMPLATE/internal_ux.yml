@@ -15,7 +15,10 @@ body:
     id: goals
     attributes:
       label: Goals
-      description: An itemized list of goals to complete for this ticket
+      description: |
+        An itemized list of goals to complete for this ticket.
+
+        If you don't have specific goals, this could also include the user story or jobs to be done.
       placeholder: |
         * Research...
         * Design...

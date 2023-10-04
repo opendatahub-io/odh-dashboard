@@ -5,7 +5,7 @@ import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookN
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { DataConnection } from '~/pages/projects/types';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription } from '~/components/table';
 import {
   getDataConnectionDescription,
   getDataConnectionDisplayName,

@@ -1,10 +1,10 @@
 import { featureFlagEnabled, getDashboardConfig } from './resourceUtils';
 import {
+  ContainerResourceAttributes,
   EnvironmentVariable,
   ImageInfo,
   ImageTag,
   KubeFastifyInstance,
-  LIMIT_NOTEBOOK_IMAGE_GPU,
   Notebook,
   NotebookAffinity,
   NotebookData,
@@ -182,7 +182,7 @@ export const assembleNotebook = async (
   envName: string,
   tolerationSettings: NotebookTolerationSettings,
 ): Promise<Notebook> => {
-  const { notebookSizeName, imageName, imageTagName, gpus, envVars } = data;
+  const { notebookSizeName, imageName, imageTagName, accelerator, envVars } = data;
 
   const notebookSize = getNotebookSize(notebookSizeName);
 
@@ -217,40 +217,35 @@ export const assembleNotebook = async (
   const resources: NotebookResources = { ...notebookSize.resources };
   const tolerations: NotebookToleration[] = [];
 
-  let affinity: NotebookAffinity = {};
-  if (gpus > 0) {
+  const affinity: NotebookAffinity = {};
+  if (accelerator.count > 0 && accelerator.accelerator) {
     if (!resources.limits) {
       resources.limits = {};
     }
     if (!resources.requests) {
       resources.requests = {};
     }
-    resources.limits[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
-    resources.requests[LIMIT_NOTEBOOK_IMAGE_GPU] = gpus;
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: LIMIT_NOTEBOOK_IMAGE_GPU,
-      operator: 'Exists',
-    });
+    resources.limits[accelerator.accelerator.spec.identifier] = accelerator.count;
+    resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
   } else {
-    affinity = {
-      nodeAffinity: {
-        preferredDuringSchedulingIgnoredDuringExecution: [
-          {
-            preference: {
-              matchExpressions: [
-                {
-                  key: 'nvidia.com/gpu.present',
-                  operator: 'NotIn',
-                  values: ['true'],
-                },
-              ],
-            },
-            weight: 1,
-          },
-        ],
-      },
-    };
+    // step type down to string to avoid type errors
+    const containerResourceKeys: string[] = Object.values(ContainerResourceAttributes);
+
+    Object.keys(resources.limits || {}).forEach((key) => {
+      if (!containerResourceKeys.includes(key)) {
+        delete resources.limits?.[key];
+      }
+    });
+
+    Object.keys(resources.requests || {}).forEach((key) => {
+      if (!containerResourceKeys.includes(key)) {
+        delete resources.requests?.[key];
+      }
+    });
+  }
+
+  if (accelerator.accelerator?.spec.tolerations) {
+    tolerations.push(...accelerator.accelerator.spec.tolerations);
   }
 
   if (tolerationSettings?.enabled) {
@@ -305,6 +300,7 @@ export const assembleNotebook = async (
         'opendatahub.io/username': username,
         'opendatahub.io/service-mesh': serviceMeshEnabled,
         'kubeflow-resource-stopped': null,
+        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
       },
       name: name,
       namespace: namespace,
