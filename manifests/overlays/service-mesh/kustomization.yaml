@@ -4,13 +4,6 @@ kind: Kustomization
 bases:
 - ../../base
 
-## FIXME: Temporary until odh-dashboard PR is merged upstream
-images:
-# this needs to match newName from base, not the name used in the deployment
-- name: quay.io/opendatahub/odh-dashboard
-  newName: quay.io/maistra-dev/odh-dashboard
-  newTag: service-mesh-integration
-
 patchesStrategicMerge:
 # when using bases:
 # - ../../base
@@ -20,8 +13,8 @@ patchesStrategicMerge:
 - patches/_mesh_overlay-delete-oauth-config-patch.yaml
 
 # # needs to be patchesJson6902, patches seems to be ignored
-# # also: inline patches do not work, operator complains about overlays/service-mesh being 
-# # a directory and not a kustomization.yaml file 
+# # also: inline patches do not work, operator complains about overlays/service-mesh being
+# # a directory and not a kustomization.yaml file
 patchesJson6902:
 - path: patches/route-patch.yaml
   target:
