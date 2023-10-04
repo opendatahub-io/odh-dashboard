@@ -26,11 +26,14 @@ import {
 } from '~/concepts/pipelines/elyra/utils';
 import { createRoleBinding } from '~/api';
 import { Volume, VolumeMount } from '~/types';
+import { DashboardConfig } from '~/types';
+import { featureFlagEnabled } from '~/utilities/utils';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
 const assembleNotebook = (
   data: StartNotebookData,
   username: string,
+  enableServiceMesh: boolean,
   canEnablePipelines?: boolean,
 ): NotebookKind => {
   const {
@@ -92,6 +95,7 @@ const assembleNotebook = (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        'sidecar.istio.io/inject': String(enableServiceMesh),
       },
       annotations: {
         'openshift.io/display-name': notebookName.trim(),
@@ -99,7 +103,8 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
-        'notebooks.opendatahub.io/inject-oauth': 'true',
+        'notebooks.opendatahub.io/inject-oauth': String(!enableServiceMesh),
+        'opendatahub.io/service-mesh': String(enableServiceMesh),
         'opendatahub.io/username': username,
       },
       name: notebookId,
@@ -187,6 +192,24 @@ const getStopPatch = (): Patch => ({
   value: getStopPatchDataString(),
 });
 
+const getInjectOAuthPatch = (enableServiceMesh: boolean): Patch => ({
+  op: 'add',
+  path: '/metadata/annotations/notebooks.opendatahub.io~1inject-oauth',
+  value: String(!enableServiceMesh),
+});
+
+const getProxyInjectPatch = (enableServiceMesh: boolean): Patch => ({
+  op: 'add',
+  path: '/metadata/labels/sidecar.istio.io~1inject',
+  value: String(enableServiceMesh),
+});
+
+const getServiceMeshPatch = (enableServiceMesh: boolean): Patch => ({
+  op: 'add',
+  path: '/metadata/annotations/opendatahub.io~1service-mesh',
+  value: String(enableServiceMesh),
+});
+
 export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
   k8sListResource<NotebookKind>({
     model: NotebookModel,
@@ -210,10 +233,19 @@ export const startNotebook = async (
   name: string,
   namespace: string,
   tolerationChanges: TolerationChanges,
+  dashboardConfig: DashboardConfig,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
-  const patches: Patch[] = [];
-  patches.push(startPatch);
+  const enableServiceMesh = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
+  );
+
+  const patches: Patch[] = [
+    startPatch,
+    getInjectOAuthPatch(enableServiceMesh),
+    getServiceMeshPatch(enableServiceMesh),
+    getProxyInjectPatch(enableServiceMesh),
+  ];
 
   const tolerationPatch = getTolerationPatch(tolerationChanges);
   if (tolerationPatch) {
@@ -242,9 +274,10 @@ export const startNotebook = async (
 export const createNotebook = (
   data: StartNotebookData,
   username: string,
+  enableServiceMesh: boolean,
   canEnablePipelines?: boolean,
 ): Promise<NotebookKind> => {
-  const notebook = assembleNotebook(data, username, canEnablePipelines);
+  const notebook = assembleNotebook(data, username, enableServiceMesh, canEnablePipelines);
 
   const notebookPromise = k8sCreateResource<NotebookKind>({
     model: NotebookModel,
@@ -264,9 +297,10 @@ export const updateNotebook = (
   existingNotebook: NotebookKind,
   data: StartNotebookData,
   username: string,
+  enableServiceMesh: boolean,
 ): Promise<NotebookKind> => {
   data.notebookId = existingNotebook.metadata.name;
-  const notebook = assembleNotebook(data, username);
+  const notebook = assembleNotebook(data, username, enableServiceMesh);
 
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
@@ -287,9 +321,10 @@ export const updateNotebook = (
 export const createNotebookWithoutStarting = (
   data: StartNotebookData,
   username: string,
+  enableServiceMesh: boolean,
 ): Promise<NotebookKind> =>
   new Promise((resolve, reject) =>
-    createNotebook(data, username).then((notebook) =>
+    createNotebook(data, username, enableServiceMesh).then((notebook) =>
       setTimeout(
         () =>
           stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
@@ -299,7 +334,6 @@ export const createNotebookWithoutStarting = (
       ),
     ),
   );
-
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({
     model: NotebookModel,

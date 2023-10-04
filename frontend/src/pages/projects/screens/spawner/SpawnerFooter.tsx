@@ -17,8 +17,9 @@ import {
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { AppContext } from '~/app/AppContext';
+import { AppContext, useAppContext } from '~/app/AppContext';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
+import { featureFlagEnabled } from '~/utilities/utils';
 import {
   createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
@@ -75,6 +76,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const existingNotebookDataConnection = getNotebookDataConnection(
     editNotebook,
     existingDataConnections,
+  );
+  const { dashboardConfig } = useAppContext();
+  const enableServiceMesh = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
   );
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
@@ -149,7 +154,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         envFrom,
         tolerationSettings,
       };
-      updateNotebook(editNotebook, newStartNotebookData, username)
+      updateNotebook(editNotebook, newStartNotebookData, username, enableServiceMesh)
         .then((notebook) => afterStart(notebook.metadata.name, 'updated'))
         .catch(handleError);
     }
@@ -207,7 +212,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       tolerationSettings,
     };
 
-    createNotebook(newStartData, username, canEnablePipelines)
+    createNotebook(newStartData, username, enableServiceMesh, canEnablePipelines)
       .then((notebook) => afterStart(notebook.metadata.name, 'created'))
       .catch(handleError);
   };

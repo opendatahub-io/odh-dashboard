@@ -102,6 +102,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
                   notebookName,
                   notebookNamespace,
                   tolerationSettings,
+                  dashboardConfig,
                   enablePipelines && !currentlyHasPipelines(notebook),
                 ).then(() => {
                   fireNotebookTrackingEvent('started');
