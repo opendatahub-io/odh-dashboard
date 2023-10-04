@@ -13,6 +13,9 @@ const useRouteForNotebook = (
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | null>(null);
   const { dashboardConfig } = useAppContext();
+  const enableServiceMesh = featureFlagEnabled(
+    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
+  );
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
@@ -22,9 +25,6 @@ const useRouteForNotebook = (
         return;
       }
       if (notebookName && projectName) {
-        const enableServiceMesh = featureFlagEnabled(
-          dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-        );
         // if not using service mesh fetch openshift route, otherwise get Istio Ingress Gateway route
         const getRoutePromise = !enableServiceMesh
           ? getRoute(notebookName, projectName).then((route) => route?.spec.host)
@@ -57,7 +57,7 @@ const useRouteForNotebook = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [notebookName, projectName, isRunning, dashboardConfig]);
+  }, [notebookName, projectName, isRunning, enableServiceMesh]);
 
   return [route, loaded, loadError];
 };
