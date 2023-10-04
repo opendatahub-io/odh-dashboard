@@ -1,5 +1,0 @@
-$patch: delete
-apiVersion: v1
-kind: Secret
-metadata:
-  name: dashboard-oauth-client
