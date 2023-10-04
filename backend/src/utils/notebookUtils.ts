@@ -1,4 +1,4 @@
-import { getDashboardConfig } from './resourceUtils';
+import { featureFlagEnabled, getDashboardConfig } from './resourceUtils';
 import {
   ContainerResourceAttributes,
   EnvironmentVariable,
@@ -66,6 +66,32 @@ export const getRoute = async (
       throw error;
     });
   return kubeResponse.body as Route;
+};
+
+export const getServiceMeshGwHost = async (
+  fastify: KubeFastifyInstance,
+  namespace: string,
+): Promise<string> => {
+  const kubeResponse = await fastify.kube.coreV1Api.readNamespace(namespace).catch((res) => {
+    const e = res.response.body;
+    const error = createCustomError('Error getting Namespace', e.message, e.code);
+    fastify.log.error(error);
+    throw error;
+  });
+
+  const annotations = kubeResponse.body.metadata?.annotations;
+
+  if (!annotations || !annotations['service-mesh.opendatahub.io/public-gateway-host-external']) {
+    const error = createCustomError(
+      'Annotation not found',
+      `Could not find annotation 'service-mesh.opendatahub.io/public-gateway-host-external' for namespace: ${namespace}`,
+      404,
+    );
+    fastify.log.error(error);
+    throw error;
+  }
+
+  return annotations['service-mesh.opendatahub.io/public-gateway-host-external'];
 };
 
 export const createRBAC = async (
@@ -251,6 +277,10 @@ export const assembleNotebook = async (
     },
   }));
 
+  const serviceMeshEnabled = String(
+    !featureFlagEnabled(getDashboardConfig().spec?.dashboardConfig?.disableServiceMesh),
+  );
+
   return {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -260,12 +290,15 @@ export const assembleNotebook = async (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
         'opendatahub.io/dashboard': 'true',
+        'sidecar.istio.io/inject': String(serviceMeshEnabled),
       },
       annotations: {
         'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebookController/${translatedUsername}/home`,
         'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
+        'notebooks.opendatahub.io/inject-oauth': String(!serviceMeshEnabled),
         'opendatahub.io/username': username,
+        'opendatahub.io/service-mesh': serviceMeshEnabled,
         'kubeflow-resource-stopped': null,
         'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
       },
@@ -440,7 +473,16 @@ export const createNotebook = async (
     notebookAssembled.metadata.annotations = {};
   }
 
-  notebookAssembled.metadata.annotations['notebooks.opendatahub.io/inject-oauth'] = 'true';
+  const enableServiceMesh = featureFlagEnabled(
+    getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
+  );
+
+  notebookAssembled.metadata.annotations['notebooks.opendatahub.io/inject-oauth'] = String(
+    !enableServiceMesh,
+  );
+  notebookAssembled.metadata.annotations['opendatahub.io/service-mesh'] = String(enableServiceMesh);
+  notebookAssembled.metadata.labels['sidecar.istio.io/inject'] = String(enableServiceMesh);
+
   const notebookContainers = notebookAssembled.spec.template.spec.containers;
 
   if (!notebookContainers[0]) {

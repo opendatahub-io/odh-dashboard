@@ -3,6 +3,7 @@ import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus, passThroughResource } from '../k8s/pass-through';
+import { featureFlagEnabled, getDashboardConfig } from '../../../utils/resourceUtils';
 
 const checkNamespacePermission = (
   fastify: KubeFastifyInstance,
@@ -60,12 +61,21 @@ export const applyNamespaceChange = async (
     throw createCustomError('Forbidden', "You don't have the access to update the namespace", 403);
   }
 
+  // calling featureFlagEnabled to set the bool to false if it's set to anything but false ('true', undefined, etc)
+  const enableServiceMesh = featureFlagEnabled(
+    getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
+  );
+
   let labels = {};
+  let annotations = {};
   switch (context) {
     case NamespaceApplicationCase.DSG_CREATION:
       labels = {
         'opendatahub.io/dashboard': 'true',
         'modelmesh-enabled': 'true',
+      };
+      annotations = {
+        'opendatahub.io/service-mesh': String(enableServiceMesh),
       };
       break;
     case NamespaceApplicationCase.MODEL_SERVING_PROMOTION:
@@ -78,9 +88,17 @@ export const applyNamespaceChange = async (
   }
 
   return fastify.kube.coreV1Api
-    .patchNamespace(name, { metadata: { labels } }, undefined, undefined, undefined, undefined, {
-      headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-    })
+    .patchNamespace(
+      name,
+      { metadata: { labels, annotations } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+      },
+    )
     .then(() => ({ applied: true }))
     .catch((e) => {
       fastify.log.error(

@@ -27,6 +27,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelServing: boolean;
       disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
+      disableServiceMesh: boolean;
       modelMetricsNamespace: string;
       disablePipelines: boolean;
       disableBiasMetrics: boolean;
@@ -412,6 +413,9 @@ export type Notebook = K8sResourceCommon & {
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
       'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook
+
+      // Openshift Service Mesh specific annotations. They're needed to orchestrate additional resources for nb namespaces.
+      'opendatahub.io/service-mesh': string;
 
       // TODO: Can we get this from the data in the Notebook??
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
