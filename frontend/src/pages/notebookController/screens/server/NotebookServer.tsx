@@ -17,6 +17,7 @@ export const NotebookServer: React.FC = () => {
   const {
     currentUserNotebook: notebook,
     currentUserNotebookIsRunning,
+    currentUserNotebookLink,
     requestNotebookRefresh,
   } = React.useContext(NotebookControllerContext);
   const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
@@ -34,7 +35,7 @@ export const NotebookServer: React.FC = () => {
     [requestNotebookRefresh, navigate],
   );
 
-  const link = notebook?.metadata.annotations?.['opendatahub.io/link'] || '#';
+  const link = currentUserNotebookLink || '#';
 
   return (
     <>

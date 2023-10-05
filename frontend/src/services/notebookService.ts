@@ -35,7 +35,6 @@ export const getNotebookAndStatus = (
       const isRunning = !!(
         notebook?.status?.readyReplicas &&
         notebook?.status?.readyReplicas >= 1 &&
-        notebook?.metadata.annotations?.['opendatahub.io/link'] &&
         !notebook?.metadata.annotations?.['kubeflow-resource-stopped']
       );
       return { notebook, isRunning };
