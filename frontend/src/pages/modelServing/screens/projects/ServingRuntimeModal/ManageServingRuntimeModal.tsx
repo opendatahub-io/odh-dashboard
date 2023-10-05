@@ -7,10 +7,12 @@ import {
   FormGroup,
   FormSection,
   Modal,
+  Popover,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { HelpIcon } from '@patternfly/react-icons';
 import {
   isGpuDisabled,
   useCreateServingRuntimeObject,
@@ -80,7 +82,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   const namespace = currentProject.metadata.name;
 
-  const [allowCreate, rbacLoaded] = useAccessReview({
+  const [allowCreate] = useAccessReview({
     ...accessReviewResource,
     namespace,
   });
@@ -96,7 +98,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const inputValueValid = customServingRuntimesEnabled
     ? baseInputValueValid && createData.name && servingRuntimeTemplateNameValid
     : baseInputValueValid;
-  const canCreate = !actionInProgress && !tokenErrors && inputValueValid && rbacLoaded;
+  const canCreate = !actionInProgress && !tokenErrors && inputValueValid;
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -273,6 +275,19 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   setAcceleratorState={setAcceleratorState}
                 />
               </StackItem>
+              {!allowCreate && (
+                <StackItem>
+                  <Popover
+                    removeFindDomNode
+                    showClose
+                    bodyContent="Model route and token authorization can only be changed by administrator users."
+                  >
+                    <Button variant="link" icon={<HelpIcon />} isInline>
+                      {"Why can't I change the model route and token authorization fields?"}
+                    </Button>
+                  </Popover>
+                </StackItem>
+              )}
               <StackItem>
                 <FormSection title="Model route" titleElement="div">
                   <FormGroup>
@@ -281,7 +296,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                       id="alt-form-checkbox-route"
                       name="alt-form-checkbox-route"
                       isChecked={createData.externalRoute}
-                      onChange={(check) => setCreateData('externalRoute', check)}
+                      isDisabled={!allowCreate}
+                      onChange={(check) => {
+                        setCreateData('externalRoute', check);
+                        if (check && allowCreate) {
+                          setCreateData('tokenAuth', check);
+                        }
+                      }}
                     />
                   </FormGroup>
                 </FormSection>
@@ -291,9 +312,18 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   data={createData}
                   setData={setCreateData}
                   allowCreate={allowCreate}
-                  rbacLoaded={rbacLoaded}
                 />
               </StackItem>
+              {createData.externalRoute && !createData.tokenAuth && (
+                <StackItem>
+                  <Alert
+                    id="external-route-no-token-alert"
+                    variant="warning"
+                    isInline
+                    title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+                  />
+                </StackItem>
+              )}
             </Stack>
           </Form>
         </StackItem>
