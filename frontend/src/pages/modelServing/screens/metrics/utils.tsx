@@ -4,7 +4,7 @@ import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { BreadcrumbItemType, DashboardConfig, PrometheusQueryRangeResultValue } from '~/types';
+import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
 import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import {
@@ -23,16 +23,6 @@ import {
   TranslatePoint,
 } from './types';
 import { ModelMetricType, ServerMetricType } from './ModelServingMetricsContext';
-
-export const isModelMetricsEnabled = (
-  dashboardNamespace: string,
-  dashboardConfig: DashboardConfig,
-): boolean => {
-  if (dashboardNamespace === 'redhat-ods-applications') {
-    return true;
-  }
-  return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
-};
 
 export const getServerMetricsQueries = (
   server: ServingRuntimeKind,
