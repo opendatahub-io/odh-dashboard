@@ -18,6 +18,7 @@ import { useUser } from '~/redux/selectors';
 import { DASHBOARD_MAIN_CONTAINER_SELECTOR } from '~/utilities/const';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
+import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -39,6 +40,8 @@ const App: React.FC = () => {
     loaded: configLoaded,
     loadError: fetchConfigError,
   } = useApplicationSettings();
+
+  const [storageClasses] = useStorageClasses();
 
   useDetectUser();
 
@@ -72,7 +75,6 @@ const App: React.FC = () => {
         </Page>
       );
     }
-
     // Assume we are still waiting on the API to finish
     return (
       <Bullseye>
@@ -86,6 +88,7 @@ const App: React.FC = () => {
       value={{
         buildStatuses,
         dashboardConfig,
+        storageClasses,
       }}
     >
       <Page

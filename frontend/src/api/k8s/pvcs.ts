@@ -15,6 +15,7 @@ export const assemblePvc = (
   projectName: string,
   description: string,
   pvcSize: number,
+  storageClassName?: string,
 ): PersistentVolumeClaimKind => ({
   apiVersion: 'v1',
   kind: 'PersistentVolumeClaim',
@@ -36,6 +37,7 @@ export const assemblePvc = (
         storage: `${pvcSize}Gi`,
       },
     },
+    storageClassName: storageClassName,
     volumeMode: 'Filesystem',
   },
   status: {
