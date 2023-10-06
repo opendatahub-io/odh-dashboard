@@ -4,7 +4,7 @@ import {
   pipelinesPageDescription,
   pipelinesPageTitle,
 } from '~/pages/pipelines/global/pipelines/const';
-import PipelinesPageHeaderActions from '~/pages/pipelines/global/pipelines/PipelinesPageHeaderActions';
+import PipelineServerActions from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineServerActions';
 import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreApplicationPage';
 import PipelinesView from '~/pages/pipelines/global/pipelines/PipelinesView';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
@@ -16,7 +16,7 @@ const GlobalPipelines: React.FC = () => {
     <PipelineCoreApplicationPage
       title={pipelinesPageTitle}
       description={pipelinesPageDescription}
-      headerAction={pipelinesAPi.pipelinesServer.installed && <PipelinesPageHeaderActions />}
+      headerAction={<PipelineServerActions isDisabled={!pipelinesAPi.pipelinesServer.installed} />}
       getRedirectPath={(namespace) => `/pipelines/${namespace}`}
     >
       <EnsureAPIAvailability>

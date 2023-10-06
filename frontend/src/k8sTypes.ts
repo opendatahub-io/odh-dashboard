@@ -12,6 +12,7 @@ import {
   TolerationSettings,
   ImageStreamStatusTagItem,
   ImageStreamStatusTagCondition,
+  VolumeMount,
 } from './types';
 import { ServingRuntimeSize } from './pages/modelServing/screens/types';
 
@@ -51,7 +52,10 @@ type StorageClassAnnotations = Partial<{
 
 export type K8sDSGResource = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'opendatahub.io/recommended-accelerators': string;
+      }>;
     name: string;
   };
 };
@@ -77,6 +81,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+  'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
 }>;
 
 export type DashboardLabels = {
@@ -99,6 +104,8 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;
   'opendatahub.io/disable-gpu': string;
+  'opendatahub.io/recommended-accelerators': string;
+  'opendatahub.io/accelerator-name': string;
   'enable-route': string;
   'enable-auth': string;
 }>;
@@ -329,6 +336,15 @@ export type ServiceAccountKind = K8sResourceCommon & {
   }[];
 };
 
+export type ServingContainer = {
+  args: string[];
+  image: string;
+  name: string;
+  affinity?: PodAffinity;
+  resources: ContainerResources;
+  volumeMounts?: VolumeMount[];
+};
+
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
@@ -342,14 +358,11 @@ export type ServingRuntimeKind = K8sResourceCommon & {
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
-    containers: {
-      args: string[];
-      image: string;
-      name: string;
-      resources: ContainerResources;
-    }[];
+    containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
+    tolerations?: PodToleration[];
+    volumes?: Volume[];
   };
 };
 
@@ -748,5 +761,21 @@ export type DashboardConfigKind = K8sResourceCommon & {
     };
     templateOrder?: string[];
     templateDisablement?: string[];
+  };
+};
+
+export type AcceleratorKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: PodToleration[];
   };
 };

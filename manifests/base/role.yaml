@@ -3,6 +3,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: odh-dashboard
 rules:
+  - verbs:
+      - create
+      - get
+      - list
+    apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - acceleratorprofiles
   - apiGroups:
       - route.openshift.io
     resources:

@@ -1,26 +1,20 @@
 import * as React from 'react';
 import { Alert, Stack, StackItem, Title } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import Table from '~/components/table/Table';
-
-import useTableColumnSort from '~/components/table/useTableColumnSort';
+import { Table } from '~/components/table';
 import ExternalLink from '~/components/ExternalLink';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '~/types';
-import { columns } from './const';
+import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
-import { AdminViewUserData } from './types';
 import { NotebookAdminContext } from './NotebookAdminContext';
 
 const NotebookAdminControl: React.FC = () => {
-  const [unsortedUsers, loaded, loadError] = useAdminUsers();
-  const { transformData } = useTableColumnSort<AdminViewUserData>(columns, 0);
+  const [users, loaded, loadError] = useAdminUsers();
   const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
-
-  const users = transformData(unsortedUsers);
 
   const onNotebooksStop = React.useCallback(
     (didStop: boolean) => {

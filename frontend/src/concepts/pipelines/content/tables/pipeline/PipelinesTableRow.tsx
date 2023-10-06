@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { relativeTime } from '~/utilities/time';
 import usePipelineRunsForPipeline from '~/concepts/pipelines/apiHooks/usePipelineRunsForPipeline';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
 import { getLastRun } from '~/concepts/pipelines/content/tables/utils';

@@ -34,6 +34,8 @@ export const NotebookServer: React.FC = () => {
     [requestNotebookRefresh, navigate],
   );
 
+  const link = notebook?.metadata.annotations?.['opendatahub.io/link'] || '#';
+
   return (
     <>
       <ImpersonateAlert />
@@ -54,10 +56,9 @@ export const NotebookServer: React.FC = () => {
               />
               <ActionList>
                 <ActionListItem
-                  onClick={() => {
-                    if (notebook.metadata.annotations?.['opendatahub.io/link']) {
-                      window.location.href = notebook.metadata.annotations['opendatahub.io/link'];
-                    } else {
+                  onClick={(e) => {
+                    if (link === '#') {
+                      e.preventDefault();
                       notification.error(
                         'Error accessing notebook server',
                         'Failed to redirect page due to missing notebook URL, please try to refresh the page and try it again.',
@@ -65,7 +66,7 @@ export const NotebookServer: React.FC = () => {
                     }
                   }}
                 >
-                  <Button data-id="return-nb-button" variant="primary">
+                  <Button component="a" href={link} data-id="return-nb-button">
                     Access notebook server
                   </Button>
                 </ActionListItem>
