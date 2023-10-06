@@ -289,7 +289,7 @@ type K8sMetadata = {
 /**
  * @deprecated -- use the SDK version -- see k8sTypes.ts
  * All references that use this are un-vetted data against existing types, should be converted over
- * to the new K8sResourceCommon from the SDK to keep everythung unified on one front.
+ * to the new K8sResourceCommon from the SDK to keep everything unified on one front.
  */
 export type K8sResourceCommon = {
   apiVersion?: string;
