@@ -30,6 +30,7 @@ import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnv
 export const createPvcDataForNotebook = async (
   projectName: string,
   storageData: StorageData,
+  storageClassName?: string,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const {
     storageType,
@@ -42,7 +43,7 @@ export const createPvcDataForNotebook = async (
   const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
 
   if (storageType === StorageType.NEW_PVC) {
-    const pvcData = assemblePvc(pvcName, projectName, pvcDescription, size);
+    const pvcData = assemblePvc(pvcName, projectName, pvcDescription, size, storageClassName);
     const pvc = await createPvc(pvcData);
     const newPvcName = pvc.metadata.name;
     volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });

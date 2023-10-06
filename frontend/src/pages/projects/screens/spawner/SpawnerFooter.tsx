@@ -20,6 +20,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext, useAppContext } from '~/app/AppContext';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { featureFlagEnabled } from '~/utilities/utils';
+import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import {
   createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
@@ -45,12 +46,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   canEnablePipelines,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState('');
+
   const {
     dashboardConfig: {
       spec: { notebookController },
     },
   } = React.useContext(AppContext);
   const tolerationSettings = notebookController?.notebookTolerationSettings;
+  const storageClass = usePreferredStorageClass();
   const {
     notebooks: { data },
     dataConnections: { data: existingDataConnections },
@@ -197,7 +200,11 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         ? [dataConnection.existing]
         : [];
 
-    const pvcDetails = await createPvcDataForNotebook(projectName, storageData).catch(handleError);
+    const pvcDetails = await createPvcDataForNotebook(
+      projectName,
+      storageData,
+      storageClass?.metadata.name,
+    ).catch(handleError);
     const envFrom = await createConfigMapsAndSecretsForNotebook(projectName, [
       ...envVariables,
       ...newDataConnection,

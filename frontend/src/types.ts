@@ -63,6 +63,7 @@ export type DashboardConfig = K8sResourceCommon & {
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
+      storageClassName?: string;
       notebookNamespace?: string;
       gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
