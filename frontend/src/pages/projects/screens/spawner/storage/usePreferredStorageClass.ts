@@ -18,16 +18,16 @@ const usePreferredStorageClass = (): StorageClassKind | undefined => {
 
   const configStorageClassName = notebookController?.storageClassName ?? '';
 
-  if (defaultClusterStorageClasses.length != 0) {
+  if (defaultClusterStorageClasses.length !== 0) {
     return undefined;
   }
 
-  if (configStorageClassName == '') {
+  if (configStorageClassName === '') {
     return undefined;
   }
 
-  const storageClassDashBoardConfigVsCluster = storageClasses.filter((storageclass) =>
-    storageclass.metadata.name.includes(configStorageClassName),
+  const storageClassDashBoardConfigVsCluster = storageClasses.filter(
+    (storageclass) => storageclass.metadata.name === configStorageClassName,
   );
 
   if (storageClassDashBoardConfigVsCluster.length === 0) {
