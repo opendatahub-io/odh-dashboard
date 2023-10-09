@@ -347,40 +347,56 @@ export const useNotebookStatus = (
   let status: EventStatus = EventStatus.IN_PROGRESS;
   const lastItem = filteredEvents[filteredEvents.length - 1];
   let currentEvent = '';
-  if (lastItem.message.includes('oauth-proxy')) {
-    switch (lastItem.reason) {
-      case 'Pulling': {
-        currentEvent = 'Pulling oauth proxy';
-        percentile = 72;
-        break;
-      }
-      case 'Pulled': {
-        currentEvent = 'Oauth proxy pulled';
-        percentile = 80;
-        break;
-      }
-      case 'Created': {
-        currentEvent = 'Oauth proxy container created';
-        percentile = 88;
-        break;
-      }
-      case 'Started': {
-        currentEvent = 'Oauth proxy container started';
-        percentile = 96;
-        break;
-      }
-      case 'Killing': {
-        currentEvent = 'Stopping container oauth-proxy';
-        status = EventStatus.WARNING;
-        break;
-      }
-      default: {
-        if (lastItem.type === 'Warning') {
-          currentEvent = 'Issue creating oauth proxy container';
-          status = EventStatus.WARNING;
+
+  function handleProxyEvent(proxyType: 'istio' | 'oauth', event: K8sEvent) {
+    switch (event.reason) {
+      case 'Pulling':
+        return {
+          event: `Pulling ${proxyType} proxy`,
+          percentile: 72,
+        };
+      case 'Pulled':
+        return {
+          event: `${capitalizeFirstLetter(proxyType)} proxy pulled`,
+          percentile: 80,
+        };
+      case 'Created':
+        return {
+          event: `${capitalizeFirstLetter(proxyType)} proxy container created`,
+          percentile: 88,
+        };
+      case 'Started':
+        return {
+          event: `${capitalizeFirstLetter(proxyType)} proxy container started`,
+          percentile: 96,
+        };
+      case 'Killing':
+        return {
+          event: `Stopping container ${proxyType}-proxy`,
+          percentile: null,
+          status: EventStatus.WARNING,
+        };
+      default:
+        if (event.type === 'Warning') {
+          return {
+            event: `Issue creating ${proxyType} proxy container`,
+            status: EventStatus.WARNING,
+          };
         }
-      }
+        return {};
     }
+  }
+
+  if (lastItem.message.includes('oauth-proxy')) {
+    const result = handleProxyEvent('oauth', lastItem);
+    currentEvent = result.event ?? currentEvent;
+    percentile = result.percentile ?? percentile;
+    status = result.status ?? status;
+  } else if (lastItem.message.includes('istio-proxy')) {
+    const result = handleProxyEvent('istio', lastItem);
+    currentEvent = result.event ?? currentEvent;
+    percentile = result.percentile ?? percentile;
+    status = result.status ?? status;
   } else {
     switch (lastItem.reason) {
       case 'SuccessfulCreate': {
@@ -460,6 +476,10 @@ export const useNotebookStatus = (
     thisInstanceEvents,
   ];
 };
+
+function capitalizeFirstLetter(string: string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 
 export const useCheckJupyterEnabled = (): boolean => {
   const { dashboardConfig } = useAppContext();
