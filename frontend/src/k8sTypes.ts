@@ -74,6 +74,7 @@ export type NotebookAnnotations = Partial<{
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
   'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
+  'opendatahub.io/image-display-name': string; // the display name of the image
 }>;
 
 export type DashboardLabels = {
@@ -259,10 +260,10 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
 
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
-    annotations: DisplayNameAnnotations & NotebookAnnotations;
+    annotations?: DisplayNameAnnotations & NotebookAnnotations;
     name: string;
     namespace: string;
-    labels: Partial<{
+    labels?: Partial<{
       'opendatahub.io/user': string; // translated username -- see translateUsername
     }>;
   };
