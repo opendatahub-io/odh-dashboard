@@ -24,6 +24,7 @@ import {
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
+  isServingRuntimeKind,
 } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
@@ -122,10 +123,10 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
             <Alert
               isInline
               variant="danger"
-              title="Error"
+              title={error.name}
               actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
             >
-              <p>{error.message}</p>
+              {error.message}
             </Alert>
           </StackItem>
         )}
@@ -138,6 +139,14 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                 id="create-button"
                 isLoading={loading}
                 onClick={() => {
+                  try {
+                    isServingRuntimeKind(YAML.parse(code));
+                  } catch (e) {
+                    if (e instanceof Error) {
+                      setError(e);
+                    }
+                    return;
+                  }
                   setIsLoading(true);
                   // TODO: Revert back to pass through api once we migrate admin panel
                   const onClickFunc = existingTemplate

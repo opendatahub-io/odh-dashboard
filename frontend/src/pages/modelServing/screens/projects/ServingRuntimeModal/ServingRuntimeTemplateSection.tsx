@@ -6,6 +6,7 @@ import { TemplateKind } from '~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
+  isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithAccelerator } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
@@ -26,7 +27,19 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   isEditing,
   acceleratorState,
 }) => {
-  const options = templates.map((template) => ({
+  const filteredTemplates = React.useMemo(
+    () =>
+      templates.filter((template) => {
+        try {
+          return isServingRuntimeKind(template.objects[0]);
+        } catch (e) {
+          return false;
+        }
+      }),
+    [templates],
+  );
+
+  const options = filteredTemplates.map((template) => ({
     key: getServingRuntimeNameFromTemplate(template),
     selectedLabel: getServingRuntimeDisplayNameFromTemplate(template),
     label: (
@@ -59,12 +72,14 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
           <SimpleDropdownSelect
             isFullWidth
-            isDisabled={isEditing || templates.length === 0}
+            isDisabled={isEditing || filteredTemplates.length === 0}
             id="serving-runtime-template-selection"
             aria-label="Select a template"
             options={options}
             placeholder={
-              isEditing || templates.length === 0 ? data.servingRuntimeTemplateName : 'Select one'
+              isEditing || filteredTemplates.length === 0
+                ? data.servingRuntimeTemplateName
+                : 'Select one'
             }
             value={data.servingRuntimeTemplateName ?? ''}
             onChange={(name) => {
