@@ -90,14 +90,14 @@ const useAcceleratorState = (
             } else {
               // create a fake accelerator to use
               const fakeAccelerator: AcceleratorKind = {
-                apiVersion: 'dashboard.opendatahub.io/v1alpha',
+                apiVersion: 'dashboard.opendatahub.io/v1',
                 kind: 'AcceleratorProfile',
                 metadata: {
                   name: 'migrated-gpu',
                 },
                 spec: {
                   identifier: 'nvidia.com/gpu',
-                  displayName: 'Nvidia GPU',
+                  displayName: 'NVIDIA GPU',
                   enabled: true,
                   tolerations: [
                     {
