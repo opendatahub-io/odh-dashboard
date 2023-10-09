@@ -10,7 +10,7 @@ spec:
     singular: acceleratorprofile
     kind: AcceleratorProfile
   versions:
-    - name: v1alpha
+    - name: v1
       served: true
       storage: true
       schema:
