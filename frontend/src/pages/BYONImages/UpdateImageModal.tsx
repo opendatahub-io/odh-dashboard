@@ -38,15 +38,9 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
   onCloseHandler,
 }) => {
   const [name, setName] = React.useState<string>(image.name);
-  const [description, setDescription] = React.useState<string>(
-    image.description != undefined ? image.description : '',
-  );
-  const [packages, setPackages] = React.useState<BYONImagePackage[]>(
-    image.packages != undefined ? image.packages : [],
-  );
-  const [software, setSoftware] = React.useState<BYONImagePackage[]>(
-    image.software != undefined ? image.software : [],
-  );
+  const [description, setDescription] = React.useState<string>(image.description ?? '');
+  const [packages, setPackages] = React.useState<BYONImagePackage[]>(image.packages ?? []);
+  const [software, setSoftware] = React.useState<BYONImagePackage[]>(image.software ?? []);
   const [activeTabKey, setActiveTabKey] = React.useState(0);
   const [validName, setValidName] = React.useState(true);
   const dispatch = useAppDispatch();
@@ -54,9 +48,9 @@ export const UpdateImageModal: React.FC<UpdateImageModalProps> = ({
   React.useEffect(() => {
     if (isOpen === true) {
       setName(image.name);
-      setDescription(image.description != undefined ? image.description : '');
-      setPackages(image.packages != undefined ? image.packages : []);
-      setSoftware(image.software != undefined ? image.software : []);
+      setDescription(image.description ?? '');
+      setPackages(image.packages ?? []);
+      setSoftware(image.software ?? []);
       setValidName(true);
     }
     // Only update when isOpen is updated to true
