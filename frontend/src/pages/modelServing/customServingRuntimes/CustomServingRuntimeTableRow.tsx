@@ -35,7 +35,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         }}
       />
       <Td dataLabel="Name" width={70} className="pf-u-text-break-word">
-        <ResourceNameTooltip resource={template.objects[0]}>
+        <ResourceNameTooltip resource={template}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
         {templateOOTB && <Label>Pre-installed</Label>}

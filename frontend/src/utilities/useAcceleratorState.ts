@@ -32,7 +32,7 @@ const useAcceleratorState = (
   });
 
   const { dashboardNamespace } = useDashboardNamespace();
-  const [accelerators, loaded, loadError] = useAccelerators(dashboardNamespace);
+  const [accelerators, loaded, loadError, refresh] = useAccelerators(dashboardNamespace);
 
   React.useEffect(() => {
     if (loaded && !loadError) {
@@ -91,14 +91,14 @@ const useAcceleratorState = (
             } else {
               // create a fake accelerator to use
               const fakeAccelerator: AcceleratorKind = {
-                apiVersion: 'dashboard.opendatahub.io/v1alpha',
+                apiVersion: 'dashboard.opendatahub.io/v1',
                 kind: 'AcceleratorProfile',
                 metadata: {
                   name: 'migrated-gpu',
                 },
                 spec: {
                   identifier: 'nvidia.com/gpu',
-                  displayName: 'Nvidia GPU',
+                  displayName: 'NVIDIA GPU',
                   enabled: true,
                   tolerations: [
                     {
@@ -125,7 +125,12 @@ const useAcceleratorState = (
     }
   }, [accelerators, loaded, loadError, resources, tolerations, existingAcceleratorName, setData]);
 
-  return [acceleratorState, setData, resetData];
+  const resetDataAndRefresh = React.useCallback(() => {
+    resetData();
+    refresh();
+  }, [refresh, resetData]);
+
+  return [acceleratorState, setData, resetDataAndRefresh];
 };
 
 export default useAcceleratorState;

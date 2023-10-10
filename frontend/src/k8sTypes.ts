@@ -758,3 +758,14 @@ export type AcceleratorKind = K8sResourceCommon & {
     tolerations?: PodToleration[];
   };
 };
+
+// In the SDK TResource extends from K8sResourceCommon, but both kind and apiVersion are mandatory
+export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> = {
+  apiVersion: string;
+  kind: string;
+  items: TResource[];
+  metadata: {
+    resourceVersion: string;
+    continue: string;
+  };
+};
