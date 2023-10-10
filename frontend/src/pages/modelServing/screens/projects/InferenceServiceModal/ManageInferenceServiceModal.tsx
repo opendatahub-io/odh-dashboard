@@ -21,6 +21,7 @@ import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
@@ -62,7 +63,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createData.storage.dataConnection !== '';
     }
-    return isAWSValid(createData.storage.awsData);
+    return isAWSValid(createData.storage.awsData, [AWS_KEYS.AWS_S3_BUCKET]);
   };
 
   const canCreate =
