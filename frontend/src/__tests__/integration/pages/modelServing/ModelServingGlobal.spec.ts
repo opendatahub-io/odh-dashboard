@@ -54,7 +54,8 @@ test('Edit model', async ({ page }) => {
   await await page.getByLabel('Model Name *').fill('');
   await await page.getByLabel('Path').fill('');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
-
+  await await page.getByLabel('Path').fill('/');
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
   // test that you can update the name to a different name
   await await page.getByLabel('Model Name *').fill('Updated Model Name');
   await await page.getByLabel('Path').fill('test-model/');
@@ -63,6 +64,8 @@ test('Edit model', async ({ page }) => {
   // test that user cant upload on an empty new secret
   await page.getByText('New data connection').click();
   await await page.getByLabel('Path').fill('');
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
+  await await page.getByLabel('Path').fill('/');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
   // test that adding required values validates submit
@@ -104,6 +107,8 @@ test('Create model', async ({ page }) => {
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
   await page.getByText('New data connection').click();
   await page.getByLabel('Path').fill('');
+  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await page.getByLabel('Path').fill('/');
   await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
   await page.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' }).fill('test-key');
