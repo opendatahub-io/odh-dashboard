@@ -13,6 +13,8 @@ type MockDashboardConfigType = {
   disableProjects?: boolean;
   disableModelServing?: boolean;
   disableCustomServingRuntimes?: boolean;
+  disableKServe?: boolean;
+  disableModelMesh?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -27,6 +29,8 @@ export const mockDashboardConfig = ({
   disableProjects = false,
   disableModelServing = false,
   disableCustomServingRuntimes = false,
+  disableKServe = false,
+  disableModelMesh = true,
 }: MockDashboardConfigType): DashboardConfig => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -54,6 +58,8 @@ export const mockDashboardConfig = ({
       modelMetricsNamespace: 'test-project',
       disablePipelines: false,
       disableProjectSharing: false,
+      disableKServe,
+      disableModelMesh,
     },
     notebookController: {
       enabled: true,

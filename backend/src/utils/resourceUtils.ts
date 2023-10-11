@@ -105,6 +105,21 @@ const fetchOrCreateDashboardCR = async (
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
+      if (
+        dashboardCR &&
+        dashboardCR.spec.dashboardConfig.disableKServe === undefined &&
+        dashboardCR.spec.dashboardConfig.disableModelMesh === undefined
+      ) {
+        // return a merge between dashboardCR and blankDashboardCR but changing spec.disableKServe to true and spec.disableModelMesh to false
+        return _.merge({}, blankDashboardCR, dashboardCR, {
+          spec: {
+            dashboardConfig: {
+              disableKServe: true,
+              disableModelMesh: false,
+            },
+          },
+        });
+      }
       return _.merge({}, blankDashboardCR, dashboardCR); // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
