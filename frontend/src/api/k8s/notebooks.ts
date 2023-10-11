@@ -197,25 +197,23 @@ const getStopPatch = (): Patch => ({
   value: getStopPatchDataString(),
 });
 
-export const getServiceMeshPatches = (enableServiceMesh: boolean): Patch[] => {
-  return [
-    {
-      op: 'add',
-      path: '/metadata/annotations/notebooks.opendatahub.io~1inject-oauth',
-      value: String(!enableServiceMesh),
-    },
-    {
-      op: 'add',
-      path: '/metadata/labels/sidecar.istio.io~1inject',
-      value: String(enableServiceMesh),
-    },
-    {
-      op: 'add',
-      path: '/metadata/annotations/opendatahub.io~1service-mesh',
-      value: String(enableServiceMesh),
-    },
-  ];
-};
+export const getServiceMeshPatches = (enableServiceMesh: boolean): Patch[] => [
+  {
+    op: 'add',
+    path: '/metadata/annotations/notebooks.opendatahub.io~1inject-oauth',
+    value: String(!enableServiceMesh),
+  },
+  {
+    op: 'add',
+    path: '/metadata/labels/sidecar.istio.io~1inject',
+    value: String(enableServiceMesh),
+  },
+  {
+    op: 'add',
+    path: '/metadata/annotations/opendatahub.io~1service-mesh',
+    value: String(enableServiceMesh),
+  },
+];
 
 export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
   k8sListResource<NotebookKind>({
@@ -246,10 +244,7 @@ export const startNotebook = async (
     dashboardConfig.spec.dashboardConfig.disableServiceMesh,
   );
 
-  const patches: Patch[] = [
-    startPatch,
-    ...getServiceMeshPatches(enableServiceMesh),
-  ];
+  const patches: Patch[] = [startPatch, ...getServiceMeshPatches(enableServiceMesh)];
 
   const tolerationPatch = getTolerationPatch(tolerationChanges);
   if (tolerationPatch) {
