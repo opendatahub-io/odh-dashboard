@@ -21,7 +21,7 @@ export const isCommonStateError = (e: Error) => {
     // Re-compute your callback to re-trigger again
     return true;
   }
-  if (e.name == 'AbortError') {
+  if (e.name === 'AbortError') {
     // Abort errors are silent
     return true;
   }
