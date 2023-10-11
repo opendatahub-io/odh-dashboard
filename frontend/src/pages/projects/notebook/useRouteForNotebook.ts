@@ -27,7 +27,7 @@ const useRouteForNotebook = (
       if (notebookName && projectName) {
         // if not using service mesh fetch openshift route, otherwise get Istio Ingress Gateway route
         const getRoutePromise = !enableServiceMesh
-          ? getRoute(notebookName, projectName).then((route) => route?.spec.host)
+          ? getRoute(notebookName, projectName).then((route) => route.spec.host)
           : getServiceMeshGwHost(projectName);
 
         getRoutePromise

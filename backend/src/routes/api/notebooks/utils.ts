@@ -35,10 +35,11 @@ export const getNotebookStatus = async (
     let host: string;
     if (enableServiceMesh) {
       host = await getServiceMeshGwHost(fastify, namespace).catch((e) => {
-        fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
+        fastify.log.warn(`Failed getting service mesh route ${notebookName}: ${e.message}`);
         return undefined;
       });
-    } else {
+    }
+    if (!host) {
       const route = await getRoute(fastify, namespace, notebookName).catch((e) => {
         fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
         return undefined;
