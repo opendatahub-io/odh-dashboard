@@ -44,12 +44,7 @@ const NotebookList: React.FC = () => {
         isLoading={!loaded}
         loadError={loadError}
         isEmpty={isNotebooksEmpty}
-        emptyState={
-          <EmptyDetailsList
-            title="No workbenches"
-            description="To get started, create a workbench."
-          />
-        }
+        emptyState={<EmptyDetailsList title="No workbenches" />}
       >
         <NotebookTable notebookStates={notebookStates} refresh={refresh} />
       </DetailsSection>
