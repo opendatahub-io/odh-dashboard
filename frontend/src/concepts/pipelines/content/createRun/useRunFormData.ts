@@ -31,10 +31,7 @@ import {
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString } from '~/utilities/time';
-
-const isPipelineRunJob = (
-  runOrJob?: PipelineRunJobKF | PipelineRunKF,
-): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
+import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 
 const isPipeline = (pipeline?: unknown): pipeline is PipelineKF =>
   !!(pipeline as PipelineKF)?.default_version;
