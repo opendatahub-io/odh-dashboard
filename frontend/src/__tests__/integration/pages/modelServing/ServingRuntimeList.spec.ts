@@ -32,6 +32,7 @@ test('Deploy model', async ({ page }) => {
     .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
     .fill('test-secret-key');
   await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_BUCKET' }).fill('test-bucket');
   await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
