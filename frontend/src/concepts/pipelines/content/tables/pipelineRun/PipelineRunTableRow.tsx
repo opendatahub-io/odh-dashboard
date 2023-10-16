@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, ExpandableRowContent, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
 import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
