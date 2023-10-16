@@ -1,4 +1,5 @@
 [base/kustomization.yaml]: ../manifests/base/kustomization.yaml
+[SMEs]: ./smes.md
 [quay repo]: https://quay.io/repository/opendatahub/odh-dashboard?tab=tags
 [drafting a new release]: https://github.com/opendatahub-io/odh-dashboard/releases/new
 [semver]: https://semver.org/
@@ -36,6 +37,8 @@ There are two types of releases in the Dashboard, and they usually happen togeth
 
 * First make sure [main is released](#main-release)
 * Merge the `main` release content into `incubation`
+    * Conflict resolution may be needed; reach out to the [SMEs] if you're unsure about a given resolution
+    * Before officially pushing the merge, run all tests to make sure no linter, TypeScript, or tests fail
 * Wait for the `nightly` build to re-trigger
 
 ### Day 2
