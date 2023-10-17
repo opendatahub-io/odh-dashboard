@@ -254,7 +254,6 @@ export type KubeDecorator = KubeStatus & {
   customObjectsApi: k8s.CustomObjectsApi;
   rbac: k8s.RbacAuthorizationV1Api;
   currentToken: string;
-
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
@@ -759,10 +758,10 @@ export type GPUInfo = {
 
 export type AcceleratorInfo = {
   configured: boolean;
-  available: {[key: string]: number};
-  total: {[key: string]: number};
-  allocated: {[key: string]: number};
-}
+  available: { [key: string]: number };
+  total: { [key: string]: number };
+  allocated: { [key: string]: number };
+};
 
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
@@ -881,7 +880,6 @@ export type SupportedModelFormats = {
   version?: string;
   autoSelect?: boolean;
 };
-
 
 export enum ContainerResourceAttributes {
   CPU = 'cpu',

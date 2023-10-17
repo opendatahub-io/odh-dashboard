@@ -61,7 +61,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
             id="dont-show-again"
             label="Don't show again"
             isChecked={dontShowModalValue}
-            onChange={(checked) => setDontShowModalValue(checked)}
+            onChange={(e, checked) => setDontShowModalValue(checked)}
           />
         </StackItem>
       </Stack>

@@ -27,6 +27,7 @@ import useDetectUser from '~/utilities/useDetectUser';
 import { fetchDashboardConfig } from '~/services/dashboardConfigService';
 import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
+import { mock404Error } from '~/__mocks__/mock404Error';
 
 export default {
   component: ServingRuntimeList,
@@ -112,6 +113,10 @@ export default {
         rest.get(
           '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
           (req, res, ctx) => res(ctx.json(mockDashboardConfig)),
+        ),
+        rest.get(
+          '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+          (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
         ),
       ],
     },

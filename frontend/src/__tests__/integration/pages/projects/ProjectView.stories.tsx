@@ -49,7 +49,7 @@ export const EditProject: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
 
@@ -59,15 +59,15 @@ export const EditProject: StoryObj = {
     await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
     // user flow for editing a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Edit project', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Edit project'));
   },
 };
 
 export const DeleteProject: StoryObj = {
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
 
@@ -77,15 +77,15 @@ export const DeleteProject: StoryObj = {
     await canvas.findByText('Test Project', undefined, { timeout: 5000 });
 
     // user flow for deleting a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Delete project', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Delete project'));
   },
 };
 
 export const CreateProject: StoryObj = {
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
 

@@ -3,10 +3,12 @@ import { Td, Tbody, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import {
   Button,
   EmptyState,
-  EmptyStateSecondaryActions,
   EmptyStateVariant,
   Spinner,
   Title,
+  EmptyStateActions,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { PipelineKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
@@ -53,21 +55,21 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
           <Td colSpan={6}>
             <ExpandableRowContent>
               <EmptyState variant={EmptyStateVariant.xs}>
-                <Title headingLevel="h3" size="md">
-                  No pipeline runs
-                </Title>
-                <EmptyStateSecondaryActions>
-                  <Button
-                    variant="link"
-                    onClick={() =>
-                      navigate(`/pipelines/${namespace}/pipelineRun/create`, {
-                        state: { lastPipeline: pipeline },
-                      })
-                    }
-                  >
-                    Create run
-                  </Button>
-                </EmptyStateSecondaryActions>
+                <EmptyStateHeader titleText="No pipeline runs" headingLevel="h3" />
+                <EmptyStateFooter>
+                  <EmptyStateActions>
+                    <Button
+                      variant="link"
+                      onClick={() =>
+                        navigate(`/pipelines/${namespace}/pipelineRun/create`, {
+                          state: { lastPipeline: pipeline },
+                        })
+                      }
+                    >
+                      Create run
+                    </Button>
+                  </EmptyStateActions>
+                </EmptyStateFooter>
               </EmptyState>
             </ExpandableRowContent>
           </Td>

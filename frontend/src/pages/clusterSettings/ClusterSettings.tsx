@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
-import { Button, Stack, StackItem } from '@patternfly/react-core';
+import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useAppContext } from '~/app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '~/services/clusterSettingsService';
@@ -86,7 +86,7 @@ const ClusterSettings: React.FC = () => {
               setClusterSettings(newClusterSettings);
               dispatch(
                 addNotification({
-                  status: 'success',
+                  status: AlertVariant.success,
                   title: 'Cluster settings changes saved',
                   message: 'It may take up to 2 minutes for configuration changes to be applied.',
                   timestamp: new Date(),
@@ -100,7 +100,7 @@ const ClusterSettings: React.FC = () => {
             setSaving(false);
             dispatch(
               addNotification({
-                status: 'danger',
+                status: AlertVariant.danger,
                 title: 'Error',
                 message: e.message,
                 timestamp: new Date(),

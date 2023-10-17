@@ -114,7 +114,7 @@ export const EditModel: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
 
@@ -124,8 +124,8 @@ export const EditModel: StoryObj = {
     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
     // user flow for editing a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Edit', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Edit'));
   },
 };
 
@@ -134,7 +134,7 @@ export const DeleteModel: StoryObj = {
 
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
 
@@ -144,8 +144,8 @@ export const DeleteModel: StoryObj = {
     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
     // user flow for deleting a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Delete', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Delete'));
   },
 };
 
@@ -155,7 +155,7 @@ export const DeployModel: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
 

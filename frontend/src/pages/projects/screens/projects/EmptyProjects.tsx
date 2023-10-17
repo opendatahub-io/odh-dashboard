@@ -4,8 +4,9 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  EmptyStateSecondaryActions,
-  Title,
+  EmptyStateActions,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -23,10 +24,11 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
   const { dashboardConfig } = useAppContext();
   return (
     <EmptyState>
-      <EmptyStateIcon icon={CubesIcon} />
-      <Title headingLevel="h2" size="lg">
-        No data science projects yet.
-      </Title>
+      <EmptyStateHeader
+        titleText="No data science projects yet."
+        icon={<EmptyStateIcon icon={CubesIcon} />}
+        headingLevel="h2"
+      />
       <EmptyStateBody>
         {allowCreate
           ? `To get started, create a data science project${
@@ -40,20 +42,22 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
                 : ''
             }.`}
       </EmptyStateBody>
-      {allowCreate ? (
-        <>
-          <NewProjectButton
-            onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
-          />
-          {dashboardConfig.spec.notebookController?.enabled && (
-            <EmptyStateSecondaryActions>
-              <LaunchJupyterButton variant={ButtonVariant.link} />
-            </EmptyStateSecondaryActions>
-          )}
-        </>
-      ) : (
-        <LaunchJupyterButton variant={ButtonVariant.primary} />
-      )}
+      <EmptyStateFooter>
+        {allowCreate ? (
+          <>
+            <NewProjectButton
+              onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+            />
+            {dashboardConfig.spec.notebookController?.enabled && (
+              <EmptyStateActions>
+                <LaunchJupyterButton variant={ButtonVariant.link} />
+              </EmptyStateActions>
+            )}
+          </>
+        ) : (
+          <LaunchJupyterButton variant={ButtonVariant.primary} />
+        )}
+      </EmptyStateFooter>
     </EmptyState>
   );
 };

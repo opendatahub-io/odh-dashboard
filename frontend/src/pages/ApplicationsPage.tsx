@@ -9,13 +9,13 @@ import {
   EmptyStateVariant,
   EmptyStateIcon,
   Spinner,
-  Title,
   EmptyStateBody,
   Split,
   SplitItem,
   PageBreadcrumb,
   StackItem,
   Stack,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 
 type ApplicationsPageProps = {
@@ -76,11 +76,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (loadError) {
       return (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
-            <EmptyStateIcon icon={ExclamationCircleIcon} />
-            <Title headingLevel="h4" size="lg">
-              {errorMessage !== undefined ? errorMessage : 'Error loading components'}
-            </Title>
+          <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
+            <EmptyStateHeader
+              titleText={
+                <>{errorMessage !== undefined ? errorMessage : 'Error loading components'}</>
+              }
+              icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+              headingLevel="h4"
+            />
             <EmptyStateBody>{loadError.message}</EmptyStateBody>
           </EmptyState>
         </PageSection>
@@ -90,11 +93,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (!loaded) {
       return (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
+          <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
             <Spinner size="xl" />
-            <Title headingLevel="h4" size="lg">
-              Loading
-            </Title>
+            <EmptyStateHeader titleText="Loading" headingLevel="h4" />
           </EmptyState>
         </PageSection>
       );
@@ -103,11 +104,12 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     if (empty) {
       return !emptyStatePage ? (
         <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.large} data-id="empty-empty-state">
-            <EmptyStateIcon icon={QuestionCircleIcon} />
-            <Title headingLevel="h4" size="lg">
-              {emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
-            </Title>
+          <EmptyState variant={EmptyStateVariant.lg} data-id="empty-empty-state">
+            <EmptyStateHeader
+              titleText={<>{emptyMessage !== undefined ? emptyMessage : 'No Components Found'}</>}
+              icon={<EmptyStateIcon icon={QuestionCircleIcon} />}
+              headingLevel="h4"
+            />
           </EmptyState>
         </PageSection>
       ) : (

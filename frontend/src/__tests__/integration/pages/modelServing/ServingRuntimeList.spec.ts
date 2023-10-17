@@ -65,12 +65,12 @@ test('Legacy Serving Runtime', async ({ page }) => {
   const secondRow = page.getByRole('rowgroup').filter({ has: secondButton });
 
   // Check that both of the rows are not expanded
-  await expect(firstRow).not.toHaveClass('pf-m-expanded');
-  await expect(secondRow).not.toHaveClass('pf-m-expanded');
+  await expect(firstRow).not.toHaveClass(/pf-m-expanded/);
+  await expect(secondRow).not.toHaveClass(/pf-m-expanded/);
 
   await firstButton.click();
 
   // Check that the first row is expanded while the second is not
-  await expect(firstRow).toHaveClass('pf-m-expanded');
-  await expect(secondRow).not.toHaveClass('pf-m-expanded');
+  await expect(firstRow).toHaveClass(/pf-m-expanded/);
+  await expect(secondRow).not.toHaveClass(/pf-m-expanded/);
 });

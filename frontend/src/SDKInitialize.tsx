@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AppInitSDK, isUtilsConfigSet } from '@openshift/dynamic-plugin-sdk-utils';
-import { PluginLoader, PluginStore } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@openshift/dynamic-plugin-sdk';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { K8sStatus } from './k8sTypes';
 import { isK8sStatus, K8sStatusError } from './api';
@@ -34,11 +34,7 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   /** Disable api discovery -- until we need to use the k8s watch hooks, we don't need to use api discovery */
   apiDiscovery: () => null,
   /** We don't need a plugin store yet -- we just want the SDK setup for utilities right now */
-  pluginStore: (() => {
-    const pluginStore = new PluginStore();
-    pluginStore.setLoader(new PluginLoader());
-    return pluginStore;
-  })(),
+  pluginStore: new PluginStore(),
   /**
    * No need for web sockets at this point -- we'll need to support this if we want to use the
    * websocket utilities or the k8s watch hooks.

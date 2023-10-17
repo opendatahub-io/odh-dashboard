@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   Button,
-  DropdownDirection,
   Split,
   SplitItem,
   Text,
@@ -124,7 +123,7 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
             </Split>
           ) : (
             <ActionsColumn
-              dropdownDirection={DropdownDirection.up}
+              popperProps={{ direction: 'up' }}
               items={[
                 {
                   title: 'Edit',

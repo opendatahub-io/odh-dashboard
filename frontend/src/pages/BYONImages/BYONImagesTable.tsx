@@ -4,23 +4,22 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Select,
-  SelectOption,
-  SelectVariant,
   SearchInput,
   Switch,
-  Title,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import {
   ActionsColumn,
-  TableComposable,
+  Table,
   Thead,
   Tr,
   Th,
@@ -131,7 +130,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       direction: activeSortDirection,
       defaultDirection: 'asc',
     },
-    onSort: (_event, index, direction) => {
+    onSort: (e, index, direction) => {
       setActiveSortIndex(index);
       setActiveSortDirection(direction);
     },
@@ -185,14 +184,13 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
     <React.Fragment>
       <ToolbarItem variant="search-filter" className="filter-select">
         <Select
-          removeFindDomNode
           data-id="search-filter-select"
           variant={SelectVariant.single}
           aria-label="Select for image images table"
-          onToggle={(isExpanded) => {
+          onToggle={(e, isExpanded) => {
             setTableSelectIsOpen(isExpanded);
           }}
-          onSelect={(_event, value) => {
+          onSelect={(e, value) => {
             const option = value as BYONImageTableFilterOptions;
             setSelected(option);
             const newCount = getFilterCount(tableFilter.filter, option);
@@ -210,7 +208,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       </ToolbarItem>
       <ToolbarItem variant="search-filter">
         <SearchInput
-          removeFindDomNode
           data-id="search-filter-input"
           className="filter-search"
           aria-label="search input for image images table"
@@ -295,7 +292,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
       <Toolbar data-id="toolbar-items">
         <ToolbarContent>{items}</ToolbarContent>
       </Toolbar>
-      <TableComposable
+      <Table
         className={tableFilter.count === 0 ? 'empty-table' : ''}
         aria-label="Notebook images table"
         variant="compact"
@@ -383,11 +380,12 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
                         </Flex>
                       </ExpandableRowContent>
                     ) : (
-                      <EmptyState variant={EmptyStateVariant.small}>
-                        <EmptyStateIcon icon={CubesIcon} />
-                        <Title headingLevel="h2" size="lg">
-                          No packages detected
-                        </Title>
+                      <EmptyState variant={EmptyStateVariant.sm}>
+                        <EmptyStateHeader
+                          titleText="No packages detected"
+                          icon={<EmptyStateIcon icon={CubesIcon} />}
+                          headingLevel="h2"
+                        />
                         <EmptyStateBody>Edit the image to add packages</EmptyStateBody>
                       </EmptyState>
                     )}
@@ -401,31 +399,34 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, forceU
             <Tr>
               <Td colSpan={8}>
                 <Bullseye>
-                  <EmptyState variant={EmptyStateVariant.small}>
-                    <EmptyStateIcon icon={SearchIcon} />
-                    <Title headingLevel="h2" size="lg">
-                      No results found
-                    </Title>
+                  <EmptyState variant={EmptyStateVariant.sm}>
+                    <EmptyStateHeader
+                      icon={<EmptyStateIcon icon={SearchIcon} />}
+                      titleText="No results found"
+                      headingLevel="h2"
+                    />
                     <EmptyStateBody>Clear all filters and try again.</EmptyStateBody>
-                    <Button
-                      variant="link"
-                      onClick={() => {
-                        setTableFilter({
-                          filter: '',
-                          option: tableFilter.option,
-                          count: images.length,
-                        });
-                      }}
-                    >
-                      Clear all filters
-                    </Button>
+                    <EmptyStateFooter>
+                      <Button
+                        variant="link"
+                        onClick={() => {
+                          setTableFilter({
+                            filter: '',
+                            option: tableFilter.option,
+                            count: images.length,
+                          });
+                        }}
+                      >
+                        Clear all filters
+                      </Button>
+                    </EmptyStateFooter>
                   </EmptyState>
                 </Bullseye>
               </Td>
             </Tr>
           </Tbody>
         )}
-      </TableComposable>
+      </Table>
     </React.Fragment>
   );
 };

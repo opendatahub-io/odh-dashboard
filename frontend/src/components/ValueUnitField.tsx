@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle, Split, SplitItem } from '@patternfly/react-core';
+import { Split, SplitItem } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { splitValueUnit, UnitOption, ValueUnitString } from '~/utilities/valueUnits';
 import NumberInputWrapper from './NumberInputWrapper';
 

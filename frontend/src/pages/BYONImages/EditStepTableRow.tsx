@@ -27,7 +27,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
             data-id="software-package-input"
             type="text"
             value={modifiedValue.name}
-            onChange={(value) => {
+            onChange={(e, value) => {
               setModifiedValue({
                 name: value,
                 version: modifiedValue.version,
@@ -46,7 +46,7 @@ export const EditStepTableRow: React.FunctionComponent<EditStepTableRowProps> = 
             data-id="version-input"
             type="text"
             value={modifiedValue.version}
-            onChange={(value) => {
+            onChange={(e, value) => {
               setModifiedValue({
                 name: modifiedValue.name,
                 version: value,
