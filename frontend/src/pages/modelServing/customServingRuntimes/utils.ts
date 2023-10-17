@@ -41,29 +41,44 @@ export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind)
 export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
   template.objects[0].metadata.name;
 
-export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
-  obj.kind === 'ServingRuntime' &&
-  obj.spec?.containers !== undefined &&
-  obj.spec?.supportedModelFormats !== undefined;
+const createServingRuntimeCustomError = (name: string, message: string) => {
+  const error = new Error(message);
+  error.name = name;
+  return error;
+};
+
+export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind => {
+  if (obj.kind !== 'ServingRuntime') {
+    throw createServingRuntimeCustomError('Invalid parameter', 'kind: must be ServingRuntime.');
+  }
+  if (!obj.spec?.containers) {
+    throw createServingRuntimeCustomError('Missing parameter', 'spec.containers: is required.');
+  }
+  if (!obj.spec?.supportedModelFormats) {
+    throw createServingRuntimeCustomError(
+      'Missing parameter',
+      'spec.supportedModelFormats: is required.',
+    );
+  }
+  return true;
+};
 
 export const getServingRuntimeFromName = (
   templateName: string,
-  templateList?: TemplateKind[],
+  templateList: TemplateKind[] = [],
 ): ServingRuntimeKind | undefined => {
-  if (!templateList) {
-    return undefined;
-  }
   const template = templateList.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
-  if (!template) {
-    return undefined;
-  }
   return getServingRuntimeFromTemplate(template);
 };
 
 export const getServingRuntimeFromTemplate = (
-  template: TemplateKind,
+  template?: TemplateKind,
 ): ServingRuntimeKind | undefined => {
-  if (!isServingRuntimeKind(template.objects[0])) {
+  try {
+    if (!template || !isServingRuntimeKind(template.objects[0])) {
+      return undefined;
+    }
+  } catch (e) {
     return undefined;
   }
   return template.objects[0];

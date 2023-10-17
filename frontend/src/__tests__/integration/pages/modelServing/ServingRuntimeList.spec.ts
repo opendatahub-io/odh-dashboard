@@ -94,6 +94,7 @@ test('Add model server', async ({ page }) => {
   await page.getByLabel('Model server name *').fill('Test Name');
   await page.locator('#serving-runtime-template-selection').click();
   await page.getByRole('menuitem', { name: 'New OVMS Server' }).click();
+  await expect(page.getByRole('menuitem', { name: 'New OVMS Server Invalid' })).toBeHidden();
   await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
 
   // test the if the alert is visible when route is external while token is not set

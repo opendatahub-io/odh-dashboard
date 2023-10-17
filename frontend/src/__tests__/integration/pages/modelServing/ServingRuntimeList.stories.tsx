@@ -20,7 +20,10 @@ import {
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import {
+  mockInvalidTemplateK8sResource,
+  mockTemplateK8sResource,
+} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import useDetectUser from '~/utilities/useDetectUser';
@@ -107,7 +110,15 @@ export default {
         ),
         rest.get(
           '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
-          (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockTemplateK8sResource({})]))),
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockTemplateK8sResource({}),
+                  mockInvalidTemplateK8sResource({}),
+                ]),
+              ),
+            ),
         ),
         rest.get(
           '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
