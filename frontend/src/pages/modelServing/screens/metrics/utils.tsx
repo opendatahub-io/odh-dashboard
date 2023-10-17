@@ -49,11 +49,11 @@ export const getModelMetricsQueries = (
   const name = model.metadata.name;
 
   return {
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="2xx"}[${
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
       QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
     }s]))`,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="4xx|5xx"}[${
-      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED][currentTimeframe]
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
+      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
     }s]))`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
