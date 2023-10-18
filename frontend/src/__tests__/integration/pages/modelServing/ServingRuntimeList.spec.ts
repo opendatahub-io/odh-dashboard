@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Deploy model', async ({ page }) => {
-  await page.goto(
-    './iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--deploy-model&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-modelserving-servingruntimelist', 'deploy-model'));
 
   // wait for page to load
   await page.waitForSelector('text=Deploy model');
@@ -39,7 +38,7 @@ test('Deploy model', async ({ page }) => {
 
 test('Legacy Serving Runtime', async ({ page }) => {
   await page.goto(
-    './iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--list-available-models&viewMode=story',
+    navigateToStory('pages-modelserving-servingruntimelist', 'list-available-models'),
   );
 
   // wait for page to load
