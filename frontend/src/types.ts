@@ -91,6 +91,8 @@ export type DashboardCommonConfig = {
   disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableKServe: boolean;
+  disableModelMesh: boolean;
 };
 
 export type NotebookControllerUserState = {
