@@ -102,6 +102,10 @@ export type ClusterSettings = {
   cullerTimeout: number;
   userTrackingEnabled: boolean;
   notebookTolerationSettings: NotebookTolerationSettings | null;
+  modelServingPlatformEnabled: {
+    kServe: boolean;
+    modelMesh: boolean;
+  };
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
