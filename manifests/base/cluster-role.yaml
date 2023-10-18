@@ -164,3 +164,11 @@ rules:
       - delete
     resources:
       - notebooks
+  - apiGroups:
+      - datasciencecluster.opendatahub.io
+    verbs:
+      - list
+      - watch
+      - get
+    resources:
+      - datascienceclusters
