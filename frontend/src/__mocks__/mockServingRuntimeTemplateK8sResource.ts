@@ -1,27 +1,29 @@
 import { TemplateKind } from '~/k8sTypes';
+import { ServingRuntimePlatform } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
   namespace?: string;
+  displayName?: string;
+  platforms?: ServingRuntimePlatform[];
 };
 
-export const mockTemplateK8sResource = ({
-  name = 'test-model',
+export const mockServingRuntimeTemplateK8sResource = ({
+  name = 'template-1',
   namespace = 'opendatahub',
+  displayName = 'New OVMS Server',
+  platforms,
 }: MockResourceConfigType): TemplateKind => ({
   apiVersion: 'template.openshift.io/v1',
   kind: 'Template',
   metadata: {
-    name: 'template-ar2pcc',
+    name,
     namespace,
-    uid: '31277020-b60a-40c9-91bc-5ee3e2bb25ec',
-    resourceVersion: '164740435',
-    creationTimestamp: '2023-05-03T21:58:17Z',
     labels: {
       'opendatahub.io/dashboard': 'true',
     },
     annotations: {
-      tags: 'new-one,servingruntime',
+      'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
     },
   },
   objects: [
@@ -31,7 +33,7 @@ export const mockTemplateK8sResource = ({
       metadata: {
         name,
         annotations: {
-          'openshift.io/display-name': 'New OVMS Server',
+          'openshift.io/display-name': displayName,
         },
         labels: {
           'opendatahub.io/dashboard': 'true',

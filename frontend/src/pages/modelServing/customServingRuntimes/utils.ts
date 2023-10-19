@@ -1,6 +1,7 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { ServingRuntimePlatform } from '~/types';
 
 export const getTemplateEnabled = (template: TemplateKind, templateDisablement: string[]) =>
   !templateDisablement.includes(getServingRuntimeNameFromTemplate(template));
@@ -92,4 +93,18 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
     resource.spec.builtInAdapter?.serverType === 'ovms' ? 'OpenVINO Model Server' : undefined;
 
   return templateName || legacyTemplateName || 'Unknown Serving Runtime';
+};
+
+export const getEnabledPlatformsFromTemplate = (
+  template: TemplateKind,
+): ServingRuntimePlatform[] => {
+  if (!template.metadata.annotations?.['opendatahub.io/modelServingSupport']) {
+    return [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI];
+  }
+
+  try {
+    return JSON.parse(template.metadata.annotations?.['opendatahub.io/modelServingSupport']);
+  } catch (e) {
+    return [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI];
+  }
 };

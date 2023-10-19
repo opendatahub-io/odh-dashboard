@@ -705,6 +705,7 @@ export type TemplateKind = K8sResourceCommon & {
       tags: string;
       iconClass?: string;
       'opendatahub.io/template-enabled': string;
+      'opendatahub.io/modelServingSupport': string;
     }>;
     name: string;
     namespace: string;

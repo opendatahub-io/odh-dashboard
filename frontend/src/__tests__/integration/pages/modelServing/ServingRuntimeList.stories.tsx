@@ -22,7 +22,7 @@ import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import {
   mockInvalidTemplateK8sResource,
-  mockTemplateK8sResource,
+  mockServingRuntimeTemplateK8sResource,
 } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
@@ -114,7 +114,7 @@ export default {
             res(
               ctx.json(
                 mockK8sResourceList([
-                  mockTemplateK8sResource({}),
+                  mockServingRuntimeTemplateK8sResource({}),
                   mockInvalidTemplateK8sResource({}),
                 ]),
               ),

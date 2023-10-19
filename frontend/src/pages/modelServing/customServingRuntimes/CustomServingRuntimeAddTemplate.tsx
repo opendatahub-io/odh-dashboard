@@ -1,12 +1,12 @@
 import * as React from 'react';
 import {
-  ActionList,
-  ActionListItem,
+  ActionGroup,
   Alert,
   AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Form,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -21,7 +21,10 @@ import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
 } from '~/services/templateService';
+import { ServingRuntimePlatform } from '~/types';
+import CustomServingRuntimePlatformsSelector from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsSelector';
 import {
+  getEnabledPlatformsFromTemplate,
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
@@ -61,15 +64,42 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     [state],
   );
 
+  const copiedServingRuntimePlatforms = React.useMemo(
+    () => (state ? getEnabledPlatformsFromTemplate(state.template) : []),
+    [state],
+  );
+
   const stringifiedTemplate = React.useMemo(
     () =>
       existingTemplate ? YAML.stringify(existingTemplate.objects[0]) : copiedServingRuntimeString,
     [copiedServingRuntimeString, existingTemplate],
   );
+
+  const enabledPlatforms: ServingRuntimePlatform[] = React.useMemo(
+    () =>
+      existingTemplate
+        ? getEnabledPlatformsFromTemplate(existingTemplate)
+        : copiedServingRuntimePlatforms,
+    [existingTemplate, copiedServingRuntimePlatforms],
+  );
+
   const [code, setCode] = React.useState(stringifiedTemplate);
+  const [selectedPlatforms, setSelectedPlatforms] =
+    React.useState<ServingRuntimePlatform[]>(enabledPlatforms);
+  const isSinglePlatformEnabled = selectedPlatforms.includes(ServingRuntimePlatform.SINGLE);
+  const isMultiPlatformEnabled = selectedPlatforms.includes(ServingRuntimePlatform.MULTI);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const navigate = useNavigate();
+
+  const isDisabled =
+    (!state &&
+      code === stringifiedTemplate &&
+      enabledPlatforms.includes(ServingRuntimePlatform.SINGLE) === isSinglePlatformEnabled &&
+      enabledPlatforms.includes(ServingRuntimePlatform.MULTI) === isMultiPlatformEnabled) ||
+    code === '' ||
+    selectedPlatforms.length === 0 ||
+    loading;
 
   return (
     <ApplicationsPage
@@ -81,7 +111,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       description={
         existingTemplate
           ? 'Modify properties for your serving runtime.'
-          : 'Add a new runtime that will be available for Data Science users on this cluster.'
+          : 'Add a new runtime that will be available for users on this cluster.'
       }
       breadcrumb={
         <Breadcrumb>
@@ -101,40 +131,47 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       empty={false}
       provideChildrenPadding
     >
-      <Stack hasGutter>
-        <StackItem isFilled>
-          <DashboardCodeEditor
-            code={code}
-            isUploadEnabled
-            isLanguageLabelVisible
-            language={Language.yaml}
-            height="100%"
-            options={{ tabSize: 2 }}
-            emptyStateTitle="Add a serving runtime"
-            emptyStateBody="Drag a file here, upload files, or start from scratch."
-            emptyStateButton="Upload files"
-            onCodeChange={(codeChanged: string) => {
-              setCode(codeChanged);
-            }}
-          />
-        </StackItem>
-        {error && (
+      <Form style={{ height: '100%' }}>
+        <Stack hasGutter>
           <StackItem>
-            <Alert
-              isInline
-              variant="danger"
-              title={error.name}
-              actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
-            >
-              {error.message}
-            </Alert>
+            <CustomServingRuntimePlatformsSelector
+              isSinglePlatformEnabled={isSinglePlatformEnabled}
+              isMultiPlatformEnabled={isMultiPlatformEnabled}
+              setSelectedPlatforms={setSelectedPlatforms}
+            />
           </StackItem>
-        )}
-        <StackItem>
-          <ActionList>
-            <ActionListItem>
+          <StackItem isFilled>
+            <DashboardCodeEditor
+              code={code}
+              isUploadEnabled
+              isLanguageLabelVisible
+              language={Language.yaml}
+              height="100%"
+              options={{ tabSize: 2 }}
+              emptyStateTitle="Add a serving runtime"
+              emptyStateBody="Drag a file here, upload files, or start from scratch."
+              emptyStateButton="Upload files"
+              onCodeChange={(codeChanged: string) => {
+                setCode(codeChanged);
+              }}
+            />
+          </StackItem>
+          {error && (
+            <StackItem>
+              <Alert
+                isInline
+                variant="danger"
+                title={error.name}
+                actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
+          )}
+          <StackItem>
+            <ActionGroup>
               <Button
-                isDisabled={(!state && code === stringifiedTemplate) || code === '' || loading}
+                isDisabled={isDisabled}
                 variant="primary"
                 id="create-button"
                 isLoading={loading}
@@ -151,12 +188,16 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                   // TODO: Revert back to pass through api once we migrate admin panel
                   const onClickFunc = existingTemplate
                     ? updateServingRuntimeTemplateBackend(
-                        existingTemplate.metadata.name,
-                        existingTemplate.objects[0].metadata.name,
+                        existingTemplate,
                         code,
                         dashboardNamespace,
+                        selectedPlatforms,
                       )
-                    : createServingRuntimeTemplateBackend(code, dashboardNamespace);
+                    : createServingRuntimeTemplateBackend(
+                        code,
+                        dashboardNamespace,
+                        selectedPlatforms,
+                      );
                   onClickFunc
                     .then(() => {
                       refreshData();
@@ -172,8 +213,6 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
               >
                 {existingTemplate ? 'Update' : 'Add'}
               </Button>
-            </ActionListItem>
-            <ActionListItem>
               <Button
                 isDisabled={loading}
                 variant="link"
@@ -182,10 +221,10 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
               >
                 Cancel
               </Button>
-            </ActionListItem>
-          </ActionList>
-        </StackItem>
-      </Stack>
+            </ActionGroup>
+          </StackItem>
+        </Stack>
+      </Form>
     </ApplicationsPage>
   );
 };

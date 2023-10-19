@@ -749,3 +749,8 @@ export type AcceleratorInfo = {
   total: { [key: string]: number };
   allocated: { [key: string]: number };
 };
+
+export enum ServingRuntimePlatform {
+  SINGLE = 'single',
+  MULTI = 'multi',
+}
