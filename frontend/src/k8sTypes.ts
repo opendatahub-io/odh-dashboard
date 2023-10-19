@@ -90,6 +90,7 @@ export type K8sCondition = {
   reason?: string;
   message?: string;
   lastTransitionTime?: string;
+  lastHeartbeatTime?: string;
 };
 
 export type ServingRuntimeAnnotations = Partial<{
@@ -784,6 +785,6 @@ type ComponentNames =
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
-  installedComponents: { [key in ComponentNames]: boolean };
+  installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
 };
