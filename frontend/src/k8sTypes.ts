@@ -770,3 +770,20 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
     continue: string;
   };
 };
+
+type ComponentNames =
+  | 'codeflare'
+  | 'data-science-pipelines-operator'
+  | 'kserve'
+  | 'model-mesh'
+  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
+  | 'odh-dashboard'
+  | 'ray'
+  | 'workbenches';
+
+/** We don't need or should ever get the full kind, this is the status section */
+export type DataScienceClusterKindStatus = {
+  conditions: K8sCondition[];
+  installedComponents: { [key in ComponentNames]: boolean };
+  phase?: string;
+};

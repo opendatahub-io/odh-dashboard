@@ -256,7 +256,6 @@ export type KubeDecorator = KubeStatus & {
   customObjectsApi: k8s.CustomObjectsApi;
   rbac: k8s.RbacAuthorizationV1Api;
   currentToken: string;
-
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
@@ -761,10 +760,10 @@ export type GPUInfo = {
 
 export type AcceleratorInfo = {
   configured: boolean;
-  available: {[key: string]: number};
-  total: {[key: string]: number};
-  allocated: {[key: string]: number};
-}
+  available: { [key: string]: number };
+  total: { [key: string]: number };
+  allocated: { [key: string]: number };
+};
 
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
@@ -884,7 +883,6 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
-
 export enum ContainerResourceAttributes {
   CPU = 'cpu',
   MEMORY = 'memory',
@@ -949,3 +947,29 @@ export enum KnownLabels {
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
 }
+
+type ComponentNames =
+  | 'codeflare'
+  | 'data-science-pipelines-operator'
+  | 'kserve'
+  | 'model-mesh'
+  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
+  | 'odh-dashboard'
+  | 'ray'
+  | 'workbenches';
+
+export type DataScienceClusterKindStatus = {
+  conditions: [];
+  installedComponents: { [key in ComponentNames]: boolean };
+  phase?: string;
+};
+
+export type DataScienceClusterKind = K8sResourceCommon & {
+  spec: unknown; // we should never need to look into this
+  status: DataScienceClusterKindStatus;
+};
+
+export type DataScienceClusterList = {
+  kind: 'DataScienceClusterList';
+  items: DataScienceClusterKind[];
+};
