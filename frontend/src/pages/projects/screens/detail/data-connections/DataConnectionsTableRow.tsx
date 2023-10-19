@@ -43,7 +43,6 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
     <Td dataLabel="Provider">{getDataConnectionProvider(obj)}</Td>
     <Td isActionCell>
       <ActionsColumn
-        popperProps={{ direction: 'up' }}
         items={[
           {
             title: 'Edit data connection',

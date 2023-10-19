@@ -16,20 +16,25 @@ body,
     flex: 1;
     margin: var(--pf-v5-global--spacer--md);
   }
+
   .pf-v5-c-app-launcher__group-title {
     font-size: 13px;
   }
+
   .pf-v5-c-app-launcher__menu-item-external-icon {
     opacity: 1;
     color: var(--pf-v5-global--icon--Color--light);
   }
+
   &__brand {
     height: 36px;
   }
 }
+
 // specificity targeting form elements to override --pf-v5-global--FontSize--md
 .pf-v5-c-page,
 .pf-v5-c-modal-box {
+
   .pf-v5-c-app-launcher,
   .pf-v5-c-button,
   .pf-v5-c-dropdown,
@@ -43,4 +48,10 @@ body,
     font-size: var(--pf-v5-global--FontSize--sm);
     height: auto;
   }
+}
+
+// TODO: Remove when PF bug is fixed. See https://github.com/patternfly/patternfly-react/issues/9769
+// Override to prevent drawer body content from taking over scroll container
+.pf-v5-c-drawer__body {
+  min-height: 0;
 }

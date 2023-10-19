@@ -135,6 +135,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       className="odh-card odh-tourable-card"
       isSelected={selected}
       isSelectable
+      isClickable
     >
       <CardHeader
         actions={{
@@ -143,6 +144,13 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
           ),
           hasNoOffset: true,
           className: undefined,
+        }}
+        selectableActions={{
+          selectableActionId: `${odhDoc.metadata.name}-selectable-card-input`,
+          selectableActionAriaLabelledby: 'selectable-card',
+          name: `odh-explore-selectable-card`,
+          variant: 'single',
+          isChecked: selected,
         }}
       >
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
