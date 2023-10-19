@@ -69,7 +69,7 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
           </EmptyStateBody>
           <EmptyStatePrimary>
             <Button
-              data-id={`add-${resourceType}-button`}
+              data-testid={`add-${resourceType}-button`}
               variant="secondary"
               onClick={addEmptyRow}
             >
