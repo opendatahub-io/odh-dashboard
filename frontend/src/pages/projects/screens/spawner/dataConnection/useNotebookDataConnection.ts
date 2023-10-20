@@ -1,6 +1,10 @@
-import * as React from 'react';
 import { NotebookKind } from '~/k8sTypes';
-import { DataConnection, DataConnectionData } from '~/pages/projects/types';
+import {
+  DataConnection,
+  DataConnectionData,
+  UpdateObjectAtPropAndValue,
+} from '~/pages/projects/types';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 
 export const getNotebookDataConnection = (
   notebook?: NotebookKind,
@@ -15,25 +19,18 @@ export const getNotebookDataConnection = (
 };
 
 export const useNotebookDataConnection = (
+  dataConnections: DataConnection[],
   notebook?: NotebookKind,
-  dataConnections: DataConnection[] = [],
 ): [
   dataConnection: DataConnectionData,
-  setDataConnection: (connection: DataConnectionData) => void,
+  setDataConnection: UpdateObjectAtPropAndValue<DataConnectionData>,
+  resetDefaults: () => void,
 ] => {
-  const [dataConnection, setDataConnection] = React.useState<DataConnectionData>({
-    type: 'creating',
-    enabled: false,
-  });
-
-  React.useEffect(() => {
-    if (notebook) {
-      // find data connection from env list
-      const notebookDataConnectionSecret = getNotebookDataConnection(notebook, dataConnections)
-        ?.data.metadata.name;
-
-      if (notebookDataConnectionSecret) {
-        setDataConnection({
+  const notebookDataConnectionSecret = getNotebookDataConnection(notebook, dataConnections)?.data
+    .metadata.name;
+  const createDataState = useGenericObjectState<DataConnectionData>(
+    notebookDataConnectionSecret
+      ? {
           type: 'existing',
           enabled: true,
           existing: {
@@ -41,10 +38,12 @@ export const useNotebookDataConnection = (
               name: notebookDataConnectionSecret,
             },
           },
-        });
-      }
-    }
-  }, [notebook, dataConnections]);
+        }
+      : {
+          type: 'creating',
+          enabled: false,
+        },
+  );
 
-  return [dataConnection, setDataConnection];
+  return createDataState;
 };

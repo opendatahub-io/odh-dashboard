@@ -6,7 +6,7 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
-import { DASHBOARD_MAIN_CONTAINER_SELECTOR } from '~/utilities/const';
+import { DASHBOARD_SCROLL_CONTAINER_SELECTOR } from '~/utilities/const';
 
 type GenericSidebarProps = {
   sections: string[];
@@ -20,7 +20,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
   children,
   sections,
   titles,
-  scrollableSelector = `#${DASHBOARD_MAIN_CONTAINER_SELECTOR}`,
+  scrollableSelector = DASHBOARD_SCROLL_CONTAINER_SELECTOR,
   maxWidth,
 }) => (
   <Sidebar hasGutter>

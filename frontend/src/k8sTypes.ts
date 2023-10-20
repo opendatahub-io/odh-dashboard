@@ -44,7 +44,10 @@ type DisplayNameAnnotations = Partial<{
 
 export type K8sDSGResource = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'opendatahub.io/recommended-accelerators': string;
+      }>;
     name: string;
   };
 };
@@ -70,6 +73,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+  'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
 }>;
 
 export type DashboardLabels = {
@@ -92,6 +96,8 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;
   'opendatahub.io/disable-gpu': string;
+  'opendatahub.io/recommended-accelerators': string;
+  'opendatahub.io/accelerator-name': string;
   'enable-route': string;
   'enable-auth': string;
 }>;
@@ -310,6 +316,15 @@ export type ServiceAccountKind = K8sResourceCommon & {
   }[];
 };
 
+export type ServingContainer = {
+  args: string[];
+  image: string;
+  name: string;
+  affinity?: PodAffinity;
+  resources: ContainerResources;
+  volumeMounts?: VolumeMount[];
+};
+
 export type ServingRuntimeKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
@@ -323,15 +338,10 @@ export type ServingRuntimeKind = K8sResourceCommon & {
       memBufferBytes?: number;
       modelLoadingTimeoutMillis?: number;
     };
-    containers: {
-      args: string[];
-      image: string;
-      name: string;
-      resources: ContainerResources;
-      volumeMounts?: VolumeMount[];
-    }[];
+    containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
+    tolerations?: PodToleration[];
     volumes?: Volume[];
   };
 };
@@ -731,4 +741,48 @@ export type DashboardConfigKind = K8sResourceCommon & {
     templateOrder?: string[];
     templateDisablement?: string[];
   };
+};
+
+export type AcceleratorKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: PodToleration[];
+  };
+};
+
+// In the SDK TResource extends from K8sResourceCommon, but both kind and apiVersion are mandatory
+export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> = {
+  apiVersion: string;
+  kind: string;
+  items: TResource[];
+  metadata: {
+    resourceVersion: string;
+    continue: string;
+  };
+};
+
+type ComponentNames =
+  | 'codeflare'
+  | 'data-science-pipelines-operator'
+  | 'kserve'
+  | 'model-mesh'
+  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
+  | 'odh-dashboard'
+  | 'ray'
+  | 'workbenches';
+
+/** We don't need or should ever get the full kind, this is the status section */
+export type DataScienceClusterKindStatus = {
+  conditions: K8sCondition[];
+  installedComponents: { [key in ComponentNames]: boolean };
+  phase?: string;
 };

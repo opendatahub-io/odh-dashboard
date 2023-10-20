@@ -1,7 +1,7 @@
 import React from 'react';
 import { ToolbarItem } from '@patternfly/react-core';
 import { BYONImage } from '~/types';
-import Table from '~/components/table/Table';
+import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';

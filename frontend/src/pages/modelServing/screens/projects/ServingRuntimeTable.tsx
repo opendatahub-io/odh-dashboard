@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Table from '~/components/table/Table';
+import { Table } from '~/components/table';
 import { AccessReviewResourceAttributes, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '~/api';

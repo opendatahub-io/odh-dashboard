@@ -744,6 +744,14 @@ export type GPUInfo = {
   available: number;
   autoscalers: gpuScale[];
 };
+
+export type AcceleratorInfo = {
+  configured: boolean;
+  available: { [key: string]: number };
+  total: { [key: string]: number };
+  allocated: { [key: string]: number };
+};
+
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
   { valueFrom: Record<string, unknown> }
@@ -794,10 +802,15 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  gpus: number;
+  accelerator: AcceleratorState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
+};
+
+export type AcceleratorState = {
+  accelerator?: AcceleratorKind;
+  count: number;
 };
 
 export const LIMIT_NOTEBOOK_IMAGE_GPU = 'nvidia.com/gpu';
@@ -857,19 +870,20 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
-export type GPUCount = string | number;
+export enum ContainerResourceAttributes {
+  CPU = 'cpu',
+  MEMORY = 'memory',
+}
 
 export type ContainerResources = {
   requests?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
-  };
+  } & Record<string, unknown>;
   limits?: {
-    cpu?: string;
+    cpu?: string | number;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
-  };
+  } & Record<string, unknown>;
 };
 
 export type ServingRuntime = K8sResourceCommon & {
@@ -896,4 +910,53 @@ export type ServingRuntime = K8sResourceCommon & {
     replicas: number;
     volumes?: Volume[];
   };
+};
+
+export type AcceleratorKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: NotebookToleration[];
+  };
+};
+
+export enum KnownLabels {
+  DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
+  PROJECT_SHARING = 'opendatahub.io/project-sharing',
+  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
+  DATA_CONNECTION_AWS = 'opendatahub.io/managed',
+}
+
+type ComponentNames =
+  | 'codeflare'
+  | 'data-science-pipelines-operator'
+  | 'kserve'
+  | 'model-mesh'
+  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
+  | 'odh-dashboard'
+  | 'ray'
+  | 'workbenches';
+
+export type DataScienceClusterKindStatus = {
+  conditions: [];
+  installedComponents: { [key in ComponentNames]: boolean };
+  phase?: string;
+};
+
+export type DataScienceClusterKind = K8sResourceCommon & {
+  spec: unknown; // we should never need to look into this
+  status: DataScienceClusterKindStatus;
+};
+
+export type DataScienceClusterList = {
+  kind: 'DataScienceClusterList';
+  items: DataScienceClusterKind[];
 };

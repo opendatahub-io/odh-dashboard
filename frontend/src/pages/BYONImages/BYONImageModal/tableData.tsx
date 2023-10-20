@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
+import { SortableData } from '~/components/table';
 import { BYONImagePackage } from '~/types';
 import { DisplayedContentTab } from './ManageBYONImageModal';
 

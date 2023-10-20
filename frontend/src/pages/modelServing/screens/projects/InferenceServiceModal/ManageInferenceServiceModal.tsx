@@ -78,6 +78,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
+    setError(undefined);
     setActionInProgress(false);
     resetData();
   };
@@ -99,27 +100,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       ),
     );
 
-  const cleanFormData = () => {
-    const cleanedStorageFolderPath = createData.storage.path.replace(/^\/+/, '');
-
-    return {
-      ...createData,
-      storage: {
-        ...createData.storage,
-        path: cleanedStorageFolderPath === '' ? '/' : cleanedStorageFolderPath,
-      },
-    };
-  };
-
   const createModel = (): Promise<InferenceServiceKind> => {
-    // clean data
-    const cleanedFormData = cleanFormData();
-
-    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createInferenceService(cleanedFormData);
+    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      return createInferenceService(createData);
     }
     return createAWSSecret().then((secret) =>
-      createInferenceService(cleanedFormData, secret.metadata.name),
+      createInferenceService(createData, secret.metadata.name),
     );
   };
 
@@ -128,14 +114,11 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       return Promise.reject(new Error('No model to update'));
     }
 
-    // clean data
-    const cleanedFormData = cleanFormData();
-
-    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return updateInferenceService(cleanedFormData, editInfo);
+    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      return updateInferenceService(createData, editInfo);
     }
     return createAWSSecret().then((secret) =>
-      updateInferenceService(cleanedFormData, editInfo, secret.metadata.name),
+      updateInferenceService(createData, editInfo, secret.metadata.name),
     );
   };
 

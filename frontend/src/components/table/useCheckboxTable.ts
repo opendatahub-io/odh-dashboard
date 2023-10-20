@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { xor } from 'lodash';
-import Table from '~/components/table/Table';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import type Table from './Table';
 
 type UseCheckboxTable = {
   selections: string[];

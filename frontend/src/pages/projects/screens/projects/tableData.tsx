@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
+import { SortableData } from '~/components/table';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectCreationTime, getProjectDisplayName } from '~/pages/projects/utils';
 

@@ -13,13 +13,25 @@ const transport =
     : undefined;
 
 const app = fastify({
-  logger: pino({ level: LOG_LEVEL }, transport),
+  logger: pino(
+    {
+      level: LOG_LEVEL,
+      redact: [
+        'err.response.request.headers.Authorization',
+        'response.request.headers.Authorization',
+        'request.headers.Authorization',
+        'headers.Authorization',
+        'Authorization',
+      ],
+    },
+    transport,
+  ),
   pluginTimeout: 10000,
 });
 
 app.register(initializeApp);
 
-app.listen({ port: PORT, host: IP}, (err) => {
+app.listen({ port: PORT, host: IP }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1); // eslint-disable-line

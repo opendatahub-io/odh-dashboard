@@ -319,7 +319,7 @@ export const postImage = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to add notebook image: ' + e.toString());
+      fastify.log.error(e, 'Unable to add notebook image');
       return { success: false, error: 'Unable to add notebook image: ' + e.message };
     }
   }
@@ -348,7 +348,7 @@ export const deleteImage = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to delete notebook image: ' + e.toString());
+      fastify.log.error(e, 'Unable to delete notebook image.');
       return { success: false, error: 'Unable to delete notebook image: ' + e.message };
     }
   }
@@ -375,7 +375,7 @@ export const updateImage = async (
   );
 
   if (validName.length > 0) {
-    fastify.log.error('Duplicate name unable to add notebook image');
+    fastify.log.error('Duplicate name unable to add notebook image.');
     return { success: false, error: 'Unable to add notebook image: ' + body.name };
   }
 
@@ -439,7 +439,7 @@ export const updateImage = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to update notebook image: ' + e.toString());
+      fastify.log.error(e, 'Unable to update notebook image.');
       return { success: false, error: 'Unable to update notebook image: ' + e.message };
     }
   }
