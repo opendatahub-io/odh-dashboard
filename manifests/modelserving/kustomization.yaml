@@ -5,12 +5,11 @@ commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
 resources:
   - ovms-ootb.yaml
-  - ovms-gpu-ootb.yaml
   - caikit-ootb.yaml
 images:
   - name: ovms-1
     newName: quay.io/opendatahub/openvino_model_server
-    digest: sha256:20dbfbaf53d1afbd47c612d953984238cb0e207972ed544a5ea662c2404f276d
+    digest: sha256:2cbe8a48ab0bc6fe7fb76919bf33253e83a6218a9c4b486b744c3dcf30679616
   - name: caikit-1
     newName: quay.io/opendatahub/caikit-tgis-serving:stable
     digest: sha256:794adc22d52cb3ac4b5aadfb286e8431cca829acdc4909719329cf8c4fabb4ec
