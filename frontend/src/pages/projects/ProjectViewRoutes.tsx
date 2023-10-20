@@ -8,6 +8,7 @@ import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipel
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
+import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -39,6 +40,12 @@ const ProjectViewRoutes: React.FC = () => {
           path="pipelineRun/view/:pipelineRunId"
           element={
             <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunDetails} />
+          }
+        />
+        <Route
+          path="pipelineRunJob/view/:pipelineRunJobId"
+          element={
+            <ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineRunJobDetails} />
           }
         />
         <Route

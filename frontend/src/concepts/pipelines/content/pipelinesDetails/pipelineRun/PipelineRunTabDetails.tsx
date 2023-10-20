@@ -1,14 +1,7 @@
 import * as React from 'react';
-import {
-  Spinner,
-  EmptyStateVariant,
-  EmptyState,
-  Title,
-  Split,
-  SplitItem,
-} from '@patternfly/react-core';
+import { Spinner, EmptyStateVariant, EmptyState, Title } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   getPipelineCoreResourcePipelineReference,
   getRunDuration,
@@ -21,12 +14,9 @@ import {
   DetailItem,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
-import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
-import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
-
+import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 type PipelineRunTabDetailsProps = {
-  pipelineRunKF?: PipelineRunKF;
+  pipelineRunKF?: PipelineRunKF | PipelineRunJobKF;
   workflowName?: string;
 };
 
@@ -34,7 +24,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   pipelineRunKF,
   workflowName,
 }) => {
-  const { namespace, project, getJobInformation } = usePipelinesAPI();
+  const { namespace, project } = usePipelinesAPI();
 
   if (!pipelineRunKF || !workflowName) {
     return (
@@ -47,11 +37,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     );
   }
 
-  const { data } = getJobInformation(pipelineRunKF);
-  const pipelineReference =
-    getPipelineCoreResourcePipelineReference(pipelineRunKF) ??
-    getPipelineCoreResourcePipelineReference(data ?? undefined);
-
+  const pipelineReference = getPipelineCoreResourcePipelineReference(pipelineRunKF);
   const pipelineRef = pipelineReference
     ? [
         {
@@ -66,45 +52,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
       ]
     : [];
 
-  const jobRefDescription = data
-    ? [
-        {
-          key: 'Description',
-          value: (
-            <>
-              <PipelineJobReferenceName resource={pipelineRunKF} />
-              {data.description ?? ''}
-            </>
-          ),
-        },
-      ]
-    : null;
-  const pipelineDescription = pipelineRunKF.description
-    ? [
-        {
-          key: 'Description',
-          value: pipelineRunKF.description,
-        },
-      ]
-    : null;
-  const description = (pipelineDescription || jobRefDescription) ?? [];
-
-  const renderRunName = {
-    key: 'Name',
-    value: (
-      <Split hasGutter>
-        <SplitItem>
-          <PipelineDetailsTitle run={pipelineRunKF} />{' '}
-        </SplitItem>
-        <SplitItem>
-          <PipelineRunTypeLabel resource={pipelineRunKF} />
-        </SplitItem>
-      </Split>
-    ),
-  };
   const details: DetailItem[] = [
-    renderRunName,
-    ...description,
+    { key: 'Name', value: pipelineRunKF.name },
     ...pipelineRef,
     {
       key: 'Project',
@@ -113,13 +62,18 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     { key: 'Run ID', value: pipelineRunKF.id },
     { key: 'Workflow name', value: workflowName },
     { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
-    {
-      key: 'Started at',
-      value: asTimestamp(new Date(pipelineRunKF.scheduled_at || pipelineRunKF.created_at)),
-    },
-    { key: 'Finished at', value: asTimestamp(new Date(pipelineRunKF.finished_at)) },
-    { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
   ];
+
+  if (!isPipelineRunJob(pipelineRunKF)) {
+    details.push(
+      {
+        key: 'Started at',
+        value: asTimestamp(new Date(pipelineRunKF.scheduled_at || pipelineRunKF.created_at)),
+      },
+      { key: 'Finished at', value: asTimestamp(new Date(pipelineRunKF.finished_at)) },
+      { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
+    );
+  }
 
   return <>{renderDetailItems(details)}</>;
 };

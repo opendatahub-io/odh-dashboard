@@ -34,6 +34,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
       isResizable
       widths={{ default: 'width_33', lg: 'width_50' }}
       minSize="400px"
+      data-testid="pipeline-run-drawer-right-content"
     >
       <DrawerHead>
         <Title headingLevel="h2" size="xl">
