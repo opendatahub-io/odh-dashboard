@@ -164,6 +164,38 @@ test('Add ModelMesh model server', async ({ page }) => {
   await expect(page.getByRole('menuitem', { name: 'New OVMS Server Invalid' })).toBeHidden();
   await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
 
+  //test Add model server tooltips
+  const expectedContent = [
+    {
+      ariaLabel: 'Model server replicas info',
+      content:
+        'Consider network traffic and failover scenarios when specifying the number of model server replicas.',
+    },
+    {
+      ariaLabel: 'Model server size info',
+      content:
+        'Select a server size that will accommodate your largest model. See the product documentation for more information.',
+    },
+    {
+      ariaLabel: 'Accelerator info',
+      content:
+        'Ensure that appropriate tolerations are in place before adding an accelerator to your model server.',
+    },
+  ];
+
+  for (const item of expectedContent) {
+    const iconPopover = await page.getByRole('button', { name: item.ariaLabel, exact: true });
+    if (await iconPopover.isVisible()) {
+      await iconPopover.click();
+      const popoverContent = await page.locator('div.pf-c-popover__content').textContent();
+      expect(popoverContent).toContain(item.content);
+
+      const closeButton = await page.locator('div.pf-c-popover__content>button');
+      if (closeButton) {
+        closeButton.click();
+      }
+    }
+  }
   // test the if the alert is visible when route is external while token is not set
   await expect(page.locator('#alt-form-checkbox-route')).not.toBeChecked();
   await expect(page.locator('#alt-form-checkbox-auth')).not.toBeChecked();
