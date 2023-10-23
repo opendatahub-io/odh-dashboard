@@ -960,7 +960,7 @@ type ComponentNames =
 
 export type DataScienceClusterKindStatus = {
   conditions: [];
-  installedComponents: { [key in ComponentNames]: boolean };
+  installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
 };
 

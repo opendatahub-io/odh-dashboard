@@ -22,6 +22,7 @@ import {
   K8sAPIOptions,
   RoleBindingKind,
   ServingRuntimeKind,
+  DataScienceClusterKindStatus,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
@@ -211,3 +212,20 @@ export const isModelServerEditInfoChanged = (
           createData.tokens.map((token) => token.name).sort(),
         ))
     : true;
+
+export const checkPlatformAvailability = (
+  status: DataScienceClusterKindStatus,
+): { kServeAvailable: boolean; modelMeshAvailable: boolean } => ({
+  kServeAvailable: !!status.installedComponents.kserve,
+  modelMeshAvailable: !!status.installedComponents['model-mesh'],
+});
+
+export const checkKserveFailureStatus = (status: DataScienceClusterKindStatus): string =>
+  status.conditions.find(
+    (condition) => condition.type === 'kserveReady' && condition.status === 'False',
+  )?.message || '';
+
+export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus): string =>
+  status.conditions.find(
+    (condition) => condition.type === 'model-meshReady' && condition.status === 'False',
+  )?.message || '';
