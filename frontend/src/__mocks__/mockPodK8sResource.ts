@@ -5,12 +5,14 @@ type MockResourceConfigType = {
   user?: string;
   name?: string;
   namespace?: string;
+  isPending?: boolean;
 };
 
 export const mockPodK8sResource = ({
   user = 'test-user',
   name = 'test-pod',
   namespace = 'test-project',
+  isPending = false,
 }: MockResourceConfigType): PodKind => ({
   kind: 'Pod',
   apiVersion: 'project.openshift.io/v1',
@@ -382,33 +384,45 @@ export const mockPodK8sResource = ({
     preemptionPolicy: 'PreemptLowerPriority',
   },
   status: {
-    phase: 'Running',
-    conditions: [
-      {
-        type: 'Initialized',
-        status: 'True',
-        lastProbeTime: null,
-        lastTransitionTime: '2023-02-14T22:06:45Z',
-      },
-      {
-        type: 'Ready',
-        status: 'True',
-        lastProbeTime: null,
-        lastTransitionTime: '2023-02-14T22:07:05Z',
-      },
-      {
-        type: 'ContainersReady',
-        status: 'True',
-        lastProbeTime: null,
-        lastTransitionTime: '2023-02-14T22:07:05Z',
-      },
-      {
-        type: 'PodScheduled',
-        status: 'True',
-        lastProbeTime: null,
-        lastTransitionTime: '2023-02-14T22:06:45Z',
-      },
-    ],
+    phase: isPending ? 'Pending' : 'Running',
+    conditions: !isPending
+      ? [
+          {
+            type: 'Initialized',
+            status: 'True',
+            lastTransitionTime: '2023-02-14T22:06:45Z',
+            lastProbeTime: null,
+          },
+          {
+            type: 'Ready',
+            status: 'True',
+            lastTransitionTime: '2023-02-14T22:07:05Z',
+            lastProbeTime: null,
+          },
+          {
+            type: 'ContainersReady',
+            status: 'True',
+            lastTransitionTime: '2023-02-14T22:07:05Z',
+            lastProbeTime: null,
+          },
+          {
+            type: 'PodScheduled',
+            status: 'True',
+            lastTransitionTime: '2023-02-14T22:06:45Z',
+            lastProbeTime: null,
+          },
+        ]
+      : [
+          {
+            type: 'PodScheduled',
+            status: 'False',
+            lastProbeTime: null,
+            lastTransitionTime: '2023-11-30T21:24:21Z',
+            reason: 'Unschedulable',
+            message:
+              ' 0/7 nodes are available: 2 Insufficient memory, 3 node(s) had untolerated taint {node-role.kubernetes.io/master: }, 4 Insufficient cpu, 4 Insufficient nvidia.com/gpu. preemption: 0/7 nodes are available:3 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod..',
+          },
+        ],
     hostIP: '192.168.0.217',
     podIP: '10.131.1.182',
     podIPs: [

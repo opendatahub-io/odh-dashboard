@@ -92,6 +92,7 @@ export type K8sCondition = {
   status: string;
   reason?: string;
   message?: string;
+  lastProbeTime?: string | null;
   lastTransitionTime?: string;
   lastHeartbeatTime?: string;
 };
@@ -281,6 +282,8 @@ export type NotebookKind = K8sResourceCommon & {
 
 export type PodKind = K8sResourceCommon & {
   status: {
+    phase: string;
+    conditions: K8sCondition[];
     containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
   };
 };

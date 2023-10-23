@@ -68,7 +68,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Status">
-        <InferenceServiceStatus inferenceService={inferenceService} />
+        <InferenceServiceStatus
+          inferenceService={inferenceService}
+          isKserve={!isModelMesh(inferenceService)}
+        />
       </Td>
       <Td isActionCell>
         <ResourceActionsColumn
