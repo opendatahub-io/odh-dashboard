@@ -39,9 +39,9 @@ const COL_ENDPOINT: SortableData<InferenceServiceKind> = {
   sortable: false,
 };
 
-const COL_MODEL_SERVER: SortableData<InferenceServiceKind> = {
-  field: 'model',
-  label: 'Model server',
+const COL_SERVING_RUNTIME: SortableData<InferenceServiceKind> = {
+  field: 'servingRuntime',
+  label: 'Serving runtime',
   width: 20,
   sortable: false,
 };
@@ -62,7 +62,7 @@ export const getGlobalInferenceServiceColumns = (
 ): SortableData<InferenceServiceKind>[] => [
   COL_NAME,
   buildProjectCol(projects),
-  COL_MODEL_SERVER,
+  COL_SERVING_RUNTIME,
   COL_ENDPOINT,
   COL_STATUS,
   COL_KEBAB,

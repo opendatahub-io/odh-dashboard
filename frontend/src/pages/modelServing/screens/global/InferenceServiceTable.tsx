@@ -63,6 +63,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         )}
       />
       <DeleteInferenceServiceModal
+        isOpen={!!deleteInferenceService}
         inferenceService={deleteInferenceService}
         onClose={(deleted) => {
           if (deleted) {
@@ -72,7 +73,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         }}
       />
       <ManageInferenceServiceModal
-        isOpen={editInferenceService !== undefined}
+        isOpen={!!editInferenceService}
         editInfo={editInferenceService}
         onClose={(edited) => {
           if (edited) {

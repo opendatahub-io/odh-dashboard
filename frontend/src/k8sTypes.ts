@@ -101,6 +101,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-name': string;
   'enable-route': string;
   'enable-auth': string;
+  'modelmesh-enabled': 'true' | 'false';
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -357,6 +358,10 @@ export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'serving.kserve.io/deploymentMode': 'ModelMesh';
+      }>;
   };
   spec: {
     predictor: {

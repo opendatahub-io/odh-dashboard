@@ -23,6 +23,7 @@ import {
   RoleBindingKind,
   ServingRuntimeKind,
   DataScienceClusterKindStatus,
+  InferenceServiceKind,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
@@ -229,3 +230,6 @@ export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus
   status.conditions.find(
     (condition) => condition.type === 'model-meshReady' && condition.status === 'False',
   )?.message || '';
+
+export const isModelMesh = (inferenceService: InferenceServiceKind) =>
+  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';

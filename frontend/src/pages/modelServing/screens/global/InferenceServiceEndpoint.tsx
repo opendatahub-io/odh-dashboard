@@ -44,7 +44,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     );
   }
 
-  if (!routeLink || !loaded) {
+  if (!loaded) {
     return <Skeleton />;
   }
 
