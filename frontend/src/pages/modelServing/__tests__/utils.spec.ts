@@ -5,6 +5,12 @@ import {
   checkPlatformAvailability,
   resourcesArePositive,
 } from '~/pages/modelServing/utils';
+import {
+  mockServingRuntimeK8sResource,
+  mockServingRuntimeK8sResourceLegacy,
+} from '~/__mocks__/mockServingRuntimeK8sResource';
+import { ServingRuntimeKind } from '~/k8sTypes';
+import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ContainerResources } from '~/types';
 
 describe('resourcesArePositive', () => {
@@ -154,5 +160,36 @@ describe('servingPlatformsInstallaed', () => {
     });
 
     expect(checkModelMeshFailureStatus(mockedDataScienceStatusKserve)).toEqual(errorMessage);
+  });
+});
+
+describe('getDisplayNameFromServingRuntimeTemplate', () => {
+  it('should provide default name if not found', () => {
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate({
+      metadata: {},
+      spec: {},
+    } as ServingRuntimeKind);
+    expect(servingRuntime).toBe('Unknown Serving Runtime');
+  });
+
+  it('should prioritize name from annotation "opendatahub.io/template-display-name"', () => {
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate(
+      mockServingRuntimeK8sResource({}),
+    );
+    expect(servingRuntime).toBe('OpenVINO Serving Runtime (Supports GPUs)');
+  });
+
+  it('should fallback first to name from annotation "opendatahub.io/template-name"', () => {
+    const mockServingRuntime = mockServingRuntimeK8sResource({});
+    delete mockServingRuntime.metadata.annotations?.['opendatahub.io/template-display-name'];
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate(mockServingRuntime);
+    expect(servingRuntime).toBe('ovms');
+  });
+
+  it('should fallback to ovms serverType', () => {
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate(
+      mockServingRuntimeK8sResourceLegacy({}),
+    );
+    expect(servingRuntime).toBe('OpenVINO Model Server');
   });
 });
