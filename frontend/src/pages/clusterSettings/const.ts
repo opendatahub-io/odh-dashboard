@@ -17,6 +17,10 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
   notebookTolerationSettings: null,
+  modelServingPlatformEnabled: {
+    kServe: true,
+    modelMesh: false,
+  },
 };
 export const DEFAULT_TOLERATION_VALUE = 'NotebooksOnly';
 export const TOLERATION_FORMAT = /^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$/;
