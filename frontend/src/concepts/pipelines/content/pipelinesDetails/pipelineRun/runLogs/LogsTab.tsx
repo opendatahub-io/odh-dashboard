@@ -103,7 +103,7 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
               <SplitItem>
                 <Bullseye>
                   <TextContent>
-                    <TextListItem component={TextListItemVariants.dt}>Container</TextListItem>
+                    <TextListItem component={TextListItemVariants.dt}>Step</TextListItem>
                   </TextContent>
                 </Bullseye>
               </SplitItem>
