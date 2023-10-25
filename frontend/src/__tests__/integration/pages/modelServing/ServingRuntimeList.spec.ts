@@ -1,11 +1,19 @@
 import { test, expect } from '@playwright/test';
 import { navigateToStory } from '~/__tests__/integration/utils';
 
-test('Deploy model', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-servingruntimelist', 'deploy-model'));
+test('Deploy ModelMesh model', async ({ page }) => {
+  await page.goto(
+    navigateToStory('pages-modelserving-servingruntimelist', 'model-mesh-list-available-models'),
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Deploy model');
+
+  await page
+    .getByRole('rowgroup')
+    .filter({ has: page.getByRole('button', { name: 'ovms', exact: true }) })
+    .getByText('Deploy model')
+    .click();
 
   // test that you can not submit on empty
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
@@ -36,9 +44,9 @@ test('Deploy model', async ({ page }) => {
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
-test('Legacy Serving Runtime', async ({ page }) => {
+test('ModelMesh ServingRuntime list', async ({ page }) => {
   await page.goto(
-    navigateToStory('pages-modelserving-servingruntimelist', 'list-available-models'),
+    navigateToStory('pages-modelserving-servingruntimelist', 'model-mesh-list-available-models'),
   );
 
   // wait for page to load
@@ -76,9 +84,9 @@ test('Legacy Serving Runtime', async ({ page }) => {
   await expect(secondRow).not.toHaveClass('pf-m-expanded');
 });
 
-test('Add model server', async ({ page }) => {
+test('Add ModelMesh model server', async ({ page }) => {
   await page.goto(
-    './iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--list-available-models&viewMode=story',
+    navigateToStory('pages-modelserving-servingruntimelist', 'model-mesh-list-available-model'),
   );
 
   // wait for page to load
@@ -113,9 +121,9 @@ test('Add model server', async ({ page }) => {
   await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
 });
 
-test('Edit model server', async ({ page }) => {
+test('Edit ModelMesh model server', async ({ page }) => {
   await page.goto(
-    './iframe.html?args=&id=tests-integration-pages-modelserving-servingruntimelist--list-available-models&viewMode=story',
+    navigateToStory('pages-modelserving-servingruntimelist', 'model-mesh-list-available-model'),
   );
 
   // wait for page to load
