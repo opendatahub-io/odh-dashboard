@@ -13,6 +13,7 @@ import { importBYONImage, updateBYONImage } from '~/services/imagesService';
 import { ResponseStatus, BYONImagePackage, BYONImage } from '~/types';
 import { useAppSelector } from '~/redux/hooks';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { filterBlankPackages } from '~/pages/BYONImages/utils';
 import ImageLocationField from './ImageLocationField';
 import DisplayedContentTabContent from './DisplayedContentTabContent';
 
@@ -90,8 +91,8 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         // eslint-disable-next-line camelcase
         display_name: displayName,
         description: description,
-        packages: packages,
-        software: software,
+        packages: filterBlankPackages(packages),
+        software: filterBlankPackages(software),
       }).then(handleResponse);
     } else {
       importBYONImage({
@@ -100,8 +101,8 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         url: repository,
         description: description,
         provider: userName,
-        software: software,
-        packages: packages,
+        packages: filterBlankPackages(packages),
+        software: filterBlankPackages(software),
       }).then(handleResponse);
     }
   };
@@ -132,7 +133,13 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
           submit();
         }}
       >
-        {!existingImage && <ImageLocationField location={repository} setLocation={setRepository} />}
+        {
+          <ImageLocationField
+            isDisabled={!!existingImage}
+            location={repository}
+            setLocation={setRepository}
+          />
+        }
         <FormGroup label="Name" isRequired fieldId="byon-image-name-input">
           <TextInput
             id="byon-image-name-input"

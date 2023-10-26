@@ -667,7 +667,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
     const acceleratorProfilesResponse = await fastify.kube.customObjectsApi
       .listNamespacedCustomObject(
         'dashboard.opendatahub.io',
-        'v1alpha',
+        'v1',
         fastify.kube.namespace,
         'acceleratorprofiles',
       )
@@ -697,13 +697,13 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       if (acceleratorDetected.configured) {
         const payload: AcceleratorKind = {
           kind: 'AcceleratorProfile',
-          apiVersion: 'dashboard.opendatahub.io/v1alpha',
+          apiVersion: 'dashboard.opendatahub.io/v1',
           metadata: {
             name: 'migrated-gpu',
             namespace: fastify.kube.namespace,
           },
           spec: {
-            displayName: 'Nvidia GPU',
+            displayName: 'NVIDIA GPU',
             identifier: 'nvidia.com/gpu',
             enabled: true,
             tolerations: [
@@ -719,7 +719,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
         try {
           await fastify.kube.customObjectsApi.createNamespacedCustomObject(
             'dashboard.opendatahub.io',
-            'v1alpha',
+            'v1',
             fastify.kube.namespace,
             'acceleratorprofiles',
             payload,
