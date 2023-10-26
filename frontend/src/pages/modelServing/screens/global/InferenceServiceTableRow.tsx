@@ -3,9 +3,9 @@ import { DropdownDirection } from '@patternfly/react-core';
 import { ActionsColumn, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import { isModelMesh } from '~/pages/modelServing/utils';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { isModelMesh } from '~/pages/modelServing/utils';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
@@ -64,6 +64,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
+          isKserve={!isModelMesh(inferenceService)}
         />
       </Td>
       <Td dataLabel="Status">
@@ -74,8 +75,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           dropdownDirection={isGlobal ? DropdownDirection.down : DropdownDirection.up}
           items={[
             {
-              // TODO re-enable edit when supported
-              isDisabled: !isModelMesh(inferenceService),
               title: 'Edit',
               onClick: () => {
                 onEditInferenceService(inferenceService);

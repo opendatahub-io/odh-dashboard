@@ -5,6 +5,8 @@ import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/I
 import { Table } from '~/components/table';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { isModelMesh } from '~/pages/modelServing/utils';
+import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -51,9 +53,8 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           ) : undefined
         }
         rowRenderer={(is) => (
-          <Tr>
+          <Tr key={is.metadata.uid}>
             <InferenceServiceTableRow
-              key={is.metadata.uid}
               obj={is}
               servingRuntime={servingRuntimes.find(
                 (sr) => sr.metadata.name === is.spec.predictor.model.runtime,
@@ -69,6 +70,13 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
       <DeleteInferenceServiceModal
         isOpen={!!deleteInferenceService}
         inferenceService={deleteInferenceService}
+        servingRuntime={
+          deleteInferenceService && !isModelMesh(deleteInferenceService)
+            ? servingRuntimes.find(
+                (sr) => sr.metadata.name === deleteInferenceService.spec.predictor.model.runtime,
+              )
+            : undefined
+        }
         onClose={(deleted) => {
           if (deleted) {
             refresh();
@@ -77,8 +85,26 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         }}
       />
       <ManageInferenceServiceModal
-        isOpen={!!editInferenceService}
+        isOpen={!!editInferenceService && isModelMesh(editInferenceService)}
         editInfo={editInferenceService}
+        onClose={(edited) => {
+          if (edited) {
+            refresh();
+          }
+          setEditInferenceService(undefined);
+        }}
+      />
+      <ManageKServeModal
+        isOpen={!!editInferenceService && !isModelMesh(editInferenceService)}
+        editInfo={{
+          inferenceServiceEditInfo: editInferenceService,
+          servingRuntimeEditInfo: {
+            servingRuntime: servingRuntimes.find(
+              (sr) => sr.metadata.name === editInferenceService?.spec.predictor.model.runtime,
+            ),
+            secrets: [],
+          },
+        }}
         onClose={(edited) => {
           if (edited) {
             refresh();

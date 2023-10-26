@@ -44,6 +44,51 @@ test('Deploy ModelMesh model', async ({ page }) => {
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
+test('Deploy KServe model', async ({ page }) => {
+  await page.goto(
+    navigateToStory(
+      'pages-modelserving-servingruntimelist',
+      'both-platform-enabled-and-project-not-labelled',
+    ),
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Deploy model');
+
+  await page.getByRole('button', { name: 'Deploy model', exact: true }).click();
+
+  // test that you can not submit on empty
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
+
+  // test filling in minimum required fields
+  await page.getByLabel('Model Name *').fill('Test Name');
+  await page.locator('#serving-runtime-template-selection').click();
+  await page.getByRole('menuitem', { name: 'New OVMS Server' }).click();
+  await expect(page.getByRole('menuitem', { name: 'New OVMS Server Invalid' })).toBeHidden();
+  await page.locator('#inference-service-framework-selection').click();
+  await page.getByRole('option', { name: 'onnx - 1' }).click();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
+  await page
+    .getByRole('group', { name: 'Model location' })
+    .getByRole('button', { name: 'Options menu' })
+    .click();
+  await page.getByRole('option', { name: 'Test Secret' }).click();
+  await page.getByLabel('Path').fill('test-model/');
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
+  await page.getByText('New data connection').click();
+  await page.getByLabel('Path').fill('');
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
+  await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
+  await page.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' }).fill('test-key');
+  await page
+    .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
+    .fill('test-secret-key');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_BUCKET' }).fill('test-bucket');
+  await page.getByLabel('Path').fill('test-model/');
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
+});
+
 test('ModelMesh ServingRuntime list', async ({ page }) => {
   await page.goto(
     navigateToStory('pages-modelserving-servingruntimelist', 'model-mesh-list-available-models'),
@@ -82,6 +127,21 @@ test('ModelMesh ServingRuntime list', async ({ page }) => {
   // Check that the first row is expanded while the second is not
   await expect(firstRow).toHaveClass('pf-m-expanded');
   await expect(secondRow).not.toHaveClass('pf-m-expanded');
+});
+
+test('KServe Model list', async ({ page }) => {
+  await page.goto(
+    navigateToStory('pages-modelserving-servingruntimelist', 'kserve-list-available-models'),
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Deploy model');
+
+  // Check that we get the correct model name
+  expect(page.getByText('Test Inference Service')).toBeTruthy();
+
+  // Check that the serving runtime displays the correct Serving Runtime
+  expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)')).toBeTruthy();
 });
 
 test('Add ModelMesh model server', async ({ page }) => {

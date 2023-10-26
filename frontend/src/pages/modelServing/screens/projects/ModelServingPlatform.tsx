@@ -9,6 +9,7 @@ import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import {
   getSortedTemplates,
   getTemplateEnabled,
+  getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '~/types';
 import ModelServingPlatformSelect from '~/pages/modelServing/screens/projects/ModelServingPlatformSelect';
@@ -19,6 +20,7 @@ import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/K
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
+import ManageKServeModal from './kServeModal/ManageKServeModal';
 
 const ModelServingPlatform: React.FC = () => {
   const {
@@ -28,7 +30,9 @@ const ModelServingPlatform: React.FC = () => {
       },
     },
   } = useAppContext();
-  const [isOpen, setOpen] = React.useState(false);
+  const [platformSelected, setPlatformSelected] = React.useState<
+    ServingRuntimePlatform | undefined
+  >(undefined);
 
   const {
     servingRuntimes: {
@@ -40,6 +44,7 @@ const ModelServingPlatform: React.FC = () => {
     servingRuntimeTemplates: { data: templates, loaded: templatesLoaded, error: templateError },
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
+    dataConnections: { data: dataConnections },
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
@@ -66,6 +71,16 @@ const ModelServingPlatform: React.FC = () => {
   const shouldShowPlatformSelection =
     !disableKServe && !disableModelMesh && !currentProjectServingPlatform;
 
+  const onSubmit = (submit: boolean) => {
+    setPlatformSelected(undefined);
+    if (submit) {
+      refreshAllProjects();
+      refreshServingRuntime();
+      refreshInferenceServices();
+      setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
+    }
+  };
+
   return (
     <>
       <DetailsSection
@@ -79,10 +94,11 @@ const ModelServingPlatform: React.FC = () => {
                   isProjectModelMesh={isProjectModelMesh}
                   emptyTemplates={emptyTemplates}
                   onClick={() => {
-                    if (isProjectModelMesh) {
-                      setOpen(true);
-                    }
-                    // else, show the kserve deploy model modal
+                    setPlatformSelected(
+                      isProjectModelMesh
+                        ? ServingRuntimePlatform.MULTI
+                        : ServingRuntimePlatform.SINGLE,
+                    );
                   }}
                   key="serving-runtime-actions"
                 />,
@@ -113,12 +129,9 @@ const ModelServingPlatform: React.FC = () => {
         {shouldShowPlatformSelection ? (
           <ModelServingPlatformSelect
             onSelect={(selectedPlatform) => {
-              if (selectedPlatform === ServingRuntimePlatform.MULTI) {
-                setOpen(true);
-              }
+              setPlatformSelected(selectedPlatform);
             }}
             emptyTemplates={emptyTemplates}
-            // else, show the kserve deploy model modal
           />
         ) : isProjectModelMesh ? (
           <ModelMeshServingRuntimeTable />
@@ -127,17 +140,26 @@ const ModelServingPlatform: React.FC = () => {
         )}
       </DetailsSection>
       <ManageServingRuntimeModal
-        isOpen={isOpen}
+        isOpen={platformSelected === ServingRuntimePlatform.MULTI}
         currentProject={currentProject}
-        servingRuntimeTemplates={templatesEnabled}
+        servingRuntimeTemplates={templatesEnabled.filter((template) =>
+          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
+        )}
         onClose={(submit: boolean) => {
-          setOpen(false);
-          if (submit) {
-            refreshAllProjects();
-            refreshServingRuntime();
-            refreshInferenceServices();
-            setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
-          }
+          onSubmit(submit);
+        }}
+      />
+      <ManageKServeModal
+        isOpen={platformSelected === ServingRuntimePlatform.SINGLE}
+        projectContext={{
+          currentProject,
+          dataConnections,
+        }}
+        servingRuntimeTemplates={templatesEnabled.filter((template) =>
+          getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+        )}
+        onClose={(submit: boolean) => {
+          onSubmit(submit);
         }}
       />
     </>

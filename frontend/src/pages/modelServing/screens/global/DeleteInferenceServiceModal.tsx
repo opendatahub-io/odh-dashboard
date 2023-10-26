@@ -1,17 +1,19 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { deleteInferenceService } from '~/api';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { deleteInferenceService, deleteServingRuntime } from '~/api';
 import { getInferenceServiceDisplayName } from './utils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;
+  servingRuntime?: ServingRuntimeKind;
   onClose: (deleted: boolean) => void;
   isOpen?: boolean;
 };
 
 const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = ({
   inferenceService,
+  servingRuntime,
   onClose,
   isOpen = false,
 }) => {
@@ -37,10 +39,21 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
       onDelete={() => {
         if (inferenceService) {
           setIsDeleting(true);
-          deleteInferenceService(
-            inferenceService.metadata.name,
-            inferenceService.metadata.namespace,
-          )
+          Promise.all([
+            deleteInferenceService(
+              inferenceService.metadata.name,
+              inferenceService.metadata.namespace,
+            ),
+            ...(servingRuntime
+              ? [
+                  deleteServingRuntime(
+                    servingRuntime.metadata.name,
+                    servingRuntime.metadata.namespace,
+                  ),
+                ]
+              : []),
+          ])
+
             .then(() => {
               onBeforeClose(true);
             })

@@ -6,12 +6,13 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
+  ServingRuntimeEditInfo,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
 import { DashboardConfig, ServingRuntimePlatform } from '~/types';
@@ -19,9 +20,23 @@ import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { getServingRuntimeSize, getServingRuntimeTokens } from '~/pages/modelServing/utils';
+import {
+  getServingRuntimeSize,
+  getServingRuntimeTokens,
+  setUpTokenAuth,
+} from '~/pages/modelServing/utils';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import {
+  addSupportServingPlatformProject,
+  assembleSecret,
+  createInferenceService,
+  createSecret,
+  createServingRuntime,
+  updateInferenceService,
+  updateServingRuntime,
+} from '~/api';
 
 export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -203,3 +218,169 @@ export const getProjectModelServingPlatform = (
     ? ServingRuntimePlatform.MULTI
     : ServingRuntimePlatform.SINGLE;
 };
+
+export const createAWSSecret = (createData: CreatingInferenceServiceObject): Promise<SecretKind> =>
+  createSecret(
+    assembleSecret(
+      createData.project,
+      createData.storage.awsData.reduce<Record<string, string>>(
+        (acc, { key, value }) => ({ ...acc, [key]: value }),
+        {},
+      ),
+      'aws',
+    ),
+  );
+
+const createInferenceServiceAndDataConnection = (
+  inferenceServiceData: CreatingInferenceServiceObject,
+  existingStorage: boolean,
+  editInfo?: InferenceServiceKind,
+  isModelMesh?: boolean,
+) => {
+  if (!existingStorage) {
+    return createAWSSecret(inferenceServiceData).then((secret) =>
+      editInfo
+        ? updateInferenceService(inferenceServiceData, editInfo, secret.metadata.name, isModelMesh)
+        : createInferenceService(inferenceServiceData, secret.metadata.name, isModelMesh),
+    );
+  }
+  return editInfo !== undefined
+    ? updateInferenceService(inferenceServiceData, editInfo, undefined, isModelMesh)
+    : createInferenceService(inferenceServiceData, undefined, isModelMesh);
+};
+
+export const submitInferenceServiceResource = (
+  createData: CreatingInferenceServiceObject,
+  editInfo?: InferenceServiceKind,
+  servingRuntimeName?: string,
+  isModelMesh?: boolean,
+): Promise<InferenceServiceKind> => {
+  const inferenceServiceData = {
+    ...createData,
+    ...(servingRuntimeName !== undefined && {
+      servingRuntimeName: translateDisplayNameForK8s(servingRuntimeName),
+    }),
+  };
+
+  const existingStorage =
+    inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE;
+
+  return createInferenceServiceAndDataConnection(
+    inferenceServiceData,
+    existingStorage,
+    editInfo,
+    isModelMesh,
+  );
+};
+
+export const submitServingRuntimeResources = (
+  servingRuntimeSelected: ServingRuntimeKind | undefined,
+  createData: CreatingServingRuntimeObject,
+  customServingRuntimesEnabled: boolean,
+  namespace: string,
+  editInfo: ServingRuntimeEditInfo | undefined,
+  allowCreate: boolean,
+  acceleratorState: AcceleratorState,
+  servingPlatformEnablement: NamespaceApplicationCase,
+  currentProject?: ProjectKind,
+  name?: string,
+): Promise<void | (string | void | ServingRuntimeKind)[]> => {
+  if (!servingRuntimeSelected) {
+    return Promise.reject(
+      new Error(
+        'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
+      ),
+    );
+  }
+  const servingRuntimeData = {
+    ...createData,
+    existingTolerations: servingRuntimeSelected.spec.tolerations || [],
+    ...(name !== undefined && { name }),
+  };
+  const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
+  const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
+
+  const accelerator = isGpuDisabled(servingRuntimeSelected)
+    ? { count: 0, accelerators: [], useExisting: false }
+    : acceleratorState;
+
+  return Promise.all<ServingRuntimeKind | string | void>([
+    ...(editInfo?.servingRuntime
+      ? [
+          updateServingRuntime({
+            data: servingRuntimeData,
+            existingData: editInfo?.servingRuntime,
+            isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+            opts: {
+              dryRun: true,
+            },
+            acceleratorState: accelerator,
+          }),
+        ]
+      : [
+          createServingRuntime({
+            data: servingRuntimeData,
+            namespace,
+            servingRuntime: servingRuntimeSelected,
+            isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+            opts: {
+              dryRun: true,
+            },
+            acceleratorState: accelerator,
+          }),
+        ]),
+    setUpTokenAuth(
+      servingRuntimeData,
+      servingRuntimeName,
+      namespace,
+      createRolebinding,
+      editInfo?.secrets,
+      {
+        dryRun: true,
+      },
+    ),
+  ]).then(() =>
+    Promise.all<ServingRuntimeKind | string | void>([
+      ...(currentProject &&
+      currentProject.metadata.labels?.['modelmesh-enabled'] === undefined &&
+      allowCreate
+        ? [
+            addSupportServingPlatformProject(
+              currentProject.metadata.name,
+              servingPlatformEnablement,
+            ),
+          ]
+        : []),
+      ...(editInfo?.servingRuntime
+        ? [
+            updateServingRuntime({
+              data: servingRuntimeData,
+              existingData: editInfo?.servingRuntime,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+
+              acceleratorState: accelerator,
+            }),
+          ]
+        : [
+            createServingRuntime({
+              data: servingRuntimeData,
+              namespace,
+              servingRuntime: servingRuntimeSelected,
+              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+              acceleratorState: accelerator,
+            }),
+          ]),
+      setUpTokenAuth(
+        servingRuntimeData,
+        servingRuntimeName,
+        namespace,
+        createRolebinding,
+        editInfo?.secrets,
+      ),
+    ]),
+  );
+};
+
+export const getUrlFromKserveInferenceService = (
+  inferenceService: InferenceServiceKind,
+): string | undefined => inferenceService.status?.url;

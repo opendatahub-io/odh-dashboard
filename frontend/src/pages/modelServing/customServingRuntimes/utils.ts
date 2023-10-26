@@ -6,6 +6,11 @@ import { ServingRuntimePlatform } from '~/types';
 export const getTemplateEnabled = (template: TemplateKind, templateDisablement: string[]) =>
   !templateDisablement.includes(getServingRuntimeNameFromTemplate(template));
 
+export const getTemplateEnabledForPlatform = (
+  template: TemplateKind,
+  platform: ServingRuntimePlatform,
+) => getEnabledPlatformsFromTemplate(template).includes(platform);
+
 export const isTemplateOOTB = (template: TemplateKind) =>
   template.metadata.labels?.['opendatahub.io/ootb'] === 'true';
 

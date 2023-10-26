@@ -8,21 +8,29 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { InferenceServiceKind } from '~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceTableRow from '~/pages/modelServing/screens/global/InferenceServiceTableRow';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
-import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
-import { isServingRuntimeTokenEnabled } from '~/pages/modelServing/screens/projects/utils';
 
 type KServeInferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
+  onEditKServe: (obj: {
+    inferenceService: InferenceServiceKind;
+    servingRuntime: ServingRuntimeKind;
+  }) => void;
+  onDeleteKServe: (obj: {
+    inferenceService: InferenceServiceKind;
+    servingRuntime: ServingRuntimeKind;
+  }) => void;
   rowIndex: number;
 };
 
 const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowProps> = ({
   obj,
   rowIndex,
+  onEditKServe,
+  onDeleteKServe,
 }) => {
   const [isExpanded, setExpanded] = React.useState(false);
   const {
@@ -51,11 +59,23 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
           obj={obj}
           isGlobal={false}
           showServingRuntime
-          servingRuntime={servingRuntimes.find(
-            (sr) => sr.metadata.name === obj.spec.predictor.model.runtime,
-          )}
-          onDeleteInferenceService={() => undefined}
-          onEditInferenceService={() => undefined}
+          servingRuntime={servingRuntime}
+          onDeleteInferenceService={() => {
+            if (servingRuntime) {
+              onDeleteKServe({
+                inferenceService: obj,
+                servingRuntime,
+              });
+            }
+          }}
+          onEditInferenceService={() => {
+            if (servingRuntime) {
+              onEditKServe({
+                inferenceService: obj,
+                servingRuntime,
+              });
+            }
+          }}
         />
       </Tr>
       <Tr isExpanded={isExpanded}>
@@ -76,21 +96,6 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               {servingRuntime && (
                 <StackItem>
                   <ServingRuntimeDetails obj={servingRuntime} />
-                </StackItem>
-              )}
-              {servingRuntime && (
-                <StackItem>
-                  <DescriptionList>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Tokens</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <ServingRuntimeTokensTable
-                          obj={servingRuntime}
-                          isTokenEnabled={isServingRuntimeTokenEnabled(servingRuntime)}
-                        />
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
                 </StackItem>
               )}
             </Stack>
