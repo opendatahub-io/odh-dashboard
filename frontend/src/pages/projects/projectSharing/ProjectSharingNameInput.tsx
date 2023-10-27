@@ -43,7 +43,7 @@ const ProjectSharingNameInput: React.FC<ProjectSharingNameInputProps> = ({
       onToggle={(e, isOpened) => {
         setIsOpen(isOpened);
       }}
-      onSelect={(selection) => {
+      onSelect={(e, selection) => {
         if (typeof selection === 'string') {
           onChange(selection);
           setIsOpen(false);

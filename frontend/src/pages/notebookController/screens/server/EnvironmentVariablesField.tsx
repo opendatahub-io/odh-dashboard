@@ -46,7 +46,11 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   const validated = variableRow.errors[variable.name] !== undefined ? 'error' : 'default';
   return (
     <div className="odh-notebook-controller__env-var-field">
-      <FormGroup fieldId={`${fieldIndex}-${variable.name}`} label="Variable name">
+      <FormGroup
+        className="odh-notebook-controller__env-var-field__name"
+        fieldId={`${fieldIndex}-${variable.name}`}
+        label="Variable name"
+      >
         <TextInput
           id={`${fieldIndex}-${variable.name}`}
           data-id={`${fieldIndex}-${variable.name}`}
@@ -67,7 +71,11 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
           </FormHelperText>
         )}
       </FormGroup>
-      <FormGroup fieldId={`${fieldIndex}-${variable.name}-value`} label="Variable value">
+      <FormGroup
+        className="odh-notebook-controller__env-var-field__value"
+        fieldId={`${fieldIndex}-${variable.name}-value`}
+        label="Variable value"
+      >
         <Flex>
           <InputGroup>
             <InputGroupItem isFill>

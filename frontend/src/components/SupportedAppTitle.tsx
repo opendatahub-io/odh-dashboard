@@ -23,13 +23,13 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({
     title = `${splitTitle.slice(0, -1).join(' ')} `;
     icon = (
       <span style={{ whiteSpace: 'nowrap' }}>
-        <Button variant="link" onClick={onClick} isInline style={{ verticalAlign: 'text-bottom' }}>
+        <Button variant="link" onClick={onClick} isInline>
           {splitTitle[splitTitle.length - 1]}
         </Button>
         <Tooltip content={`${ODH_PRODUCT_NAME} certified and supported`}>
           <Button variant="plain" style={{ padding: 0 }}>
             <img
-              style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}
+              style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)', verticalAlign: 'middle' }}
               src="../images/CheckStar.svg"
               alt={`${ODH_PRODUCT_NAME} certified and supported`}
             />

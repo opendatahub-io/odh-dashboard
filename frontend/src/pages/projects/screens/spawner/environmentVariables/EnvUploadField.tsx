@@ -89,7 +89,10 @@ const EnvUploadField: React.FC<EnvUploadFieldProps> = ({
       />
       <FormHelperText>
         <HelperText>
-          <HelperTextItem icon={<ExclamationCircleIcon />} variant={error ? 'error' : 'default'}>
+          <HelperTextItem
+            icon={error && <ExclamationCircleIcon />}
+            variant={error ? 'error' : 'default'}
+          >
             {error ? `${error}` : `Upload a ${envVarType} yaml file`}
           </HelperTextItem>
         </HelperText>

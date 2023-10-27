@@ -123,7 +123,6 @@ const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
             </Split>
           ) : (
             <ActionsColumn
-              popperProps={{ direction: 'up' }}
               items={[
                 {
                   title: 'Edit',

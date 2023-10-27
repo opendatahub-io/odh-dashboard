@@ -36,6 +36,9 @@
       .pf-v5-c-input-group {
         width: calc(70%);
       }
+      &__value .pf-v5-c-form-control {
+        width: 100%
+      }
     }
   }
   &__server-details {
