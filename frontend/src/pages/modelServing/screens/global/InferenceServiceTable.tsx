@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
+import { Tr } from '@patternfly/react-table';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { Table } from '~/components/table';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -50,16 +51,19 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           ) : undefined
         }
         rowRenderer={(is) => (
-          <InferenceServiceTableRow
-            key={is.metadata.uid}
-            obj={is}
-            servingRuntime={servingRuntimes.find(
-              (sr) => sr.metadata.name === is.spec.predictor.model.runtime,
-            )}
-            isGlobal={isGlobal}
-            onDeleteInferenceService={setDeleteInferenceService}
-            onEditInferenceService={setEditInferenceService}
-          />
+          <Tr>
+            <InferenceServiceTableRow
+              key={is.metadata.uid}
+              obj={is}
+              servingRuntime={servingRuntimes.find(
+                (sr) => sr.metadata.name === is.spec.predictor.model.runtime,
+              )}
+              isGlobal={isGlobal}
+              showServingRuntime={isGlobal}
+              onDeleteInferenceService={setDeleteInferenceService}
+              onEditInferenceService={setEditInferenceService}
+            />
+          </Tr>
         )}
       />
       <DeleteInferenceServiceModal

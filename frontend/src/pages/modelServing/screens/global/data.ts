@@ -3,6 +3,11 @@ import { SortableData } from '~/components/table';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { getInferenceServiceDisplayName, getTokenDisplayName } from './utils';
 
+const COL_EXPAND: SortableData<InferenceServiceKind> = {
+  field: 'expand',
+  label: '',
+  sortable: false,
+};
 const COL_NAME: SortableData<InferenceServiceKind> = {
   field: 'name',
   label: 'Model name',
@@ -69,6 +74,14 @@ export const getGlobalInferenceServiceColumns = (
 ];
 export const getProjectInferenceServiceColumns = (): SortableData<InferenceServiceKind>[] => [
   COL_NAME,
+  COL_ENDPOINT,
+  COL_STATUS,
+  COL_KEBAB,
+];
+export const getKServeInferenceServiceColumns = (): SortableData<InferenceServiceKind>[] => [
+  COL_EXPAND,
+  COL_NAME,
+  COL_SERVING_RUNTIME,
   COL_ENDPOINT,
   COL_STATUS,
   COL_KEBAB,
