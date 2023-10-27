@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { AppContext } from '~/app/AppContext';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import { getServingRuntimeSizes } from './utils';
-import useServingAccelerator from './useServingAccelerator';
+import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
+import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;

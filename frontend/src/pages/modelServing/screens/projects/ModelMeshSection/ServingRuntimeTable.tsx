@@ -3,11 +3,11 @@ import { Table } from '~/components/table';
 import { AccessReviewResourceAttributes, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '~/api';
-import { columns } from './data';
-import ServingRuntimeTableRow from './ServingRuntimeTableRow';
-import DeleteServingRuntimeModal from './DeleteServingRuntimeModal';
-import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
-import ManageInferenceServiceModal from './InferenceServiceModal/ManageInferenceServiceModal';
+import { columns } from '~/pages/modelServing/screens/projects/data';
+import ServingRuntimeTableRow from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTableRow';
+import DeleteServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/DeleteServingRuntimeModal';
+import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
+import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',

@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import {
+  InferenceServiceKind,
+  KnownLabels,
+  ProjectKind,
+  SecretKind,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
@@ -8,7 +14,7 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { DashboardConfig } from '~/types';
+import { DashboardConfig, ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -175,4 +181,25 @@ export const useCreateInferenceServiceObject = (
   ]);
 
   return createInferenceServiceState;
+};
+
+export const getProjectModelServingPlatform = (
+  project: ProjectKind,
+  disableKServe: boolean,
+  disableModelMesh: boolean,
+) => {
+  if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
+    if ((!disableKServe && !disableModelMesh) || (disableKServe && disableModelMesh)) {
+      return undefined;
+    }
+    if (disableKServe) {
+      return ServingRuntimePlatform.MULTI;
+    }
+    if (disableModelMesh) {
+      return ServingRuntimePlatform.SINGLE;
+    }
+  }
+  return project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true'
+    ? ServingRuntimePlatform.MULTI
+    : ServingRuntimePlatform.SINGLE;
 };

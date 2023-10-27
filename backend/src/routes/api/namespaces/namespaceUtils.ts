@@ -65,7 +65,6 @@ export const applyNamespaceChange = async (
     case NamespaceApplicationCase.DSG_CREATION:
       labels = {
         'opendatahub.io/dashboard': 'true',
-        'modelmesh-enabled': 'true',
       };
       break;
     case NamespaceApplicationCase.MODEL_SERVING_PROMOTION:

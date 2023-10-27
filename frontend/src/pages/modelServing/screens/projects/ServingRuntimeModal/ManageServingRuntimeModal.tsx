@@ -184,7 +184,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     ])
       .then(() =>
         Promise.all<ServingRuntimeKind | string | void>([
-          ...(currentProject.metadata.labels?.['modelmesh-enabled'] && allowCreate
+          ...(currentProject.metadata.labels?.['modelmesh-enabled'] === undefined && allowCreate
             ? [addSupportModelMeshProject(currentProject.metadata.name)]
             : []),
           ...(editInfo?.servingRuntime
@@ -230,6 +230,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   return (
     <Modal
       title={`${editInfo ? 'Edit' : 'Add'} model server`}
+      description="A model server specifies resources available for use by one or more supported models, and includes a serving runtime."
       variant="medium"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
