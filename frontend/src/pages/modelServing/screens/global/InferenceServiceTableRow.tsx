@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DropdownDirection } from '@patternfly/react-core';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { isModelMesh } from '~/pages/modelServing/utils';
@@ -18,6 +18,7 @@ type InferenceServiceTableRowProps = {
   servingRuntime?: ServingRuntimeKind;
   onDeleteInferenceService: (obj: InferenceServiceKind) => void;
   onEditInferenceService: (obj: InferenceServiceKind) => void;
+  showServingRuntime?: boolean;
 };
 
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
@@ -26,11 +27,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   onDeleteInferenceService,
   onEditInferenceService,
   isGlobal,
+  showServingRuntime,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
   return (
-    <Tr>
+    <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
           {modelMetricsEnabled ? (
@@ -53,7 +55,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           <InferenceServiceProject inferenceService={inferenceService} />
         </Td>
       )}
-      {isGlobal && (
+      {showServingRuntime && (
         <Td dataLabel="Serving Runtime">
           <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
         </Td>
@@ -88,7 +90,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           ]}
         />
       </Td>
-    </Tr>
+    </>
   );
 };
 

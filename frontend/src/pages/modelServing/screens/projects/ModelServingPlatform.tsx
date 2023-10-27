@@ -15,6 +15,7 @@ import ModelServingPlatformSelect from '~/pages/modelServing/screens/projects/Mo
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { useAppContext } from '~/app/AppContext';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -119,9 +120,10 @@ const ModelServingPlatform: React.FC = () => {
             emptyTemplates={emptyTemplates}
             // else, show the kserve deploy model modal
           />
-        ) : (
-          // show kserve table if `isModelMesh` is false
+        ) : isProjectModelMesh ? (
           <ModelMeshServingRuntimeTable />
+        ) : (
+          <KServeInferenceServiceTable />
         )}
       </DetailsSection>
       <ManageServingRuntimeModal
