@@ -99,9 +99,11 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         editInfo={{
           inferenceServiceEditInfo: editInferenceService,
           servingRuntimeEditInfo: {
-            servingRuntime: servingRuntimes.find(
-              (sr) => sr.metadata.name === editInferenceService?.spec.predictor.model.runtime,
-            ),
+            servingRuntime: editInferenceService
+              ? servingRuntimes.find(
+                  (sr) => sr.metadata.name === editInferenceService.spec.predictor.model.runtime,
+                )
+              : undefined,
             secrets: [],
           },
         }}

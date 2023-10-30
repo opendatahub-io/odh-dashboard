@@ -15,6 +15,7 @@ import {
   assembleServiceAccount,
   createServiceAccount,
   getRoleBinding,
+  addOwnerReference,
 } from '~/api';
 import {
   SecretKind,
@@ -61,16 +62,19 @@ export const setUpTokenAuth = async (
   servingRuntimeName: string,
   namespace: string,
   createRolebinding: boolean,
+  owner: ServingRuntimeKind,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
   const { serviceAccountName, roleBindingName } = getTokenNames(servingRuntimeName, namespace);
 
-  const serviceAccount = assembleServiceAccount(serviceAccountName, namespace);
-  const roleBinding = generateRoleBindingServingRuntime(
-    roleBindingName,
-    serviceAccountName,
-    namespace,
+  const serviceAccount = addOwnerReference(
+    assembleServiceAccount(serviceAccountName, namespace),
+    owner,
+  );
+  const roleBinding = addOwnerReference(
+    generateRoleBindingServingRuntime(roleBindingName, serviceAccountName, namespace),
+    owner,
   );
   return Promise.all([
     ...(existingSecrets === undefined ? [createServiceAccount(serviceAccount, opts)] : []),
