@@ -18,7 +18,6 @@ spec:
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: true
-    modelMetricsNamespace: ''
     disableBiasMetrics: true
     disablePerformanceMetrics: true
   notebookController:

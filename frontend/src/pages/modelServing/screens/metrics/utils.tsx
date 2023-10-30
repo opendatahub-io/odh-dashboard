@@ -4,7 +4,7 @@ import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { BreadcrumbItemType, DashboardConfig, PrometheusQueryRangeResultValue } from '~/types';
+import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
 import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import {
@@ -23,16 +23,6 @@ import {
   TranslatePoint,
 } from './types';
 import { ModelMetricType, ServerMetricType } from './ModelServingMetricsContext';
-
-export const isModelMetricsEnabled = (
-  dashboardNamespace: string,
-  dashboardConfig: DashboardConfig,
-): boolean => {
-  if (dashboardNamespace === 'redhat-ods-applications') {
-    return true;
-  }
-  return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
-};
 
 export const getServerMetricsQueries = (
   server: ServingRuntimeKind,
@@ -59,11 +49,11 @@ export const getModelMetricsQueries = (
   const name = model.metadata.name;
 
   return {
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="2xx"}[${
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
       QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
     }s]))`,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="4xx|5xx"}[${
-      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED][currentTimeframe]
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
+      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
     }s]))`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,

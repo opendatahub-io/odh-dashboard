@@ -24,6 +24,7 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   endInMs: number,
   step: number,
   responsePredicate: ResponsePredicate<T>,
+  namespace: string,
 ): FetchState<T[]> => {
   const fetchData = React.useCallback<FetchStateCallbackPromise<T[]>>(() => {
     const endInS = endInMs / 1000;
@@ -35,11 +36,11 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
 
     return axios
       .post<{ response: PrometheusQueryRangeResponse }>(apiPath, {
-        query: `query=${queryLang}&start=${start}&end=${endInS}&step=${step}`,
+        query: `namespace=${namespace}&query=${queryLang}&start=${start}&end=${endInS}&step=${step}`,
       })
 
       .then((response) => responsePredicate(response.data?.response.data));
-  }, [endInMs, span, apiPath, queryLang, step, responsePredicate, active]);
+  }, [endInMs, span, active, apiPath, namespace, queryLang, step, responsePredicate]);
 
   return useFetchState<T[]>(fetchData, []);
 };
