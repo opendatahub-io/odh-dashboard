@@ -14,7 +14,7 @@ import {
 import { NotebookContainer } from '~/types';
 import {
   getDescriptionForTag,
-  getImageTagByContainer,
+  getImageAndTagByContainerEnvJupyterImage,
   getNameVersionString,
 } from '~/utilities/imageUtils';
 import { useAppContext } from '~/app/AppContext';
@@ -42,7 +42,7 @@ const NotebookServerDetails: React.FC = () => {
     );
   }
 
-  const { image, tag } = getImageTagByContainer(images, container);
+  const { image, tag } = getImageAndTagByContainerEnvJupyterImage(images, container);
 
   const tagSoftware = getDescriptionForTag(tag);
   const tagDependencies = tag?.content.dependencies ?? [];

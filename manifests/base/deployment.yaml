@@ -28,7 +28,7 @@ spec:
       containers:
       - name: odh-dashboard
         image: odh-dashboard
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
         resources:

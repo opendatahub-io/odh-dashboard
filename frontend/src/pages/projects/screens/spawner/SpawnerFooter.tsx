@@ -16,6 +16,7 @@ import {
   DataConnectionData,
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
+import { useDashboardNamespace } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
@@ -61,6 +62,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   );
   const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;
+  const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isButtonDisabled =
@@ -154,7 +156,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         envFrom,
         tolerationSettings,
       };
-      updateNotebook(editNotebook, newStartNotebookData, username)
+      updateNotebook(editNotebook, newStartNotebookData, username, dashboardNamespace)
         .then((notebook) => afterStart(notebook.metadata.name, 'updated'))
         .catch(handleError);
     }
@@ -212,7 +214,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       tolerationSettings,
     };
 
-    createNotebook(newStartData, username, canEnablePipelines)
+    createNotebook(newStartData, username, dashboardNamespace, canEnablePipelines)
       .then((notebook) => afterStart(notebook.metadata.name, 'created'))
       .catch(handleError);
   };
