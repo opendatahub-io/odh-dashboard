@@ -55,7 +55,6 @@ export const assembleInferenceService = (
           name,
           namespace: project,
           labels: {
-            name,
             [KnownLabels.DASHBOARD_RESOURCE]: 'true',
           },
           annotations: {

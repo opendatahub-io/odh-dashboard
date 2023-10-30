@@ -67,6 +67,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const isInferenceServiceNameWithinLimit =
+    translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
   React.useEffect(() => {
     if (projectContext?.currentProject) {
@@ -103,6 +105,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.storage.path.includes('//') ||
     createDataInferenceService.storage.path === '' ||
     createDataInferenceService.storage.path === '/' ||
+    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
   const servingRuntimeSelected = React.useMemo(
@@ -211,6 +214,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               <InferenceServiceNameSection
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
+                isNameValid={isInferenceServiceNameWithinLimit}
               />
             </StackItem>
           </StackItem>
