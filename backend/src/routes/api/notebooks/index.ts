@@ -1,6 +1,6 @@
 import { KubeFastifyInstance, NotebookData, NotebookState } from '../../../types';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getNotebookStatus, enableNotebook } from './utils';
+import { getNotebookStatus, enableNotebook, generateElyraServiceAccountRoleBinding } from './utils';
 import { secureRoute } from '../../../utils/route-security';
 import { stopNotebook, getNotebook } from '../../../utils/notebookUtils';
 
@@ -88,6 +88,32 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           );
           reply.status(400).send(e.response?.body?.message || e.message);
         });
+      },
+    ),
+  );
+
+  fastify.post(
+    '/api',
+    secureRoute(fastify)(
+      async (
+        request: FastifyRequest<{
+          Body: { notebookName: string; namespace: string; notebookUid: string };
+        }>,
+        reply: FastifyReply,
+      ) => {
+        const { notebookName, namespace, notebookUid } = request.body;
+        return await fastify.kube.customObjectsApi
+          .createNamespacedCustomObject(
+            'rbac.authorization.k8s.io',
+            'v1',
+            namespace,
+            'rolebindings',
+            generateElyraServiceAccountRoleBinding(notebookName, namespace, notebookUid),
+          )
+          .then((response) => response.body)
+          .catch((e) => {
+            reply.status(404).send(e);
+          });
       },
     ),
   );

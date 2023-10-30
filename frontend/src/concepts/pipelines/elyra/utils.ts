@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { AWSSecretKind, KnownLabels, NotebookKind, RoleBindingKind, SecretKind } from '~/k8sTypes';
 import {
@@ -10,7 +11,7 @@ import {
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
+import { getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
 
 export const ELYRA_VOLUME_NAME = 'elyra-dsp-details';
 
@@ -159,14 +160,15 @@ export const createElyraServiceAccountRoleBinding = async (
         );
       });
     }
-    return createRoleBinding(
-      generateElyraServiceAccountRoleBinding(notebookName, namespace, notebookUid),
-    ).catch((e) => {
-      // eslint-disable-next-line no-console
-      console.error(
-        `Could not create rolebinding to service account for notebook, ${notebookName}; Reason ${e.message}`,
-      );
-    });
+
+    return axios
+      .post('/api/notebooks/api', { notebookName, namespace, notebookUid })
+      .then((response) => response.data)
+      .catch((e) => {
+        throw new Error(
+          `Could not create rolebinding to service account for notebook, ${notebookName}; Reason ${e.message}`,
+        );
+      });
   }
 
   return undefined;

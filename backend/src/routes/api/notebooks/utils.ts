@@ -1,4 +1,12 @@
-import { KubeFastifyInstance, Notebook, NotebookData, Route } from '../../../types';
+import {
+  KubeFastifyInstance,
+  Notebook,
+  NotebookData,
+  Route,
+  RoleBindingKind,
+  KnownLabels,
+} from '../../../types';
+
 import { PatchUtils, V1ContainerStatus, V1Pod, V1PodList } from '@kubernetes/client-node';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
@@ -130,3 +138,41 @@ export const enableNotebook = async (
     }
   }
 };
+
+export const getElyraServiceAccountRoleBindingName = (notebookName: string): string =>
+  `elyra-pipelines-${notebookName}`;
+
+export const getElyraRoleBindingOwnerRef = (notebookName: string, ownerUid: string) => ({
+  apiVersion: 'kubeflow.org/v1beta1',
+  kind: 'Notebook',
+  name: notebookName,
+  uid: ownerUid,
+});
+
+export const generateElyraServiceAccountRoleBinding = (
+  notebookName: string,
+  namespace: string,
+  ownerUid: string,
+): RoleBindingKind => ({
+  apiVersion: 'rbac.authorization.k8s.io/v1',
+  kind: 'RoleBinding',
+  metadata: {
+    name: getElyraServiceAccountRoleBindingName(notebookName),
+    namespace,
+    labels: {
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+    },
+    ownerReferences: [getElyraRoleBindingOwnerRef(notebookName, ownerUid)],
+  },
+  roleRef: {
+    apiGroup: 'rbac.authorization.k8s.io',
+    kind: 'Role',
+    name: 'ds-pipeline-user-access-pipelines-definition',
+  },
+  subjects: [
+    {
+      kind: 'ServiceAccount',
+      name: notebookName,
+    },
+  ],
+});

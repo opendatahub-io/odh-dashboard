@@ -127,6 +127,30 @@ export type K8sResourceBase = {
   kind?: string;
 };
 
+export type RoleBindingSubject = {
+  kind: string;
+  apiGroup?: string;
+  name: string;
+};
+
+export type RoleBindingKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  subjects: RoleBindingSubject[];
+  roleRef: RoleBindingSubject;
+};
+
+export declare type OwnerReference = {
+  apiVersion: string;
+  kind: string;
+  name: string;
+  uid: string;
+  controller?: boolean;
+  blockOwnerDeletion?: boolean;
+};
+
 export type K8sResourceCommon = {
   metadata?: {
     name?: string;
@@ -136,6 +160,7 @@ export type K8sResourceCommon = {
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
     creationTimestamp?: Date;
+    ownerReferences?: OwnerReference[];
   };
 } & K8sResourceBase;
 
