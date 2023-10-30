@@ -1,7 +1,13 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
-import { NotebookSize, Volume, VolumeMount } from '~/types';
-import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
+import { BYONImage, NotebookSize, Volume, VolumeMount } from '~/types';
+import {
+  BuildKind,
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+  K8sDSGResource,
+  NotebookKind,
+} from '~/k8sTypes';
 import {
   ConfigMapCategory,
   DataConnectionData,
@@ -16,7 +22,6 @@ import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import {
   BuildStatus,
-  ImageStreamSelectOptionObjectType,
   ImageVersionDependencyType,
   ImageVersionSelectOptionObjectType,
 } from './types';
@@ -64,12 +69,6 @@ export const getNameVersionString = (software: ImageVersionDependencyType): stri
  * Create object for PF Select component to use
  * `toString` decides the text shown for the select option
  */
-export const getImageStreamSelectOptionObject = (
-  imageStream: ImageStreamKind,
-): ImageStreamSelectOptionObjectType => ({
-  imageStream,
-  toString: () => getImageStreamDisplayName(imageStream),
-});
 export const getImageVersionSelectOptionObject = (
   imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
@@ -78,15 +77,10 @@ export const getImageVersionSelectOptionObject = (
   toString: () =>
     `${imageVersion.name}${checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''}`,
 });
-export const isImageStreamSelectOptionObject = (
-  object: unknown,
-): object is ImageStreamSelectOptionObjectType =>
-  (object as ImageStreamSelectOptionObjectType).imageStream !== undefined;
 export const isImageVersionSelectOptionObject = (
   object: unknown,
 ): object is ImageVersionSelectOptionObjectType =>
   (object as ImageVersionSelectOptionObjectType).imageVersion !== undefined;
-
 /******************* Compare utils for sorting *******************/
 const getBuildNumber = (build: BuildKind): number => {
   const buildNumber = build.metadata.annotations?.['openshift.io/build.number'] || '-1';
@@ -139,6 +133,37 @@ export const getImageStreamDescription = (imageStream: ImageStreamKind): string 
 
 export const getImageSteamOrder = (imageStream: ImageStreamKind): number =>
   parseInt(imageStream.metadata.annotations?.[IMAGE_ANNOTATIONS.IMAGE_ORDER] || '100');
+
+export const getCompatibleAcceleratorIdentifiers = (
+  object: ImageStreamKind | K8sDSGResource,
+): string[] => {
+  try {
+    const annotation = object.metadata.annotations?.['opendatahub.io/recommended-accelerators'];
+    // in the format of ["foo.com/gpu", "bar.com/gpu"]
+    if (annotation) {
+      const identifiers = JSON.parse(annotation);
+      if (Array.isArray(identifiers)) {
+        return identifiers;
+      }
+    }
+  } catch (error) {
+    // catch invalid json in metadata
+  }
+  return [];
+};
+
+export const isCompatibleWithAccelerator = (
+  acceleratorIdentifier?: string,
+  obj?: ImageStreamKind | K8sDSGResource,
+) => {
+  if (!obj || !acceleratorIdentifier) {
+    return false;
+  }
+
+  return getCompatibleAcceleratorIdentifiers(obj).some(
+    (accelerator) => accelerator === acceleratorIdentifier,
+  );
+};
 
 /**
  * Parse annotation software field or dependencies field from long string to array
@@ -388,3 +413,14 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind) => {
     (activeTag === undefined || activeTag.items === null)
   );
 };
+
+export const convertBYONImageToK8sResource = (image: BYONImage) => ({
+  kind: 'ImageStream',
+  apiVersion: 'image.openshift.io/v1',
+  metadata: {
+    name: image.id,
+    annotations: {
+      'openshift.io/display-name': image.name,
+    },
+  },
+});

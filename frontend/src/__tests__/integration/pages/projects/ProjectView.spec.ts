@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Create project', async ({ page }) => {
-  await page.goto(
-    './iframe.html?id=tests-integration-pages-projects-projectview--create-project&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-projects-projectview', 'create-project'));
 
   // wait for page to load
   await page.waitForSelector('text=Create data science project');
@@ -52,9 +51,7 @@ test('Create project', async ({ page }) => {
 });
 
 test('Edit project', async ({ page }) => {
-  await page.goto(
-    './iframe.html?id=tests-integration-pages-projects-projectview--edit-project&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-projects-projectview', 'edit-project'));
 
   // wait for page to load
   await page.waitForSelector('text=Edit data science project');
@@ -71,9 +68,7 @@ test('Edit project', async ({ page }) => {
 });
 
 test('Delete project', async ({ page }) => {
-  await page.goto(
-    './iframe.html?id=tests-integration-pages-projects-projectview--delete-project&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-projects-projectview', 'delete-project'));
 
   // wait for page to load
   await page.waitForSelector('text=Delete project?');

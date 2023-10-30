@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import Table from '~/components/table/Table';
 import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import useCheckboxTable from '~/components/table/useCheckboxTable';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { Table, useCheckboxTable } from '~/components/table';
 import usePipelineRunFilter from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunFilter';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';

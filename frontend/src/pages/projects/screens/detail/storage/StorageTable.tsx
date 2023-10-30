@@ -1,6 +1,5 @@
 import * as React from 'react';
-import Table from '~/components/table/Table';
-
+import { Table } from '~/components/table';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import DeletePVCModal from '~/pages/projects/pvc/DeletePVCModal';
 import StorageTableRow from './StorageTableRow';

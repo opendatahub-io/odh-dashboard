@@ -17,14 +17,13 @@ import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import {
+  createElyraServiceAccountRoleBinding,
   ELYRA_VOLUME_NAME,
-  generateElyraServiceAccountRoleBinding,
   getElyraVolume,
   getElyraVolumeMount,
   getPipelineVolumeMountPatch,
   getPipelineVolumePatch,
 } from '~/concepts/pipelines/elyra/utils';
-import { createRoleBinding } from '~/api';
 import { Volume, VolumeMount } from '~/types';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
@@ -40,11 +39,13 @@ const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    gpus,
+    accelerator,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
     tolerationSettings,
+    existingTolerations,
+    existingResources,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
@@ -52,8 +53,11 @@ const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    gpus,
+    accelerator,
     tolerationSettings,
+    existingTolerations,
+    undefined,
+    existingResources,
   );
 
   const translatedUsername = usernameTranslate(username);
@@ -101,6 +105,7 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
+        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -207,8 +212,7 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
   });
 
 export const startNotebook = async (
-  name: string,
-  namespace: string,
+  notebook: NotebookKind,
   tolerationChanges: TolerationChanges,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
@@ -223,18 +227,12 @@ export const startNotebook = async (
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());
     patches.push(getPipelineVolumeMountPatch());
-    await createRoleBinding(generateElyraServiceAccountRoleBinding(name, namespace)).catch((e) => {
-      // This is not ideal, but it shouldn't impact the starting of the notebook. Let us log it, and mute the error
-      // eslint-disable-next-line no-console
-      console.error(
-        `Could not patch rolebinding to service account for notebook, ${name}; Reason ${e.message}`,
-      );
-    });
+    await createElyraServiceAccountRoleBinding(notebook);
   }
 
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
-    queryOptions: { name, ns: namespace },
+    queryOptions: { name: notebook.metadata.name, ns: notebook.metadata.namespace },
     patches,
   });
 };
@@ -252,9 +250,9 @@ export const createNotebook = (
   });
 
   if (canEnablePipelines) {
-    return createRoleBinding(
-      generateElyraServiceAccountRoleBinding(notebook.metadata.name, notebook.metadata.namespace),
-    ).then(() => notebookPromise);
+    return notebookPromise.then((notebook) =>
+      createElyraServiceAccountRoleBinding(notebook).then(() => notebook),
+    );
   }
 
   return notebookPromise;
@@ -273,7 +271,7 @@ export const updateNotebook = (
 
   // clean the envFrom array in case of merging the old value again
   container.envFrom = [];
-  // clean the resources, affinity and tolerations for GPU
+  // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};

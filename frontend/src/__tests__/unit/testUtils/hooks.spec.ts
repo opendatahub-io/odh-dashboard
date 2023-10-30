@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { expectHook, renderHook, standardUseFetchState, testHook } from './hooks';
+import { createComparativeValue, renderHook, standardUseFetchState, testHook } from './hooks';
 
 const useSayHello = (who: string, showCount = false) => {
   const countRef = React.useRef(0);
@@ -18,34 +18,33 @@ const useSayHelloDelayed = (who: string, delay = 0) => {
 
 describe('hook test utils', () => {
   it('simple testHook', () => {
-    const renderResult = testHook((who: string) => `Hello ${who}!`, 'world');
-    expectHook(renderResult).toBe('Hello world!').toHaveUpdateCount(1);
+    const renderResult = testHook((who: string) => `Hello ${who}!`)('world');
+    expect(renderResult).hookToBe('Hello world!');
+    expect(renderResult).hookToHaveUpdateCount(1);
     renderResult.rerender('world');
-    expectHook(renderResult).toBe('Hello world!').toBeStable().toHaveUpdateCount(2);
+    expect(renderResult).hookToBe('Hello world!');
+    expect(renderResult).hookToBeStable();
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('use testHook for rendering', () => {
-    const renderResult = testHook(useSayHello, 'world');
-    expectHook(renderResult)
-      .toHaveUpdateCount(1)
-      .toBe('Hello world!')
-      .toStrictEqual('Hello world!');
+    const renderResult = testHook(useSayHello)('world');
+    expect(renderResult).hookToHaveUpdateCount(1);
+    expect(renderResult).hookToBe('Hello world!');
+    expect(renderResult).hookToStrictEqual('Hello world!');
 
     renderResult.rerender('world', false);
 
-    expectHook(renderResult)
-      .toHaveUpdateCount(2)
-      .toBe('Hello world!')
-      .toStrictEqual('Hello world!')
-      .toBeStable();
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBe('Hello world!');
+    expect(renderResult).hookToStrictEqual('Hello world!');
+    expect(renderResult).hookToBeStable();
 
     renderResult.rerender('world', true);
 
-    expectHook(renderResult)
-      .toHaveUpdateCount(3)
-      .toBe('Hello world! x3')
-      .toStrictEqual('Hello world! x3')
-      .toBeStable(false);
+    expect(renderResult).hookToHaveUpdateCount(3);
+    expect(renderResult).hookToBe('Hello world! x3');
+    expect(renderResult).hookToStrictEqual('Hello world! x3');
   });
 
   it('use renderHook for rendering', () => {
@@ -59,50 +58,47 @@ describe('hook test utils', () => {
       },
     });
 
-    expectHook(renderResult)
-      .toHaveUpdateCount(1)
-      .toBe('Hello world!')
-      .toStrictEqual('Hello world!');
+    expect(renderResult).hookToHaveUpdateCount(1);
+    expect(renderResult).hookToBe('Hello world!');
+    expect(renderResult).hookToStrictEqual('Hello world!');
 
     renderResult.rerender({
       who: 'world',
     });
 
-    expectHook(renderResult)
-      .toHaveUpdateCount(2)
-      .toBe('Hello world!')
-      .toStrictEqual('Hello world!')
-      .toBeStable();
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBe('Hello world!');
+    expect(renderResult).hookToStrictEqual('Hello world!');
 
     renderResult.rerender({ who: 'world', showCount: true });
 
-    expectHook(renderResult)
-      .toHaveUpdateCount(3)
-      .toBe('Hello world! x3')
-      .toStrictEqual('Hello world! x3')
-      .toBeStable(false);
+    expect(renderResult).hookToHaveUpdateCount(3);
+    expect(renderResult).hookToBe('Hello world! x3');
+    expect(renderResult).hookToStrictEqual('Hello world! x3');
   });
 
   it('should use waitForNextUpdate for async update testing', async () => {
-    const renderResult = testHook(useSayHelloDelayed, 'world');
-    expectHook(renderResult).toHaveUpdateCount(1).toBe('');
+    const renderResult = testHook(useSayHelloDelayed)('world');
+    expect(renderResult).hookToHaveUpdateCount(1);
+    expect(renderResult).hookToBe('');
 
     await renderResult.waitForNextUpdate();
-    expectHook(renderResult).toHaveUpdateCount(2).toBe('Hello world!');
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBe('Hello world!');
   });
 
   it('should throw error if waitForNextUpdate times out', async () => {
     const renderResult = renderHook(() => useSayHelloDelayed('', 20));
 
     await expect(renderResult.waitForNextUpdate({ timeout: 10, interval: 5 })).rejects.toThrow();
-    expectHook(renderResult).toHaveUpdateCount(1);
+    expect(renderResult).hookToHaveUpdateCount(1);
 
     // unmount to test waiting for an update that will never happen
     renderResult.unmount();
 
     await expect(renderResult.waitForNextUpdate({ timeout: 50, interval: 10 })).rejects.toThrow();
 
-    expectHook(renderResult).toHaveUpdateCount(1);
+    expect(renderResult).hookToHaveUpdateCount(1);
   });
 
   it('should not throw if waitForNextUpdate timeout is sufficient', async () => {
@@ -112,43 +108,47 @@ describe('hook test utils', () => {
       renderResult.waitForNextUpdate({ timeout: 50, interval: 10 }),
     ).resolves.not.toThrow();
 
-    expectHook(renderResult).toHaveUpdateCount(2);
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should assert stability of results using isStable', () => {
     let testValue = 'test';
     const renderResult = renderHook(() => testValue);
-    expectHook(renderResult).toHaveUpdateCount(1);
+    expect(renderResult).hookToHaveUpdateCount(1);
 
     renderResult.rerender();
-    expectHook(renderResult).toHaveUpdateCount(2).toBeStable(true);
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable();
 
     testValue = 'new';
     renderResult.rerender();
-    expectHook(renderResult).toHaveUpdateCount(3).toBeStable(false);
+    expect(renderResult).hookToHaveUpdateCount(3);
 
     renderResult.rerender();
-    expectHook(renderResult).toHaveUpdateCount(4).toBeStable(true);
+    expect(renderResult).hookToHaveUpdateCount(4);
+    expect(renderResult).hookToBeStable();
   });
 
-  it('should assert stability of results using isStableArray', () => {
-    let testValue = 'test';
+  it(`should assert stability of result using isStable 'array'`, () => {
+    let testValue = ['test'];
     // explicitly returns a new array each render to show the difference between `isStable` and `isStableArray`
-    const renderResult = renderHook(() => [testValue]);
-    expectHook(renderResult).toHaveUpdateCount(1);
+    const renderResult = renderHook(() => testValue);
+    expect(renderResult).hookToHaveUpdateCount(1);
 
     renderResult.rerender();
-    expectHook(renderResult).toHaveUpdateCount(2).toBeStable(false);
-    expectHook(renderResult).toHaveUpdateCount(2).toBeStable([true]);
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable();
+    expect(renderResult).hookToBeStable([true]);
 
-    testValue = 'new';
+    testValue = ['new'];
     renderResult.rerender();
-    expectHook(renderResult).toHaveUpdateCount(3).toBeStable(false);
-    expectHook(renderResult).toHaveUpdateCount(3).toBeStable([false]);
+    expect(renderResult).hookToHaveUpdateCount(3);
+    expect(renderResult).hookToBeStable([false]);
 
     renderResult.rerender();
-    expectHook(renderResult).toHaveUpdateCount(4).toBeStable(false);
-    expectHook(renderResult).toHaveUpdateCount(4).toBeStable([true]);
+    expect(renderResult).hookToHaveUpdateCount(4);
+    expect(renderResult).hookToBeStable();
+    expect(renderResult).hookToBeStable([true]);
   });
 
   it('standardUseFetchState should return an array matching the state of useFetchState', () => {
@@ -159,5 +159,103 @@ describe('hook test utils', () => {
     expect(['test', false, new Error('error'), () => null]).toStrictEqual(
       standardUseFetchState('test', false, new Error('error')),
     );
+  });
+
+  describe('createComparativeValue', () => {
+    it('should extract array values according to the boolean object', () => {
+      expect([1, 2, 3]).toStrictEqual(createComparativeValue([1, 2, 3], [true, true, true]));
+      expect([1, 2, 3]).toStrictEqual(createComparativeValue([1, 2, 3], [true, true, false]));
+      expect([1, 2, 3]).toStrictEqual(createComparativeValue([1, 2, 4], [true, true, false]));
+      expect([1, 2, 3]).toStrictEqual(createComparativeValue([1, 2, 4], [true, true]));
+      expect([1, 2, 3]).not.toStrictEqual(createComparativeValue([1, 4, 3], [true, true, true]));
+    });
+
+    it('should extract object values according to the boolean object', () => {
+      expect({ a: 1, b: 2, c: 3 }).toStrictEqual(
+        createComparativeValue({ a: 1, b: 2, c: 3 }, { a: true, b: true, c: true }),
+      );
+      expect({ a: 1, b: 2, c: 3 }).toStrictEqual(
+        createComparativeValue({ a: 1, b: 2, c: 3 }, { a: true, b: true, c: true }),
+      );
+      expect({ a: 1, b: 2, c: 3 }).toStrictEqual(
+        createComparativeValue({ a: 1, b: 2, c: 4 }, { a: true, b: true, c: false }),
+      );
+      expect({ a: 1, b: 2, c: 3 }).toStrictEqual(
+        createComparativeValue({ a: 1, b: 2, c: 4 }, { a: true, b: true }),
+      );
+      expect({ a: 1, b: 2, c: 3 }).not.toStrictEqual(
+        createComparativeValue({ a: 1, b: 4, c: 3 }, { a: true, b: true, c: true }),
+      );
+    });
+
+    it('should extract nested values', () => {
+      const testValue = {
+        a: 1,
+        b: {
+          c: 2,
+          d: [{ e: 3 }, 'f', {}],
+        },
+      };
+      expect(testValue).toStrictEqual(
+        createComparativeValue(
+          { a: 10, b: { c: 2, d: [null, 'f'] } },
+          {
+            b: {
+              c: true,
+              d: [false, true],
+            },
+          },
+        ),
+      );
+    });
+
+    it('should extract objects for identity comparisons', () => {
+      const obj = {};
+      const array: string[] = [];
+      const testValue = {
+        a: obj,
+        b: array,
+        c: {
+          d: obj,
+          e: array,
+        },
+      };
+
+      expect(testValue).not.toStrictEqual(
+        createComparativeValue(
+          {
+            a: {},
+            b: [],
+            c: {
+              d: {},
+              e: [],
+            },
+          },
+          {
+            a: true,
+            b: true,
+            c: { d: true, e: true },
+          },
+        ),
+      );
+
+      expect(testValue).toStrictEqual(
+        createComparativeValue(
+          {
+            a: obj,
+            b: array,
+            c: {
+              d: obj,
+              e: array,
+            },
+          },
+          {
+            a: true,
+            b: true,
+            c: { d: true, e: true },
+          },
+        ),
+      );
+    });
   });
 });

@@ -10,7 +10,7 @@ import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle
 import { NotebookKind } from '~/k8sTypes';
 import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription } from '~/components/table';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';

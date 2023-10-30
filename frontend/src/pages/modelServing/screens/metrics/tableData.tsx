@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { SortableData } from '~/components/table';
 
 export const columns: SortableData<BiasMetricConfig>[] = [
   {

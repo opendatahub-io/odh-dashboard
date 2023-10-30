@@ -1,6 +1,6 @@
 import * as path from 'path';
 import './dotenv';
-import { DashboardConfig, NotebookSize } from '../types';
+import { DashboardConfig, KnownLabels, NotebookSize } from '../types';
 
 export const PORT = Number(process.env.PORT) || Number(process.env.BACKEND_PORT) || 8080;
 export const IP = process.env.IP || '0.0.0.0';
@@ -139,3 +139,4 @@ export const imageUrlRegex =
 export const THANOS_RBAC_PORT = '9092';
 export const THANOS_INSTANCE_NAME = 'thanos-querier';
 export const THANOS_NAMESPACE = 'openshift-monitoring';
+export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;
