@@ -10,8 +10,12 @@ import {
   mockServingRuntimeK8sResourceLegacy,
 } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { ContainerResources } from '~/types';
+import {
+  getDisplayNameFromServingRuntimeTemplate,
+  getTemplateEnabledForPlatform,
+} from '~/pages/modelServing/customServingRuntimes/utils';
+import { ContainerResources, ServingRuntimePlatform } from '~/types';
+import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 
 describe('resourcesArePositive', () => {
   it('should return true for undefined limits and request', () => {
@@ -191,5 +195,34 @@ describe('getDisplayNameFromServingRuntimeTemplate', () => {
       mockServingRuntimeK8sResourceLegacy({}),
     );
     expect(servingRuntime).toBe('OpenVINO Model Server');
+  });
+});
+
+describe('getTemplateEnabledForPlatform', () => {
+  it('should be true if template supports both', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+    });
+    expect(
+      getTemplateEnabledForPlatform(teamplateAllPlatforms, ServingRuntimePlatform.SINGLE),
+    ).toBeTruthy();
+  });
+
+  it('should be false if template supports MULTI but we pass SINGLE as check', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.MULTI],
+    });
+    expect(
+      getTemplateEnabledForPlatform(teamplateAllPlatforms, ServingRuntimePlatform.SINGLE),
+    ).toBeFalsy();
+  });
+
+  it('should be true if template supports SINGLE but we pass SINGLE as check', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.SINGLE],
+    });
+    expect(
+      getTemplateEnabledForPlatform(teamplateAllPlatforms, ServingRuntimePlatform.SINGLE),
+    ).toBeTruthy();
   });
 });

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Label, Split, SplitItem, StackItem, TextInput } from '@patternfly/react-core';
+import { FormGroup, Label, Split, SplitItem } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { TemplateKind } from '~/k8sTypes';
@@ -57,38 +57,24 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   }));
 
   return (
-    <>
-      <StackItem>
-        <FormGroup label="Model server name" fieldId="serving-runtime-name-input" isRequired>
-          <TextInput
-            isRequired
-            id="serving-runtime-name-input"
-            value={data.name}
-            onChange={(name) => setData('name', name)}
-          />
-        </FormGroup>
-      </StackItem>
-      <StackItem>
-        <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
-          <SimpleDropdownSelect
-            isFullWidth
-            isDisabled={isEditing || filteredTemplates.length === 0}
-            id="serving-runtime-template-selection"
-            aria-label="Select a template"
-            options={options}
-            placeholder={
-              isEditing || filteredTemplates.length === 0
-                ? data.servingRuntimeTemplateName
-                : 'Select one'
-            }
-            value={data.servingRuntimeTemplateName ?? ''}
-            onChange={(name) => {
-              setData('servingRuntimeTemplateName', name);
-            }}
-          />
-        </FormGroup>
-      </StackItem>
-    </>
+    <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
+      <SimpleDropdownSelect
+        isFullWidth
+        isDisabled={isEditing || filteredTemplates.length === 0}
+        id="serving-runtime-template-selection"
+        aria-label="Select a template"
+        options={options}
+        placeholder={
+          isEditing || filteredTemplates.length === 0
+            ? data.servingRuntimeTemplateName
+            : 'Select one'
+        }
+        value={data.servingRuntimeTemplateName ?? ''}
+        onChange={(name) => {
+          setData('servingRuntimeTemplateName', name);
+        }}
+      />
+    </FormGroup>
   );
 };
 

@@ -201,3 +201,17 @@ export const ModelMeshListAvailableModels: StoryObj = {
     },
   },
 };
+
+export const KserveListAvailableModels: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: getHandlers({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      }),
+    },
+  },
+};
