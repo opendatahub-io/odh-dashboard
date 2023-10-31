@@ -42,9 +42,9 @@
   },
   "dependencies": {
     "@openshift/dynamic-plugin-sdk": "^4.0.0",
-    "@openshift/dynamic-plugin-sdk-utils": "^4.0.0",
+    "@openshift/dynamic-plugin-sdk-utils": "^4.0.1",
     "@patternfly/patternfly": "^5.1.0",
-    "@patternfly/quickstarts": "^5.0.0",
+    "@patternfly/quickstarts": "^5.1.0",
     "@patternfly/react-catalog-view-extension": "^5.0.0",
     "@patternfly/react-charts": "^7.1.1",
     "@patternfly/react-code-editor": "^5.1.1",
@@ -72,7 +72,7 @@
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1",
     "sass": "^1.56.2",
-    "showdown": "^1.9.1",
+    "showdown": "^2.1.0",
     "yaml": "^2.2.2"
   },
   "devDependencies": {
@@ -85,7 +85,7 @@
     "@types/react-dom": "^18.0.8",
     "@types/react-redux": "^7.1.24",
     "@types/react-router-dom": "^5.3.3",
-    "@types/showdown": "^1.9.3",
+    "@types/showdown": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
     "babel-loader": "^8.3.0",
