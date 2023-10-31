@@ -2,14 +2,14 @@
 
 # Dashboard Config
 
-By default the ODH Dashboard comes with a set of core features enabled that are design to work for most scenarios.  The dashboard can be configured from its OdhDashboard CR, `odh-dashboard-config`.
+By default the ODH Dashboard comes with a set of core features enabled that are design to work for most scenarios. The dashboard can be configured from its OdhDashboard CR, `odh-dashboard-config`.
 
 ## Features
 
 The following are a list of features that are supported, along with there default settings.
 
 | Feature                      | Default | Description                                                                                          |
-|------------------------------|---------|------------------------------------------------------------------------------------------------------|
+| ---------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
 | enablement                   | true    | Enables the ability to enable ISVs to the dashboard                                                  |
 | disableInfo                  | false   | Removes the information panel in Explore Application section                                         |
 | disableSupport               | false   | Disables components related to support.                                                              |
@@ -24,6 +24,7 @@ The following are a list of features that are supported, along with there defaul
 | disableModelServing          | false   | Disables Model Serving from the dashboard and from Data Science Projects.                            |
 | disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
+| disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
 | modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
 
 ## Defaults
@@ -47,6 +48,7 @@ spec:
     disableModelServing: false
     disableProjectSharing: false
     disableCustomServingRuntimes: false
+    disableAcceleratorProfiles: false
     modelMetricsNamespace: ''
 ```
 
@@ -72,12 +74,12 @@ Note: These sizes must follow conventions such as requests smaller than limits
 
 ```yaml
 notebookSizes:
-- name: XSmall
-  resources:
-    requests:
+  - name: XSmall
+    resources:
+      requests:
         memory: 0.5Gi
         cpu: '0.1'
-    limits:
+      limits:
         memory: 2Gi
         cpu: '0.1'
 ```
@@ -103,11 +105,11 @@ We make use of the Notebook resource as a source of truth for what the user has 
 
 New annotations we created are:
 
-| Annotation name | What it represents |
-| --------------- | ------------------ |
-| `opendatahub.io/username` | The untranslated username behind the notebook`*` |
-| `notebooks.opendatahub.io/last-image-selection` | The last image the user selected (on create notebook) |
-| `notebooks.opendatahub.io/last-size-selection` | The last notebook size the user selected (on create notebook) |
+| Annotation name                                 | What it represents                                            |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `opendatahub.io/username`                       | The untranslated username behind the notebook`*`              |
+| `notebooks.opendatahub.io/last-image-selection` | The last image the user selected (on create notebook)         |
+| `notebooks.opendatahub.io/last-size-selection`  | The last notebook size the user selected (on create notebook) |
 
 `*` - We need the original user's name (we translate their name to kube safe characters for notebook name and for the label) for some functionality. If this is omitted from the Notebook (or they don't have one yet) we try to make a validation against the current logged in user. This will work most of the time (and we assume logged in user when they don't have a Notebook), if this fails because you're an Admin and we don't have this state, we consider this an invalid state - should be rare though as it requires the subset of users that are Admins to have a bad-state Notebook they are trying to impersonate (to start or view that users Notebook information).
 
@@ -136,6 +138,7 @@ spec:
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: false
+    disableAcceleratorProfiles: true
     modelMetricsNamespace: ''
   notebookController:
     enabled: true
@@ -143,51 +146,51 @@ spec:
     - name: Small
       resources:
         limits:
-          cpu: "2"
+          cpu: '2'
           memory: 2Gi
         requests:
-          cpu: "1"
+          cpu: '1'
           memory: 1Gi
     - name: Medium
       resources:
         limits:
-          cpu: "4"
+          cpu: '4'
           memory: 4Gi
         requests:
-          cpu: "2"
+          cpu: '2'
           memory: 2Gi
     - name: Large
       resources:
         limits:
-          cpu: "8"
+          cpu: '8'
           memory: 8Gi
         requests:
-          cpu: "4"
+          cpu: '4'
           memory: 4Gi
   modelServerSizes:
     - name: Small
       resources:
         limits:
-          cpu: "2"
+          cpu: '2'
           memory: 8Gi
         requests:
-          cpu: "1"
+          cpu: '1'
           memory: 4Gi
     - name: Medium
       resources:
         limits:
-          cpu: "8"
+          cpu: '8'
           memory: 10Gi
         requests:
-          cpu: "4"
+          cpu: '4'
           memory: 8Gi
     - name: Large
       resources:
         limits:
-          cpu: "10"
+          cpu: '10'
           memory: 20Gi
         requests:
-          cpu: "6"
+          cpu: '6'
           memory: 16Gi
   groupsConfig:
     adminGroups: 'odh-admins'
@@ -196,5 +199,4 @@ spec:
     - 'ovms'
   templateDisablement:
     - 'ovms'
-
 ```

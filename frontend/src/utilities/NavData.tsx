@@ -53,6 +53,14 @@ const getSettingsNav = (
     });
   }
 
+  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableAcceleratorProfiles)) {
+    settingsNavs.push({
+      id: 'accelerator-profile',
+      label: 'Accelerator profiles',
+      href: '/acceleratorProfiles',
+    });
+  }
+
   if (
     featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes) &&
     featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableModelServing)

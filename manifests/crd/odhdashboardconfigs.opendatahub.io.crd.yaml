@@ -53,6 +53,8 @@ spec:
                       type: string
                     disablePipelines:
                       type: boolean
+                    disableAcceleratorProfiles:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:
@@ -134,10 +136,10 @@ spec:
                     notebookTolerationSettings:
                       type: object
                       properties:
-                          enabled:
-                            type: boolean
-                          key:
-                            type: string
+                        enabled:
+                          type: boolean
+                        key:
+                          type: string
                     storageClassName:
                       type: string
                 templateOrder:
