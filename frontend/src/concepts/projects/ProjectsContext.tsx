@@ -3,6 +3,7 @@ import useFetchState, { FetchState } from '~/utilities/useFetchState';
 import { getProjects } from '~/api';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
+import { isAvailableProject } from '~/concepts/projects/utils';
 
 type ProjectFetchState = FetchState<ProjectKind[]>;
 type ProjectsContext = {
@@ -65,16 +66,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
         nonActiveProjects: ProjectKind[];
       }>(
         (states, project) => {
-          if (
-            !(
-              project.metadata.name.startsWith('openshift-') ||
-              project.metadata.name.startsWith('kube-') ||
-              project.metadata.name === 'default' ||
-              project.metadata.name === 'system' ||
-              project.metadata.name === 'openshift' ||
-              project.metadata.name === dashboardNamespace
-            )
-          ) {
+          if (isAvailableProject(project.metadata.name, dashboardNamespace)) {
             if (project.status?.phase === 'Active') {
               // Project that is active
               states.projects.push(project);

@@ -14,6 +14,7 @@ const ProjectScopeSelect: React.FC<ProjectScopeSelectProps> = ({ selection, setS
   const [isOpen, setOpen] = React.useState(false);
   return (
     <Select
+      toggleId="project-scope-selection"
       selections={selection}
       width="200px"
       onToggle={(open) => setOpen(open)}
