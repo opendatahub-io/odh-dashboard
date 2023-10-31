@@ -304,18 +304,36 @@ export const submitServingRuntimeResources = (
     ? { count: 0, accelerators: [], useExisting: false }
     : acceleratorState;
 
-  return Promise.all<ServingRuntimeKind | string | void>([
+  const getUpdatePromises = (dryRun = false) => [
+    ...(!dryRun &&
+    currentProject &&
+    currentProject.metadata.labels?.['modelmesh-enabled'] === undefined &&
+    allowCreate
+      ? [addSupportServingPlatformProject(currentProject.metadata.name, servingPlatformEnablement)]
+      : []),
     ...(editInfo?.servingRuntime
       ? [
           updateServingRuntime({
             data: servingRuntimeData,
-            existingData: editInfo?.servingRuntime,
+            existingData: editInfo.servingRuntime,
             isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
+
             opts: {
-              dryRun: true,
+              dryRun,
             },
             acceleratorState: accelerator,
           }),
+          setUpTokenAuth(
+            servingRuntimeData,
+            servingRuntimeName,
+            namespace,
+            createRolebinding,
+            editInfo.servingRuntime,
+            editInfo.secrets,
+            {
+              dryRun,
+            },
+          ),
         ]
       : [
           createServingRuntime({
@@ -324,60 +342,27 @@ export const submitServingRuntimeResources = (
             servingRuntime: servingRuntimeSelected,
             isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
             opts: {
-              dryRun: true,
+              dryRun,
             },
             acceleratorState: accelerator,
-          }),
-        ]),
-    setUpTokenAuth(
-      servingRuntimeData,
-      servingRuntimeName,
-      namespace,
-      createRolebinding,
-      editInfo?.secrets,
-      {
-        dryRun: true,
-      },
-    ),
-  ]).then(() =>
-    Promise.all<ServingRuntimeKind | string | void>([
-      ...(currentProject &&
-      currentProject.metadata.labels?.['modelmesh-enabled'] === undefined &&
-      allowCreate
-        ? [
-            addSupportServingPlatformProject(
-              currentProject.metadata.name,
-              servingPlatformEnablement,
-            ),
-          ]
-        : []),
-      ...(editInfo?.servingRuntime
-        ? [
-            updateServingRuntime({
-              data: servingRuntimeData,
-              existingData: editInfo?.servingRuntime,
-              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
-
-              acceleratorState: accelerator,
-            }),
-          ]
-        : [
-            createServingRuntime({
-              data: servingRuntimeData,
+          }).then((servingRuntime) =>
+            setUpTokenAuth(
+              servingRuntimeData,
+              servingRuntimeName,
               namespace,
-              servingRuntime: servingRuntimeSelected,
-              isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
-              acceleratorState: accelerator,
-            }),
-          ]),
-      setUpTokenAuth(
-        servingRuntimeData,
-        servingRuntimeName,
-        namespace,
-        createRolebinding,
-        editInfo?.secrets,
-      ),
-    ]),
+              createRolebinding,
+              servingRuntime,
+              editInfo?.secrets,
+              {
+                dryRun,
+              },
+            ),
+          ),
+        ]),
+  ];
+
+  return Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises(true)).then(() =>
+    Promise.all<ServingRuntimeKind | string | void>(getUpdatePromises()),
   );
 };
 

@@ -59,7 +59,6 @@ const ServingRuntimeTable: React.FC = () => {
       {allowDelete && (
         <DeleteServingRuntimeModal
           servingRuntime={deleteServingRuntime}
-          tokens={filterTokens(deleteServingRuntime?.metadata.name)}
           inferenceServices={inferenceServices}
           onClose={(deleted) => {
             if (deleted) {
