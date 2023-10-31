@@ -8,7 +8,6 @@ import {
 import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useAppSelector } from '~/redux/hooks';
 import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '~/types';
@@ -60,13 +59,9 @@ const sectionSortValue = (section: Section): number => {
 
 const AppLauncher: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [clusterID, clusterBranding] = useAppSelector((state) => [
-    state.clusterID,
-    state.clusterBranding,
-  ]);
+  const { clusterID, clusterBranding, serverURL } = useClusterInfo();
   const { consoleLinks } = useWatchConsoleLinks();
   const { dashboardConfig } = useAppContext();
-  const { serverURL } = useClusterInfo();
 
   const disableClusterManager = dashboardConfig.spec.dashboardConfig.disableClusterManager;
 
