@@ -92,6 +92,9 @@ const Table = <T,>({
       }}
       variant={variant}
       widgetId="table-pagination"
+      titles={{
+        paginationAriaLabel: `${variant} pagination`,
+      }}
     />
   );
 

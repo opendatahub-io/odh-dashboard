@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   ActionList,
   ActionListItem,
@@ -6,13 +7,13 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import * as React from 'react';
 
 type DashboardModalFooterProps = {
   submitLabel: string;
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitDisabled: boolean;
+  isCancelDisabled?: boolean;
   alertTitle: string;
   error?: Error;
 };
@@ -22,6 +23,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   onSubmit,
   onCancel,
   isSubmitDisabled,
+  isCancelDisabled,
   error,
   alertTitle,
 }) => (
@@ -42,7 +44,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
           </Button>
         </ActionListItem>
         <ActionListItem>
-          <Button key="cancel" variant="link" onClick={onCancel}>
+          <Button key="cancel" variant="link" isDisabled={isCancelDisabled} onClick={onCancel}>
             Cancel
           </Button>
         </ActionListItem>

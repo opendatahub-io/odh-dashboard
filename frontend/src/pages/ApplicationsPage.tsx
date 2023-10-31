@@ -82,7 +82,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
                 <>{errorMessage !== undefined ? errorMessage : 'Error loading components'}</>
               }
               icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-              headingLevel="h4"
+              headingLevel="h1"
             />
             <EmptyStateBody>{loadError.message}</EmptyStateBody>
           </EmptyState>
@@ -95,7 +95,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         <PageSection isFilled>
           <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
             <Spinner size="xl" />
-            <EmptyStateHeader titleText="Loading" headingLevel="h4" />
+            <EmptyStateHeader titleText="Loading" headingLevel="h1" />
           </EmptyState>
         </PageSection>
       );
@@ -108,7 +108,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             <EmptyStateHeader
               titleText={<>{emptyMessage !== undefined ? emptyMessage : 'No Components Found'}</>}
               icon={<EmptyStateIcon icon={QuestionCircleIcon} />}
-              headingLevel="h4"
+              headingLevel="h1"
             />
           </EmptyState>
         </PageSection>
