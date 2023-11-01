@@ -12,6 +12,7 @@ import { relativeDuration } from '~/utilities/time';
 import {
   asTimestamp,
   DetailItem,
+  isEmptyDateKF,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 type PipelineRunTabDetailsProps = {
@@ -24,7 +25,6 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   workflowName,
 }) => {
   const { namespace, project } = usePipelinesAPI();
-
   if (!pipelineRunKF || !workflowName) {
     return (
       <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
@@ -62,10 +62,11 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     { key: 'Workflow name', value: workflowName },
     { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
     {
-      key: 'Started at',
-      value: asTimestamp(new Date(pipelineRunKF.scheduled_at || pipelineRunKF.created_at)),
+      key: 'Finished at',
+      value: isEmptyDateKF(pipelineRunKF.finished_at)
+        ? 'N/A'
+        : asTimestamp(new Date(pipelineRunKF.finished_at)),
     },
-    { key: 'Finished at', value: asTimestamp(new Date(pipelineRunKF.finished_at)) },
     { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
   ];
 
