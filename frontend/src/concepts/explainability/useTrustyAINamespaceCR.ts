@@ -61,7 +61,7 @@ const useTrustyAINamespaceCR = (namespace: string): FetchState<State> => {
   const resourceLoaded = state[1] && !!state[0];
   const hasStatus = taiLoaded(state);
   React.useEffect(() => {
-    setIsStarting(resourceLoaded && !hasStatus);
+    setIsStarting(!resourceLoaded && !hasStatus);
   }, [hasStatus, resourceLoaded]);
 
   return state;
