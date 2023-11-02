@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
+import GlobalToastNotifications from '~/components/GlobalToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
 import { useUser } from '~/redux/selectors';
 import { DASHBOARD_MAIN_CONTAINER_ID } from '~/utilities/const';
@@ -23,6 +24,7 @@ import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import AppNotificationDrawer from './AppNotificationDrawer';
 import { AppContext } from './AppContext';
+import NotificationsContextProvider from './NotificationsContext';
 import { useApplicationSettings } from './useApplicationSettings';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
@@ -89,25 +91,28 @@ const App: React.FC = () => {
         dashboardConfig,
       }}
     >
-      <Page
-        className="odh-dashboard"
-        isManagedSidebar
-        header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
-        sidebar={isAllowed ? <NavSidebar /> : undefined}
-        notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
-        isNotificationDrawerExpanded={notificationsOpen}
-        mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-      >
-        <ErrorBoundary>
-          <ProjectsContextProvider>
-            <QuickStarts>
-              <AppRoutes />
-            </QuickStarts>
-          </ProjectsContextProvider>
-          <ToastNotifications />
-          <TelemetrySetup />
-        </ErrorBoundary>
-      </Page>
+      <NotificationsContextProvider>
+        <Page
+          className="odh-dashboard"
+          isManagedSidebar
+          header={<Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />}
+          sidebar={isAllowed ? <NavSidebar /> : undefined}
+          notificationDrawer={<AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />}
+          isNotificationDrawerExpanded={notificationsOpen}
+          mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+        >
+          <ErrorBoundary>
+            <ProjectsContextProvider>
+              <QuickStarts>
+                <AppRoutes />
+              </QuickStarts>
+            </ProjectsContextProvider>
+            <GlobalToastNotifications />
+            <ToastNotifications />
+            <TelemetrySetup />
+          </ErrorBoundary>
+        </Page>
+      </NotificationsContextProvider>
     </AppContext.Provider>
   );
 };
