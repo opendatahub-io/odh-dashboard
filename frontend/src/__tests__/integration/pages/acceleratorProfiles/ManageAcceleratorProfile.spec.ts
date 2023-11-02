@@ -155,3 +155,30 @@ test('Invalid id in edit page', async ({ page }) => {
     page.getByText('acceleratorprofiles.dashboard.opendatahub.io "test-accelerator" not found'),
   ).toHaveCount(1);
 });
+
+test('One preset identifier is auto filled and disabled', async ({ page }) => {
+  await page.goto(
+    navigateToStory(
+      'pages-acceleratorprofiles-manageacceleratorprofile',
+      'create-accelerator-with-one-set-identifier',
+    ),
+  );
+
+  expect(await page.getByTestId('accelerator-identifier-input').inputValue()).toBe(
+    'test-identifier',
+  );
+
+  await expect(page.getByTestId('accelerator-identifier-input')).toBeDisabled();
+});
+
+test('Multiple preset identifiers show dropdown', async ({ page }) => {
+  await page.goto(
+    navigateToStory(
+      'pages-acceleratorprofiles-manageacceleratorprofile',
+      'create-accelerator-with-multiple-set-identifiers',
+    ),
+  );
+
+  await page.getByRole('button', { name: 'Options menu' }).click();
+  await expect(page.getByRole('option', { name: 'test-identifier-3' })).toHaveCount(1);
+});

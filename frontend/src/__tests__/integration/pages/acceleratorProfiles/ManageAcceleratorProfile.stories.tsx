@@ -144,3 +144,54 @@ export const TolerationsModal: StoryObj = {
     await userEvent.click(canvas.getByText('Add toleration', { selector: 'button' }));
   },
 };
+
+export const CreateAcceleratorWithOneSetIdentifier: StoryObj = {
+  render: () => (
+    <RenderComponent>
+      <ManageAcceleratorProfileComponent />
+    </RenderComponent>
+  ),
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Identifier', undefined, {
+      timeout: 5000,
+    });
+  },
+  parameters: {
+    reactRouter: {
+      routePath: '/create',
+      searchParams: {
+        identifiers: ['test-identifier'],
+      },
+    },
+  },
+};
+
+export const CreateAcceleratorWithMultipleSetIdentifiers: StoryObj = {
+  render: () => (
+    <RenderComponent>
+      <ManageAcceleratorProfileComponent />
+    </RenderComponent>
+  ),
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Identifier', undefined, {
+      timeout: 5000,
+    });
+  },
+  parameters: {
+    reactRouter: {
+      routePath: '/create',
+      searchParams: {
+        identifiers: [
+          'test-identifier-1',
+          'test-identifier-2',
+          'test-identifier-3',
+          'test-identifier-3',
+        ],
+      },
+    },
+  },
+};

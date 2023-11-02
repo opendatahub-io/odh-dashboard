@@ -485,6 +485,7 @@ export type BYONImage = {
   visible: boolean;
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
+  recommendedAcceleratorIdentifiers: string[];
 };
 
 export type ImageTag = {
