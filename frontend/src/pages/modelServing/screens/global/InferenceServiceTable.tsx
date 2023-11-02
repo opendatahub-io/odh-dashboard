@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { Tr } from '@patternfly/react-table';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { Table } from '~/components/table';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import ResourceTr from '~/components/ResourceTr';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -53,7 +53,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           ) : undefined
         }
         rowRenderer={(is) => (
-          <Tr key={is.metadata.uid}>
+          <ResourceTr key={is.metadata.uid} resource={is}>
             <InferenceServiceTableRow
               obj={is}
               servingRuntime={servingRuntimes.find(
@@ -64,7 +64,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
               onDeleteInferenceService={setDeleteInferenceService}
               onEditInferenceService={setEditInferenceService}
             />
-          </Tr>
+          </ResourceTr>
         )}
       />
       <DeleteInferenceServiceModal
