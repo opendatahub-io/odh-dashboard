@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
+import { HelperText, HelperTextItem, Label, Skeleton } from '@patternfly/react-core';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -27,7 +27,22 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({ infer
 
   const project = modelServingProjects.find(byName(inferenceService.metadata.namespace));
 
-  return <>{project ? getProjectDisplayName(project) : 'Unknown'}</>;
+  return (
+    <>
+      {project ? (
+        <>
+          {getProjectDisplayName(project)}{' '}
+          <Label>
+            {project.metadata.labels?.['modelmesh-enabled'] === 'true'
+              ? 'Multi-model serving enabled'
+              : 'Single model serving enabled'}
+          </Label>
+        </>
+      ) : (
+        'Unknown'
+      )}
+    </>
+  );
 };
 
 export default InferenceServiceProject;

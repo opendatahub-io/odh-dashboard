@@ -5,7 +5,7 @@ import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { getInferenceServiceDisplayName, getInferenceServiceProjectDisplayName } from './utils';
-import ServeModelButton from './ServeModelButton';
+//import ServeModelButton from './ServeModelButton';
 import InferenceServiceTable from './InferenceServiceTable';
 
 type InferenceServiceListViewProps = {
@@ -70,9 +70,10 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
                 }}
               />
             </ToolbarItem>
+            {/* TODO: Reimplement ServeModelButton once we can deploy kServe
             <ToolbarItem>
               <ServeModelButton />
-            </ToolbarItem>
+            </ToolbarItem> */}
           </>
         }
       />

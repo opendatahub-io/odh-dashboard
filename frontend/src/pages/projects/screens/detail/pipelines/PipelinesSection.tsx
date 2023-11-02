@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Divider } from '@patternfly/react-core';
+import { Alert, Divider } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -12,10 +12,27 @@ import PipelineServerActions from '~/concepts/pipelines/content/pipelinesDetails
 
 const PipelinesSection: React.FC = () => {
   const {
+    project,
     pipelinesServer: { initializing, installed, timedOut },
   } = usePipelinesAPI();
 
   const [isPipelinesEmpty, setIsPipelinesEmpty] = React.useState(false);
+
+  if (!project) {
+    // Only possible today because of not having the API installed
+    // TODO: Fix in https://github.com/opendatahub-io/odh-dashboard/issues/2010
+    return (
+      <DetailsSection
+        id={ProjectSectionID.PIPELINES}
+        title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
+        isLoading={false}
+        isEmpty={false}
+        emptyState={null}
+      >
+        <Alert isInline variant="danger" title="Pipelines not installed" />
+      </DetailsSection>
+    );
+  }
 
   return (
     <>

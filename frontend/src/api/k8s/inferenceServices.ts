@@ -17,6 +17,7 @@ const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
   editName?: string,
+  isModelMesh?: boolean,
 ): InferenceServiceKind => {
   const { storage, format, servingRuntimeName, project } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
@@ -35,7 +36,7 @@ const assembleInferenceService = (
       },
       annotations: {
         'openshift.io/display-name': data.name.trim(),
-        'serving.kserve.io/deploymentMode': 'ModelMesh',
+        ...(isModelMesh ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' } : {}),
       },
     },
     spec: {
@@ -107,8 +108,9 @@ export const getInferenceService = (
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
+  isModelMesh?: boolean,
 ): Promise<InferenceServiceKind> => {
-  const inferenceService = assembleInferenceService(data, secretKey);
+  const inferenceService = assembleInferenceService(data, secretKey, undefined, isModelMesh);
   return k8sCreateResource<InferenceServiceKind>({
     model: InferenceServiceModel,
     resource: inferenceService,
@@ -119,8 +121,14 @@ export const updateInferenceService = (
   data: CreatingInferenceServiceObject,
   existingData: InferenceServiceKind,
   secretKey?: string,
+  isModelMesh?: boolean,
 ): Promise<InferenceServiceKind> => {
-  const inferenceService = assembleInferenceService(data, secretKey, existingData.metadata.name);
+  const inferenceService = assembleInferenceService(
+    data,
+    secretKey,
+    existingData.metadata.name,
+    isModelMesh,
+  );
 
   return k8sUpdateResource<InferenceServiceKind>({
     model: InferenceServiceModel,

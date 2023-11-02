@@ -1,4 +1,5 @@
-import { OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
+import { ContainerResources, OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
+import { AcceleratorKind } from '~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
 /**
@@ -160,3 +161,8 @@ export const normalizeBetween = (value: number, min?: number, max?: number): num
   }
   return Math.floor(returnedValue);
 };
+
+export const getAcceleratorGpuCount = (
+  accelerator: AcceleratorKind,
+  resources: ContainerResources,
+) => Number(resources.requests?.[accelerator.spec.identifier] ?? 0);

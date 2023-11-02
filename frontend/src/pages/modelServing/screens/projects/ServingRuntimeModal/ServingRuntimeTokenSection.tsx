@@ -6,7 +6,6 @@ import {
   FormGroup,
   FormSection,
   getUniqueId,
-  Skeleton,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -20,14 +19,12 @@ type ServingRuntimeTokenSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   allowCreate: boolean;
-  rbacLoaded: boolean;
 };
 
 const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
   data,
   setData,
   allowCreate,
-  rbacLoaded,
 }) => {
   const createNewToken = () => {
     const name = 'default-name';
@@ -42,10 +39,6 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
       },
     ]);
   };
-
-  if (!rbacLoaded) {
-    return <Skeleton />;
-  }
 
   return (
     <FormSection title="Token authorization">
@@ -64,14 +57,6 @@ const ServingRuntimeTokenSection: React.FC<ServingRuntimeTokenSectionProps> = ({
           }}
         />
       </FormGroup>
-
-      {!allowCreate && (
-        <Alert
-          variant="warning"
-          isInline
-          title="Administrator permissions in this namespace are required to generate tokens."
-        />
-      )}
 
       {data.tokenAuth && (
         <IndentSection>
