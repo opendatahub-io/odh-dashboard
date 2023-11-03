@@ -58,6 +58,7 @@ spec:
                     disableBiasMetrics:
                       type: boolean
                     disablePerformanceMetrics:
+                      type: boolean
                     disableKServe:
                       type: boolean
                     disableModelMesh:
