@@ -20,7 +20,7 @@ const ProjectView: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Data science projects"
+      title="Data Science Projects"
       description={
         rbacLoaded
           ? `View your existing projects${allowCreate ? ' or create new projects' : ''}.`
