@@ -148,7 +148,7 @@ const Template: StoryFn<typeof ModelServingPlatform> = (args) => {
   useDetectUser();
   const { dashboardConfig, loaded } = useApplicationSettings();
   return loaded && dashboardConfig ? (
-    <AppContext.Provider value={{ buildStatuses: [], dashboardConfig }}>
+    <AppContext.Provider value={{ buildStatuses: [], dashboardConfig, storageClasses: [] }}>
       <ProjectsRoutes>
         <Route path="/" element={<ProjectDetailsContextProvider />}>
           <Route index element={<ModelServingPlatform {...args} />} />
