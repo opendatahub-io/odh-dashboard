@@ -1,10 +1,9 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { InferenceServiceKind, K8sStatus, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, K8sStatus, ServingRuntimeKind } from '~/k8sTypes';
 import {
   deleteInferenceService,
   deleteRoleBinding,
-  deleteSecret,
   deleteServiceAccount,
   deleteServingRuntime,
 } from '~/api';
@@ -13,14 +12,12 @@ import { getTokenNames } from '~/pages/modelServing/utils';
 type DeleteServingRuntimeModalProps = {
   servingRuntime?: ServingRuntimeKind;
   inferenceServices: InferenceServiceKind[];
-  tokens: SecretKind[];
   onClose: (deleted: boolean) => void;
 };
 
 const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
   servingRuntime,
   inferenceServices,
-  tokens,
   onClose,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -49,9 +46,6 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
 
           Promise.allSettled<ServingRuntimeKind | K8sStatus>([
             deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace),
-            deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
-            deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
-            ...tokens.map((token) => deleteSecret(token.metadata.namespace, token.metadata.name)),
             ...inferenceServices
               .filter(
                 (inferenceService) =>
@@ -63,6 +57,9 @@ const DeleteServingRuntimeModal: React.FC<DeleteServingRuntimeModalProps> = ({
                   inferenceService.metadata.namespace,
                 ),
               ),
+            // for compatibility continue to delete related resources
+            deleteServiceAccount(serviceAccountName, servingRuntime.metadata.namespace),
+            deleteRoleBinding(roleBindingName, servingRuntime.metadata.namespace),
           ])
             .then(() => {
               onBeforeClose(true);

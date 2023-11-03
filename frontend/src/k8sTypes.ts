@@ -99,6 +99,7 @@ export type K8sCondition = {
   reason?: string;
   message?: string;
   lastTransitionTime?: string;
+  lastHeartbeatTime?: string;
 };
 
 export type ServingRuntimeAnnotations = Partial<{
@@ -109,6 +110,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-name': string;
   'enable-route': string;
   'enable-auth': string;
+  'modelmesh-enabled': 'true' | 'false';
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -382,6 +384,10 @@ export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'serving.kserve.io/deploymentMode': 'ModelMesh';
+      }>;
   };
   spec: {
     predictor: {
@@ -763,6 +769,7 @@ export type TemplateKind = K8sResourceCommon & {
       tags: string;
       iconClass?: string;
       'opendatahub.io/template-enabled': string;
+      'opendatahub.io/modelServingSupport': string;
     }>;
     name: string;
     namespace: string;
@@ -842,6 +849,6 @@ type ComponentNames =
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
-  installedComponents: { [key in ComponentNames]: boolean };
+  installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
 };

@@ -22,6 +22,8 @@ spec:
     modelMetricsNamespace: ''
     disableBiasMetrics: true
     disablePerformanceMetrics: true
+    disableKServe: false
+    disableModelMesh: true
   notebookController:
     enabled: true
   notebookSizes:

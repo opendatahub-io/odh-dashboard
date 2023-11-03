@@ -6,10 +6,13 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import ScrollViewOnMount from '~/components/ScrollViewOnMount';
-import EmptyInferenceServicesCell from './EmptyInferenceServicesCell';
-import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
+import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import EmptyInferenceServicesCell from '~/pages/modelServing/screens/projects/ModelMeshSection/EmptyInferenceServicesCell';
+import {
+  getInferenceServiceFromServingRuntime,
+  isServingRuntimeTokenEnabled,
+} from '~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
-import ServingRuntimeTokensTable from './ServingRuntimeTokensTable';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;

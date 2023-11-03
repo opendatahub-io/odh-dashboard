@@ -4,6 +4,7 @@ import useAccelerators from '~/pages/notebookController/screens/server/useAccele
 import { useDashboardNamespace } from '~/redux/selectors';
 import { ContainerResourceAttributes, ContainerResources, PodToleration } from '~/types';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
+import { getAcceleratorGpuCount } from '~/utilities/utils';
 
 export type AcceleratorState = {
   accelerator?: AcceleratorKind;
@@ -49,7 +50,7 @@ const useAcceleratorState = (
       if (accelerator) {
         setData('accelerator', accelerator);
         setData('initialAccelerator', accelerator);
-        setData('count', Number(resources.requests?.[accelerator.spec.identifier] ?? 0));
+        setData('count', getAcceleratorGpuCount(accelerator, resources));
         if (!accelerator.spec.enabled) {
           setData('additionalOptions', { useDisabled: accelerator });
         }

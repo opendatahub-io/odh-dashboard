@@ -20,6 +20,7 @@ import {
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
+import { FieldOptions } from '~/components/FieldList';
 import {
   BuildStatus,
   ImageVersionDependencyType,
@@ -319,14 +320,27 @@ export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): b
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
-export const isAWSValid = (values: EnvVariableDataEntry[]): boolean =>
+export const isAWSValid = (
+  values: EnvVariableDataEntry[],
+  additionalRequiredFields?: string[],
+): boolean =>
   values.every(({ key, value }) =>
-    AWS_FIELDS.filter((field) => field.isRequired)
+    getAdditionalRequiredAWSFields(additionalRequiredFields)
+      .filter((field) => field.isRequired)
       .map((field) => field.key)
       .includes(key)
       ? !!value
       : true,
   );
+
+export const getAdditionalRequiredAWSFields = (
+  additionalRequiredFields?: string[],
+): FieldOptions[] =>
+  additionalRequiredFields
+    ? AWS_FIELDS.map((field) =>
+        additionalRequiredFields.includes(field.key) ? { ...field, isRequired: true } : field,
+      )
+    : AWS_FIELDS;
 
 export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => {
   if (envVariables.length === 0) {

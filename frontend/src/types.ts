@@ -98,6 +98,8 @@ export type DashboardCommonConfig = {
   disablePipelines: boolean;
   disableBiasMetrics: boolean;
   disablePerformanceMetrics: boolean;
+  disableKServe: boolean;
+  disableModelMesh: boolean;
 };
 
 export type NotebookControllerUserState = {
@@ -162,6 +164,12 @@ export type ClusterSettingsType = {
   pvcSize: number | string;
   cullerTimeout: number;
   notebookTolerationSettings: TolerationSettings | null;
+  modelServingPlatformEnabled: ModelServingPlatformEnabled;
+};
+
+export type ModelServingPlatformEnabled = {
+  kServe: boolean;
+  modelMesh: boolean;
 };
 
 /** @deprecated -- use SDK type */
@@ -742,3 +750,8 @@ export type AcceleratorInfo = {
   total: { [key: string]: number };
   allocated: { [key: string]: number };
 };
+
+export enum ServingRuntimePlatform {
+  SINGLE = 'single',
+  MULTI = 'multi',
+}

@@ -16,7 +16,7 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
-import { PipelineContextProvider } from '~/concepts/pipelines/context';
+import { PipelineContextProviderWorkaround } from '~/concepts/pipelines/context';
 import { useAppContext } from '~/app/AppContext';
 import { featureFlagEnabled } from '~/utilities/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -188,9 +188,9 @@ const ProjectDetailsContextProvider: React.FC = () => {
       }}
     >
       {featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) ? (
-        <PipelineContextProvider namespace={project.metadata.name}>
+        <PipelineContextProviderWorkaround namespace={project.metadata.name}>
           <Outlet />
-        </PipelineContextProvider>
+        </PipelineContextProviderWorkaround>
       ) : (
         <Outlet />
       )}

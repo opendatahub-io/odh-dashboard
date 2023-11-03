@@ -1,9 +1,15 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
+import { ServingRuntimePlatform } from '~/types';
 
 export const getTemplateEnabled = (template: TemplateKind, templateDisablement: string[]) =>
   !templateDisablement.includes(getServingRuntimeNameFromTemplate(template));
+
+export const getTemplateEnabledForPlatform = (
+  template: TemplateKind,
+  platform: ServingRuntimePlatform,
+) => getEnabledPlatformsFromTemplate(template).includes(platform);
 
 export const isTemplateOOTB = (template: TemplateKind) =>
   template.metadata.labels?.['opendatahub.io/ootb'] === 'true';
@@ -41,29 +47,44 @@ export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind)
 export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
   template.objects[0].metadata.name;
 
-export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind =>
-  obj.kind === 'ServingRuntime' &&
-  obj.spec?.containers !== undefined &&
-  obj.spec?.supportedModelFormats !== undefined;
+const createServingRuntimeCustomError = (name: string, message: string) => {
+  const error = new Error(message);
+  error.name = name;
+  return error;
+};
+
+export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRuntimeKind => {
+  if (obj.kind !== 'ServingRuntime') {
+    throw createServingRuntimeCustomError('Invalid parameter', 'kind: must be ServingRuntime.');
+  }
+  if (!obj.spec?.containers) {
+    throw createServingRuntimeCustomError('Missing parameter', 'spec.containers: is required.');
+  }
+  if (!obj.spec?.supportedModelFormats) {
+    throw createServingRuntimeCustomError(
+      'Missing parameter',
+      'spec.supportedModelFormats: is required.',
+    );
+  }
+  return true;
+};
 
 export const getServingRuntimeFromName = (
   templateName: string,
-  templateList?: TemplateKind[],
+  templateList: TemplateKind[] = [],
 ): ServingRuntimeKind | undefined => {
-  if (!templateList) {
-    return undefined;
-  }
   const template = templateList.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
-  if (!template) {
-    return undefined;
-  }
   return getServingRuntimeFromTemplate(template);
 };
 
 export const getServingRuntimeFromTemplate = (
-  template: TemplateKind,
+  template?: TemplateKind,
 ): ServingRuntimeKind | undefined => {
-  if (!isServingRuntimeKind(template.objects[0])) {
+  try {
+    if (!template || !isServingRuntimeKind(template.objects[0])) {
+      return undefined;
+    }
+  } catch (e) {
     return undefined;
   }
   return template.objects[0];
@@ -77,4 +98,18 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
     resource.spec.builtInAdapter?.serverType === 'ovms' ? 'OpenVINO Model Server' : undefined;
 
   return templateName || legacyTemplateName || 'Unknown Serving Runtime';
+};
+
+export const getEnabledPlatformsFromTemplate = (
+  template: TemplateKind,
+): ServingRuntimePlatform[] => {
+  if (!template.metadata.annotations?.['opendatahub.io/modelServingSupport']) {
+    return [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI];
+  }
+
+  try {
+    return JSON.parse(template.metadata.annotations?.['opendatahub.io/modelServingSupport']);
+  } catch (e) {
+    return [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI];
+  }
 };

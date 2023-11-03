@@ -35,7 +35,9 @@ export * from './errorUtils';
 export * from './useAccessReview';
 
 // Explainability
-
 export * from './trustyai/custom';
 export * from './trustyai/rawTypes';
 export * from './trustyai/k8s';
+
+// Generic K8s utils
+export * from './k8sUtils';
