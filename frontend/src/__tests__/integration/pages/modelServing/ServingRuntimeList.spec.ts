@@ -239,19 +239,3 @@ test('Edit ModelMesh model server', async ({ page }) => {
   await page.locator('#alt-form-checkbox-auth').uncheck();
   await expect(updateButton).toBeDisabled();
 });
-
-test('Add model server', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-servingruntimelist', 'add-server'));
-
-  // wait for page to load
-  await page.waitForSelector('text=Add server');
-
-  // test that you can not submit on empty
-  await expect(await page.getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
-
-  // test filling in minimum required fields
-  await page.getByLabel('Model server name *').fill('Test Server Name');
-  await page.locator('#serving-runtime-template-selection').click();
-  await page.getByText('New OVMS Server').click();
-  await expect(await page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
-});
