@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   displayName?: string;
   modelName?: string;
   secretName?: string;
+  deleted?: boolean;
 };
 
 export const mockInferenceServicek8sError = () => ({
@@ -37,6 +38,7 @@ export const mockInferenceServiceK8sResource = ({
   displayName = 'Test Inference Service',
   modelName = 'test-model',
   secretName = 'test-secret',
+  deleted = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -46,6 +48,7 @@ export const mockInferenceServiceK8sResource = ({
       'serving.kserve.io/deploymentMode': 'ModelMesh',
     },
     creationTimestamp: '2023-03-17T16:12:41Z',
+    ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
     generation: 1,
     labels: {
       name: name,
