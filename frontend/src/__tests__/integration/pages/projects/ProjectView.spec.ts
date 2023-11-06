@@ -1,5 +1,32 @@
 import { test, expect } from '@playwright/test';
 
+test('Project view page', async ({ page }) => {
+  await page.goto(
+    './iframe.html?id=tests-integration-pages-projects-projectview--default&viewMode=story',
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Data science projects');
+
+  // Test that it only shows DS Projects at first
+  await expect(page.getByText('DS Project 1', { exact: true })).toBeVisible();
+  await expect(page.getByText('DS Project 2', { exact: true })).toBeVisible();
+  await expect(page.getByText('DS Project 3', { exact: true })).toBeVisible();
+  await expect(page.getByText('Non-DS Project 1', { exact: true })).toBeHidden();
+  await expect(page.getByText('Non-DS Project 2', { exact: true })).toBeHidden();
+  await expect(page.getByText('Non-DS Project 3', { exact: true })).toBeHidden();
+
+  // Change the selection and make sure it shows all projects
+  await page.locator('#project-scope-selection').click();
+  await page.getByText('All available projects', { exact: true }).click();
+  await expect(page.getByText('DS Project 1', { exact: true })).toBeVisible();
+  await expect(page.getByText('DS Project 2', { exact: true })).toBeVisible();
+  await expect(page.getByText('DS Project 3', { exact: true })).toBeVisible();
+  await expect(page.getByText('Non-DS Project 1', { exact: true })).toBeVisible();
+  await expect(page.getByText('Non-DS Project 2', { exact: true })).toBeVisible();
+  await expect(page.getByText('Non-DS Project 3', { exact: true })).toBeVisible();
+});
+
 test('Create project', async ({ page }) => {
   await page.goto(
     './iframe.html?id=tests-integration-pages-projects-projectview--create-project&viewMode=story',
@@ -81,7 +108,7 @@ test('Delete project', async ({ page }) => {
   // Test that can submit on valid form
   await expect(page.getByRole('button', { name: 'Delete project' })).toBeDisabled();
 
-  await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Test Project');
+  await page.getByRole('textbox', { name: 'Delete modal input' }).fill('DS Project 1');
   await expect(page.getByRole('button', { name: 'Delete project' })).toBeEnabled();
 
   // Test if error alert will pop up

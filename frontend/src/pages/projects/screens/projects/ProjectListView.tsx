@@ -67,6 +67,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
             </Button>
           </>
         }
+        data-id="project-view-table"
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}
