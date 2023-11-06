@@ -74,3 +74,19 @@ test('Legacy Serving Runtime', async ({ page }) => {
   await expect(firstRow).toHaveClass('pf-m-expanded');
   await expect(secondRow).not.toHaveClass('pf-m-expanded');
 });
+
+test('Add model server', async ({ page }) => {
+  await page.goto(navigateToStory('pages-modelserving-servingruntimelist', 'add-server'));
+
+  // wait for page to load
+  await page.waitForSelector('text=Add server');
+
+  // test that you can not submit on empty
+  await expect(await page.getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
+
+  // test filling in minimum required fields
+  await page.getByLabel('Model server name *').fill('Test Server Name');
+  await page.locator('#serving-runtime-template-selection').click();
+  await page.getByText('New OVMS Server').click();
+  await expect(await page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
+});

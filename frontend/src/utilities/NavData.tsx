@@ -40,7 +40,7 @@ const getSettingsNav = (
   if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableBYONImageStream)) {
     settingsNavs.push({
       id: 'settings-notebook-images',
-      label: 'Notebook images',
+      label: 'Notebook image settings',
       href: '/notebookImages',
     });
   }
