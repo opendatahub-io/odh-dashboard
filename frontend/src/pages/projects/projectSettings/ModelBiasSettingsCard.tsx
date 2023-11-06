@@ -21,7 +21,6 @@ const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ namespace
   const [notifyAction, setNotifyAction] = React.useState<TrustyAICRActions | undefined>(undefined);
   const [success, setSuccess] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
-
   const clearNotification = React.useCallback(() => {
     setNotifyAction(undefined);
     setSuccess(false);
@@ -52,7 +51,12 @@ const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ namespace
           isLiveRegion
           isInline
         >
-          {error?.message}
+          {/* This is a temporary fix, this should be updated to incorporate work from
+          https://github.com/opendatahub-io/odh-dashboard/pull/2032 in the future to provide a
+          better experience.*/}
+          {error?.message.includes('404')
+            ? 'The TrustyAI operator is not installed on this cluster.'
+            : error?.message}
         </Alert>
       );
     }
