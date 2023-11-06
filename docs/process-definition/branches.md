@@ -33,9 +33,18 @@ There is only ever 1 `main` and 1 `incubation` branch. Feature branches start wi
 
 Read more on git tags & releases in our [release documentation].
 
-Understanding the commit history on a branch is important. Therefore when merging a branch into another, your PR branch must follow the pattern `merge-<source branch nam>`.
+## Merging upstream branches 
+
+Understanding the commit history on an upstream branch is important. Therefore when merging an upstream branch into another, your PR branch must follow the pattern `merge-<source branch nam>`.
 
 For example when merging `f/some-feature` into `incubation`, name your branch `merge-f/some-feature`. This will result in a commit message on the `incubation` branch of `Merge pull request # from <username>/merge-f/some-feature` when the PR is merged.
+
+Use the following steps to create a PR when merging upstream branches:
+
+- `git checkout -b merge-<source-branch> <target-branch>`
+- `git pull --no-rebase upstream <source-branch>`
+- Resolve all conflicts then post a PR.
+- If the target branch is `main`, wait for the PR to be approved. For all other target branches, apply the `approved` and `lgtm` labels to the PR once all checks pass.
 
 ## Main
 
