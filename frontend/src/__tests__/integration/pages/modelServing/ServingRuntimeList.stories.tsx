@@ -215,3 +215,14 @@ export const KserveListAvailableModels: StoryObj = {
     },
   },
 };
+
+export const AddServer: StoryObj = {
+  render: Template,
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('ovms', undefined, { timeout: 5000 });
+    await userEvent.click(canvas.getByText('Add server', { selector: 'button' }));
+  },
+};

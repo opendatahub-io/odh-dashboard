@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle, Truncate } from '@patternfly/react-core';
 import './SimpleDropdownSelect.scss';
 
 export type SimpleDropdownOption = {
@@ -47,7 +47,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
           onToggle={() => setOpen(!open)}
           style={{ width }}
         >
-          {selectedLabel}
+          <Truncate content={selectedLabel.toString()} style={{ paddingLeft: 0 }} />
         </DropdownToggle>
       }
       dropdownItems={options

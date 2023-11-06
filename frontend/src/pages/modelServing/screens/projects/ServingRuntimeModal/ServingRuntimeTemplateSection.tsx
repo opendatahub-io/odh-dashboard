@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Label, Split, SplitItem } from '@patternfly/react-core';
+import { FormGroup, Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { TemplateKind } from '~/k8sTypes';
@@ -44,7 +44,9 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     selectedLabel: getServingRuntimeDisplayNameFromTemplate(template),
     label: (
       <Split>
-        <SplitItem>{getServingRuntimeDisplayNameFromTemplate(template)}</SplitItem>
+        <SplitItem>
+          {<Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />}
+        </SplitItem>
         <SplitItem isFilled />
         <SplitItem>
           {isCompatibleWithAccelerator(
