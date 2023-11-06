@@ -1,7 +1,6 @@
 import * as _ from 'lodash';
 import {
   assembleConfigMap,
-  assemblePvc,
   assembleSecret,
   createConfigMap,
   createPvc,
@@ -32,19 +31,12 @@ export const createPvcDataForNotebook = async (
   storageData: StorageData,
   storageClassName?: string,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
-  const {
-    storageType,
-    creating: {
-      nameDesc: { name: pvcName, description: pvcDescription },
-      size,
-    },
-  } = storageData;
+  const { storageType } = storageData;
 
   const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
 
   if (storageType === StorageType.NEW_PVC) {
-    const pvcData = assemblePvc(pvcName, projectName, pvcDescription, size, storageClassName);
-    const pvc = await createPvc(pvcData);
+    const pvc = await createPvc(storageData.creating, projectName, storageClassName);
     const newPvcName = pvc.metadata.name;
     volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });
     volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: newPvcName });
@@ -59,10 +51,6 @@ export const replaceRootVolumesForNotebook = async (
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const {
     storageType,
-    creating: {
-      nameDesc: { name: creatingName, description },
-      size,
-    },
     existing: { storage: existingName },
   } = storageData;
 
@@ -79,8 +67,7 @@ export const replaceRootVolumesForNotebook = async (
     };
     replacedVolumeMount = { name: existingName, mountPath: ROOT_MOUNT_PATH };
   } else {
-    const pvcData = assemblePvc(creatingName, projectName, description, size);
-    const pvc = await createPvc(pvcData);
+    const pvc = await createPvc(storageData.creating, projectName);
     const newPvcName = pvc.metadata.name;
     replacedVolume = { name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } };
     replacedVolumeMount = { mountPath: ROOT_MOUNT_PATH, name: newPvcName };

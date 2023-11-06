@@ -28,9 +28,6 @@ export const getProjects = (withLabel?: string): Promise<ProjectKind[]> =>
     queryOptions: withLabel ? { queryParams: { labelSelector: withLabel } } : undefined,
   }).then((listResource) => listResource.items);
 
-export const getDSGProjects = (): Promise<ProjectKind[]> =>
-  getProjects(LABEL_SELECTOR_DASHBOARD_RESOURCE);
-
 export const createProject = (
   username: string,
   displayName: string,

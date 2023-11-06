@@ -22,7 +22,7 @@ export type NameDescType = {
 
 export type CreatingStorageObject = {
   nameDesc: NameDescType;
-  size: number;
+  size: string;
 };
 
 export type MountPath = {
@@ -155,4 +155,9 @@ export enum NamespaceApplicationCase {
    * Upgrade an existing DSG project to work with model kserve.
    */
   KSERVE_PROMOTION,
+}
+
+export enum ProjectScope {
+  DS_PROJECTS = 'Data science projects',
+  ALL_PROJECTS = 'All available projects',
 }

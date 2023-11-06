@@ -206,7 +206,7 @@ export const getProjectModelServingPlatform = (
   disableKServe: boolean,
   disableModelMesh: boolean,
 ) => {
-  if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
+  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
     if ((!disableKServe && !disableModelMesh) || (disableKServe && disableModelMesh)) {
       return undefined;
     }
@@ -217,7 +217,7 @@ export const getProjectModelServingPlatform = (
       return ServingRuntimePlatform.SINGLE;
     }
   }
-  return project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true'
+  return project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true'
     ? ServingRuntimePlatform.MULTI
     : ServingRuntimePlatform.SINGLE;
 };
