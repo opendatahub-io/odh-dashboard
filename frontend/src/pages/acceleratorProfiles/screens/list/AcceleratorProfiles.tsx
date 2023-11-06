@@ -2,14 +2,11 @@ import * as React from 'react';
 import {
   Button,
   ButtonVariant,
-  Flex,
-  FlexItem,
   EmptyState,
   EmptyStateIcon,
   EmptyStateVariant,
   EmptyStateBody,
   PageSection,
-  PageSectionVariants,
   Title,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
@@ -17,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
 import { useDashboardNamespace } from '~/redux/selectors';
+import AcceleratorProfilesTable from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTable';
 
 const description = `Manage accelerator profile settings for users in your organization`;
 
@@ -60,12 +58,9 @@ const AcceleratorProfiles: React.FC = () => {
       loadError={loadError}
       errorMessage="Unable to load accelerator profiles."
       emptyStatePage={noAcceleratorProfilePageSection}
+      provideChildrenPadding
     >
-      <PageSection variant={PageSectionVariants.light} padding={{ default: 'noPadding' }}>
-        <Flex direction={{ default: 'column' }}>
-          <FlexItem>{/* Todo: Create accelerator table */}</FlexItem>
-        </Flex>
-      </PageSection>
+      <AcceleratorProfilesTable accelerators={accelerators} />
     </ApplicationsPage>
   );
 };

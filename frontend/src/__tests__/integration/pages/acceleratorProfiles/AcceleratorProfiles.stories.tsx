@@ -1,5 +1,6 @@
 import React from 'react';
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
+import { within } from '@storybook/testing-library';
 import { rest } from 'msw';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
@@ -22,7 +23,24 @@ export default {
         ],
         accelerators: rest.get(
           '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles',
-          (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockAcceleratorProfile()]))),
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockAcceleratorProfile({}),
+                  mockAcceleratorProfile({
+                    metadata: { name: 'some-other-gpu' },
+                    spec: {
+                      displayName: 'TensorRT',
+                      enabled: false,
+                      identifier: 'tensor.com/gpu',
+                      description:
+                        'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
+                    },
+                  }),
+                ]),
+              ),
+            ),
         ),
       },
     },
@@ -46,5 +64,16 @@ export const EmptyStateNoAcceleratorProfile: StoryObj = {
         ),
       },
     },
+  },
+};
+
+export const ListAcceleratorProfiles: StoryObj = {
+  render: Template,
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Accelerator', undefined, { timeout: 5000 });
+    await canvas.findByText('TensorRT');
   },
 };
