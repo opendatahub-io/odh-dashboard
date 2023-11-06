@@ -18,14 +18,14 @@ const ModelGraphs: React.FC = () => {
         <MetricsChart
           metrics={[
             {
-              name: 'Success http requests (x100)',
+              name: 'Successful',
               metric: data[
                 ModelMetricType.REQUEST_COUNT_SUCCESS
               ] as ContextResourceData<PrometheusQueryRangeResultValue>,
               translatePoint: per100,
             },
             {
-              name: 'Failed http requests (x100)',
+              name: 'Failed',
               metric: data[
                 ModelMetricType.REQUEST_COUNT_FAILED
               ] as ContextResourceData<PrometheusQueryRangeResultValue>,
