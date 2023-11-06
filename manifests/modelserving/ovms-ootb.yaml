@@ -8,7 +8,7 @@ metadata:
   annotations:
     tags: 'ovms,servingruntime'
     description: 'OpenVino Model Serving Definition'
-    opendatahub.io/modelServingSupport: '["single", "multi"]'
+    opendatahub.io/modelServingSupport: '["multi"]'
 objects:
   - apiVersion: serving.kserve.io/v1alpha1
     kind: ServingRuntime
