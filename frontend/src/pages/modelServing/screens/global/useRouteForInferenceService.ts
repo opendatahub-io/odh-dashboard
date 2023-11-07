@@ -2,6 +2,8 @@ import * as React from 'react';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { getRoute } from '~/api';
 import { getUrlFromKserveInferenceService } from '~/pages/modelServing/screens/projects/utils';
+import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
+import { getInferenceServiceActiveModelState } from './utils';
 
 const useRouteForInferenceService = (
   inferenceService: InferenceServiceKind,
@@ -15,12 +17,14 @@ const useRouteForInferenceService = (
   const routeName = inferenceService.metadata.name;
   const routeNamespace = inferenceService.metadata.namespace;
   const kserveRoute = isKServe ? getUrlFromKserveInferenceService(inferenceService) : null;
+  const state = getInferenceServiceActiveModelState(inferenceService);
+  const kserveLoaded = state === InferenceServiceModelState.LOADED;
 
   React.useEffect(() => {
     if (isKServe) {
       setRoute(kserveRoute || null);
-      setLoaded(true);
-      setLoadError(kserveRoute ? null : new Error('Route not found'));
+      setLoaded(kserveLoaded);
+      setLoadError(kserveLoaded ? (kserveRoute ? null : new Error('Route not found')) : null);
       return;
     }
     if (!isRouteEnabled) {
@@ -37,7 +41,7 @@ const useRouteForInferenceService = (
         setLoadError(e);
         setLoaded(true);
       });
-  }, [routeName, routeNamespace, isRouteEnabled, kserveRoute, isKServe]);
+  }, [routeName, routeNamespace, isRouteEnabled, kserveRoute, isKServe, kserveLoaded]);
 
   return [route, loaded, loadError];
 };

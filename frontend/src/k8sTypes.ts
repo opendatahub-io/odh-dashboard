@@ -1,4 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import {
   PodAffinity,
@@ -359,9 +360,16 @@ export type InferenceServiceKind = K8sResourceCommon & {
     name: string;
     namespace: string;
     annotations?: DisplayNameAnnotations &
-      Partial<{
-        'serving.kserve.io/deploymentMode': 'ModelMesh';
-      }>;
+      EitherOrNone<
+        {
+          'serving.kserve.io/deploymentMode': 'ModelMesh';
+        },
+        {
+          'serving.knative.openshift.io/enablePassthrough': 'true';
+          'sidecar.istio.io/inject': 'true';
+          'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
+        }
+      >;
   };
   spec: {
     predictor: {

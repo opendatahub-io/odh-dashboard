@@ -100,6 +100,12 @@ const getHandlers = ({
               displayName: 'Another Inference Service',
               deleted: true,
             }),
+            mockInferenceServiceK8sResource({
+              name: 'llama-caikit',
+              displayName: 'Llama Caikit',
+              url: 'http://llama-caikit.test-project.svc.cluster.local',
+              activeModelState: 'Loaded',
+            }),
           ]),
         ),
       ),
