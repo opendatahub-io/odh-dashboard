@@ -24,8 +24,10 @@ test('Cluster settings', async ({ page }) => {
   await expect(submitButton).toBeEnabled();
   await singlePlatformCheckbox.uncheck();
   expect(warningAlert.getByLabel('Warning Alert')).toBeTruthy();
-  await singlePlatformCheckbox.check();
   await multiPlatformCheckbox.check();
+  await expect(warningAlert).toBeVisible();
+  expect(warningAlert.getByLabel('Info Alert')).toBeTruthy();
+  await singlePlatformCheckbox.check();
   await expect(warningAlert).toBeHidden();
   await expect(submitButton).toBeDisabled();
 
