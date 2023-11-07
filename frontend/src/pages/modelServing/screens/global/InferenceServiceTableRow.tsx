@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { DropdownDirection } from '@patternfly/react-core';
-import { ActionsColumn, Td } from '@patternfly/react-table';
+import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { isModelMesh } from '~/pages/modelServing/utils';
+import ResourceActionsColumn from '~/components/ResourceActionsColumn';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
@@ -71,7 +72,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceStatus inferenceService={inferenceService} />
       </Td>
       <Td isActionCell>
-        <ActionsColumn
+        <ResourceActionsColumn
+          resource={inferenceService}
           dropdownDirection={isGlobal ? DropdownDirection.down : DropdownDirection.up}
           items={[
             {
