@@ -71,6 +71,32 @@ export type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Neve
  *
  * @example
  * ```ts
+ * type MyType = EitherOrBoth<{ foo: boolean }, { bar: boolean }>;
+ *
+ * // Valid usages:
+ * const objA: MyType = {
+ *   foo: true,
+ * };
+ * const objB: MyType = {
+ *   bar: true,
+ * };
+ * const objBoth: MyType = {
+ *   foo: true,
+ *   bar: true,
+ * };
+ *
+ * // TS Error -- can't omit both properties:
+ * const objNeither: MyType = {
+ * };
+ * ```
+ */
+export type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & TypeB);
+
+/**
+ * Either TypeA properties or TypeB properties or neither of the properties -- never both.
+ *
+ * @example
+ * ```ts
  * type MyType = EitherOrNone<{ foo: boolean }, { bar: boolean }>;
  *
  * // Valid usages:
