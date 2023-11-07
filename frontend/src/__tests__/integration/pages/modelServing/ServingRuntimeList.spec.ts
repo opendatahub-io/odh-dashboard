@@ -180,6 +180,8 @@ test('Add ModelMesh model server', async ({ page }) => {
   await page.locator('#alt-form-checkbox-route').check();
   await expect(page.locator('#alt-form-checkbox-auth')).toBeChecked();
   await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
+  await expect(page.locator('#service-account-form-name')).toBeVisible();
+  await expect(page.locator('#service-account-form-name')).toHaveValue('default-name');
   // check external route, uncheck token, show alert
   await page.locator('#alt-form-checkbox-auth').uncheck();
   await expect(page.locator('#external-route-no-token-alert')).toBeVisible();
