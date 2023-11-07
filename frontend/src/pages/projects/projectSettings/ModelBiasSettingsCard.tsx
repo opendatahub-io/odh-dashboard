@@ -38,7 +38,7 @@ const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ namespace
           isLiveRegion
           isInline
         >
-          The TrustAI service was successfully installed
+          The TrustyAI service was successfully installed
         </Alert>
       );
     }
@@ -66,7 +66,7 @@ const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ namespace
           isLiveRegion
           isInline
         >
-          The TrustAI service was successfully uninstalled
+          The TrustyAI service was successfully uninstalled
         </Alert>
       );
     }
