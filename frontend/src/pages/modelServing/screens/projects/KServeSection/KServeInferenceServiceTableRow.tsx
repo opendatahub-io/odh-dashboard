@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import { ExpandableRowContent, Tbody, Td } from '@patternfly/react-table';
 import {
   DescriptionList,
   DescriptionListDescription,
@@ -12,6 +12,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceTableRow from '~/pages/modelServing/screens/global/InferenceServiceTableRow';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
+import ResourceTr from '~/components/ResourceTr';
 
 type KServeInferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -46,7 +47,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
 
   return (
     <Tbody isExpanded={isExpanded}>
-      <Tr>
+      <ResourceTr resource={obj}>
         <Td
           expand={{
             rowIndex: rowIndex,
@@ -77,8 +78,8 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
             }
           }}
         />
-      </Tr>
-      <Tr isExpanded={isExpanded}>
+      </ResourceTr>
+      <ResourceTr isExpanded={isExpanded} resource={obj}>
         <Td />
         <Td dataLabel="Information" colSpan={5}>
           <ExpandableRowContent>
@@ -101,7 +102,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
             </Stack>
           </ExpandableRowContent>
         </Td>
-      </Tr>
+      </ResourceTr>
     </Tbody>
   );
 };

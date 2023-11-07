@@ -13,7 +13,7 @@ import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { getModelServingProjects } from './projects';
 
-const assembleInferenceService = (
+export const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
   editName?: string,
@@ -36,7 +36,13 @@ const assembleInferenceService = (
       },
       annotations: {
         'openshift.io/display-name': data.name.trim(),
-        ...(isModelMesh ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' } : {}),
+        ...(isModelMesh
+          ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
+          : {
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+            }),
       },
     },
     spec: {

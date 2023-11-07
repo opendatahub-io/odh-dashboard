@@ -93,7 +93,20 @@ const getHandlers = ({
     (req, res, ctx) =>
       res(
         ctx.json(
-          mockK8sResourceList([mockInferenceServiceK8sResource({ name: 'test-inference' })]),
+          mockK8sResourceList([
+            mockInferenceServiceK8sResource({ name: 'test-inference' }),
+            mockInferenceServiceK8sResource({
+              name: 'another-inference-service',
+              displayName: 'Another Inference Service',
+              deleted: true,
+            }),
+            mockInferenceServiceK8sResource({
+              name: 'llama-caikit',
+              displayName: 'Llama Caikit',
+              url: 'http://llama-caikit.test-project.svc.cluster.local',
+              activeModelState: 'Loaded',
+            }),
+          ]),
         ),
       ),
   ),
