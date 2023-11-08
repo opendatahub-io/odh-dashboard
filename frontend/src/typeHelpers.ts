@@ -12,9 +12,11 @@ export type AnyObject = Record<string, unknown>;
  *
  * TODO: Implement the SDK & Patch logic -- this should stop being needed as things will be defined as Patches
  */
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
+export type RecursivePartial<T> = T extends object
+  ? {
+      [P in keyof T]?: RecursivePartial<T[P]>;
+    }
+  : T;
 
 /**
  * Partial only some properties.

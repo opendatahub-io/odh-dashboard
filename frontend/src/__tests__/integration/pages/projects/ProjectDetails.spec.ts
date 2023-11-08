@@ -24,5 +24,35 @@ test('Non-empty project', async ({ page }) => {
   expect(await page.locator('[data-id="details-page-section-divider"]').all()).toHaveLength(0);
 
   // check the x-small size shown correctly
-  expect(await page.getByText('XSmall')).toBeTruthy();
+  expect(page.getByText('Small')).toBeTruthy();
+});
+
+test('Notebook with deleted image', async ({ page }) => {
+  await page.goto(navigateToStory('pages-projects-projectdetails', 'deleted-image'));
+
+  // wait for page to load
+  await page.waitForSelector('text=Test Notebook');
+
+  await expect(page.getByText('Deleted')).toHaveCount(1);
+  await expect(page.getByText('Test Image')).toHaveCount(1);
+});
+
+test('Notebook with disabled image', async ({ page }) => {
+  await page.goto(navigateToStory('pages-projects-projectdetails', 'disabled-image'));
+
+  // wait for page to load
+  await page.waitForSelector('text=Test Notebook');
+
+  await expect(page.getByText('Disabled', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('Test Image')).toHaveCount(1);
+});
+
+test('Notebook with unknown image', async ({ page }) => {
+  await page.goto(navigateToStory('pages-projects-projectdetails', 'unknown-image'));
+
+  // wait for page to load
+  await page.waitForSelector('text=Test Notebook');
+
+  await expect(page.getByText('Deleted')).toHaveCount(1);
+  await expect(page.getByText('Unknown', { exact: true })).toHaveCount(1);
 });
