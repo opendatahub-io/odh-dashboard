@@ -63,7 +63,7 @@ test('Deploy KServe model', async ({ page }) => {
   // test filling in minimum required fields
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#serving-runtime-template-selection').click();
-  await page.getByRole('menuitem', { name: 'New OVMS Server' }).click();
+  await page.getByRole('menuitem', { name: 'Caikit' }).click();
   await expect(page.getByRole('menuitem', { name: 'New OVMS Server Invalid' })).toBeHidden();
   await page.locator('#inference-service-framework-selection').click();
   await page.getByRole('option', { name: 'onnx - 1' }).click();

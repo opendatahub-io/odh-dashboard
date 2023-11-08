@@ -32,6 +32,7 @@ import useDetectUser from '~/utilities/useDetectUser';
 import { AppContext } from '~/app/AppContext';
 import { useApplicationSettings } from '~/app/useApplicationSettings';
 import { ServingRuntimeKind } from '~/k8sTypes';
+import { ServingRuntimePlatform } from '~/types';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -139,7 +140,25 @@ const getHandlers = ({
       res(
         ctx.json(
           mockK8sResourceList([
-            mockServingRuntimeTemplateK8sResource({}),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-1',
+              displayName: 'Multi Platform',
+              platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-2',
+              displayName: 'Caikit',
+              platforms: [ServingRuntimePlatform.SINGLE],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-3',
+              displayName: 'New OVMS Server',
+              platforms: [ServingRuntimePlatform.MULTI],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-4',
+              displayName: 'Serving Runtime with No Annotations',
+            }),
             mockInvalidTemplateK8sResource({}),
           ]),
         ),

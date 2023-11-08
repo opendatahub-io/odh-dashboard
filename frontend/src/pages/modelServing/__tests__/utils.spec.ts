@@ -12,6 +12,7 @@ import {
 import { ServingRuntimeKind } from '~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
+  getEnabledPlatformsFromTemplate,
   getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ContainerResources, ServingRuntimePlatform } from '~/types';
@@ -224,5 +225,47 @@ describe('getTemplateEnabledForPlatform', () => {
     expect(
       getTemplateEnabledForPlatform(teamplateAllPlatforms, ServingRuntimePlatform.SINGLE),
     ).toBeTruthy();
+  });
+});
+
+describe('getEnabledPlatformsFromTemplate', () => {
+  it('should return only MULTI if annotation is empty', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [],
+    });
+    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
+      ServingRuntimePlatform.MULTI,
+    ]);
+  });
+
+  it('should return only MULTI if no annotation', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [],
+    });
+
+    delete teamplateAllPlatforms.metadata.annotations?.['opendatahub.io/modelServingSupport'];
+
+    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
+      ServingRuntimePlatform.MULTI,
+    ]);
+  });
+
+  it('should return only SINGLE', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.SINGLE],
+    });
+    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
+      ServingRuntimePlatform.SINGLE,
+    ]);
+  });
+
+  it('should return both platforms', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+    });
+    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
+      ServingRuntimePlatform.SINGLE,
+      ServingRuntimePlatform.MULTI,
+    ]);
   });
 });
