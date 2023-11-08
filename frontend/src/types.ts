@@ -344,11 +344,22 @@ export type NotebookPort = {
   protocol: string;
 };
 
+export enum TolerationOperator {
+  EXISTS = 'Exists',
+  EQUAL = 'Equal',
+}
+
+export enum TolerationEffect {
+  NO_SCHEDULE = 'NoSchedule',
+  PREFER_NO_SCHEDULE = 'PreferNoSchedule',
+  NO_EXECUTE = 'NoExecute',
+}
+
 export type PodToleration = {
   key: string;
-  operator?: string;
+  operator?: TolerationOperator;
   value?: string;
-  effect?: string;
+  effect?: TolerationEffect;
   tolerationSeconds?: number;
 };
 

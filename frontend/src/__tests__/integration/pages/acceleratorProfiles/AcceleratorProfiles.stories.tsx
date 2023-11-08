@@ -7,7 +7,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import useDetectUser from '~/utilities/useDetectUser';
 import { mockStatus } from '~/__mocks__/mockStatus';
 
-import AcceleratorProfiles from '~/pages/acceleratorProfiles/AcceleratorProfiles';
+import AcceleratorProfiles from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfiles';
 
 export default {
   component: AcceleratorProfiles,

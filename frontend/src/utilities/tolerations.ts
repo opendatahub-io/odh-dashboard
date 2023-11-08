@@ -1,6 +1,12 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import _ from 'lodash';
-import { DashboardConfig, PodToleration, TolerationSettings } from '~/types';
+import {
+  DashboardConfig,
+  PodToleration,
+  TolerationEffect,
+  TolerationOperator,
+  TolerationSettings,
+} from '~/types';
 import { NotebookKind } from '~/k8sTypes';
 import { AcceleratorState } from './useAcceleratorState';
 
@@ -40,9 +46,9 @@ export const determineTolerations = (
     )
   ) {
     tolerations.push({
-      effect: 'NoSchedule',
+      effect: TolerationEffect.NO_SCHEDULE,
       key: tolerationSettings.key,
-      operator: 'Exists',
+      operator: TolerationOperator.EXISTS,
     });
   }
 

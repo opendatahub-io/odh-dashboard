@@ -1,6 +1,6 @@
 import { KnownLabels, NotebookKind } from '~/k8sTypes';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
-import { ContainerResources } from '~/types';
+import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';
 import { genUID } from '~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
@@ -135,23 +135,6 @@ export const mockNotebookK8sResource = ({
             workingDir: '/opt/app-root/src',
           },
           {
-            args: [
-              '--provider=openshift',
-              '--https-address=:8443',
-              '--http-address=',
-              '--openshift-service-account=workbench',
-              '--cookie-secret-file=/etc/oauth/config/cookie_secret',
-              '--cookie-expire=24h0m0s',
-              '--tls-cert=/etc/tls/private/tls.crt',
-              '--tls-key=/etc/tls/private/tls.key',
-              '--upstream=http://localhost:8888',
-              '--upstream-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt',
-              '--skip-auth-regex=^(?:/notebook/$(NAMESPACE)/workbench)?/api$',
-              '--email-domain=*',
-              '--skip-provider-button',
-              '--openshift-sar={"verb":"get","resource":"notebooks","resourceAPIGroup":"kubeflow.org","resourceName":"workbench","namespace":"$(NAMESPACE)"}',
-              '--logout-url=http://localhost:4010/projects/project?notebookLogout=workbench',
-            ],
             env: [
               {
                 name: 'NAMESPACE',
@@ -220,12 +203,11 @@ export const mockNotebookK8sResource = ({
           },
         ],
         enableServiceLinks: false,
-        serviceAccountName: name,
         tolerations: [
           {
-            effect: 'NoSchedule',
+            effect: TolerationEffect.NO_SCHEDULE,
             key: 'NotebooksOnlyChange',
-            operator: 'Exists',
+            operator: TolerationOperator.EXISTS,
           },
         ],
         volumes: [
@@ -238,14 +220,12 @@ export const mockNotebookK8sResource = ({
           {
             name: 'oauth-config',
             secret: {
-              defaultMode: 420,
               secretName: 'workbench-oauth-config',
             },
           },
           {
             name: 'tls-certificates',
             secret: {
-              defaultMode: 420,
               secretName: 'workbench-tls',
             },
           },
@@ -284,11 +264,7 @@ export const mockNotebookK8sResource = ({
         type: 'Waiting',
       },
     ],
-    containerState: {
-      running: {
-        startedAt: '2023-02-14T22:06:52Z',
-      },
-    },
+    containerState: {},
     readyReplicas: 1,
   },
 });
