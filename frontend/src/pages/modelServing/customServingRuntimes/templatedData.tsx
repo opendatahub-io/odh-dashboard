@@ -24,6 +24,11 @@ export const columns: SortableData<TemplateKind>[] = [
     },
   },
   {
+    field: 'platforms',
+    label: 'Serving platforms supported',
+    sortable: false,
+  },
+  {
     field: 'kebab',
     label: '',
     sortable: false,

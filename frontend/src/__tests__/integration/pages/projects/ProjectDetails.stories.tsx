@@ -22,7 +22,7 @@ import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
 
@@ -61,7 +61,7 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     ),
   ),
   rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: true })]))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]))),
@@ -119,11 +119,12 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   ),
   rest.get(
     '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
-    (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockTemplateK8sResource({})]))),
+    (req, res, ctx) =>
+      res(ctx.json(mockK8sResourceList([mockServingRuntimeTemplateK8sResource({})]))),
   ),
   rest.get(
     '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    (req, res, ctx) => res(ctx.json(mockDashboardConfig)),
+    (req, res, ctx) => res(ctx.json(mockDashboardConfig({}))),
   ),
 ];
 

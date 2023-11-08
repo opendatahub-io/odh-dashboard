@@ -12,6 +12,7 @@ export const getInferenceServiceActiveModelState = (
   is: InferenceServiceKind,
 ): InferenceServiceModelState =>
   <InferenceServiceModelState>is.status?.modelStatus.states?.activeModelState ||
+  <InferenceServiceModelState>is.status?.modelStatus.states?.targetModelState ||
   InferenceServiceModelState.UNKNOWN;
 
 export const getInferenceServiceErrorMessage = (is: InferenceServiceKind): string =>

@@ -12,7 +12,7 @@ const ModelServingGlobal: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Model Serving"
+      title="Deployed models"
       description="Manage and view the health and performance of your deployed models."
       loaded
       empty={servingRuntimes.length === 0 || inferenceServices.length === 0}

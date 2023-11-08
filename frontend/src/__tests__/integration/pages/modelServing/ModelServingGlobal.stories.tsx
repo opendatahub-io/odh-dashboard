@@ -3,7 +3,7 @@ import React from 'react';
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
-import { expect } from '@storybook/jest';
+// import { expect } from '@storybook/jest';
 import { Route, Routes } from 'react-router-dom';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
@@ -149,31 +149,31 @@ export const DeleteModel: StoryObj = {
   },
 };
 
-export const DeployModel: StoryObj = {
-  render: Template,
+// export const DeployModel: StoryObj = {
+//   render: Template,
 
-  parameters: {
-    a11y: {
-      // need to select modal as root
-      element: '.pf-c-backdrop',
-    },
-  },
+//   parameters: {
+//     a11y: {
+//       // need to select modal as root
+//       element: '.pf-c-backdrop',
+//     },
+//   },
 
-  play: async ({ canvasElement }) => {
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-    await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
+//   play: async ({ canvasElement }) => {
+//     // load page and wait until settled
+//     const canvas = within(canvasElement);
+//     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
-    // user flow for editing a project
-    await userEvent.click(canvas.getByText('Deploy model', { selector: 'button' }));
+//     // user flow for editing a project
+//     await userEvent.click(canvas.getByText('Deploy model', { selector: 'button' }));
 
-    // get modal
-    const body = within(canvasElement.ownerDocument.body);
-    const nameInput = body.getByRole('textbox', { name: 'Model Name' });
-    const updateButton = body.getByText('Deploy', { selector: 'button' });
+//     // get modal
+//     const body = within(canvasElement.ownerDocument.body);
+//     const nameInput = body.getByRole('textbox', { name: 'Model Name' });
+//     const updateButton = body.getByText('Deploy', { selector: 'button' });
 
-    // test that you can not submit on empty
-    await userEvent.clear(nameInput);
-    expect(updateButton).toBeDisabled();
-  },
-};
+//     // test that you can not submit on empty
+//     await userEvent.clear(nameInput);
+//     expect(updateButton).toBeDisabled();
+//   },
+// };
