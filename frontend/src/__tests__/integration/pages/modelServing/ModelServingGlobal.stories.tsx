@@ -15,6 +15,9 @@ import {
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import ModelServingGlobal from '~/pages/modelServing/screens/global/ModelServingGlobal';
+import { AreaContext } from '~/concepts/areas/AreaContext';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { StackComponent } from '~/concepts/areas';
 
 export default {
   component: ModelServingGlobal,
@@ -56,11 +59,19 @@ export default {
 } as Meta<typeof ModelServingGlobal>;
 
 const Template: StoryFn<typeof ModelServingGlobal> = (args) => (
-  <Routes>
-    <Route path="/" element={<ModelServingContextProvider />}>
-      <Route index element={<ModelServingGlobal {...args} />} />
-    </Route>
-  </Routes>
+  <AreaContext.Provider
+    value={{
+      dscStatus: mockDscStatus({
+        installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
+      }),
+    }}
+  >
+    <Routes>
+      <Route path="/" element={<ModelServingContextProvider />}>
+        <Route index element={<ModelServingGlobal {...args} />} />
+      </Route>
+    </Routes>
+  </AreaContext.Provider>
 );
 
 export const EmptyStateNoServingRuntime: StoryObj = {

@@ -89,6 +89,17 @@ test('Deploy KServe model', async ({ page }) => {
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
+test('No model serving platform available', async ({ page }) => {
+  await page.goto(
+    navigateToStory(
+      'pages-modelserving-servingruntimelist',
+      'neither-platform-enabled-and-project-not-labelled',
+    ),
+  );
+
+  expect(page.getByText('No model serving platform selected')).toBeTruthy();
+});
+
 test('ModelMesh ServingRuntime list', async ({ page }) => {
   await page.goto(
     navigateToStory('pages-modelserving-servingruntimelist', 'model-mesh-list-available-models'),

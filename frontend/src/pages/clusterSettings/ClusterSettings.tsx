@@ -17,6 +17,7 @@ import CullerSettings from '~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '~/pages/clusterSettings/TelemetrySettings';
 import TolerationSettings from '~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '~/pages/clusterSettings/ModelServingPlatformSettings';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -34,6 +35,7 @@ const ClusterSettings: React.FC = () => {
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const { dashboardConfig } = useAppContext();
+  const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
   const isJupyterEnabled = useCheckJupyterEnabled();
   const [notebookTolerationSettings, setNotebookTolerationSettings] =
     React.useState<NotebookTolerationFormSettings>({
@@ -140,13 +142,15 @@ const ClusterSettings: React.FC = () => {
       provideChildrenPadding
     >
       <Stack hasGutter>
-        <StackItem>
-          <ModelServingPlatformSettings
-            initialValue={clusterSettings.modelServingPlatformEnabled}
-            enabledPlatforms={modelServingEnabledPlatforms}
-            setEnabledPlatforms={setModelServingEnabledPlatforms}
-          />
-        </StackItem>
+        {modelServingEnabled && (
+          <StackItem>
+            <ModelServingPlatformSettings
+              initialValue={clusterSettings.modelServingPlatformEnabled}
+              enabledPlatforms={modelServingEnabledPlatforms}
+              setEnabledPlatforms={setModelServingEnabledPlatforms}
+            />
+          </StackItem>
+        )}
         <StackItem>
           <PVCSizeSettings
             initialValue={clusterSettings.pvcSize}

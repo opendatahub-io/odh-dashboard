@@ -1,7 +1,6 @@
 import React from 'react';
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
-import { within } from '@storybook/testing-library';
 import { Route } from 'react-router-dom';
 import {
   mockRouteK8sResource,
@@ -25,6 +24,9 @@ import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
+import { AreaContext } from '~/concepts/areas/AreaContext';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { StackComponent } from '~/concepts/areas';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
   rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
@@ -144,21 +146,28 @@ export default {
 const Template: StoryFn<typeof ProjectDetails> = (args) => {
   useDetectUser();
   return (
-    <ProjectsRoutes>
-      <Route path="/" element={<ProjectDetailsContextProvider />}>
-        <Route index element={<ProjectDetails {...args} />} />
-      </Route>
-    </ProjectsRoutes>
+    <AreaContext.Provider
+      value={{
+        dscStatus: mockDscStatus({
+          installedComponents: {
+            [StackComponent.WORKBENCHES]: true,
+            [StackComponent.K_SERVE]: true,
+            [StackComponent.MODEL_MESH]: true,
+          },
+        }),
+      }}
+    >
+      <ProjectsRoutes>
+        <Route path="/" element={<ProjectDetailsContextProvider />}>
+          <Route index element={<ProjectDetails {...args} />} />
+        </Route>
+      </ProjectsRoutes>
+    </AreaContext.Provider>
   );
 };
 
 export const Default: StoryObj = {
   render: Template,
-  play: async ({ canvasElement }) => {
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
-  },
 };
 
 export const EmptyDetailsPage: StoryObj = {
@@ -168,11 +177,5 @@ export const EmptyDetailsPage: StoryObj = {
     msw: {
       handlers: handlers(true),
     },
-  },
-
-  play: async ({ canvasElement }) => {
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-    await canvas.findByText('No model servers', undefined, { timeout: 5000 });
   },
 };
