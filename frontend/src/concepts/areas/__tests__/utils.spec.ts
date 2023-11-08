@@ -1,6 +1,6 @@
 import { isAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { StackComponent } from '~/concepts/areas/types';
 import { SupportedAreasStateMap } from '~/concepts/areas/const';
 

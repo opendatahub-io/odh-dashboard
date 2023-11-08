@@ -1,0 +1,46 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  labels:
+    opendatahub.io/dashboard: 'true'
+    opendatahub.io/ootb: 'true'
+  annotations:
+    description: Caikit is an AI toolkit that enables users to manage models through a set of developer friendly APIs. It provides a consistent format for creating and using AI models against a wide variety of data domains and tasks.
+    openshift.io/provider-display-name: Red Hat, Inc.
+    tags: rhods,rhoai,kserve,servingruntime
+    template.openshift.io/documentation-url: https://github.com/opendatahub-io/caikit-tgis-serving
+    template.openshift.io/long-description: This template defines resources needed to deploy caikit-tgis-serving servingruntime with Red Hat Data Science KServe for LLM model
+    template.openshift.io/support-url: https://access.redhat.com
+    opendatahub.io/modelServingSupport: '["single"]'
+  name: caikit-tgis-serving-template
+objects:
+- apiVersion: serving.kserve.io/v1alpha1
+  kind: ServingRuntime
+  metadata:
+    name: caikit-runtime
+    annotations:
+      openshift.io/display-name: Caikit TGIS ServingRuntime for KServe
+    labels:
+      opendatahub.io/dashboard: 'true'
+  spec:
+    containers:
+      - env:
+          - name: RUNTIME_LOCAL_MODELS_DIR
+            value: /mnt/models
+        image: caikit-1
+        name: kserve-container
+        ports:
+        - containerPort: 8085
+          name: h2c
+          protocol: TCP
+          resources:
+            limits:
+              cpu: '0'
+              memory: 0Gi
+            requests:
+              cpu: '0'
+              memory: 0Gi
+    multiModel: false
+    supportedModelFormats:
+    - autoSelect: true
+      name: caikit

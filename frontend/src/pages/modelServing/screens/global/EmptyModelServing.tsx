@@ -11,7 +11,7 @@ import {
 import { PlusCircleIcon, WrenchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
-import ServeModelButton from './ServeModelButton';
+// import ServeModelButton from './ServeModelButton';
 
 const EmptyModelServing: React.FC = () => {
   const navigate = useNavigate();
@@ -46,7 +46,9 @@ const EmptyModelServing: React.FC = () => {
         No deployed models
       </Title>
       <EmptyStateBody>To get started, use existing model servers to serve a model.</EmptyStateBody>
-      <ServeModelButton />
+      {/* TODO: Re implemnt this once we can deploy kServe in global view
+      <ServeModelButton /> 
+      */}
     </EmptyState>
   );
 };

@@ -29,6 +29,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableCustomServingRuntimes: boolean;
       modelMetricsNamespace: string;
       disablePipelines: boolean;
+      disableKServe: boolean;
+      disableModelMesh: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -100,6 +102,10 @@ export type ClusterSettings = {
   cullerTimeout: number;
   userTrackingEnabled: boolean;
   notebookTolerationSettings: NotebookTolerationSettings | null;
+  modelServingPlatformEnabled: {
+    kServe: boolean;
+    modelMesh: boolean;
+  };
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
@@ -947,7 +953,7 @@ type ComponentNames =
 
 export type DataScienceClusterKindStatus = {
   conditions: [];
-  installedComponents: { [key in ComponentNames]: boolean };
+  installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
 };
 

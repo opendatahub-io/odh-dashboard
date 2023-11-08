@@ -4,7 +4,11 @@ import { Button, Stack, StackItem } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useAppContext } from '~/app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '~/services/clusterSettingsService';
-import { ClusterSettingsType, NotebookTolerationFormSettings } from '~/types';
+import {
+  ClusterSettingsType,
+  ModelServingPlatformEnabled,
+  NotebookTolerationFormSettings,
+} from '~/types';
 import { addNotification } from '~/redux/actions/actions';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { useAppDispatch } from '~/redux/hooks';
@@ -12,6 +16,7 @@ import PVCSizeSettings from '~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '~/pages/clusterSettings/TelemetrySettings';
 import TolerationSettings from '~/pages/clusterSettings/TolerationSettings';
+import ModelServingPlatformSettings from '~/pages/clusterSettings/ModelServingPlatformSettings';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -35,12 +40,15 @@ const ClusterSettings: React.FC = () => {
       enabled: false,
       key: isJupyterEnabled ? DEFAULT_TOLERATION_VALUE : '',
     });
+  const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
+    React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
   const dispatch = useAppDispatch();
 
   React.useEffect(() => {
     fetchClusterSettings()
       .then((clusterSettings: ClusterSettingsType) => {
         setClusterSettings(clusterSettings);
+        setModelServingEnabledPlatforms(clusterSettings.modelServingPlatformEnabled);
         setLoaded(true);
         setLoadError(undefined);
       })
@@ -59,8 +67,16 @@ const ClusterSettings: React.FC = () => {
           enabled: notebookTolerationSettings.enabled,
           key: notebookTolerationSettings.key,
         },
+        modelServingPlatformEnabled: modelServingEnabledPlatforms,
       }),
-    [pvcSize, cullerTimeout, userTrackingEnabled, clusterSettings, notebookTolerationSettings],
+    [
+      pvcSize,
+      cullerTimeout,
+      userTrackingEnabled,
+      clusterSettings,
+      notebookTolerationSettings,
+      modelServingEnabledPlatforms,
+    ],
   );
 
   const handleSaveButtonClicked = () => {
@@ -72,6 +88,7 @@ const ClusterSettings: React.FC = () => {
         enabled: notebookTolerationSettings.enabled,
         key: notebookTolerationSettings.key,
       },
+      modelServingPlatformEnabled: modelServingEnabledPlatforms,
     };
     if (!_.isEqual(clusterSettings, newClusterSettings)) {
       if (
@@ -123,6 +140,13 @@ const ClusterSettings: React.FC = () => {
       provideChildrenPadding
     >
       <Stack hasGutter>
+        <StackItem>
+          <ModelServingPlatformSettings
+            initialValue={clusterSettings.modelServingPlatformEnabled}
+            enabledPlatforms={modelServingEnabledPlatforms}
+            setEnabledPlatforms={setModelServingEnabledPlatforms}
+          />
+        </StackItem>
         <StackItem>
           <PVCSizeSettings
             initialValue={clusterSettings.pvcSize}

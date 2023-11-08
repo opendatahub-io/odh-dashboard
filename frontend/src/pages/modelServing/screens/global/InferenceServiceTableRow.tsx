@@ -1,15 +1,17 @@
 import * as React from 'react';
 import { DropdownDirection } from '@patternfly/react-core';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { isModelMesh } from '~/pages/modelServing/utils';
+import ResourceActionsColumn from '~/components/ResourceActionsColumn';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
-import InferenceServiceModel from './InferenceServiceModel';
 import InferenceServiceStatus from './InferenceServiceStatus';
+import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -17,6 +19,7 @@ type InferenceServiceTableRowProps = {
   servingRuntime?: ServingRuntimeKind;
   onDeleteInferenceService: (obj: InferenceServiceKind) => void;
   onEditInferenceService: (obj: InferenceServiceKind) => void;
+  showServingRuntime?: boolean;
 };
 
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
@@ -25,11 +28,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   onDeleteInferenceService,
   onEditInferenceService,
   isGlobal,
+  showServingRuntime,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
   return (
-    <Tr>
+    <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
           {modelMetricsEnabled ? (
@@ -52,22 +56,24 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           <InferenceServiceProject inferenceService={inferenceService} />
         </Td>
       )}
-      {isGlobal && (
-        <Td dataLabel="Model server">
-          <InferenceServiceModel inferenceService={inferenceService} />
+      {showServingRuntime && (
+        <Td dataLabel="Serving Runtime">
+          <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
         </Td>
       )}
       <Td dataLabel="Inference endpoint">
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
+          isKserve={!isModelMesh(inferenceService)}
         />
       </Td>
       <Td dataLabel="Status">
         <InferenceServiceStatus inferenceService={inferenceService} />
       </Td>
       <Td isActionCell>
-        <ActionsColumn
+        <ResourceActionsColumn
+          resource={inferenceService}
           dropdownDirection={isGlobal ? DropdownDirection.down : DropdownDirection.up}
           items={[
             {
@@ -85,7 +91,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           ]}
         />
       </Td>
-    </Tr>
+    </>
   );
 };
 

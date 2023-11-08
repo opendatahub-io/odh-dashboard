@@ -2,7 +2,7 @@ import * as React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import GenericSidebar from '~/components/GenericSidebar';
 import { useAppContext } from '~/app/AppContext';
-import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
+import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
@@ -54,7 +54,7 @@ const ProjectDetailsComponents: React.FC = () => {
       ? [
           {
             id: ProjectSectionID.MODEL_SERVER,
-            component: <ServingRuntimeList />,
+            component: <ModelServingPlatform />,
           },
         ]
       : []),
