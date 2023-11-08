@@ -73,13 +73,13 @@ export const applyNamespaceChange = async (
       labels = {
         'opendatahub.io/dashboard': 'true',
       };
+      annotations = {
+        'opendatahub.io/service-mesh': String(enableServiceMesh),
+      };
       break;
     case NamespaceApplicationCase.MODEL_MESH_PROMOTION:
       labels = {
         'modelmesh-enabled': 'true',
-      };
-      annotations = {
-        'opendatahub.io/service-mesh': String(enableServiceMesh),
       };
       break;
     case NamespaceApplicationCase.KSERVE_PROMOTION:
