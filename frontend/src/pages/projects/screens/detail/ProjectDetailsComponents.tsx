@@ -12,6 +12,8 @@ import StorageList from './storage/StorageList';
 import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
 
+import './ProjectDetailsComponents.scss';
+
 type SectionType = {
   id: ProjectSectionID;
   component: React.ReactNode;
@@ -74,6 +76,7 @@ const ProjectDetailsComponents: React.FC = () => {
                 id={id}
                 aria-label={ProjectSectionTitles[id]}
                 data-id="details-page-section"
+                className="odh-project-details-components__item"
               >
                 {component}
               </StackItem>
