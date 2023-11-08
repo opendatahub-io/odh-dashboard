@@ -121,7 +121,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       title={existingNotebook ? `Edit ${editNotebookDisplayName}` : 'Create workbench'}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
+          <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
           <BreadcrumbItem
             render={() => (
               <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>

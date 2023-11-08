@@ -1,28 +1,17 @@
 import { DataScienceClusterKindStatus, K8sCondition } from '~/k8sTypes';
+import { StackComponent } from '~/concepts/areas/types';
 
-export type MockDataScienceClusterKindStatus = {
+export type MockDscStatus = {
   conditions?: K8sCondition[];
   phase?: string;
-  codeFlareEnabled?: boolean;
-  dataSciencePipelineOperatorEnabled?: boolean;
-  kserveEnabled?: boolean;
-  modelMeshEnabled?: boolean;
-  odhDashboardEnabled?: boolean;
-  rayEnabled?: boolean;
-  workbenchesEnabled?: boolean;
+  installedComponents?: DataScienceClusterKindStatus['installedComponents'];
 };
 
-export const mockDataScienceStatus = ({
+export const mockDscStatus = ({
+  installedComponents,
   conditions = [],
   phase = 'Ready',
-  codeFlareEnabled = true,
-  dataSciencePipelineOperatorEnabled = true,
-  kserveEnabled = true,
-  modelMeshEnabled = true,
-  odhDashboardEnabled = true,
-  rayEnabled = true,
-  workbenchesEnabled = true,
-}: MockDataScienceClusterKindStatus): DataScienceClusterKindStatus => ({
+}: MockDscStatus): DataScienceClusterKindStatus => ({
   conditions: [
     ...[
       {
@@ -116,14 +105,12 @@ export const mockDataScienceStatus = ({
     ],
     ...conditions,
   ],
-  installedComponents: {
-    codeflare: codeFlareEnabled,
-    'data-science-pipelines-operator': dataSciencePipelineOperatorEnabled,
-    kserve: kserveEnabled,
-    'model-mesh': modelMeshEnabled,
-    'odh-dashboard': odhDashboardEnabled,
-    ray: rayEnabled,
-    workbenches: workbenchesEnabled,
-  },
+  installedComponents: Object.values(StackComponent).reduce(
+    (acc, component) => ({
+      ...acc,
+      [component]: installedComponents?.[component] ?? false,
+    }),
+    {},
+  ),
   phase,
 });

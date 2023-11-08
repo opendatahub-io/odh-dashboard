@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  DashboardConfigKind,
   InferenceServiceKind,
   KnownLabels,
   ProjectKind,
@@ -15,7 +16,7 @@ import {
   ServingRuntimeEditInfo,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { DashboardConfig, ServingRuntimePlatform } from '~/types';
+import { ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -38,7 +39,7 @@ import {
   updateServingRuntime,
 } from '~/api';
 
-export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
+export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
   if (sizes.length === 0) {
     sizes = DEFAULT_MODEL_SERVER_SIZES;
