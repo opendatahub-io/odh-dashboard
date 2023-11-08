@@ -9,7 +9,7 @@ type LogsTabStatusProps = {
   error?: Error;
   loaded: boolean;
   refresh: () => void;
-  onDownload?: () => void;
+  onDownload: () => void;
 };
 
 const LogsTabStatus: React.FC<LogsTabStatusProps> = ({ error, loaded, refresh, onDownload }) => {
@@ -38,13 +38,13 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({ error, loaded, refresh, o
         latest {LOG_TAIL_LINES} lines. Exceptionally long lines are abridged. To view the full log
         for this task, you can{' '}
         <Button
-          isDisabled={!!onDownload}
+          isDisabled={!onDownload}
           variant="link"
           isInline
           component="span"
           onClick={onDownload}
         >
-          download the selected container logs
+          download all step logs
         </Button>{' '}
         associated with it.
       </p>
