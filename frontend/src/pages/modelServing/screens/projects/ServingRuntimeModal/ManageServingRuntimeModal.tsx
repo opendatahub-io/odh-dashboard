@@ -180,7 +180,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             />
           </StackItem>
           <StackItem>
-            <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
+            <ServingRuntimeReplicaSection
+              data={createData}
+              setData={setCreateData}
+              infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
+            />
           </StackItem>
           <StackItem>
             <ServingRuntimeSizeSection
@@ -190,6 +195,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               servingRuntimeSelected={servingRuntimeSelected}
               acceleratorState={acceleratorState}
               setAcceleratorState={setAcceleratorState}
+              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
           {!allowCreate && (
