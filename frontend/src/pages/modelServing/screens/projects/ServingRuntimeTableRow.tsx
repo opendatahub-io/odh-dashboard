@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Button, DropdownDirection, Icon, Skeleton, Tooltip } from '@patternfly/react-core';
+
+import {
+  Button,
+  DropdownDirection,
+  Icon,
+  Skeleton,
+  Tooltip,
+  Truncate,
+} from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -84,7 +92,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             obj.spec.builtInAdapter?.serverType ||
             'Custom Runtime'}
         </Td>
-        <Td dataLabel="Serving Runtime">{getDisplayNameFromServingRuntimeTemplate(obj)}</Td>
+        <Td dataLabel="Serving Runtime">
+          <Truncate content={getDisplayNameFromServingRuntimeTemplate(obj)} />
+        </Td>
         <Td
           dataLabel="Deployed models"
           compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)}

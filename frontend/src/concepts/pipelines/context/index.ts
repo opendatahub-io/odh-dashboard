@@ -6,4 +6,3 @@ export {
   ViewServerModal,
   PipelineServerTimedOut,
 } from './PipelinesContext';
-export { PipelineContextProviderWorkaround } from './PipelinesContextWorkaround';

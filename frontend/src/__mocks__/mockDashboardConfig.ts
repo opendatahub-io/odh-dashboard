@@ -1,5 +1,4 @@
-import { DashboardConfig } from '~/types';
-import { KnownLabels } from '~/k8sTypes';
+import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
 
 type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -11,6 +10,7 @@ type MockDashboardConfigType = {
   disableAppLauncher?: boolean;
   disableUserManagement?: boolean;
   disableProjects?: boolean;
+  disablePipelines?: boolean;
   disableModelServing?: boolean;
   disableCustomServingRuntimes?: boolean;
 };
@@ -27,7 +27,8 @@ export const mockDashboardConfig = ({
   disableProjects = false,
   disableModelServing = false,
   disableCustomServingRuntimes = false,
-}: MockDashboardConfigType): DashboardConfig => ({
+  disablePipelines = false,
+}: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
   metadata: {
@@ -51,7 +52,7 @@ export const mockDashboardConfig = ({
       disableProjects,
       disableModelServing,
       disableCustomServingRuntimes,
-      disablePipelines: false,
+      disablePipelines,
       disableProjectSharing: false,
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
