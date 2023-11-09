@@ -35,7 +35,13 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
         setAlert({
           variant: AlertVariant.info,
           message:
-            'Disabling the multi-model serving platform prevents models deployed in new projects and in existing projects with no deployed models from sharing model servers. Existing projects with deployed models will continue to use multi-model serving.',
+            'Disabling multi-model serving means that models in new projects or existing projects with no currently deployed models will be deployed from their own model server. Existing projects with currently deployed models will continue to use the serving platform selected for that project.',
+        });
+      } else if (initialValue.kServe && !enabledPlatforms.kServe) {
+        setAlert({
+          variant: AlertVariant.info,
+          message:
+            'Disabling single model serving means that models in new projects or existing projects with no currently deployed models will be deployed from a shared model server. Existing projects with currently deployed models will continue to use the serving platform selected for that project.',
         });
       } else {
         setAlert(undefined);
