@@ -54,5 +54,5 @@ test('Notebook with unknown image', async ({ page }) => {
   await page.waitForSelector('text=Test Notebook');
 
   await expect(page.getByText('Deleted')).toHaveCount(1);
-  await expect(page.getByText('Unknown', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('unknown', { exact: true })).toHaveCount(1);
 });

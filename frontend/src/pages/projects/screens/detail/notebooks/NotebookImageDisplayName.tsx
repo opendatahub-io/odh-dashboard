@@ -65,8 +65,12 @@ export const NotebookImageDisplayName = ({
         variant: 'info',
       };
     } else if (notebookImage.imageAvailability === NotebookImageAvailability.DELETED) {
-      const unknownBody =
-        'An unknown notebook image has been deleted. To run this workbench, select a new notebook image.';
+      const unknownBody = (
+        <p>
+          An <b>unknown</b> notebook image has been deleted. To run this workbench, select a new
+          notebook image.
+        </p>
+      );
       const knownBody = (
         <p>
           The <b>{notebookImage.imageDisplayName}</b> notebook image has been deleted. To run this
@@ -129,7 +133,7 @@ export const NotebookImageDisplayName = ({
         <FlexItem>
           <HelperText>
             <HelperTextItem variant={notebookImage.imageDisplayName ? 'default' : 'indeterminate'}>
-              {notebookImage.imageDisplayName || 'Unknown'}
+              {notebookImage.imageDisplayName || 'unknown'}
             </HelperTextItem>
           </HelperText>
         </FlexItem>
