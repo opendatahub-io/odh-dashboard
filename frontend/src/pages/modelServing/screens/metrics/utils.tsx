@@ -14,7 +14,6 @@ import {
 import { QueryTimeframeStep } from '~/pages/modelServing/screens/const';
 import {
   BiasSelectOption,
-  DomainCalculator,
   GraphMetricLine,
   GraphMetricPoint,
   MetricChartLine,
@@ -169,10 +168,6 @@ export const useStableMetrics = (
   }
   return metricsRef.current;
 };
-
-export const defaultDomainCalculator: DomainCalculator = (maxYValue) => ({
-  y: maxYValue === 0 ? [0, 1] : [0, maxYValue],
-});
 
 export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[]) =>
   breadcrumbItems.map((item) => (
