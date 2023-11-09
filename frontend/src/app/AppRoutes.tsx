@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
+import EdgeModelRegistry from '';
 import { useUser } from '~/redux/selectors';
 
 const InstalledApplications = React.lazy(
@@ -31,6 +32,7 @@ const CustomServingRuntimeRoutes = React.lazy(
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
+const EdgeModelRegistry = React.lazy(() => import('../pages/edgeMVP/EdgeModelRegistry'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const DependencyMissingPage = React.lazy(
@@ -80,7 +82,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}
-
+        <Route path="/modelRegistry" element={<EdgeModelRegistry />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </React.Suspense>
