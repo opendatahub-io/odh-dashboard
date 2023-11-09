@@ -10,7 +10,6 @@ import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectDetailsComponents from './ProjectDetailsComponents';
@@ -25,7 +24,7 @@ const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const { state } = useLocation();
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -54,7 +53,7 @@ const ProjectDetails: React.FC = () => {
           sections={[
             { title: 'Components', component: <ProjectDetailsComponents />, icon: <CubeIcon /> },
             { title: 'Permissions', component: <ProjectSharing />, icon: <UsersIcon /> },
-            ...(biasMetricsEnabled
+            ...(biasMetricsAreaAvailable
               ? [{ title: 'Settings', component: <ProjectSettingsPage />, icon: <CogIcon /> }]
               : []),
           ]}

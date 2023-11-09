@@ -12,7 +12,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
-import useBiasMetricsEnabled from './useBiasMetricsEnabled';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type ExplainabilityContextData = {
   refresh: () => Promise<void>;
@@ -127,10 +127,10 @@ const useFetchContextData = (apiState: TrustyAPIState): ExplainabilityContextDat
 };
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const callback = React.useCallback<FetchStateCallbackPromise<BiasMetricConfig[]>>(
     (opts) => {
-      if (!biasMetricsEnabled) {
+      if (!biasMetricsAreaAvailable) {
         return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
       }
       if (!apiState.apiAvailable) {
@@ -143,7 +143,7 @@ const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMet
           throw e;
         });
     },
-    [apiState.api, apiState.apiAvailable, biasMetricsEnabled],
+    [apiState.api, apiState.apiAvailable, biasMetricsAreaAvailable],
   );
 
   return useFetchState(callback, [], { initialPromisePurity: true });

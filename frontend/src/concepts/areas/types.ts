@@ -36,6 +36,9 @@ export enum SupportedArea {
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
   MODEL_MESH = 'model-mesh',
+  BIAS_METRICS = 'bias-metrics',
+  PERFORMANCE_METRICS = 'performance-metrics',
+  TRUSTY_AI = 'trusty-ai',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */
@@ -48,6 +51,7 @@ export enum StackComponent {
   DASHBOARD = 'odh-dashboard',
   RAY = 'ray',
   WORKBENCHES = 'workbenches',
+  TRUSTY_AI = 'trustyai',
 }
 
 // TODO: Support extra operators, like the pipelines operator -- maybe as a "external dependency need?"

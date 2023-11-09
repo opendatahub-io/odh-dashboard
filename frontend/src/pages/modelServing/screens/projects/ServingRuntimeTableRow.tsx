@@ -17,7 +17,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
 
@@ -63,7 +63,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
 
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
 
   const compoundExpandParams = (
     col: ServingRuntimeTableTabs,
@@ -161,7 +163,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                 title: 'Edit model server',
                 onClick: () => onEditServingRuntime(obj),
               },
-              ...(performanceMetricsEnabled
+              ...(performanceMetricsAreaAvailable
                 ? [
                     {
                       title: 'View model server metrics',
