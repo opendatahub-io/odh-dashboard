@@ -17,30 +17,33 @@ objects:
 - apiVersion: serving.kserve.io/v1alpha1
   kind: ServingRuntime
   metadata:
-    name: caikit-runtime
-    annotations:
-      openshift.io/display-name: Caikit TGIS ServingRuntime for KServe
-    labels:
-      opendatahub.io/dashboard: 'true'
+    name: caikit-tgis-runtime
+  annotations:
+    openshift.io/display-name: Caikit TGIS ServingRuntime for KServe
+  labels:
+    opendatahub.io/dashboard: 'true'
   spec:
-    containers:
-      - env:
-          - name: RUNTIME_LOCAL_MODELS_DIR
-            value: /mnt/models
-        image: caikit-1
-        name: kserve-container
-        ports:
-        - containerPort: 8085
-          name: h2c
-          protocol: TCP
-          resources:
-            limits:
-              cpu: '0'
-              memory: 0Gi
-            requests:
-              cpu: '0'
-              memory: 0Gi
     multiModel: false
     supportedModelFormats:
-    - autoSelect: true
-      name: caikit
+      - autoSelect: true
+        name: caikit
+    containers:
+      - name: kserve-container
+        image: text-generation-inference
+        command:
+          - text-generation-launcher
+        args:
+          - --model-name=/mnt/models/artifacts/
+        env:
+          - name: TRANSFORMERS_CACHE
+            value: /tmp/transformers_cache
+      - name: transformer-container
+        image: caikit-tgis-serving
+        env:
+          - name: RUNTIME_LOCAL_MODELS_DIR
+            value: /mnt/models
+        ports:
+          - containerPort: 8080
+            name: h2c
+            protocol: TCP
+parameters: []
