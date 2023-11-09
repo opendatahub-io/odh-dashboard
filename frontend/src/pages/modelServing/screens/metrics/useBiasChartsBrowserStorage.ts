@@ -9,10 +9,10 @@ const useBiasChartsBrowserStorage = (): [
   BiasMetricConfig[],
   SetBrowserStorageHook<BiasMetricConfig[]>,
 ] => {
-  const { inferenceService } = useParams();
+  const { project, namespace, inferenceService } = useParams();
 
   const [selectedBiasConfigs, setSelectedBiasConfigs] = useBrowserStorage<BiasMetricConfig[]>(
-    `${SELECTED_CHARTS_STORAGE_KEY_PREFIX}-${inferenceService}`,
+    `${SELECTED_CHARTS_STORAGE_KEY_PREFIX}-${project ?? namespace}-${inferenceService}`,
     [],
     true,
     true,
