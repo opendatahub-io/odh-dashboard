@@ -32,6 +32,7 @@ const ServerGraphs: React.FC = () => {
           }}
           color="blue"
           title="Http requests (x100)"
+          isStack
         />
       </StackItem>
       <StackItem>

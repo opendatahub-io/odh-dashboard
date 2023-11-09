@@ -34,6 +34,7 @@ const ModelGraphs: React.FC = () => {
           ]}
           title="Http requests (x100)"
           theme={SUCCESS_FAIL_CHART_THEME}
+          isStack
         />
       </StackItem>
     </Stack>
