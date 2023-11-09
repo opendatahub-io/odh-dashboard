@@ -22,7 +22,7 @@ const ProjectPipelineBreadcrumbPage: React.FC<ProjectPipelineDetailsProps> = ({
         breadcrumbPath={[
           <BreadcrumbItem
             key="project-home"
-            render={() => <Link to={`/projects`}>Projects</Link>}
+            render={() => <Link to={`/projects`}>Data Science Projects</Link>}
           />,
           <BreadcrumbItem
             key="project-details"

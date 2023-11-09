@@ -13,11 +13,10 @@ import {
   RefreshIntervalTitle,
   TimeframeTitle,
 } from '~/pages/modelServing/screens/types';
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import { QueryTimeframeStep, RefreshIntervalValue } from '~/pages/modelServing/screens/const';
-import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
@@ -36,8 +35,10 @@ export const useModelServingMetrics = (
   refresh: () => void;
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
 
   const defaultResponsePredicate = React.useCallback<ResponsePredicate>(
     (data) => data.result?.[0]?.values || [],
@@ -49,7 +50,7 @@ export const useModelServingMetrics = (
   >((data) => data.result || [], []);
 
   const serverRequestCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+    performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
     (queries as { [key in ServerMetricType]: string })[ServerMetricType.REQUEST_COUNT],
     end,
     timeframe,
@@ -60,7 +61,7 @@ export const useModelServingMetrics = (
 
   const serverAverageResponseTime =
     useQueryRangeResourceData<PrometheusQueryRangeResponseDataResult>(
-      performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+      performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
       (queries as { [key in ServerMetricType]: string })[ServerMetricType.AVG_RESPONSE_TIME],
       end,
       timeframe,
@@ -70,7 +71,7 @@ export const useModelServingMetrics = (
     );
 
   const serverCPUUtilization = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+    performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
     (queries as { [key in ServerMetricType]: string })[ServerMetricType.CPU_UTILIZATION],
     end,
     timeframe,
@@ -80,7 +81,7 @@ export const useModelServingMetrics = (
   );
 
   const serverMemoryUtilization = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.SERVER,
+    performanceMetricsAreaAvailable && type === PerformanceMetricType.SERVER,
     (queries as { [key in ServerMetricType]: string })[ServerMetricType.MEMORY_UTILIZATION],
     end,
     timeframe,
@@ -90,7 +91,7 @@ export const useModelServingMetrics = (
   );
 
   const modelRequestSuccessCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
+    performanceMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_SUCCESS],
     end,
     timeframe,
@@ -100,7 +101,7 @@ export const useModelServingMetrics = (
   );
 
   const modelRequestFailedCount = useQueryRangeResourceData(
-    performanceMetricsEnabled && type === PerformanceMetricType.MODEL,
+    performanceMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.REQUEST_COUNT_FAILED],
     end,
     timeframe,
@@ -110,7 +111,7 @@ export const useModelServingMetrics = (
   );
 
   const modelTrustyAISPD = useQueryRangeResourceData(
-    biasMetricsEnabled && type === PerformanceMetricType.MODEL,
+    biasMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_SPD],
     end,
     timeframe,
@@ -121,7 +122,7 @@ export const useModelServingMetrics = (
   );
 
   const modelTrustyAIDIR = useQueryRangeResourceData(
-    biasMetricsEnabled && type === PerformanceMetricType.MODEL,
+    biasMetricsAreaAvailable && type === PerformanceMetricType.MODEL,
     (queries as { [key in ModelMetricType]: string })[ModelMetricType.TRUSTY_AI_DIR],
     end,
     timeframe,
