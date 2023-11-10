@@ -7,7 +7,6 @@ import {
 } from '~/pages/modelServing/screens/types';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
-import '~/pages/projects/screens/detail/storage/ManageStorageModal.scss';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import DataConnectionExistingField from './DataConnectionExistingField';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
