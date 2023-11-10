@@ -1,4 +1,6 @@
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
@@ -14,19 +16,25 @@ html, body, #root {
     flex: 1;
     margin: var(--pf-global--spacer--md);
   }
+
   .pf-c-app-launcher__group-title {
     font-size: 13px;
   }
+
   .pf-c-app-launcher__menu-item-external-icon {
     opacity: 1;
     color: var(--pf-global--icon--Color--light);
   }
+
   &__brand {
     height: 36px;
   }
 }
+
 // specificity targeting form elements to override --pf-global--FontSize--md
-.pf-c-page, .pf-c-modal-box {
+.pf-c-page,
+.pf-c-modal-box {
+
   .pf-c-app-launcher,
   .pf-c-button,
   .pf-c-dropdown,
@@ -39,5 +47,15 @@ html, body, #root {
   .pf-c-form-control {
     font-size: var(--pf-global--FontSize--sm);
     height: auto;
+  }
+}
+
+// temp fix until https://github.com/patternfly/patternfly-react/issues/8028 is resolved
+// Remove this file and its uses after bumping to PF5
+.checkbox-radio-fix-body-width {
+
+  .pf-c-check__body,
+  .pf-c-radio__body {
+    width: 100%;
   }
 }

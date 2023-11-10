@@ -64,7 +64,7 @@ export const mockDashboardConfig = ({
     },
     notebookController: {
       enabled: true,
-      notebookNamespace: 'rhods-notebooks',
+      notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,
         key: 'NotebooksOnlyChange',
@@ -72,7 +72,7 @@ export const mockDashboardConfig = ({
       pvcSize: '20Gi',
     },
     groupsConfig: {
-      adminGroups: 'rhods-admins',
+      adminGroups: 'openshift-ai-admins',
       allowedGroups: 'system:authenticated',
     },
     modelServerSizes: [

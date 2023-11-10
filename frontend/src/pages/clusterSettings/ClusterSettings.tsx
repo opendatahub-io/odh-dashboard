@@ -31,7 +31,7 @@ const ClusterSettings: React.FC = () => {
   const [saving, setSaving] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [clusterSettings, setClusterSettings] = React.useState(DEFAULT_CONFIG);
-  const [pvcSize, setPvcSize] = React.useState<number | string>(DEFAULT_PVC_SIZE);
+  const [pvcSize, setPvcSize] = React.useState<number>(DEFAULT_PVC_SIZE);
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const { dashboardConfig } = useAppContext();

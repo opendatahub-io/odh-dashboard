@@ -15,9 +15,9 @@ import SettingSection from '~/components/SettingSection';
 import { DEFAULT_PVC_SIZE, MAX_PVC_SIZE, MIN_PVC_SIZE } from './const';
 
 type PVCSizeSettingsProps = {
-  initialValue: number | string;
-  pvcSize: number | string;
-  setPvcSize: (size: number | string) => void;
+  initialValue: number;
+  pvcSize: number;
+  setPvcSize: (size: number) => void;
 };
 
 const PVCSizeSettings: React.FC<PVCSizeSettingsProps> = ({ initialValue, pvcSize, setPvcSize }) => {
@@ -57,7 +57,7 @@ all users."
                       : newValue;
                   setPvcSize(newValue);
                 } else {
-                  setPvcSize(modifiedValue);
+                  setPvcSize(0);
                 }
               }}
             />
@@ -79,8 +79,8 @@ all users."
           <HelperText>
             <HelperTextItem
               data-id="pvc-size-helper-text"
-              variant={pvcSize === '' ? 'error' : 'indeterminate'}
-              hasIcon={pvcSize === ''}
+              variant={!pvcSize ? 'error' : 'indeterminate'}
+              hasIcon={!pvcSize}
             >
               Note: PVC size must be between 1 GiB and 16384 GiB.
             </HelperTextItem>
