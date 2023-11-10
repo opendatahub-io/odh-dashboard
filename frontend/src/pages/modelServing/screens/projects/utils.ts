@@ -13,6 +13,7 @@ import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
+  ServingPlatformStatuses,
   ServingRuntimeEditInfo,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
@@ -201,23 +202,33 @@ export const useCreateInferenceServiceObject = (
 
 export const getProjectModelServingPlatform = (
   project: ProjectKind,
-  disableKServe: boolean,
-  disableModelMesh: boolean,
-) => {
+  platformStatuses: ServingPlatformStatuses,
+): { platform?: ServingRuntimePlatform; error?: Error } => {
+  const {
+    kServe: { enabled: kServeEnabled, installed: kServeInstalled },
+    modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
+  } = platformStatuses;
   if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
-    if ((!disableKServe && !disableModelMesh) || (disableKServe && disableModelMesh)) {
-      return undefined;
+    if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
+      return {};
     }
-    if (disableKServe) {
-      return ServingRuntimePlatform.MULTI;
+    if (modelMeshEnabled) {
+      return { platform: ServingRuntimePlatform.MULTI };
     }
-    if (disableModelMesh) {
-      return ServingRuntimePlatform.SINGLE;
+    if (kServeEnabled) {
+      return { platform: ServingRuntimePlatform.SINGLE };
     }
   }
-  return project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true'
-    ? ServingRuntimePlatform.MULTI
-    : ServingRuntimePlatform.SINGLE;
+  if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    return {
+      platform: ServingRuntimePlatform.MULTI,
+      error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
+    };
+  }
+  return {
+    platform: ServingRuntimePlatform.SINGLE,
+    error: kServeInstalled ? undefined : new Error('Single model platform is not installed'),
+  };
 };
 
 export const createAWSSecret = (createData: CreatingInferenceServiceObject): Promise<SecretKind> =>

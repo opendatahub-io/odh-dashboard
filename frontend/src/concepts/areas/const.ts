@@ -23,16 +23,15 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
   },
   [SupportedArea.K_SERVE]: {
-    //featureFlags: ['disableKServe'], // TODO: validate KServe feature flag
+    featureFlags: ['disableKServe'],
     requiredComponents: [StackComponent.K_SERVE],
   },
   [SupportedArea.MODEL_MESH]: {
-    //featureFlags: ['disableModelMesh'], // TODO: validate ModelMesh feature flag
+    featureFlags: ['disableModelMesh'],
     requiredComponents: [StackComponent.MODEL_MESH],
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
-    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_MESH],
   },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],

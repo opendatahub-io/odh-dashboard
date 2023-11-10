@@ -2,27 +2,22 @@ import * as React from 'react';
 import { Button, Icon, Label, LabelGroup, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { useAppContext } from '~/app/AppContext';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const CustomServingRuntimeHeaderLabels: React.FC = () => {
-  const {
-    dashboardConfig: {
-      spec: {
-        dashboardConfig: { disableKServe, disableModelMesh },
-      },
-    },
-  } = useAppContext();
+  const kServeEnabled = useIsAreaAvailable(SupportedArea.K_SERVE).status;
+  const modelMeshEnabled = useIsAreaAvailable(SupportedArea.MODEL_MESH).status;
 
-  if (disableKServe && disableModelMesh) {
+  if (!kServeEnabled && !modelMeshEnabled) {
     return null;
   }
 
   return (
     <>
       <LabelGroup>
-        {!disableKServe && <Label>Single model serving enabled</Label>}
-        {!disableModelMesh && <Label>Multi-model serving enabled</Label>}
+        {kServeEnabled && <Label>Single model serving enabled</Label>}
+        {modelMeshEnabled && <Label>Multi-model serving enabled</Label>}
       </LabelGroup>
       <Popover
         showClose

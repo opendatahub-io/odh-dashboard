@@ -33,6 +33,9 @@ import { AppContext } from '~/app/AppContext';
 import { useApplicationSettings } from '~/app/useApplicationSettings';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
+import { AreaContext } from '~/concepts/areas/AreaContext';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { StackComponent } from '~/concepts/areas';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -181,11 +184,22 @@ const Template: StoryFn<typeof ModelServingPlatform> = (args) => {
   const { dashboardConfig, loaded } = useApplicationSettings();
   return loaded && dashboardConfig ? (
     <AppContext.Provider value={{ buildStatuses: [], dashboardConfig }}>
-      <ProjectsRoutes>
-        <Route path="/" element={<ProjectDetailsContextProvider />}>
-          <Route index element={<ModelServingPlatform {...args} />} />
-        </Route>
-      </ProjectsRoutes>
+      <AreaContext.Provider
+        value={{
+          dscStatus: mockDscStatus({
+            installedComponents: {
+              [StackComponent.K_SERVE]: true,
+              [StackComponent.MODEL_MESH]: true,
+            },
+          }),
+        }}
+      >
+        <ProjectsRoutes>
+          <Route path="/" element={<ProjectDetailsContextProvider />}>
+            <Route index element={<ModelServingPlatform {...args} />} />
+          </Route>
+        </ProjectsRoutes>
+      </AreaContext.Provider>
     </AppContext.Provider>
   ) : (
     <Spinner />
@@ -214,6 +228,20 @@ export const OnlyEnabledModelMeshAndProjectNotLabelled: StoryObj = {
       handlers: getHandlers({
         disableModelMeshConfig: false,
         disableKServeConfig: true,
+        servingRuntimes: [],
+      }),
+    },
+  },
+};
+
+export const NeitherPlatformEnabledAndProjectNotLabelled: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: getHandlers({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
         servingRuntimes: [],
       }),
     },
