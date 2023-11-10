@@ -7,7 +7,6 @@ import {
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import {
   convertPrometheusNaNToZero,
-  per100,
   toPercentage,
 } from '~/pages/modelServing/screens/metrics/utils';
 import {

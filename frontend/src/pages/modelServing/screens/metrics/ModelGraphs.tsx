@@ -6,7 +6,6 @@ import {
   ModelServingMetricsContext,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { per100 } from './utils';
 
 const ModelGraphs: React.FC = () => {
   const { data } = React.useContext(ModelServingMetricsContext);

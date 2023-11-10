@@ -14,6 +14,7 @@ import {
 import { QueryTimeframeStep } from '~/pages/modelServing/screens/const';
 import {
   BiasSelectOption,
+  DomainCalculator,
   GraphMetricLine,
   GraphMetricPoint,
   MetricChartLine,
@@ -321,3 +322,6 @@ export const convertPrometheusNaNToZero = (
   data: PrometheusQueryRangeResultValue[],
 ): PrometheusQueryRangeResultValue[] =>
   data.map((value) => [value[0], isNaN(Number(value[1])) ? '0' : value[1]]);
+
+export const defaultDomainCalculator: DomainCalculator = (maxYValue, minYValue) =>
+  maxYValue === 0 && minYValue === 0 ? { y: [0, 10] } : undefined;

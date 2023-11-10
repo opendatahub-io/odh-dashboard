@@ -42,7 +42,10 @@ export type MetricChartThreshold = {
   label?: string;
 };
 
-export type DomainCalculator = (maxYValue: number, minYValue: number) => ForAxes<DomainTuple>;
+export type DomainCalculator = (
+  maxYValue: number,
+  minYValue: number,
+) => ForAxes<DomainTuple> | undefined;
 
 export enum MetricsChartTypes {
   AREA,
