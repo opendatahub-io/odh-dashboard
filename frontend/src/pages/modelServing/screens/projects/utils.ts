@@ -201,13 +201,16 @@ export const useCreateInferenceServiceObject = (
 };
 
 export const getProjectModelServingPlatform = (
-  project: ProjectKind,
+  project: ProjectKind | undefined,
   platformStatuses: ServingPlatformStatuses,
 ): { platform?: ServingRuntimePlatform; error?: Error } => {
   const {
     kServe: { enabled: kServeEnabled, installed: kServeInstalled },
     modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
   } = platformStatuses;
+  if (project === undefined) {
+    return {};
+  }
   if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
     if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
       return {};

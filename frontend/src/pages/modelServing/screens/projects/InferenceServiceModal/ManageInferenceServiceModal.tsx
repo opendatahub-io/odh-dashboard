@@ -11,6 +11,7 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { getProjectDisplayName } from '~/pages/projects/utils';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
@@ -25,7 +26,7 @@ type ManageInferenceServiceModalProps = {
   {
     projectContext?: {
       currentProject: ProjectKind;
-      currentServingRuntime: ServingRuntimeKind;
+      currentServingRuntime?: ServingRuntimeKind;
       dataConnections: DataConnection[];
     };
   }
@@ -45,7 +46,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (projectContext) {
       const { currentProject, currentServingRuntime } = projectContext;
       setCreateData('project', currentProject.metadata.name);
-      setCreateData('servingRuntimeName', currentServingRuntime.metadata.name);
+      setCreateData('servingRuntimeName', currentServingRuntime?.metadata.name || '');
     }
   }, [projectContext, setCreateData]);
 
@@ -116,10 +117,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
         <Stack hasGutter>
           <StackItem>
             <ProjectSection
-              data={createData}
-              setData={setCreateData}
-              editInfo={editInfo}
-              project={projectContext?.currentProject}
+              projectName={
+                (projectContext?.currentProject &&
+                  getProjectDisplayName(projectContext?.currentProject)) ||
+                editInfo?.metadata.namespace ||
+                ''
+              }
             />
           </StackItem>
           <StackItem>
