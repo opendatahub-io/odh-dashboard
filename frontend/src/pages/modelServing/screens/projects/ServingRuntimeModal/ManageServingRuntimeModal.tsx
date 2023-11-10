@@ -179,7 +179,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     ])
       .then(() =>
         Promise.all<ServingRuntimeKind | string | void>([
-          ...(currentProject.metadata.labels?.['modelmesh-enabled'] && allowCreate
+          ...(currentProject.metadata.labels?.['modelmesh-enabled'] === undefined && allowCreate
             ? [addSupportModelMeshProject(currentProject.metadata.name)]
             : []),
           ...(editInfo?.servingRuntime

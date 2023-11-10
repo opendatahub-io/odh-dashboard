@@ -121,3 +121,8 @@ export type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & 
 export type EitherOrNone<TypeA, TypeB> =
   | EitherNotBoth<TypeA, TypeB>
   | (Never<TypeA> & Never<TypeB>);
+
+export const isInEnum =
+  <T extends { [s: string]: unknown }>(e: T) =>
+  (token: unknown): token is T[keyof T] =>
+    Object.values(e).includes(token as T[keyof T]);
