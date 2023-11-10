@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
-import { getInferenceServiceActiveModelState, getInferenceServiceErrorMessage } from './utils';
+import { getInferenceServiceActiveModelState, getInferenceServiceStatusMessage } from './utils';
 
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
@@ -57,7 +57,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
     <Tooltip
       removeFindDomNode
       role="none"
-      content={<Text>{getInferenceServiceErrorMessage(inferenceService)}</Text>}
+      content={<Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>}
     >
       {StatusIcon()}
     </Tooltip>
