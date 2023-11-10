@@ -88,6 +88,7 @@ const themeProps = {
   chart: { colorScale },
   group: { colorScale },
   legend: { colorScale },
+  stack: { colorScale },
 };
 
 export const SUCCESS_FAIL_CHART_THEME = mergeTheme(ChartThemeColor.default, themeProps);

@@ -6,7 +6,6 @@ import {
   ModelServingMetricsContext,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { SUCCESS_FAIL_CHART_THEME } from '~/pages/modelServing/screens/metrics/const';
 import { per100 } from './utils';
 
 const ModelGraphs: React.FC = () => {
@@ -32,8 +31,9 @@ const ModelGraphs: React.FC = () => {
               translatePoint: per100,
             },
           ]}
+          color="blue"
           title="Http requests (x100)"
-          theme={SUCCESS_FAIL_CHART_THEME}
+          isStack
         />
       </StackItem>
     </Stack>
