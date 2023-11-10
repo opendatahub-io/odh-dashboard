@@ -294,12 +294,14 @@ export type PodKind = K8sResourceCommon & {
   };
 };
 
+/** Assumed Dashboard Project -- if we need more beyond that we should break this type up */
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
+    labels: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
