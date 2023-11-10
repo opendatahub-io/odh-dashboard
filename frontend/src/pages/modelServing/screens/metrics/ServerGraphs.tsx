@@ -28,10 +28,9 @@ const ServerGraphs: React.FC = () => {
             metric: data[
               ServerMetricType.REQUEST_COUNT
             ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-            translatePoint: per100,
           }}
           color="blue"
-          title="Http requests (x100)"
+          title="HTTP requests"
           isStack
         />
       </StackItem>

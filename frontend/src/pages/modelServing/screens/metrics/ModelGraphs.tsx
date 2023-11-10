@@ -21,18 +21,16 @@ const ModelGraphs: React.FC = () => {
               metric: data[
                 ModelMetricType.REQUEST_COUNT_SUCCESS
               ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-              translatePoint: per100,
             },
             {
               name: 'Failed',
               metric: data[
                 ModelMetricType.REQUEST_COUNT_FAILED
               ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-              translatePoint: per100,
             },
           ]}
           color="blue"
-          title="Http requests (x100)"
+          title="HTTP requests"
           isStack
         />
       </StackItem>
