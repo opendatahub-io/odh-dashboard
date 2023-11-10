@@ -10,6 +10,9 @@ images:
   - name: ovms-1
     newName: quay.io/opendatahub/openvino_model_server
     digest: sha256:2cbe8a48ab0bc6fe7fb76919bf33253e83a6218a9c4b486b744c3dcf30679616
-  - name: caikit-1
-    newName: quay.io/opendatahub/caikit-tgis-serving:stable
-    digest: sha256:794adc22d52cb3ac4b5aadfb286e8431cca829acdc4909719329cf8c4fabb4ec
+  - name: caikit-tgis-serving
+    newName: quay.io/opendatahub/caikit-tgis-serving
+    digest: sha256:9d6e8bc10f3b61774f9d321790f8593f6ded5674b64a366248fcde6a07d66833
+  - name: text-generation-inference
+    newName: quay.io/opendatahub/text-generation-inference
+    digest: sha256:54959e3dc0e3bb139e9db5b912143a7dedcef725c55db58cfef0e71dd057e4a5
