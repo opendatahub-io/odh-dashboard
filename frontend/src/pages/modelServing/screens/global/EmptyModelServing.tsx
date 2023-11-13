@@ -16,6 +16,7 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import { ServingRuntimePlatform } from '~/types';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { getProjectDisplayName } from '~/pages/projects/utils';
 import ServeModelButton from './ServeModelButton';
 
 const EmptyModelServing: React.FC = () => {
@@ -47,11 +48,9 @@ const EmptyModelServing: React.FC = () => {
         <EmptyStateSecondaryActions>
           <Button
             variant="link"
-            onClick={() =>
-              navigate(project?.metadata.name ? `/projects/${project.metadata.name}` : '/projects')
-            }
+            onClick={() => navigate(project ? `/projects/${project.metadata.name}` : '/projects')}
           >
-            {project?.metadata.name ? `Go to ${project.metadata.name}` : 'Select a project'}
+            {project ? `Go to ${getProjectDisplayName(project)}` : 'Select a project'}
           </Button>
         </EmptyStateSecondaryActions>
       </EmptyState>

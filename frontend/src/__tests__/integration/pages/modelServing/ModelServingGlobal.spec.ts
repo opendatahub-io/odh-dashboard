@@ -10,7 +10,7 @@ test('Empty State No Serving Runtime', async ({ page }) => {
   await page.waitForSelector('text=No deployed models yet');
 
   // Test that the button is enabled
-  await expect(page.getByRole('button', { name: 'Go to the Projects page' })).toBeTruthy();
+  await expect(page.getByRole('button', { name: 'Go to Test Project' })).toBeTruthy();
 });
 
 test('Empty State No Inference Service', async ({ page }) => {
