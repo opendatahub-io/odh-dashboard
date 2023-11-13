@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import {
+  DashboardConfigKind,
+  InferenceServiceKind,
+  SecretKind,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
@@ -8,7 +13,6 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { DashboardConfig } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -17,7 +21,7 @@ import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCpuLimitEqual, isMemoryLimitEqual } from '~/utilities/valueUnits';
 
-export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
+export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
   if (sizes.length === 0) {
     sizes = DEFAULT_MODEL_SERVER_SIZES;

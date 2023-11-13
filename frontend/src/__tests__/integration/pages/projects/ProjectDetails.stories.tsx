@@ -25,8 +25,39 @@ import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
+import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
+  rest.get(
+    '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+    (req, res, ctx) =>
+      res(
+        ctx.json(
+          mockK8sResourceList([
+            mockImageStreamK8sResource({
+              name: 'test-image',
+              displayName: 'Test image',
+              opts: {
+                spec: {
+                  tags: [
+                    {
+                      name: 'latest',
+                    },
+                  ],
+                },
+                status: {
+                  tags: [
+                    {
+                      tag: 'latest',
+                    },
+                  ],
+                },
+              },
+            }),
+          ]),
+        ),
+      ),
+  ),
   rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
   rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockPodK8sResource({})]))),
@@ -46,13 +77,26 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
           isEmpty
             ? []
             : [
-                mockNotebookK8sResource({}),
                 mockNotebookK8sResource({
-                  name: 'test-size',
-                  displayName: 'Test Size X-small',
-                  resources: {
-                    limits: { cpu: '500m', memory: '500Mi' },
-                    requests: { cpu: '100m', memory: '100Mi' },
+                  opts: {
+                    spec: {
+                      template: {
+                        spec: {
+                          containers: [
+                            {
+                              name: 'test-notebook',
+                              image: 'test-image:latest',
+                            },
+                          ],
+                        },
+                      },
+                    },
+                    metadata: {
+                      name: 'test-notebook',
+                      annotations: {
+                        'opendatahub.io/image-display-name': 'Test image',
+                      },
+                    },
                   },
                 }),
               ],
@@ -173,5 +217,144 @@ export const EmptyDetailsPage: StoryObj = {
     // load page and wait until settled
     const canvas = within(canvasElement);
     await canvas.findByText('No model servers', undefined, { timeout: 5000 });
+  },
+};
+
+export const DisabledImage: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: [
+        rest.get(
+          '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockImageStreamK8sResource({
+                    name: 'test-image',
+                    displayName: 'Test image',
+                    opts: {
+                      metadata: {
+                        labels: {
+                          'opendatahub.io/notebook-image': 'false',
+                        },
+                      },
+                      spec: {
+                        tags: [
+                          {
+                            name: 'latest',
+                          },
+                        ],
+                      },
+                      status: {
+                        tags: [
+                          {
+                            tag: 'latest',
+                          },
+                        ],
+                      },
+                    },
+                  }),
+                ]),
+              ),
+            ),
+        ),
+        ...handlers(false),
+      ],
+    },
+  },
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
+  },
+};
+
+export const DeletedImage: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: [
+        rest.get(
+          '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockImageStreamK8sResource({
+                    name: 'test-image',
+                    displayName: 'Test image',
+                  }),
+                ]),
+              ),
+            ),
+        ),
+        ...handlers(false),
+      ],
+    },
+  },
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
+  },
+};
+
+export const UnknownImage: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: [
+        rest.get(
+          '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+          (req, res, ctx) => res(ctx.json(mockK8sResourceList([]))),
+        ),
+        rest.get(
+          '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockNotebookK8sResource({
+                    opts: {
+                      spec: {
+                        template: {
+                          spec: {
+                            containers: [
+                              {
+                                name: 'test-notebook',
+                                image: 'test-image:latest',
+                              },
+                            ],
+                          },
+                        },
+                      },
+                      metadata: {
+                        name: 'test-notebook',
+                        annotations: {
+                          'opendatahub.io/image-display-name': '',
+                        },
+                      },
+                    },
+                  }),
+                ]),
+              ),
+            ),
+        ),
+        ...handlers(false),
+      ],
+    },
+  },
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
   },
 };

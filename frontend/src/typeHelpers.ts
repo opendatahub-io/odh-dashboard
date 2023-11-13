@@ -12,9 +12,11 @@ export type AnyObject = Record<string, unknown>;
  *
  * TODO: Implement the SDK & Patch logic -- this should stop being needed as things will be defined as Patches
  */
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
+export type RecursivePartial<T> = T extends object
+  ? {
+      [P in keyof T]?: RecursivePartial<T[P]>;
+    }
+  : T;
 
 /**
  * Partial only some properties.
@@ -71,6 +73,32 @@ export type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Neve
  *
  * @example
  * ```ts
+ * type MyType = EitherOrBoth<{ foo: boolean }, { bar: boolean }>;
+ *
+ * // Valid usages:
+ * const objA: MyType = {
+ *   foo: true,
+ * };
+ * const objB: MyType = {
+ *   bar: true,
+ * };
+ * const objBoth: MyType = {
+ *   foo: true,
+ *   bar: true,
+ * };
+ *
+ * // TS Error -- can't omit both properties:
+ * const objNeither: MyType = {
+ * };
+ * ```
+ */
+export type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & TypeB);
+
+/**
+ * Either TypeA properties or TypeB properties or neither of the properties -- never both.
+ *
+ * @example
+ * ```ts
  * type MyType = EitherOrNone<{ foo: boolean }, { bar: boolean }>;
  *
  * // Valid usages:
@@ -93,3 +121,8 @@ export type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Neve
 export type EitherOrNone<TypeA, TypeB> =
   | EitherNotBoth<TypeA, TypeB>
   | (Never<TypeA> & Never<TypeB>);
+
+export const isInEnum =
+  <T extends { [s: string]: unknown }>(e: T) =>
+  (token: unknown): token is T[keyof T] =>
+    Object.values(e).includes(token as T[keyof T]);
