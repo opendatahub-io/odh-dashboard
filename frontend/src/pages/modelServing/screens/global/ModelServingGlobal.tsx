@@ -5,6 +5,7 @@ import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InvalidProject from '~/concepts/projects/InvalidProject';
+import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import EmptyModelServing from './EmptyModelServing';
 import InferenceServiceListView from './InferenceServiceListView';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
@@ -20,19 +21,25 @@ const ModelServingGlobal: React.FC = () => {
     servingRuntimes: { data: servingRuntimes },
     inferenceServices: { data: inferenceServices },
   } = React.useContext(ModelServingContext);
+  const { dataScienceProjects: projects } = React.useContext(ProjectsContext);
 
+  const { namespace } = useParams<{ namespace: string }>();
+  const currentProject = projects.find(byName(namespace));
+  const servingPlatformStatuses = useServingPlatformStatuses();
   const {
     kServe: { installed: kServeInstalled },
     modelMesh: { installed: modelMeshInstalled },
-  } = useServingPlatformStatuses();
+  } = servingPlatformStatuses;
+
+  const { error: notInstalledError } = getProjectModelServingPlatform(
+    currentProject,
+    servingPlatformStatuses,
+  );
 
   const loadError =
     !kServeInstalled && !modelMeshInstalled
       ? new Error('No model serving platform installed')
-      : undefined;
-
-  const { dataScienceProjects: projects } = React.useContext(ProjectsContext);
-  const { namespace } = useParams<{ namespace: string }>();
+      : notInstalledError;
 
   let renderStateProps: ApplicationPageRenderState = {
     empty: false,
@@ -51,7 +58,7 @@ const ModelServingGlobal: React.FC = () => {
         emptyStatePage: <EmptyModelServing />,
       };
     }
-    if (namespace && !projects.find(byName(namespace))) {
+    if (namespace && !currentProject) {
       renderStateProps = {
         empty: true,
         emptyStatePage: (
