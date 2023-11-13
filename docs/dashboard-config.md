@@ -47,6 +47,7 @@ spec:
     disableModelServing: false
     disableProjectSharing: false
     disableCustomServingRuntimes: false
+    disableEdge: false
     modelMetricsNamespace: ''
 ```
 
@@ -136,6 +137,7 @@ spec:
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: false
+    disableEdge: true
     modelMetricsNamespace: ''
   notebookController:
     enabled: true

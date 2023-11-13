@@ -36,6 +36,9 @@ export enum SupportedArea {
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
   MODEL_MESH = 'model-mesh',
+
+  /* Edge */
+  EDGE = 'edge',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

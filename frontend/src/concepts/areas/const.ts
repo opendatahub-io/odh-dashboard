@@ -42,4 +42,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [StackComponent.WORKBENCHES],
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
   },
+  [SupportedArea.EDGE]: {
+    featureFlags: ['disableEdge'],
+  },
 };

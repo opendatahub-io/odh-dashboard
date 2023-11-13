@@ -740,6 +740,7 @@ export type DashboardCommonConfig = {
   disableCustomServingRuntimes: boolean;
   modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableEdge: boolean;
 };
 
 export type OperatorStatus = {

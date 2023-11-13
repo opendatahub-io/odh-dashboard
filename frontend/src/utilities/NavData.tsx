@@ -90,6 +90,15 @@ const useDSPipelinesNav = (): NavDataItem[] => {
   ];
 };
 
+const useEdgeMVPNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.EDGE, [
+    {
+      id: 'edgemvp',
+      group: { id: 'edge', title: 'Edge MVP' },
+      children: [{ id: 'edge-model-registry', label: 'Models', href: '/edge/models' }],
+    },
+  ]);
+
 const useModelServingNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.MODEL_SERVING, [
     { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
@@ -162,6 +171,7 @@ export const useBuildNavData = (): NavDataItem[] => [
   ...useDSProjectsNav(),
   ...useDSPipelinesNav(),
   ...useModelServingNav(),
+  ...useEdgeMVPNav(),
   ...useResourcesNav(),
   ...useSettingsNav(),
 ];
