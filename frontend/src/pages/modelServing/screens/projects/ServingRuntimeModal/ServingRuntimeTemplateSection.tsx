@@ -36,8 +36,8 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
 }) => {
   const options = templates.map((template) => ({
     key: getServingRuntimeNameFromTemplate(template),
-    selectedLabel: getServingRuntimeDisplayNameFromTemplate(template),
-    label: (
+    label: getServingRuntimeDisplayNameFromTemplate(template),
+    dropdownLabel: (
       <Split>
         <SplitItem>
           {<Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />}
