@@ -4,7 +4,7 @@ import { Card, CardBody, CardFooter, CardTitle, Stack, StackItem } from '@patter
 type SettingSectionProps = {
   children: React.ReactNode;
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   footer?: React.ReactNode;
 };
 

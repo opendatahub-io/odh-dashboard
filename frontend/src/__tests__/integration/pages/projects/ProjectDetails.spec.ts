@@ -5,7 +5,7 @@ test('Empty project', async ({ page }) => {
   await page.goto(navigateToStory('pages-projects-projectdetails', 'empty-details-page'));
 
   // wait for page to load
-  await page.waitForSelector('text=No model servers');
+  await page.waitForSelector('text=Models and model servers');
 
   // the dividers number should always 1 less than the section number
   const sections = await page.locator('[data-id="details-page-section"]').all();
