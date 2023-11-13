@@ -15,4 +15,4 @@ images:
     digest: sha256:9d6e8bc10f3b61774f9d321790f8593f6ded5674b64a366248fcde6a07d66833
   - name: text-generation-inference
     newName: quay.io/opendatahub/text-generation-inference
-    digest: sha256:54959e3dc0e3bb139e9db5b912143a7dedcef725c55db58cfef0e71dd057e4a5
+    digest: sha256:efcc60c671a5da62c0251bc543f6de73f6578aac40a9a745eae3f60b0208f9e9
