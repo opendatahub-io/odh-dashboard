@@ -216,7 +216,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
           {!allowCreate && (
             <StackItem>
               <Popover
-                removeFindDomNode
                 showClose
                 bodyContent="Model route and token authorization can only be changed by administrator users."
               >
@@ -235,7 +234,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                   name="alt-form-checkbox-route"
                   isChecked={createData.externalRoute}
                   isDisabled={!allowCreate}
-                  onChange={(check) => {
+                  onChange={(e, check) => {
                     setCreateData('externalRoute', check);
                     if (check && allowCreate) {
                       setCreateData('tokenAuth', check);

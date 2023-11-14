@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { isModelMesh } from '~/pages/modelServing/utils';
-import ResourceActionsColumn from '~/components/ResourceActionsColumn';
 import { getInferenceServiceDisplayName } from './utils';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';

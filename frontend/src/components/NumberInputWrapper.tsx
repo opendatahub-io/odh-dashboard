@@ -9,10 +9,12 @@ type NumberInputWrapperProps = {
 const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   onChange,
   value,
+  validated,
   ...otherProps
 }) => (
   <NumberInput
     {...otherProps}
+    validated={validated}
     value={value}
     onChange={(e) => {
       onChange(parseInt(e.currentTarget.value));

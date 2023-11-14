@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Split, SplitItem } from '@patternfly/react-core';
+import { Split, SplitItem, ValidatedOptions } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import { splitValueUnit, UnitOption, ValueUnitString } from '~/utilities/valueUnits';
 import NumberInputWrapper from './NumberInputWrapper';
@@ -12,6 +12,7 @@ type ValueUnitFieldProps = {
   onChange: (newValue: string) => void;
   options: UnitOption[];
   value: ValueUnitString;
+  validated?: 'default' | 'error' | 'warning' | 'success' | ValidatedOptions | undefined;
 };
 
 const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
@@ -20,6 +21,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
   onChange,
   options,
   value: fullValue,
+  validated,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [currentValue, currentUnitOption] = splitValueUnit(fullValue, options);
@@ -31,6 +33,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
           min={min}
           max={max}
           value={currentValue}
+          validated={validated}
           onChange={(value) => {
             onChange(`${value || min}${currentUnitOption.unit}`);
           }}

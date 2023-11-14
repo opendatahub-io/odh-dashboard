@@ -1,14 +1,6 @@
 import * as React from 'react';
-import {
-  FormGroup,
-  FormSection,
-  Select,
-  SelectOption,
-  Stack,
-  StackItem,
-  Popover,
-  Icon,
-} from '@patternfly/react-core';
+import { FormGroup, FormSection, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {

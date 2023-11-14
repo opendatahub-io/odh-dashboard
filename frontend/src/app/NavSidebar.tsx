@@ -1,6 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Nav, NavExpandable, NavItem, NavList, PageSidebar } from '@patternfly/react-core';
+import {
+  Nav,
+  NavExpandable,
+  NavItem,
+  NavList,
+  PageSidebar,
+  PageSidebarBody,
+} from '@patternfly/react-core';
 import { isNavDataGroup, NavDataGroup, NavDataHref, useBuildNavData } from '~/utilities/NavData';
 
 const checkLinkActiveStatus = (pathname: string, href: string) =>
@@ -46,8 +53,8 @@ const NavSidebar: React.FC = () => {
   const userNavData = useBuildNavData();
 
   return (
-    <PageSidebar
-      nav={
+    <PageSidebar theme="dark">
+      <PageSidebarBody>
         <Nav theme="dark" aria-label="Nav">
           <NavList>
             {userNavData.map((item) =>
@@ -59,9 +66,8 @@ const NavSidebar: React.FC = () => {
             )}
           </NavList>
         </Nav>
-      }
-      theme="dark"
-    />
+      </PageSidebarBody>
+    </PageSidebar>
   );
 };
 

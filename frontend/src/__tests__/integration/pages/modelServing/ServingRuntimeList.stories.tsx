@@ -28,7 +28,6 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mock404Error } from '~/__mocks__/mock404Error';
 import useDetectUser from '~/utilities/useDetectUser';
 import { AppContext } from '~/app/AppContext';
 import { useApplicationSettings } from '~/app/useApplicationSettings';
