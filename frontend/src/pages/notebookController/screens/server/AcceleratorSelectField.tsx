@@ -80,9 +80,9 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
 
     return {
       key: ac.metadata.name,
-      selectedLabel: displayName,
+      label: displayName,
       description: ac.spec.description,
-      label: (
+      dropdownLabel: (
         <Split>
           <SplitItem>{displayName}</SplitItem>
           <SplitItem isFilled />
