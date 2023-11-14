@@ -37,8 +37,8 @@ const DependencyMissingPage = React.lazy(
   () => import('../pages/dependencies/DependencyMissingPage'),
 );
 
-const AcceleratorProfiles = React.lazy(
-  () => import('../pages/acceleratorProfiles/AcceleratorProfiles'),
+const AcceleratorProfileRoutes = React.lazy(
+  () => import('../pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
 );
 
 const AppRoutes: React.FC = () => {
@@ -80,7 +80,7 @@ const AppRoutes: React.FC = () => {
           <>
             <Route path="/notebookImages" element={<BYONImagesPage />} />
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
-            <Route path="/acceleratorProfiles" element={<AcceleratorProfiles />} />
+            <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>

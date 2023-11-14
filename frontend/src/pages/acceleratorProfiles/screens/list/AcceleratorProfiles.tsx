@@ -13,6 +13,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
 import { useDashboardNamespace } from '~/redux/selectors';
@@ -22,6 +23,8 @@ const description = `Manage accelerator profile settings for users in your organ
 const AcceleratorProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [accelerators, loaded, loadError] = useAccelerators(dashboardNamespace);
+
+  const navigate = useNavigate();
 
   const isEmpty = !accelerators || accelerators.length === 0;
 
@@ -40,7 +43,7 @@ const AcceleratorProfiles: React.FC = () => {
         <Button
           data-id="display-accelerator-modal-button"
           variant={ButtonVariant.primary}
-          onClick={() => undefined}
+          onClick={() => navigate('/acceleratorProfiles/create')}
         >
           Add new accelerator profile
         </Button>

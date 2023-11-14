@@ -1,5 +1,6 @@
 import { IMAGE_ANNOTATIONS } from '../../../utils/constants';
 import { convertLabelsToString } from '../../../utils/componentUtils';
+import { translateDisplayNameForK8s } from '../../../utils/resourceUtils';
 import {
   ImageStreamTag,
   ImageTagInfo,
@@ -12,13 +13,6 @@ import {
 } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
-
-const translateDisplayNameForK8s = (name: string): string =>
-  name
-    .trim()
-    .toLowerCase()
-    .replace(/\s/g, '-')
-    .replace(/[^A-Za-z0-9-]/g, '');
 
 /**
  * This function uses a regex to match the image location string
