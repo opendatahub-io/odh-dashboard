@@ -17,7 +17,7 @@ There are really two types of branches.
   - Core branches (like `main` and `incubation`)
   - [Bot branches](#bot-branches)
 
-Every _new_ commit needs to come from a fork through a PR. We don't allow for pushing new content directly through our flows. New docs file, new code change, and even fixing a typo needs a PR from your fork to get into our repository.
+Every _new_ commit needs to come from a fork through a PR. We don't allow for pushing new content directly through our flows. New docs file, new code change, and even fixing a typo needs a PR from your fork to get into our repository. This ensures automated tests pass before the change is merged.
 
 With that said, there are really 3 types of flows that utilize both fork branches and Upstream branches.
 
@@ -32,6 +32,19 @@ Notes:
 There is only ever 1 `main` and 1 `incubation` branch. Feature branches start with `f/`, and can be as many as needed.
 
 Read more on git tags & releases in our [release documentation].
+
+## Merging upstream branches 
+
+Understanding the commit history on an upstream branch is important. Therefore when merging an upstream branch into another, your PR branch must follow the pattern `merge-<source branch nam>`.
+
+For example when merging `f/some-feature` into `incubation`, name your branch `merge-f/some-feature`. This will result in a commit message on the `incubation` branch of `Merge pull request # from <username>/merge-f/some-feature` when the PR is merged.
+
+Use the following steps to create a PR when merging upstream branches:
+
+- `git checkout -b merge-<source-branch> <target-branch>`
+- `git pull --no-rebase upstream <source-branch>`
+- Resolve all conflicts then post a PR.
+- If the target branch is `main`, wait for the PR to be approved. For all other target branches, apply the `approved` and `lgtm` labels to the PR once all checks pass.
 
 ## Main
 

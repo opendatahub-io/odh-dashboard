@@ -1,6 +1,15 @@
 import * as React from 'react';
-import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
+import {
+  FormGroup,
+  FormSection,
+  Select,
+  SelectOption,
+  Stack,
+  StackItem,
+  Popover,
+  Icon,
+} from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import {
   CreatingServingRuntimeObject,
@@ -20,6 +29,7 @@ type ServingRuntimeSizeSectionProps = {
   servingRuntimeSelected?: ServingRuntimeKind;
   acceleratorState: AcceleratorState;
   setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
+  infoContent?: string;
 };
 
 const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
@@ -29,6 +39,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
   servingRuntimeSelected,
   acceleratorState,
   setAcceleratorState,
+  infoContent,
 }) => {
   const [sizeDropdownOpen, setSizeDropdownOpen] = React.useState(false);
   const [supportedAccelerators, setSupportedAccelerators] = React.useState<string[] | undefined>();
@@ -66,7 +77,18 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
 
   return (
     <FormSection title="Compute resources per replica">
-      <FormGroup label="Model server size">
+      <FormGroup
+        label="Model server size"
+        labelIcon={
+          infoContent ? (
+            <Popover bodyContent={<div>{infoContent}</div>}>
+              <Icon aria-label="Model server size info" role="button">
+                <OutlinedQuestionCircleIcon />
+              </Icon>
+            </Popover>
+          ) : undefined
+        }
+      >
         <Stack hasGutter>
           <StackItem>
             <Select
@@ -101,6 +123,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
             setAcceleratorState={setAcceleratorState}
             supportedAccelerators={supportedAccelerators}
             resourceDisplayName="serving runtime"
+            infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
           />
         </FormGroup>
       )}

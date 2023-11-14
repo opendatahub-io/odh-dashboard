@@ -15,11 +15,13 @@ import InternalServicePopoverContent from './InternalServicePopoverContent';
 type InferenceServiceEndpointProps = {
   inferenceService: InferenceServiceKind;
   servingRuntime?: ServingRuntimeKind;
+  isKserve?: boolean;
 };
 
 const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   inferenceService,
   servingRuntime,
+  isKserve,
 }) => {
   const isRouteEnabled =
     servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime);
@@ -27,9 +29,10 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   const [routeLink, loaded, loadError] = useRouteForInferenceService(
     inferenceService,
     isRouteEnabled,
+    isKserve,
   );
 
-  if (!isRouteEnabled) {
+  if (!isKserve && !isRouteEnabled) {
     return (
       <Popover
         headerContent="Internal Service can be accessed inside the cluster"
@@ -43,7 +46,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     );
   }
 
-  if (!routeLink || !loaded) {
+  if (!loaded) {
     return <Skeleton />;
   }
 
@@ -59,7 +62,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
 
   return (
     <ClipboardCopy hoverTip="Copy" clickTip="Copied" isReadOnly>
-      {`${routeLink}/infer`}
+      {isKserve ? routeLink : `${routeLink}/infer`}
     </ClipboardCopy>
   );
 };

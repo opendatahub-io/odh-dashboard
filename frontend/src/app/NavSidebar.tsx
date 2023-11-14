@@ -1,16 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  Nav,
-  NavExpandable,
-  NavItem,
-  NavList,
-  PageSidebar,
-  PageSidebarBody,
-} from '@patternfly/react-core';
-import { getNavBarData, isNavDataGroup, NavDataGroup, NavDataHref } from '~/utilities/NavData';
-import { useUser } from '~/redux/selectors';
-import { useAppContext } from './AppContext';
+import { Nav, NavExpandable, NavItem, NavList, PageSidebar } from '@patternfly/react-core';
+import { isNavDataGroup, NavDataGroup, NavDataHref, useBuildNavData } from '~/utilities/NavData';
 
 const checkLinkActiveStatus = (pathname: string, href: string) =>
   href.split('/')[1] === pathname.split('/')[1];
@@ -51,27 +42,26 @@ const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pa
 };
 
 const NavSidebar: React.FC = () => {
-  const { dashboardConfig } = useAppContext();
   const routerLocation = useLocation();
-  const { isAdmin } = useUser();
-  const userNavData = getNavBarData(isAdmin, dashboardConfig);
-  const nav = (
-    <Nav theme="dark" aria-label="Nav">
-      <NavList>
-        {userNavData.map((item) =>
-          isNavDataGroup(item) ? (
-            <NavGroup key={item.id} item={item} pathname={routerLocation.pathname} />
-          ) : (
-            <NavHref key={item.id} item={item} pathname={routerLocation.pathname} />
-          ),
-        )}
-      </NavList>
-    </Nav>
-  );
+  const userNavData = useBuildNavData();
+
   return (
-    <PageSidebar theme="dark">
-      <PageSidebarBody>{nav}</PageSidebarBody>
-    </PageSidebar>
+    <PageSidebar
+      nav={
+        <Nav theme="dark" aria-label="Nav">
+          <NavList>
+            {userNavData.map((item) =>
+              isNavDataGroup(item) ? (
+                <NavGroup key={item.id} item={item} pathname={routerLocation.pathname} />
+              ) : (
+                <NavHref key={item.id} item={item} pathname={routerLocation.pathname} />
+              ),
+            )}
+          </NavList>
+        </Nav>
+      }
+      theme="dark"
+    />
   );
 };
 

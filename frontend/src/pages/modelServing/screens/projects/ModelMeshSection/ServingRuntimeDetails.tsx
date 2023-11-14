@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { AppContext } from '~/app/AppContext';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import { getServingRuntimeSizes } from './utils';
-import useServingAccelerator from './useServingAccelerator';
+import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
+import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -19,10 +19,10 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) => {
   const { dashboardConfig } = React.useContext(AppContext);
+  const [accelerator] = useServingAccelerator(obj);
   const container = obj.spec.containers[0]; // can we assume the first container?
   const sizes = getServingRuntimeSizes(dashboardConfig);
   const size = sizes.find((size) => _.isEqual(size.resources, container.resources));
-  const [accelerator] = useServingAccelerator(obj);
 
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>

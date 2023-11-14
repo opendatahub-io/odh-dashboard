@@ -11,7 +11,10 @@ import {
   Stack,
   StackItem,
   InputGroupItem,
+  Popover,
+  Icon,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement } from '~/utilities/utils';
 import { AcceleratorKind } from '~/k8sTypes';
 import SimpleDropdownSelect, { SimpleDropdownOption } from '~/components/SimpleDropdownSelect';
@@ -24,6 +27,7 @@ type AcceleratorSelectFieldProps = {
   setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
   supportedAccelerators?: string[];
   resourceDisplayName?: string;
+  infoContent?: string;
 };
 
 const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
@@ -31,6 +35,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   setAcceleratorState,
   supportedAccelerators,
   resourceDisplayName = 'image',
+  infoContent,
 }) => {
   const [detectedAcceleratorInfo] = useAcceleratorCounts();
 
@@ -150,7 +155,19 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label="Accelerator" fieldId="modal-notebook-accelerator">
+        <FormGroup
+          label="Accelerator"
+          fieldId="modal-notebook-accelerator"
+          labelIcon={
+            infoContent ? (
+              <Popover bodyContent={<div>{infoContent}</div>}>
+                <Icon aria-label="Accelerator info" role="button">
+                  <OutlinedQuestionCircleIcon />
+                </Icon>
+              </Popover>
+            ) : undefined
+          }
+        >
           <SimpleDropdownSelect
             isFullWidth
             options={options}

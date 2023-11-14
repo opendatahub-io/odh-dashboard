@@ -1,7 +1,7 @@
 import { Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockProjectsK8sList } from '~/__mocks__/mockProjectK8sResource';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
@@ -26,7 +26,7 @@ export default {
           (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockNotebookK8sResource({})]))),
         ),
         rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-          res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
+          res(ctx.json(mockProjectsK8sList())),
         ),
         rest.delete(
           '/api/k8s/apis/project.openshift.io/v1/projects/test-project',
@@ -45,6 +45,14 @@ export default {
   },
 } as Meta<typeof ProjectView>;
 
+export const Default: StoryObj = {
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('DS Project 1', undefined, { timeout: 5000 });
+  },
+};
+
 export const EditProject: StoryObj = {
   parameters: {
     a11y: {
@@ -56,7 +64,7 @@ export const EditProject: StoryObj = {
   play: async ({ canvasElement }) => {
     // load page and wait until settled
     const canvas = within(canvasElement);
-    await canvas.findByText('Test Project', undefined, { timeout: 5000 });
+    await canvas.findByText('DS Project 1', undefined, { timeout: 5000 });
 
     // user flow for editing a project
     await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
@@ -74,7 +82,7 @@ export const DeleteProject: StoryObj = {
   play: async ({ canvasElement }) => {
     // load page and wait until settled
     const canvas = within(canvasElement);
-    await canvas.findByText('Test Project', undefined, { timeout: 5000 });
+    await canvas.findByText('DS Project 1', undefined, { timeout: 5000 });
 
     // user flow for deleting a project
     await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
@@ -92,7 +100,7 @@ export const CreateProject: StoryObj = {
   play: async ({ canvasElement }) => {
     // load page and wait until settled
     const canvas = within(canvasElement);
-    await canvas.findByText('Test Project', undefined, { timeout: 5000 });
+    await canvas.findByText('DS Project 1', undefined, { timeout: 5000 });
 
     // user flow for deleting a project
     await userEvent.click(canvas.getByText('Create data science project', { selector: 'button' }));

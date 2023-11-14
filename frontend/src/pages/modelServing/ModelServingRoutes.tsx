@@ -13,6 +13,7 @@ const ModelServingRoutes: React.FC = () => {
     <ProjectsRoutes>
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
+        <Route path="/:namespace?/*" element={<ModelServingGlobal />} />
         <Route
           path="/metrics/:project/:inferenceService"
           element={

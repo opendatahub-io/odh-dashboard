@@ -1,13 +1,12 @@
 import * as _ from 'lodash';
 import { SelectOptionObject } from '@patternfly/react-core/deprecated';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { DashboardConfig } from '~/types';
+import { DashboardConfigKind, InferenceServiceKind } from '~/k8sTypes';
 import { ModelServingMetricType } from './ModelServingMetricsContext';
 
 export const isModelMetricsEnabled = (
   dashboardNamespace: string,
-  dashboardConfig: DashboardConfig,
+  dashboardConfig: DashboardConfigKind,
 ): boolean => {
   if (dashboardNamespace === 'redhat-ods-applications') {
     return true;
