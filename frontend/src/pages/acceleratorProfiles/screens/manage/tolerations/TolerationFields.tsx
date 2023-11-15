@@ -12,7 +12,7 @@ import {
   InputGroupText,
   Popover,
 } from '@patternfly/react-core';
-import { HelpIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { PodToleration, TolerationEffect, TolerationOperator } from '~/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
@@ -97,7 +97,7 @@ export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, 
             bodyContent="Toleration seconds specifies how long a pod can remain bound to a node before being evicted."
           >
             <DashboardPopupIconButton
-              icon={<HelpIcon />}
+              icon={<OutlinedQuestionCircleIcon />}
               aria-label="More info for toleration seconds field"
             />
           </Popover>
