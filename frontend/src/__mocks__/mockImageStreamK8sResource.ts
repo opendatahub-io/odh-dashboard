@@ -15,7 +15,7 @@ export const mockImageStreamK8sResource = ({
   displayName = 'Test Image',
   opts = {},
 }: MockResourceConfigType): ImageStreamKind =>
-  _.merge(
+  _.mergeWith(
     {
       apiVersion: 'image.openshift.io/v1',
       kind: 'ImageStream',
@@ -81,4 +81,8 @@ export const mockImageStreamK8sResource = ({
       },
     } as ImageStreamKind,
     opts,
+    // Make sure tags can be overridden
+    (defaultValue, optsValue) =>
+      // Allow for emptying the array
+      Array.isArray(optsValue) && optsValue.length === 0 ? [] : undefined,
   );
