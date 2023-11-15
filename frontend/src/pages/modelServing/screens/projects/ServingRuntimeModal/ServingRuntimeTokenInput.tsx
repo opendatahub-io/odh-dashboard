@@ -93,10 +93,11 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             icon={<MinusCircleIcon />}
             isDisabled={disabled}
             onClick={() => {
-              setData(
-                'tokens',
-                data.tokens.filter((item) => item.uuid !== token.uuid),
-              );
+              const newTokens = data.tokens.filter((item) => item.uuid !== token.uuid);
+              setData('tokens', newTokens);
+              if (newTokens.length === 0) {
+                setData('tokenAuth', false);
+              }
             }}
           />
         </SplitItem>

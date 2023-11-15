@@ -9,9 +9,15 @@ import {
   EmptyStateVariant,
   EmptyStateActions,
 } from '@patternfly/react-core';
+import { useParams } from 'react-router-dom';
 import { PlusCircleIcon, WrenchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
+import { ServingRuntimePlatform } from '~/types';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { getProjectDisplayName } from '~/pages/projects/utils';
 import ServeModelButton from './ServeModelButton';
 
 const EmptyModelServing: React.FC = () => {
@@ -19,8 +25,17 @@ const EmptyModelServing: React.FC = () => {
   const {
     servingRuntimes: { data: servingRuntimes },
   } = React.useContext(ModelServingContext);
+  const { projects } = React.useContext(ProjectsContext);
+  const { namespace } = useParams<{ namespace: string }>();
+  const servingPlatformStatuses = useServingPlatformStatuses();
 
-  if (servingRuntimes.length === 0) {
+  const project = projects.find(byName(namespace));
+
+  if (
+    getProjectModelServingPlatform(project, servingPlatformStatuses).platform !==
+      ServingRuntimePlatform.SINGLE &&
+    servingRuntimes.length === 0
+  ) {
     return (
       <EmptyState variant={EmptyStateVariant.sm}>
         <EmptyStateHeader
@@ -33,8 +48,11 @@ const EmptyModelServing: React.FC = () => {
           of a project.
         </EmptyStateBody>
         <EmptyStateActions>
-          <Button variant="link" onClick={() => navigate('/projects')}>
-            Select a project
+          <Button
+            variant="link"
+            onClick={() => navigate(project ? `/projects/${project.metadata.name}` : '/projects')}
+          >
+            {project ? `Go to ${getProjectDisplayName(project)}` : 'Select a project'}
           </Button>
         </EmptyStateActions>
       </EmptyState>

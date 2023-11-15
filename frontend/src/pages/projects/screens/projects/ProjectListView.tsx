@@ -8,6 +8,7 @@ import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { ProjectScope } from '~/pages/projects/types';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -16,15 +17,18 @@ import ManageProjectModal from './ManageProjectModal';
 
 type ProjectListViewProps = {
   allowCreate: boolean;
+  scope: ProjectScope;
 };
 
-const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
+const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope }) => {
   const { dashboardConfig } = useAppContext();
-  const { projects: unfilteredProjects, refresh } = React.useContext(ProjectsContext);
+  const { projects, dataScienceProjects, refresh } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
-  const filteredProjects = unfilteredProjects.filter((project) => {
+  const filteredProjects = (
+    scope === ProjectScope.ALL_PROJECTS ? projects : dataScienceProjects
+  ).filter((project) => {
     if (!search) {
       return true;
     }
@@ -63,6 +67,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             </Button>
           </>
         }
+        data-id="project-view-table"
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}

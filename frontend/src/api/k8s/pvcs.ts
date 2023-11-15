@@ -1,47 +1,59 @@
+import * as _ from 'lodash';
 import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
   k8sListResourceItems,
   k8sPatchResource,
+  k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sStatus, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { K8sAPIOptions, K8sStatus, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { PVCModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { CreatingStorageObject } from '~/pages/projects/types';
 
 export const assemblePvc = (
-  pvcName: string,
-  projectName: string,
-  description: string,
-  pvcSize: number,
-): PersistentVolumeClaimKind => ({
-  apiVersion: 'v1',
-  kind: 'PersistentVolumeClaim',
-  metadata: {
-    name: translateDisplayNameForK8s(pvcName),
-    namespace: projectName,
-    labels: {
-      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-    },
-    annotations: {
-      'openshift.io/display-name': pvcName.trim(),
-      'openshift.io/description': description,
-    },
-  },
-  spec: {
-    accessModes: ['ReadWriteOnce'],
-    resources: {
-      requests: {
-        storage: `${pvcSize}Gi`,
+  data: CreatingStorageObject,
+  namespace: string,
+  editName?: string,
+): PersistentVolumeClaimKind => {
+  const {
+    nameDesc: { name: pvcName, description },
+    size,
+  } = data;
+
+  const name = editName || translateDisplayNameForK8s(pvcName);
+
+  return {
+    apiVersion: 'v1',
+    kind: 'PersistentVolumeClaim',
+    metadata: {
+      name,
+      namespace,
+      labels: {
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      },
+      annotations: {
+        'openshift.io/display-name': pvcName.trim(),
+        'openshift.io/description': description,
       },
     },
-    volumeMode: 'Filesystem',
-  },
-  status: {
-    phase: 'Pending',
-  },
-});
+    spec: {
+      accessModes: ['ReadWriteOnce'],
+      resources: {
+        requests: {
+          storage: size,
+        },
+      },
+      volumeMode: 'Filesystem',
+    },
+    status: {
+      phase: 'Pending',
+    },
+  };
+};
 
 export const getPvc = (projectName: string, pvcName: string): Promise<PersistentVolumeClaimKind> =>
   k8sGetResource<PersistentVolumeClaimKind>({
@@ -68,42 +80,30 @@ export const getAvailableMultiUsePvcs = (
     }),
   );
 
-export const createPvc = (data: PersistentVolumeClaimKind): Promise<PersistentVolumeClaimKind> =>
-  k8sCreateResource<PersistentVolumeClaimKind>({ model: PVCModel, resource: data });
-
-export const updatePvcDisplayName = (
-  pvcName: string,
+export const createPvc = (
+  data: CreatingStorageObject,
   namespace: string,
-  displayName: string,
-): Promise<PersistentVolumeClaimKind> =>
-  k8sPatchResource({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: namespace },
-    patches: [
-      {
-        op: 'replace',
-        path: '/metadata/annotations/openshift.io~1display-name',
-        value: displayName,
-      },
-    ],
-  });
+  opts?: K8sAPIOptions,
+): Promise<PersistentVolumeClaimKind> => {
+  const pvc = assemblePvc(data, namespace);
 
-export const updatePvcDescription = (
-  pvcName: string,
+  return k8sCreateResource<PersistentVolumeClaimKind>(
+    applyK8sAPIOptions(opts, { model: PVCModel, resource: pvc }),
+  );
+};
+
+export const updatePvc = (
+  data: CreatingStorageObject,
+  existingData: PersistentVolumeClaimKind,
   namespace: string,
-  description: string,
-): Promise<PersistentVolumeClaimKind> =>
-  k8sPatchResource({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: namespace },
-    patches: [
-      {
-        op: 'replace',
-        path: '/metadata/annotations/openshift.io~1description',
-        value: description,
-      },
-    ],
-  });
+  opts?: K8sAPIOptions,
+): Promise<PersistentVolumeClaimKind> => {
+  const pvc = assemblePvc(data, namespace, existingData.metadata.name);
+
+  return k8sUpdateResource<PersistentVolumeClaimKind>(
+    applyK8sAPIOptions(opts, { model: PVCModel, resource: _.merge({}, existingData, pvc) }),
+  );
+};
 
 export const deletePvc = (pvcName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>({
@@ -115,17 +115,20 @@ export const updatePvcSize = (
   pvcName: string,
   namespace: string,
   size: string,
+  opts?: K8sAPIOptions,
 ): Promise<PersistentVolumeClaimKind> =>
-  k8sPatchResource({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: namespace },
-    patches: [
-      {
-        op: 'replace',
-        path: '/spec/resources/requests',
-        value: {
-          storage: size,
+  k8sPatchResource(
+    applyK8sAPIOptions(opts, {
+      model: PVCModel,
+      queryOptions: { name: pvcName, ns: namespace },
+      patches: [
+        {
+          op: 'replace',
+          path: '/spec/resources/requests',
+          value: {
+            storage: size,
+          },
         },
-      },
-    ],
-  });
+      ],
+    }),
+  );

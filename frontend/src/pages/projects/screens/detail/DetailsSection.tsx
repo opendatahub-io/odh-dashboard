@@ -17,9 +17,10 @@ type DetailsSectionProps = {
   title: string;
   isLoading: boolean;
   loadError?: Error;
-  isEmpty: boolean;
-  emptyState: React.ReactNode;
+  isEmpty?: boolean;
+  emptyState?: React.ReactNode;
   children: React.ReactNode;
+  labels?: React.ReactNode[];
 };
 
 const DetailsSection: React.FC<DetailsSectionProps> = ({
@@ -31,6 +32,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   isLoading,
   loadError,
   title,
+  labels,
 }) => {
   const renderContent = () => {
     if (loadError) {
@@ -66,6 +68,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
             </Title>
           </FlexItem>
           {actions && <FlexItem>{actions}</FlexItem>}
+          {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
         </Flex>
       </StackItem>
       <StackItem>{renderContent()}</StackItem>
