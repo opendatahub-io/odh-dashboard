@@ -15,9 +15,13 @@ import { relativeTime } from '~/utilities/time';
 
 type AcceleratorProfilesTableRow = {
   accelerator: AcceleratorKind;
+  handleDelete: (accelerator: AcceleratorKind) => void;
 };
 
-const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRow> = ({ accelerator }) => {
+const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRow> = ({
+  accelerator,
+  handleDelete,
+}) => {
   const navigate = useNavigate();
   const modifiedDate = accelerator.metadata.annotations?.['opendatahub.io/modified-date'];
 
@@ -65,7 +69,7 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRow> = ({ ac
             },
             {
               title: 'Delete',
-              onClick: () => undefined,
+              onClick: () => handleDelete(accelerator),
             },
           ]}
         />

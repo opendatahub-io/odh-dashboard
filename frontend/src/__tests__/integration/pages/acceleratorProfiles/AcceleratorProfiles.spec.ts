@@ -67,3 +67,21 @@ test('List Accelerator profiles', async ({ page }) => {
   await page.getByLabel('Search input').fill('tensor.com/gpu');
   expect(page.getByText('tensor.com/gpu'));
 });
+
+test('Delete Accelerator profile', async ({ page }) => {
+  await page.goto(
+    navigateToStory('pages-acceleratorprofiles-acceleratorprofiles', 'list-accelerator-profiles'),
+  );
+  await page
+    .getByRole('row', {
+      name: 'Test Accelerator',
+    })
+    .getByRole('button', { name: 'Actions' })
+    .click();
+  await page.getByRole('menuitem', { name: 'Delete' }).click();
+  await expect(page.getByRole('button', { name: 'Delete accelerator profile' })).toBeDisabled();
+  await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Test Accelerator');
+  await expect(page.getByRole('button', { name: 'Delete accelerator profile' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Delete accelerator profile' }).click();
+  expect(page.getByRole('heading', { name: 'Danger alert: Error deleting Test Accelerator' }));
+});
