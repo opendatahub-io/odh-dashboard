@@ -1,13 +1,7 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import _ from 'lodash';
-import {
-  DashboardConfig,
-  PodToleration,
-  TolerationEffect,
-  TolerationOperator,
-  TolerationSettings,
-} from '~/types';
-import { NotebookKind } from '~/k8sTypes';
+import { PodToleration, TolerationEffect, TolerationOperator, TolerationSettings } from '~/types';
+import { DashboardConfigKind, NotebookKind } from '~/k8sTypes';
 import { AcceleratorState } from './useAcceleratorState';
 
 export type TolerationChanges = {
@@ -56,7 +50,7 @@ export const determineTolerations = (
 };
 
 export const computeNotebooksTolerations = (
-  dashboardConfig: DashboardConfig,
+  dashboardConfig: DashboardConfigKind,
   notebook: NotebookKind,
 ): TolerationChanges => {
   const tolerations = notebook.spec.template.spec.tolerations || [];

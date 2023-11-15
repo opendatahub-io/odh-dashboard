@@ -15,7 +15,7 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({ categ
     content = 'Partner managed software is hosted on the ISV’s cloud service';
   } else if (category === OdhApplicationCategory.SelfManaged) {
     content =
-      'Self-managed software is installed to a RHODS cluster, but does not support upgrade testing, alerting, or other features of externally managed software';
+      'Self-managed software is installed to a Red Hat OpenShift AI cluster, but does not support upgrade testing, alerting, or other features of externally managed software';
   }
 
   if (!content) {

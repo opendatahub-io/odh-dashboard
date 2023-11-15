@@ -1,3 +1,9 @@
 .full-width {
 	width: 100%;
 }
+
+// remove this file when https://github.com/patternfly/patternfly/issues/6062 is solved
+.truncate-no-min-width {
+	--pf-c-truncate--MinWidth: 0;
+	--pf-c-truncate__start--MinWidth: 0;
+}

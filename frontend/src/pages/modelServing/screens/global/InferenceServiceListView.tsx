@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { ToolbarItem } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { getInferenceServiceDisplayName, getInferenceServiceProjectDisplayName } from './utils';
-import ServeModelButton from './ServeModelButton';
 import InferenceServiceTable from './InferenceServiceTable';
+import ServeModelButton from './ServeModelButton';
 
 type InferenceServiceListViewProps = {
   inferenceServices: InferenceServiceKind[];
@@ -58,7 +58,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
         toolbarContent={
           <>
             <ToolbarItem>
-              <SearchField
+              <DashboardSearchField
                 types={searchTypes}
                 searchType={searchType}
                 searchValue={search}

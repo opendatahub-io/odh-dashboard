@@ -29,6 +29,7 @@ import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksR
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import AcceleratorSelectField from '~/pages/notebookController/screens/server/AcceleratorSelectField';
 import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -86,13 +87,15 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [existingNotebook, setStorageData]);
 
-  const [data, loaded] = useNotebookImageData(existingNotebook);
+  const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
   React.useEffect(() => {
-    const { imageStream, imageVersion } = data || {};
-    if (loaded && imageStream && imageVersion) {
-      setSelectedImage({ imageStream, imageVersion });
+    if (loaded) {
+      if (data.imageAvailability === NotebookImageAvailability.ENABLED) {
+        const { imageStream, imageVersion } = data;
+        setSelectedImage({ imageStream, imageVersion });
+      }
     }
-  }, [data, loaded]);
+  }, [data, loaded, loadError]);
 
   const { size: notebookSize } = useNotebookDeploymentSize(existingNotebook);
   React.useEffect(() => {
@@ -121,7 +124,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       title={existingNotebook ? `Edit ${editNotebookDisplayName}` : 'Create workbench'}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
+          <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
           <BreadcrumbItem
             render={() => (
               <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>

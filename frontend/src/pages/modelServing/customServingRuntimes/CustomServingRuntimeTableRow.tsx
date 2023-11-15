@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Label } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
+import CustomServingRuntimePlatformsLabelGroup from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
@@ -34,7 +35,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           id: `draggable-row-${servingRuntimeName}`,
         }}
       />
-      <Td dataLabel="Name" width={70} className="pf-u-text-break-word">
+      <Td dataLabel="Name" className="pf-u-text-break-word">
         <ResourceNameTooltip resource={template}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
@@ -42,6 +43,9 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
       </Td>
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />
+      </Td>
+      <Td dataLabel="Serving platforms supported">
+        <CustomServingRuntimePlatformsLabelGroup template={template} />
       </Td>
       <Td isActionCell>
         <ActionsColumn

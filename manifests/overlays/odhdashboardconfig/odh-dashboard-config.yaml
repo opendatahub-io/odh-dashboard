@@ -20,6 +20,8 @@ spec:
     disableCustomServingRuntimes: true
     disableAcceleratorProfiles: true
     modelMetricsNamespace: ''
+    disableKServe: false
+    disableModelMesh: true
   notebookController:
     enabled: true
   notebookSizes:

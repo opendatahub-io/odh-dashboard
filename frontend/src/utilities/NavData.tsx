@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Icon, Split, SplitItem } from '@patternfly/react-core';
-import { DashboardConfig } from '~/types';
-import { featureFlagEnabled } from './utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useAppContext } from '~/app/AppContext';
+import { useUser } from '~/redux/selectors';
 
 type NavDataCommon = {
   id: string;
@@ -28,129 +29,149 @@ export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref =>
 export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
   !!(navData as NavDataGroup)?.children;
 
-const getSettingsNav = (
-  isAdmin: boolean,
-  dashboardConfig: DashboardConfig,
-): NavDataGroup | null => {
-  if (!isAdmin) {
-    return null;
-  }
+const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
+  useIsAreaAvailable(area).status ? success : [];
 
-  const settingsNavs: NavDataHref[] = [];
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableBYONImageStream)) {
-    settingsNavs.push({
-      id: 'settings-notebook-images',
-      label: 'Notebook image settings',
-      href: '/notebookImages',
-    });
-  }
-
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableClusterManager)) {
-    settingsNavs.push({
-      id: 'settings-cluster-settings',
-      label: 'Cluster settings',
-      href: '/clusterSettings',
-    });
-  }
-
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableAcceleratorProfiles)) {
-    settingsNavs.push({
-      id: 'accelerator-profile',
-      label: 'Accelerator profiles',
-      href: '/acceleratorProfiles',
-    });
-  }
-
-  if (
-    featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableCustomServingRuntimes) &&
-    featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableModelServing)
-  ) {
-    settingsNavs.push({
-      id: 'settings-custom-serving-runtimes',
-      label: 'Serving runtimes',
-      href: '/servingRuntimes',
-    });
-  }
-
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableUserManagement)) {
-    settingsNavs.push({
-      id: 'settings-group-settings',
-      label: 'User management',
-      href: '/groupSettings',
-    });
-  }
-
-  if (settingsNavs.length === 0) {
-    return null;
-  }
-
-  return {
-    id: 'settings',
-    group: { id: 'settings', title: 'Settings' },
-    children: settingsNavs,
-  };
-};
-
-export const getNavBarData = (
-  isAdmin: boolean,
-  dashboardConfig: DashboardConfig,
-): NavDataItem[] => {
-  const navItems: NavDataItem[] = [];
-
-  navItems.push({
+const useApplicationsNav = (): NavDataItem[] => [
+  {
     id: 'applications',
     group: { id: 'apps', title: 'Applications' },
     children: [
       { id: 'apps-installed', label: 'Enabled', href: '/' },
       { id: 'apps-explore', label: 'Explore', href: '/explore' },
     ],
-  });
+  },
+];
 
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableProjects)) {
-    navItems.push({ id: 'dsg', label: 'Data Science Projects', href: '/projects' });
+const useDSProjectsNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.DS_PROJECTS_VIEW, [
+    { id: 'dsg', label: 'Data Science Projects', href: '/projects' },
+  ]);
+
+const useDSPipelinesNav = (): NavDataItem[] => {
+  const { dashboardConfig } = useAppContext();
+  const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+
+  if (!isAvailable) {
+    return [];
   }
 
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines)) {
-    const operatorAvailable =
-      dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
+  const operatorAvailable =
+    dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
 
-    if (operatorAvailable) {
-      navItems.push({
+  if (operatorAvailable) {
+    return [
+      {
         id: 'pipelines',
         group: { id: 'pipelines', title: 'Data Science Pipelines' },
         children: [
           { id: 'global-pipelines', label: 'Pipelines', href: '/pipelines' },
           { id: 'global-pipeline-runs', label: 'Runs', href: '/pipelineRuns' },
         ],
-      });
-    } else {
-      navItems.push({
-        id: 'pipelines',
-        label: (
-          <Split hasGutter>
-            <SplitItem>Data Science Pipelines</SplitItem>
-            <SplitItem>
-              <Icon status="danger" isInline>
-                <ExclamationCircleIcon />
-              </Icon>
-            </SplitItem>
-          </Split>
-        ),
-        href: `/dependency-missing/pipelines`,
-      });
-    }
+      },
+    ];
   }
 
-  if (featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableModelServing)) {
-    navItems.push({ id: 'modelServing', label: 'Model Serving', href: '/modelServing' });
-  }
-
-  navItems.push({ id: 'resources', label: 'Resources', href: '/resources' });
-
-  const settingsNav = getSettingsNav(isAdmin, dashboardConfig);
-  if (settingsNav) {
-    navItems.push(settingsNav);
-  }
-
-  return navItems;
+  return [
+    {
+      id: 'pipelines',
+      label: (
+        <Split hasGutter>
+          <SplitItem>Data Science Pipelines</SplitItem>
+          <SplitItem>
+            <Icon status="danger" isInline>
+              <ExclamationCircleIcon />
+            </Icon>
+          </SplitItem>
+        </Split>
+      ),
+      href: `/dependency-missing/pipelines`,
+    },
+  ];
 };
+
+const useModelServingNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.MODEL_SERVING, [
+    { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
+  ]);
+
+const useResourcesNav = (): NavDataHref[] => [
+  { id: 'resources', label: 'Resources', href: '/resources' },
+];
+
+const useCustomNotebooksNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.BYON, [
+    {
+      id: 'settings-notebook-images',
+      label: 'Notebook image settings',
+      href: '/notebookImages',
+    },
+  ]);
+
+const useClusterSettingsNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.CLUSTER_SETTINGS, [
+    {
+      id: 'settings-cluster-settings',
+      label: 'Cluster settings',
+      href: '/clusterSettings',
+    },
+  ]);
+
+const useCustomRuntimesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.CUSTOM_RUNTIMES, [
+    {
+      id: 'settings-custom-serving-runtimes',
+      label: 'Serving runtimes',
+      href: '/servingRuntimes',
+    },
+  ]);
+
+const useUserManagementNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [
+    {
+      id: 'settings-group-settings',
+      label: 'User management',
+      href: '/groupSettings',
+    },
+  ]);
+
+const useAcceleratorProfilesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.ACCELERATOR_PROFILES, [
+    {
+      id: 'settings-accelerator-profiles',
+      label: 'Accelerator profiles',
+      href: '/acceleratorProfiles',
+    },
+  ]);
+
+const useSettingsNav = (): NavDataGroup[] => {
+  const settingsNavs: NavDataHref[] = [
+    ...useCustomNotebooksNav(),
+    ...useClusterSettingsNav(),
+    ...useAcceleratorProfilesNav(),
+    ...useCustomRuntimesNav(),
+    ...useUserManagementNav(),
+  ];
+
+  const { isAdmin } = useUser();
+  if (!isAdmin || settingsNavs.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      id: 'settings',
+      group: { id: 'settings', title: 'Settings' },
+      children: settingsNavs,
+    },
+  ];
+};
+
+export const useBuildNavData = (): NavDataItem[] => [
+  ...useApplicationsNav(),
+  ...useDSProjectsNav(),
+  ...useDSPipelinesNav(),
+  ...useModelServingNav(),
+  ...useResourcesNav(),
+  ...useSettingsNav(),
+];

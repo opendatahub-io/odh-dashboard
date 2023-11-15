@@ -9,10 +9,12 @@ import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { ServingRuntimeModel, TemplateModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { genRandomChars } from '~/utilities/string';
+import { ServingRuntimePlatform } from '~/types';
 
 export const assembleServingRuntimeTemplate = (
   body: string,
   namespace: string,
+  platforms: ServingRuntimePlatform[],
   templateName?: string,
 ): TemplateKind & { objects: ServingRuntimeKind[] } => {
   const servingRuntime: ServingRuntimeKind = YAML.parse(body);
@@ -31,6 +33,9 @@ export const assembleServingRuntimeTemplate = (
       namespace,
       labels: {
         'opendatahub.io/dashboard': 'true',
+      },
+      annotations: {
+        'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
       },
     },
     objects: [servingRuntime],
@@ -86,9 +91,10 @@ const dryRunServingRuntimeForTemplateCreation = (
 export const createServingRuntimeTemplate = async (
   body: string,
   namespace: string,
+  platforms: ServingRuntimePlatform[],
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleServingRuntimeTemplate(body, namespace);
+    const template = assembleServingRuntimeTemplate(body, namespace, platforms);
     const servingRuntime = template.objects[0];
     const servingRuntimeName = servingRuntime.metadata.name;
 
@@ -109,12 +115,14 @@ export const createServingRuntimeTemplate = async (
 };
 
 export const updateServingRuntimeTemplate = (
-  templateName: string,
-  servingRuntimeName: string,
+  existingTemplate: TemplateKind,
   body: string,
   namespace: string,
+  platforms: ServingRuntimePlatform[],
 ): Promise<TemplateKind> => {
   try {
+    const templateName = existingTemplate.metadata.name;
+    const servingRuntimeName = existingTemplate.objects[0].metadata.name;
     const servingRuntime: ServingRuntimeKind = YAML.parse(body);
     if (!servingRuntime.metadata.name) {
       throw new Error('Serving runtime name is required.');
@@ -134,6 +142,19 @@ export const updateServingRuntimeTemplate = (
             path: '/objects/0',
             value: servingRuntime,
           },
+          existingTemplate.metadata.annotations
+            ? {
+                op: 'replace',
+                path: '/metadata/annotations/opendatahub.io~1modelServingSupport',
+                value: JSON.stringify(platforms),
+              }
+            : {
+                op: 'add',
+                path: '/metadata/annotations',
+                value: {
+                  'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+                },
+              },
         ],
       }),
     );
