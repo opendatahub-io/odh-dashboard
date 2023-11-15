@@ -6,7 +6,6 @@ import {
   ModelServingMetricsContext,
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { per100 } from './utils';
 
 const ModelGraphs: React.FC = () => {
   const { data } = React.useContext(ModelServingMetricsContext);
@@ -21,18 +20,16 @@ const ModelGraphs: React.FC = () => {
               metric: data[
                 ModelMetricType.REQUEST_COUNT_SUCCESS
               ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-              translatePoint: per100,
             },
             {
               name: 'Failed',
               metric: data[
                 ModelMetricType.REQUEST_COUNT_FAILED
               ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-              translatePoint: per100,
             },
           ]}
           color="blue"
-          title="Http requests (x100)"
+          title="HTTP requests"
           isStack
         />
       </StackItem>

@@ -40,6 +40,7 @@ import {
 import {
   convertTimestamp,
   createGraphMetricLine,
+  defaultDomainCalculator,
   formatToShow,
   getThresholdData,
   useStableMetrics,
@@ -62,7 +63,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   color,
   metrics: unstableMetrics,
   thresholds = [],
-  domain,
+  domain = defaultDomainCalculator,
   toolbar,
   type = MetricsChartTypes.AREA,
   isStack = false,
@@ -188,7 +189,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
             <Chart
               ariaTitle={title}
               containerComponent={containerComponent}
-              domain={domain ? domain(maxYValue, minYValue) : undefined}
+              domain={domain(maxYValue, minYValue)}
               height={400}
               width={chartWidth}
               padding={{ left: 70, right: 50, bottom: 70, top: 50 }}
