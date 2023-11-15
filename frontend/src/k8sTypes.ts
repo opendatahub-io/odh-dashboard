@@ -294,7 +294,6 @@ export type PodKind = K8sResourceCommon & {
   };
 };
 
-/** Assumed Dashboard Project -- if we need more beyond that we should break this type up */
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &

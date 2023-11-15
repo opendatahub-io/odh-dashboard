@@ -18,6 +18,8 @@ import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { DataConnection } from '~/pages/projects/types';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
+import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
+import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
 import useInferenceServices from './useInferenceServices';
 import useServingRuntimes from './useServingRuntimes';
 import useTemplates from './customServingRuntimes/useTemplates';
@@ -48,6 +50,9 @@ const ModelServingContextProvider: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(namespace)) ?? null;
+  useSyncPreferredProject(project);
   const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
     useTemplates(dashboardNamespace),
   );

@@ -3,7 +3,6 @@ import React from 'react';
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
-// import { expect } from '@storybook/jest';
 import { Route, Routes } from 'react-router-dom';
 import { Spinner } from '@patternfly/react-core';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';

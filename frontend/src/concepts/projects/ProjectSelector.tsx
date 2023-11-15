@@ -3,10 +3,9 @@ import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
-import { ProjectKind } from '~/k8sTypes';
 
 type ProjectSelectorProps = {
-  onSelection: (project: ProjectKind) => void;
+  onSelection: (projectName: string) => void;
   namespace: string;
   invalidDropdownPlaceholder?: string;
   selectAllProjects?: boolean;
@@ -22,7 +21,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   primary,
   filterLabel,
 }) => {
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
   useMountProjectRefresh();
   const selection = projects.find(byName(namespace));
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -54,10 +53,11 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 key={'all-projects'}
                 onClick={() => {
                   setDropdownOpen(false);
-                  onSelection({ metadata: { name: '' } } as ProjectKind);
+                  onSelection('');
+                  updatePreferredProject(null);
                 }}
               >
-                {'All projects'}
+                All projects
               </DropdownItem>,
             ]
           : []),
@@ -66,7 +66,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             key={project.metadata.name}
             onClick={() => {
               setDropdownOpen(false);
-              onSelection(project);
+              onSelection(project.metadata.name);
             }}
           >
             {getProjectDisplayName(project)}
