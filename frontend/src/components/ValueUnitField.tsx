@@ -5,11 +5,20 @@ import { splitValueUnit, UnitOption, ValueUnitString } from '~/utilities/valueUn
 import NumberInputWrapper from './NumberInputWrapper';
 
 type ValueUnitFieldProps = {
-  /** @defaults to unlimited pos/neg */
-  min?: number;
-  /** @defaults to unlimited pos/neg */
-  max?: number;
+  /**
+   * @defaults to unlimited pos/neg
+   * number: simple check before reconverting to unit
+   * string: "I have an existing unit value that I don't want to under"
+   */
+  min?: number | string;
+  /**
+   * @defaults to unlimited pos/neg
+   * number: simple check before reconverting to unit
+   * string: "I have an existing unit value that I don't want to under"
+   */
+  max?: number | string;
   onChange: (newValue: string) => void;
+  onBlur?: (blurValue: string) => void;
   options: UnitOption[];
   value: ValueUnitString;
   validated?: 'default' | 'error' | 'warning' | 'success' | ValidatedOptions | undefined;
@@ -19,23 +28,32 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
   min,
   max,
   onChange,
+  onBlur,
   options,
   value: fullValue,
   validated,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [currentValue, currentUnitOption] = splitValueUnit(fullValue, options);
+  const minAsNumber = typeof min === 'string' ? splitValueUnit(min, options)[0] : min;
+  const maxAsNumber = typeof max === 'string' ? splitValueUnit(max, options)[0] : max;
 
   return (
     <Split hasGutter>
       <SplitItem>
         <NumberInputWrapper
-          min={min}
-          max={max}
+          min={minAsNumber}
+          max={maxAsNumber}
           value={currentValue}
           validated={validated}
+          onBlur={
+            onBlur &&
+            ((value) => {
+              onBlur(`${Math.max(value || minAsNumber)}${currentUnitOption.unit}`);
+            })
+          }
           onChange={(value) => {
-            onChange(`${value || min}${currentUnitOption.unit}`);
+            onChange(`${value || minAsNumber}${currentUnitOption.unit}`);
           }}
         />
       </SplitItem>

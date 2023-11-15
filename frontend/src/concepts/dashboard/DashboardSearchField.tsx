@@ -34,6 +34,7 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
 }) => (
   <InputGroup>
     <SimpleDropdownSelect
+      aria-label="Filter type"
       options={types.map((key) => ({
         key,
         label: key,

@@ -145,7 +145,7 @@ export const EditModal: StoryObj = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: [rest.get('/api/images/byon', (req, res, ctx) => res(ctx.json(mockByon())))],
@@ -156,8 +156,8 @@ export const EditModal: StoryObj = {
     const canvas = within(canvasElement);
     await canvas.findByText('Testing Custom Image', undefined, { timeout: 5000 });
 
-    await canvas.getByRole('button', { name: 'Actions' }).click();
-    await canvas.getByRole('menuitem', { name: 'Edit' }).click();
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Edit'));
   },
 };
 
@@ -166,7 +166,7 @@ export const DeleteModal: StoryObj = {
   render: Template,
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: [rest.get('/api/images/byon', (req, res, ctx) => res(ctx.json(mockByon())))],
@@ -177,8 +177,8 @@ export const DeleteModal: StoryObj = {
     const canvas = within(canvasElement);
     await canvas.findByText('Testing Custom Image', undefined, { timeout: 5000 });
 
-    await canvas.getByRole('button', { name: 'Actions' }).click();
-    await canvas.getByRole('menuitem', { name: 'Delete' }).click();
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Delete'));
   },
 };
 
@@ -187,7 +187,7 @@ export const ImportModal: StoryObj = {
   render: Template,
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: [rest.get('/api/images/byon', (req, res, ctx) => res(ctx.json(mockByon())))],
