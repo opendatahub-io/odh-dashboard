@@ -14,20 +14,23 @@ type PVSizeFieldProps = {
 const PVSizeField: React.FC<PVSizeFieldProps> = ({ fieldID, size, setSize, currentSize }) => (
   <FormGroup label="Persistent storage size" fieldId={fieldID}>
     <ValueUnitField
-      min={1}
+      min={currentSize ?? 1}
+      onBlur={(value) => setSize(value)}
       onChange={(value) => setSize(value)}
       validated={currentSize ? 'warning' : 'default'}
       options={MEMORY_UNITS}
       value={size}
     />
-    <FormHelperText>
-      <HelperText>
-        <HelperTextItem icon={currentSize && <ExclamationTriangleIcon />}>
-          {currentSize &&
-            'Storage size can only be increased. If you do so, the workbench will restart and be unavailable for a period of time that is usually proportional to the size change.'}
-        </HelperTextItem>
-      </HelperText>
-    </FormHelperText>
+    {currentSize && (
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem variant="warning" icon={<ExclamationTriangleIcon />}>
+            Storage size can only be increased. If you do so, the workbench will restart and be
+            unavailable for a period of time that is usually proportional to the size change.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
+    )}
   </FormGroup>
 );
 

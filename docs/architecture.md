@@ -210,7 +210,7 @@ export const EditModel = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
   play: async ({ canvasElement }) => {

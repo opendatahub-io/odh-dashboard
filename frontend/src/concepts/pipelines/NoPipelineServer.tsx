@@ -3,8 +3,6 @@ import {
   EmptyState,
   EmptyStateIcon,
   EmptyStateBody,
-  Flex,
-  FlexItem,
   EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
@@ -16,20 +14,15 @@ type NoPipelineServerProps = {
 };
 
 const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant }) => (
-  <EmptyState>
+  <EmptyState variant={variant === 'primary' ? undefined : 'xs'}>
     <EmptyStateHeader
       titleText="No pipeline server"
       icon={<EmptyStateIcon icon={WrenchIcon} />}
-      headingLevel="h2"
+      headingLevel="h3"
     />
     <EmptyStateBody>To import a pipeline, first create a pipeline server.</EmptyStateBody>
     <EmptyStateFooter>
-      <Flex direction={{ default: 'column' }}>
-        <FlexItem spacer={{ default: 'spacerLg' }} />
-        <FlexItem>
-          <CreatePipelineServerButton variant={variant} />
-        </FlexItem>
-      </Flex>
+      <CreatePipelineServerButton variant={variant} />
     </EmptyStateFooter>
   </EmptyState>
 );
