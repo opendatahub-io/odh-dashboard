@@ -7,16 +7,24 @@ import { Table } from '~/components/table';
 import AcceleratorProfilesTableRow from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTableRow';
 import { AcceleratorKind } from '~/k8sTypes';
 import { columns } from '~/pages/acceleratorProfiles/screens/list/const';
+import DeleteAcceleratorProfileModal from './DeleteAcceleratorProfileModal';
 
 type AcceleratorProfilesTableProps = {
-  accelerators: AcceleratorKind[];
+  acceleratorProfiles: AcceleratorKind[];
+  refreshAcceleratorProfiles: () => void;
 };
 
-const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({ accelerators }) => {
+const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
+  acceleratorProfiles,
+  refreshAcceleratorProfiles,
+}) => {
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
-  const filteredAcceleratorProfiles = accelerators.filter((accelerator) => {
+  const [deleteAcceleratorProfile, setDeleteAcceleratorProfile] = React.useState<
+    AcceleratorKind | undefined
+  >();
+  const filteredAcceleratorProfiles = acceleratorProfiles.filter((accelerator) => {
     if (!search) {
       return true;
     }
@@ -34,41 +42,56 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({ acc
   const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.IDENTIFIER], []);
 
   return (
-    <Table
-      id="accelerator-profile-table"
-      enablePagination
-      data={filteredAcceleratorProfiles}
-      columns={columns}
-      emptyTableView={<DashboardEmptyTableView onClearFilters={() => setSearch('')} />}
-      rowRenderer={(accelerator) => (
-        <AcceleratorProfilesTableRow key={accelerator.metadata.name} accelerator={accelerator} />
-      )}
-      toolbarContent={
-        <>
-          <ToolbarItem>
-            <DashboardSearchField
-              types={searchTypes}
-              searchType={searchType}
-              searchValue={search}
-              onSearchTypeChange={(searchType) => {
-                setSearchType(searchType);
-              }}
-              onSearchValueChange={(searchValue) => {
-                setSearch(searchValue);
-              }}
-            />
-          </ToolbarItem>
-          <ToolbarItem>
-            <Button
-              data-id="create-accelerator-profile"
-              onClick={() => navigate(`/acceleratorProfiles/create`)}
-            >
-              Create accelerator profile
-            </Button>
-          </ToolbarItem>
-        </>
-      }
-    />
+    <>
+      <Table
+        id="accelerator-profile-table"
+        enablePagination
+        data={filteredAcceleratorProfiles}
+        columns={columns}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={() => setSearch('')} />}
+        rowRenderer={(accelerator) => (
+          <AcceleratorProfilesTableRow
+            key={accelerator.metadata.name}
+            accelerator={accelerator}
+            handleDelete={(acceleratorProfile) => setDeleteAcceleratorProfile(acceleratorProfile)}
+          />
+        )}
+        toolbarContent={
+          <>
+            <ToolbarItem>
+              <DashboardSearchField
+                types={searchTypes}
+                searchType={searchType}
+                searchValue={search}
+                onSearchTypeChange={(searchType) => {
+                  setSearchType(searchType);
+                }}
+                onSearchValueChange={(searchValue) => {
+                  setSearch(searchValue);
+                }}
+              />
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button
+                data-id="create-accelerator-profile"
+                onClick={() => navigate(`/acceleratorProfiles/create`)}
+              >
+                Create accelerator profile
+              </Button>
+            </ToolbarItem>
+          </>
+        }
+      />
+      <DeleteAcceleratorProfileModal
+        acceleratorProfile={deleteAcceleratorProfile}
+        onClose={(deleted) => {
+          if (deleted) {
+            refreshAcceleratorProfiles();
+          }
+          setDeleteAcceleratorProfile(undefined);
+        }}
+      />
+    </>
   );
 };
 

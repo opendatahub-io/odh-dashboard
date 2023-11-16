@@ -20,7 +20,7 @@ const description = `Manage accelerator profile settings for users in your organ
 
 const AcceleratorProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [accelerators, loaded, loadError] = useAccelerators(dashboardNamespace);
+  const [accelerators, loaded, loadError, refresh] = useAccelerators(dashboardNamespace);
 
   const navigate = useNavigate();
 
@@ -60,7 +60,10 @@ const AcceleratorProfiles: React.FC = () => {
       emptyStatePage={noAcceleratorProfilePageSection}
       provideChildrenPadding
     >
-      <AcceleratorProfilesTable accelerators={accelerators} />
+      <AcceleratorProfilesTable
+        acceleratorProfiles={accelerators}
+        refreshAcceleratorProfiles={refresh}
+      />
     </ApplicationsPage>
   );
 };
