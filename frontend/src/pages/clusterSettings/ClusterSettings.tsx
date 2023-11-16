@@ -35,7 +35,7 @@ const ClusterSettings: React.FC = () => {
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const { dashboardConfig } = useAppContext();
-  const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
+  const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
   const isJupyterEnabled = useCheckJupyterEnabled();
   const [notebookTolerationSettings, setNotebookTolerationSettings] =
     React.useState<NotebookTolerationFormSettings>({
