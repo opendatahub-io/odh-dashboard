@@ -50,4 +50,20 @@ test('List Accelerator profiles', async ({ page }) => {
     .locator('td:nth-child(2)')
     .allInnerTexts();
   await expect(firstRowIdentifier[0]).toBe('nvidia.com/gpu');
+
+  // Check create button
+  expect(page.getByRole('button', { name: 'Create accelerator profile' })).toBeTruthy();
+
+  // Check filters
+  // by name
+  expect(page.getByRole('button', { name: 'Options menu' })).toBeTruthy();
+  await page.getByLabel('Search input').fill('TensorRT');
+  expect(page.getByText('TensorRT'));
+
+  // by identifier
+  await page.getByRole('button', { name: 'Reset' }).click();
+  page.getByRole('button', { name: 'Options menu' }).click();
+  await page.getByRole('option', { name: 'Identifier' }).click();
+  await page.getByLabel('Search input').fill('tensor.com/gpu');
+  expect(page.getByText('tensor.com/gpu'));
 });
