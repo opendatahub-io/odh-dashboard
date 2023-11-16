@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getInferenceServiceContext } from '~/api';
+import { listInferenceService } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
@@ -13,7 +13,7 @@ const useInferenceServices = (namespace?: string): FetchState<InferenceServiceKi
       return Promise.reject(new NotReadyError('Model serving is not enabled'));
     }
 
-    return getInferenceServiceContext(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE);
+    return listInferenceService(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE);
   }, [namespace, modelServingEnabled]);
 
   return useFetchState<InferenceServiceKind[]>(getServingInferences, []);

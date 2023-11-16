@@ -11,7 +11,6 @@ import { InferenceServiceKind, K8sAPIOptions, K8sStatus, KnownLabels } from '~/k
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { getModelServingProjects } from './projects';
 
 export const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
@@ -75,31 +74,6 @@ export const listInferenceService = (
     model: InferenceServiceModel,
     queryOptions,
   }).then((listResource) => listResource.items);
-};
-
-export const listScopedInferenceService = (
-  labelSelector?: string,
-): Promise<InferenceServiceKind[]> =>
-  getModelServingProjects().then((projects) =>
-    Promise.all(
-      projects.map((project) => listInferenceService(project.metadata.name, labelSelector)),
-    ).then((listInferenceService) =>
-      _.flatten(
-        listInferenceService.map((projectInferenceServices) =>
-          _.uniqBy(projectInferenceServices, (is) => is.metadata.name),
-        ),
-      ),
-    ),
-  );
-
-export const getInferenceServiceContext = (
-  namespace?: string,
-  labelSelector?: string,
-): Promise<InferenceServiceKind[]> => {
-  if (namespace) {
-    return listInferenceService(namespace, labelSelector);
-  }
-  return listScopedInferenceService(labelSelector);
 };
 
 export const getInferenceService = (

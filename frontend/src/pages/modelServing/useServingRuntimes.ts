@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getServingRuntimeContext } from '~/api';
+import { listServingRuntimes } from '~/api';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
@@ -20,7 +20,7 @@ const useServingRuntimes = (
       return Promise.reject(new NotReadyError('Fetch is not ready'));
     }
 
-    return getServingRuntimeContext(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE).catch((e) => {
+    return listServingRuntimes(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE).catch((e) => {
       if (e.statusObject?.code === 404) {
         throw new Error('Model serving is not properly configured.');
       }

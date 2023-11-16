@@ -1,4 +1,3 @@
-import * as _ from 'lodash';
 import {
   k8sCreateResource,
   k8sDeleteResource,
@@ -19,7 +18,6 @@ import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { AcceleratorState } from '~/utilities/useAcceleratorState';
-import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
 export const assembleServingRuntime = (
@@ -146,25 +144,6 @@ export const listServingRuntimes = (
     model: ServingRuntimeModel,
     queryOptions,
   }).then((listResource) => listResource.items);
-};
-
-export const listScopedServingRuntimes = (labelSelector?: string): Promise<ServingRuntimeKind[]> =>
-  getModelServingProjects().then((projects) =>
-    Promise.all(
-      projects.map((project) => listServingRuntimes(project.metadata.name, labelSelector)),
-    ).then((listServingRuntimes) =>
-      _.uniqBy(_.flatten(listServingRuntimes), (sr) => sr.metadata.name),
-    ),
-  );
-
-export const getServingRuntimeContext = (
-  namespace?: string,
-  labelSelector?: string,
-): Promise<ServingRuntimeKind[]> => {
-  if (namespace) {
-    return listServingRuntimes(namespace, labelSelector);
-  }
-  return listScopedServingRuntimes(labelSelector);
 };
 
 export const getServingRuntime = (name: string, namespace: string): Promise<ServingRuntimeKind> =>
