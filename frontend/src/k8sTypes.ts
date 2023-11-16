@@ -65,6 +65,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/notebook-software': string;
   'opendatahub.io/workbench-image-recommended': string;
   'opendatahub.io/default-image': string;
+  'opendatahub.io/image-tag-outdated': string;
 }>;
 
 export type NotebookAnnotations = Partial<{
