@@ -6,6 +6,31 @@ test('Cluster settings', async ({ page }) => {
   // wait for page to load
   await page.waitForSelector('text=Save changes');
   const submitButton = page.locator('[data-id="submit-cluster-settings"]');
+
+  // check serving platform field
+  const singlePlatformCheckbox = page.locator(
+    '[data-id="single-model-serving-platform-enabled-checkbox"]',
+  );
+  const multiPlatformCheckbox = page.locator(
+    '[data-id="multi-model-serving-platform-enabled-checkbox"]',
+  );
+  const warningAlert = page.locator('[data-id="serving-platform-warning-alert"]');
+  await expect(singlePlatformCheckbox).toBeChecked();
+  await expect(multiPlatformCheckbox).toBeChecked();
+  await expect(submitButton).toBeDisabled();
+  await multiPlatformCheckbox.uncheck();
+  await expect(warningAlert).toBeVisible();
+  expect(warningAlert.getByLabel('Info Alert')).toBeTruthy();
+  await expect(submitButton).toBeEnabled();
+  await singlePlatformCheckbox.uncheck();
+  expect(warningAlert.getByLabel('Warning Alert')).toBeTruthy();
+  await multiPlatformCheckbox.check();
+  await expect(warningAlert).toBeVisible();
+  expect(warningAlert.getByLabel('Info Alert')).toBeTruthy();
+  await singlePlatformCheckbox.check();
+  await expect(warningAlert).toBeHidden();
+  await expect(submitButton).toBeDisabled();
+
   // check PVC size field
   const pvcInputField = page.locator('[data-id="pvc-size-input"]');
   const pvcHint = page.locator('[data-id="pvc-size-helper-text"]');

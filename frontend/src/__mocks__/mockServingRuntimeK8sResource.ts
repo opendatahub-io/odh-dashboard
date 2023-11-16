@@ -49,7 +49,7 @@ export const mockServingRuntimeK8sResourceLegacy = ({
           '--rest_bind_address=127.0.0.1',
         ],
         image:
-          'registry.redhat.io/rhods/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
+          'registry.redhat.io/openshift-ai/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
         name: 'ovms',
         resources: {
           limits: {
@@ -127,7 +127,7 @@ export const mockServingRuntimeK8sResource = ({
           '--rest_bind_address=127.0.0.1',
         ],
         image:
-          'registry.redhat.io/rhods/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
+          'registry.redhat.io/openshift-ai/odh-openvino-servingruntime-rhel8@sha256:8af20e48bb480a7ba1ee1268a3cf0a507e05b256c5fcf988f8e4a3de8b87edc6',
         name: 'ovms',
         resources: {
           limits: {

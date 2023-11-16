@@ -10,12 +10,12 @@ test('Empty State No Serving Runtime', async ({ page }) => {
   await page.waitForSelector('text=No deployed models yet');
 
   // Test that the button is enabled
-  await expect(page.getByRole('button', { name: 'Go to the Projects page' })).toBeTruthy();
+  await expect(page.getByRole('button', { name: 'Go to Test Project' })).toBeTruthy();
 });
 
 test('Empty State No Inference Service', async ({ page }) => {
   await page.goto(
-    navigateToStory('pages-modelserving-modelservingglobal', 'empty-state-no-inference-service'),
+    navigateToStory('pages-modelserving-modelservingglobal', 'empty-state-no-inference-services'),
   );
 
   // wait for page to load
@@ -25,7 +25,7 @@ test('Empty State No Inference Service', async ({ page }) => {
   await page.getByRole('button', { name: 'Deploy model' }).click();
 
   // test that you can not submit on empty
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 });
 
 test('Delete model', async ({ page }) => {
@@ -48,7 +48,7 @@ test('Edit model', async ({ page }) => {
   await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'edit-model'));
 
   // wait for page to load
-  await page.waitForSelector('text=Deploy model');
+  await page.waitForSelector('text=Deployed models');
 
   // test that you can not submit on empty
   await await page.getByLabel('Model Name *').fill('');
@@ -75,88 +75,90 @@ test('Edit model', async ({ page }) => {
     .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
     .fill('test-secret-key');
   await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_BUCKET' }).fill('test-bucket');
   await page.getByLabel('Path').fill('test-model/');
   await expect(page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
 test('Create model', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'deploy-model'));
+  await page.goto(
+    navigateToStory('pages-modelserving-modelservingglobal', 'deploy-model-model-mesh'),
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Deploy model');
 
   // test that you can not submit on empty
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
   // test filling in minimum required fields
-  await page.locator('#existing-project-selection').click();
-  await page.getByRole('option', { name: 'Test Project' }).click();
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#inference-service-model-selection').click();
   await page.getByRole('option', { name: 'ovms' }).click();
   await expect(page.getByText('Model framework (name - version)')).toBeTruthy();
   await page.locator('#inference-service-framework-selection').click();
   await page.getByRole('option', { name: 'onnx - 1' }).click();
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
   await page
     .getByRole('group', { name: 'Model location' })
     .getByRole('button', { name: 'Options menu' })
     .click();
   await page.getByRole('option', { name: 'Test Secret' }).click();
   await page.getByLabel('Path').fill('test-model/');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
   await page.getByText('New data connection').click();
   await page.getByLabel('Path').fill('');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
   await page.getByLabel('Path').fill('/');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Field list Name' }).fill('Test Name');
   await page.getByRole('textbox', { name: 'Field list AWS_ACCESS_KEY_ID' }).fill('test-key');
   await page
     .getByRole('textbox', { name: 'Field list AWS_SECRET_ACCESS_KEY' })
     .fill('test-secret-key');
   await page.getByRole('textbox', { name: 'Field list AWS_S3_ENDPOINT' }).fill('test-endpoint');
+  await page.getByRole('textbox', { name: 'Field list AWS_S3_BUCKET' }).fill('test-bucket');
   await page.getByLabel('Path').fill('test-model/');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
 test('Create model error', async ({ page }) => {
-  await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'deploy-model'));
+  await page.goto(
+    navigateToStory('pages-modelserving-modelservingglobal', 'deploy-model-model-mesh'),
+  );
 
   // wait for page to load
   await page.waitForSelector('text=Deploy model');
 
   // test that you can not submit on empty
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
   // test filling in minimum required fields
-  await page.locator('#existing-project-selection').click();
-  await page.getByRole('option', { name: 'Test Project' }).click();
   await page.getByLabel('Model Name *').fill('trigger-error');
   await page.locator('#inference-service-model-selection').click();
   await page.getByRole('option', { name: 'ovms' }).click();
   await expect(page.getByText('Model framework (name - version)')).toBeTruthy();
   await page.locator('#inference-service-framework-selection').click();
   await page.getByRole('option', { name: 'onnx - 1' }).click();
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
   await page
     .getByRole('group', { name: 'Model location' })
     .getByRole('button', { name: 'Options menu' })
     .click();
   await page.getByRole('option', { name: 'Test Secret' }).click();
   await page.getByLabel('Path').fill('test-model/');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
   await page.getByLabel('Path').fill('test-model/');
-  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 
   // Submit and check the invalid error message
-  await page.getByRole('button', { name: 'Deploy' }).click();
+  await page.getByRole('button', { name: 'Deploy', exact: true }).click();
   await page.waitForSelector('text=Error creating model server');
 
   // Close the modal
-  await page.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
   // Check that the error message is gone
-  await page.getByRole('button', { name: 'Deploy model' }).click();
+  await page.getByRole('button', { name: 'Deploy model', exact: true }).click();
   expect(await page.isVisible('text=Error creating model server')).toBeFalsy();
 });
