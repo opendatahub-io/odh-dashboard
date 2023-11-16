@@ -14,7 +14,7 @@ type NoPipelineServerProps = {
 };
 
 const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant }) => (
-  <EmptyState variant={variant === 'primary' ? undefined : 'xs'}>
+  <EmptyState variant="sm">
     <EmptyStateHeader
       titleText="No pipeline server"
       icon={<EmptyStateIcon icon={WrenchIcon} />}

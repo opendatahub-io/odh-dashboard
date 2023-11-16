@@ -174,6 +174,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       className={cardClasses}
       isSelected={selected}
       isSelectable={!disabled}
+      isClickable
     >
       <CardHeader
         actions={{
@@ -197,7 +198,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       >
         <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} />
       </CardHeader>
-      <SupportedAppTitle odhApp={odhApp} />
+      <SupportedAppTitle isPlain odhApp={odhApp} />
       <CardBody>
         {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
         odhApp.spec.category &&

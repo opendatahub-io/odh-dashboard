@@ -33,9 +33,8 @@
   }
   &__link {
     font-size: var(--pf-v5-global--FontSize--sm) !important;
-    > svg {
+    svg {
       font-size: var(--pf-v5-global--FontSize--xs) !important;
-      margin-left: var(--pf-v5-global--spacer--xs);
     }
   }
 

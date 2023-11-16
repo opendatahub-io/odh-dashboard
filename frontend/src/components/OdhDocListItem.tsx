@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import { Icon, Tooltip } from '@patternfly/react-core';
+import { Button, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhDocument, OdhDocumentType } from '~/types';
 import { getQuickStartLabel, launchQuickStart } from '~/utilities/quickStartUtils';
@@ -69,14 +69,18 @@ const OdhDocListItem: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFav
       ? { target: 'noopener noreferrer', rel: 'noopener noreferrer' }
       : { onClick };
     return (
-      <a className="odh-list-item__link" href={href} {...linkProps}>
+      <Button
+        component="a"
+        isInline
+        href={href}
+        className="odh-list-item__link"
+        variant="link"
+        icon={external && <ExternalLinkAltIcon />}
+        iconPosition="end"
+        {...linkProps}
+      >
         {title}
-        {external ? (
-          <Icon isInline>
-            <ExternalLinkAltIcon />
-          </Icon>
-        ) : null}
-      </a>
+      </Button>
     );
   };
 

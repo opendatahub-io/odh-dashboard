@@ -24,7 +24,7 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
 }) => (
   <FormGroup isRequired label="Mount folder name">
     <InputGroup>
-      <InputGroupText>/</InputGroupText>
+      <InputGroupText isPlain>/</InputGroupText>
       <InputGroupItem isFill>
         <TextInput
           isRequired
@@ -50,8 +50,9 @@ const MountPathField: React.FC<MountPathFieldProps> = ({
     <FormHelperText>
       <HelperText>
         <HelperTextItem variant={mountPath.error ? 'error' : 'default'}>
-          {mountPath.error ??
-            'Enter a path to a model or folder. This path cannot point to a root folder.'}
+          {mountPath.error
+            ? 'Enter a path to a model or folder. This path cannot point to a root folder.'
+            : 'Must consist of lower case letters and dashes.'}
         </HelperTextItem>
       </HelperText>
     </FormHelperText>

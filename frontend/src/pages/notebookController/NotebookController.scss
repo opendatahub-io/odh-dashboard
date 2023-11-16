@@ -87,6 +87,9 @@
       &-package-title {
         font-weight: var(--pf-v5-global--FontWeight--bold);
       }
+      &-icon {
+        padding-left: 0px;
+      }
     }
   }
   &__start-server-modal {

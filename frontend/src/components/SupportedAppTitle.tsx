@@ -8,12 +8,14 @@ type SupportedAppTitleProps = {
   odhApp: OdhApplication;
   showProvider?: boolean;
   onClick?: () => void;
+  isPlain?: boolean;
 };
 
 const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({
   odhApp,
   showProvider = false,
   onClick,
+  isPlain,
 }) => {
   let title = odhApp.spec.displayName;
   let icon;
@@ -23,9 +25,14 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({
     title = `${splitTitle.slice(0, -1).join(' ')} `;
     icon = (
       <span style={{ whiteSpace: 'nowrap' }}>
-        <Button variant="link" onClick={onClick} isInline>
-          {splitTitle[splitTitle.length - 1]}
-        </Button>
+        {onClick ? (
+          <Button variant={isPlain ? 'plain' : 'link'} onClick={onClick} isInline>
+            {splitTitle[splitTitle.length - 1]}
+          </Button>
+        ) : (
+          splitTitle[splitTitle.length - 1]
+        )}
+
         <Tooltip content={`${ODH_PRODUCT_NAME} certified and supported`}>
           <Button variant="plain" style={{ padding: 0 }}>
             <img
@@ -41,13 +48,7 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({
 
   return (
     <CardTitle>
-      {onClick ? (
-        <Button variant="link" isInline onClick={onClick}>
-          {title}
-        </Button>
-      ) : (
-        title
-      )}
+      <span style={{ verticalAlign: 'text-bottom' }}>{title}</span>
       {icon}
       {showProvider && odhApp.spec.provider && (
         <div>

@@ -2,6 +2,7 @@
   &.m-disabled {
     background-color: var(--pf-v5-global--BackgroundColor--light-200);
     position: relative;
+
     &:before {
       position: absolute;
       top: 0;
@@ -11,6 +12,12 @@
       content: '';
       background-color: var(--pf-v5-global--disabled-color--200);
     }
+  }
+
+  &.odh-card.pf-m-current {
+    border-color: var(--pf-v5-c-card--m-selectable--m-selected--BorderColor);
+    border-style: solid;
+    border-width: var(--pf-v5-c-card--m-selectable--BorderWidth);
   }
 
   &__partner-badge-container {
