@@ -34,6 +34,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disablePerformanceMetrics: boolean;
       disableKServe: boolean;
       disableModelMesh: boolean;
+      disableAcceleratorProfiles: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -496,6 +497,7 @@ export type BYONImage = {
   visible: boolean;
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
+  recommendedAcceleratorIdentifiers: string[];
 };
 
 export type ImageTag = {

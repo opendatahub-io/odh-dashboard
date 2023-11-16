@@ -3,7 +3,6 @@
  */
 
 import { AxiosError } from 'axios';
-import { ServingRuntimeSize } from '~/pages/modelServing/screens/types';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
@@ -38,69 +37,13 @@ export type PrometheusQueryRangeResponse = {
 export type PrometheusQueryRangeResultValue = [number, string];
 
 /**
+ * @deprecated - Use AcceleratorProfiles
  * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
  * "any string" as a documentation touch point. Has no baring on the type checking.
  */
 type NumberString = string;
+/** @deprecated - Use AcceleratorProfiles */
 export type GpuSettingString = 'autodetect' | 'hidden' | NumberString | undefined;
-
-export type OperatorStatus = {
-  /** Operator is installed and will be cloned to the namespace on creation */
-  available: boolean;
-  /** Has a detection gone underway or is the available a static default */
-  queriedForStatus: boolean;
-};
-
-export type DashboardConfig = K8sResourceCommon & {
-  spec: {
-    dashboardConfig: DashboardCommonConfig;
-    groupsConfig?: {
-      adminGroups: string;
-      allowedGroups: string;
-    };
-    notebookSizes?: NotebookSize[];
-    modelServerSizes?: ServingRuntimeSize[];
-    notebookController?: {
-      enabled: boolean;
-      pvcSize?: string;
-      storageClassName?: string;
-      notebookNamespace?: string;
-      gpuSetting?: GpuSettingString;
-      notebookTolerationSettings?: TolerationSettings;
-    };
-    templateOrder?: string[];
-    templateDisablement?: string[];
-  };
-  /** Faux status object -- computed by the service account */
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: OperatorStatus;
-    };
-  };
-};
-
-export type DashboardCommonConfig = {
-  enablement: boolean;
-  disableInfo: boolean;
-  disableSupport: boolean;
-  disableClusterManager: boolean;
-  disableTracking: boolean;
-  disableBYONImageStream: boolean;
-  disableISVBadges: boolean;
-  disableAppLauncher: boolean;
-  disableUserManagement: boolean;
-  disableProjects: boolean;
-  disableModelServing: boolean;
-  disableProjectSharing: boolean;
-  disableCustomServingRuntimes: boolean;
-  disableServiceMesh: boolean;
-  modelMetricsNamespace: string;
-  disablePipelines: boolean;
-  disableBiasMetrics: boolean;
-  disablePerformanceMetrics: boolean;
-  disableKServe: boolean;
-  disableModelMesh: boolean;
-};
 
 export type NotebookControllerUserState = {
   user: string;
@@ -358,11 +301,22 @@ export type NotebookPort = {
   protocol: string;
 };
 
+export enum TolerationOperator {
+  EXISTS = 'Exists',
+  EQUAL = 'Equal',
+}
+
+export enum TolerationEffect {
+  NO_SCHEDULE = 'NoSchedule',
+  PREFER_NO_SCHEDULE = 'PreferNoSchedule',
+  NO_EXECUTE = 'NoExecute',
+}
+
 export type PodToleration = {
   key: string;
-  operator?: string;
+  operator?: TolerationOperator;
   value?: string;
-  effect?: string;
+  effect?: TolerationEffect;
   tolerationSeconds?: number;
 };
 
@@ -467,6 +421,7 @@ export type BYONImage = {
   visible: boolean;
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
+  recommendedAcceleratorIdentifiers: string[];
 };
 
 export type BYONImagePackage = {

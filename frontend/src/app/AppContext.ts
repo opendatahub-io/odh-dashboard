@@ -1,17 +1,18 @@
 import * as React from 'react';
-import { BuildStatus, DashboardConfig } from '~/types';
+import { DashboardConfigKind } from '~/k8sTypes';
+import { BuildStatus } from '~/types';
 import { StorageClassKind } from '~/k8sTypes';
 
 type AppContextProps = {
   buildStatuses: BuildStatus[];
-  dashboardConfig: DashboardConfig;
+  dashboardConfig: DashboardConfigKind;
   storageClasses: StorageClassKind[];
 };
 
 const defaultAppContext: AppContextProps = {
   buildStatuses: [],
   // At runtime dashboardConfig is never null -- DO NOT DO THIS usually
-  dashboardConfig: null as unknown as DashboardConfig,
+  dashboardConfig: null as unknown as DashboardConfigKind,
   storageClasses: [] as StorageClassKind[],
 };
 

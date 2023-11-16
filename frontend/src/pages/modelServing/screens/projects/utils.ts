@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  DashboardConfigKind,
   InferenceServiceKind,
   KnownLabels,
   ProjectKind,
@@ -12,10 +13,11 @@ import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
+  ServingPlatformStatuses,
   ServingRuntimeEditInfo,
   ServingRuntimeSize,
 } from '~/pages/modelServing/screens/types';
-import { DashboardConfig, ServingRuntimePlatform } from '~/types';
+import { ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -38,7 +40,7 @@ import {
   updateServingRuntime,
 } from '~/api';
 
-export const getServingRuntimeSizes = (config: DashboardConfig): ServingRuntimeSize[] => {
+export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
   if (sizes.length === 0) {
     sizes = DEFAULT_MODEL_SERVER_SIZES;
@@ -202,24 +204,37 @@ export const getModelServerDisplayName = (server: ServingRuntimeKind) =>
   getDisplayNameFromK8sResource(server);
 
 export const getProjectModelServingPlatform = (
-  project: ProjectKind,
-  disableKServe: boolean,
-  disableModelMesh: boolean,
-) => {
+  project: ProjectKind | undefined,
+  platformStatuses: ServingPlatformStatuses,
+): { platform?: ServingRuntimePlatform; error?: Error } => {
+  const {
+    kServe: { enabled: kServeEnabled, installed: kServeInstalled },
+    modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
+  } = platformStatuses;
+  if (project === undefined) {
+    return {};
+  }
   if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
-    if ((!disableKServe && !disableModelMesh) || (disableKServe && disableModelMesh)) {
-      return undefined;
+    if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
+      return {};
     }
-    if (disableKServe) {
-      return ServingRuntimePlatform.MULTI;
+    if (modelMeshEnabled) {
+      return { platform: ServingRuntimePlatform.MULTI };
     }
-    if (disableModelMesh) {
-      return ServingRuntimePlatform.SINGLE;
+    if (kServeEnabled) {
+      return { platform: ServingRuntimePlatform.SINGLE };
     }
   }
-  return project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true'
-    ? ServingRuntimePlatform.MULTI
-    : ServingRuntimePlatform.SINGLE;
+  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    return {
+      platform: ServingRuntimePlatform.MULTI,
+      error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
+    };
+  }
+  return {
+    platform: ServingRuntimePlatform.SINGLE,
+    error: kServeInstalled ? undefined : new Error('Single model platform is not installed'),
+  };
 };
 
 export const createAWSSecret = (createData: CreatingInferenceServiceObject): Promise<SecretKind> =>

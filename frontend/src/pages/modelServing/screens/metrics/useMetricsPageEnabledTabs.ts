@@ -4,8 +4,8 @@ import usePerformanceMetricsEnabled from './usePerformanceMetricsEnabled';
 
 const useMetricsPageEnabledTabs = () => {
   const enabledTabs: MetricsTabKeys[] = [];
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
   if (performanceMetricsEnabled) {
     enabledTabs.push(MetricsTabKeys.PERFORMANCE);
   }

@@ -10,14 +10,18 @@ import {
 import { BYONImage } from '~/types';
 import { relativeTime } from '~/utilities/time';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
+import { AcceleratorKind } from '~/k8sTypes';
+import { FetchState } from '~/utilities/useFetchState';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
 import BYONImageDependenciesList from './BYONImageDependenciesList';
+import { BYONImageAccelerators } from './BYONImageAccelerators';
 
 type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
+  acceleratorProfiles: FetchState<AcceleratorKind[]>;
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
 };
@@ -25,6 +29,7 @@ type BYONImagesTableRowProps = {
 const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   obj,
   rowIndex,
+  acceleratorProfiles,
   onEditImage,
   onDeleteImage,
 }) => {
@@ -67,6 +72,9 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">
           <BYONImageStatusToggle image={obj} />
+        </Td>
+        <Td dataLabel="Accelerators">
+          <BYONImageAccelerators image={obj} acceleratorProfiles={acceleratorProfiles} />
         </Td>
         <Td dataLabel="Provider">{obj.provider}</Td>
         <Td dataLabel="Imported">

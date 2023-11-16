@@ -7,8 +7,8 @@ import usePerformanceMetricsEnabled from './screens/metrics/usePerformanceMetric
 const useModelMetricsEnabled = (): [modelMetricsEnabled: boolean] => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { dashboardConfig } = useAppContext();
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
 
   const checkModelMetricsEnabled = () =>
     isModelMetricsEnabled(dashboardNamespace, dashboardConfig) &&

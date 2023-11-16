@@ -7,7 +7,7 @@ import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabl
 const ProjectSettingsPage = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
 
   return (
     <PageSection isFilled aria-label="project-settings-page-section" variant="light">

@@ -3,13 +3,16 @@ import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import GenericSidebar from '~/components/GenericSidebar';
 import { useAppContext } from '~/app/AppContext';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
-import { featureFlagEnabled } from '~/utilities/utils';
 import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectSectionID } from './types';
 import StorageList from './storage/StorageList';
 import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
+
+import './ProjectDetailsComponents.scss';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -18,18 +21,21 @@ type SectionType = {
 
 const ProjectDetailsComponents: React.FC = () => {
   const { dashboardConfig } = useAppContext();
-  const modelServingEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableModelServing,
-  );
+  const workbenchesEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+  const modelServingEnabled = useModelServingEnabled();
   const pipelinesEnabled =
-    featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) &&
+    useIsAreaAvailable(SupportedArea.DS_PIPELINES).status &&
     dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
 
   const sections: SectionType[] = [
-    {
-      id: ProjectSectionID.WORKBENCHES,
-      component: <NotebooksList />,
-    },
+    ...(workbenchesEnabled
+      ? [
+          {
+            id: ProjectSectionID.WORKBENCHES,
+            component: <NotebooksList />,
+          },
+        ]
+      : []),
     {
       id: ProjectSectionID.CLUSTER_STORAGES,
       component: <StorageList />,
@@ -70,6 +76,7 @@ const ProjectDetailsComponents: React.FC = () => {
                 id={id}
                 aria-label={ProjectSectionTitles[id]}
                 data-id="details-page-section"
+                className="odh-project-details-components__item"
               >
                 {component}
               </StackItem>

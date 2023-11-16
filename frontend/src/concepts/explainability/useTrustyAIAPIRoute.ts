@@ -11,7 +11,7 @@ import useBiasMetricsEnabled from './useBiasMetricsEnabled';
 
 type State = string | null;
 const useTrustyAIAPIRoute = (hasCR: boolean, namespace: string): FetchState<State> => {
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!biasMetricsEnabled) {

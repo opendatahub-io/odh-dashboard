@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Custom serving runtimes', async ({ page }) => {
-  await page.goto(
-    './iframe.html?args=&id=tests-integration-pages-customservingruntimes-customservingruntimes--default&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-customservingruntimes-customservingruntimes', 'default'));
   // wait for page to load
   await page.waitForSelector('text=Serving runtimes');
 
@@ -16,9 +15,12 @@ test('Custom serving runtimes', async ({ page }) => {
     'Single modelMulti-model',
   );
   await expect(page.locator('#template-2').getByLabel('Label group category')).toHaveText(
-    'Multi-model',
+    'Single model',
   );
   await expect(page.locator('#template-3').getByLabel('Label group category')).toHaveText(
-    'Single modelMulti-model',
+    'Multi-model',
+  );
+  await expect(page.locator('#template-4').getByLabel('Label group category')).toHaveText(
+    'Multi-model',
   );
 });

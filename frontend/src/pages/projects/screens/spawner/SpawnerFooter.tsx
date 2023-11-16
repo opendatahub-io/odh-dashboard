@@ -17,10 +17,10 @@ import {
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { AppContext, useAppContext } from '~/app/AppContext';
+import { AppContext } from '~/app/AppContext';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import { featureFlagEnabled } from '~/utilities/utils';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import useServiceMeshEnabled from '~/pages/projects/notebook/useServiceMeshEnabled';
 import {
   createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
@@ -80,10 +80,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     editNotebook,
     existingDataConnections,
   );
-  const { dashboardConfig } = useAppContext();
-  const enableServiceMesh = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-  );
+  const enableServiceMesh = useServiceMeshEnabled();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { accelerator, notebookSize, image } = startNotebookData;

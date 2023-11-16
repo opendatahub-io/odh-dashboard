@@ -25,15 +25,22 @@ export default {
             ctx.json(
               mockK8sResourceList([
                 mockServingRuntimeTemplateK8sResource({
+                  name: 'template-1',
+                  displayName: 'Multi Platform',
                   platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
                 }),
                 mockServingRuntimeTemplateK8sResource({
                   name: 'template-2',
-                  displayName: 'Multi-model Serving Runtime',
-                  platforms: [ServingRuntimePlatform.MULTI],
+                  displayName: 'Caikit',
+                  platforms: [ServingRuntimePlatform.SINGLE],
                 }),
                 mockServingRuntimeTemplateK8sResource({
                   name: 'template-3',
+                  displayName: 'OVMS',
+                  platforms: [ServingRuntimePlatform.MULTI],
+                }),
+                mockServingRuntimeTemplateK8sResource({
+                  name: 'template-4',
                   displayName: 'Serving Runtime with No Annotations',
                 }),
               ]),

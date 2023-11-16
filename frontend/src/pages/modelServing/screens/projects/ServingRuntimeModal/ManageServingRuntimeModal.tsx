@@ -10,6 +10,7 @@ import {
   Popover,
   Stack,
   StackItem,
+  getUniqueId,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { HelpIcon } from '@patternfly/react-icons';
@@ -138,6 +139,20 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       });
   };
 
+  const createNewToken = React.useCallback(() => {
+    const name = 'default-name';
+    const duplicated = createData.tokens.filter((token) => token.name === name);
+    const error = duplicated.length > 0 ? 'Duplicates are invalid' : '';
+    setCreateData('tokens', [
+      ...createData.tokens,
+      {
+        name,
+        uuid: getUniqueId('ml'),
+        error,
+      },
+    ]);
+  }, [createData.tokens, setCreateData]);
+
   return (
     <Modal
       title={`${editInfo ? 'Edit' : 'Add'} model server`}
@@ -180,7 +195,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             />
           </StackItem>
           <StackItem>
-            <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
+            <ServingRuntimeReplicaSection
+              data={createData}
+              setData={setCreateData}
+              infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
+            />
           </StackItem>
           <StackItem>
             <ServingRuntimeSizeSection
@@ -190,6 +210,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               servingRuntimeSelected={servingRuntimeSelected}
               acceleratorState={acceleratorState}
               setAcceleratorState={setAcceleratorState}
+              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
           {!allowCreate && (
@@ -218,6 +239,9 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                     setCreateData('externalRoute', check);
                     if (check && allowCreate) {
                       setCreateData('tokenAuth', check);
+                      if (createData.tokens.length === 0) {
+                        createNewToken();
+                      }
                     }
                   }}
                 />
@@ -229,6 +253,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               data={createData}
               setData={setCreateData}
               allowCreate={allowCreate}
+              createNewToken={createNewToken}
             />
           </StackItem>
           {createData.externalRoute && !createData.tokenAuth && (

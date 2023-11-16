@@ -31,7 +31,7 @@ export const taiHasServerTimedOut = (
 };
 
 const useTrustyAINamespaceCR = (namespace: string): FetchState<State> => {
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!biasMetricsEnabled) {

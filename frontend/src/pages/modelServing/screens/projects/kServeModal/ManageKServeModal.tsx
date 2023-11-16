@@ -27,7 +27,7 @@ import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import InferenceServiceNameSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceNameSection';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { getProjectDisplayName, translateDisplayNameForK8s } from '~/pages/projects/utils';
 
 type ManageKServeModalProps = {
   isOpen: boolean;
@@ -194,10 +194,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         <Stack hasGutter>
           <StackItem>
             <ProjectSection
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              editInfo={editInfo?.inferenceServiceEditInfo}
-              project={projectContext?.currentProject}
+              projectName={
+                (projectContext?.currentProject &&
+                  getProjectDisplayName(projectContext?.currentProject)) ||
+                editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
+                ''
+              }
             />
           </StackItem>
           <StackItem>

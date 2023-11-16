@@ -65,7 +65,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
 
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
+  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
 
   const compoundExpandParams = (
     col: ServingRuntimeTableTabs,

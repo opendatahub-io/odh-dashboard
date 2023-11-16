@@ -2,9 +2,7 @@ import { test, expect } from '@playwright/test';
 import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Project view page', async ({ page }) => {
-  await page.goto(
-    './iframe.html?id=tests-integration-pages-projects-projectview--default&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-projects-projectview', 'default'));
 
   // wait for page to load
   await page.waitForSelector('text=Data science projects');
@@ -26,6 +24,11 @@ test('Project view page', async ({ page }) => {
   await expect(page.getByText('Non-DS Project 1', { exact: true })).toBeVisible();
   await expect(page.getByText('Non-DS Project 2', { exact: true })).toBeVisible();
   await expect(page.getByText('Non-DS Project 3', { exact: true })).toBeVisible();
+
+  await page.locator('#pf-select-toggle-id-2').click();
+  await expect(page.getByRole('listitem')).toHaveCount(2);
+  await expect(page.getByRole('listitem').nth(0)).toHaveText('Name');
+  await expect(page.getByRole('listitem').nth(1)).toHaveText('User');
 });
 
 test('Create project', async ({ page }) => {

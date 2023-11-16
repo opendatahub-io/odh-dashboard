@@ -18,6 +18,12 @@ test('Table filtering, sorting, searching', async ({ page }) => {
   await page.getByRole('button', { name: 'Provider' }).click();
   expect(page.getByText('image-0'));
 
+  // by accelerator
+  await page.getByRole('button', { name: 'Recommended accelerators' }).click();
+  expect(page.getByText('test-accelerator')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Recommended accelerators' }).click();
+  expect(page.getByText('test-accelerator'));
+
   // by enabled
   await page.getByRole('button', { name: 'Enable', exact: true }).click();
   expect(page.getByText('image-14'));
@@ -114,6 +120,30 @@ test('Import form fields', async ({ page }) => {
   await page.getByLabel('Name *').fill('image');
   await expect(page.getByRole('button', { name: 'Import' })).toBeEnabled();
 
+  // test accelerator select field
+  // select accelerator from api call
+  await page.getByPlaceholder('Example, nvidia.com/gpu').click();
+  await page.getByRole('option', { name: 'nvidia.com/gpu' }).click();
+
+  // create new and select
+  await page.getByPlaceholder('Example, nvidia.com/gpu').click();
+  await page.getByPlaceholder('Example, nvidia.com/gpu').fill('test.com/gpu');
+  await page.getByRole('option', { name: 'Create "test.com/gpu"' }).click();
+  await page.getByRole('button', { name: 'Options menu' }).click();
+  expect(page.getByText('test.com/gpu'));
+
+  // remove custom
+  await page.getByRole('button', { name: 'Remove test.com/gpu' }).click();
+  await page.getByRole('button', { name: 'Options menu' }).click();
+  await expect(page.getByText('test.com/gpu')).toHaveCount(0);
+
+  // reselect custom
+  await page
+    .getByRole('dialog', { name: 'Import notebook image' })
+    .getByRole('button', { name: 'Options menu' })
+    .click();
+  await page.getByRole('option', { name: 'test.com/gpu' }).click();
+
   // test form is disabled after entering software add form
   await page.getByTestId('add-software-button').click();
   await expect(page.getByRole('button', { name: 'Import' })).toBeDisabled();
@@ -204,7 +234,7 @@ test('Edit form fields match', async ({ page }) => {
   expect(await page.getByLabel('Image Location *').inputValue()).toBe('test-image:latest');
   expect(await page.getByLabel('Name *').inputValue()).toBe('Testing Custom Image');
   expect(await page.getByLabel('Description').inputValue()).toBe('A custom notebook image');
-
+  expect(page.getByText('nvidia.com/gpu'));
   // test software and packages have correct values
   expect(page.getByRole('gridcell', { name: 'test-software' }));
   expect(page.getByRole('gridcell', { name: '2.0' }));

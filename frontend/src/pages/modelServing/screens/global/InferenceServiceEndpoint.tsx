@@ -63,7 +63,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
 
   return (
     <ClipboardCopy removeFindDomNode hoverTip="Copy" clickTip="Copied" isReadOnly>
-      {`${routeLink}/infer`}
+      {isKserve ? routeLink : `${routeLink}/infer`}
     </ClipboardCopy>
   );
 };

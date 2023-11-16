@@ -114,3 +114,14 @@ export type ServingRuntimeEditInfo = {
   servingRuntime?: ServingRuntimeKind;
   secrets: SecretKind[];
 };
+
+export type ServingPlatformStatuses = {
+  kServe: {
+    enabled: boolean;
+    installed: boolean;
+  };
+  modelMesh: {
+    enabled: boolean;
+    installed: boolean;
+  };
+};

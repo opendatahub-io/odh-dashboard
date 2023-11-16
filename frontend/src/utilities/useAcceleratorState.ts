@@ -2,7 +2,13 @@ import React from 'react';
 import { AcceleratorKind } from '~/k8sTypes';
 import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { ContainerResourceAttributes, ContainerResources, PodToleration } from '~/types';
+import {
+  ContainerResourceAttributes,
+  ContainerResources,
+  PodToleration,
+  TolerationEffect,
+  TolerationOperator,
+} from '~/types';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 import { getAcceleratorGpuCount } from '~/utilities/utils';
 
@@ -103,8 +109,8 @@ const useAcceleratorState = (
                   tolerations: [
                     {
                       key: 'nvidia.com/gpu',
-                      operator: 'Exists',
-                      effect: 'NoSchedule',
+                      operator: TolerationOperator.EXISTS,
+                      effect: TolerationEffect.NO_SCHEDULE,
                     },
                   ],
                 },

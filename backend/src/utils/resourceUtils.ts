@@ -970,3 +970,10 @@ export const migrateTemplateDisablement = async (
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>
   template.objects[0].metadata.name;
+
+export const translateDisplayNameForK8s = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/\s/g, '-')
+    .replace(/[^A-Za-z0-9-]/g, '');

@@ -14,25 +14,23 @@ import {
 import { ServingRuntimePlatform } from '~/types';
 import ModelServingPlatformSelect from '~/pages/modelServing/screens/projects/ModelServingPlatformSelect';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import { useAppContext } from '~/app/AppContext';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
 
 const ModelServingPlatform: React.FC = () => {
-  const {
-    dashboardConfig: {
-      spec: {
-        dashboardConfig: { disableKServe, disableModelMesh },
-      },
-    },
-  } = useAppContext();
   const [platformSelected, setPlatformSelected] = React.useState<
     ServingRuntimePlatform | undefined
   >(undefined);
+
+  const servingPlatformStatuses = useServingPlatformStatuses();
+
+  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
+  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
 
   const {
     servingRuntimes: {
@@ -60,16 +58,14 @@ const ModelServingPlatform: React.FC = () => {
   const emptyTemplates = templatesEnabled.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;
 
-  const currentProjectServingPlatform = getProjectModelServingPlatform(
-    currentProject,
-    disableKServe,
-    disableModelMesh,
-  );
-
-  const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
+  const { platform: currentProjectServingPlatform, error: platformError } =
+    getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
 
   const shouldShowPlatformSelection =
-    !disableKServe && !disableModelMesh && !currentProjectServingPlatform;
+    ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) &&
+    !currentProjectServingPlatform;
+
+  const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
   const onSubmit = (submit: boolean) => {
     setPlatformSelected(undefined);
@@ -87,7 +83,7 @@ const ModelServingPlatform: React.FC = () => {
         id={ProjectSectionID.MODEL_SERVER}
         title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
         actions={
-          shouldShowPlatformSelection
+          shouldShowPlatformSelection || platformError
             ? undefined
             : [
                 <ModelServingPlatformButtonAction
@@ -106,7 +102,7 @@ const ModelServingPlatform: React.FC = () => {
         }
         isLoading={!servingRuntimesLoaded && !templatesLoaded}
         isEmpty={!shouldShowPlatformSelection && emptyModelServer}
-        loadError={servingRuntimeError || templateError}
+        loadError={servingRuntimeError || templateError || platformError}
         emptyState={
           <EmptyDetailsList
             title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
@@ -132,6 +128,7 @@ const ModelServingPlatform: React.FC = () => {
               setPlatformSelected(selectedPlatform);
             }}
             emptyTemplates={emptyTemplates}
+            emptyPlatforms={!modelMeshEnabled && !kServeEnabled}
           />
         ) : isProjectModelMesh ? (
           <ModelMeshServingRuntimeTable />

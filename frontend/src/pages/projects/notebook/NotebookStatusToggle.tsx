@@ -12,17 +12,20 @@ import useRefreshNotebookUntilStartOrStop from './useRefreshNotebookUntilStartOr
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import NotebookStatusText from './NotebookStatusText';
+import useServiceMeshEnabled from './useServiceMeshEnabled';
 
 type NotebookStatusToggleProps = {
   notebookState: NotebookState;
   doListen: boolean;
   enablePipelines?: boolean;
+  isDisabled?: boolean;
 };
 
 const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   notebookState,
   doListen,
   enablePipelines,
+  isDisabled,
 }) => {
   const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
   const [acceleratorData] = useNotebookAccelerators(notebook);
@@ -35,6 +38,8 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   const notebookName = notebook.metadata.name;
   const notebookNamespace = notebook.metadata.namespace;
   const isRunningOrStarting = isStarting || isRunning;
+
+  const enableServiceMesh = useServiceMeshEnabled();
 
   /** If in progress, it is faking the opposite */
   const isChecked = inProgress ? !isRunningOrStarting : isRunningOrStarting;
@@ -87,7 +92,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         <FlexItem>
           <Switch
             aria-label={label}
-            isDisabled={inProgress || isStopping}
+            isDisabled={inProgress || isStopping || isDisabled}
             id={`${notebookName}-${notebookNamespace}`}
             isChecked={isChecked}
             onClick={() => {
@@ -106,7 +111,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
                 startNotebook(
                   notebook,
                   tolerationSettings,
-                  dashboardConfig,
+                  enableServiceMesh,
                   enablePipelines && !currentlyHasPipelines(notebook),
                 ).then(() => {
                   fireNotebookTrackingEvent('started');
