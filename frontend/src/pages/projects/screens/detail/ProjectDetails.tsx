@@ -7,10 +7,9 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getProjectDescription, getProjectDisplayName } from '~/pages/projects/utils';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
-import { useAppContext } from '~/app/AppContext';
 import { useAccessReview } from '~/api';
-import { isProjectSharingEnabled } from '~/pages/projects/projectSharing/utils';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectDetailsComponents from './ProjectDetailsComponents';
@@ -22,11 +21,10 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 };
 
 const ProjectDetails: React.FC = () => {
-  const { dashboardConfig } = useAppContext();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
-  const projectSharingEnabled = isProjectSharingEnabled(dashboardConfig);
+  const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const { state } = useLocation();
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
@@ -41,7 +39,7 @@ const ProjectDetails: React.FC = () => {
       description={description}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/projects">Data science projects</Link>} />
+          <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
           <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
         </Breadcrumb>
       }

@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { DashboardConfig } from '~/types';
+import { DashboardConfigKind } from '~/k8sTypes';
 
-export const fetchDashboardConfig = (): Promise<DashboardConfig> => {
+export const fetchDashboardConfig = (): Promise<DashboardConfigKind> => {
   const url = '/api/config';
   return axios
     .get(url)

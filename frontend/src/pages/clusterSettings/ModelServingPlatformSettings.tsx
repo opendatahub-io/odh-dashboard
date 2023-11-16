@@ -3,17 +3,32 @@ import {
   Alert,
   AlertActionCloseButton,
   AlertVariant,
+  Button,
   Checkbox,
+  Flex,
+  FlexItem,
+  Popover,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import SettingSection from '~/components/SettingSection';
 import { ModelServingPlatformEnabled } from '~/types';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { useAccessReview } from '~/api';
+import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { useOpenShiftURL } from '~/utilities/clusterUtils';
 
 type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
   enabledPlatforms: ModelServingPlatformEnabled;
   setEnabledPlatforms: (platforms: ModelServingPlatformEnabled) => void;
+};
+
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: 'datasciencecluster.opendatahub.io/v1',
+  resource: 'DataScienceCluster',
+  verb: 'update',
 };
 
 const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> = ({
@@ -22,9 +37,18 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   setEnabledPlatforms,
 }) => {
   const [alert, setAlert] = React.useState<{ variant: AlertVariant; message: string }>();
+  const {
+    kServe: { installed: kServeInstalled },
+    modelMesh: { installed: modelMeshInstalled },
+  } = useServingPlatformStatuses();
+
+  const [allowUpdate] = useAccessReview(accessReviewResource);
+  const url = useOpenShiftURL();
 
   React.useEffect(() => {
-    if (!enabledPlatforms.kServe && !enabledPlatforms.modelMesh) {
+    const kServeDisabled = !enabledPlatforms.kServe || !kServeInstalled;
+    const modelMeshDisabled = !enabledPlatforms.modelMesh || !modelMeshInstalled;
+    if (kServeDisabled && modelMeshDisabled) {
       setAlert({
         variant: AlertVariant.warning,
         message:
@@ -35,24 +59,63 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
         setAlert({
           variant: AlertVariant.info,
           message:
-            'Disabling the multi-model serving platform prevents models deployed in new projects and in existing projects with no deployed models from sharing model servers. Existing projects with deployed models will continue to use multi-model serving.',
+            'Disabling multi-model serving means that models in new projects or existing projects with no currently deployed models will be deployed from their own model server. Existing projects with currently deployed models will continue to use the serving platform selected for that project.',
+        });
+      } else if (initialValue.kServe && !enabledPlatforms.kServe) {
+        setAlert({
+          variant: AlertVariant.info,
+          message:
+            'Disabling single model serving means that models in new projects or existing projects with no currently deployed models will be deployed from a shared model server. Existing projects with currently deployed models will continue to use the serving platform selected for that project.',
         });
       } else {
         setAlert(undefined);
       }
     }
-  }, [enabledPlatforms, initialValue]);
+  }, [enabledPlatforms, initialValue, kServeInstalled, modelMeshInstalled]);
 
   return (
     <SettingSection
       title="Model serving platforms"
-      description="Select the serving platforms that projects on this cluster can use for deploying models."
+      description={
+        <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            Select the serving platforms that projects on this cluster can use for deploying models.
+          </FlexItem>
+          <Popover
+            bodyContent={
+              <>
+                To modify the availability of model serving platforms, ask your cluster admin to
+                manage the respective components in the{' '}
+                {allowUpdate && url ? (
+                  <Button
+                    isInline
+                    variant="link"
+                    onClick={() => {
+                      window.open(
+                        `${url}/k8s/cluster/datasciencecluster.opendatahub.io~v1~DataScienceCluster`,
+                      );
+                    }}
+                  >
+                    DataScienceCluster
+                  </Button>
+                ) : (
+                  'DataScienceCluster'
+                )}{' '}
+                resource.
+              </>
+            }
+          >
+            <OutlinedQuestionCircleIcon />
+          </Popover>
+        </Flex>
+      }
     >
       <Stack hasGutter>
         <StackItem>
           <Checkbox
             label="Single model serving platform"
-            isChecked={enabledPlatforms.kServe}
+            isDisabled={!kServeInstalled}
+            isChecked={kServeInstalled && enabledPlatforms.kServe}
             onChange={(enabled) => {
               const newEnabledPlatforms: ModelServingPlatformEnabled = {
                 ...enabledPlatforms,
@@ -69,7 +132,8 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
         <StackItem>
           <Checkbox
             label="Multi-model serving platform"
-            isChecked={enabledPlatforms.modelMesh}
+            isDisabled={!modelMeshInstalled}
+            isChecked={modelMeshInstalled && enabledPlatforms.modelMesh}
             onChange={(enabled) => {
               const newEnabledPlatforms: ModelServingPlatformEnabled = {
                 ...enabledPlatforms,

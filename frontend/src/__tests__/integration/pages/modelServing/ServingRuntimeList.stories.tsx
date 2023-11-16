@@ -31,13 +31,18 @@ import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServic
 import useDetectUser from '~/utilities/useDetectUser';
 import { AppContext } from '~/app/AppContext';
 import { useApplicationSettings } from '~/app/useApplicationSettings';
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ServingRuntimePlatform } from '~/types';
+import { AreaContext } from '~/concepts/areas/AreaContext';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { StackComponent } from '~/concepts/areas';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
   disableModelMeshConfig?: boolean;
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
+  inferenceServices?: InferenceServiceKind[];
 };
 
 const getHandlers = ({
@@ -51,6 +56,20 @@ const getHandlers = ({
       namespace: 'test-project',
       auth: true,
       route: true,
+    }),
+  ],
+  inferenceServices = [
+    mockInferenceServiceK8sResource({ name: 'test-inference' }),
+    mockInferenceServiceK8sResource({
+      name: 'another-inference-service',
+      displayName: 'Another Inference Service',
+      deleted: true,
+    }),
+    mockInferenceServiceK8sResource({
+      name: 'llama-caikit',
+      displayName: 'Llama Caikit',
+      url: 'http://llama-caikit.test-project.svc.cluster.local',
+      activeModelState: 'Loaded',
     }),
   ],
 }: HandlersProps) => [
@@ -90,25 +109,7 @@ const getHandlers = ({
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
-    (req, res, ctx) =>
-      res(
-        ctx.json(
-          mockK8sResourceList([
-            mockInferenceServiceK8sResource({ name: 'test-inference' }),
-            mockInferenceServiceK8sResource({
-              name: 'another-inference-service',
-              displayName: 'Another Inference Service',
-              deleted: true,
-            }),
-            mockInferenceServiceK8sResource({
-              name: 'llama-caikit',
-              displayName: 'Llama Caikit',
-              url: 'http://llama-caikit.test-project.svc.cluster.local',
-              activeModelState: 'Loaded',
-            }),
-          ]),
-        ),
-      ),
+    (req, res, ctx) => res(ctx.json(mockK8sResourceList(inferenceServices))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
@@ -130,6 +131,18 @@ const getHandlers = ({
       ),
   ),
   rest.get(
+    '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/another-inference-service',
+    (req, res, ctx) =>
+      res(
+        ctx.json(
+          mockRouteK8sResourceModelServing({
+            inferenceServiceName: 'another-inference-service',
+            namespace: 'test-project',
+          }),
+        ),
+      ),
+  ),
+  rest.get(
     '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',
     (req, res, ctx) => res(ctx.json(mockServingRuntimeK8sResource({}))),
   ),
@@ -139,7 +152,25 @@ const getHandlers = ({
       res(
         ctx.json(
           mockK8sResourceList([
-            mockServingRuntimeTemplateK8sResource({}),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-1',
+              displayName: 'Multi Platform',
+              platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-2',
+              displayName: 'Caikit',
+              platforms: [ServingRuntimePlatform.SINGLE],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-3',
+              displayName: 'New OVMS Server',
+              platforms: [ServingRuntimePlatform.MULTI],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-4',
+              displayName: 'Serving Runtime with No Annotations',
+            }),
             mockInvalidTemplateK8sResource({}),
           ]),
         ),
@@ -162,11 +193,22 @@ const Template: StoryFn<typeof ModelServingPlatform> = (args) => {
   const { dashboardConfig, loaded } = useApplicationSettings();
   return loaded && dashboardConfig ? (
     <AppContext.Provider value={{ buildStatuses: [], dashboardConfig, storageClasses: [] }}>
-      <ProjectsRoutes>
-        <Route path="/" element={<ProjectDetailsContextProvider />}>
-          <Route index element={<ModelServingPlatform {...args} />} />
-        </Route>
-      </ProjectsRoutes>
+      <AreaContext.Provider
+        value={{
+          dscStatus: mockDscStatus({
+            installedComponents: {
+              [StackComponent.K_SERVE]: true,
+              [StackComponent.MODEL_MESH]: true,
+            },
+          }),
+        }}
+      >
+        <ProjectsRoutes>
+          <Route path="/" element={<ProjectDetailsContextProvider />}>
+            <Route index element={<ModelServingPlatform {...args} />} />
+          </Route>
+        </ProjectsRoutes>
+      </AreaContext.Provider>
     </AppContext.Provider>
   ) : (
     <Spinner />
@@ -201,6 +243,20 @@ export const OnlyEnabledModelMeshAndProjectNotLabelled: StoryObj = {
   },
 };
 
+export const NeitherPlatformEnabledAndProjectNotLabelled: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: getHandlers({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        servingRuntimes: [],
+      }),
+    },
+  },
+};
+
 export const ModelMeshListAvailableModels: StoryObj = {
   render: Template,
 
@@ -210,6 +266,20 @@ export const ModelMeshListAvailableModels: StoryObj = {
         projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
       }),
     },
   },

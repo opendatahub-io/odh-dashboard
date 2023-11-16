@@ -10,17 +10,24 @@ import {
 import { ServingRuntimePlatform } from '~/types';
 import ModelServingPlatformCard from '~/pages/modelServing/screens/projects/ModelServingPlatformCard';
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
+import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 
 type ModelServingPlatformSelectProps = {
   onSelect: (platform: ServingRuntimePlatform) => void;
   emptyTemplates: boolean;
+  emptyPlatforms: boolean;
 };
 
 const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
   onSelect,
   emptyTemplates,
+  emptyPlatforms,
 }) => {
   const [alertShown, setAlertShown] = React.useState(true);
+  if (emptyPlatforms) {
+    return <EmptyModelServingPlatform />;
+  }
+
   return (
     <Stack hasGutter>
       <StackItem>

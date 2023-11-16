@@ -1,16 +1,6 @@
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
-const usePerformanceMetricsEnabled = () => {
-  const {
-    dashboardConfig: {
-      spec: {
-        dashboardConfig: { disablePerformanceMetrics },
-      },
-    },
-  } = useAppContext();
-
-  return [featureFlagEnabled(disablePerformanceMetrics)];
-};
+const usePerformanceMetricsEnabled = () =>
+  useIsAreaAvailable(SupportedArea.PERFORMANCE_METRICS).status;
 
 export default usePerformanceMetricsEnabled;

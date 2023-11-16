@@ -218,18 +218,6 @@ export const isModelServerEditInfoChanged = (
         ))
     : true;
 
-export const checkPlatformAvailability = (
-  status: DataScienceClusterKindStatus,
-): { kServeAvailable: boolean; modelMeshAvailable: boolean } => ({
-  kServeAvailable: !!status.installedComponents.kserve,
-  modelMeshAvailable: !!status.installedComponents['model-mesh'],
-});
-
-export const checkKserveFailureStatus = (status: DataScienceClusterKindStatus): string =>
-  status.conditions.find(
-    (condition) => condition.type === 'kserveReady' && condition.status === 'False',
-  )?.message || '';
-
 export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus): string =>
   status.conditions.find(
     (condition) => condition.type === 'model-meshReady' && condition.status === 'False',

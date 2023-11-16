@@ -1,5 +1,4 @@
-import { DashboardConfig } from '~/types';
-import { KnownLabels } from '~/k8sTypes';
+import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
 
 type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -11,10 +10,12 @@ type MockDashboardConfigType = {
   disableAppLauncher?: boolean;
   disableUserManagement?: boolean;
   disableProjects?: boolean;
+  disablePipelines?: boolean;
   disableModelServing?: boolean;
   disableCustomServingRuntimes?: boolean;
   disableKServe?: boolean;
   disableModelMesh?: boolean;
+  disableAcceleratorProfiles?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -29,9 +30,11 @@ export const mockDashboardConfig = ({
   disableProjects = false,
   disableModelServing = false,
   disableCustomServingRuntimes = false,
+  disablePipelines = false,
   disableKServe = false,
   disableModelMesh = true,
-}: MockDashboardConfigType): DashboardConfig => ({
+  disableAcceleratorProfiles = false,
+}: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
   metadata: {
@@ -55,18 +58,19 @@ export const mockDashboardConfig = ({
       disableProjects,
       disableModelServing,
       disableCustomServingRuntimes,
+      disablePipelines,
       disableServiceMesh: true,
       modelMetricsNamespace: 'test-project',
-      disablePipelines: false,
       disableProjectSharing: false,
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServe,
       disableModelMesh,
+      disableAcceleratorProfiles,
     },
     notebookController: {
       enabled: true,
-      notebookNamespace: 'rhods-notebooks',
+      notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,
         key: 'NotebooksOnlyChange',
@@ -74,7 +78,7 @@ export const mockDashboardConfig = ({
       pvcSize: '20Gi',
     },
     groupsConfig: {
-      adminGroups: 'rhods-admins',
+      adminGroups: 'openshift-ai-admins',
       allowedGroups: 'system:authenticated',
     },
     modelServerSizes: [

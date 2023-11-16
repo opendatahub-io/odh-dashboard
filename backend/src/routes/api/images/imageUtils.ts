@@ -1,5 +1,6 @@
 import { IMAGE_ANNOTATIONS } from '../../../utils/constants';
 import { convertLabelsToString } from '../../../utils/componentUtils';
+import { translateDisplayNameForK8s } from '../../../utils/resourceUtils';
 import {
   ImageStreamTag,
   ImageTagInfo,
@@ -12,13 +13,6 @@ import {
 } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
-
-const translateDisplayNameForK8s = (name: string): string =>
-  name
-    .trim()
-    .toLowerCase()
-    .replace(/\s/g, '-')
-    .replace(/[^A-Za-z0-9-]/g, '');
 
 /**
  * This function uses a regex to match the image location string
@@ -242,6 +236,9 @@ const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   imported_time: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
   provider: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
+  recommendedAcceleratorIdentifiers: jsonParseRecommendedAcceleratorIdentifiers(
+    is.metadata.annotations['opendatahub.io/recommended-accelerators'],
+  ),
 });
 
 export const postImage = async (
@@ -282,6 +279,9 @@ export const postImage = async (
         'opendatahub.io/notebook-image-name': body.display_name,
         'opendatahub.io/notebook-image-url': fullURL,
         'opendatahub.io/notebook-image-creator': body.provider,
+        'opendatahub.io/recommended-accelerators': JSON.stringify(
+          body.recommendedAcceleratorIdentifiers ?? [],
+        ),
       },
       name: `custom-${translateDisplayNameForK8s(body.display_name)}`,
       namespace: namespace,
@@ -419,6 +419,12 @@ export const updateImage = async (
       imageStream.metadata.annotations['opendatahub.io/notebook-image-desc'] = body.description;
     }
 
+    if (body.recommendedAcceleratorIdentifiers !== undefined) {
+      imageStream.metadata.annotations['opendatahub.io/recommended-accelerators'] = JSON.stringify(
+        body.recommendedAcceleratorIdentifiers,
+      );
+    }
+
     await customObjectsApi
       .patchNamespacedCustomObject(
         'image.openshift.io',
@@ -448,6 +454,14 @@ export const updateImage = async (
 const jsonParsePackage = (unparsedPackage: string): BYONImagePackage[] => {
   try {
     return JSON.parse(unparsedPackage) || [];
+  } catch {
+    return [];
+  }
+};
+
+const jsonParseRecommendedAcceleratorIdentifiers = (unparsedRecommendations: string): string[] => {
+  try {
+    return JSON.parse(unparsedRecommendations) || [];
   } catch {
     return [];
   }

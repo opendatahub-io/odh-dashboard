@@ -3,7 +3,7 @@ import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabl
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 
 const useBiasMetricsInstalled = () => {
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
   const { hasCR } = React.useContext(ExplainabilityContext);
 
   return [biasMetricsEnabled && hasCR];

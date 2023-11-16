@@ -63,7 +63,7 @@ test('Deploy KServe model', async ({ page }) => {
   // test filling in minimum required fields
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#serving-runtime-template-selection').click();
-  await page.getByRole('menuitem', { name: 'New OVMS Server' }).click();
+  await page.getByRole('menuitem', { name: 'Caikit' }).click();
   await expect(page.getByRole('menuitem', { name: 'New OVMS Server Invalid' })).toBeHidden();
   await page.locator('#inference-service-framework-selection').click();
   await page.getByRole('option', { name: 'onnx - 1' }).click();
@@ -87,6 +87,17 @@ test('Deploy KServe model', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Field list AWS_S3_BUCKET' }).fill('test-bucket');
   await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
+});
+
+test('No model serving platform available', async ({ page }) => {
+  await page.goto(
+    navigateToStory(
+      'pages-modelserving-servingruntimelist',
+      'neither-platform-enabled-and-project-not-labelled',
+    ),
+  );
+
+  expect(page.getByText('No model serving platform selected')).toBeTruthy();
 });
 
 test('ModelMesh ServingRuntime list', async ({ page }) => {
@@ -172,6 +183,38 @@ test('Add ModelMesh model server', async ({ page }) => {
   await expect(page.getByRole('menuitem', { name: 'New OVMS Server Invalid' })).toBeHidden();
   await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
 
+  //test Add model server tooltips
+  const expectedContent = [
+    {
+      ariaLabel: 'Model server replicas info',
+      content:
+        'Consider network traffic and failover scenarios when specifying the number of model server replicas.',
+    },
+    {
+      ariaLabel: 'Model server size info',
+      content:
+        'Select a server size that will accommodate your largest model. See the product documentation for more information.',
+    },
+    {
+      ariaLabel: 'Accelerator info',
+      content:
+        'Ensure that appropriate tolerations are in place before adding an accelerator to your model server.',
+    },
+  ];
+
+  for (const item of expectedContent) {
+    const iconPopover = await page.getByRole('button', { name: item.ariaLabel, exact: true });
+    if (await iconPopover.isVisible()) {
+      await iconPopover.click();
+      const popoverContent = await page.locator('div.pf-c-popover__content').textContent();
+      expect(popoverContent).toContain(item.content);
+
+      const closeButton = await page.locator('div.pf-c-popover__content>button');
+      if (closeButton) {
+        closeButton.click();
+      }
+    }
+  }
   // test the if the alert is visible when route is external while token is not set
   await expect(page.locator('#alt-form-checkbox-route')).not.toBeChecked();
   await expect(page.locator('#alt-form-checkbox-auth')).not.toBeChecked();
@@ -180,6 +223,8 @@ test('Add ModelMesh model server', async ({ page }) => {
   await page.locator('#alt-form-checkbox-route').check();
   await expect(page.locator('#alt-form-checkbox-auth')).toBeChecked();
   await expect(page.locator('#external-route-no-token-alert')).toBeHidden();
+  await expect(page.locator('#service-account-form-name')).toBeVisible();
+  await expect(page.locator('#service-account-form-name')).toHaveValue('default-name');
   // check external route, uncheck token, show alert
   await page.locator('#alt-form-checkbox-auth').uncheck();
   await expect(page.locator('#external-route-no-token-alert')).toBeVisible();

@@ -1,13 +1,13 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
   PodContainer,
   PodToleration,
   Volume,
   ContainerResources,
-  DashboardCommonConfig,
   NotebookSize,
   GpuSettingString,
   TolerationSettings,
@@ -84,6 +84,7 @@ export type NotebookAnnotations = Partial<{
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
   'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
+  'opendatahub.io/image-display-name': string; // the display name of the image
 }>;
 
 export type DashboardLabels = {
@@ -293,10 +294,10 @@ export type PodSpec = {
 
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
-    annotations: DisplayNameAnnotations & NotebookAnnotations;
+    annotations?: DisplayNameAnnotations & NotebookAnnotations;
     name: string;
     namespace: string;
-    labels: Partial<{
+    labels?: Partial<{
       'opendatahub.io/user': string; // translated username -- see translateUsername
     }>;
   };
@@ -325,6 +326,7 @@ export type ProjectKind = K8sResourceCommon & {
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
+    labels: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
@@ -796,7 +798,37 @@ export type TemplateParameter = {
   required: boolean;
 };
 
-// New specification of DashboardConfig for pass through to the UI, we will have both types until we refactor the backend calls
+export type DashboardCommonConfig = {
+  enablement: boolean;
+  disableInfo: boolean;
+  disableSupport: boolean;
+  disableClusterManager: boolean;
+  disableTracking: boolean;
+  disableBYONImageStream: boolean;
+  disableISVBadges: boolean;
+  disableAppLauncher: boolean;
+  disableUserManagement: boolean;
+  disableProjects: boolean;
+  disableModelServing: boolean;
+  disableProjectSharing: boolean;
+  disableCustomServingRuntimes: boolean;
+  modelMetricsNamespace: string;
+  disablePipelines: boolean;
+  disableKServe: boolean;
+  disableModelMesh: boolean;
+  disableAcceleratorProfiles: boolean;
+  disableServiceMesh: boolean;
+  disableBiasMetrics: boolean;
+  disablePerformanceMetrics: boolean;
+};
+
+export type OperatorStatus = {
+  /** Operator is installed and will be cloned to the namespace on creation */
+  available: boolean;
+  /** Has a detection gone underway or is the available a static default */
+  queriedForStatus: boolean;
+};
+
 export type DashboardConfigKind = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
@@ -811,11 +843,21 @@ export type DashboardConfigKind = K8sResourceCommon & {
       pvcSize?: string;
       storageClassName?: string;
       notebookNamespace?: string;
+      /** @deprecated - Use AcceleratorProfiles */
       gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
     templateDisablement?: string[];
+  };
+  /**
+   * TODO: Make this its own API; it's not part of the CRD
+   * Faux status object -- computed by the service account
+   */
+  status: {
+    dependencyOperators: {
+      redhatOpenshiftPipelines: OperatorStatus;
+    };
   };
 };
 
@@ -846,19 +888,9 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
-type ComponentNames =
-  | 'codeflare'
-  | 'data-science-pipelines-operator'
-  | 'kserve'
-  | 'model-mesh'
-  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
-  | 'odh-dashboard'
-  | 'ray'
-  | 'workbenches';
-
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
-  installedComponents: { [key in ComponentNames]?: boolean };
+  installedComponents: { [key in StackComponent]?: boolean };
   phase?: string;
 };

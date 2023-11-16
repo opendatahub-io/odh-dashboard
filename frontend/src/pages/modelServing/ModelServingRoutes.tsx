@@ -12,13 +12,14 @@ import useModelMetricsEnabled from './useModelMetricsEnabled';
 
 const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
 
   //TODO: Split route to project and mount provider here. This will allow you to load data when model switching is later implemented.
   return (
     <ProjectsRoutes>
       <Route path="/" element={<ModelServingContextProvider />}>
         <Route index element={<ModelServingGlobal />} />
+        <Route path="/:namespace?/*" element={<ModelServingGlobal />} />
         {modelMetricsEnabled && (
           <Route path="/metrics/:project" element={<ModelServingExplainabilityWrapper />}>
             <Route index element={<Navigate to=".." />} />

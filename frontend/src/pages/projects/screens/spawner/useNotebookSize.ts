@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { useAppContext } from '~/app/AppContext';
-import { DashboardConfig, NotebookSize } from '~/types';
+import { DashboardConfigKind } from '~/k8sTypes';
+import { NotebookSize } from '~/types';
 import useNotification from '~/utilities/useNotification';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { DEFAULT_NOTEBOOK_SIZES } from './const';
 
-export const getNotebookSizes = (config: DashboardConfig): NotebookSize[] => {
+export const getNotebookSizes = (config: DashboardConfigKind): NotebookSize[] => {
   let sizes = config.spec.notebookSizes || [];
   if (sizes.length === 0) {
     sizes = DEFAULT_NOTEBOOK_SIZES;

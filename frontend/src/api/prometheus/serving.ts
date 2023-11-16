@@ -35,8 +35,8 @@ export const useModelServingMetrics = (
   refresh: () => void;
 } => {
   const [end, setEnd] = React.useState(lastUpdateTime);
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
-  const [performanceMetricsEnabled] = usePerformanceMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
 
   const defaultResponsePredicate = React.useCallback<ResponsePredicate>(
     (data) => data.result?.[0]?.values || [],

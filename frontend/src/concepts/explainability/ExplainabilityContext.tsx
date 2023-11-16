@@ -127,7 +127,7 @@ const useFetchContextData = (apiState: TrustyAPIState): ExplainabilityContextDat
 };
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {
-  const [biasMetricsEnabled] = useBiasMetricsEnabled();
+  const biasMetricsEnabled = useBiasMetricsEnabled();
   const callback = React.useCallback<FetchStateCallbackPromise<BiasMetricConfig[]>>(
     (opts) => {
       if (!biasMetricsEnabled) {
