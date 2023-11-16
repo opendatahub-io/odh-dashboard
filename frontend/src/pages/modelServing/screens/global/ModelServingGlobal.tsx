@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
@@ -21,7 +21,9 @@ const ModelServingGlobal: React.FC = () => {
     servingRuntimes: { data: servingRuntimes },
     inferenceServices: { data: inferenceServices },
   } = React.useContext(ModelServingContext);
-  const { dataScienceProjects: projects } = React.useContext(ProjectsContext);
+  const { projects, preferredProject } = React.useContext(ProjectsContext);
+
+  const getRedirectPath = (projectName: string) => `/modelServing/${projectName}`;
 
   const { namespace } = useParams<{ namespace: string }>();
   const currentProject = projects.find(byName(namespace));
@@ -58,16 +60,20 @@ const ModelServingGlobal: React.FC = () => {
         emptyStatePage: <EmptyModelServing />,
       };
     }
-    if (namespace && !currentProject) {
-      renderStateProps = {
-        empty: true,
-        emptyStatePage: (
-          <InvalidProject
-            namespace={namespace}
-            getRedirectPath={(namespace) => `/modelServing/${namespace}`}
-          />
-        ),
-      };
+    if (namespace) {
+      if (!currentProject) {
+        renderStateProps = {
+          empty: true,
+          emptyStatePage: (
+            <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
+          ),
+        };
+      }
+    } else {
+      // Redirect the namespace suffix into the URL
+      if (preferredProject) {
+        return <Navigate to={getRedirectPath(preferredProject.metadata.name)} replace />;
+      }
     }
   }
 
@@ -78,11 +84,7 @@ const ModelServingGlobal: React.FC = () => {
       description="Manage and view the health and performance of your deployed models."
       loadError={loadError}
       loaded
-      headerContent={
-        <ModelServingProjectSelection
-          getRedirectPath={(namespace) => `/modelServing/${namespace}`}
-        />
-      }
+      headerContent={<ModelServingProjectSelection getRedirectPath={getRedirectPath} />}
       provideChildrenPadding
     >
       <InferenceServiceListView
