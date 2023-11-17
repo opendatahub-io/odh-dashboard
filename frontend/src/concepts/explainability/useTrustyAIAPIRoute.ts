@@ -35,7 +35,6 @@ const useTrustyAIAPIRoute = (hasCR: boolean, namespace: string): FetchState<Stat
     [hasCR, namespace, trustyAIAreaAvailable],
   );
 
-  // TODO: add duplicate functionality to useFetchState.
   const state = useFetchState<State>(callback, null, {
     initialPromisePurity: true,
   });

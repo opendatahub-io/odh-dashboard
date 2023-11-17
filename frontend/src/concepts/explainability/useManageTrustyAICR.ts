@@ -1,34 +1,43 @@
 import React from 'react';
-import useTrustyAINamespaceCR from '~/concepts/explainability/useTrustyAINamespaceCR';
+import useTrustyAINamespaceCR, {
+  isTrustyAIAvailable,
+} from '~/concepts/explainability/useTrustyAINamespaceCR';
 import { createTrustyAICR, deleteTrustyAICR } from '~/api';
 
 const useManageTrustyAICR = (namespace: string) => {
-  const [trustyCR, , error, refresh] = useTrustyAINamespaceCR(namespace);
+  const state = useTrustyAINamespaceCR(namespace);
+  const [cr, loaded, serviceError, refresh] = state;
 
-  const installCR = React.useCallback(() => {
-    if (trustyCR) {
-      return Promise.reject(
-        new Error(`A TrustyAI service instance already exists in namespace: ${namespace}`),
-      );
-    }
+  const [installReqError, setInstallReqError] = React.useState<Error | undefined>();
+  const showSuccess = React.useRef(false);
 
-    return createTrustyAICR(namespace);
-  }, [namespace, trustyCR]);
+  const isAvailable = isTrustyAIAvailable(state);
+  const isProgressing = loaded && !!cr && !isAvailable;
+  const error = installReqError || serviceError;
 
-  const deleteCR = React.useCallback(() => {
-    if (!trustyCR) {
-      return Promise.reject(
-        new Error(`Could not find a TrustyAI service instance in namespace: ${namespace}`),
-      );
-    }
+  if (isProgressing) {
+    showSuccess.current = true;
+  }
 
-    return deleteTrustyAICR(namespace);
-  }, [namespace, trustyCR]);
+  const installCR = React.useCallback(
+    () =>
+      createTrustyAICR(namespace)
+        .then(refresh)
+        .catch((e) => setInstallReqError(e)),
+    [namespace, refresh],
+  );
+
+  const deleteCR = React.useCallback(
+    () => deleteTrustyAICR(namespace).then(refresh),
+    [namespace, refresh],
+  );
 
   return {
-    hasCR: !!trustyCR,
     error,
-    refresh,
+    isProgressing,
+    isAvailable,
+    showSuccess: showSuccess.current,
+    isSettled: loaded,
     installCR,
     deleteCR,
   };
