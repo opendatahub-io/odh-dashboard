@@ -1,7 +1,7 @@
 import { SortableData } from '~/components/table';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 
-export const columns: SortableData<AcceleratorKind>[] = [
+export const columns: SortableData<AcceleratorProfileKind>[] = [
   {
     field: 'name',
     label: 'Name',

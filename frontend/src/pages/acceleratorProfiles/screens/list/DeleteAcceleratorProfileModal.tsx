@@ -1,10 +1,10 @@
 import React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { deleteAcceleratorProfile } from '~/services/acceleratorProfileService';
 
 type DeleteAcceleratorProfileModalProps = {
-  acceleratorProfile?: AcceleratorKind;
+  acceleratorProfile?: AcceleratorProfileKind;
   onClose: (deleted: boolean) => void;
 };
 
@@ -28,7 +28,7 @@ const DeleteAcceleratorProfileModal: React.FC<DeleteAcceleratorProfileModalProps
       title="Delete accelerator profile?"
       isOpen={!!acceleratorProfile}
       onClose={() => onBeforeClose(false)}
-      submitButtonLabel="Delete accelerator profile"
+      submitButtonLabel="Delete"
       onDelete={() => {
         if (acceleratorProfile) {
           setIsDeleting(true);
@@ -46,9 +46,9 @@ const DeleteAcceleratorProfileModal: React.FC<DeleteAcceleratorProfileModalProps
       error={error}
       deleteName={deleteName}
     >
-      The <b>{deleteName}</b> accelerator profile will be deleted and will be unavailable for any
-      workbenches and runtimes. Existing resources will retain their settings but cannot revert to
-      this profile once changed.
+      The <b>{deleteName}</b> accelerator profile will be deleted and will no longer be available
+      for use with new workbenches and runtimes. Existing resources using this profile will retain
+      it unless a new profile is selected.
     </DeleteModal>
   );
 };

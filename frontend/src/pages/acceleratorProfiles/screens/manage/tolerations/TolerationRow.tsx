@@ -1,11 +1,11 @@
 import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { PodToleration } from '~/types';
+import { Toleration } from '~/types';
 
 type TolerationRowProps = {
-  toleration: PodToleration;
-  onDelete: (toleration: PodToleration) => void;
-  onEdit: (toleration: PodToleration) => void;
+  toleration: Toleration;
+  onDelete: (toleration: Toleration) => void;
+  onEdit: (toleration: Toleration) => void;
 };
 
 export const TolerationRow: React.FC<TolerationRowProps> = ({ toleration, onEdit, onDelete }) => {

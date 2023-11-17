@@ -1,14 +1,14 @@
 import { FormSection, Flex, FlexItem, Button } from '@patternfly/react-core';
 import React from 'react';
-import { PodToleration } from '~/types';
-import { ManageAcceleratorSectionTitles } from './const';
+import { Toleration } from '~/types';
+import { ManageAcceleratorProfileSectionTitles } from './const';
 import ManageTolerationModal from './tolerations/ManageTolerationModal';
 import { TolerationsTable } from './tolerations/TolerationsTable';
-import { ManageAcceleratorSectionID } from './types';
+import { ManageAcceleratorProfileSectionID } from './types';
 
 type ManageAcceleratorProfileTolerationsSectionProps = {
-  tolerations: PodToleration[];
-  setTolerations: (tolerations: PodToleration[]) => void;
+  tolerations: Toleration[];
+  setTolerations: (tolerations: Toleration[]) => void;
 };
 
 export const ManageAcceleratorProfileTolerationsSection = ({
@@ -19,12 +19,14 @@ export const ManageAcceleratorProfileTolerationsSection = ({
   return (
     <>
       <FormSection
-        id={ManageAcceleratorSectionID.TOLERATIONS}
-        aria-label={ManageAcceleratorSectionTitles[ManageAcceleratorSectionID.TOLERATIONS]}
+        id={ManageAcceleratorProfileSectionID.TOLERATIONS}
+        aria-label={
+          ManageAcceleratorProfileSectionTitles[ManageAcceleratorProfileSectionID.TOLERATIONS]
+        }
         title={
           <Flex>
             <FlexItem>
-              {ManageAcceleratorSectionTitles[ManageAcceleratorSectionID.TOLERATIONS]}
+              {ManageAcceleratorProfileSectionTitles[ManageAcceleratorProfileSectionID.TOLERATIONS]}
             </FlexItem>
             <FlexItem>
               <Button

@@ -12,7 +12,7 @@ const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModal> =
 }) => (
   <Modal
     variant="small"
-    title="Disable accelerator"
+    title="Disable accelerator profile"
     isOpen={isOpen}
     onClose={() => onClose(false)}
     actions={[
@@ -24,7 +24,9 @@ const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModal> =
       </Button>,
     ]}
   >
-    Disable this will disable accelerators for existing images and runtimes that want to use it.
+    This will disable the accelerator profile and it will no longer be available for use with new
+    workbenches and runtimes. Existing resources using this profile will retain it unless a new
+    profile is selected.
   </Modal>
 );
 

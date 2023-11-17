@@ -13,19 +13,19 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { PodToleration, TolerationEffect, TolerationOperator } from '~/types';
+import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { effectDropdownOptions, operatorDropdownOptions } from './const';
 
 type TolerationFieldsProps = {
-  toleration: PodToleration;
-  onUpdate: (data: PodToleration) => void;
+  toleration: Toleration;
+  onUpdate: (data: Toleration) => void;
 };
 
 export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdate }) => {
-  const handleFieldUpdate = (field: keyof PodToleration, value: unknown) => {
+  const handleFieldUpdate = (field: keyof Toleration, value: unknown) => {
     onUpdate({ ...toleration, [field]: value });
   };
 

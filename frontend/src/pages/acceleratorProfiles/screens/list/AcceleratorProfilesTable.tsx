@@ -5,12 +5,12 @@ import DashboardSearchField, { SearchType } from '~/concepts/dashboard/Dashboard
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { Table } from '~/components/table';
 import AcceleratorProfilesTableRow from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTableRow';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { columns } from '~/pages/acceleratorProfiles/screens/list/const';
 import DeleteAcceleratorProfileModal from './DeleteAcceleratorProfileModal';
 
 type AcceleratorProfilesTableProps = {
-  acceleratorProfiles: AcceleratorKind[];
+  acceleratorProfiles: AcceleratorProfileKind[];
   refreshAcceleratorProfiles: () => void;
 };
 
@@ -22,18 +22,18 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
   const [deleteAcceleratorProfile, setDeleteAcceleratorProfile] = React.useState<
-    AcceleratorKind | undefined
+    AcceleratorProfileKind | undefined
   >();
-  const filteredAcceleratorProfiles = acceleratorProfiles.filter((accelerator) => {
+  const filteredAcceleratorProfiles = acceleratorProfiles.filter((cr) => {
     if (!search) {
       return true;
     }
 
     switch (searchType) {
       case SearchType.NAME:
-        return accelerator.spec.displayName.toLowerCase().includes(search.toLowerCase());
+        return cr.spec.displayName.toLowerCase().includes(search.toLowerCase());
       case SearchType.IDENTIFIER:
-        return accelerator.spec.identifier.toLowerCase().includes(search.toLowerCase());
+        return cr.spec.identifier.toLowerCase().includes(search.toLowerCase());
       default:
         return true;
     }
@@ -49,10 +49,10 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
         data={filteredAcceleratorProfiles}
         columns={columns}
         emptyTableView={<DashboardEmptyTableView onClearFilters={() => setSearch('')} />}
-        rowRenderer={(accelerator) => (
+        rowRenderer={(cr) => (
           <AcceleratorProfilesTableRow
-            key={accelerator.metadata.name}
-            accelerator={accelerator}
+            key={cr.metadata.name}
+            acceleratorProfile={cr}
             handleDelete={(acceleratorProfile) => setDeleteAcceleratorProfile(acceleratorProfile)}
           />
         )}

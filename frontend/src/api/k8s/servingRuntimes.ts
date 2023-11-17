@@ -18,7 +18,7 @@ import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
@@ -28,7 +28,7 @@ export const assembleServingRuntime = (
   servingRuntime: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
   isEditing?: boolean,
-  acceleratorState?: AcceleratorState,
+  acceleratorProfileState?: AcceleratorProfileState,
 ): ServingRuntimeKind => {
   const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth } = data;
   const createName = isCustomServingRuntimesEnabled
@@ -70,7 +70,8 @@ export const assembleServingRuntime = (
         }),
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-display-name': getDisplayNameFromK8sResource(servingRuntime),
-          'opendatahub.io/accelerator-name': acceleratorState?.accelerator?.metadata.name || '',
+          'opendatahub.io/accelerator-name':
+            acceleratorProfileState?.acceleratorProfile?.metadata.name || '',
         }),
       },
     };
@@ -79,7 +80,8 @@ export const assembleServingRuntime = (
       ...updatedServingRuntime.metadata,
       annotations: {
         ...annotations,
-        'opendatahub.io/accelerator-name': acceleratorState?.accelerator?.metadata.name || '',
+        'opendatahub.io/accelerator-name':
+          acceleratorProfileState?.acceleratorProfile?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
@@ -99,7 +101,7 @@ export const assembleServingRuntime = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     resourceSettings,
-    acceleratorState,
+    acceleratorProfileState,
     undefined,
     servingRuntime.spec.tolerations,
     undefined,
@@ -178,9 +180,10 @@ export const updateServingRuntime = (options: {
   existingData: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  acceleratorState?: AcceleratorState;
+  acceleratorProfileState?: AcceleratorProfileState;
 }): Promise<ServingRuntimeKind> => {
-  const { data, existingData, isCustomServingRuntimesEnabled, opts, acceleratorState } = options;
+  const { data, existingData, isCustomServingRuntimesEnabled, opts, acceleratorProfileState } =
+    options;
 
   const updatedServingRuntime = assembleServingRuntime(
     data,
@@ -188,7 +191,7 @@ export const updateServingRuntime = (options: {
     existingData,
     isCustomServingRuntimesEnabled,
     true,
-    acceleratorState,
+    acceleratorProfileState,
   );
 
   return k8sUpdateResource<ServingRuntimeKind>(
@@ -205,7 +208,7 @@ export const createServingRuntime = (options: {
   servingRuntime: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  acceleratorState?: AcceleratorState;
+  acceleratorProfileState?: AcceleratorProfileState;
 }): Promise<ServingRuntimeKind> => {
   const {
     data,
@@ -213,7 +216,7 @@ export const createServingRuntime = (options: {
     servingRuntime,
     isCustomServingRuntimesEnabled,
     opts,
-    acceleratorState,
+    acceleratorProfileState,
   } = options;
   const assembledServingRuntime = assembleServingRuntime(
     data,
@@ -221,7 +224,7 @@ export const createServingRuntime = (options: {
     servingRuntime,
     isCustomServingRuntimesEnabled,
     false,
-    acceleratorState,
+    acceleratorProfileState,
   );
 
   return k8sCreateResource<ServingRuntimeKind>(

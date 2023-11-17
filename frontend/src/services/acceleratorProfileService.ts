@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { ResponseStatus } from '~/types';
 
 export const createAcceleratorProfile = (
-  acceleratorProfile: AcceleratorKind['spec'],
+  acceleratorProfile: AcceleratorProfileKind['spec'],
 ): Promise<ResponseStatus> => {
   const url = '/api/accelerator-profiles';
   return axios
@@ -26,7 +26,7 @@ export const deleteAcceleratorProfile = (name: string): Promise<ResponseStatus> 
 
 export const updateAcceleratorProfile = (
   name: string,
-  spec: Partial<AcceleratorKind['spec']>,
+  spec: Partial<AcceleratorProfileKind['spec']>,
 ): Promise<ResponseStatus> => {
   const url = `/api/accelerator-profiles/${name}`;
   return axios

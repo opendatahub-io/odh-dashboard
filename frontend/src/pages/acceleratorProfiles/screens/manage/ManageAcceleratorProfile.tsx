@@ -5,21 +5,21 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import GenericSidebar from '~/components/GenericSidebar';
 
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { ManageAcceleratorProfileFooter } from './ManageAcceleratorProfileFooter';
 import { ManageAcceleratorProfileTolerationsSection } from './ManageAcceleratorProfileTolerationsSection';
-import { ManageAcceleratorSectionID } from './types';
-import { ManageAcceleratorSectionTitles, ScrollableSelectorID } from './const';
+import { ManageAcceleratorProfileSectionID } from './types';
+import { ManageAcceleratorProfileSectionTitles, ScrollableSelectorID } from './const';
 import { ManageAcceleratorProfileDetailsSection } from './ManageAcceleratorProfileDetailsSection';
 
 type ManageAcceleratorProfileProps = {
-  existingAccelerator?: AcceleratorKind;
+  existingAcceleratorProfile?: AcceleratorProfileKind;
 };
 
 const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
-  existingAccelerator,
+  existingAcceleratorProfile,
 }) => {
-  const [state, setState] = useGenericObjectState<AcceleratorKind['spec']>({
+  const [state, setState] = useGenericObjectState<AcceleratorProfileKind['spec']>({
     displayName: '',
     identifier: '',
     enabled: true,
@@ -27,22 +27,22 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
   });
 
   React.useEffect(() => {
-    if (existingAccelerator) {
-      setState('displayName', existingAccelerator.spec.displayName);
-      setState('identifier', existingAccelerator.spec.identifier);
-      setState('description', existingAccelerator.spec.description);
-      setState('enabled', existingAccelerator.spec.enabled);
-      setState('tolerations', existingAccelerator.spec.tolerations);
+    if (existingAcceleratorProfile) {
+      setState('displayName', existingAcceleratorProfile.spec.displayName);
+      setState('identifier', existingAcceleratorProfile.spec.identifier);
+      setState('description', existingAcceleratorProfile.spec.description);
+      setState('enabled', existingAcceleratorProfile.spec.enabled);
+      setState('tolerations', existingAcceleratorProfile.spec.tolerations);
     }
-  }, [existingAccelerator, setState]);
+  }, [existingAcceleratorProfile, setState]);
 
-  const sectionIDs = Object.values(ManageAcceleratorSectionID);
+  const sectionIDs = Object.values(ManageAcceleratorProfileSectionID);
 
   return (
     <ApplicationsPage
       title={
-        existingAccelerator
-          ? `Edit ${existingAccelerator.spec.displayName}`
+        existingAcceleratorProfile
+          ? `Edit ${existingAcceleratorProfile.spec.displayName}`
           : 'Create accelerator profile'
       }
       breadcrumb={
@@ -51,7 +51,7 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
             render={() => <Link to="/acceleratorProfiles">Accelerator profiles</Link>}
           />
           <BreadcrumbItem>
-            {existingAccelerator ? 'Edit' : 'Create'} accelerator profile
+            {existingAcceleratorProfile ? 'Edit' : 'Create'} accelerator profile
           </BreadcrumbItem>
         </Breadcrumb>
       }
@@ -64,7 +64,7 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
         aria-label="manage-accelerator-spawner-section"
         variant="light"
       >
-        <GenericSidebar sections={sectionIDs} titles={ManageAcceleratorSectionTitles}>
+        <GenericSidebar sections={sectionIDs} titles={ManageAcceleratorProfileSectionTitles}>
           <Form style={{ maxWidth: 600 }}>
             <ManageAcceleratorProfileDetailsSection state={state} setState={setState} />
             <ManageAcceleratorProfileTolerationsSection
@@ -75,7 +75,10 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
         </GenericSidebar>
       </PageSection>
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
-        <ManageAcceleratorProfileFooter state={state} existingAccelerator={existingAccelerator} />
+        <ManageAcceleratorProfileFooter
+          state={state}
+          existingAcceleratorProfile={existingAcceleratorProfile}
+        />
       </PageSection>
     </ApplicationsPage>
   );

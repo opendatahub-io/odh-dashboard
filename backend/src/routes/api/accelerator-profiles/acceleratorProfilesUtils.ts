@@ -1,4 +1,4 @@
-import { KubeFastifyInstance, AcceleratorKind } from '../../../types';
+import { KubeFastifyInstance, AcceleratorProfileKind } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
 import { translateDisplayNameForK8s } from '../../../utils/resourceUtils';
@@ -9,9 +9,9 @@ export const postAcceleratorProfile = async (
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const body = request.body as AcceleratorKind['spec'];
+  const body = request.body as AcceleratorProfileKind['spec'];
 
-  const payload: AcceleratorKind = {
+  const payload: AcceleratorProfileKind = {
     apiVersion: 'dashboard.opendatahub.io/v1',
     kind: 'AcceleratorProfile',
     metadata: {
@@ -83,7 +83,7 @@ export const updateAcceleratorProfile = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
   const params = request.params as { acceleratorProfileName: string };
-  const body = request.body as Partial<AcceleratorKind['spec']>;
+  const body = request.body as Partial<AcceleratorProfileKind['spec']>;
 
   try {
     const currentProfile = await customObjectsApi
@@ -94,7 +94,7 @@ export const updateAcceleratorProfile = async (
         'acceleratorprofiles',
         params.acceleratorProfileName,
       )
-      .then((r) => r.body as AcceleratorKind)
+      .then((r) => r.body as AcceleratorProfileKind)
       .catch((e) => {
         throw createError(e.statusCode, e?.body?.message);
       });

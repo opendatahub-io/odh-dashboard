@@ -11,7 +11,7 @@ import { TemplateKind, ProjectKind, InferenceServiceKind } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
@@ -59,9 +59,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
     useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
-  const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
-    editInfo?.servingRuntimeEditInfo?.servingRuntime,
-  );
+  const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
+    useServingAcceleratorProfile(editInfo?.servingRuntimeEditInfo?.servingRuntime);
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -119,7 +118,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     setActionInProgress(false);
     resetDataServingRuntime();
     resetDataInferenceService();
-    resetAcceleratorData();
+    resetAcceleratorProfileData();
   };
 
   const setErrorModal = (error: Error) => {
@@ -148,7 +147,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         namespace,
         editInfo?.servingRuntimeEditInfo,
         true,
-        acceleratorState,
+        acceleratorProfileState,
         NamespaceApplicationCase.KSERVE_PROMOTION,
         projectContext?.currentProject,
         servingRuntimeName,
@@ -216,7 +215,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               setData={setCreateDataServingRuntime}
               templates={servingRuntimeTemplates || []}
               isEditing={!!editInfo}
-              acceleratorState={acceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
             />
           </StackItem>
           <StackItem>
@@ -238,8 +237,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               setData={setCreateDataServingRuntime}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorState={acceleratorState}
-              setAcceleratorState={setAcceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
+              setAcceleratorProfileState={setAcceleratorProfileState}
             />
           </StackItem>
           <StackItem>

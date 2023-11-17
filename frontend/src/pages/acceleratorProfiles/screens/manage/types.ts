@@ -1,8 +1,8 @@
-export enum ManageAcceleratorSectionID {
+export enum ManageAcceleratorProfileSectionID {
   DETAILS = 'details',
   TOLERATIONS = 'tolerations',
 }
 
-export type ManageAcceleratorSectionTitlesType = {
-  [key in ManageAcceleratorSectionID]: string;
+export type ManageAcceleratorProfileSectionTitlesType = {
+  [key in ManageAcceleratorProfileSectionID]: string;
 };

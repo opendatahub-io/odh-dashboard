@@ -11,13 +11,13 @@ import { PlusIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BYONImage } from '~/types';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { FetchState } from '~/utilities/useFetchState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type BYONImageAcceleratorsProps = {
   image: BYONImage;
-  acceleratorProfiles: FetchState<AcceleratorKind[]>;
+  acceleratorProfiles: FetchState<AcceleratorProfileKind[]>;
 };
 
 export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
@@ -27,8 +27,8 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
   const [data, loaded, loadError] = acceleratorProfiles;
   const acceleratorAdminPageEnabled = useIsAreaAvailable(SupportedArea.ACCELERATOR_PROFILES).status;
 
-  const recommendedAcceleratorProfiles = data.filter((accelerator) =>
-    image.recommendedAcceleratorIdentifiers?.includes(accelerator.spec.identifier),
+  const recommendedAcceleratorProfiles = data.filter((cr) =>
+    image.recommendedAcceleratorIdentifiers?.includes(cr.spec.identifier),
   );
   if (loadError) {
     return <>{'-'}</>;
