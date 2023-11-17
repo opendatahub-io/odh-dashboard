@@ -1,17 +1,15 @@
 import * as React from 'react';
-import { Outlet, useParams } from 'react-router-dom';
 import {
   Bullseye,
   Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  Spinner,
   Title,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { ServingRuntimeKind, InferenceServiceKind, TemplateKind } from '~/k8sTypes';
+import { ServingRuntimeKind, InferenceServiceKind, TemplateKind, ProjectKind } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
 import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
@@ -20,6 +18,8 @@ import { DataConnection } from '~/pages/projects/types';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
+import { SupportedArea, conditionalArea } from '~/concepts/areas';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import useInferenceServices from './useInferenceServices';
 import useServingRuntimes from './useServingRuntimes';
 import useTemplates from './customServingRuntimes/useTemplates';
@@ -34,6 +34,12 @@ type ModelServingContextType = {
   servingRuntimeTemplateDisablement: ContextResourceData<string>;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
+  project: ProjectKind | null;
+};
+
+type ModelServingContextProviderProps = {
+  children: React.ReactNode;
+  namespace?: string;
 };
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
@@ -44,12 +50,15 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
+  project: null,
 });
 
-const ModelServingContextProvider: React.FC = () => {
+const ModelServingContextProvider = conditionalArea<ModelServingContextProviderProps>(
+  SupportedArea.MODEL_SERVING,
+  true,
+)(({ children, namespace }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
-  const { namespace } = useParams<{ namespace: string }>();
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
@@ -77,7 +86,18 @@ const ModelServingContextProvider: React.FC = () => {
     dataConnectionRefresh();
   }, [servingRuntimeRefresh, inferenceServiceRefresh, dataConnectionRefresh]);
 
+  const {
+    kServe: { installed: kServeInstalled },
+    modelMesh: { installed: modelMeshInstalled },
+  } = useServingPlatformStatuses();
+
+  const notInstalledError =
+    !kServeInstalled && !modelMeshInstalled
+      ? new Error('No model serving platform installed')
+      : undefined;
+
   if (
+    notInstalledError ||
     servingRuntimes.error ||
     inferenceServices.error ||
     servingRuntimeTemplates.error ||
@@ -93,7 +113,8 @@ const ModelServingContextProvider: React.FC = () => {
             Problem loading model serving page
           </Title>
           <EmptyStateBody>
-            {servingRuntimes.error?.message ||
+            {notInstalledError?.message ||
+              servingRuntimes.error?.message ||
               inferenceServices.error?.message ||
               servingRuntimeTemplates.error?.message ||
               servingRuntimeTemplateOrder.error?.message ||
@@ -108,20 +129,6 @@ const ModelServingContextProvider: React.FC = () => {
     );
   }
 
-  if (
-    !servingRuntimes.loaded ||
-    !inferenceServices.loaded ||
-    !servingRuntimeTemplates.loaded ||
-    !servingRuntimeTemplateOrder.loaded ||
-    !servingRuntimeTemplateDisablement.loaded
-  ) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   return (
     <ModelServingContext.Provider
       value={{
@@ -132,11 +139,12 @@ const ModelServingContextProvider: React.FC = () => {
         servingRuntimeTemplateDisablement,
         dataConnections,
         refreshAllData,
+        project,
       }}
     >
-      <Outlet />
+      {children}
     </ModelServingContext.Provider>
   );
-};
+});
 
 export default ModelServingContextProvider;

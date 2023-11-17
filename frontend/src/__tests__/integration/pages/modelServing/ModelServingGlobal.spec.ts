@@ -28,6 +28,21 @@ test('Empty State No Inference Service', async ({ page }) => {
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 });
 
+test('No serving platform installed', async ({ page }) => {
+  await page.goto(
+    navigateToStory('pages-modelserving-modelservingglobal', 'no-platform-installed'),
+  );
+
+  // wait for page to load
+  await page.waitForSelector('text=Problem loading model serving page');
+
+  // Test that the button is enabled
+  await page.getByRole('button', { name: 'View my projects' }).isEnabled();
+
+  // test that you can not submit on empty
+  await expect(await page.getByText('No model serving platform installed')).toBeVisible();
+});
+
 test('Delete model', async ({ page }) => {
   await page.goto(navigateToStory('pages-modelserving-modelservingglobal', 'delete-model'));
 
