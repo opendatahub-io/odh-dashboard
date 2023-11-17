@@ -1,4 +1,5 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import {
   Alert,
   Bullseye,
@@ -17,10 +18,11 @@ type DetailsSectionProps = {
   title: string;
   isLoading: boolean;
   loadError?: Error;
-  isEmpty?: boolean;
-  emptyState?: React.ReactNode;
+  isEmpty: boolean;
+  emptyState: React.ReactNode;
   children: React.ReactNode;
   labels?: React.ReactNode[];
+  showDivider?: boolean;
 };
 
 const DetailsSection: React.FC<DetailsSectionProps> = ({
@@ -33,6 +35,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   loadError,
   title,
   labels,
+  showDivider,
 }) => {
   const renderContent = () => {
     if (loadError) {
@@ -59,7 +62,12 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   };
 
   return (
-    <Stack hasGutter>
+    <Stack
+      hasGutter
+      className={classNames({
+        'odh-details-section--divide': !loadError && (isLoading || isEmpty || showDivider),
+      })}
+    >
       <StackItem>
         <Flex>
           <FlexItem>
