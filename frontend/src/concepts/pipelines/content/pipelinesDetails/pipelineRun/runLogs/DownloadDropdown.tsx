@@ -1,53 +1,32 @@
 import React from 'react';
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownToggle,
-  KebabToggle,
-} from '@patternfly/react-core/deprecated';
-import { Truncate } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import { DownloadIcon } from '@patternfly/react-icons';
 
 type DownloadDropdownProps = {
   onDownload: () => void;
   onDownloadAll: () => void;
-  isSmallScreen: boolean;
   isSingleStepLogsEmpty: boolean;
 };
 
 const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
   onDownload,
   onDownloadAll,
-  isSmallScreen,
   isSingleStepLogsEmpty,
 }) => {
   const [isDownloadDropdownOpen, setIsDownloadDropdownOpen] = React.useState(false);
 
-  return isSmallScreen ? (
+  return (
     <Dropdown
-      toggle={<KebabToggle onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)} />}
-      isOpen={isDownloadDropdownOpen}
       isPlain
-      dropdownItems={[
-        <DropdownItem
-          isDisabled={isSingleStepLogsEmpty}
-          key="current-container-logs"
-          onClick={onDownload}
-        >
-          <Truncate content="Download current step log" />
-        </DropdownItem>,
-        <DropdownItem key="all-container-logs" onClick={onDownloadAll}>
-          <Truncate content="Download all step logs" />
-        </DropdownItem>,
-      ]}
-    />
-  ) : (
-    <Dropdown
+      position="right"
       toggle={
         <DropdownToggle
+          className="pf-v5-u-px-sm"
+          style={{ width: '60px' }}
           id="download-steps-logs-toggle"
           onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
         >
-          Download
+          <DownloadIcon />
         </DropdownToggle>
       }
       isOpen={isDownloadDropdownOpen}
@@ -57,10 +36,10 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
           key="current-container-logs"
           onClick={onDownload}
         >
-          <Truncate content="Current step log" />
+          Download current step log
         </DropdownItem>,
         <DropdownItem key="all-container-logs" onClick={onDownloadAll}>
-          <Truncate content="All step logs" />
+          Download all step logs
         </DropdownItem>,
       ]}
     />
