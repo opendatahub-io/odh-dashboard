@@ -148,7 +148,21 @@ export const EditModal: StoryObj = {
       element: '.pf-v5-c-backdrop',
     },
     msw: {
-      handlers: [rest.get('/api/images/byon', (req, res, ctx) => res(ctx.json(mockByon())))],
+      handlers: [
+        rest.get('/api/images/byon', (req, res, ctx) =>
+          res(
+            ctx.json(
+              mockByon([
+                {
+                  url: 'test-image:latest',
+                  display_name: 'Testing Custom Image',
+                  description: 'A custom notebook image',
+                },
+              ]),
+            ),
+          ),
+        ),
+      ],
     },
   },
   play: async ({ canvasElement }) => {
