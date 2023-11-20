@@ -42,14 +42,16 @@ const EmptyModelServing: React.FC = () => {
           To get started, deploy a model from the <strong>Models and model servers</strong> section
           of a project.
         </EmptyStateBody>
-        <EmptyStateActions>
-          <Button
-            variant="link"
-            onClick={() => navigate(project ? `/projects/${project.metadata.name}` : '/projects')}
-          >
-            {project ? `Go to ${getProjectDisplayName(project)}` : 'Select a project'}
-          </Button>
-        </EmptyStateActions>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button
+              variant="link"
+              onClick={() => navigate(project ? `/projects/${project.metadata.name}` : '/projects')}
+            >
+              {project ? `Go to ${getProjectDisplayName(project)}` : 'Select a project'}
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
       </EmptyState>
     );
   }

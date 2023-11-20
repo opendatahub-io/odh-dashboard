@@ -31,6 +31,8 @@ import './OdhCard.scss';
 
 type OdhDocCardProps = {
   odhDoc: OdhDocument;
+  isSelected?: boolean;
+  onSelect?: () => void;
   favorite: boolean;
   updateFavorite: (isFavorite: boolean) => void;
 };
@@ -144,13 +146,6 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
           ),
           hasNoOffset: true,
           className: undefined,
-        }}
-        selectableActions={{
-          selectableActionId: `${odhDoc.metadata.name}-selectable-card-input`,
-          selectableActionAriaLabelledby: 'selectable-card',
-          name: `odh-explore-selectable-card`,
-          variant: 'single',
-          isChecked: selected,
         }}
       >
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
