@@ -35,7 +35,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
       case InferenceServiceModelState.LOADING:
         return (
           <Icon isInline>
-            <Spinner isSVG size="md" />
+            <Spinner size="md" />
           </Icon>
         );
       case InferenceServiceModelState.UNKNOWN:
@@ -55,7 +55,6 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
 
   return (
     <Tooltip
-      removeFindDomNode
       role="none"
       content={<Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>}
     >

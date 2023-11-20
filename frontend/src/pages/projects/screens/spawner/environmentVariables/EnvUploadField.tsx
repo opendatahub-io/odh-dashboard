@@ -1,6 +1,13 @@
 import * as React from 'react';
-import { FileUpload, FormGroup } from '@patternfly/react-core';
+import {
+  FileUpload,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+} from '@patternfly/react-core';
 import { parse } from 'yaml';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { EnvironmentVariableType, EnvVariableDataEntry } from '~/pages/projects/types';
 import { isConfigMapKind, isSecretKind, isStringKeyValuePairObject } from './utils';
 
@@ -21,12 +28,7 @@ const EnvUploadField: React.FC<EnvUploadFieldProps> = ({
   const [error, setError] = React.useState('');
 
   return (
-    <FormGroup
-      fieldId="configmap-upload"
-      helperText={`Upload a ${envVarType} yaml file`}
-      helperTextInvalid={error}
-      validated={error ? 'error' : 'default'}
-    >
+    <FormGroup fieldId="configmap-upload">
       <FileUpload
         id="envvar-upload"
         type="text"
@@ -44,9 +46,9 @@ const EnvUploadField: React.FC<EnvUploadFieldProps> = ({
           onUpdate([]);
         }}
         dropzoneProps={{
-          accept: '.yaml',
+          accept: { 'text/yaml': ['.yaml'] },
         }}
-        onDataChange={(data) => {
+        onDataChange={(e, data) => {
           setFileValue(data);
           try {
             const parsedData = parse(data);
@@ -85,6 +87,16 @@ const EnvUploadField: React.FC<EnvUploadFieldProps> = ({
         isReadOnly
         browseButtonText="Upload"
       />
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem
+            icon={error && <ExclamationCircleIcon />}
+            variant={error ? 'error' : 'default'}
+          >
+            {error ? `${error}` : `Upload a ${envVarType} yaml file`}
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
     </FormGroup>
   );
 };

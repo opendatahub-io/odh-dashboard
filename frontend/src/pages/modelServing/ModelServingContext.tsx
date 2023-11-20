@@ -5,7 +5,8 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  Title,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -108,10 +109,11 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     return (
       <Bullseye>
         <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h2" size="lg">
-            Problem loading model serving page
-          </Title>
+          <EmptyStateHeader
+            titleText="Problem loading model serving page"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h2"
+          />
           <EmptyStateBody>
             {notInstalledError?.message ||
               servingRuntimes.error?.message ||
@@ -121,9 +123,11 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
               servingRuntimeTemplateDisablement.error?.message ||
               dataConnections.error?.message}
           </EmptyStateBody>
-          <Button variant="primary" onClick={() => navigate('/projects')}>
-            View my projects
-          </Button>
+          <EmptyStateFooter>
+            <Button variant="primary" onClick={() => navigate('/projects')}>
+              View my projects
+            </Button>
+          </EmptyStateFooter>
         </EmptyState>
       </Bullseye>
     );

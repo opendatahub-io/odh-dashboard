@@ -6,7 +6,7 @@ import NotebookRouteLink from './NotebookRouteLink';
 import NotebookStatusToggle from './NotebookStatusToggle';
 
 /** Keep the size of each notebook state the same so they can stay horizontally aligned */
-const EQUAL_SIZE_STYLE = { height: 'var(--pf-c-switch--Height)' };
+const EQUAL_SIZE_STYLE = { height: 'var(--pf-v5-c-switch--Height)' };
 
 type ListNotebookStateProps = {
   notebookStates: NotebookState[];

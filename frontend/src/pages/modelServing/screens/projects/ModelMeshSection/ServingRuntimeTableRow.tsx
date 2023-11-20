@@ -92,7 +92,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
               {modelInferenceServices.length}{' '}
               {inferenceServicesLoadError && (
                 <Tooltip
-                  removeFindDomNode
                   aria-labelledby="Deployed models load error"
                   content={inferenceServicesLoadError.message}
                 >
@@ -117,11 +116,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             <>
               {!isServingRuntimeTokenEnabled(obj) ? 'Tokens disabled' : tokens.length}{' '}
               {secretsLoadError && (
-                <Tooltip
-                  removeFindDomNode
-                  aria-labelledby="Tokens load error"
-                  content={secretsLoadError.message}
-                >
+                <Tooltip aria-labelledby="Tokens load error" content={secretsLoadError.message}>
                   <Icon role="button" status="danger" aria-label="error icon" tabIndex={0}>
                     <ExclamationCircleIcon />
                   </Icon>

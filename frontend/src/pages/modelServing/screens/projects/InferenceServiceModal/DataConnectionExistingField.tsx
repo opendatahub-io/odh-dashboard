@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption, Stack, StackItem } from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
@@ -23,14 +24,13 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
       <StackItem>
         <FormGroup label="Name" isRequired>
           <Select
-            removeFindDomNode
             id="inference-service-data-connection"
             isOpen={isOpen}
             placeholderText={
               dataConnections.length === 0 ? 'No data connections available to select' : 'Select...'
             }
             isDisabled={dataConnections.length === 0}
-            onToggle={(open) => setOpen(open)}
+            onToggle={(e, open) => setOpen(open)}
             onSelect={(_, option) => {
               if (typeof option === 'string') {
                 setData('storage', {

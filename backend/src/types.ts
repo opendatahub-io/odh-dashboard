@@ -492,6 +492,18 @@ export type BYONImage = {
   packages: BYONImagePackage[];
 };
 
+export type ImageInfo = {
+  name: string;
+  tags: ImageTagInfo[];
+  description?: string;
+  url?: string;
+  display_name?: string;
+  default?: boolean;
+  order?: number;
+  dockerImageRepo?: string;
+  error?: string;
+};
+
 export type ImageTag = {
   image: ImageInfo | undefined;
   tag: ImageTagInfo | undefined;
@@ -580,18 +592,6 @@ export type ImageTagInfo = {
   content: TagContent;
   recommended: boolean;
   default: boolean;
-};
-
-export type ImageInfo = {
-  name: string;
-  tags: ImageTagInfo[];
-  description?: string;
-  url?: string;
-  display_name?: string;
-  default?: boolean;
-  order?: number;
-  dockerImageRepo?: string;
-  error?: string;
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';

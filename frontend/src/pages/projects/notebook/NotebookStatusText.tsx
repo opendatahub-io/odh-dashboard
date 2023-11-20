@@ -29,7 +29,6 @@ const NotebookStatusText: React.FC<NotebookStatusTextProps> = ({
   return (
     <>
       <Popover
-        removeFindDomNode
         shouldClose={() => setPopoverVisible(false)}
         isVisible={isPopoverVisible}
         headerContent="Notebook status"
@@ -63,7 +62,7 @@ const NotebookStatusText: React.FC<NotebookStatusTextProps> = ({
         >
           {labelText}{' '}
           {notebookStatus?.currentStatus === EventStatus.ERROR && (
-            <Tooltip removeFindDomNode content={notebookStatus.currentEvent}>
+            <Tooltip content={notebookStatus.currentEvent}>
               <Icon isInline aria-label="error icon" role="button" status="danger" tabIndex={0}>
                 <ExclamationCircleIcon />
               </Icon>

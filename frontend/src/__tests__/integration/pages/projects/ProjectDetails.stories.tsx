@@ -25,6 +25,7 @@ import { mockStatus } from '~/__mocks__/mockStatus';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
+import { mock404Error } from '~/__mocks__/mock404Error';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { StackComponent } from '~/concepts/areas';
@@ -172,6 +173,10 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   rest.get(
     '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
     (req, res, ctx) => res(ctx.json(mockDashboardConfig({}))),
+  ),
+  rest.get(
+    '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
   ),
 ];
 

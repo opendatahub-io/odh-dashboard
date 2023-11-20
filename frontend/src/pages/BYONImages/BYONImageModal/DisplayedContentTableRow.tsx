@@ -61,7 +61,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
             <TextInput
               aria-label={`${dataLabel} name input`}
               value={name}
-              onChange={setName}
+              onChange={(e, value) => setName(value)}
               onKeyDown={onKeyDown}
               autoFocus
             />
@@ -74,7 +74,7 @@ const DisplayedContentTableRow: React.FC<DisplayedContentTableRowProps> = ({
             <TextInput
               aria-label={`${dataLabel} version input`}
               value={version}
-              onChange={setVersion}
+              onChange={(e, value) => setVersion(value)}
               onKeyDown={onKeyDown}
             />
           ) : (

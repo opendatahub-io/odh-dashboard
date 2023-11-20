@@ -9,7 +9,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { TableComposable, Thead, Tr, Th, Tbody, Td, Caption } from '@patternfly/react-table';
+import { Table, Thead, Tr, Th, Tbody, Td, Caption } from '@patternfly/react-table';
 
 type TestHookProps<T extends unknown[]> = {
   hook: (...args: T) => unknown;
@@ -81,7 +81,7 @@ export const TestHook = <T extends any[]>({
     dataIdPrefix: string,
     showButtons = false,
   ) => (
-    <TableComposable variant="compact">
+    <Table variant="compact">
       <Thead>
         <Tr>
           <Th>Type</Th>
@@ -107,7 +107,7 @@ export const TestHook = <T extends any[]>({
             <Td isActionCell>
               {showButtons && typeof value === 'function' && (
                 <Button
-                  isSmall
+                  size="sm"
                   data-testid={`call-function-${index}`}
                   variant="secondary"
                   onClick={() => value()}
@@ -119,7 +119,7 @@ export const TestHook = <T extends any[]>({
           </Tr>
         ))}
       </Tbody>
-    </TableComposable>
+    </Table>
   );
 
   return (

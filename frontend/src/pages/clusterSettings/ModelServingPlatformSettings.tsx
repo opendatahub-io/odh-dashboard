@@ -116,7 +116,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             label="Single model serving platform"
             isDisabled={!kServeInstalled}
             isChecked={kServeInstalled && enabledPlatforms.kServe}
-            onChange={(enabled) => {
+            onChange={(e, enabled) => {
               const newEnabledPlatforms: ModelServingPlatformEnabled = {
                 ...enabledPlatforms,
                 kServe: enabled,
@@ -134,7 +134,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             label="Multi-model serving platform"
             isDisabled={!modelMeshInstalled}
             isChecked={modelMeshInstalled && enabledPlatforms.modelMesh}
-            onChange={(enabled) => {
+            onChange={(e, enabled) => {
               const newEnabledPlatforms: ModelServingPlatformEnabled = {
                 ...enabledPlatforms,
                 modelMesh: enabled,
