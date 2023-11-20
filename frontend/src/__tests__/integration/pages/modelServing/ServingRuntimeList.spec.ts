@@ -202,18 +202,19 @@ test('Add ModelMesh model server', async ({ page }) => {
     },
   ];
 
-  for (const item of expectedContent) {
+  for await (const item of expectedContent) {
     const iconPopover = await page.getByRole('button', { name: item.ariaLabel, exact: true });
     if (await iconPopover.isVisible()) {
       await iconPopover.click();
-      const popoverContent = await page.locator('div.pf-c-popover__content').textContent();
+      const popoverContent = await page.locator('div.pf-v5-c-popover__content').textContent();
       expect(popoverContent).toContain(item.content);
 
-      const closeButton = await page.locator('div.pf-c-popover__content>button');
+      const closeButton = await page.locator('div.pf-v5-c-popover__close');
       if (closeButton) {
-        closeButton.click();
+        await closeButton.click();
       }
     }
+    await page.waitForTimeout(300);
   }
   // test the if the alert is visible when route is external while token is not set
   await expect(page.locator('#alt-form-checkbox-route')).not.toBeChecked();
@@ -246,7 +247,7 @@ test('Edit ModelMesh model server', async ({ page }) => {
   await page
     .getByRole('rowgroup')
     .filter({ has: page.getByRole('button', { name: 'ovms', exact: true }) })
-    .getByLabel('Actions')
+    .getByLabel('Kebab toggle')
     .click();
   await page.getByText('Edit model server').click();
 
