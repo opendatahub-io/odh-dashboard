@@ -29,7 +29,6 @@ const SearchField: React.FC<SearchFieldProps> = ({
       <InputGroupItem>
         <Select
           toggleId="search-field-toggle"
-          removeFindDomNode
           isOpen={typeOpen}
           onToggle={() => setTypeOpen(!typeOpen)}
           selections={searchType}
