@@ -45,7 +45,7 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
       id="byon-image-location-input"
       isRequired
       type="text"
-      data-id="byon-image-location-input"
+      data-testid="byon-image-location-input"
       name="byon-image-location-input"
       aria-describedby="byon-image-location-input"
       value={location}

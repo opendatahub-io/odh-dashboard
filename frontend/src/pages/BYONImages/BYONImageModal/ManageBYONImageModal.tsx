@@ -145,7 +145,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
             id="byon-image-name-input"
             isRequired
             type="text"
-            data-id="byon-image-name-input"
+            data-testid="byon-image-name-input"
             name="byon-image-name-input"
             value={displayName}
             onChange={(e, value) => {
@@ -158,7 +158,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
             id="byon-image-description-input"
             isRequired
             type="text"
-            data-id="byon-image-description-input"
+            data-testid="byon-image-description-input"
             name="byon-image-description-input"
             aria-describedby="byon-image-description-input"
             value={description}

@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Table filtering, sorting, searching', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--large-list&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'large-list'),
   );
 
   // test sorting
@@ -77,7 +78,8 @@ test('Table filtering, sorting, searching', async ({ page }) => {
   expect(page.getByText('image-123'));
 
   const selectFilterMenuOption = async (itemLabel: string): Promise<void> => {
-    await page.locator('.pf-v5-c-toolbar').getByRole('button', { name: 'Filter type' }).click();
+    // await page.locator('.pf-v5-c-toolbar').getByRole('button', { name: 'Filter type' }).click();
+    await page.getByTestId('filter-dropdown-select').click();
     await page.getByRole('menuitem', { name: itemLabel }).click();
   };
 
@@ -97,9 +99,7 @@ test('Table filtering, sorting, searching', async ({ page }) => {
 });
 
 test('Import form fields', async ({ page }) => {
-  await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--default&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'default'));
 
   // test form is disabled initially
   await page.getByRole('button', { name: 'Import new image' }).click();
@@ -195,13 +195,17 @@ test('Import form fields', async ({ page }) => {
 
 test('Edit form fields match', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--editmodal&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'edit-modal'),
   );
 
   // test inputs have correct values
-  expect(await page.getByLabel('Image Location *').inputValue()).toBe('test-image:latest');
-  expect(await page.getByLabel('Name *').inputValue()).toBe('Testing Custom Image');
-  expect(await page.getByLabel('Description').inputValue()).toBe('A custom notebook image');
+  expect(await page.getByTestId('byon-image-location-input').inputValue()).toBe(
+    'test-image:latest',
+  );
+  expect(await page.getByTestId('byon-image-name-input').inputValue()).toBe('Testing Custom Image');
+  expect(await page.getByTestId('byon-image-description-input').inputValue()).toBe(
+    'A custom notebook image',
+  );
 
   // test software and packages have correct values
   expect(page.getByRole('gridcell', { name: 'test-software' }));
@@ -213,8 +217,9 @@ test('Edit form fields match', async ({ page }) => {
 
 test('Delete form', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--deletemodal&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'delete-modal'),
   );
+
   // test delete form is disabled initially
   await expect(page.getByRole('button', { name: 'Delete notebook image' })).toBeDisabled();
 
@@ -226,7 +231,7 @@ test('Delete form', async ({ page }) => {
 
 test('Error messages', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--image-error&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'image-error'),
   );
 
   // import error
@@ -240,14 +245,14 @@ test('Error messages', async ({ page }) => {
   await page.getByRole('button', { name: 'Close' }).click();
 
   // edit error
-  await page.getByRole('button', { name: 'Actions' }).click();
+  await page.getByLabel('Kebab toggle').click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Update' }).click();
   expect(page.getByText('Testing edit error message'));
   await page.getByRole('button', { name: 'Close' }).click();
 
   // delete error
-  await page.getByRole('button', { name: 'Actions' }).click();
+  await page.getByLabel('Kebab toggle').click();
   await page.getByRole('menuitem', { name: 'Delete' }).click();
   await page.getByRole('textbox', { name: 'Delete modal input' }).click();
   await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Testing Custom Image');
@@ -260,9 +265,7 @@ test('Error messages', async ({ page }) => {
 });
 
 test('Import modal opens from the empty state', async ({ page }) => {
-  await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--empty&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'empty'));
   await page.getByRole('button', { name: 'Import new image' }).click();
   expect(page.getByText('Import notebook image'));
 });
