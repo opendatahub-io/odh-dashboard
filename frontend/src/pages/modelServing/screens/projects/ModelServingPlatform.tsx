@@ -102,7 +102,7 @@ const ModelServingPlatform: React.FC = () => {
         }
         isLoading={!servingRuntimesLoaded && !templatesLoaded}
         isEmpty={!shouldShowPlatformSelection && emptyModelServer}
-        loadError={servingRuntimeError || templateError || platformError}
+        loadError={platformError || servingRuntimeError || templateError}
         emptyState={
           <EmptyDetailsList
             title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}

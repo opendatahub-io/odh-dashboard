@@ -67,7 +67,7 @@ export const EditProject: StoryObj = {
     await canvas.findByText('DS Project 1', undefined, { timeout: 5000 });
 
     // user flow for editing a project
-    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(canvas.getAllByLabelText('Kebab toggle', { selector: 'button' })[0]);
     await userEvent.click(await canvas.findByText('Edit project'));
   },
 };
@@ -85,7 +85,7 @@ export const DeleteProject: StoryObj = {
     await canvas.findByText('DS Project 1', undefined, { timeout: 5000 });
 
     // user flow for deleting a project
-    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(canvas.getAllByLabelText('Kebab toggle', { selector: 'button' })[0]);
     await userEvent.click(await canvas.findByText('Delete project'));
   },
 };

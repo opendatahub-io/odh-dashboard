@@ -5,7 +5,6 @@ import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 export enum SearchType {
   NAME = 'Name',
   USER = 'User',
-  PROJECT = 'Project',
 }
 
 type SearchFieldProps = {
@@ -29,6 +28,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
     <InputGroup>
       <InputGroupItem>
         <Select
+          toggleId="search-field-toggle"
           isOpen={typeOpen}
           onToggle={() => setTypeOpen(!typeOpen)}
           selections={searchType}

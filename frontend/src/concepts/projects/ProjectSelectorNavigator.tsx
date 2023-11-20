@@ -16,8 +16,8 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
   return (
     <ProjectSelector
       {...projectSelectorProps}
-      onSelection={(project) => {
-        navigate(getRedirectPath(project.metadata.name));
+      onSelection={(projectName) => {
+        navigate(getRedirectPath(projectName));
       }}
       namespace={namespace ?? ''}
     />
