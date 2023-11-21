@@ -199,6 +199,9 @@ export const getImageVersionSoftwareString = (imageVersion: ImageStreamSpecTagTy
   return softwareString.join(', ');
 };
 
+const isOutdated = (version: ImageStreamSpecTagType): boolean =>
+  !!version.annotations?.[IMAGE_ANNOTATIONS.OUTDATED];
+
 /**
  * Get all the `imageStream.spec.tags` and filter the ones exists in `imageStream.status.tags`
  */
@@ -206,7 +209,9 @@ export const getExistingVersionsForImageStream = (
   imageStream: ImageStreamKind,
 ): ImageStreamSpecTagType[] => {
   const allVersions = imageStream.spec.tags || [];
-  return allVersions.filter((version) => checkVersionExistence(imageStream, version));
+  return allVersions
+    .filter((version) => !isOutdated(version))
+    .filter((version) => checkVersionExistence(imageStream, version));
 };
 
 /**

@@ -80,7 +80,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
                 id="pipeline-name"
                 name="pipeline-name"
                 value={name}
-                onChange={(value) => setData('name', value)}
+                onChange={(e, value) => setData('name', value)}
               />
             </FormGroup>
           </StackItem>
@@ -92,7 +92,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
                 id="pipeline-description"
                 name="pipeline-description"
                 value={description}
-                onChange={(value) => setData('description', value)}
+                onChange={(e, value) => setData('description', value)}
               />
             </FormGroup>
           </StackItem>

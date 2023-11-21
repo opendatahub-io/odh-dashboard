@@ -56,14 +56,15 @@ test('List Accelerator profiles', async ({ page }) => {
 
   // Check filters
   // by name
-  expect(page.getByRole('button', { name: 'Options menu' })).toBeTruthy();
+  await page.getByTestId('filter-dropdown-select').click();
+  await page.getByRole('menuitem', { name: 'Name' }).click();
   await page.getByLabel('Search input').fill('TensorRT');
   expect(page.getByText('TensorRT'));
 
   // by identifier
   await page.getByRole('button', { name: 'Reset' }).click();
-  page.getByRole('button', { name: 'Options menu' }).click();
-  await page.getByRole('option', { name: 'Identifier' }).click();
+  await page.getByTestId('filter-dropdown-select').click();
+  await page.getByRole('menuitem', { name: 'Identifier' }).click();
   await page.getByLabel('Search input').fill('tensor.com/gpu');
   expect(page.getByText('tensor.com/gpu'));
 });
@@ -76,8 +77,9 @@ test('Delete Accelerator profile', async ({ page }) => {
     .getByRole('row', {
       name: 'Test Accelerator',
     })
-    .getByRole('button', { name: 'Actions' })
+    .getByLabel('Kebab toggle')
     .click();
+
   await page.getByRole('menuitem', { name: 'Delete' }).click();
   await expect(page.getByRole('button', { name: 'Delete accelerator profile' })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Test Accelerator');

@@ -48,7 +48,7 @@ export const ManageAcceleratorProfileDetailsSection = ({
               value={state.displayName}
               id="accelerator-name"
               name="accelerator-name"
-              onChange={(name) => setState('displayName', name)}
+              onChange={(_, name) => setState('displayName', name)}
               aria-label="Name"
               data-testid="accelerator-name-input"
             />
@@ -59,10 +59,7 @@ export const ManageAcceleratorProfileDetailsSection = ({
             label="Identifier"
             isRequired
             labelIcon={
-              <Popover
-                removeFindDomNode
-                bodyContent="An identifier is a unique string that names a specific hardware accelerator resource."
-              >
+              <Popover bodyContent="An identifier is a unique string that names a specific hardware accelerator resource.">
                 <DashboardPopupIconButton
                   icon={<OutlinedQuestionCircleIcon />}
                   aria-label="More info for identifier field"
@@ -84,7 +81,7 @@ export const ManageAcceleratorProfileDetailsSection = ({
               id="accelerator-description"
               name="accelerator-description"
               value={state.description}
-              onChange={(description) => setState('description', description)}
+              onChange={(_, description) => setState('description', description)}
               aria-label="Description"
               data-testid="accelerator-description-input"
             />
@@ -95,7 +92,7 @@ export const ManageAcceleratorProfileDetailsSection = ({
             <Switch
               id="accelerator-enabled"
               isChecked={state.enabled}
-              onChange={(enabled) => setState('enabled', enabled)}
+              onChange={(_, enabled) => setState('enabled', enabled)}
               aria-label="Enabled"
             />
           </FormGroup>

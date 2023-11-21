@@ -1,6 +1,11 @@
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
-import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
+import {
+  getExistingVersionsForImageStream,
+  isAWSValid,
+} from '~/pages/projects/screens/spawner/spawnerUtils';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
+import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
+import { IMAGE_ANNOTATIONS } from '~/pages/projects/screens/spawner/const';
 
 describe('isAWSValid', () => {
   const getMockAWSData = ({
@@ -65,5 +70,68 @@ describe('isAWSValid', () => {
     expect(isAWSValid(getMockAWSData({ bucket: 'test-bucket' }), [AWS_KEYS.AWS_S3_BUCKET])).toBe(
       true,
     );
+  });
+});
+
+describe('getExistingVersionsForImageStream', () => {
+  it('should handle no image tags', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: { spec: { tags: [] }, status: { tags: [] } },
+    });
+    expect(getExistingVersionsForImageStream(imageStream)).toHaveLength(0);
+  });
+
+  it('should return the only default value', () => {
+    expect(getExistingVersionsForImageStream(mockImageStreamK8sResource({}))).toHaveLength(1);
+  });
+
+  it('should exclude the outdated items', () => {
+    // Override the first value
+    const imageStream = mockImageStreamK8sResource({
+      opts: { spec: { tags: [{ annotations: { [IMAGE_ANNOTATIONS.OUTDATED]: 'true' } }] } },
+    });
+    expect(getExistingVersionsForImageStream(imageStream)).toHaveLength(0);
+
+    // Add an outdated 2nd value
+    const imageStream2 = mockImageStreamK8sResource({
+      opts: {
+        spec: {
+          tags: [{}, { name: 'test', annotations: { [IMAGE_ANNOTATIONS.OUTDATED]: 'true' } }],
+        },
+      },
+    });
+    expect(getExistingVersionsForImageStream(imageStream2)).toHaveLength(1);
+  });
+
+  it('should exclude removed tags', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        spec: {
+          tags: [{ name: 'not-the-available-tag' }],
+        },
+      },
+    });
+    expect(getExistingVersionsForImageStream(imageStream)).toHaveLength(0);
+  });
+
+  it('should exclude removed tags & outdated ones', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        spec: {
+          tags: [
+            {},
+            { name: 'not-the-available-tag' },
+            { name: 'should-be-included' },
+            { name: 'outdated', annotations: { [IMAGE_ANNOTATIONS.OUTDATED]: 'true' } },
+          ],
+        },
+        status: {
+          tags: [{ tag: 'should-be-included' }, { tag: 'outdated' }],
+        },
+      },
+    });
+    const result = getExistingVersionsForImageStream(imageStream);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ name: 'should-be-included' });
   });
 });

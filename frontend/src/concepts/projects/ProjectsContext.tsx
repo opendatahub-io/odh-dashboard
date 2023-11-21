@@ -19,7 +19,7 @@ type ProjectsContext = {
    * Allows for navigation to be unimpeded by project selection
    * @see useSyncPreferredProject
    */
-  updatePreferredProject: (project: ProjectKind) => void;
+  updatePreferredProject: (project: ProjectKind | null) => void;
   refresh: (waitForName?: string) => Promise<void>;
 
   // ...the rest of the state variables

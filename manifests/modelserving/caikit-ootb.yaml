@@ -18,8 +18,8 @@ objects:
   kind: ServingRuntime
   metadata:
     name: caikit-tgis-runtime
-  annotations:
-    openshift.io/display-name: Caikit TGIS ServingRuntime for KServe
+    annotations:
+      openshift.io/display-name: Caikit TGIS ServingRuntime for KServe
   labels:
     opendatahub.io/dashboard: 'true'
   spec:
@@ -42,8 +42,9 @@ objects:
         env:
           - name: RUNTIME_LOCAL_MODELS_DIR
             value: /mnt/models
+          - name: RUNTIME_GRPC_SERVER_THREAD_POOL_SIZE
+            value: "64"
         ports:
           - containerPort: 8080
-            name: h2c
             protocol: TCP
 parameters: []

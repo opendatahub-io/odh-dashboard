@@ -1,5 +1,6 @@
 import { AppState } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
+import { isStateEqual } from '~/redux/selectors/utils';
 import { UserState } from './types';
 
 const getUser = (state: AppState): UserState => ({
@@ -10,4 +11,4 @@ const getUser = (state: AppState): UserState => ({
   userError: state.userError ?? null,
 });
 
-export const useUser = (): UserState => useAppSelector(getUser);
+export const useUser = (): UserState => useAppSelector(getUser, isStateEqual);

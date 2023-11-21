@@ -76,8 +76,8 @@ test('Create accelerator profile', async ({ page }) => {
 
   // test edit toleration
   await page
-    .getByRole('row', { name: 'Equal new-key - - - Actions' })
-    .getByRole('button', { name: 'Actions' })
+    .getByRole('row', { name: 'Equal new-key - - - Kebab toggle' })
+    .getByLabel('Kebab toggle')
     .click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByTestId('toleration-key-input').click();
@@ -85,8 +85,8 @@ test('Create accelerator profile', async ({ page }) => {
   await page.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('gridcell', { name: 'new-key' })).toHaveCount(1);
   await page
-    .getByRole('row', { name: 'Equal new-key - - - Actions' })
-    .getByRole('button', { name: 'Actions' })
+    .getByRole('row', { name: 'Equal new-key - - - Kebab toggle' })
+    .getByLabel('Kebab toggle')
     .click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByTestId('toleration-key-input').click();
@@ -96,8 +96,8 @@ test('Create accelerator profile', async ({ page }) => {
 
   // test cancel clears fields
   await page
-    .getByRole('row', { name: 'Equal test-key test-value NoExecute 1 seconds(s) Actions' })
-    .getByRole('button', { name: 'Actions' })
+    .getByRole('row', { name: 'Equal test-key test-value NoExecute 1 seconds(s) Kebab toggle' })
+    .getByLabel('Kebab toggle')
     .click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Cancel' }).click();
@@ -107,11 +107,11 @@ test('Create accelerator profile', async ({ page }) => {
 
   // test delete
   await page
-    .getByRole('row', { name: 'Equal test-key test-value NoExecute 1 seconds(s) Actions' })
-    .getByRole('button', { name: 'Actions' })
+    .getByRole('row', { name: 'Equal test-key test-value NoExecute 1 seconds(s) Kebab toggle' })
+    .getByLabel('Kebab toggle')
     .click();
   await page.getByRole('menuitem', { name: 'Delete' }).click();
-  await page.getByRole('button', { name: 'Actions' }).click();
+  await page.getByLabel('Kebab toggle').click();
   await page.getByRole('menuitem', { name: 'Delete' }).click();
   await expect(page.getByRole('heading', { name: 'No tolerations' })).toHaveCount(1);
 });
@@ -179,6 +179,6 @@ test('Multiple preset identifiers show dropdown', async ({ page }) => {
     ),
   );
 
-  await page.getByRole('button', { name: 'Options menu' }).click();
+  await page.getByRole('button', { name: 'Select an identifier' }).click();
   await expect(page.getByRole('option', { name: 'test-identifier-3' })).toHaveCount(1);
 });

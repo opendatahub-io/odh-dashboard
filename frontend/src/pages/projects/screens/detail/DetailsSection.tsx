@@ -18,8 +18,8 @@ type DetailsSectionProps = {
   title: string;
   isLoading: boolean;
   loadError?: Error;
-  isEmpty?: boolean;
-  emptyState?: React.ReactNode;
+  isEmpty: boolean;
+  emptyState: React.ReactNode;
   children: React.ReactNode;
   labels?: React.ReactNode[];
   showDivider?: boolean;

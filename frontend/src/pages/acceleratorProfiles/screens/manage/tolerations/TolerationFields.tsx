@@ -58,7 +58,7 @@ export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, 
         <TextInput
           id="toleration-key"
           value={toleration.key || ''}
-          onChange={(value) => handleFieldUpdate('key', value)}
+          onChange={(_, value) => handleFieldUpdate('key', value)}
           aria-label="Toleration key field"
           data-testid="toleration-key-input"
         />
@@ -69,7 +69,7 @@ export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, 
             <TextInput
               id="toleration-value"
               value={toleration.value || ''}
-              onChange={(value) => handleFieldUpdate('value', value)}
+              onChange={(_, value) => handleFieldUpdate('value', value)}
               aria-label="Toleration value field"
               data-testid="toleration-value-input"
             />
@@ -92,10 +92,7 @@ export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, 
         label="Toleration Seconds"
         fieldId="toleration-seconds"
         labelIcon={
-          <Popover
-            removeFindDomNode
-            bodyContent="Toleration seconds specifies how long a pod can remain bound to a node before being evicted."
-          >
+          <Popover bodyContent="Toleration seconds specifies how long a pod can remain bound to a node before being evicted.">
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
               aria-label="More info for toleration seconds field"
@@ -139,7 +136,7 @@ export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, 
                     handleFieldUpdate('tolerationSeconds', value || 0);
                   }}
                 />
-                <InputGroupText variant="plain">{'second(s)'}</InputGroupText>
+                <InputGroupText isPlain>{'second(s)'}</InputGroupText>
               </InputGroup>
             </StackItem>
           )}

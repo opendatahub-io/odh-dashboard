@@ -1,4 +1,4 @@
-import { Select, SelectOption, TextInput } from '@patternfly/react-core';
+import { MenuToggle, Select, SelectList, SelectOption, TextInput } from '@patternfly/react-core';
 import React, { useEffect, useMemo } from 'react';
 
 type IdentifierSelectFieldProps = {
@@ -29,25 +29,35 @@ export const IdentifierSelectField = ({
   if (options.length > 1) {
     return (
       <Select
-        removeFindDomNode
         id="accelerator-identifier-select"
         data-testid="accelerator-identifier-select"
         isOpen={isOpen}
-        placeholderText="Select an identifier"
-        onToggle={(open) => setIsOpen(open)}
+        shouldFocusToggleOnSelect
+        toggle={(toggleRef) => (
+          <MenuToggle
+            isFullWidth
+            ref={toggleRef}
+            onClick={() => setIsOpen(!isOpen)}
+            isExpanded={isOpen}
+          >
+            {value || 'Select an identifier'}
+          </MenuToggle>
+        )}
         onSelect={(_, option) => {
           if (typeof option === 'string') {
             onChange(option);
             setIsOpen(false);
           }
         }}
-        selections={value}
+        selected={value}
       >
-        {options.map((option) => (
-          <SelectOption key={option} value={option}>
-            {option}
-          </SelectOption>
-        ))}
+        <SelectList>
+          {options.map((option) => (
+            <SelectOption key={option} value={option}>
+              {option}
+            </SelectOption>
+          ))}
+        </SelectList>
       </Select>
     );
   }
@@ -59,7 +69,7 @@ export const IdentifierSelectField = ({
       id="accelerator-identifier"
       name="accelerator-identifier"
       isDisabled={options.length === 1}
-      onChange={(identifier) => onChange(identifier)}
+      onChange={(_, identifier) => onChange(identifier)}
       placeholder="Example, nvidia.com/gpu"
       aria-label="Identifier"
       data-testid="accelerator-identifier-input"

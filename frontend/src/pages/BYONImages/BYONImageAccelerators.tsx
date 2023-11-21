@@ -42,7 +42,13 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
         <StackItem>
           <LabelGroup isCompact>
             {recommendedAcceleratorProfiles.map((cr) => (
-              <Label key={cr.metadata.name} color="blue" variant="filled" isTruncated isCompact>
+              <Label
+                key={cr.metadata.name}
+                color="blue"
+                variant="filled"
+                isCompact
+                textMaxWidth="16ch"
+              >
                 {cr.spec.displayName}
               </Label>
             ))}
@@ -83,7 +89,7 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
             <Button
               isAriaDisabled
               variant="link"
-              className="pf-u-font-size-xs"
+              className="pf-v5-u-font-size-xs"
               isInline
               icon={<PlusIcon />}
             >

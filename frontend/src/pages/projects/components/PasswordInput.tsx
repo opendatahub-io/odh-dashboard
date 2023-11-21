@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, InputGroup, TextInput } from '@patternfly/react-core';
+import { Button, InputGroup, TextInput, InputGroupItem } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 
 const PasswordInput: React.FC<React.ComponentProps<typeof TextInput>> = (props) => {
@@ -7,14 +7,18 @@ const PasswordInput: React.FC<React.ComponentProps<typeof TextInput>> = (props) 
 
   return (
     <InputGroup>
-      <TextInput {...props} type={isPassword ? 'password' : 'text'} />
-      <Button
-        aria-label={isPassword ? 'Show password' : 'Hide password'}
-        variant="control"
-        onClick={() => setPassword(!isPassword)}
-      >
-        {isPassword ? <EyeSlashIcon /> : <EyeIcon />}
-      </Button>
+      <InputGroupItem isFill>
+        <TextInput {...props} type={isPassword ? 'password' : 'text'} />
+      </InputGroupItem>
+      <InputGroupItem>
+        <Button
+          aria-label={isPassword ? 'Show password' : 'Hide password'}
+          variant="control"
+          onClick={() => setPassword(!isPassword)}
+        >
+          {isPassword ? <EyeSlashIcon /> : <EyeIcon />}
+        </Button>
+      </InputGroupItem>
     </InputGroup>
   );
 };

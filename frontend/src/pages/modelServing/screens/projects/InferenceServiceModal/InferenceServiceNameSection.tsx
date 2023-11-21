@@ -17,7 +17,7 @@ const InferenceServiceNameSection: React.FC<InferenceServiceNameSectionProps> = 
       isRequired
       id="inference-service-name-input"
       value={data.name}
-      onChange={(name) => setData('name', name)}
+      onChange={(e, name) => setData('name', name)}
     />
   </FormGroup>
 );
