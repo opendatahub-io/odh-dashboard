@@ -1,6 +1,5 @@
 import * as React from 'react';
-import Table from '~/components/table/Table';
-
+import { Table } from '~/components/table';
 import { NotebookKind } from '~/k8sTypes';
 import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';
 import AddNotebookStorage from '~/pages/projects/pvc/AddNotebookStorage';

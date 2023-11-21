@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Text, TextVariants, Timestamp } from '@patternfly/react-core';
+import { Flex, Label, Text, TextVariants, Timestamp, Tooltip } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { ProjectKind } from '~/k8sTypes';
+import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import useProjectTableRowItems from '~/pages/projects/screens/projects/useProjectTableRowItems';
 import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebookStates';
 import ListNotebookState from '~/pages/projects/notebook/ListNotebookState';
@@ -28,9 +28,18 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   return (
     <Tr>
       <Td dataLabel="Name">
-        <ResourceNameTooltip resource={project}>
-          <ProjectLink project={project} />
-        </ResourceNameTooltip>
+        <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+          {project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] && (
+            <Tooltip content="Data Science">
+              <Label isCompact color="green">
+                DS
+              </Label>
+            </Tooltip>
+          )}
+          <ResourceNameTooltip resource={project}>
+            <ProjectLink project={project} />
+          </ResourceNameTooltip>
+        </Flex>
         {owner && <Text component={TextVariants.small}>{owner}</Text>}
       </Td>
       <Td dataLabel="Workbench">

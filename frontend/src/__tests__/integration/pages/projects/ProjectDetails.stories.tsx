@@ -1,8 +1,8 @@
 import React from 'react';
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
-import { within } from '@storybook/testing-library';
 import { Route } from 'react-router-dom';
+import { within } from '@testing-library/react';
 import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
@@ -22,12 +22,46 @@ import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
 import { mock404Error } from '~/__mocks__/mock404Error';
+import { AreaContext } from '~/concepts/areas/AreaContext';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { StackComponent } from '~/concepts/areas';
+import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
+  rest.get(
+    '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+    (req, res, ctx) =>
+      res(
+        ctx.json(
+          mockK8sResourceList([
+            mockImageStreamK8sResource({
+              name: 'test-image',
+              displayName: 'Test image',
+              opts: {
+                spec: {
+                  tags: [
+                    {
+                      name: 'latest',
+                    },
+                  ],
+                },
+                status: {
+                  tags: [
+                    {
+                      tag: 'latest',
+                    },
+                  ],
+                },
+              },
+            }),
+          ]),
+        ),
+      ),
+  ),
   rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
   rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockPodK8sResource({})]))),
@@ -47,13 +81,26 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
           isEmpty
             ? []
             : [
-                mockNotebookK8sResource({}),
                 mockNotebookK8sResource({
-                  name: 'test-size',
-                  displayName: 'Test Size X-small',
-                  resources: {
-                    limits: { cpu: '500m', memory: '500Mi' },
-                    requests: { cpu: '100m', memory: '100Mi' },
+                  opts: {
+                    spec: {
+                      template: {
+                        spec: {
+                          containers: [
+                            {
+                              name: 'test-notebook',
+                              image: 'test-image:latest',
+                            },
+                          ],
+                        },
+                      },
+                    },
+                    metadata: {
+                      name: 'test-notebook',
+                      annotations: {
+                        'opendatahub.io/image-display-name': 'Test image',
+                      },
+                    },
                   },
                 }),
               ],
@@ -62,7 +109,7 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     ),
   ),
   rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: true })]))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]))),
@@ -120,11 +167,16 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   ),
   rest.get(
     '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
-    (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockTemplateK8sResource({})]))),
+    (req, res, ctx) =>
+      res(ctx.json(mockK8sResourceList([mockServingRuntimeTemplateK8sResource({})]))),
   ),
   rest.get(
     '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    (req, res, ctx) => res(ctx.json(mockDashboardConfig)),
+    (req, res, ctx) => res(ctx.json(mockDashboardConfig({}))),
+  ),
+  rest.get(
+    '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
   ),
   rest.get(
     '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
@@ -148,21 +200,28 @@ export default {
 const Template: StoryFn<typeof ProjectDetails> = (args) => {
   useDetectUser();
   return (
-    <ProjectsRoutes>
-      <Route path="/" element={<ProjectDetailsContextProvider />}>
-        <Route index element={<ProjectDetails {...args} />} />
-      </Route>
-    </ProjectsRoutes>
+    <AreaContext.Provider
+      value={{
+        dscStatus: mockDscStatus({
+          installedComponents: {
+            [StackComponent.WORKBENCHES]: true,
+            [StackComponent.K_SERVE]: true,
+            [StackComponent.MODEL_MESH]: true,
+          },
+        }),
+      }}
+    >
+      <ProjectsRoutes>
+        <Route path="/" element={<ProjectDetailsContextProvider />}>
+          <Route index element={<ProjectDetails {...args} />} />
+        </Route>
+      </ProjectsRoutes>
+    </AreaContext.Provider>
   );
 };
 
 export const Default: StoryObj = {
   render: Template,
-  play: async ({ canvasElement }) => {
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
-  },
 };
 
 export const EmptyDetailsPage: StoryObj = {
@@ -173,10 +232,143 @@ export const EmptyDetailsPage: StoryObj = {
       handlers: handlers(true),
     },
   },
+};
+
+export const DisabledImage: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: [
+        rest.get(
+          '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockImageStreamK8sResource({
+                    name: 'test-image',
+                    displayName: 'Test image',
+                    opts: {
+                      metadata: {
+                        labels: {
+                          'opendatahub.io/notebook-image': 'false',
+                        },
+                      },
+                      spec: {
+                        tags: [
+                          {
+                            name: 'latest',
+                          },
+                        ],
+                      },
+                      status: {
+                        tags: [
+                          {
+                            tag: 'latest',
+                          },
+                        ],
+                      },
+                    },
+                  }),
+                ]),
+              ),
+            ),
+        ),
+        ...handlers(false),
+      ],
+    },
+  },
 
   play: async ({ canvasElement }) => {
     // load page and wait until settled
     const canvas = within(canvasElement);
-    await canvas.findByText('No model servers', undefined, { timeout: 5000 });
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
+  },
+};
+
+export const DeletedImage: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: [
+        rest.get(
+          '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockImageStreamK8sResource({
+                    name: 'test-image',
+                    displayName: 'Test image',
+                  }),
+                ]),
+              ),
+            ),
+        ),
+        ...handlers(false),
+      ],
+    },
+  },
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
+  },
+};
+
+export const UnknownImage: StoryObj = {
+  render: Template,
+
+  parameters: {
+    msw: {
+      handlers: [
+        rest.get(
+          '/api/k8s/apis/image.openshift.io/v1/namespaces/opendatahub/imagestreams',
+          (req, res, ctx) => res(ctx.json(mockK8sResourceList([]))),
+        ),
+        rest.get(
+          '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',
+          (req, res, ctx) =>
+            res(
+              ctx.json(
+                mockK8sResourceList([
+                  mockNotebookK8sResource({
+                    opts: {
+                      spec: {
+                        template: {
+                          spec: {
+                            containers: [
+                              {
+                                name: 'test-notebook',
+                                image: 'test-image:latest',
+                              },
+                            ],
+                          },
+                        },
+                      },
+                      metadata: {
+                        name: 'test-notebook',
+                        annotations: {
+                          'opendatahub.io/image-display-name': '',
+                        },
+                      },
+                    },
+                  }),
+                ]),
+              ),
+            ),
+        ),
+        ...handlers(false),
+      ],
+    },
+  },
+
+  play: async ({ canvasElement }) => {
+    // load page and wait until settled
+    const canvas = within(canvasElement);
+    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
   },
 };

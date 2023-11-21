@@ -7,6 +7,13 @@ rules:
       - get
       - list
     apiGroups:
+      - ''
+    resources:
+      - nodes
+  - verbs:
+      - get
+      - list
+    apiGroups:
       - machine.openshift.io
       - autoscaling.openshift.io
     resources:
@@ -157,3 +164,11 @@ rules:
       - delete
     resources:
       - notebooks
+  - apiGroups:
+      - datasciencecluster.opendatahub.io
+    verbs:
+      - list
+      - watch
+      - get
+    resources:
+      - datascienceclusters

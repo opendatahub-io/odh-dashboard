@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Flex, FlexItem, Switch } from '@patternfly/react-core';
 import { startNotebook, stopNotebook } from '~/api';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import useNotebookGPUNumber from '~/pages/projects/screens/detail/notebooks/useNotebookGPUNumber';
+import useNotebookAccelerators from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { useAppContext } from '~/app/AppContext';
@@ -17,15 +17,17 @@ type NotebookStatusToggleProps = {
   notebookState: NotebookState;
   doListen: boolean;
   enablePipelines?: boolean;
+  isDisabled?: boolean;
 };
 
 const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   notebookState,
   doListen,
   enablePipelines,
+  isDisabled,
 }) => {
   const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
-  const gpuNumber = useNotebookGPUNumber(notebook);
+  const [acceleratorData] = useNotebookAccelerators(notebook);
   const { size } = useNotebookDeploymentSize(notebook);
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
@@ -51,7 +53,12 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   const fireNotebookTrackingEvent = React.useCallback(
     (action: 'started' | 'stopped') => {
       fireTrackingEvent(`Workbench ${action}`, {
-        GPU: gpuNumber,
+        acceleratorCount: acceleratorData.useExisting ? undefined : acceleratorData.count,
+        accelerator: acceleratorData.accelerator
+          ? `${acceleratorData.accelerator.spec.displayName} (${acceleratorData.accelerator.metadata.name}): ${acceleratorData.accelerator.spec.identifier}`
+          : acceleratorData.useExisting
+          ? 'Unknown'
+          : 'None',
         lastSelectedSize:
           size?.name ||
           notebook.metadata.annotations?.['notebooks.opendatahub.io/last-size-selection'],
@@ -64,7 +71,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         }),
       });
     },
-    [gpuNumber, notebook, size],
+    [acceleratorData, notebook, size],
   );
 
   const handleStop = React.useCallback(() => {
@@ -82,7 +89,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         <FlexItem>
           <Switch
             aria-label={label}
-            isDisabled={inProgress || isStopping}
+            isDisabled={inProgress || isStopping || isDisabled}
             id={`${notebookName}-${notebookNamespace}`}
             isChecked={isChecked}
             onClick={() => {
@@ -99,8 +106,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
                   notebookState.notebook,
                 );
                 startNotebook(
-                  notebookName,
-                  notebookNamespace,
+                  notebook,
                   tolerationSettings,
                   enablePipelines && !currentlyHasPipelines(notebook),
                 ).then(() => {

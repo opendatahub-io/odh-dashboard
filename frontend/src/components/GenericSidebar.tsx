@@ -6,7 +6,7 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
-import { DASHBOARD_MAIN_CONTAINER_SELECTOR } from '~/utilities/const';
+import { DASHBOARD_SCROLL_CONTAINER_SELECTOR } from '~/utilities/const';
 
 type GenericSidebarProps = {
   sections: string[];
@@ -20,11 +20,11 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
   children,
   sections,
   titles,
-  scrollableSelector = `#${DASHBOARD_MAIN_CONTAINER_SELECTOR}`,
+  scrollableSelector = DASHBOARD_SCROLL_CONTAINER_SELECTOR,
   maxWidth,
 }) => (
   <Sidebar hasGutter>
-    <SidebarPanel variant="sticky" style={{ maxWidth, top: 'var(--pf-global--spacer--md)' }}>
+    <SidebarPanel variant="sticky" style={{ maxWidth, top: 'var(--pf-v5-global--spacer--md)' }}>
       <JumpLinks
         isVertical
         label="Jump to section"
@@ -38,7 +38,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
         ))}
       </JumpLinks>
     </SidebarPanel>
-    <SidebarContent style={{ paddingBottom: 'var(--pf-global--spacer--lg)' }}>
+    <SidebarContent style={{ paddingBottom: 'var(--pf-v5-global--spacer--lg)' }}>
       {children}
     </SidebarContent>
   </Sidebar>

@@ -15,6 +15,8 @@ const DataConnectionsList: React.FC = () => {
   } = React.useContext(ProjectDetailsContext);
   const [open, setOpen] = React.useState(false);
 
+  const isDataConnectionsEmpty = connections.length === 0;
+
   return (
     <>
       <DetailsSection
@@ -30,7 +32,7 @@ const DataConnectionsList: React.FC = () => {
           </Button>,
         ]}
         isLoading={!loaded}
-        isEmpty={connections.length === 0}
+        isEmpty={isDataConnectionsEmpty}
         loadError={error}
         emptyState={
           <EmptyDetailsList

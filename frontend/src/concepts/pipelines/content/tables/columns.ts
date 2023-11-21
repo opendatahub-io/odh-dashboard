@@ -1,4 +1,9 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
+import {
+  SortableData,
+  checkboxTableColumn,
+  expandTableColumn,
+  kebabTableColumn,
+} from '~/components/table';
 import {
   PipelineKF,
   PipelineRunJobKF,
@@ -12,7 +17,6 @@ import {
   getScheduledStateWeight,
   getStatusWeight,
 } from '~/concepts/pipelines/content/tables/utils';
-import { checkboxTableColumn, expandTableColumn, kebabTableColumn } from '~/components/table/const';
 
 export const pipelineColumns: SortableData<PipelineKF>[] = [
   expandTableColumn(),

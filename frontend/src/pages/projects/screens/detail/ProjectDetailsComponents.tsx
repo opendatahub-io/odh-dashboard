@@ -1,63 +1,54 @@
 import * as React from 'react';
-import { Divider, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import GenericSidebar from '~/components/GenericSidebar';
 import { useAppContext } from '~/app/AppContext';
-import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { featureFlagEnabled } from '~/utilities/utils';
+import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import NotebooksList from './notebooks/NotebookList';
 import { ProjectSectionID } from './types';
 import StorageList from './storage/StorageList';
 import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
 
+import './ProjectDetailsComponents.scss';
+
 type SectionType = {
   id: ProjectSectionID;
   component: React.ReactNode;
-  isEmpty: boolean;
 };
 
 const ProjectDetailsComponents: React.FC = () => {
   const { dashboardConfig } = useAppContext();
-  const {
-    notebooks: { data: notebookStates, loaded: notebookStatesLoaded },
-    pvcs: { data: pvcs, loaded: pvcsLoaded },
-    dataConnections: { data: connections, loaded: connectionsLoaded },
-    servingRuntimes: { data: modelServers, loaded: modelServersLoaded },
-  } = React.useContext(ProjectDetailsContext);
-  const { pipelinesServer } = usePipelinesAPI();
-
-  const modelServingEnabled = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableModelServing,
-  );
+  const workbenchesEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+  const modelServingEnabled = useModelServingEnabled();
   const pipelinesEnabled =
-    featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) &&
+    useIsAreaAvailable(SupportedArea.DS_PIPELINES).status &&
     dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
 
   const sections: SectionType[] = [
-    {
-      id: ProjectSectionID.WORKBENCHES,
-      component: <NotebooksList />,
-      isEmpty: notebookStatesLoaded && notebookStates.length === 0,
-    },
+    ...(workbenchesEnabled
+      ? [
+          {
+            id: ProjectSectionID.WORKBENCHES,
+            component: <NotebooksList />,
+          },
+        ]
+      : []),
     {
       id: ProjectSectionID.CLUSTER_STORAGES,
       component: <StorageList />,
-      isEmpty: pvcsLoaded && pvcs.length === 0,
     },
     {
       id: ProjectSectionID.DATA_CONNECTIONS,
       component: <DataConnectionsList />,
-      isEmpty: connectionsLoaded && connections.length === 0,
     },
     ...(pipelinesEnabled
       ? [
           {
             id: ProjectSectionID.PIPELINES,
             component: <PipelinesSection />,
-            isEmpty: !pipelinesServer.installed,
           },
         ]
       : []),
@@ -65,8 +56,7 @@ const ProjectDetailsComponents: React.FC = () => {
       ? [
           {
             id: ProjectSectionID.MODEL_SERVER,
-            component: <ServingRuntimeList />,
-            isEmpty: modelServersLoaded && modelServers.length === 0,
+            component: <ModelServingPlatform />,
           },
         ]
       : []),
@@ -80,18 +70,16 @@ const ProjectDetailsComponents: React.FC = () => {
         maxWidth={175}
       >
         <Stack hasGutter>
-          {sections.map(({ id, component, isEmpty }, index) => (
+          {sections.map(({ id, component }) => (
             <React.Fragment key={id}>
               <StackItem
                 id={id}
                 aria-label={ProjectSectionTitles[id]}
                 data-id="details-page-section"
+                className="odh-project-details-components__item"
               >
                 {component}
               </StackItem>
-              {index !== sections.length - 1 && isEmpty && (
-                <Divider data-id="details-page-section-divider" />
-              )}
             </React.Fragment>
           ))}
         </Stack>

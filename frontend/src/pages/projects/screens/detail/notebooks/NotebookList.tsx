@@ -17,6 +17,7 @@ const NotebookList: React.FC = () => {
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
+  const isNotebooksEmpty = notebookStates.length === 0;
 
   React.useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -27,30 +28,32 @@ const NotebookList: React.FC = () => {
   }, [notebookStates, refreshNotebooks]);
 
   return (
-    <DetailsSection
-      id={ProjectSectionID.WORKBENCHES}
-      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES] || ''}
-      actions={[
-        <Button
-          key={`action-${ProjectSectionID.WORKBENCHES}`}
-          onClick={() => navigate(`/projects/${projectName}/spawner`)}
-          variant="secondary"
-        >
-          Create workbench
-        </Button>,
-      ]}
-      isLoading={!loaded}
-      loadError={loadError}
-      isEmpty={notebookStates.length === 0}
-      emptyState={
-        <EmptyDetailsList
-          title="No workbenches"
-          description="To get started, create a workbench."
-        />
-      }
-    >
-      <NotebookTable notebookStates={notebookStates} refresh={refresh} />
-    </DetailsSection>
+    <>
+      <DetailsSection
+        id={ProjectSectionID.WORKBENCHES}
+        title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES] || ''}
+        actions={[
+          <Button
+            key={`action-${ProjectSectionID.WORKBENCHES}`}
+            onClick={() => navigate(`/projects/${projectName}/spawner`)}
+            variant="secondary"
+          >
+            Create workbench
+          </Button>,
+        ]}
+        isLoading={!loaded}
+        loadError={loadError}
+        isEmpty={isNotebooksEmpty}
+        emptyState={
+          <EmptyDetailsList
+            title="No workbenches"
+            description="To get started, create a workbench."
+          />
+        }
+      >
+        <NotebookTable notebookStates={notebookStates} refresh={refresh} />
+      </DetailsSection>
+    </>
   );
 };
 

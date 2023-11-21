@@ -4,9 +4,10 @@ import {
   CardBody,
   CardTitle,
   EmptyState,
+  EmptyStateHeader,
   EmptyStateIcon,
+  EmptyStateVariant,
   Spinner,
-  Title,
 } from '@patternfly/react-core';
 import {
   Chart,
@@ -15,8 +16,8 @@ import {
   ChartGroup,
   ChartThreshold,
   ChartVoronoiContainer,
-  getResizeObserver,
 } from '@patternfly/react-charts';
+import { getResizeObserver } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import { TimeframeTime } from '~/pages/modelServing/screens/const';
@@ -98,21 +99,19 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ title, color, metrics, unit
               {threshold && <ChartThreshold data={getThresholdData(processedData, threshold)} />}
             </Chart>
           ) : (
-            <EmptyState>
+            <EmptyState variant={EmptyStateVariant.lg}>
               {metrics.loaded ? (
-                <>
-                  <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h4" size="lg">
-                    {metrics.error ? metrics.error.message : 'No available data'}
-                  </Title>
-                </>
+                <EmptyStateHeader
+                  titleText={metrics.error ? metrics.error.message : 'No available data'}
+                  headingLevel="h4"
+                  icon={<EmptyStateIcon icon={CubesIcon} />}
+                />
               ) : (
-                <>
-                  <EmptyStateIcon variant="container" component={Spinner} />
-                  <Title headingLevel="h4" size="lg">
-                    Loading
-                  </Title>
-                </>
+                <EmptyStateHeader
+                  titleText="Loading"
+                  headingLevel="h4"
+                  icon={<EmptyStateIcon icon={Spinner} />}
+                />
               )}
             </EmptyState>
           )}

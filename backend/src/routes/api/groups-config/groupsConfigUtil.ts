@@ -16,19 +16,12 @@ const SYSTEM_AUTHENTICATED = 'system:authenticated';
 export const getGroupsConfig = async (fastify: KubeFastifyInstance): Promise<GroupsConfig> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
 
-  try {
-    const groupsCluster = await getAllGroups(customObjectsApi);
-    const groupsData = getGroupsCR();
-    const groupsProcessed = processGroupData(groupsData);
-    const groupsConfigProcessed = processGroupConfig(groupsProcessed, groupsCluster);
-    await removeDeletedGroups(fastify, groupsData, groupsConfigProcessed.groupsCRData);
-
-    return groupsConfigProcessed.groupsConfig;
-  } catch (e) {
-    fastify.log.error('Error retrieving group configuration: ' + e.toString());
-    const error = createError(500, 'Error retrieving group configuration');
-    throw error;
-  }
+  const groupsCluster = await getAllGroups(customObjectsApi);
+  const groupsData = getGroupsCR();
+  const groupsProcessed = processGroupData(groupsData);
+  const groupsConfigProcessed = processGroupConfig(fastify, groupsProcessed, groupsCluster);
+  await removeDeletedGroups(fastify, groupsData, groupsConfigProcessed.groupsCRData);
+  return groupsConfigProcessed.groupsConfig;
 };
 
 const transformGroupsConfig = (groupStatus: GroupStatus[]): string[] => {
@@ -38,7 +31,7 @@ const transformGroupsConfig = (groupStatus: GroupStatus[]): string[] => {
 export const updateGroupsConfig = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{ Body: GroupsConfig }>,
-): Promise<{ success: GroupsConfig | null; error: string | null }> => {
+): Promise<GroupsConfig> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const { namespace } = fastify.kube;
 
@@ -58,26 +51,17 @@ export const updateGroupsConfig = async (
     const error = createError(403, 'Error, groups cannot be empty');
     throw error;
   }
-  try {
-    const dataUpdated: GroupsConfigBody = {
-      adminGroups: adminConfig.join(','),
-      allowedGroups: allowedConfig.join(','),
-    };
+  const dataUpdated: GroupsConfigBody = {
+    adminGroups: adminConfig.join(','),
+    allowedGroups: allowedConfig.join(','),
+  };
 
-    const groupsData = await updateGroupsCR(fastify, dataUpdated);
-    const groupsProcessed = processGroupData(groupsData);
-    const groupsCluster = await getAllGroups(customObjectsApi);
-    const updatedConfig = processGroupConfig(groupsProcessed, groupsCluster);
-    await removeDeletedGroups(fastify, groupsData, updatedConfig.groupsCRData);
-    return {
-      success: updatedConfig.groupsConfig,
-      error: null,
-    };
-  } catch (e) {
-    fastify.log.error('Error updating group configuration' + e.toString());
-    const error = createError(500, 'Error updating group configuration');
-    throw error;
-  }
+  const groupsData = await updateGroupsCR(fastify, dataUpdated);
+  const groupsProcessed = processGroupData(groupsData);
+  const groupsCluster = await getAllGroups(customObjectsApi);
+  const updatedConfig = processGroupConfig(fastify, groupsProcessed, groupsCluster);
+  await removeDeletedGroups(fastify, groupsData, updatedConfig.groupsCRData);
+  return updatedConfig.groupsConfig;
 };
 
 const processGroupData = (groupsData: GroupsConfigBody): GroupsConfigBodyList => {
@@ -105,6 +89,7 @@ const mapListToGroupStatus =
  * @returns Processed object with the groups, removing missing groups that might be selected
  */
 const processGroupConfig = (
+  fastify: KubeFastifyInstance,
   groupsDataList: GroupsConfigBodyList,
   groups: string[],
 ): { groupsConfig: GroupsConfig; groupsCRData: GroupsConfigBody } => {
@@ -120,9 +105,14 @@ const processGroupConfig = (
   const groupsConfig: GroupsConfig = {
     adminGroups: adminGroupsConfig,
     allowedGroups: allowedGroupsConfig,
-    errorAdmin: getError(groupsDataList.adminGroups, (group) => !groups.includes(group)),
+    errorAdmin: getError(
+      fastify,
+      groupsDataList.adminGroups.filter((group) => group),
+      (group) => !groups.includes(group),
+    ),
     errorUser: getError(
-      groupsDataList.allowedGroups,
+      fastify,
+      groupsDataList.allowedGroups.filter((group) => group),
       (group) => !groups.includes(group) && group !== SYSTEM_AUTHENTICATED,
     ),
   };
@@ -137,13 +127,26 @@ const processGroupConfig = (
   return { groupsConfig, groupsCRData: updatedBody };
 };
 
-const getError = (array: string[], predicate: (group: string) => boolean): string | undefined => {
+const getError = (
+  fastify: KubeFastifyInstance,
+  array: string[],
+  predicate: (group: string) => boolean,
+): string | undefined => {
+  let error;
+  if (array.length === 0) {
+    error = 'No group is set in the group config, please set one or more group.';
+    fastify.log.error(error);
+    return error;
+  }
+
   const missingItems = array.filter(predicate);
   if (missingItems.length === 0) return undefined;
 
-  return `The group${missingItems.length === 1 ? '' : 's'} ${missingItems.join(
+  error = `The group${missingItems.length === 1 ? '' : 's'} ${missingItems.join(
     ', ',
   )} no longer exists in OpenShift and has been removed from the selected group list.`;
+  fastify.log.error(error);
+  return error;
 };
 
 /**

@@ -1,11 +1,23 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
+import { Truncate } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import './SimpleDropdownSelect.scss';
+
+export type SimpleDropdownOption = {
+  key: string;
+  label: string;
+  description?: React.ReactNode;
+  dropdownLabel?: React.ReactNode;
+  isPlaceholder?: boolean;
+};
 
 type SimpleDropdownProps = {
-  options: { key: string; label: React.ReactNode }[];
+  options: SimpleDropdownOption[];
   value: string;
   placeholder?: string;
-  onChange: (key: string) => void;
+  onChange: (key: string, isPlaceholder: boolean) => void;
+  isFullWidth?: boolean;
+  isDisabled?: boolean;
 } & Omit<React.ComponentProps<typeof Dropdown>, 'isOpen' | 'toggle' | 'dropdownItems' | 'onChange'>;
 
 const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
@@ -13,30 +25,42 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
   options,
   placeholder = 'Select...',
   value,
+  isFullWidth,
+  isDisabled,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
+  const selectedOption = options.find(({ key }) => key === value);
+  const selectedLabel = selectedOption?.label ?? placeholder;
 
   return (
     <Dropdown
       {...props}
       isOpen={open}
+      className={isFullWidth ? 'full-width' : undefined}
       toggle={
-        <DropdownToggle onToggle={() => setOpen(!open)}>
-          <>{options.find(({ key }) => key === value)?.label ?? placeholder}</>
+        <DropdownToggle
+          isDisabled={isDisabled}
+          className={isFullWidth ? 'full-width' : undefined}
+          onToggle={() => setOpen(!open)}
+        >
+          <Truncate content={selectedLabel} className="truncate-no-min-width" />
         </DropdownToggle>
       }
-      dropdownItems={options.map(({ key, label }) => (
-        <DropdownItem
-          key={key}
-          onClick={() => {
-            onChange(key);
-            setOpen(false);
-          }}
-        >
-          {label}
-        </DropdownItem>
-      ))}
+      dropdownItems={[...options]
+        .sort((a, b) => (a.isPlaceholder === b.isPlaceholder ? 0 : a.isPlaceholder ? -1 : 1))
+        .map(({ key, dropdownLabel, label, description, isPlaceholder }) => (
+          <DropdownItem
+            key={key}
+            description={description}
+            onClick={() => {
+              onChange(key, !!isPlaceholder);
+              setOpen(false);
+            }}
+          >
+            {dropdownLabel ?? label}
+          </DropdownItem>
+        ))}
     />
   );
 };

@@ -13,7 +13,7 @@ import useRelatedNotebooks, {
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { getRootVolumeName } from '~/pages/projects/screens/spawner/spawnerUtils';
-import useDefaultPvcSize from './useAvailablePvcSize';
+import useDefaultPvcSize from './useDefaultPvcSize';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,
@@ -22,14 +22,14 @@ export const useCreateStorageObjectForNotebook = (
   setData: UpdateObjectAtPropAndValue<CreatingStorageObjectForNotebook>,
   resetDefaults: () => void,
 ] => {
-  const defaultPvcSize = useDefaultPvcSize();
+  const size = useDefaultPvcSize();
   const createDataState = useGenericObjectState<CreatingStorageObjectForNotebook>({
     nameDesc: {
       name: '',
       k8sName: undefined,
       description: '',
     },
-    size: defaultPvcSize,
+    size,
     forNotebook: {
       name: '',
       mountPath: {
@@ -44,11 +44,13 @@ export const useCreateStorageObjectForNotebook = (
 
   const existingName = existingData ? getPvcDisplayName(existingData) : '';
   const existingDescription = existingData ? getPvcDescription(existingData) : '';
-  const existingSize = existingData ? existingData.spec.resources.requests.storage : '';
+  const existingSize = existingData ? existingData.spec.resources.requests.storage : size;
   const { notebooks: relatedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.REMOVABLE_PVC,
     existingData ? existingData.metadata.name : undefined,
   );
+  const hasExistingNotebookConnections = relatedNotebooks.length > 0;
+
   React.useEffect(() => {
     if (existingName) {
       setCreateData('nameDesc', {
@@ -56,16 +58,17 @@ export const useCreateStorageObjectForNotebook = (
         description: existingDescription,
       });
 
-      if (relatedNotebooks.length > 0) {
-        setCreateData('hasExistingNotebookConnections', true);
-      }
+      setCreateData('hasExistingNotebookConnections', hasExistingNotebookConnections);
 
-      const newSize = parseInt(existingSize);
-      if (newSize) {
-        setCreateData('size', newSize);
-      }
+      setCreateData('size', existingSize);
     }
-  }, [existingName, existingDescription, setCreateData, relatedNotebooks, existingSize]);
+  }, [
+    existingName,
+    existingDescription,
+    setCreateData,
+    hasExistingNotebookConnections,
+    existingSize,
+  ]);
 
   return createDataState;
 };
@@ -90,7 +93,7 @@ export const useStorageDataObject = (
   setData: UpdateObjectAtPropAndValue<StorageData>,
   resetDefaults: () => void,
 ] => {
-  const defaultPvcSize = useDefaultPvcSize();
+  const size = useDefaultPvcSize();
   return useGenericObjectState<StorageData>({
     storageType: notebook ? StorageType.EXISTING_PVC : StorageType.NEW_PVC,
     creating: {
@@ -98,7 +101,7 @@ export const useStorageDataObject = (
         name: '',
         description: '',
       },
-      size: defaultPvcSize,
+      size,
     },
     existing: {
       storage: getRootVolumeName(notebook),

@@ -15,6 +15,8 @@ const StorageList: React.FC = () => {
     refreshAllProjectData: refresh,
   } = React.useContext(ProjectDetailsContext);
 
+  const isPvcsEmpty = pvcs.length === 0;
+
   return (
     <>
       <DetailsSection
@@ -30,7 +32,7 @@ const StorageList: React.FC = () => {
           </Button>,
         ]}
         isLoading={!loaded}
-        isEmpty={pvcs.length === 0}
+        isEmpty={isPvcsEmpty}
         loadError={loadError}
         emptyState={
           <EmptyDetailsList

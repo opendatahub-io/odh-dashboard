@@ -1,12 +1,6 @@
-import { OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
-import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_SELECTOR, ODH_PRODUCT_NAME } from './const';
-
-/**
- * Feature flags are required in the config -- but upgrades can be mixed and omission of the property
- * usually ends up being enabled. This will prevent that as a general utility.
- */
-export const featureFlagEnabled = (disabledSettingState?: boolean): boolean =>
-  disabledSettingState === false;
+import { ContainerResources, OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
+import { AcceleratorKind } from '~/k8sTypes';
+import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
 export const makeCardVisible = (id: string): void => {
   setTimeout(() => {
@@ -144,7 +138,7 @@ export const isGroupEmpty = <T extends { enabled: boolean }>(groupList: Array<T>
   groupList.filter((element) => element.enabled).length === 0;
 
 export const getDashboardMainContainer = (): HTMLElement =>
-  document.getElementById(DASHBOARD_MAIN_CONTAINER_SELECTOR) || document.body;
+  document.getElementById(DASHBOARD_MAIN_CONTAINER_ID) || document.body;
 
 export const isHTMLInputElement = (object: unknown): object is HTMLInputElement =>
   (object as HTMLInputElement).value !== undefined;
@@ -160,3 +154,8 @@ export const normalizeBetween = (value: number, min?: number, max?: number): num
   }
   return Math.floor(returnedValue);
 };
+
+export const getAcceleratorGpuCount = (
+  accelerator: AcceleratorKind,
+  resources: ContainerResources,
+) => Number(resources.requests?.[accelerator.spec.identifier] ?? 0);

@@ -7,19 +7,20 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import {
-  TableComposable,
+  Table as PFTable,
   Thead,
   Tr,
   Th,
-  TableComposableProps,
+  TableProps as PFTableProps,
   Caption,
   Tbody,
   Td,
   TbodyProps,
 } from '@patternfly/react-table';
-import useTableColumnSort, { SortableData } from '~/components/table/useTableColumnSort';
-import { CHECKBOX_FIELD_ID } from '~/components/table/const';
 import { EitherNotBoth } from '~/typeHelpers';
+import useTableColumnSort from './useTableColumnSort';
+import { CHECKBOX_FIELD_ID } from './const';
+import { SortableData } from './types';
 
 type TableProps<DataType> = {
   data: DataType[];
@@ -38,7 +39,7 @@ type TableProps<DataType> = {
   { disableRowRenderSupport?: boolean },
   { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
 > &
-  Omit<TableComposableProps, 'ref' | 'data'>;
+  Omit<PFTableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
   data: allData,
@@ -81,7 +82,6 @@ const Table = <T,>({
   const showPagination = enablePagination && allData.length > minPageSize;
   const pagination = (variant: 'top' | 'bottom') => (
     <Pagination
-      perPageComponent="button"
       itemCount={allData.length}
       perPage={pageSize}
       page={page}
@@ -92,6 +92,9 @@ const Table = <T,>({
       }}
       variant={variant}
       widgetId="table-pagination"
+      titles={{
+        paginationAriaLabel: `${variant} pagination`,
+      }}
     />
   );
 
@@ -102,14 +105,14 @@ const Table = <T,>({
           <ToolbarContent>
             {toolbarContent}
             {showPagination && (
-              <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
+              <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
                 {pagination('top')}
               </ToolbarItem>
             )}
           </ToolbarContent>
         </Toolbar>
       )}
-      <TableComposable {...props}>
+      <PFTable {...props}>
         {caption && <Caption>{caption}</Caption>}
         <Thead noWrap>
           <Tr>
@@ -155,16 +158,16 @@ const Table = <T,>({
             {footerRow && footerRow(page)}
           </>
         )}
-      </TableComposable>
+      </PFTable>
       {emptyTableView && data.length === 0 && (
-        <div style={{ padding: 'var(--pf-global--spacer--2xl) 0', textAlign: 'center' }}>
+        <div style={{ padding: 'var(--pf-v5-global--spacer--2xl) 0', textAlign: 'center' }}>
           {emptyTableView}
         </div>
       )}
       {showPagination && (
         <Toolbar>
           <ToolbarContent>
-            <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
+            <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
               {pagination('bottom')}
             </ToolbarItem>
           </ToolbarContent>

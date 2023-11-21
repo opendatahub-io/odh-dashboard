@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { List, ListItem, Stack, StackItem } from '@patternfly/react-core';
+import { AlertVariant, List, ListItem, Stack, StackItem } from '@patternfly/react-core';
 import { BUILD_PHASE, BuildStatus } from '~/types';
 import { fetchBuildStatuses } from '~/services/buildsService';
 import { addNotification } from '~/redux/actions/actions';
-import { AppNotificationStatus } from '~/redux/types';
 import { useAppDispatch } from '~/redux/hooks';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { POLL_INTERVAL } from './const';
@@ -65,7 +64,7 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
         if (!wasFailed.find((prevFailedBuild) => failedBuild.name === prevFailedBuild.name)) {
           dispatch(
             addNotification({
-              status: 'danger',
+              status: AlertVariant.danger,
               title: `Notebook image build ${failedBuild.name} failed.`,
               timestamp: new Date(),
             }),
@@ -78,7 +77,7 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     if (notStarted.length && !wasNotStarted.length) {
       dispatch(
         addNotification({
-          status: 'danger',
+          status: AlertVariant.danger,
           title: 'These notebook image builds have not started:',
           message: (
             <Stack hasGutter>
@@ -101,7 +100,7 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     if (building.length && !wasBuilding.length) {
       dispatch(
         addNotification({
-          status: 'info',
+          status: AlertVariant.info,
           title: 'Notebook images are building.',
           timestamp: new Date(),
         }),
@@ -115,10 +114,10 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
       !building.length &&
       !notStarted.length
     ) {
-      let status: AppNotificationStatus = 'success';
+      let status: AlertVariant = AlertVariant.success;
       let message;
       if (failed.length) {
-        status = complete.length ? 'warning' : 'danger';
+        status = complete.length ? AlertVariant.warning : AlertVariant.danger;
         message = (
           <Stack hasGutter>
             <StackItem>

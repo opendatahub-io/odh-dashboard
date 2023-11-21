@@ -2,35 +2,48 @@ import { NotebookKind } from '~/k8sTypes';
 import {
   getImageStreamDisplayName,
   getImageVersionDependencies,
-  getRelatedVersionDescription,
+  getImageVersionSoftwareString,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/types';
 import useNotebookImageData from './useNotebookImageData';
-
-export type NotebookImage = {
-  imageName: string;
-  tagSoftware?: string;
-  dependencies: ImageVersionDependencyType[];
-};
+import { NotebookImageAvailability } from './const';
+import { NotebookImage } from './types';
 
 const useNotebookImage = (
   notebook: NotebookKind,
-): [notebookImage: NotebookImage | null, loaded: boolean] => {
-  const [imageData, loaded] = useNotebookImageData(notebook);
+):
+  | [notebookImage: null, loaded: false, loadError?: Error]
+  | [notebookImage: NotebookImage, loaded: true, loadError: undefined] => {
+  const [data, loaded, loadError] = useNotebookImageData(notebook);
 
-  if (!imageData) {
-    return [null, loaded];
+  if (!notebook || !loaded) {
+    return [null, false, loadError];
   }
 
-  const { imageStream, imageVersion } = imageData;
+  const { imageDisplayName, imageAvailability } = data;
+
+  // if the image is deleted, return the image name if it is available (based on notebook annotations)
+  if (imageAvailability === NotebookImageAvailability.DELETED) {
+    return [
+      {
+        imageDisplayName,
+        imageAvailability,
+      },
+      true,
+      undefined,
+    ];
+  }
+
+  const { imageStream, imageVersion } = data;
 
   return [
     {
-      imageName: getImageStreamDisplayName(imageStream),
-      tagSoftware: getRelatedVersionDescription(imageStream),
+      imageDisplayName: getImageStreamDisplayName(imageStream),
+      tagSoftware: getImageVersionSoftwareString(imageVersion),
       dependencies: getImageVersionDependencies(imageVersion, false),
+      imageAvailability,
     },
-    loaded,
+    true,
+    undefined,
   ];
 };
 

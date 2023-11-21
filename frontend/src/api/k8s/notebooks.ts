@@ -17,26 +17,16 @@ import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import {
+  createElyraServiceAccountRoleBinding,
   ELYRA_VOLUME_NAME,
-  generateElyraServiceAccountRoleBinding,
   getElyraVolume,
   getElyraVolumeMount,
   getPipelineVolumeMountPatch,
   getPipelineVolumePatch,
 } from '~/concepts/pipelines/elyra/utils';
-import { createRoleBinding } from '~/api';
 import { Volume, VolumeMount } from '~/types';
-import { assemblePodSpecOptions } from './utils';
-
-const getshmVolumeMount = (): VolumeMount => ({
-  name: 'shm',
-  mountPath: '/dev/shm',
-});
-
-const getshmVolume = (): Volume => ({
-  name: 'shm',
-  emptyDir: { medium: 'Memory' },
-});
+import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
 const assembleNotebook = (
   data: StartNotebookData,
@@ -50,11 +40,13 @@ const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    gpus,
+    accelerator,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
     tolerationSettings,
+    existingTolerations,
+    existingResources,
   } = data;
   const notebookId = overrideNotebookId || translateDisplayNameForK8s(notebookName);
   const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
@@ -62,8 +54,11 @@ const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    gpus,
+    accelerator,
     tolerationSettings,
+    existingTolerations,
+    undefined,
+    existingResources,
   );
 
   const translatedUsername = usernameTranslate(username);
@@ -93,7 +88,7 @@ const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  return {
+  const resource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
     metadata: {
@@ -111,6 +106,7 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
+        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -183,6 +179,15 @@ const assembleNotebook = (
       },
     },
   };
+
+  // set image display name
+  if (image.imageStream && resource.metadata.annotations) {
+    resource.metadata.annotations['opendatahub.io/image-display-name'] = getImageStreamDisplayName(
+      image.imageStream,
+    );
+  }
+
+  return resource;
 };
 
 const getStopPatchDataString = (): string => new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
@@ -217,8 +222,7 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
   });
 
 export const startNotebook = async (
-  name: string,
-  namespace: string,
+  notebook: NotebookKind,
   tolerationChanges: TolerationChanges,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
@@ -233,18 +237,12 @@ export const startNotebook = async (
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());
     patches.push(getPipelineVolumeMountPatch());
-    await createRoleBinding(generateElyraServiceAccountRoleBinding(name, namespace)).catch((e) => {
-      // This is not ideal, but it shouldn't impact the starting of the notebook. Let us log it, and mute the error
-      // eslint-disable-next-line no-console
-      console.error(
-        `Could not patch rolebinding to service account for notebook, ${name}; Reason ${e.message}`,
-      );
-    });
+    await createElyraServiceAccountRoleBinding(notebook);
   }
 
   return k8sPatchResource<NotebookKind>({
     model: NotebookModel,
-    queryOptions: { name, ns: namespace },
+    queryOptions: { name: notebook.metadata.name, ns: notebook.metadata.namespace },
     patches,
   });
 };
@@ -262,9 +260,9 @@ export const createNotebook = (
   });
 
   if (canEnablePipelines) {
-    return createRoleBinding(
-      generateElyraServiceAccountRoleBinding(notebook.metadata.name, notebook.metadata.namespace),
-    ).then(() => notebookPromise);
+    return notebookPromise.then((notebook) =>
+      createElyraServiceAccountRoleBinding(notebook).then(() => notebook),
+    );
   }
 
   return notebookPromise;
@@ -283,7 +281,7 @@ export const updateNotebook = (
 
   // clean the envFrom array in case of merging the old value again
   container.envFrom = [];
-  // clean the resources, affinity and tolerations for GPU
+  // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};
@@ -384,6 +382,7 @@ export const attachNotebookPVC = (
   namespace: string,
   pvcName: string,
   mountSuffix: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [
     {
@@ -399,17 +398,20 @@ export const attachNotebookPVC = (
     },
   ];
 
-  return k8sPatchResource<NotebookKind>({
-    model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace },
-    patches,
-  });
+  return k8sPatchResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      queryOptions: { name: notebookName, ns: namespace },
+      patches,
+    }),
+  );
 };
 
 export const removeNotebookPVC = (
   notebookName: string,
   namespace: string,
   pvcName: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> =>
   new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
@@ -438,11 +440,13 @@ export const removeNotebookPVC = (
           },
         ];
 
-        k8sPatchResource<NotebookKind>({
-          model: NotebookModel,
-          queryOptions: { name: notebookName, ns: namespace },
-          patches,
-        })
+        k8sPatchResource<NotebookKind>(
+          applyK8sAPIOptions(opts, {
+            model: NotebookModel,
+            queryOptions: { name: notebookName, ns: namespace },
+            patches,
+          }),
+        )
           .then(resolve)
           .catch(reject);
       })

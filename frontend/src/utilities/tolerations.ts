@@ -1,6 +1,8 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { DashboardConfig, PodToleration, TolerationSettings } from '~/types';
-import { NotebookKind } from '~/k8sTypes';
+import _ from 'lodash';
+import { PodToleration, TolerationSettings } from '~/types';
+import { DashboardConfigKind, NotebookKind } from '~/k8sTypes';
+import { AcceleratorState } from './useAcceleratorState';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';
@@ -8,19 +10,35 @@ export type TolerationChanges = {
 };
 
 export const determineTolerations = (
-  hasGpu: boolean,
   tolerationSettings?: TolerationSettings,
+  acceleratorState?: AcceleratorState,
+  existingTolerations?: PodToleration[],
 ): PodToleration[] => {
-  const tolerations: PodToleration[] = [];
+  let tolerations = existingTolerations || [];
 
-  if (hasGpu) {
-    tolerations.push({
-      effect: 'NoSchedule',
-      key: 'nvidia.com/gpu',
-      operator: 'Exists',
-    });
+  // remove old accelerator tolerations if they exist
+  if (acceleratorState?.initialAccelerator) {
+    tolerations = tolerations.filter(
+      (t) => !acceleratorState.initialAccelerator?.spec.tolerations?.some((t2) => _.isEqual(t2, t)),
+    );
   }
-  if (tolerationSettings?.enabled) {
+
+  // add new accelerator tolerations if they exist
+  if (acceleratorState?.accelerator?.spec.tolerations) {
+    tolerations.push(...acceleratorState.accelerator.spec.tolerations);
+  }
+
+  // remove duplicated tolerations
+  tolerations = _.uniqWith(tolerations, _.isEqual);
+
+  // add toleration from settings if they exist
+  if (
+    tolerationSettings?.enabled &&
+    !tolerations.some(
+      (t) =>
+        t.key === tolerationSettings.key && t.operator === 'Exists' && t.effect === 'NoSchedule',
+    )
+  ) {
     tolerations.push({
       effect: 'NoSchedule',
       key: tolerationSettings.key,
@@ -32,18 +50,12 @@ export const determineTolerations = (
 };
 
 export const computeNotebooksTolerations = (
-  dashboardConfig: DashboardConfig,
+  dashboardConfig: DashboardConfigKind,
   notebook: NotebookKind,
 ): TolerationChanges => {
-  const hasGPU = !!notebook.spec.template.spec.containers.find(
-    (container) =>
-      !!container.resources?.limits?.['nvidia.com/gpu'] ||
-      !!container.resources?.requests?.['nvidia.com/gpu'],
-  );
   const tolerations = notebook.spec.template.spec.tolerations || [];
 
   const settings = determineTolerations(
-    hasGPU,
     dashboardConfig.spec.notebookController?.notebookTolerationSettings,
   );
 

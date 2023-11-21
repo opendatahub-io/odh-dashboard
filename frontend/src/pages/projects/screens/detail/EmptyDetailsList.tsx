@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  EmptyStateHeader,
+} from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
@@ -11,10 +16,11 @@ type EmptyDetailsListProps = {
 
 const EmptyDetailsList: React.FC<EmptyDetailsListProps> = ({ title, description, icon }) => (
   <EmptyState variant="xs">
-    <EmptyStateIcon icon={icon ?? PlusCircleIcon} />
-    <Title headingLevel="h3" size="lg">
-      {title}
-    </Title>
+    <EmptyStateHeader
+      titleText={<>{title}</>}
+      icon={<EmptyStateIcon icon={icon ?? PlusCircleIcon} />}
+      headingLevel="h3"
+    />
     <EmptyStateBody>{description}</EmptyStateBody>
   </EmptyState>
 );

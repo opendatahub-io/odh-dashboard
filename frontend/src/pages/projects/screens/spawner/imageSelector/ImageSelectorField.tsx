@@ -17,11 +17,13 @@ import ImageStreamSelector from './ImageStreamSelector';
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;
   setSelectedImage: React.Dispatch<React.SetStateAction<ImageStreamAndVersion>>;
+  compatibleAccelerator?: string;
 };
 
 const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   selectedImage,
   setSelectedImage,
+  compatibleAccelerator,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
@@ -50,39 +52,38 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
     });
   };
 
+  if (error) {
+    return (
+      <Alert title="Image loading error" variant="danger">
+        {error.message}
+      </Alert>
+    );
+  }
+
   if (!loaded) {
     return <Skeleton />;
   }
 
   return (
     <>
-      {error ? (
-        <Alert title="Image loading error" variant="danger">
-          {error.message}
-        </Alert>
-      ) : (
-        <>
-          <ImageStreamSelector
-            imageStreams={imageStreams.filter(
-              (imageStream) => !isInvalidBYONImageStream(imageStream),
-            )}
-            buildStatuses={buildStatuses}
-            onImageStreamSelect={onImageStreamSelect}
-            selectedImageStream={selectedImage.imageStream}
-          />
-          <ImageVersionSelector
-            data={imageVersionData}
-            setSelectedImageVersion={(selection) =>
-              setSelectedImage((oldSelectedImage) => ({
-                ...oldSelectedImage,
-                imageVersion: selection,
-              }))
-            }
-            selectedImageVersion={selectedImage.imageVersion}
-          />
-          <ImageStreamPopover selectedImage={selectedImage} />
-        </>
-      )}
+      <ImageStreamSelector
+        imageStreams={imageStreams.filter((imageStream) => !isInvalidBYONImageStream(imageStream))}
+        buildStatuses={buildStatuses}
+        onImageStreamSelect={onImageStreamSelect}
+        selectedImageStream={selectedImage.imageStream}
+        compatibleAccelerator={compatibleAccelerator}
+      />
+      <ImageVersionSelector
+        data={imageVersionData}
+        setSelectedImageVersion={(selection) =>
+          setSelectedImage((oldSelectedImage) => ({
+            ...oldSelectedImage,
+            imageVersion: selection,
+          }))
+        }
+        selectedImageVersion={selectedImage.imageVersion}
+      />
+      <ImageStreamPopover selectedImage={selectedImage} />
     </>
   );
 };
