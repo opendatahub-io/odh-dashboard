@@ -52,10 +52,6 @@ export const passThrough = <T extends K8sResourceCommon>(
             }`,
           );
           throw { code: parsedData.code, response: parsedData };
-        } else if (data.method.toLowerCase() === 'delete') {
-          // TODO: Remove when bug is fixed - https://issues.redhat.com/browse/RHCLOUD-28058
-          // Return a non-status object upon successful delete
-          return {} as K8sStatus;
         }
       }
 

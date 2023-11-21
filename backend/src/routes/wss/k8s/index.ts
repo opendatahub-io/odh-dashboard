@@ -5,6 +5,8 @@ import { getAccessToken } from '../../../utils/directCallUtils';
 import { ClientRequest, IncomingMessage } from 'http';
 
 const base64 = (data: string): string =>
+  // This usage of toString is fine for decoding
+  // eslint-disable-next-line no-restricted-properties
   Buffer.from(data).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').split('=', 1)[0];
 
 const liftErrorCode = (code: number) => {
@@ -17,6 +19,8 @@ const liftErrorCode = (code: number) => {
 
 const closeWebSocket = (socket: WebSocket, code: number, reason: string | Buffer) => {
   if (socket.readyState === WebSocket.OPEN) {
+    // This usage of toString is fine for string | Buffer conversion
+    // eslint-disable-next-line no-restricted-properties
     socket.close(liftErrorCode(code), reason?.toString() || 'error');
   }
 };
@@ -47,7 +51,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         const url = `${
           fastify.kube.config.getCurrentCluster().server
-        }/${kubeUri}?${new URLSearchParams(req.query).toString()}`;
+        }/${kubeUri}?${new URLSearchParams(req.query)}`;
 
         const accessToken = getAccessToken(requestOptions);
         const subprotocols = [
