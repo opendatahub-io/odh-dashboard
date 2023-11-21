@@ -29,7 +29,7 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ res
           subtitle={<PipelineJobReferenceName resource={resource} />}
           description={data ? data.description : resource.description}
           descriptionAsMarkdown
-          label={<PipelineRunTypeLabel resource={resource} />}
+          label={<PipelineRunTypeLabel resource={resource} isCompact />}
         />
       )}
     </div>

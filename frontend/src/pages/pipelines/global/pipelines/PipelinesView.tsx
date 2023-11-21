@@ -2,19 +2,18 @@ import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import GlobalNoPipelines from '~/pages/pipelines/global/pipelines/GlobalNoPipelines';
 import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
-import GlobalPipelinesTableToolbar, { FilterType, FilterData } from './GlobalPipelinesTableToolbar';
-
-const DEFAULT_FILTER_DATA: FilterData = {
-  [FilterType.PIPELINE_NAME]: '',
-  [FilterType.CREATED_ON]: '',
-};
+import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
+import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import GlobalPipelinesTableToolbar from './GlobalPipelinesTableToolbar';
 
 const PipelinesView: React.FC = () => {
-  const [pipelines, loaded, loadError, refresh] = usePipelines();
-  const [filterData, setFilterData] = React.useState<FilterData>(DEFAULT_FILTER_DATA);
+  const [
+    [{ items: pipelines, totalSize }, loaded, loadError, refresh],
+    { initialLoaded, ...tableProps },
+  ] = usePipelinesTable();
+  const filterToolbarProps = usePipelineFilter(tableProps.setFilter);
 
   if (loadError) {
     return (
@@ -22,7 +21,7 @@ const PipelinesView: React.FC = () => {
     );
   }
 
-  if (!loaded) {
+  if (!loaded && !initialLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -30,38 +29,20 @@ const PipelinesView: React.FC = () => {
     );
   }
 
-  if (pipelines.length === 0) {
+  if (loaded && totalSize === 0 && !tableProps.filter) {
     return <GlobalNoPipelines />;
   }
 
-  const filteredPipelines = pipelines.filter((value) => {
-    const filterName = filterData[FilterType.PIPELINE_NAME];
-    const filterDate = filterData[FilterType.CREATED_ON];
-
-    if (filterName && !value.name.toLowerCase().includes(filterName.toLowerCase())) {
-      return false;
-    }
-    if (filterDate && !value.created_at.includes(filterDate)) {
-      return false;
-    }
-
-    return true;
-  });
-
   return (
     <PipelinesTable
-      pipelines={filteredPipelines}
-      enablePagination
-      toolbarContent={
-        <GlobalPipelinesTableToolbar
-          filterData={filterData}
-          onFilterUpdate={(filterType, value) =>
-            setFilterData((lastFilter) => ({ ...lastFilter, [filterType]: value }))
-          }
-          onClearFilters={() => setFilterData(DEFAULT_FILTER_DATA)}
-        />
-      }
-      emptyTableView={<EmptyTableView onClearFilters={() => setFilterData(DEFAULT_FILTER_DATA)} />}
+      {...tableProps}
+      {...filterToolbarProps}
+      totalSize={totalSize}
+      loading={!loaded}
+      pipelines={pipelines}
+      enablePagination="compact"
+      toolbarContent={<GlobalPipelinesTableToolbar {...filterToolbarProps} />}
+      emptyTableView={<EmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />}
       refreshPipelines={refresh}
       pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
     />
