@@ -8,8 +8,17 @@ type TrustyAIServiceControlProps = {
   namespace: string;
 };
 const TrustyAIServiceControl: React.FC<TrustyAIServiceControlProps> = ({ namespace }) => {
-  const { isAvailable, isProgressing, showSuccess, installCR, deleteCR, error, isSettled } =
-    useManageTrustyAICR(namespace);
+  const {
+    isAvailable,
+    isProgressing,
+    showSuccess,
+    installCR,
+    deleteCR,
+    error,
+    isSettled,
+    serverTimedOut,
+    ignoreTimedOut,
+  } = useManageTrustyAICR(namespace);
 
   const [userStartedInstall, setUserStartedInstall] = React.useState(false);
 
@@ -40,6 +49,9 @@ const TrustyAIServiceControl: React.FC<TrustyAIServiceControlProps> = ({ namespa
           showSuccess={showSuccess}
           isAvailable={isAvailable}
           error={error}
+          timedOut={serverTimedOut}
+          ignoreTimedOut={ignoreTimedOut}
+          deleteCR={deleteCR}
         />
       </StackItem>
     </Stack>

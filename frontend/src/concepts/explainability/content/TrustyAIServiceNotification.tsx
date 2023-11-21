@@ -1,11 +1,15 @@
 import { Alert, AlertActionCloseButton, Bullseye, Spinner } from '@patternfly/react-core';
 import React from 'react';
+import TrustyAITimedOutError from '~/concepts/explainability/content/TrustyAIServerTimedOutError';
 
 type TrustyAIServiceNotificationProps = {
   error?: Error;
   isAvailable: boolean;
   showSuccess: boolean;
   loading: boolean;
+  timedOut: boolean;
+  ignoreTimedOut: () => void;
+  deleteCR: () => Promise<unknown>;
 };
 
 const TrustyAIServiceNotification: React.FC<TrustyAIServiceNotificationProps> = ({
@@ -13,13 +17,23 @@ const TrustyAIServiceNotification: React.FC<TrustyAIServiceNotificationProps> = 
   isAvailable,
   showSuccess,
   loading,
+  timedOut,
+  ignoreTimedOut,
+  deleteCR,
 }) => {
   const [dismissSuccess, setDismissSuccess] = React.useState(false);
 
-  if (loading) {
-    if (dismissSuccess) {
+  React.useEffect(() => {
+    if (loading) {
       setDismissSuccess(false);
     }
+  }, [loading]);
+
+  if (timedOut) {
+    return <TrustyAITimedOutError ignoreTimedOut={ignoreTimedOut} deleteCR={deleteCR} />;
+  }
+
+  if (loading) {
     return (
       <Bullseye>
         <Spinner />

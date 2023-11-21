@@ -1,6 +1,7 @@
 import React from 'react';
 import useTrustyAINamespaceCR, {
   isTrustyAIAvailable,
+  taiHasServerTimedOut,
 } from '~/concepts/explainability/useTrustyAINamespaceCR';
 import { createTrustyAICR, deleteTrustyAICR } from '~/api';
 
@@ -9,12 +10,18 @@ const useManageTrustyAICR = (namespace: string) => {
   const [cr, loaded, serviceError, refresh] = state;
 
   const [installReqError, setInstallReqError] = React.useState<Error | undefined>();
-  const showSuccess = React.useRef(false);
 
   const isAvailable = isTrustyAIAvailable(state);
   const isProgressing = loaded && !!cr && !isAvailable;
   const error = installReqError || serviceError;
 
+  const [disableTimeout, setDisableTimeout] = React.useState(false);
+  const serverTimedOut = !disableTimeout && taiHasServerTimedOut(state, isAvailable);
+  const ignoreTimedOut = React.useCallback(() => {
+    setDisableTimeout(true);
+  }, []);
+
+  const showSuccess = React.useRef(false);
   if (isProgressing) {
     showSuccess.current = true;
   }
@@ -38,6 +45,8 @@ const useManageTrustyAICR = (namespace: string) => {
     isAvailable,
     showSuccess: showSuccess.current,
     isSettled: loaded,
+    serverTimedOut,
+    ignoreTimedOut,
     installCR,
     deleteCR,
   };

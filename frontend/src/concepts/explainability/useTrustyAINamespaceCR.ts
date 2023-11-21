@@ -67,11 +67,6 @@ const useTrustyAINamespaceCR = (namespace: string): FetchState<State> => {
   }, [hasStatus, resourceLoaded]);
 
   return state;
-  // return {
-  //   isAvailable: hasStatus,
-  //   isProgressing: resourceLoaded && !hasStatus,
-  //   crState: state,
-  // };
 };
 
 export default useTrustyAINamespaceCR;
