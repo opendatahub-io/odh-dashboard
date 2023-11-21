@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Select, SelectOption, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import IndentSection from '~/pages/projects/components/IndentSection';
 
 type EnvDataTypeFieldProps = {

@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption, Skeleton } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Skeleton,
+} from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { useAppContext } from '~/app/AppContext';
 import useGPUSetting from './useGPUSetting';
@@ -31,20 +38,14 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
   }
 
   return (
-    <FormGroup
-      label="Number of GPUs"
-      fieldId="modal-notebook-gpu-number"
-      helperText={helpText}
-      helperTextIcon={helpTextIcon}
-      validated={untrustedGPUs && value !== '0' ? 'warning' : undefined}
-    >
+    <FormGroup label="Number of GPUs" fieldId="modal-notebook-gpu-number">
       {!loaded ? (
         <Skeleton height="36px" width="70%" />
       ) : (
         <Select
-          removeFindDomNode
           data-id="gpu-select"
           isDisabled={!loaded || noAvailableGPUs}
+          validated={untrustedGPUs && value !== '0' ? 'warning' : undefined}
           isOpen={gpuDropdownOpen}
           onToggle={() => setGpuDropdownOpen(!gpuDropdownOpen)}
           aria-labelledby="gpu-numbers"
@@ -63,6 +64,11 @@ const GPUSelectField: React.FC<GPUSelectFieldProps> = ({ value, setValue }) => {
           ))}
         </Select>
       )}
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem icon={helpTextIcon}>{helpText}</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
     </FormGroup>
   );
 };

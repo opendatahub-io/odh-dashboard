@@ -16,6 +16,9 @@ const storage: { lastFetch: number; lastValue: GPUInfo } = {
   lastFetch: 0,
 };
 
+/**
+ * @deprecated - use getAcceleratorNumbers instead
+ */
 export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInfo> => {
   if (storage.lastFetch >= Date.now() - 30_000) {
     fastify.log.info(`Returning cached gpu value (${JSON.stringify(storage)})`);
@@ -34,7 +37,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
       return { items: [] } as V1PodList;
     });
   const scalingLimit = await getGPUScaling(fastify);
-  if (gpuPodList.items.length != 0 && fastify.kube.currentToken) {
+  if (gpuPodList.items.length !== 0 && fastify.kube.currentToken) {
     areGpusConfigured = true;
     const gpuDataResponses = [];
     for (let i = 0; i < gpuPodList.items.length; i++) {
@@ -58,7 +61,7 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
         }
       }
     });
-  } else if (scalingLimit.length != 0) {
+  } else if (scalingLimit.length !== 0) {
     areGpusConfigured = true;
   }
 
@@ -67,11 +70,15 @@ export const getGPUNumber = async (fastify: KubeFastifyInstance): Promise<GPUInf
     available: maxGpuNumber,
     autoscalers: scalingLimit,
   };
+
   storage.lastFetch = Date.now();
   storage.lastValue = data;
   return data;
 };
 
+/**
+ * @deprecated
+ */
 export const getGPUData = async (
   fastify: KubeFastifyInstance,
   podIP: string,

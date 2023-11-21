@@ -28,7 +28,9 @@ const useServingRuntimes = (
     });
   }, [namespace, modelServingEnabled, notReady]);
 
-  return useFetchState<ServingRuntimeKind[]>(getServingRuntimes, []);
+  return useFetchState<ServingRuntimeKind[]>(getServingRuntimes, [], {
+    initialPromisePurity: true,
+  });
 };
 
 export default useServingRuntimes;

@@ -34,7 +34,7 @@ const FieldListField = ({ options, onChange, value }: InputFieldProps) => {
         isRequired={options.isRequired}
         value={value}
         placeholder={options.placeholder}
-        onChange={(value) => onChange(options.key, value)}
+        onChange={(e, value) => onChange(options.key, value)}
       />
     </FormGroup>
   );

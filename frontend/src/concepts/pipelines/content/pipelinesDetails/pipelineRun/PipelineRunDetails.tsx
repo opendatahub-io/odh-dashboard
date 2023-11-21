@@ -9,9 +9,9 @@ import {
   EmptyStateIcon,
   EmptyStateVariant,
   EmptyStateBody,
-  Title,
   Bullseye,
   Spinner,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
@@ -72,11 +72,12 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
 
   if (error) {
     return (
-      <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
-        <EmptyStateIcon icon={ExclamationCircleIcon} />
-        <Title headingLevel="h4" size="lg">
-          Error loading pipeline run details
-        </Title>
+      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
+        <EmptyStateHeader
+          titleText="Error loading pipeline run details"
+          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+          headingLevel="h4"
+        />
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );

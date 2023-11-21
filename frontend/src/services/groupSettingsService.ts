@@ -11,9 +11,7 @@ export const fetchGroupsSettings = (): Promise<GroupsConfig> => {
     });
 };
 
-export const updateGroupsSettings = (
-  settings: GroupsConfig,
-): Promise<{ success: GroupsConfig | null; error: string | null }> => {
+export const updateGroupsSettings = (settings: GroupsConfig): Promise<GroupsConfig> => {
   const url = '/api/groups-config';
   return axios
     .put(url, settings)

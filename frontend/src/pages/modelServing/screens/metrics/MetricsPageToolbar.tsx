@@ -1,13 +1,6 @@
 import * as React from 'react';
-import {
-  Button,
-  Select,
-  SelectOption,
-  Text,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { Button, Text, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { relativeTime } from '~/utilities/time';
@@ -25,7 +18,7 @@ const MetricsPageToolbar: React.FC = () => {
         <ToolbarItem>
           <Select
             isOpen={timeframeOpen}
-            onToggle={(expanded) => setTimeframeOpen(expanded)}
+            onToggle={(e, expanded) => setTimeframeOpen(expanded)}
             onSelect={(e, selection) => {
               if (isTimeframeTitle(selection)) {
                 setCurrentTimeframe(selection);
@@ -44,7 +37,7 @@ const MetricsPageToolbar: React.FC = () => {
             <SyncAltIcon />
           </Button>
         </ToolbarItem>
-        <ToolbarItem alignment={{ default: 'alignRight' }}>
+        <ToolbarItem align={{ default: 'alignRight' }}>
           <Text component="small">Last update</Text>
           <br />
           <Text component="small">{relativeTime(Date.now(), lastUpdateTime)}</Text>

@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { DropdownDirection } from '@patternfly/react-core';
 import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
 import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
 import { DataConnection } from '~/pages/projects/types';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription } from '~/components/table';
 import {
   getDataConnectionDescription,
   getDataConnectionDisplayName,
@@ -44,7 +43,6 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
     <Td dataLabel="Provider">{getDataConnectionProvider(obj)}</Td>
     <Td isActionCell>
       <ActionsColumn
-        dropdownDirection={DropdownDirection.up}
         items={[
           {
             title: 'Edit data connection',

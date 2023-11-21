@@ -26,7 +26,7 @@ const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = 
       [FilterOptions.NAME]: ({ onChange, ...props }) => (
         <TextInput
           {...props}
-          onChange={(value) => onChange(value)}
+          onChange={(e, value) => onChange(value)}
           aria-label="Search for a pipeline name"
           placeholder="Name"
         />

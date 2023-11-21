@@ -1,12 +1,15 @@
 import {
+  ContainerResources,
   ImageStreamAndVersion,
   NotebookSize,
+  PodToleration,
   TolerationSettings,
   Volume,
   VolumeMount,
 } from '~/types';
 import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 import { AWS_KEYS } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
@@ -19,7 +22,7 @@ export type NameDescType = {
 
 export type CreatingStorageObject = {
   nameDesc: NameDescType;
-  size: number;
+  size: string;
 };
 
 export type MountPath = {
@@ -60,11 +63,13 @@ export type StartNotebookData = {
   projectName: string;
   notebookName: string;
   notebookSize: NotebookSize;
-  gpus: number;
+  accelerator: AcceleratorState;
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   tolerationSettings?: TolerationSettings;
+  existingTolerations?: PodToleration[];
+  existingResources?: ContainerResources;
   envFrom?: EnvironmentFromVariable[];
   description?: string;
   /** An override for the assembleNotebook so it doesn't regen an id */
@@ -135,4 +140,24 @@ export enum SecretCategory {
 export enum ConfigMapCategory {
   GENERIC = 'configmap key-value',
   UPLOAD = 'configmap upload',
+}
+
+export enum NamespaceApplicationCase {
+  /**
+   * Supports the flow for when a project is created in the DSG create project flow.
+   */
+  DSG_CREATION,
+  /**
+   * Upgrade an existing DSG project to work with model mesh.
+   */
+  MODEL_MESH_PROMOTION,
+  /**
+   * Upgrade an existing DSG project to work with model kserve.
+   */
+  KSERVE_PROMOTION,
+}
+
+export enum ProjectScope {
+  DS_PROJECTS = 'Data science projects',
+  ALL_PROJECTS = 'All available projects',
 }

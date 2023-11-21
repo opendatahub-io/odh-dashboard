@@ -23,7 +23,7 @@ body:
       options:
         - OpenDataHub core version (eg. `v1.6.0`)
         - Installing Dashboard directly (eg. `v2.12.0`, `commit xyz`, `branch name`)
-        - Downstream version (eg. `RHODS 1.29`)
+        - Downstream version (eg. `OpenShift AI 2.4`)
     validations:
       required: true
   - type: input
@@ -32,7 +32,7 @@ body:
       label: Version
       description: |
         What was the version this was found on?
-        
+
         eg. a branch name, a commit id, or a version number
     validations:
       required: true

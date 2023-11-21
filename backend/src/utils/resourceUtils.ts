@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import createError from 'http-errors';
 import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
+  AcceleratorKind,
   BUILD_PHASE,
   BuildKind,
   BuildStatus,
@@ -33,6 +34,7 @@ import {
   getRouteForClusterId,
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
+import { getAcceleratorNumbers } from '../routes/api/accelerators/acceleratorUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -103,6 +105,21 @@ const fetchOrCreateDashboardCR = async (
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
+      if (
+        dashboardCR &&
+        dashboardCR.spec.dashboardConfig.disableKServe === undefined &&
+        dashboardCR.spec.dashboardConfig.disableModelMesh === undefined
+      ) {
+        // return a merge between dashboardCR and blankDashboardCR but changing spec.disableKServe to true and spec.disableModelMesh to false
+        return _.merge({}, blankDashboardCR, dashboardCR, {
+          spec: {
+            dashboardConfig: {
+              disableKServe: true,
+              disableModelMesh: false,
+            },
+          },
+        });
+      }
       return _.merge({}, blankDashboardCR, dashboardCR); // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
@@ -631,6 +648,126 @@ export const getConsoleLinks = (): ConsoleLinkKind[] => {
   return consoleLinksWatcher.getResources();
 };
 
+/**
+ * Converts GPU usage to use accelerator by adding an accelerator profile CRD to the cluster if GPU usage is detected
+ */
+export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> => {
+  // When we startup — in kube.ts we can handle a migration (catch ALL promise errors — exit gracefully and use fastify logging)
+  // Check for migration-gpu-status configmap in dashboard namespace — if found, exit early
+  const CONFIG_MAP_NAME = 'migration-gpu-status';
+
+  const continueProcessing = await fastify.kube.coreV1Api
+    .readNamespacedConfigMap(CONFIG_MAP_NAME, fastify.kube.namespace)
+    .then(() => {
+      // Found configmap, not continuing
+      fastify.log.info(`GPU migration already completed, skipping`);
+      return false;
+    })
+    .catch((e) => {
+      if (e.statusCode === 404) {
+        // No config saying we have already migrated gpus, continue
+        return true;
+      } else {
+        throw `fetching gpu migration configmap had a ${e.statusCode} error: ${
+          e.response?.body?.message || e?.response?.statusMessage
+        }`;
+      }
+    });
+
+  if (continueProcessing) {
+    // Read existing AcceleratorProfiles
+    const acceleratorProfilesResponse = await fastify.kube.customObjectsApi
+      .listNamespacedCustomObject(
+        'dashboard.opendatahub.io',
+        'v1',
+        fastify.kube.namespace,
+        'acceleratorprofiles',
+      )
+      .catch((e) => {
+        console.log(e);
+        // If error shows up — CRD may not be installed, exit early
+        throw `A ${e.statusCode} error occurred when trying to fetch accelerator profiles: ${
+          e.response?.body?.message || e?.response?.statusMessage
+        }`;
+      });
+
+    const acceleratorProfiles = (
+      acceleratorProfilesResponse?.body as {
+        items: AcceleratorKind[];
+      }
+    )?.items;
+
+    // If not error and no profiles detected:
+    if (
+      acceleratorProfiles &&
+      Array.isArray(acceleratorProfiles) &&
+      acceleratorProfiles.length === 0
+    ) {
+      // if gpu detected on cluster, create our default migrated-gpu
+      const acceleratorDetected = await getAcceleratorNumbers(fastify);
+
+      if (acceleratorDetected.configured) {
+        const payload: AcceleratorKind = {
+          kind: 'AcceleratorProfile',
+          apiVersion: 'dashboard.opendatahub.io/v1',
+          metadata: {
+            name: 'migrated-gpu',
+            namespace: fastify.kube.namespace,
+          },
+          spec: {
+            displayName: 'NVIDIA GPU',
+            identifier: 'nvidia.com/gpu',
+            enabled: true,
+            tolerations: [
+              {
+                effect: 'NoSchedule',
+                key: 'nvidia.com/gpu',
+                operator: 'Exists',
+              },
+            ],
+          },
+        };
+
+        try {
+          await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+            'dashboard.opendatahub.io',
+            'v1',
+            fastify.kube.namespace,
+            'acceleratorprofiles',
+            payload,
+          );
+        } catch (e) {
+          // If bad detection — exit early and dont create config
+          throw `A ${
+            e.statusCode
+          } error occurred when trying to add migrated-gpu accelerator profile: ${
+            e.response?.body?.message || e?.response?.statusMessage
+          }`;
+        }
+      }
+    }
+
+    // Create configmap to flag operation as successful
+    const configMap = {
+      metadata: {
+        name: CONFIG_MAP_NAME,
+        namespace: fastify.kube.namespace,
+      },
+      data: {
+        migratedCompleted: 'true',
+      },
+    };
+
+    await fastify.kube.coreV1Api
+      .createNamespacedConfigMap(fastify.kube.namespace, configMap)
+      .then(() => fastify.log.info('Successfully migrated GPUs to accelerator profiles'))
+      .catch((e) => {
+        throw `A ${e.statusCode} error occurred when trying to create gpu migration configmap: ${
+          e.response?.body?.message || e?.response?.statusMessage
+        }`;
+      });
+  }
+};
 /**
  * @deprecated - Look to remove asap (see comments below)
  * Converts namespaces that have a display-name annotation suffixed with `[DSP]` over to using a label.

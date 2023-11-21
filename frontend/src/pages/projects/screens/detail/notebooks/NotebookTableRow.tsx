@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Flex, FlexItem, Icon, Spinner, Text, TextVariants, Tooltip } from '@patternfly/react-core';
+import { Flex, FlexItem, Icon, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { NotebookState } from '~/pages/projects/notebook/types';
@@ -10,11 +10,13 @@ import NotebookStatusToggle from '~/pages/projects/notebook/NotebookStatusToggle
 import { NotebookKind } from '~/k8sTypes';
 import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription } from '~/components/table';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import NotebookStorageBars from './NotebookStorageBars';
+import { NotebookImageDisplayName } from './NotebookImageDisplayName';
+import { NotebookImageAvailability } from './const';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -35,7 +37,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
   const { size: notebookSize, error: sizeError } = useNotebookDeploymentSize(obj.notebook);
-  const [notebookImage, loaded] = useNotebookImage(obj.notebook);
+  const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -56,14 +58,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           />
         </Td>
         <Td dataLabel="Notebook image">
-          {!loaded ? (
-            <Spinner size="md" />
-          ) : (
-            <Text component="p">{notebookImage?.imageName ?? 'Unknown'}</Text>
-          )}
-          {isExpanded && notebookImage?.tagSoftware && (
-            <Text component={TextVariants.small}>{notebookImage.tagSoftware}</Text>
-          )}
+          <NotebookImageDisplayName
+            notebookImage={notebookImage}
+            loaded={loaded}
+            loadError={loadError}
+            isExpanded={isExpanded}
+          />
         </Td>
         <Td dataLabel="Container size">
           <Flex
@@ -72,7 +72,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           >
             <FlexItem>{notebookSize?.name ?? 'Unknown'}</FlexItem>
             {sizeError && (
-              <Tooltip removeFindDomNode content={sizeError}>
+              <Tooltip content={sizeError}>
                 <Icon aria-label="error icon" role="button" status="danger" tabIndex={0}>
                   <ExclamationCircleIcon />
                 </Icon>
@@ -85,6 +85,10 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             notebookState={obj}
             doListen={false}
             enablePipelines={canEnablePipelines}
+            isDisabled={
+              notebookImage?.imageAvailability === NotebookImageAvailability.DELETED &&
+              !obj.isRunning
+            }
           />
         </Td>
         <Td>
@@ -121,7 +125,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         </Td>
         <Td dataLabel="Packages">
           <ExpandableRowContent>
-            {notebookImage ? (
+            {notebookImage &&
+            notebookImage.imageAvailability !== NotebookImageAvailability.DELETED ? (
               <NotebookImagePackageDetails dependencies={notebookImage.dependencies} />
             ) : (
               'Unknown package info'

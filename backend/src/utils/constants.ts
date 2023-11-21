@@ -1,6 +1,6 @@
 import * as path from 'path';
 import './dotenv';
-import { DashboardConfig, NotebookSize } from '../types';
+import { DashboardConfig, KnownLabels, NotebookSize } from '../types';
 
 export const PORT = Number(process.env.PORT) || Number(process.env.BACKEND_PORT) || 8080;
 export const IP = process.env.IP || '0.0.0.0';
@@ -26,6 +26,7 @@ export const IMAGE_ANNOTATIONS = {
   DEPENDENCIES: 'opendatahub.io/notebook-python-dependencies',
   IMAGE_ORDER: 'opendatahub.io/notebook-image-order',
   RECOMMENDED: 'opendatahub.io/workbench-image-recommended',
+  OUTDATED: 'opendatahub.io/image-tag-outdated',
 };
 export const blankDashboardCR: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
@@ -53,6 +54,8 @@ export const blankDashboardCR: DashboardConfig = {
       disableCustomServingRuntimes: false,
       modelMetricsNamespace: '',
       disablePipelines: false,
+      disableKServe: false,
+      disableModelMesh: true,
     },
     notebookController: {
       enabled: true,
@@ -134,3 +137,5 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
 
 export const imageUrlRegex =
   /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
+
+export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;

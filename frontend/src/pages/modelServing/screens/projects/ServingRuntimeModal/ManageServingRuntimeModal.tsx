@@ -7,39 +7,35 @@ import {
   FormGroup,
   FormSection,
   Modal,
+  Popover,
   Stack,
   StackItem,
+  getUniqueId,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { HelpIcon } from '@patternfly/react-icons';
 import {
-  isGpuDisabled,
+  submitServingRuntimeResources,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
+import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '~/k8sTypes';
+import { useAccessReview } from '~/api';
 import {
-  ServingRuntimeKind,
-  SecretKind,
-  TemplateKind,
-  ProjectKind,
-  AccessReviewResourceAttributes,
-} from '~/k8sTypes';
-import {
-  addSupportModelMeshProject,
-  createServingRuntime,
-  updateServingRuntime,
-  useAccessReview,
-} from '~/api';
-import {
+  isModelServerEditInfoChanged,
   requestsUnderLimits,
   resourcesArePositive,
-  setUpTokenAuth,
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
+import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
+import ServingRuntimeNameSection from './ServingRuntimeNameSection';
 
 type ManageServingRuntimeModalProps = {
   isOpen: boolean;
@@ -48,10 +44,7 @@ type ManageServingRuntimeModalProps = {
 } & EitherOrNone<
   { servingRuntimeTemplates?: TemplateKind[] },
   {
-    editInfo?: {
-      servingRuntime?: ServingRuntimeKind;
-      secrets: SecretKind[];
-    };
+    editInfo?: ServingRuntimeEditInfo;
   }
 >;
 
@@ -69,6 +62,9 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
+  const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
+    editInfo?.servingRuntime,
+  );
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -76,7 +72,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
 
   const namespace = currentProject.metadata.name;
 
-  const [allowCreate, rbacLoaded] = useAccessReview({
+  const [allowCreate] = useAccessReview({
     ...accessReviewResource,
     namespace,
   });
@@ -92,7 +88,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const inputValueValid = customServingRuntimesEnabled
     ? baseInputValueValid && createData.name && servingRuntimeTemplateNameValid
     : baseInputValueValid;
-  const canCreate = !actionInProgress && !tokenErrors && inputValueValid && rbacLoaded;
+  const isDisabled =
+    actionInProgress ||
+    tokenErrors ||
+    !inputValueValid ||
+    !isModelServerEditInfoChanged(createData, sizes, acceleratorState, editInfo);
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -106,6 +106,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(false);
     resetData();
+    resetAcceleratorData();
   };
 
   const setErrorModal = (error: Error) => {
@@ -113,182 +114,159 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setActionInProgress(false);
   };
 
+  const onSuccess = () => {
+    onBeforeClose(true);
+  };
+
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
 
-    if (!servingRuntimeSelected) {
-      setErrorModal(
-        new Error(
-          'Error, the Serving Runtime selected might be malformed or could not have been retrieved.',
-        ),
-      );
-      return;
-    }
-    const servingRuntimeData = {
-      ...createData,
-      gpus: isGpuDisabled(servingRuntimeSelected) ? 0 : createData.gpus,
-    };
-    const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
-    const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
-
-    Promise.all<ServingRuntimeKind | string | void>([
-      ...(editInfo?.servingRuntime
-        ? [
-            updateServingRuntime(
-              servingRuntimeData,
-              editInfo?.servingRuntime,
-              customServingRuntimesEnabled,
-              {
-                dryRun: true,
-              },
-            ),
-          ]
-        : [
-            createServingRuntime(
-              servingRuntimeData,
-              namespace,
-              servingRuntimeSelected,
-              customServingRuntimesEnabled,
-              {
-                dryRun: true,
-              },
-            ),
-          ]),
-      setUpTokenAuth(
-        servingRuntimeData,
-        servingRuntimeName,
-        namespace,
-        createRolebinding,
-        editInfo?.secrets,
-        {
-          dryRun: true,
-        },
-      ),
-    ])
-      .then(() =>
-        Promise.all<ServingRuntimeKind | string | void>([
-          ...(currentProject.metadata.labels?.['modelmesh-enabled'] && allowCreate
-            ? [addSupportModelMeshProject(currentProject.metadata.name)]
-            : []),
-          ...(editInfo?.servingRuntime
-            ? [
-                updateServingRuntime(
-                  servingRuntimeData,
-                  editInfo?.servingRuntime,
-                  customServingRuntimesEnabled,
-                ),
-              ]
-            : [
-                createServingRuntime(
-                  servingRuntimeData,
-                  namespace,
-                  servingRuntimeSelected,
-                  customServingRuntimesEnabled,
-                ),
-              ]),
-          setUpTokenAuth(
-            servingRuntimeData,
-            servingRuntimeName,
-            namespace,
-            createRolebinding,
-            editInfo?.secrets,
-          ),
-        ])
-          .then(() => {
-            setActionInProgress(false);
-            onBeforeClose(true);
-          })
-          .catch((e) => {
-            setErrorModal(e);
-          }),
-      )
+    submitServingRuntimeResources(
+      servingRuntimeSelected,
+      createData,
+      customServingRuntimesEnabled,
+      namespace,
+      editInfo,
+      allowCreate,
+      acceleratorState,
+      NamespaceApplicationCase.MODEL_MESH_PROMOTION,
+      currentProject,
+    )
+      .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
       });
   };
 
+  const createNewToken = React.useCallback(() => {
+    const name = 'default-name';
+    const duplicated = createData.tokens.filter((token) => token.name === name);
+    const error = duplicated.length > 0 ? 'Duplicates are invalid' : '';
+    setCreateData('tokens', [
+      ...createData.tokens,
+      {
+        name,
+        uuid: getUniqueId('ml'),
+        error,
+      },
+    ]);
+  }, [createData.tokens, setCreateData]);
+
   return (
     <Modal
-      title="Add model server"
+      title={`${editInfo ? 'Edit' : 'Add'} model server`}
+      description="A model server specifies resources available for use by one or more supported models, and includes a serving runtime."
       variant="medium"
       isOpen={isOpen}
       onClose={() => onBeforeClose(false)}
       showClose
-      actions={[
-        <Button
-          key="submit-model"
-          variant="primary"
-          isDisabled={!canCreate}
-          onClick={submit}
-          isLoading={actionInProgress}
-        >
-          Add
-        </Button>,
-        <Button key="cancel-model" variant="secondary" onClick={() => onBeforeClose(false)}>
-          Cancel
-        </Button>,
-      ]}
+      footer={
+        <DashboardModalFooter
+          submitLabel={editInfo ? 'Update' : 'Add'}
+          onSubmit={submit}
+          isSubmitDisabled={isDisabled}
+          onCancel={() => onBeforeClose(false)}
+          alertTitle={`Error ${editInfo ? 'updating' : 'creating'} model server`}
+          error={error}
+        />
+      }
     >
-      <Stack hasGutter>
-        <StackItem>
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
-            <Stack hasGutter>
-              <ServingRuntimeTemplateSection
-                data={createData}
-                setData={setCreateData}
-                templates={servingRuntimeTemplates || []}
-                isEditing={!!editInfo}
-              />
-              <StackItem>
-                <ServingRuntimeReplicaSection data={createData} setData={setCreateData} />
-              </StackItem>
-              <StackItem>
-                <ServingRuntimeSizeSection
-                  data={createData}
-                  setData={setCreateData}
-                  sizes={sizes}
-                  servingRuntimeSelected={servingRuntimeSelected}
-                />
-              </StackItem>
-              <StackItem>
-                <FormSection title="Model route" titleElement="div">
-                  <FormGroup>
-                    <Checkbox
-                      label="Make deployed models available through an external route"
-                      id="alt-form-checkbox-route"
-                      name="alt-form-checkbox-route"
-                      isChecked={createData.externalRoute}
-                      onChange={(check) => setCreateData('externalRoute', check)}
-                    />
-                  </FormGroup>
-                </FormSection>
-              </StackItem>
-              <StackItem>
-                <ServingRuntimeTokenSection
-                  data={createData}
-                  setData={setCreateData}
-                  allowCreate={allowCreate}
-                  rbacLoaded={rbacLoaded}
-                />
-              </StackItem>
-            </Stack>
-          </Form>
-        </StackItem>
-
-        {error && (
+      <Form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <Stack hasGutter>
           <StackItem>
-            <Alert isInline variant="danger" title="Error creating model server">
-              {error.message}
-            </Alert>
+            <ServingRuntimeNameSection
+              data={createData}
+              setData={setCreateData}
+            ></ServingRuntimeNameSection>
           </StackItem>
-        )}
-      </Stack>
+          <StackItem>
+            <ServingRuntimeTemplateSection
+              data={createData}
+              setData={setCreateData}
+              templates={servingRuntimeTemplates || []}
+              isEditing={!!editInfo}
+              acceleratorState={acceleratorState}
+            />
+          </StackItem>
+          <StackItem>
+            <ServingRuntimeReplicaSection
+              data={createData}
+              setData={setCreateData}
+              infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
+            />
+          </StackItem>
+          <StackItem>
+            <ServingRuntimeSizeSection
+              data={createData}
+              setData={setCreateData}
+              sizes={sizes}
+              servingRuntimeSelected={servingRuntimeSelected}
+              acceleratorState={acceleratorState}
+              setAcceleratorState={setAcceleratorState}
+              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+            />
+          </StackItem>
+          {!allowCreate && (
+            <StackItem>
+              <Popover
+                showClose
+                bodyContent="Model route and token authorization can only be changed by administrator users."
+              >
+                <Button variant="link" icon={<HelpIcon />} isInline>
+                  {"Why can't I change the model route and token authorization fields?"}
+                </Button>
+              </Popover>
+            </StackItem>
+          )}
+          <StackItem>
+            <FormSection title="Model route" titleElement="div">
+              <FormGroup>
+                <Checkbox
+                  label="Make deployed models available through an external route"
+                  id="alt-form-checkbox-route"
+                  name="alt-form-checkbox-route"
+                  isChecked={createData.externalRoute}
+                  isDisabled={!allowCreate}
+                  onChange={(e, check) => {
+                    setCreateData('externalRoute', check);
+                    if (check && allowCreate) {
+                      setCreateData('tokenAuth', check);
+                      if (createData.tokens.length === 0) {
+                        createNewToken();
+                      }
+                    }
+                  }}
+                />
+              </FormGroup>
+            </FormSection>
+          </StackItem>
+          <StackItem>
+            <ServingRuntimeTokenSection
+              data={createData}
+              setData={setCreateData}
+              allowCreate={allowCreate}
+              createNewToken={createNewToken}
+            />
+          </StackItem>
+          {createData.externalRoute && !createData.tokenAuth && (
+            <StackItem>
+              <Alert
+                id="external-route-no-token-alert"
+                variant="warning"
+                isInline
+                title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+              />
+            </StackItem>
+          )}
+        </Stack>
+      </Form>
     </Modal>
   );
 };

@@ -7,12 +7,13 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  EmptyStateSecondaryActions,
   EmptyStateVariant,
   Gallery,
   PageSection,
   PageSectionVariants,
-  Title,
+  EmptyStateActions,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { OdhDocument } from '~/types';
@@ -59,18 +60,21 @@ const LearningCenterDataView: React.FC<LearningCenterDataViewProps> = React.memo
       if (filteredDocApps.length === 0) {
         return (
           <EmptyState variant={EmptyStateVariant.full}>
-            <EmptyStateIcon icon={SearchIcon} />
-            <Title headingLevel="h2" size="lg">
-              No results match the filter criteria
-            </Title>
+            <EmptyStateHeader
+              titleText="No results match the filter criteria"
+              icon={<EmptyStateIcon icon={SearchIcon} />}
+              headingLevel="h2"
+            />
             <EmptyStateBody>
               No resources are being shown due to the filters being applied.
             </EmptyStateBody>
-            <EmptyStateSecondaryActions>
-              <Button variant="link" onClick={onClearFilters}>
-                Clear all filters
-              </Button>
-            </EmptyStateSecondaryActions>
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button variant="link" onClick={onClearFilters}>
+                  Clear all filters
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
           </EmptyState>
         );
       }

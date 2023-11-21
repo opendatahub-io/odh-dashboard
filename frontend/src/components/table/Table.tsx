@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import { TableComposableProps, TbodyProps, Tr } from '@patternfly/react-table';
-import useTableColumnSort, { SortableData } from '~/components/table/useTableColumnSort';
+import { TableProps as PFTableProps, TbodyProps, Tr } from '@patternfly/react-table';
 import { EitherNotBoth } from '~/typeHelpers';
 import TableBase, { MIN_PAGE_SIZE } from './TableBase';
+import useTableColumnSort from './useTableColumnSort';
+import type { SortableData } from './types';
 
 type TableProps<DataType> = {
   data: DataType[];
@@ -21,7 +22,7 @@ type TableProps<DataType> = {
   { disableRowRenderSupport?: boolean },
   { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
 > &
-  Omit<TableComposableProps, 'ref' | 'data'>;
+  Omit<PFTableProps, 'ref' | 'data'>;
 
 const Table = <T,>({
   data: allData,
