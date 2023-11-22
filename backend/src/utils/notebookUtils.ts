@@ -277,8 +277,8 @@ export const assembleNotebook = async (
     },
   }));
 
-  const serviceMeshEnabled = String(
-    !featureFlagEnabled(getDashboardConfig().spec?.dashboardConfig?.disableServiceMesh),
+  const serviceMeshEnabled = featureFlagEnabled(
+    getDashboardConfig().spec?.dashboardConfig?.disableServiceMesh,
   );
 
   return {
@@ -298,7 +298,7 @@ export const assembleNotebook = async (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': String(!serviceMeshEnabled),
         'opendatahub.io/username': username,
-        'opendatahub.io/service-mesh': serviceMeshEnabled,
+        'opendatahub.io/service-mesh': String(serviceMeshEnabled),
         'kubeflow-resource-stopped': null,
         'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
       },
