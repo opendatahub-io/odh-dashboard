@@ -10,19 +10,19 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import {
-  TableComposable,
+  Table,
   Thead,
   Tr,
   Th,
-  TableComposableProps,
+  TableProps,
   Caption,
   Tbody,
   Td,
   TbodyProps,
 } from '@patternfly/react-table';
-import { GetColumnSort, SortableData } from '~/components/table/useTableColumnSort';
-import { CHECKBOX_FIELD_ID, EXPAND_FIELD_ID, KEBAB_FIELD_ID } from '~/components/table/const';
 import { EitherNotBoth } from '~/typeHelpers';
+import { GetColumnSort, SortableData } from './types';
+import { CHECKBOX_FIELD_ID, EXPAND_FIELD_ID, KEBAB_FIELD_ID } from './const';
 
 type Props<DataType> = {
   loading?: boolean;
@@ -42,7 +42,7 @@ type Props<DataType> = {
   { disableRowRenderSupport?: boolean },
   { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
 > &
-  Omit<TableComposableProps, 'ref' | 'data'> &
+  Omit<TableProps, 'ref' | 'data'> &
   Pick<PaginationProps, 'itemCount' | 'onPerPageSelect' | 'onSetPage' | 'page' | 'perPage'>;
 
 export const MIN_PAGE_SIZE = 10;
@@ -83,11 +83,11 @@ const TableBase = <T,>({
   loading,
   ...props
 }: Props<T>): React.ReactElement => {
+  const selectAllRef = React.useRef(null);
   const showPagination = enablePagination && itemCount > MIN_PAGE_SIZE;
   const pagination = (variant: 'top' | 'bottom') => (
     <Pagination
       isCompact={enablePagination === 'compact'}
-      perPageComponent="button"
       itemCount={itemCount}
       perPage={perPage}
       page={page}
@@ -96,6 +96,9 @@ const TableBase = <T,>({
       variant={variant}
       widgetId="table-pagination"
       perPageOptions={defaultPerPageOptions}
+      titles={{
+        paginationAriaLabel: `${variant} pagination`,
+      }}
     />
   );
 
@@ -162,22 +165,28 @@ const TableBase = <T,>({
           <ToolbarContent>
             {toolbarContent}
             {showPagination && (
-              <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
+              <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
                 {pagination('top')}
               </ToolbarItem>
             )}
           </ToolbarContent>
         </Toolbar>
       )}
-      <TableComposable {...props} ref={tableRef}>
+      <Table {...props} ref={tableRef}>
         {caption && <Caption>{caption}</Caption>}
         <Thead noWrap>
           <Tr>
             {columns.map((col, i) => {
               if (col.field === CHECKBOX_FIELD_ID && selectAll) {
                 return (
-                  <Tooltip key="select-all-checkbox" content="Select all page items">
+                  <>
+                    <Tooltip
+                      key="select-all-checkbox"
+                      content="Select all page items"
+                      triggerRef={selectAllRef}
+                    />
                     <Th
+                      ref={selectAllRef}
                       select={{
                         isSelected: selectAll.selected,
                         onSelect: (e, value) => selectAll.onSelect(value),
@@ -185,7 +194,7 @@ const TableBase = <T,>({
                       // TODO: Log PF bug -- when there are no rows this gets truncated
                       style={{ minWidth: '45px' }}
                     />
-                  </Tooltip>
+                  </>
                 );
               }
 
@@ -207,7 +216,7 @@ const TableBase = <T,>({
         </Thead>
         {disableRowRenderSupport ? renderRows() : <Tbody {...tbodyProps}>{renderRows()}</Tbody>}
         {footerRow && footerRow(page)}
-      </TableComposable>
+      </Table>
       {!loading && emptyTableView && data.length === 0 && (
         <div style={{ padding: 'var(--pf-global--spacer--2xl) 0', textAlign: 'center' }}>
           {emptyTableView}
@@ -216,7 +225,7 @@ const TableBase = <T,>({
       {showPagination && (
         <Toolbar>
           <ToolbarContent>
-            <ToolbarItem variant="pagination" alignment={{ default: 'alignRight' }}>
+            <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
               {pagination('bottom')}
             </ToolbarItem>
           </ToolbarContent>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Skeleton } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription } from '~/components/table';
 import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';

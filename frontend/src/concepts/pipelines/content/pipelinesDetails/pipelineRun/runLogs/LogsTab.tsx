@@ -11,12 +11,14 @@ import {
   Split,
   SplitItem,
   Bullseye,
+  Truncate,
+} from '@patternfly/react-core';
+import {
   Dropdown,
   DropdownItem,
   DropdownToggle,
   KebabToggle,
-  Truncate,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/deprecated';
 import OutlinedPlayCircleIcon from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
 import PauseIcon from '@patternfly/react-icons/dist/esm/icons/pause-icon';
 import PlayIcon from '@patternfly/react-icons/dist/esm/icons/play-icon';
@@ -177,7 +179,6 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
             ) : null}
             {podContainers.length !== 0 ? (
               <Dropdown
-                removeFindDomNode
                 toggle={
                   isSmallScreen() ? (
                     <KebabToggle

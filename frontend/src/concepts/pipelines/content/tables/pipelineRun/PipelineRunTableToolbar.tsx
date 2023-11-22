@@ -64,7 +64,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             }}
           />
         ),
-        [FilterOptions.STATUS]: ({ value, ...props }) => (
+        [FilterOptions.STATUS]: ({ value, onChange, ...props }) => (
           <SimpleDropdownSelect
             {...props}
             value={value ?? ''}
@@ -73,6 +73,9 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
               key: value,
               label: value,
             }))}
+            onChange={(value) => {
+              onChange(value);
+            }}
           />
         ),
       }}

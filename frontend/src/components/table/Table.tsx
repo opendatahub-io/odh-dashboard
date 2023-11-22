@@ -1,28 +1,17 @@
 import * as React from 'react';
-import { ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import { TableProps as PFTableProps, TbodyProps, Tr } from '@patternfly/react-table';
+import { TbodyProps } from '@patternfly/react-table';
 import { EitherNotBoth } from '~/typeHelpers';
 import TableBase, { MIN_PAGE_SIZE } from './TableBase';
 import useTableColumnSort from './useTableColumnSort';
-import type { SortableData } from './types';
 
-type TableProps<DataType> = {
-  data: DataType[];
-  columns: SortableData<DataType>[];
-  defaultSortColumn?: number;
-  rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;
-  enablePagination?: boolean | 'compact';
-  truncateRenderingAt?: number;
-  toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
-  emptyTableView?: React.ReactNode;
-  caption?: string;
-  footerRow?: (pageNumber: number) => React.ReactElement<typeof Tr> | null;
-  selectAll?: { onSelect: (value: boolean) => void; selected: boolean };
-} & EitherNotBoth<
-  { disableRowRenderSupport?: boolean },
-  { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
+type TableProps<DataType> = Omit<
+  React.ComponentProps<typeof TableBase<DataType>>,
+  'itemCount' | 'onPerPageSelect' | 'onSetPage' | 'page' | 'perPage'
 > &
-  Omit<PFTableProps, 'ref' | 'data'>;
+  EitherNotBoth<
+    { disableRowRenderSupport?: boolean },
+    { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
+  >;
 
 const Table = <T,>({
   data: allData,
