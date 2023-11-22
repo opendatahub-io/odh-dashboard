@@ -9,6 +9,7 @@ import {
   TimestampFormat,
 } from '@patternfly/react-core';
 import { GlobeAmericasIcon } from '@patternfly/react-icons';
+import { DateTimeKF } from '~/concepts/pipelines/kfTypes';
 
 export type DetailItem = {
   key: string;
@@ -43,3 +44,8 @@ export const asTimestamp = (date: Date): React.ReactNode => (
     </FlexItem>
   </Flex>
 );
+
+export const isEmptyDateKF = (date: DateTimeKF): boolean => {
+  const INVALID_TIMESTAMP = '1970-01-01T00:00:00Z';
+  return date === INVALID_TIMESTAMP ? true : false;
+};

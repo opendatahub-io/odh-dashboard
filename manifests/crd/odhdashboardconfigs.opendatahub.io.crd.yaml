@@ -53,6 +53,10 @@ spec:
                       type: string
                     disablePipelines:
                       type: boolean
+                    disableKServe:
+                      type: boolean
+                    disableModelMesh:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

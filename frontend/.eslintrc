@@ -56,6 +56,7 @@
     "curly": "error",
     "camelcase": "warn",
     "no-else-return": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
     "no-restricted-imports": [
       "error",
       {
@@ -67,6 +68,10 @@
           {
             "group": ["~/components/table/**", "!~/components/table/useTableColumnSort"],
             "message": "Read from '~/components/table' instead."
+          },
+          {
+            "group": ["~/concepts/area/**"],
+            "message": "Read from '~/concepts/area' instead."
           },
           {
             "group": ["~/components/table/useTableColumnSort"],

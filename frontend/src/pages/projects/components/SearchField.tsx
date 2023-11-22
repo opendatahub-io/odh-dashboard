@@ -4,7 +4,6 @@ import { InputGroup, SearchInput, Select, SelectOption } from '@patternfly/react
 export enum SearchType {
   NAME = 'Name',
   USER = 'User',
-  PROJECT = 'Project',
 }
 
 type SearchFieldProps = {
@@ -27,6 +26,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
   return (
     <InputGroup>
       <Select
+        toggleId="search-field-toggle"
         removeFindDomNode
         isOpen={typeOpen}
         onToggle={() => setTypeOpen(!typeOpen)}

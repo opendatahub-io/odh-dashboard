@@ -3,22 +3,25 @@ import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useMountProjectRefresh from '~/concepts/projects/useMountProjectRefresh';
-import { ProjectKind } from '~/k8sTypes';
 
 type ProjectSelectorProps = {
-  onSelection: (project: ProjectKind) => void;
+  onSelection: (projectName: string) => void;
   namespace: string;
   invalidDropdownPlaceholder?: string;
+  selectAllProjects?: boolean;
   primary?: boolean;
+  filterLabel?: string;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   onSelection,
   namespace,
   invalidDropdownPlaceholder,
+  selectAllProjects,
   primary,
+  filterLabel,
 }) => {
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
   useMountProjectRefresh();
   const selection = projects.find(byName(namespace));
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -26,6 +29,10 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   const selectionDisplayName = selection
     ? getProjectDisplayName(selection)
     : invalidDropdownPlaceholder ?? namespace;
+
+  const filteredProjects = filterLabel
+    ? projects.filter((project) => project.metadata.labels[filterLabel] !== undefined)
+    : projects;
 
   return (
     <Dropdown
@@ -39,17 +46,33 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
         </DropdownToggle>
       }
       isOpen={dropdownOpen}
-      dropdownItems={projects.map((project) => (
-        <DropdownItem
-          key={project.metadata.name}
-          onClick={() => {
-            setDropdownOpen(false);
-            onSelection(project);
-          }}
-        >
-          {getProjectDisplayName(project)}
-        </DropdownItem>
-      ))}
+      dropdownItems={[
+        ...(selectAllProjects
+          ? [
+              <DropdownItem
+                key={'all-projects'}
+                onClick={() => {
+                  setDropdownOpen(false);
+                  onSelection('');
+                  updatePreferredProject(null);
+                }}
+              >
+                All projects
+              </DropdownItem>,
+            ]
+          : []),
+        ...filteredProjects.map((project) => (
+          <DropdownItem
+            key={project.metadata.name}
+            onClick={() => {
+              setDropdownOpen(false);
+              onSelection(project.metadata.name);
+            }}
+          >
+            {getProjectDisplayName(project)}
+          </DropdownItem>
+        )),
+      ]}
     />
   );
 };

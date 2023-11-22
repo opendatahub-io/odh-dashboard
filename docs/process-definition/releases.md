@@ -25,7 +25,7 @@ There are two types of releases:
 
 ### Release of `main`
 
-Every 3 weeks we release on a Friday. This is useful for any downstream products (like RHODS) to use our stable code.
+Every 3 weeks we release on a Friday. This is useful for any downstream products (like Red Hat OpenShift AI) to use our stable code.
 
 ODH & other "bleeding edge" implementations may want to consider using `incubation`. Read more on [incubation].
 

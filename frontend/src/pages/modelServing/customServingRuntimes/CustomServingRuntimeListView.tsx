@@ -24,6 +24,7 @@ const CustomServingRuntimeListView: React.FC = () => {
   const navigate = useNavigate();
 
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
+
   const sortedTemplates = React.useMemo(
     () => getSortedTemplates(unsortedTemplates, templateOrder),
     [unsortedTemplates, templateOrder],

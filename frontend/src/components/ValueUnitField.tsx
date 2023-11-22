@@ -37,6 +37,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
       </SplitItem>
       <SplitItem>
         <Dropdown
+          menuAppendTo="parent"
           toggle={
             <DropdownToggle id="toggle-basic" onToggle={() => setOpen(!open)}>
               {currentUnitOption.name}
