@@ -52,7 +52,6 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
       },
       subProtocols: [],
     }),
-  apiPriorityList: ['kubeflow.org'],
 };
 
 type SDKInitializeProps = {
