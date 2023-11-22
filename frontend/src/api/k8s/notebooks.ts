@@ -205,23 +205,23 @@ const getStopPatch = (): Patch => ({
   value: getStopPatchDataString(),
 });
 
-const getInjectOAuthPatch = (enableServiceMesh: boolean): Patch => ({
-  op: 'add',
-  path: '/metadata/annotations/notebooks.opendatahub.io~1inject-oauth',
-  value: String(!enableServiceMesh),
-});
-
-const getProxyInjectPatch = (enableServiceMesh: boolean): Patch => ({
-  op: 'add',
-  path: '/metadata/labels/sidecar.istio.io~1inject',
-  value: String(enableServiceMesh),
-});
-
-const getServiceMeshPatch = (enableServiceMesh: boolean): Patch => ({
-  op: 'add',
-  path: '/metadata/annotations/opendatahub.io~1service-mesh',
-  value: String(enableServiceMesh),
-});
+export const getServiceMeshPatches = (enableServiceMesh: boolean): Patch[] => [
+  {
+    op: 'add',
+    path: '/metadata/annotations/notebooks.opendatahub.io~1inject-oauth',
+    value: String(!enableServiceMesh),
+  },
+  {
+    op: 'add',
+    path: '/metadata/labels/sidecar.istio.io~1inject',
+    value: String(enableServiceMesh),
+  },
+  {
+    op: 'add',
+    path: '/metadata/annotations/opendatahub.io~1service-mesh',
+    value: String(enableServiceMesh),
+  },
+];
 
 export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
   k8sListResource<NotebookKind>({
@@ -248,12 +248,7 @@ export const startNotebook = async (
   enableServiceMesh: boolean,
   enablePipelines?: boolean,
 ): Promise<NotebookKind> => {
-  const patches: Patch[] = [
-    startPatch,
-    getInjectOAuthPatch(enableServiceMesh),
-    getServiceMeshPatch(enableServiceMesh),
-    getProxyInjectPatch(enableServiceMesh),
-  ];
+  const patches: Patch[] = [startPatch, ...getServiceMeshPatches(enableServiceMesh)];
 
   const tolerationPatch = getTolerationPatch(tolerationChanges);
   if (tolerationPatch) {
@@ -446,7 +441,8 @@ export const removeNotebookPVC = (
       .then((notebook) => {
         const volumes = notebook.spec.template.spec.volumes || [];
         // TODO: can we assume first container?
-        const volumeMounts = notebook.spec.template.spec.containers[0].volumeMounts || [];
+        const volumeMounts: VolumeMount[] =
+          notebook.spec.template.spec.containers[0].volumeMounts || [];
         const filteredVolumes = volumes.filter(
           (volume) => volume.persistentVolumeClaim?.claimName !== pvcName,
         );
@@ -489,7 +485,8 @@ export const removeNotebookSecret = (
   new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
       .then((notebook) => {
-        const envFroms = notebook.spec.template.spec.containers[0].envFrom || [];
+        const envFroms: EnvironmentFromVariable[] =
+          notebook.spec.template.spec.containers[0].envFrom || [];
         const filteredEnvFroms = envFroms.filter(
           (envFrom) => envFrom.secretRef?.name !== secretName,
         );

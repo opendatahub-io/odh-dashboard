@@ -607,6 +607,10 @@ export const getDashboardConfig = (): DashboardConfig => {
   return dashboardConfigWatcher.getResources()?.[0];
 };
 
+/**
+ * Feature flags are required in the config -- but upgrades can be mixed and omission of the property
+ * usually ends up being enabled. This will prevent that as a general utility.
+ */
 export const featureFlagEnabled = (disabledSettingState?: boolean): boolean =>
   disabledSettingState === false;
 
