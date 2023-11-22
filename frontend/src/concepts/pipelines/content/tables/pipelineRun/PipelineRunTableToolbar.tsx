@@ -41,9 +41,9 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
         [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
             {...props}
-            onChange={(value) => onChange(value)}
             aria-label="Search for a triggered run name"
             placeholder="Triggered run name"
+            onChange={(event, value) => onChange(value)}
           />
         ),
         [FilterOptions.EXPERIMENT]: ({ onChange, value, label }) => (
@@ -64,7 +64,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             }}
           />
         ),
-        [FilterOptions.STATUS]: ({ value, ...props }) => (
+        [FilterOptions.STATUS]: ({ value, onChange, ...props }) => (
           <SimpleDropdownSelect
             {...props}
             value={value ?? ''}
@@ -73,6 +73,9 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
               key: value,
               label: value,
             }))}
+            onChange={(value) => {
+              onChange(value);
+            }}
           />
         ),
       }}

@@ -17,6 +17,7 @@ import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import { deleteServer } from '~/concepts/pipelines/utils';
 import useJobRelatedInformation from '~/concepts/pipelines/context/useJobRelatedInformation';
+import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import useAPIState, { APIState } from './useAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
@@ -57,10 +58,10 @@ type PipelineContextProviderProps = {
   namespace: string;
 };
 
-export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = ({
-  children,
-  namespace,
-}) => {
+export const PipelineContextProvider = conditionalArea<PipelineContextProviderProps>(
+  SupportedArea.DS_PIPELINES,
+  true,
+)(({ children, namespace }) => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
@@ -119,7 +120,7 @@ export const PipelineContextProvider: React.FC<PipelineContextProviderProps> = (
       {children}
     </PipelinesContext.Provider>
   );
-};
+});
 
 type UsePipelinesAPI = APIState & {
   /** The contextual namespace */

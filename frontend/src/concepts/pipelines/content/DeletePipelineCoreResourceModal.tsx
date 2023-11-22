@@ -66,9 +66,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
     setDeleteStatus([]);
     abortControllerRef.current = new AbortController();
   };
-  const onToggle = (isExpanded: boolean) => {
-    setIsExpanded(isExpanded);
-  };
+
   return (
     <DeleteModal
       title={`Delete ${resourceCount > 1 ? resourceCount : ''} ${type}${
@@ -154,7 +152,7 @@ const DeletePipelineCoreResourceModal: React.FC<DeletePipelineCoreResourceModalP
                   {resourceCount > 0 && <Badge isRead={true}>{resourceCount}</Badge>}
                 </>
               }
-              onToggle={onToggle}
+              onToggle={(e, expanded) => setIsExpanded(expanded)}
               isExpanded={isExpanded}
             >
               <List isPlain className="pf-u-pl-lg">

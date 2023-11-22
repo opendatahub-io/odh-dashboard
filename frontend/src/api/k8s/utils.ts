@@ -3,57 +3,55 @@ import {
   ContainerResources,
   PodToleration,
   TolerationSettings,
-  ContainerResourceAttributes,
   VolumeMount,
   Volume,
 } from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
-  gpus: number,
+  accelerator?: AcceleratorState,
   tolerationSettings?: TolerationSettings,
+  existingTolerations?: PodToleration[],
   affinitySettings?: PodAffinity,
+  existingResources?: ContainerResources,
 ): {
   affinity: PodAffinity;
   tolerations: PodToleration[];
   resources: ContainerResources;
 } => {
-  let affinity: PodAffinity = structuredClone(affinitySettings || {});
-  const resources = structuredClone(resourceSettings);
-  if (gpus > 0) {
-    if (!resources.limits) {
-      resources.limits = {};
-    }
-    if (!resources.requests) {
-      resources.requests = {};
-    }
-    resources.limits[ContainerResourceAttributes.NVIDIA_GPU] = gpus;
-    resources.requests[ContainerResourceAttributes.NVIDIA_GPU] = gpus;
-  } else {
-    delete resources.limits?.[ContainerResourceAttributes.NVIDIA_GPU];
-    delete resources.requests?.[ContainerResourceAttributes.NVIDIA_GPU];
-    affinity = {
-      nodeAffinity: {
-        preferredDuringSchedulingIgnoredDuringExecution: [
-          {
-            preference: {
-              matchExpressions: [
-                {
-                  key: 'nvidia.com/gpu.present',
-                  operator: 'NotIn',
-                  values: ['true'],
-                },
-              ],
-            },
-            weight: 1,
-          },
-        ],
-      },
-    };
+  const affinity: PodAffinity = structuredClone(affinitySettings || {});
+  let resources: ContainerResources = {
+    limits: { ...existingResources?.limits, ...resourceSettings?.limits },
+    requests: { ...existingResources?.requests, ...resourceSettings?.requests },
+  };
+
+  if (accelerator?.additionalOptions?.useExisting && !accelerator.useExisting) {
+    resources = structuredClone(resourceSettings);
   }
 
-  const tolerations = determineTolerations(gpus > 0, tolerationSettings);
+  // Clear the last accelerator from the resources
+  if (accelerator?.initialAccelerator) {
+    if (resources.limits) {
+      delete resources.limits[accelerator.initialAccelerator.spec.identifier];
+    }
+    if (resources.requests) {
+      delete resources.requests[accelerator.initialAccelerator.spec.identifier];
+    }
+  }
+
+  // Add back the new accelerator to the resources if count > 0
+  if (accelerator?.accelerator && accelerator.count > 0) {
+    if (resources.limits) {
+      resources.limits[accelerator.accelerator.spec.identifier] = accelerator.count;
+    }
+    if (resources.requests) {
+      resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
+    }
+  }
+
+  const tolerations = determineTolerations(tolerationSettings, accelerator, existingTolerations);
   return { affinity, tolerations, resources };
 };
 

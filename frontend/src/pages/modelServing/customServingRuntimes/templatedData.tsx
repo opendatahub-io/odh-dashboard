@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
+import { SortableData } from '~/components/table';
 import { TemplateKind } from '~/k8sTypes';
 
 export const columns: SortableData<TemplateKind>[] = [
@@ -22,6 +22,11 @@ export const columns: SortableData<TemplateKind>[] = [
         showClose: false,
       },
     },
+  },
+  {
+    field: 'platforms',
+    label: 'Serving platforms supported',
+    sortable: false,
   },
   {
     field: 'kebab',

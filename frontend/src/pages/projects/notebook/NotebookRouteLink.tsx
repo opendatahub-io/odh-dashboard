@@ -43,7 +43,9 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
           iconPosition="right"
           style={{
             whiteSpace: 'nowrap',
-            fontSize: isLarge ? 'var(--pf-global--FontSize--md)' : 'var(--pf-global--FontSize--sm)',
+            fontSize: isLarge
+              ? 'var(--pf-v5-global--FontSize--md)'
+              : 'var(--pf-v5-global--FontSize--sm)',
           }}
         >
           {label ?? getNotebookDisplayName(notebook)}

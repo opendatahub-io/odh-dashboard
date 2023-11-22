@@ -4,6 +4,9 @@ import { rest } from 'msw';
 import { within } from '@storybook/testing-library';
 import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
 import ClusterSettings from '~/pages/clusterSettings/ClusterSettings';
+import { AreaContext } from '~/concepts/areas/AreaContext';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { StackComponent } from '~/concepts/areas';
 
 export default {
   component: ClusterSettings,
@@ -18,7 +21,17 @@ export default {
   },
 } as Meta<typeof ClusterSettings>;
 
-const Template: StoryFn<typeof ClusterSettings> = (args) => <ClusterSettings {...args} />;
+const Template: StoryFn<typeof ClusterSettings> = (args) => (
+  <AreaContext.Provider
+    value={{
+      dscStatus: mockDscStatus({
+        installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
+      }),
+    }}
+  >
+    <ClusterSettings {...args} />
+  </AreaContext.Provider>
+);
 
 export const Default: StoryObj = {
   render: Template,

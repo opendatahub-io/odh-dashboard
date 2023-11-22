@@ -36,9 +36,9 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
         [FilterOptions.NAME]: ({ onChange, ...props }) => (
           <TextInput
             {...props}
-            onChange={(value) => onChange(value)}
             aria-label="Search for a scheduled run name"
             placeholder="Scheduled run name"
+            onChange={(event, value) => onChange(value)}
           />
         ),
         [FilterOptions.EXPERIMENT]: ({ onChange, value, label }) => (

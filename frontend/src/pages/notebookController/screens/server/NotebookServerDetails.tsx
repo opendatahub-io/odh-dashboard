@@ -16,11 +16,11 @@ import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
-  getNumGpus,
 } from '~/utilities/imageUtils';
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
+import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -28,6 +28,7 @@ const NotebookServerDetails: React.FC = () => {
   const { images, loaded } = useWatchImages();
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
+  const [accelerator] = useNotebookAccelerator(notebook);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
@@ -45,7 +46,6 @@ const NotebookServerDetails: React.FC = () => {
 
   const tagSoftware = getDescriptionForTag(tag);
   const tagDependencies = tag?.content.dependencies ?? [];
-  const numGpus = getNumGpus(container);
   const sizes = getNotebookSizes(dashboardConfig);
   const size = sizes.find((size) => _.isEqual(size.resources.limits, container.resources?.limits));
 
@@ -56,7 +56,7 @@ const NotebookServerDetails: React.FC = () => {
       data-id="details-expand"
       className="odh-notebook-controller__server-details"
       toggleText="Notebook server details"
-      onToggle={onToggle}
+      onToggle={(e, expanded: boolean) => onToggle(expanded)}
       isExpanded={isExpanded}
       isIndented
     >
@@ -106,9 +106,21 @@ const NotebookServerDetails: React.FC = () => {
           <DescriptionListDescription>{`${container.resources?.requests?.cpu} CPU, ${container.resources?.requests?.memory} Memory`}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Number of GPUs</DescriptionListTerm>
-          <DescriptionListDescription>{numGpus}</DescriptionListDescription>
+          <DescriptionListTerm>Accelerator</DescriptionListTerm>
+          <DescriptionListDescription>
+            {accelerator.accelerator
+              ? accelerator.accelerator.spec.displayName
+              : accelerator.useExisting
+              ? 'Unknown'
+              : 'None'}
+          </DescriptionListDescription>
         </DescriptionListGroup>
+        {!accelerator.useExisting && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+            <DescriptionListDescription>{accelerator.count}</DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
       </DescriptionList>
     </ExpandableSection>
   );

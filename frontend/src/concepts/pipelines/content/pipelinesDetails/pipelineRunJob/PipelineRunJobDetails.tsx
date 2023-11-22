@@ -72,7 +72,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
 
   if (error) {
     return (
-      <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
+      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
         <EmptyStateIcon icon={ExclamationCircleIcon} />
         <Title headingLevel="h4" size="lg">
           Error loading pipeline scheduled run details

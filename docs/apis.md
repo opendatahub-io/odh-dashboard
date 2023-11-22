@@ -1,5 +1,11 @@
+<!-- TODO: Deprecated; should point at route folders and not document them -->
+[architectural documentation]: architecture.md#custom-backend-business-logic
+
 # Backend APIs
-The backend for the dashboard is node REST server that performs k8s calls on behalf of the frontend. The following are a list of current apis and there functionality.
+
+> Note: These flows are deprecated in the [architectural documentation]
+
+The backend for the dashboard is node REST server that performs k8s calls on behalf of the frontend. The following are a list of current apis and their functionality.
 
 ## Endpoints and methods
 
@@ -39,11 +45,11 @@ The backend for the dashboard is node REST server that performs k8s calls on beh
 
 ### /notebook/{notebook}
 
-**GET** - Retrieves a specific notebook by it's id.  This returns a single [notebook object](https://github.com/opendatahub-io/odh-dashboard/blob/bf49dc23cd4b5477111ad4590e401a423186fa54/backend/src/types.ts#L259)
+**GET** - Retrieves a specific notebook by its id.  This returns a single [notebook object](https://github.com/opendatahub-io/odh-dashboard/blob/bf49dc23cd4b5477111ad4590e401a423186fa54/backend/src/types.ts#L259)
 
-**DELETE** - Deletes a specific notebook image using it's notebook id.  
+**DELETE** - Deletes a specific notebook image using its notebook id.
 
-**PUT** - Updates a specific notebook by it's id.  The payload should be the updated fields as shown in a [notebook object](https://github.com/opendatahub-io/odh-dashboard/blob/bf49dc23cd4b5477111ad4590e401a423186fa54/backend/src/types.ts#L259)
+**PUT** - Updates a specific notebook by its id.  The payload should be the updated fields as shown in a [notebook object](https://github.com/opendatahub-io/odh-dashboard/blob/bf49dc23cd4b5477111ad4590e401a423186fa54/backend/src/types.ts#L259)
 
 ### /quickstarts
 
@@ -63,4 +69,4 @@ The backend for the dashboard is node REST server that performs k8s calls on beh
 
 ### /validate-isv/results
 
-**GET** - Retrieves the current status of an ISV. 
+**GET** - Retrieves the current status of an ISV.

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import { SearchIcon } from '@patternfly/react-icons';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
@@ -53,7 +53,7 @@ const PipelineSearchInput: React.FC<Props> = ({ selected, onChange }) => {
       variant={SelectVariant.typeahead}
       onFilter={() => children}
       onTypeaheadInputChanged={setFilterText}
-      onToggle={setOpen}
+      onToggle={(e, open) => setOpen(open)}
       selections={hasSelection ? selected?.value : undefined}
       onSelect={(_, value) => {
         if (typeof value === 'string') {
