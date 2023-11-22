@@ -8,6 +8,7 @@ metadata:
   annotations:
     tags: 'ovms,servingruntime'
     description: 'OpenVino Model Serving Definition'
+    opendatahub.io/modelServingSupport: '["multi"]'
 objects:
   - apiVersion: serving.kserve.io/v1alpha1
     kind: ServingRuntime
@@ -15,11 +16,13 @@ objects:
       name: ovms
       annotations:
         openshift.io/display-name: 'OpenVINO Model Server'
-        opendatahub.io/disable-gpu: 'true'
       labels:
         opendatahub.io/dashboard: 'true'
     spec:
       builtInAdapter:
+        env:
+          - name: OVMS_FORCE_TARGET_DEVICE
+            value: AUTO
         memBufferBytes: 134217728
         modelLoadingTimeoutMillis: 90000
         runtimeManagementPort: 8888

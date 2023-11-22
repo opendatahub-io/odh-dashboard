@@ -1,18 +1,6 @@
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
-const useCustomServingRuntimesEnabled = (): boolean => {
-  const {
-    dashboardConfig: {
-      spec: {
-        dashboardConfig: { disableModelServing, disableCustomServingRuntimes },
-      },
-    },
-  } = useAppContext();
-
-  return (
-    featureFlagEnabled(disableModelServing) && featureFlagEnabled(disableCustomServingRuntimes)
-  );
-};
+const useCustomServingRuntimesEnabled = (): boolean =>
+  useIsAreaAvailable(SupportedArea.CUSTOM_RUNTIMES).status;
 
 export default useCustomServingRuntimesEnabled;

@@ -33,3 +33,6 @@ export * from './errorUtils';
 
 // User access review hook
 export * from './useAccessReview';
+
+// Generic K8s utils
+export * from './k8sUtils';

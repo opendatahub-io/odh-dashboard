@@ -13,6 +13,7 @@ import { ProjectModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT } from '~/const';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { listServingRuntimes } from './servingRuntimes';
 
 export const getProject = (projectName: string): Promise<ProjectKind> =>
@@ -26,9 +27,6 @@ export const getProjects = (withLabel?: string): Promise<ProjectKind[]> =>
     model: ProjectModel,
     queryOptions: withLabel ? { queryParams: { labelSelector: withLabel } } : undefined,
   }).then((listResource) => listResource.items);
-
-export const getDSGProjects = (): Promise<ProjectKind[]> =>
-  getProjects(LABEL_SELECTOR_DASHBOARD_RESOURCE);
 
 export const createProject = (
   username: string,
@@ -111,12 +109,15 @@ export const getModelServingProjectsAvailable = async (): Promise<ProjectKind[]>
     }),
   );
 
-export const addSupportModelMeshProject = (name: string): Promise<string> =>
-  axios(`/api/namespaces/${name}/1`).then((response) => {
+export const addSupportServingPlatformProject = (
+  name: string,
+  servingPlatform: NamespaceApplicationCase,
+): Promise<string> =>
+  axios(`/api/namespaces/${name}/${servingPlatform}`).then((response) => {
     const applied = response.data?.applied ?? false;
     if (!applied) {
       throw new Error(
-        `Unable to enable model serving in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
+        `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
       );
     }
     return name;

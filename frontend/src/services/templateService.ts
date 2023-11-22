@@ -3,6 +3,8 @@ import axios from 'axios';
 import YAML from 'yaml';
 import { assembleServingRuntimeTemplate } from '~/api';
 import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
+import { ServingRuntimePlatform } from '~/types';
+import { addTypesToK8sListedResources } from '~/utilities/addTypesToK8sListedResources';
 
 export const listTemplatesBackend = async (
   namespace?: string,
@@ -10,7 +12,7 @@ export const listTemplatesBackend = async (
 ): Promise<TemplateKind[]> =>
   axios
     .get(`/api/templates/${namespace}`, { params: { labelSelector } })
-    .then((response) => response.data.items)
+    .then((response) => addTypesToK8sListedResources<TemplateKind>(response.data, 'Template').items)
     .catch((e) => Promise.reject(e));
 
 const dryRunServingRuntimeForTemplateCreationBackend = (
@@ -29,9 +31,10 @@ const dryRunServingRuntimeForTemplateCreationBackend = (
 export const createServingRuntimeTemplateBackend = async (
   body: string,
   namespace: string,
+  platforms: ServingRuntimePlatform[],
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleServingRuntimeTemplate(body, namespace);
+    const template = assembleServingRuntimeTemplate(body, namespace, platforms);
     const servingRuntime = template.objects[0];
     const servingRuntimeName = servingRuntime.metadata.name;
 
@@ -54,12 +57,14 @@ export const createServingRuntimeTemplateBackend = async (
 };
 
 export const updateServingRuntimeTemplateBackend = (
-  name: string,
-  servingRuntimeName: string,
+  existingTemplate: TemplateKind,
   body: string,
   namespace: string,
+  platforms: ServingRuntimePlatform[],
 ): Promise<TemplateKind> => {
   try {
+    const name = existingTemplate.metadata.name;
+    const servingRuntimeName = existingTemplate.objects[0].metadata.name;
     const servingRuntime: ServingRuntimeKind = YAML.parse(body);
     if (!servingRuntime.metadata.name) {
       throw new Error('Serving runtime name is required.');
@@ -77,6 +82,19 @@ export const updateServingRuntimeTemplateBackend = (
             path: '/objects/0',
             value: servingRuntime,
           },
+          existingTemplate.metadata.annotations
+            ? {
+                op: 'replace',
+                path: '/metadata/annotations/opendatahub.io~1modelServingSupport',
+                value: JSON.stringify(platforms),
+              }
+            : {
+                op: 'add',
+                path: '/metadata/annotations',
+                value: {
+                  'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+                },
+              },
         ])
         .then((response) => response.data),
     );

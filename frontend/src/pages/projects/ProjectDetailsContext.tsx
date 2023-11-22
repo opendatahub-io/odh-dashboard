@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import {
-  ServingRuntimeKind,
+  GroupKind,
+  InferenceServiceKind,
   PersistentVolumeClaimKind,
   ProjectKind,
-  InferenceServiceKind,
-  SecretKind,
   RoleBindingKind,
-  GroupKind,
+  SecretKind,
+  ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
@@ -17,8 +17,6 @@ import { ContextResourceData } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InvalidProject from '~/concepts/projects/InvalidProject';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
@@ -27,6 +25,7 @@ import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemp
 import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getTokenNames } from '~/pages/modelServing/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
@@ -71,7 +70,6 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
-  const { dashboardConfig } = useAppContext();
   const { dashboardNamespace } = useDashboardNamespace();
   const { namespace } = useParams<{ namespace: string }>();
   const { projects } = React.useContext(ProjectsContext);
@@ -150,11 +148,11 @@ const ProjectDetailsContextProvider: React.FC = () => {
     [namespace, serverSecrets],
   );
 
+  const projectsEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW).status;
+  const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+
   if (!project) {
-    if (
-      featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disableProjects) &&
-      projects.length === 0
-    ) {
+    if (projectsEnabled && projects.length === 0) {
       // No projects, but we do have the projects view -- navigate them so they can go through normal flows
       return <Navigate to="/projects" replace />;
     }
@@ -187,7 +185,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
         groups,
       }}
     >
-      {featureFlagEnabled(dashboardConfig.spec.dashboardConfig.disablePipelines) ? (
+      {pipelinesEnabled ? (
         <PipelineContextProvider namespace={project.metadata.name}>
           <Outlet />
         </PipelineContextProvider>

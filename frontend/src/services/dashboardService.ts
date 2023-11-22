@@ -10,7 +10,9 @@ export const getDashboardConfigBackend = (namespace: string): Promise<DashboardC
     .catch((e) => Promise.reject(e));
 
 export const getDashboardConfigTemplateOrderBackend = (ns: string): Promise<string[]> =>
-  getDashboardConfigBackend(ns).then((dashboardConfig) => dashboardConfig.spec.templateOrder || []);
+  getDashboardConfigBackend(ns).then(
+    (dashboardConfig) => dashboardConfig.spec?.templateOrder || [],
+  );
 
 export const getDashboardConfigTemplateDisablementBackend = (ns: string): Promise<string[]> =>
   getDashboardConfigBackend(ns).then(

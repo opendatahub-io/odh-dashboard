@@ -65,12 +65,16 @@ export const applyNamespaceChange = async (
     case NamespaceApplicationCase.DSG_CREATION:
       labels = {
         'opendatahub.io/dashboard': 'true',
+      };
+      break;
+    case NamespaceApplicationCase.MODEL_MESH_PROMOTION:
+      labels = {
         'modelmesh-enabled': 'true',
       };
       break;
-    case NamespaceApplicationCase.MODEL_SERVING_PROMOTION:
+    case NamespaceApplicationCase.KSERVE_PROMOTION:
       labels = {
-        'modelmesh-enabled': 'true',
+        'modelmesh-enabled': 'false',
       };
       break;
     default:

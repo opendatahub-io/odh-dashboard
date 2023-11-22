@@ -1,8 +1,6 @@
 name: Pull request
 on:
   pull_request:
-    branches: [ main, f/** ]
-
 jobs:
   Tests:
     runs-on: ubuntu-latest

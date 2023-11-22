@@ -6,8 +6,13 @@ import { secureAdminRoute } from '../../../utils/route-security';
 export default async (fastify: FastifyInstance): Promise<void> => {
   fastify.get(
     '/',
-    secureAdminRoute(fastify)(async () => {
-      return getGroupsConfig(fastify);
+    secureAdminRoute(fastify)(async (request, reply) => {
+      return getGroupsConfig(fastify).catch((e) => {
+        fastify.log.error(
+          `Error retrieving group configuration, ${e.response?.body?.message || e.message}`,
+        );
+        reply.status(500).send({ message: e.response?.body?.message || e.message });
+      });
     }),
   );
 
