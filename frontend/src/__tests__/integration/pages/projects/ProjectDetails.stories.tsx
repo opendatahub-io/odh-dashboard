@@ -178,6 +178,10 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
     (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
   ),
+  rest.get(
+    '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
+  ),
 ];
 
 export default {
