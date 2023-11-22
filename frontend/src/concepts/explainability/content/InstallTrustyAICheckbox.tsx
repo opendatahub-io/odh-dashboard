@@ -1,36 +1,22 @@
 import React from 'react';
 import { Checkbox, HelperText, HelperTextItem } from '@patternfly/react-core';
-import useManageTrustyAICR from '~/concepts/explainability/useManageTrustyAICR';
 import { TRUSTYAI_TOOLTIP_TEXT } from '~/pages/projects/projectSettings/const';
-import TrustyAIDeleteModal from '~/concepts/explainability/content/TrustyAIDeleteModal';
-
-export enum TrustyAICRActions {
-  CREATE = 'CREATE',
-  DELETE = 'DELETE',
-}
+import DeleteTrustyAIModal from '~/concepts/explainability/content/DeleteTrustyAIModal';
 
 type InstallTrustyAICheckboxProps = {
-  namespace: string;
-  onAction: (action: TrustyAICRActions, success: boolean, error?: Error) => void;
+  isAvailable: boolean;
+  isProgressing: boolean;
+  onInstall: () => Promise<unknown>;
+  onDelete: () => Promise<unknown>;
 };
 const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
-  namespace,
-  onAction,
+  isAvailable,
+  isProgressing,
+  onInstall,
+  onDelete,
 }) => {
-  const { hasCR, installCR, refresh } = useManageTrustyAICR(namespace);
-
   const [open, setOpen] = React.useState(false);
-
-  const onCloseDeleteModal = React.useCallback(
-    (deleted: boolean) => {
-      setOpen(false);
-      refresh();
-      if (deleted) {
-        onAction(TrustyAICRActions.DELETE, true);
-      }
-    },
-    [onAction, refresh],
-  );
+  const [userHasChecked, setUserHasChecked] = React.useState(false);
 
   return (
     <>
@@ -41,23 +27,26 @@ const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
             <HelperTextItem>{TRUSTYAI_TOOLTIP_TEXT}</HelperTextItem>
           </HelperText>
         }
-        isChecked={hasCR}
+        isChecked={isAvailable}
+        isDisabled={userHasChecked || isProgressing}
         onChange={(checked) => {
           if (checked) {
-            installCR()
-              .then(() => onAction(TrustyAICRActions.CREATE, true))
-              .catch((e) => {
-                onAction(TrustyAICRActions.CREATE, false, e);
-              })
-              .finally(refresh);
+            setUserHasChecked(true);
+            onInstall().finally(() => setUserHasChecked(false));
           } else {
             setOpen(true);
           }
         }}
-        id="bias-service-installation"
-        name="bias-service"
+        id="trustyai-service-installation"
+        name="TrustyAI service installation status"
       />
-      <TrustyAIDeleteModal namespace={namespace} isOpen={open} onClose={onCloseDeleteModal} />
+      <DeleteTrustyAIModal
+        isOpen={open}
+        onDelete={onDelete}
+        onClose={() => {
+          setOpen(false);
+        }}
+      />
     </>
   );
 };
