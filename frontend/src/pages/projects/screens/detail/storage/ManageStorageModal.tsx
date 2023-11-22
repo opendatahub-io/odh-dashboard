@@ -84,7 +84,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, isOp
       }
       return;
     }
-    const createdPvc = await createPvc(createData, namespace, { dryRun });
+    const createdPvc = await createPvc(createData, namespace, undefined, { dryRun });
     if (notebookName) {
       await attachNotebookPVC(notebookName, namespace, createdPvc.metadata.name, mountPath.value, {
         dryRun,
