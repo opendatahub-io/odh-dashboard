@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
-import BiasConfigurationPage from '~/pages/modelServing/screens/metrics/BiasConfigurationPage';
+import BiasConfigurationPage from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 

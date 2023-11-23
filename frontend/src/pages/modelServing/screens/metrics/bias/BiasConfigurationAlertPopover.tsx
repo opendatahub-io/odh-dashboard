@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { Button, Icon, Popover } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { EMPTY_BIAS_CONFIGURATION_DESC, EMPTY_BIAS_CONFIGURATION_TITLE } from './const';
+import {
+  EMPTY_BIAS_CONFIGURATION_DESC,
+  EMPTY_BIAS_CONFIGURATION_TITLE,
+} from '~/pages/modelServing/screens/metrics/const';
 
 type BiasConfigurationAlertPopoverProps = {
   onConfigure: () => void;

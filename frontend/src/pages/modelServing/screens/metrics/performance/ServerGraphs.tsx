@@ -14,7 +14,7 @@ import {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
 } from '~/types';
-import { NamedMetricChartLine } from './types';
+import { NamedMetricChartLine } from '~/pages/modelServing/screens/metrics/types';
 
 const ServerGraphs: React.FC = () => {
   const { data } = React.useContext(ModelServingMetricsContext);

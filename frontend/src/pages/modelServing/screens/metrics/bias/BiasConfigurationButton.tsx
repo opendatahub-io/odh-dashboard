@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import { InferenceServiceKind } from '~/k8sTypes';
-import ManageBiasConfigurationModal from './biasConfigurationModal/ManageBiasConfigurationModal';
+import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/biasConfigurationModal/ManageBiasConfigurationModal';
 
 type BiasConfigurationButtonProps = {
   inferenceService: InferenceServiceKind;

@@ -8,7 +8,7 @@ import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTab
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
-import ServerMetricsPage from '~/pages/modelServing/screens/metrics/ServerMetricsPage';
+import ServerMetricsPage from '~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
 import { getBreadcrumbItemComponents } from './utils';
 
 type MetricsPageProps = {

@@ -16,13 +16,13 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
-import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/BiasMetricConfigSelector';
+import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
-import TrustyChart from '~/pages/modelServing/screens/metrics/TrustyChart';
-import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/EmptyBiasConfigurationCard';
-import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/EmptyBiasChartSelectionCard';
+import TrustyChart from '~/pages/modelServing/screens/metrics/bias/TrustyChart';
+import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasConfigurationCard';
+import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasChartSelectionCard';
 import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandableSection';
-import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/useBiasChartsBrowserStorage';
+import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/bias/useBiasChartsBrowserStorage';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
 import { byId } from '~/pages/modelServing/screens/metrics/utils';

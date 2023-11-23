@@ -6,9 +6,9 @@ import { useExplainabilityModelData } from '~/concepts/explainability/useExplain
 import NotFound from '~/pages/NotFound';
 import useDoesTrustyAICRExist from '~/concepts/explainability/useDoesTrustyAICRExist';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import PerformanceTab from './PerformanceTab';
-import BiasTab from './BiasTab';
-import BiasConfigurationAlertPopover from './BiasConfigurationAlertPopover';
+import PerformanceTab from './performance/PerformanceTab';
+import BiasTab from './bias/BiasTab';
+import BiasConfigurationAlertPopover from './bias/BiasConfigurationAlertPopover';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 
 import './MetricsPageTabs.scss';

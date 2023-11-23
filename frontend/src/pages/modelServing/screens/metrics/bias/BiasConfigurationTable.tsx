@@ -4,10 +4,10 @@ import DashboardSearchField, { SearchType } from '~/concepts/dashboard/Dashboard
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import { InferenceServiceKind } from '~/k8sTypes';
-import DeleteBiasConfigurationModal from '~/pages/modelServing/screens/metrics/biasConfigurationModal/DeleteBiasConfigurationModal';
+import DeleteBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/biasConfigurationModal/DeleteBiasConfigurationModal';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { Table } from '~/components/table';
-import ManageBiasConfigurationModal from './biasConfigurationModal/ManageBiasConfigurationModal';
+import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/biasConfigurationModal/ManageBiasConfigurationModal';
 import BiasConfigurationTableRow from './BiasConfigurationTableRow';
 import { columns } from './tableData';
 

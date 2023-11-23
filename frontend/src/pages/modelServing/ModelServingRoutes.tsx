@@ -3,7 +3,7 @@ import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import ModelServingExplainabilityWrapper from '~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import BiasConfigurationBreadcrumbPage from './screens/metrics/BiasConfigurationBreadcrumbPage';
+import BiasConfigurationBreadcrumbPage from './screens/metrics/bias/BiasConfigurationBreadcrumbPage';
 import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';
 import ModelServingContextProvider from './ModelServingContext';
 import GlobalModelMetricsWrapper from './screens/metrics/GlobalModelMetricsWrapper';

@@ -3,7 +3,7 @@ import { BiasMetricType } from '~/api';
 import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/useBiasChartsBrowserStorage';
+import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/bias/useBiasChartsBrowserStorage';
 import { byNotId } from '~/pages/modelServing/screens/metrics/utils';
 
 type DeleteBiasConfigurationModalProps = {

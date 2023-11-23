@@ -12,11 +12,11 @@ import { BreadcrumbItemType } from '~/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
-import { MetricsTabKeys } from './types';
+import { getBreadcrumbItemComponents } from '~/pages/modelServing/screens/metrics/utils';
+import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/biasConfigurationModal/ManageBiasConfigurationModal';
+import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import BiasConfigurationTable from './BiasConfigurationTable';
-import { getBreadcrumbItemComponents } from './utils';
 import BiasConfigurationEmptyState from './BiasConfigurationEmptyState';
-import ManageBiasConfigurationModal from './biasConfigurationModal/ManageBiasConfigurationModal';
 
 type BiasConfigurationPageProps = {
   breadcrumbItems: BreadcrumbItemType[];
