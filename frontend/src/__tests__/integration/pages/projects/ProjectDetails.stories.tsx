@@ -12,7 +12,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { mockDataConnection } from '~/__mocks__/mockDataConnection';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -126,7 +126,7 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
       ),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockDataConnection({}).data]))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
