@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Spinner, EmptyStateVariant, EmptyState, EmptyStateHeader } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   getPipelineCoreResourcePipelineReference,
   getRunDuration,
@@ -15,8 +15,9 @@ import {
   isEmptyDateKF,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 type PipelineRunTabDetailsProps = {
-  pipelineRunKF?: PipelineRunKF;
+  pipelineRunKF?: PipelineRunKF | PipelineRunJobKF;
   workflowName?: string;
 };
 
@@ -58,14 +59,18 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     },
     { key: 'Run ID', value: pipelineRunKF.id },
     { key: 'Workflow name', value: workflowName },
-    { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
-    {
-      key: 'Finished at',
-      value: isEmptyDateKF(pipelineRunKF.finished_at)
-        ? 'N/A'
-        : asTimestamp(new Date(pipelineRunKF.finished_at)),
-    },
-    { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
+    ...(!isPipelineRunJob(pipelineRunKF)
+      ? [
+          { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
+          {
+            key: 'Finished at',
+            value: isEmptyDateKF(pipelineRunKF.finished_at)
+              ? 'N/A'
+              : asTimestamp(new Date(pipelineRunKF.finished_at)),
+          },
+          { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
+        ]
+      : []),
   ];
 
   return <>{renderDetailItems(details)}</>;

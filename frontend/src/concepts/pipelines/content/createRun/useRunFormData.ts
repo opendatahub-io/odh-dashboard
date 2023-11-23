@@ -9,6 +9,7 @@ import {
   RunType,
   RunTypeOption,
   ScheduledType,
+  RunParam,
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
@@ -18,6 +19,7 @@ import {
   PipelineRunKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
+
 import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -29,10 +31,10 @@ import {
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString } from '~/utilities/time';
+import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 
-const isPipelineRunJob = (
-  runOrJob?: PipelineRunJobKF | PipelineRunKF,
-): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
+const isPipeline = (pipeline?: unknown): pipeline is PipelineKF =>
+  !!(pipeline as PipelineKF)?.default_version;
 
 const useUpdateData = <T extends PipelineCoreResourceKF>(
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
@@ -45,6 +47,7 @@ const useUpdateData = <T extends PipelineCoreResourceKF>(
   const [resource, loaded] = useFetchHookFnc(reference?.key.id);
   const resourceRef = React.useRef<ValueOf<RunFormData>>(resource);
   resourceRef.current = resource;
+
   const setData = React.useCallback(() => {
     if (loaded && resourceRef.current) {
       setFunction(fieldId, resourceRef.current);
@@ -53,6 +56,37 @@ const useUpdateData = <T extends PipelineCoreResourceKF>(
   React.useEffect(() => {
     setData();
   }, [setData]);
+};
+
+const useUpdatePipelineRun = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+  initialData?: PipelineRunKF | PipelineRunJobKF,
+) => {
+  const { getJobInformation } = usePipelinesAPI();
+  const { data: pipelineRunJob, loading } = getJobInformation(initialData);
+
+  const updatedSetFunction = React.useCallback<UpdateObjectAtPropAndValue<RunFormData>>(
+    (key, pipeline) => {
+      if (!loading && isPipeline(pipeline)) {
+        setFunction(key, pipeline);
+        setFunction('params', getParams(pipeline));
+        const nameDesc: ValueOf<RunFormData> = {
+          name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
+          description: pipelineRunJob?.description ?? initialData?.description ?? '',
+        };
+        setFunction('nameDesc', nameDesc);
+      }
+    },
+    [setFunction, initialData, pipelineRunJob, loading],
+  );
+
+  return useUpdateData(
+    updatedSetFunction,
+    pipelineRunJob,
+    'pipeline',
+    getPipelineCoreResourcePipelineReference,
+    usePipelineById,
+  );
 };
 
 const useUpdatePipeline = (
@@ -72,13 +106,16 @@ const useUpdatePipeline = (
     },
     [setFunction, initialData?.pipeline_spec.parameters],
   );
-  return useUpdateData(
+
+  const updatedData = useUpdateData(
     updatedSetFunction,
     initialData,
     'pipeline',
     getPipelineCoreResourcePipelineReference,
     usePipelineById,
   );
+
+  return updatedData;
 };
 
 // const useUpdateExperiment = (
@@ -160,6 +197,11 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
+const getParams = (pipeline?: PipelineKF): RunParam[] | undefined =>
+  pipeline
+    ? (pipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
+    : undefined;
+
 const useRunFormData = (
   initialData?: PipelineRunKF | PipelineRunJobKF,
   lastPipeline?: PipelineKF,
@@ -176,13 +218,11 @@ const useRunFormData = (
     pipeline: lastPipeline ?? null,
     // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: lastPipeline
-      ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
-      : undefined,
+    params: getParams(lastPipeline),
   });
-
   const setFunction = objState[1];
   useUpdatePipeline(setFunction, initialData);
+  useUpdatePipelineRun(setFunction, initialData);
   // useUpdateExperiment(setFunction, initialData);
   useUpdateRunType(setFunction, initialData);
 

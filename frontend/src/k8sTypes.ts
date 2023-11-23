@@ -4,7 +4,7 @@ import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
-  NotebookContainer,
+  PodContainer,
   PodToleration,
   Volume,
   ContainerResources,
@@ -282,6 +282,15 @@ export type StorageClassKind = K8sResourceCommon & {
   allowVolumeExpansion?: boolean;
 };
 
+export type PodSpec = {
+  affinity?: PodAffinity;
+  enableServiceLinks?: boolean;
+  containers: PodContainer[];
+  initContainers?: PodContainer[];
+  volumes?: Volume[];
+  tolerations?: PodToleration[];
+};
+
 export type NotebookKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations & NotebookAnnotations;
@@ -293,13 +302,7 @@ export type NotebookKind = K8sResourceCommon & {
   };
   spec: {
     template: {
-      spec: {
-        affinity?: PodAffinity;
-        enableServiceLinks?: boolean;
-        containers: NotebookContainer[];
-        volumes?: Volume[];
-        tolerations?: PodToleration[];
-      };
+      spec: PodSpec;
     };
   };
   status?: {
@@ -310,6 +313,7 @@ export type NotebookKind = K8sResourceCommon & {
 };
 
 export type PodKind = K8sResourceCommon & {
+  spec: PodSpec;
   status: {
     containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
   };
@@ -704,6 +708,7 @@ export type PipelineRunKind = K8sResourceCommon & {
   };
   spec: {
     pipelineSpec?: PipelineRunPipelineSpec;
+    params?: PipelineRunTaskParam[];
     /** Unsupported for Kubeflow */
     pipelineRef?: {
       name: string;

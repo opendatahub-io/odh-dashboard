@@ -9,11 +9,12 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import CreateRunEmptyState from '~/pages/pipelines/global/runs/CreateRunEmptyState';
-import usePipelineRunJobs from '~/concepts/pipelines/apiHooks/usePipelineRunJobs';
 import PipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTable';
+import usePipelineRunJobTable from '~/concepts/pipelines/content/tables/pipelineRunJob/usePipelineRunJobTable';
 
 const ScheduledRuns: React.FC = () => {
-  const [jobs, loaded, error] = usePipelineRunJobs();
+  const [[{ items: jobs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
+    usePipelineRunJobTable();
 
   if (error) {
     return (
@@ -30,7 +31,7 @@ const ScheduledRuns: React.FC = () => {
     );
   }
 
-  if (!loaded) {
+  if (!loaded && !initialLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -38,7 +39,7 @@ const ScheduledRuns: React.FC = () => {
     );
   }
 
-  if (jobs.length === 0) {
+  if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
       <CreateRunEmptyState
         title="No scheduled runs yet"
@@ -47,7 +48,9 @@ const ScheduledRuns: React.FC = () => {
     );
   }
 
-  return <PipelineRunJobTable jobs={jobs} />;
+  return (
+    <PipelineRunJobTable jobs={jobs} loading={!loaded} totalSize={totalSize} {...tableProps} />
+  );
 };
 
 export default ScheduledRuns;

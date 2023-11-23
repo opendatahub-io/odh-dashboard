@@ -8,7 +8,11 @@ import {
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { Icon } from '@patternfly/react-core';
-import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineRunJobKF,
+  PipelineRunKF,
+  PipelineRunStatusesKF,
+} from '~/concepts/pipelines/kfTypes';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
@@ -66,3 +70,7 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
 
   return { icon, label, status, details };
 };
+
+export const isPipelineRunJob = (
+  runOrJob?: PipelineRunJobKF | PipelineRunKF,
+): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;

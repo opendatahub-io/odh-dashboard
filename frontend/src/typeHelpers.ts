@@ -122,6 +122,43 @@ export type EitherOrNone<TypeA, TypeB> =
   | EitherNotBoth<TypeA, TypeB>
   | (Never<TypeA> & Never<TypeB>);
 
+// support types for `ExactlyOne`
+type Explode<T> = keyof T extends infer K
+  ? K extends unknown
+    ? { [I in keyof T]: I extends K ? T[I] : never }
+    : never
+  : never;
+type AtMostOne<T> = Explode<Partial<T>>;
+type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> & U[keyof U];
+
+/**
+ * Create a type where exactly one of multiple properties must be supplied.
+ *
+ * @example
+ * ```ts
+ * type Foo = ExactlyOne<{ a: number, b: string, c: boolean}>;
+ *
+ * // Valid usages:
+ * const objA: Foo = {
+ *   a: 1,
+ * };
+ * const objB: Foo = {
+ *   b: 'hi',
+ * };
+ * const objC: Foo = {
+ *   c: true,
+ * };
+ *
+ * // TS Error -- can't have more than one property:
+ * const objAll: Foo = {
+ *   a: 1,
+ *   b: 'hi',
+ *   c: true,
+ * };
+ * ```
+ */
+export type ExactlyOne<T> = AtMostOne<T> & AtLeastOne<T>;
+
 export const isInEnum =
   <T extends { [s: string]: unknown }>(e: T) =>
   (token: unknown): token is T[keyof T] =>
