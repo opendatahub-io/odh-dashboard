@@ -1,6 +1,6 @@
 import { FastifyReply } from 'fastify';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
-import { PassThroughData, passThroughText, safePassThroughResource } from './pass-through';
+import { PassThroughData, passThroughText, passThroughResource } from './pass-through';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
@@ -46,7 +46,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       if (req.headers.accept === 'text/plain') {
         promise = passThroughText(fastify, req, passThroughData);
       } else {
-        promise = safePassThroughResource(fastify, req, passThroughData);
+        promise = passThroughResource(fastify, req, passThroughData);
       }
 
       return promise.catch((error) => {
