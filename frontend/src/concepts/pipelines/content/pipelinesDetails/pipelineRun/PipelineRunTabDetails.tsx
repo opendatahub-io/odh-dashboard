@@ -59,9 +59,9 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     },
     { key: 'Run ID', value: pipelineRunKF.id },
     { key: 'Workflow name', value: workflowName },
-    { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
     ...(!isPipelineRunJob(pipelineRunKF)
       ? [
+          { key: 'Created at', value: asTimestamp(new Date(pipelineRunKF.created_at)) },
           {
             key: 'Finished at',
             value: isEmptyDateKF(pipelineRunKF.finished_at)
@@ -72,17 +72,6 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
         ]
       : []),
   ];
-
-  if (!isPipelineRunJob(pipelineRunKF)) {
-    details.push(
-      {
-        key: 'Started at',
-        value: asTimestamp(new Date(pipelineRunKF.scheduled_at || pipelineRunKF.created_at)),
-      },
-      { key: 'Finished at', value: asTimestamp(new Date(pipelineRunKF.finished_at)) },
-      { key: 'Duration', value: relativeDuration(getRunDuration(pipelineRunKF)) },
-    );
-  }
 
   return <>{renderDetailItems(details)}</>;
 };
