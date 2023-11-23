@@ -10,19 +10,12 @@ import {
   PipelineRunKF,
   PipelineCoreResourceKF,
 } from '~/concepts/pipelines/kfTypes';
-import {
-  getPipelineCoreResourceExperimentName,
-  getPipelineCoreResourcePipelineName,
-  getRunDuration,
-  getScheduledStateWeight,
-  getStatusWeight,
-} from '~/concepts/pipelines/content/tables/utils';
 
 export const pipelineColumns: SortableData<PipelineKF>[] = [
   expandTableColumn(),
   {
     label: 'Pipeline name',
-    field: 'pipeline',
+    field: 'name',
     sortable: (a, b) => a.name.localeCompare(b.name),
     width: 25,
   },
@@ -43,7 +36,7 @@ export const pipelineColumns: SortableData<PipelineKF>[] = [
   },
   {
     label: 'Created',
-    field: 'created',
+    field: 'created_at',
     sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   },
   kebabTableColumn(),
@@ -53,24 +46,20 @@ const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Name',
-    field: 'runName',
-    sortable: (a, b) => a.name.localeCompare(b.name),
+    field: 'name',
+    sortable: true,
     width: 20,
   },
   {
     label: 'Experiment',
     field: 'experiment',
-    sortable: (a, b) =>
-      getPipelineCoreResourceExperimentName(a).localeCompare(
-        getPipelineCoreResourceExperimentName(b),
-      ),
+    sortable: false,
     width: 10,
   },
   {
     label: 'Pipeline',
     field: 'pipeline',
-    sortable: (a, b) =>
-      getPipelineCoreResourcePipelineName(a)?.localeCompare(getPipelineCoreResourcePipelineName(b)),
+    sortable: false,
     width: 15,
   },
 ];
@@ -79,18 +68,18 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
   ...sharedRunLikeColumns,
   {
     label: 'Started',
-    field: 'started',
-    sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    field: 'created_at',
+    sortable: true,
   },
   {
     label: 'Duration',
     field: 'duration',
-    sortable: (a, b) => getRunDuration(a) - getRunDuration(b),
+    sortable: false,
   },
   {
     label: 'Status',
     field: 'status',
-    sortable: (a, b) => getStatusWeight(a) - getStatusWeight(b),
+    sortable: true,
   },
   kebabTableColumn(),
 ];
@@ -100,32 +89,19 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
   {
     label: 'Trigger',
     field: 'trigger',
-    sortable: (a, b) => {
-      if (a.trigger.periodic_schedule && b.trigger.periodic_schedule) {
-        return (
-          parseInt(a.trigger.periodic_schedule.interval_second) -
-          parseInt(b.trigger.periodic_schedule.interval_second)
-        );
-      }
-      if (a.trigger.cron_schedule && b.trigger.cron_schedule) {
-        return 0;
-      }
-
-      // Different types, arbitrarily sort one above the other
-      return a.trigger.periodic_schedule ? -1 : 1;
-    },
+    sortable: false,
     width: 15,
   },
   {
     label: 'Scheduled',
     field: 'scheduled',
-    sortable: (a, b) => getScheduledStateWeight(a) - getScheduledStateWeight(b),
+    sortable: false,
     width: 15,
   },
   {
     label: 'Status',
     field: 'status',
-    sortable: (a, b) => Number(a.enabled ?? false) - Number(b.enabled ?? false),
+    sortable: false,
     width: 10,
   },
   kebabTableColumn(),

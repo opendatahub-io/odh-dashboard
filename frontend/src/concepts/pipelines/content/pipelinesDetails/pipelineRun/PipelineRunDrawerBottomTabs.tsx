@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Tabs, Tab, TabContent, DrawerPanelBody } from '@patternfly/react-core';
-import PipelineRunTabDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTabDetails';
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import { PipelineRunKind } from '~/k8sTypes';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
+import PipelineRunTabDetails from './PipelineRunTabDetails';
 import PipelineRunTabParameters from './PipelineRunTabParameters';
 
 export enum RunDetailsTabs {
@@ -19,7 +20,7 @@ type PipelineRunBottomDrawerProps = {
   onSelection: (id: RunDetailsTabs) => void;
   pipelineRunDetails?: {
     kind: PipelineRunKind;
-    kf: PipelineRunKF;
+    kf: PipelineRunKF | PipelineRunJobKF;
   };
 };
 
@@ -27,63 +28,71 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
   selection,
   onSelection,
   pipelineRunDetails,
-}) => (
-  <>
-    <Tabs activeKey={selection ?? undefined} style={{ flexShrink: 0 }}>
-      {Object.values(RunDetailsTabs).map((tab) => (
-        <Tab
-          key={tab}
-          title={tab}
-          eventKey={tab}
-          tabContentId={tab}
-          onClick={() => onSelection(tab)}
-        />
-      ))}
-    </Tabs>
-    {selection && (
-      <DrawerPanelBody style={{ flexGrow: 1, overflow: 'hidden auto' }}>
-        <TabContent
-          id={RunDetailsTabs.DETAILS}
-          eventKey={RunDetailsTabs.DETAILS}
-          activeKey={selection ?? ''}
-          hidden={RunDetailsTabs.DETAILS !== selection}
-        >
-          <PipelineRunTabDetails
-            workflowName={pipelineRunDetails?.kind.metadata.name}
-            pipelineRunKF={pipelineRunDetails?.kf}
-          />
-        </TabContent>
-        <TabContent
-          id={RunDetailsTabs.PARAMETERS}
-          eventKey={RunDetailsTabs.PARAMETERS}
-          activeKey={selection ?? ''}
-          hidden={RunDetailsTabs.PARAMETERS !== selection}
-        >
-          <PipelineRunTabParameters pipelineRunKF={pipelineRunDetails?.kf} />
-        </TabContent>
-        <TabContent
-          id={RunDetailsTabs.YAML}
-          eventKey={RunDetailsTabs.YAML}
-          activeKey={selection ?? ''}
-          hidden={RunDetailsTabs.YAML !== selection}
-          style={{ height: '100%' }}
-        >
-          <PipelineDetailsYAML
-            filename={pipelineRunDetails?.kf.name}
-            content={
-              pipelineRunDetails
-                ? {
-                    // eslint-disable-next-line camelcase
-                    pipeline_runtime: { workflow_manifest: pipelineRunDetails.kind },
-                    run: pipelineRunDetails.kf,
-                  }
-                : null
-            }
-          />
-        </TabContent>
-      </DrawerPanelBody>
-    )}
-  </>
-);
+}) => {
+  const isJob = isPipelineRunJob(pipelineRunDetails?.kf);
+
+  return (
+    <>
+      <Tabs activeKey={selection ?? undefined} style={{ flexShrink: 0 }}>
+        {Object.values(RunDetailsTabs)
+          .filter((key) => (isJob ? key !== RunDetailsTabs.YAML : true)) // do not include yaml tab for jobs
+          .map((tab) => (
+            <Tab
+              key={tab}
+              title={tab}
+              eventKey={tab}
+              tabContentId={tab}
+              onClick={() => onSelection(tab)}
+            />
+          ))}
+      </Tabs>
+      {selection && (
+        <DrawerPanelBody style={{ flexGrow: 1, overflow: 'hidden auto' }}>
+          <TabContent
+            id={RunDetailsTabs.DETAILS}
+            eventKey={RunDetailsTabs.DETAILS}
+            activeKey={selection ?? ''}
+            hidden={RunDetailsTabs.DETAILS !== selection}
+          >
+            <PipelineRunTabDetails
+              workflowName={pipelineRunDetails?.kind.metadata.name}
+              pipelineRunKF={pipelineRunDetails?.kf}
+            />
+          </TabContent>
+          <TabContent
+            id={RunDetailsTabs.PARAMETERS}
+            eventKey={RunDetailsTabs.PARAMETERS}
+            activeKey={selection ?? ''}
+            hidden={RunDetailsTabs.PARAMETERS !== selection}
+          >
+            <PipelineRunTabParameters pipelineSpec={pipelineRunDetails?.kf.pipeline_spec} />
+          </TabContent>
+          {!isJob && ( // do not include yaml tab for jobs
+            <TabContent
+              id={RunDetailsTabs.YAML}
+              eventKey={RunDetailsTabs.YAML}
+              activeKey={selection ?? ''}
+              hidden={RunDetailsTabs.YAML !== selection}
+              style={{ height: '100%' }}
+            >
+              <PipelineDetailsYAML
+                filename={pipelineRunDetails?.kf.name}
+                content={
+                  pipelineRunDetails
+                    ? {
+                        // eslint-disable-next-line camelcase
+                        pipeline_runtime: { workflow_manifest: pipelineRunDetails.kind },
+                        run: pipelineRunDetails.kf,
+                      }
+                    : null
+                }
+              />
+            </TabContent>
+          )}
+        </DrawerPanelBody>
+      )}
+    </>
+  );
+};
 
 export default PipelineRunDrawerBottomTabs;

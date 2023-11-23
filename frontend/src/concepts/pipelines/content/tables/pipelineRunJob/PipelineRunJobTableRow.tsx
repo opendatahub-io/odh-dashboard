@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import {
@@ -32,7 +32,13 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
     <Tr>
       <CheckboxTd id={job.id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td>
-        <TableRowTitleDescription title={job.name} description={job.description} />
+        <TableRowTitleDescription
+          title={
+            <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.id}`}>{job.name}</Link>
+          }
+          description={job.description}
+          descriptionAsMarkdown
+        />
       </Td>
       <Td>
         <CoreResourceExperiment resource={job} />

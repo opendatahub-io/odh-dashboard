@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
+import { useNavigate } from 'react-router-dom';
 import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
-import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
+import { CheckboxTd } from '~/components/table';
 import {
   RunCreated,
   RunDuration,
@@ -12,7 +12,8 @@ import {
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { GetJobInformation } from '~/concepts/pipelines/content/tables/pipelineRun/useJobRelatedInformation';
+import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
+import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
 
 type PipelineRunTableRowProps = {
@@ -35,36 +36,18 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const notification = useNotification();
   const navigate = useNavigate();
 
-  const loadingState = <Skeleton />;
-
   return (
     <Tr>
       <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td>
-        {loading ? (
-          loadingState
-        ) : (
-          <TableRowTitleDescription
-            title={
-              <Link to={`/pipelineRuns/${namespace}/pipelineRun/view/${run.id}`}>
-                {data ? `Run of ${data.name}` : run.name}
-              </Link>
-            }
-            description={
-              data
-                ? `${run.name}\n${run.description ?? ''}\n${data.description ?? ''}`
-                : run.description
-            }
-            descriptionAsMarkdown
-          />
-        )}
+        <PipelineRunTableRowTitle resource={run} />
       </Td>
       <Td>
         <CoreResourceExperiment resource={run} />
       </Td>
       <Td>
         {loading ? (
-          loadingState
+          <Skeleton />
         ) : (
           <CoreResourcePipeline resource={data || run} namespace={namespace} />
         )}

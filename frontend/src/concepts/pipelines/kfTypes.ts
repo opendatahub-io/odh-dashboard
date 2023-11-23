@@ -1,3 +1,5 @@
+import { ExactlyOne } from '~/typeHelpers';
+
 /* Types pulled from https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec */
 // TODO: Determine what is optional and what is not
 
@@ -6,7 +8,41 @@
  */
 export type DateTimeKF = string;
 
-type PipelineKFCallCommon<UniqueProps> = {
+export enum PipelinesFilterOp {
+  UNKNOWN = 'UNKNOWN',
+
+  // Operators on scalar values. Only applies to one of |int_value|,
+  // |long_value|, |string_value| or |timestamp_value|.
+  EQUALS = 'EQUALS',
+  NOT_EQUALS = 'NOT_EQUALS',
+  GREATER_THAN = 'GREATER_THAN',
+  GREATER_THAN_EQUALS = 'GREATER_THAN_EQUALS',
+  LESS_THAN = 'LESS_THAN',
+  LESS_THAN_EQUALS = 'LESS_THAN_EQUALS',
+
+  // Checks if the value is a member of a given array, which should be one of
+  // |int_values|, |long_values| or |string_values|.
+  IN = 'IN',
+
+  // Checks if the value contains |string_value| as a substring match. Only
+  // applies to |string_value|.
+  IS_SUBSTRING = 'IS_SUBSTRING',
+}
+
+export type PipelinesFilterPredicate = {
+  op: PipelinesFilterOp;
+  key: string;
+} & ExactlyOne<{
+  int_value: number;
+  long_value: number;
+  string_value: string;
+  timestamp_value: string;
+  int_values: { values: number[] };
+  long_values: { values: string[] };
+  string_values: { values: string[] };
+}>;
+
+export type PipelineKFCallCommon<UniqueProps> = {
   total_size?: number;
   next_page_token?: string;
   // Note: if Kubeflow backend determines no results, it doesn't even give you your structure, you get an empty object
@@ -44,7 +80,6 @@ export enum PipelineRunStatusesKF {
   CANCELLED = 'Cancelled',
   FAILED = 'Failed',
 }
-export const PipelineRunStatusUnknown = 'Unknown';
 
 export enum JobModeKF {
   UNKNOWN_MODE = 'UNKNOWN_MODE',

@@ -11,6 +11,7 @@ import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipel
 import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
 import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
+import PipelineRunJobDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRunJob/PipelineRunJobDetails';
 import GlobalPipelineRuns from './global/runs/GlobalPipelineRuns';
 
 const GlobalPipelineRunRoutes: React.FC = () => (
@@ -41,6 +42,16 @@ const GlobalPipelineRunRoutes: React.FC = () => (
         element={
           <GlobalPipelineCoreDetails
             BreadcrumbDetailsComponent={PipelineRunDetails}
+            pageName="Runs"
+            redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
+          />
+        }
+      />
+      <Route
+        path="pipelineRunJob/view/:pipelineRunJobId"
+        element={
+          <GlobalPipelineCoreDetails
+            BreadcrumbDetailsComponent={PipelineRunJobDetails}
             pageName="Runs"
             redirectPath={(namespace) => `/pipelineRuns/${namespace}`}
           />

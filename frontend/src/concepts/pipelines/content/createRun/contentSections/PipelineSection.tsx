@@ -17,7 +17,7 @@ type PipelineSectionProps = {
 };
 
 const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onChange }) => {
-  const [pipelines, loaded] = usePipelines();
+  const [{ items: pipelines }, loaded] = usePipelines();
   React.useEffect(() => {
     onLoaded(loaded);
     // only run when `loaded` changes

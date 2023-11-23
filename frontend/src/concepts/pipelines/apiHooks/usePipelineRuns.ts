@@ -1,18 +1,19 @@
 import * as React from 'react';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import useFetchState, { FetchStateCallbackPromise } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { POLL_INTERVAL } from '~/utilities/const';
+import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
+import { PipelineOptions } from '~/concepts/pipelines/types';
 
-const usePipelineRuns = () => {
+const usePipelineRuns = (options?: PipelineOptions) => {
   const { api } = usePipelinesAPI();
-
-  const call = React.useCallback<FetchStateCallbackPromise<PipelineRunKF[]>>(
-    (opts) => api.listPipelineRuns(opts).then(({ runs }) => runs ?? []),
-    [api],
+  return usePipelineQuery<PipelineRunKF>(
+    React.useCallback(
+      (opts, params) =>
+        api.listPipelineRuns(opts, params).then((result) => ({ ...result, items: result.runs })),
+      [api],
+    ),
+    options,
   );
-
-  return useFetchState(call, [], { refreshRate: POLL_INTERVAL });
 };
 
 export default usePipelineRuns;
