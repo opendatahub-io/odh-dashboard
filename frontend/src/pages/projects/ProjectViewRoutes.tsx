@@ -11,9 +11,8 @@ import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage'
 import CloneRunPage from '~/concepts/pipelines/content/createRun/CloneRunPage';
 import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
-import usePerformanceMetricsEnabled from '~/pages/modelServing/screens/metrics/usePerformanceMetricsEnabled';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
@@ -22,8 +21,11 @@ import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
 
 const ProjectViewRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
-  const biasMetricsEnabled = useBiasMetricsEnabled();
-  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
+
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
 
   return (
     <ProjectsRoutes>
@@ -38,13 +40,13 @@ const ProjectViewRoutes: React.FC = () => {
               <Route index element={<Navigate to=".." />} />
               <Route path=":inferenceService" element={<ProjectModelMetricsWrapper />}>
                 <Route path=":tab?" element={<ProjectModelMetricsPage />} />
-                {biasMetricsEnabled && (
+                {biasMetricsAreaAvailable && (
                   <Route path="configure" element={<ProjectModelMetricsConfigurationPage />} />
                 )}
               </Route>
               <Route path="*" element={<Navigate to="." />} />
             </Route>
-            {performanceMetricsEnabled && (
+            {performanceMetricsAreaAvailable && (
               <Route
                 path="metrics/server/:servingRuntime"
                 element={<ProjectServerMetricsWrapper />}

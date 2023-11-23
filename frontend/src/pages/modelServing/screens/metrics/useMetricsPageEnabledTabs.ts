@@ -1,15 +1,17 @@
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { MetricsTabKeys } from './types';
-import usePerformanceMetricsEnabled from './usePerformanceMetricsEnabled';
 
 const useMetricsPageEnabledTabs = () => {
   const enabledTabs: MetricsTabKeys[] = [];
-  const biasMetricsEnabled = useBiasMetricsEnabled();
-  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
-  if (performanceMetricsEnabled) {
+
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
+  if (performanceMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.PERFORMANCE);
   }
-  if (biasMetricsEnabled) {
+  if (biasMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.BIAS);
   }
   return enabledTabs;

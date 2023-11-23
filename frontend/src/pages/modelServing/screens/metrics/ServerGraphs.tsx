@@ -7,7 +7,6 @@ import {
 } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import {
   convertPrometheusNaNToZero,
-  per100,
   toPercentage,
 } from '~/pages/modelServing/screens/metrics/utils';
 import {
@@ -28,10 +27,10 @@ const ServerGraphs: React.FC = () => {
             metric: data[
               ServerMetricType.REQUEST_COUNT
             ] as ContextResourceData<PrometheusQueryRangeResultValue>,
-            translatePoint: per100,
           }}
           color="blue"
-          title="Http requests (x100)"
+          title="HTTP requests"
+          isStack
         />
       </StackItem>
       <StackItem>

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
 import ModelServingExplainabilityWrapper from '~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import BiasConfigurationBreadcrumbPage from './screens/metrics/BiasConfigurationBreadcrumbPage';
 import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';
 import ModelServingContextProvider from './ModelServingContext';
@@ -12,7 +12,7 @@ import useModelMetricsEnabled from './useModelMetricsEnabled';
 
 const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 
   //TODO: Split route to project and mount provider here. This will allow you to load data when model switching is later implemented.
   return (
@@ -25,7 +25,7 @@ const ModelServingRoutes: React.FC = () => {
             <Route index element={<Navigate to=".." />} />
             <Route path=":inferenceService" element={<GlobalModelMetricsWrapper />}>
               <Route path=":tab?" element={<GlobalModelMetricsPage />} />
-              {biasMetricsEnabled && (
+              {biasMetricsAreaAvailable && (
                 <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
               )}
             </Route>

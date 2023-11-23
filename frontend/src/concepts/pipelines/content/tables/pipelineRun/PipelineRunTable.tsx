@@ -7,7 +7,8 @@ import {
 } from '~/concepts/pipelines/content/tables/columns';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import { useCheckboxTable, Table } from '~/components/table';
+import { Table, useCheckboxTable } from '~/components/table';
+
 import usePipelineRunFilter from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunFilter';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';

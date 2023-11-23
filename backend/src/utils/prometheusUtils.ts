@@ -1,12 +1,5 @@
-import {
-  KubeFastifyInstance,
-  OauthFastifyRequest,
-  PrometheusQueryRangeResponse,
-  QueryType,
-} from '../types';
-import { DEV_MODE, THANOS_DEFAULT_RBAC_PORT } from './constants';
-import { getNamespaces } from './notebookUtils';
-import { getDashboardConfig } from './resourceUtils';
+import { KubeFastifyInstance, OauthFastifyRequest, QueryType } from '../types';
+import { DEV_MODE, THANOS_INSTANCE_NAME, THANOS_NAMESPACE, THANOS_RBAC_PORT } from './constants';
 import { createCustomError } from './requestUtils';
 import { proxyCall, ProxyError, ProxyErrorType } from './httpUtils';
 
@@ -96,49 +89,12 @@ export const callPrometheusThanos = <T>(
   request: OauthFastifyRequest,
   query: string,
   queryType: QueryType = QueryType.QUERY,
-  port = THANOS_DEFAULT_RBAC_PORT,
 ): Promise<{ code: number; response: T }> =>
   callPrometheus<T>(
     fastify,
     request,
     query,
-    generatePrometheusHostURL(fastify, 'thanos-querier', 'openshift-monitoring', port),
+    generatePrometheusHostURL(fastify, THANOS_INSTANCE_NAME, THANOS_NAMESPACE, THANOS_RBAC_PORT),
     queryType,
     true,
   );
-
-export const callPrometheusServing = (
-  fastify: KubeFastifyInstance,
-  request: OauthFastifyRequest,
-  query: string,
-): Promise<{ code: number; response: PrometheusQueryRangeResponse | undefined }> => {
-  const { dashboardNamespace } = getNamespaces(fastify);
-
-  const modelMetricsNamespace = getDashboardConfig().spec.dashboardConfig.modelMetricsNamespace;
-
-  if (dashboardNamespace !== 'redhat-ods-applications' && modelMetricsNamespace) {
-    return callPrometheus(
-      fastify,
-      request,
-      query,
-      generatePrometheusHostURL(fastify, 'odh-model-monitoring', modelMetricsNamespace, '443'),
-      QueryType.QUERY_RANGE,
-    );
-  }
-
-  if (dashboardNamespace === 'redhat-ods-applications' && !modelMetricsNamespace) {
-    return callPrometheus(
-      fastify,
-      request,
-      query,
-      generatePrometheusHostURL(fastify, 'rhods-model-monitoring', 'redhat-ods-monitoring', '443'),
-      QueryType.QUERY_RANGE,
-    );
-  }
-
-  throw createCustomError(
-    'Service Unavailable',
-    'Service Prometheus is down or misconfigured',
-    503,
-  );
-};

@@ -1,7 +1,6 @@
 /*
  * Common types, should be kept up to date with backend types
  */
-
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';

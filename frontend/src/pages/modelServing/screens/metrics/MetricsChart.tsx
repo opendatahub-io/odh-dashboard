@@ -21,6 +21,7 @@ import {
   ChartLine,
   ChartStack,
   ChartThemeColor,
+  ChartThemeDefinition,
   ChartThreshold,
   ChartVoronoiContainer,
   createContainer,
@@ -54,6 +55,8 @@ type MetricsChartProps = {
   toolbar?: React.ReactElement<typeof ToolbarContent>;
   type?: MetricsChartTypes;
   isStack?: boolean;
+  theme?: ChartThemeDefinition;
+  hasPatterns?: boolean;
 };
 const MetricsChart: React.FC<MetricsChartProps> = ({
   title,
@@ -64,6 +67,8 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   toolbar,
   type = MetricsChartTypes.AREA,
   isStack = false,
+  theme,
+  hasPatterns = false,
 }) => {
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
@@ -189,6 +194,8 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               width={chartWidth}
               padding={{ left: 70, right: 50, bottom: 70, top: 50 }}
               themeColor={color ?? ChartThemeColor.multi}
+              theme={theme}
+              hasPatterns={hasPatterns}
               {...legendProps}
             >
               <ChartAxis

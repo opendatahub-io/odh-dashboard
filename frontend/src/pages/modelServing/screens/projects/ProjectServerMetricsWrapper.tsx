@@ -17,7 +17,11 @@ const ProjectServerMetricsWrapper: React.FC = () => {
         const projectDisplayName = getProjectDisplayName(currentProject);
         const serverName = getModelServerDisplayName(servingRuntime);
         return (
-          <ModelServingMetricsProvider queries={queries} type={PerformanceMetricType.SERVER}>
+          <ModelServingMetricsProvider
+            queries={queries}
+            type={PerformanceMetricType.SERVER}
+            namespace={projectDisplayName}
+          >
             <MetricsPage
               title={`${serverName} metrics`}
               breadcrumbItems={[

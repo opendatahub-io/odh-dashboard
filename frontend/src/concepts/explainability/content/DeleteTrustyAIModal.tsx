@@ -1,19 +1,13 @@
 import React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import useManageTrustyAICR from '~/concepts/explainability/useManageTrustyAICR';
 
-type TrustyAIDeleteModalProps = {
-  namespace: string;
+type DeleteTrustyAIModalProps = {
   isOpen: boolean;
+  onDelete: () => Promise<unknown>;
   onClose: (deleted: boolean) => void;
 };
 
-const TrustyAIDeleteModal: React.FC<TrustyAIDeleteModalProps> = ({
-  namespace,
-  isOpen,
-  onClose,
-}) => {
-  const { deleteCR } = useManageTrustyAICR(namespace);
+const DeleteTrustyAIModal: React.FC<DeleteTrustyAIModalProps> = ({ isOpen, onDelete, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
 
@@ -29,7 +23,7 @@ const TrustyAIDeleteModal: React.FC<TrustyAIDeleteModalProps> = ({
       deleting={isDeleting}
       onDelete={() => {
         setIsDeleting(true);
-        deleteCR()
+        onDelete()
           .then(() => onClose(true))
           .catch((e) => setError(e))
           .finally(() => setIsDeleting(false));
@@ -44,4 +38,4 @@ const TrustyAIDeleteModal: React.FC<TrustyAIDeleteModalProps> = ({
   );
 };
 
-export default TrustyAIDeleteModal;
+export default DeleteTrustyAIModal;

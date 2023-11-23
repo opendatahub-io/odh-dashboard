@@ -28,7 +28,6 @@ export type DashboardConfig = K8sResourceCommon & {
       disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
       disableServiceMesh: boolean;
-      modelMetricsNamespace: string;
       disablePipelines: boolean;
       disableBiasMetrics: boolean;
       disablePerformanceMetrics: boolean;

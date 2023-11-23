@@ -1,18 +1,13 @@
-import { useAppContext } from '~/app/AppContext';
-import { useDashboardNamespace } from '~/redux/selectors';
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
-import { isModelMetricsEnabled } from './screens/metrics/utils';
-import usePerformanceMetricsEnabled from './screens/metrics/usePerformanceMetricsEnabled';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const useModelMetricsEnabled = (): [modelMetricsEnabled: boolean] => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const { dashboardConfig } = useAppContext();
-  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 
   const checkModelMetricsEnabled = () =>
-    isModelMetricsEnabled(dashboardNamespace, dashboardConfig) &&
-    (performanceMetricsEnabled || biasMetricsEnabled);
+    performanceMetricsAreaAvailable || biasMetricsAreaAvailable;
 
   return [checkModelMetricsEnabled()];
 };
