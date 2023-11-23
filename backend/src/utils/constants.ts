@@ -52,7 +52,6 @@ export const blankDashboardCR: DashboardConfig = {
       disableProjectSharing: false,
       disableCustomServingRuntimes: false,
       disableServiceMesh: true,
-      modelMetricsNamespace: '',
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
       disablePipelines: false,
@@ -138,12 +137,10 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
   },
 ];
 
-export const THANOS_DEFAULT_RBAC_PORT = '9092';
-
-// NOTE: This won't work for basic users.
-export const THANOS_DEFAULT_ADMIN_PORT = '9091';
-
 export const imageUrlRegex =
   /^([\w.\-_]+((?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+))|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
 
+export const THANOS_RBAC_PORT = '9092';
+export const THANOS_INSTANCE_NAME = 'thanos-querier';
+export const THANOS_NAMESPACE = 'openshift-monitoring';
 export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;

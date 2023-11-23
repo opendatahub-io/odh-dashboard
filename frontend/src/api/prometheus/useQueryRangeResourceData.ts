@@ -12,6 +12,7 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
   timeframe: TimeframeTitle,
   timeframeStep: TimeframeStepType,
   responsePredicate: ResponsePredicate<T>,
+  namespace: string,
   apiPath = '/api/prometheus/serving',
 ): ContextResourceData<T> =>
   useRestructureContextResourceData<T>(
@@ -23,6 +24,7 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
       end,
       timeframeStep[timeframe],
       responsePredicate,
+      namespace,
     ),
   );
 

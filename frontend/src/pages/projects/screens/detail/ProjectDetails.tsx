@@ -24,6 +24,7 @@ const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const { state } = useLocation();
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -52,7 +53,9 @@ const ProjectDetails: React.FC = () => {
           sections={[
             { title: 'Components', component: <ProjectDetailsComponents />, icon: <CubeIcon /> },
             { title: 'Permissions', component: <ProjectSharing />, icon: <UsersIcon /> },
-            { title: 'Settings', component: <ProjectSettingsPage />, icon: <CogIcon /> },
+            ...(biasMetricsAreaAvailable
+              ? [{ title: 'Settings', component: <ProjectSettingsPage />, icon: <CogIcon /> }]
+              : []),
           ]}
         />
       ) : (

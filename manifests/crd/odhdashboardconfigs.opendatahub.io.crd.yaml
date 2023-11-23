@@ -51,8 +51,6 @@ spec:
                       type: boolean
                     disableServiceMesh:
                       type: boolean
-                    modelMetricsNamespace:
-                      type: string
                     disablePipelines:
                       type: boolean
                     disableBiasMetrics:

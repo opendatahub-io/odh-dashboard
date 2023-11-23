@@ -19,7 +19,11 @@ const GlobalModelMetricsWrapper: React.FC = () => {
       {(model, projectName) => {
         const queries = getModelMetricsQueries(model, currentTimeframe);
         return (
-          <ModelServingMetricsProvider queries={queries} type={PerformanceMetricType.MODEL}>
+          <ModelServingMetricsProvider
+            queries={queries}
+            type={PerformanceMetricType.MODEL}
+            namespace={projectName}
+          >
             <Outlet context={{ model, projectName }} />
           </ModelServingMetricsProvider>
         );

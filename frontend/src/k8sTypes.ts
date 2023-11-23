@@ -812,7 +812,6 @@ export type DashboardCommonConfig = {
   disableModelServing: boolean;
   disableProjectSharing: boolean;
   disableCustomServingRuntimes: boolean;
-  modelMetricsNamespace: string;
   disablePipelines: boolean;
   disableKServe: boolean;
   disableModelMesh: boolean;

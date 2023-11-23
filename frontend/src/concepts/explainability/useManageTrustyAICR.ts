@@ -1,34 +1,52 @@
 import React from 'react';
-import useTrustyAINamespaceCR from '~/concepts/explainability/useTrustyAINamespaceCR';
+import useTrustyAINamespaceCR, {
+  isTrustyAIAvailable,
+  taiHasServerTimedOut,
+} from '~/concepts/explainability/useTrustyAINamespaceCR';
 import { createTrustyAICR, deleteTrustyAICR } from '~/api';
 
 const useManageTrustyAICR = (namespace: string) => {
-  const [trustyCR, , error, refresh] = useTrustyAINamespaceCR(namespace);
+  const state = useTrustyAINamespaceCR(namespace);
+  const [cr, loaded, serviceError, refresh] = state;
 
-  const installCR = React.useCallback(() => {
-    if (trustyCR) {
-      return Promise.reject(
-        new Error(`A TrustyAI service instance already exists in namespace: ${namespace}`),
-      );
-    }
+  const [installReqError, setInstallReqError] = React.useState<Error | undefined>();
 
-    return createTrustyAICR(namespace);
-  }, [namespace, trustyCR]);
+  const isAvailable = isTrustyAIAvailable(state);
+  const isProgressing = loaded && !!cr && !isAvailable;
+  const error = installReqError || serviceError;
 
-  const deleteCR = React.useCallback(() => {
-    if (!trustyCR) {
-      return Promise.reject(
-        new Error(`Could not find a TrustyAI service instance in namespace: ${namespace}`),
-      );
-    }
+  const [disableTimeout, setDisableTimeout] = React.useState(false);
+  const serverTimedOut = !disableTimeout && taiHasServerTimedOut(state, isAvailable);
+  const ignoreTimedOut = React.useCallback(() => {
+    setDisableTimeout(true);
+  }, []);
 
-    return deleteTrustyAICR(namespace);
-  }, [namespace, trustyCR]);
+  const showSuccess = React.useRef(false);
+  if (isProgressing) {
+    showSuccess.current = true;
+  }
+
+  const installCR = React.useCallback(
+    () =>
+      createTrustyAICR(namespace)
+        .then(refresh)
+        .catch((e) => setInstallReqError(e)),
+    [namespace, refresh],
+  );
+
+  const deleteCR = React.useCallback(
+    () => deleteTrustyAICR(namespace).then(refresh),
+    [namespace, refresh],
+  );
 
   return {
-    hasCR: !!trustyCR,
     error,
-    refresh,
+    isProgressing,
+    isAvailable,
+    showSuccess: showSuccess.current,
+    isSettled: loaded,
+    serverTimedOut,
+    ignoreTimedOut,
     installCR,
     deleteCR,
   };

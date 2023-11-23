@@ -7,14 +7,15 @@ import useFetchState, {
 import { getTrustyAIAPIRoute } from '~/api/';
 import { RouteKind } from '~/k8sTypes';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
-import useBiasMetricsEnabled from './useBiasMetricsEnabled';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type State = string | null;
 const useTrustyAIAPIRoute = (hasCR: boolean, namespace: string): FetchState<State> => {
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+  const trustyAIAreaAvailable = useIsAreaAvailable(SupportedArea.TRUSTY_AI).status;
+
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
-      if (!biasMetricsEnabled) {
+      if (!trustyAIAreaAvailable) {
         return Promise.reject(new NotReadyError('Bias metrics is not enabled'));
       }
 
@@ -32,10 +33,9 @@ const useTrustyAIAPIRoute = (hasCR: boolean, namespace: string): FetchState<Stat
           throw e;
         });
     },
-    [hasCR, namespace, biasMetricsEnabled],
+    [hasCR, namespace, trustyAIAreaAvailable],
   );
 
-  // TODO: add duplicate functionality to useFetchState.
   const state = useFetchState<State>(callback, null, {
     initialPromisePurity: true,
   });

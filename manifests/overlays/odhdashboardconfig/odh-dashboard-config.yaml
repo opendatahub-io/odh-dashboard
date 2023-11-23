@@ -20,7 +20,6 @@ spec:
     disableCustomServingRuntimes: true
     disableAcceleratorProfiles: true
     disableServiceMesh: true
-    modelMetricsNamespace: ''
     disableBiasMetrics: true
     disablePerformanceMetrics: true
     disableKServe: false

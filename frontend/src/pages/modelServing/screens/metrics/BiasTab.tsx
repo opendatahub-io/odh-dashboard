@@ -25,6 +25,7 @@ import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandable
 import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/useBiasChartsBrowserStorage';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
+import { byId } from '~/pages/modelServing/screens/metrics/utils';
 
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {
@@ -36,6 +37,10 @@ const BiasTab: React.FC = () => {
 
   React.useEffect(() => {
     if (loaded && !loadError) {
+      // It's possible a biasMetricConfig was deleted by the user directly accessing a backend API. We need to verify
+      // that any saved state in the session storage is not stale and if it is, remove it.
+      setSelectedBiasConfigs(selectedBiasConfigs.filter((x) => biasMetricConfigs.find(byId(x))));
+
       if (firstRender.current) {
         // If the user has just navigated here AND they haven't previously selected any charts to display,
         // don't show them the "No selected" empty state, instead show them the first available chart.

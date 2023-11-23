@@ -1,4 +1,5 @@
 import { DomainTuple, ForAxes } from 'victory-core';
+import { ChartThemeDefinitionInterface } from '@patternfly/react-charts';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import { BiasMetricType } from '~/api';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
@@ -9,6 +10,7 @@ export type TranslatePoint = (line: GraphMetricPoint) => GraphMetricPoint;
 type MetricChartLineBase = {
   metric: ContextResourceData<PrometheusQueryRangeResultValue>;
   translatePoint?: TranslatePoint;
+  theme?: ChartThemeDefinitionInterface;
 };
 export type NamedMetricChartLine = MetricChartLineBase & {
   name: string;
@@ -40,7 +42,10 @@ export type MetricChartThreshold = {
   label?: string;
 };
 
-export type DomainCalculator = (maxYValue: number, minYValue: number) => ForAxes<DomainTuple>;
+export type DomainCalculator = (
+  maxYValue: number,
+  minYValue: number,
+) => ForAxes<DomainTuple> | undefined;
 
 export enum MetricsChartTypes {
   AREA,

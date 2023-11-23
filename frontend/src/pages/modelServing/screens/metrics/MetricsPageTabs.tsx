@@ -4,20 +4,24 @@ import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
 import NotFound from '~/pages/NotFound';
-import useBiasMetricsInstalled from '~/concepts/explainability/useBiasMetricsInstalled';
+import useDoesTrustyAICRExist from '~/concepts/explainability/useDoesTrustyAICRExist';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import PerformanceTab from './PerformanceTab';
 import BiasTab from './BiasTab';
 import BiasConfigurationAlertPopover from './BiasConfigurationAlertPopover';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
-import usePerformanceMetricsEnabled from './usePerformanceMetricsEnabled';
 
 import './MetricsPageTabs.scss';
 
 const MetricsPageTabs: React.FC = () => {
   const enabledTabs = useMetricsPageEnabledTabs();
   const { biasMetricConfigs, loaded } = useExplainabilityModelData();
-  const [biasMetricsInstalled] = useBiasMetricsInstalled();
-  const performanceMetricsEnabled = usePerformanceMetricsEnabled();
+
+  const [biasMetricsInstalled] = useDoesTrustyAICRExist();
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
+
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
@@ -46,10 +50,10 @@ const MetricsPageTabs: React.FC = () => {
       role="region"
       className="odh-tabs-fix"
     >
-      {performanceMetricsEnabled && (
+      {performanceMetricsAreaAvailable && (
         <Tab
           eventKey={MetricsTabKeys.PERFORMANCE}
-          title={<TabTitleText>Endpoint Performance</TabTitleText>}
+          title={<TabTitleText>Endpoint performance</TabTitleText>}
           aria-label="Performance tab"
           className="odh-tabcontent-fix"
         >
@@ -59,7 +63,7 @@ const MetricsPageTabs: React.FC = () => {
       {biasMetricsInstalled && (
         <Tab
           eventKey={MetricsTabKeys.BIAS}
-          title={<TabTitleText>Model Bias</TabTitleText>}
+          title={<TabTitleText>Model bias</TabTitleText>}
           aria-label="Bias tab"
           className="odh-tabcontent-fix"
           actions={

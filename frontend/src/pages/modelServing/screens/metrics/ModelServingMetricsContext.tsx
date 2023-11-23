@@ -39,6 +39,7 @@ type ModelServingMetricsContext = {
   refresh: () => void;
   lastUpdateTime: number;
   setLastUpdateTime: (time: number) => void;
+  namespace: string;
 };
 
 export const ModelServingMetricsContext = React.createContext<ModelServingMetricsContext>({
@@ -59,6 +60,7 @@ export const ModelServingMetricsContext = React.createContext<ModelServingMetric
   refresh: () => undefined,
   lastUpdateTime: 0,
   setLastUpdateTime: () => undefined,
+  namespace: '',
 });
 
 type ModelServingMetricsProviderProps = {
@@ -66,12 +68,14 @@ type ModelServingMetricsProviderProps = {
   /** Prometheus query strings computed and ready to use */
   queries: { [key in ModelMetricType]: string } | { [key in ServerMetricType]: string };
   type: PerformanceMetricType;
+  namespace: string;
 };
 
 export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderProps> = ({
   queries,
   children,
   type,
+  namespace,
 }) => {
   const [currentTimeframe, setCurrentTimeframe] = useCurrentTimeframeBrowserStorage();
 
@@ -87,6 +91,7 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
     lastUpdateTime,
     setLastUpdateTime,
     currentRefreshInterval,
+    namespace,
   );
 
   return (
@@ -100,6 +105,7 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
         refresh,
         lastUpdateTime,
         setLastUpdateTime,
+        namespace,
       }}
     >
       {children}

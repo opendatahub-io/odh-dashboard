@@ -49,8 +49,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.BIAS_METRICS]: {
     featureFlags: ['disableBiasMetrics'],
+    requiredComponents: [StackComponent.TRUSTY_AI],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.PERFORMANCE_METRICS]: {
     featureFlags: ['disablePerformanceMetrics'],
+    requiredComponents: [StackComponent.MODEL_MESH], // TODO: remove when KServe support is added
+    reliantAreas: [SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.TRUSTY_AI]: {
+    requiredComponents: [StackComponent.TRUSTY_AI],
+    reliantAreas: [SupportedArea.BIAS_METRICS],
   },
 };

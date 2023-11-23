@@ -60,7 +60,6 @@ export const mockDashboardConfig = ({
       disableCustomServingRuntimes,
       disablePipelines,
       disableServiceMesh: true,
-      modelMetricsNamespace: 'test-project',
       disableProjectSharing: false,
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,

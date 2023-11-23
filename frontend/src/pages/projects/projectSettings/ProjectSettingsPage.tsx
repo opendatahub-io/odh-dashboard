@@ -2,17 +2,18 @@ import React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import ModelBiasSettingsCard from '~/pages/projects/projectSettings/ModelBiasSettingsCard';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import useBiasMetricsEnabled from '~/concepts/explainability/useBiasMetricsEnabled';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const ProjectSettingsPage = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
-  const biasMetricsEnabled = useBiasMetricsEnabled();
+
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 
   return (
     <PageSection isFilled aria-label="project-settings-page-section" variant="light">
       <Stack hasGutter>
-        {biasMetricsEnabled && (
+        {biasMetricsAreaAvailable && (
           <StackItem>
             <ModelBiasSettingsCard namespace={namespace} />
           </StackItem>

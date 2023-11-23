@@ -3,7 +3,8 @@ import * as _ from 'lodash';
 import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
-import { DashboardConfigKind, InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
 import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
 import { BiasMetricConfig } from '~/concepts/explainability/types';
@@ -23,16 +24,6 @@ import {
   TranslatePoint,
 } from './types';
 import { ModelMetricType, ServerMetricType } from './ModelServingMetricsContext';
-
-export const isModelMetricsEnabled = (
-  dashboardNamespace: string,
-  dashboardConfig: DashboardConfigKind,
-): boolean => {
-  if (dashboardNamespace === 'redhat-ods-applications') {
-    return true;
-  }
-  return dashboardConfig.spec.dashboardConfig.modelMetricsNamespace !== '';
-};
 
 export const getServerMetricsQueries = (
   server: ServingRuntimeKind,
@@ -59,11 +50,11 @@ export const getModelMetricsQueries = (
   const name = model.metadata.name;
 
   return {
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="2xx"}[${
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
       QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
     }s]))`,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(haproxy_backend_http_responses_total{exported_namespace="${namespace}", route="${name}", code="4xx|5xx"}[${
-      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED][currentTimeframe]
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
+      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
     }s]))`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
@@ -179,10 +170,6 @@ export const useStableMetrics = (
   }
   return metricsRef.current;
 };
-
-export const defaultDomainCalculator: DomainCalculator = (maxYValue) => ({
-  y: maxYValue === 0 ? [0, 1] : [0, maxYValue],
-});
 
 export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[]) =>
   breadcrumbItems.map((item) => (
@@ -336,3 +323,6 @@ export const convertPrometheusNaNToZero = (
   data: PrometheusQueryRangeResultValue[],
 ): PrometheusQueryRangeResultValue[] =>
   data.map((value) => [value[0], isNaN(Number(value[1])) ? '0' : value[1]]);
+
+export const defaultDomainCalculator: DomainCalculator = (maxYValue, minYValue) =>
+  maxYValue === 0 && minYValue === 0 ? { y: [0, 10] } : undefined;
