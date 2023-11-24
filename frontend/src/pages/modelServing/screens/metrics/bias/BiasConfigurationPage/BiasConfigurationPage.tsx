@@ -13,7 +13,7 @@ import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import { getBreadcrumbItemComponents } from '~/pages/modelServing/screens/metrics/utils';
-import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/biasConfigurationModal/ManageBiasConfigurationModal';
+import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/ManageBiasConfigurationModal';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import BiasConfigurationTable from './BiasConfigurationTable';
 import BiasConfigurationEmptyState from './BiasConfigurationEmptyState';

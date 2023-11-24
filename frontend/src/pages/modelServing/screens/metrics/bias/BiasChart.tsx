@@ -6,11 +6,11 @@ import { createChartThresholds } from '~/pages/modelServing/screens/metrics/util
 import { BIAS_CHART_CONFIGS } from '~/pages/modelServing/screens/metrics/const';
 import { PrometheusQueryRangeResponseDataResult } from '~/types';
 
-export type TrustyChartProps = {
+export type BiasChartProps = {
   biasMetricConfig: BiasMetricConfig;
 };
 
-const TrustyChart: React.FC<TrustyChartProps> = ({ biasMetricConfig }) => {
+const BiasChart: React.FC<BiasChartProps> = ({ biasMetricConfig }) => {
   const { data } = React.useContext(ModelServingMetricsContext);
 
   const { id, metricType, thresholdDelta } = biasMetricConfig;
@@ -43,4 +43,4 @@ const TrustyChart: React.FC<TrustyChartProps> = ({ biasMetricConfig }) => {
   );
 };
 
-export default TrustyChart;
+export default BiasChart;

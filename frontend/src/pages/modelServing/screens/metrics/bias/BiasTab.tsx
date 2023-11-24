@@ -18,8 +18,8 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
 import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
-import TrustyChart from '~/pages/modelServing/screens/metrics/bias/TrustyChart';
-import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasConfigurationCard';
+import BiasChart from '~/pages/modelServing/screens/metrics/bias/BiasChart';
+import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/EmptyBiasConfigurationCard';
 import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasChartSelectionCard';
 import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandableSection';
 import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/bias/useBiasChartsBrowserStorage';
@@ -128,7 +128,7 @@ const BiasTab: React.FC = () => {
                         title={x.name}
                         storageKey={`${OPEN_WRAPPER_STORAGE_KEY_PREFIX}-${x.id}`}
                       >
-                        <TrustyChart biasMetricConfig={x} />
+                        <BiasChart biasMetricConfig={x} />
                       </DashboardExpandableSection>
                     </StackItem>
                   ))}

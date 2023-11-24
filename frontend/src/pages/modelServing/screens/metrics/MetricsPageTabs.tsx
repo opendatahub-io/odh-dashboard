@@ -8,7 +8,7 @@ import useDoesTrustyAICRExist from '~/concepts/trustyai/context/useDoesTrustyAIC
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
-import BiasConfigurationAlertPopover from './bias/BiasConfigurationAlertPopover';
+import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 
 import './MetricsPageTabs.scss';

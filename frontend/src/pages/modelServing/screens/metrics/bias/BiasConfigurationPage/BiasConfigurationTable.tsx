@@ -4,10 +4,10 @@ import DashboardSearchField, { SearchType } from '~/concepts/dashboard/Dashboard
 import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import { InferenceServiceKind } from '~/k8sTypes';
-import DeleteBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/biasConfigurationModal/DeleteBiasConfigurationModal';
+import DeleteBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/DeleteBiasConfigurationModal';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { Table } from '~/components/table';
-import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/biasConfigurationModal/ManageBiasConfigurationModal';
+import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/ManageBiasConfigurationModal';
 import BiasConfigurationTableRow from './BiasConfigurationTableRow';
 import { columns } from './tableData';
 
