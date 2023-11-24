@@ -1,5 +1,5 @@
 import { BaseMetricListResponse } from '~/api';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 
 export const formatListResponse = (x: BaseMetricListResponse): BiasMetricConfig[] =>
   x.requests.map((m) => ({

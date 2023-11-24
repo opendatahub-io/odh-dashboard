@@ -1,6 +1,6 @@
 import { Card, CardBody, CardHeader, CardTitle } from '@patternfly/react-core';
 import React from 'react';
-import TrustyAIServiceControl from '~/concepts/explainability/content/TrustyAIServiceControl';
+import TrustyAIServiceControl from '~/concepts/trustyai/content/TrustyAIServiceControl';
 
 type ModelBiasSettingsCardProps = {
   namespace: string;

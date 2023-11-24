@@ -1,6 +1,6 @@
 import React from 'react';
 import { APIState } from '~/concepts/proxy/types';
-import { ExplainabilityAPI } from '~/concepts/explainability/types';
+import { ExplainabilityAPI } from '~/concepts/trustyai/types';
 import useAPIState from '~/concepts/proxy/useAPIState';
 import {
   createDirRequest,

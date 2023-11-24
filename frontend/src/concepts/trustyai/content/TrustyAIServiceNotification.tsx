@@ -1,6 +1,6 @@
 import { Alert, AlertActionCloseButton, Bullseye, Spinner } from '@patternfly/react-core';
 import React from 'react';
-import TrustyAITimedOutError from '~/concepts/explainability/content/TrustyAIServerTimedOutError';
+import TrustyAITimedOutError from '~/concepts/trustyai/content/TrustyAIServerTimedOutError';
 
 type TrustyAIServiceNotificationProps = {
   error?: Error;

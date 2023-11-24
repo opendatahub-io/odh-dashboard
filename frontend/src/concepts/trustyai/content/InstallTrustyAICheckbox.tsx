@@ -1,7 +1,7 @@
 import React from 'react';
 import { Checkbox, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { TRUSTYAI_TOOLTIP_TEXT } from '~/pages/projects/projectSettings/const';
-import DeleteTrustyAIModal from '~/concepts/explainability/content/DeleteTrustyAIModal';
+import DeleteTrustyAIModal from '~/concepts/trustyai/content/DeleteTrustyAIModal';
 
 type InstallTrustyAICheckboxProps = {
   isAvailable: boolean;

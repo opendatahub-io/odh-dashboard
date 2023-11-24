@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BaseMetricRequestInput, BiasMetricType } from '~/api';
 import { getThresholdDefaultDelta } from '~/pages/modelServing/screens/metrics/utils';
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { BiasMetricType } from '~/api';
-import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/bias/useBiasChartsBrowserStorage';
 import { byNotId } from '~/pages/modelServing/screens/metrics/utils';
@@ -19,7 +19,7 @@ const DeleteBiasConfigurationModal: React.FC<DeleteBiasConfigurationModalProps> 
   const [error, setError] = React.useState<Error>();
   const {
     apiState: { api },
-  } = React.useContext(ExplainabilityContext);
+  } = React.useContext(TrustyAIContext);
 
   const [selectedBiasConfigCharts, setSelectedBiasConfigCharts] = useBiasChartsBrowserStorage();
 

@@ -1,7 +1,7 @@
 import { Outlet, useParams } from 'react-router-dom';
 import React from 'react';
 import NotFound from '~/pages/NotFound';
-import { ExplainabilityContextProvider } from '~/concepts/explainability/ExplainabilityContext';
+import { TrustyAIContextProvider } from '~/concepts/trustyai/context/TrustyAIContext';
 
 const ProjectInferenceExplainabilityWrapper: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -11,9 +11,9 @@ const ProjectInferenceExplainabilityWrapper: React.FC = () => {
   }
 
   return (
-    <ExplainabilityContextProvider namespace={namespace}>
+    <TrustyAIContextProvider namespace={namespace}>
       <Outlet />
-    </ExplainabilityContextProvider>
+    </TrustyAIContextProvider>
   );
 };
 

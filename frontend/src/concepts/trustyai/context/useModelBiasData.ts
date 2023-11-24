@@ -1,21 +1,21 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
-import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
+import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
 
-export type ExplainabilityModelData = {
+export type ModelBiasData = {
   biasMetricConfigs: BiasMetricConfig[];
   serviceStatus: { initializing: boolean; installed: boolean; timedOut: boolean };
   loaded: boolean;
   loadError?: Error;
   refresh: () => Promise<unknown>;
 };
-export const useExplainabilityModelData = (): ExplainabilityModelData => {
+export const useModelBiasData = (): ModelBiasData => {
   const { inferenceService } = useParams();
 
-  const { data, crInitializing, hasCR, serverTimedOut } = React.useContext(ExplainabilityContext);
+  const { data, crInitializing, hasCR, serverTimedOut } = React.useContext(TrustyAIContext);
 
-  const serviceStatus: ExplainabilityModelData['serviceStatus'] = {
+  const serviceStatus: ModelBiasData['serviceStatus'] = {
     initializing: crInitializing,
     installed: hasCR,
     timedOut: serverTimedOut,

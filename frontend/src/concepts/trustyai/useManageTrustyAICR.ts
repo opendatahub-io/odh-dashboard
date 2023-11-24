@@ -2,7 +2,7 @@ import React from 'react';
 import useTrustyAINamespaceCR, {
   isTrustyAIAvailable,
   taiHasServerTimedOut,
-} from '~/concepts/explainability/useTrustyAINamespaceCR';
+} from '~/concepts/trustyai/useTrustyAINamespaceCR';
 import { createTrustyAICR, deleteTrustyAICR } from '~/api';
 
 const useManageTrustyAICR = (namespace: string) => {

@@ -17,7 +17,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
 import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
-import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
+import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import TrustyChart from '~/pages/modelServing/screens/metrics/bias/TrustyChart';
 import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasConfigurationCard';
 import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasChartSelectionCard';
@@ -29,7 +29,7 @@ import { byId } from '~/pages/modelServing/screens/metrics/utils';
 
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {
-  const { biasMetricConfigs, loaded, loadError } = useExplainabilityModelData();
+  const { biasMetricConfigs, loaded, loadError } = useModelBiasData();
 
   const [selectedBiasConfigs, setSelectedBiasConfigs] = useBiasChartsBrowserStorage();
 

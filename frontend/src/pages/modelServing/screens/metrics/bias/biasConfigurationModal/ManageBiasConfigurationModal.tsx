@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Form, FormGroup, Modal, TextInput } from '@patternfly/react-core';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
-import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
+import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   checkConfigurationFieldsValid,
@@ -29,7 +29,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
 }) => {
   const {
     apiState: { api },
-  } = React.useContext(ExplainabilityContext);
+  } = React.useContext(TrustyAIContext);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [metricType, setMetricType] = React.useState<BiasMetricType>();

@@ -7,7 +7,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
-import { ExplainabilityContext } from '~/concepts/explainability/ExplainabilityContext';
+import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
 import ServerMetricsPage from '~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
 import { getBreadcrumbItemComponents } from './utils';
 
@@ -24,13 +24,13 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type 
   const {
     hasCR,
     apiState: { apiAvailable },
-  } = React.useContext(ExplainabilityContext);
+  } = React.useContext(TrustyAIContext);
 
   return (
     <ApplicationsPage
       title={title}
       breadcrumb={<Breadcrumb>{getBreadcrumbItemComponents(breadcrumbItems)}</Breadcrumb>}
-      // TODO: decide whether we need to set the loaded based on the feature flag and explainability loaded
+      // TODO: decide whether we need to set the loaded based on the feature flag and trustyai loaded
       loaded
       description={null}
       empty={false}

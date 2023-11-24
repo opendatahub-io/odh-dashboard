@@ -1,7 +1,7 @@
 import { Bullseye, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
-import useManageTrustyAICR from '~/concepts/explainability/useManageTrustyAICR';
-import TrustyAIServiceNotification from '~/concepts/explainability/content/TrustyAIServiceNotification';
+import useManageTrustyAICR from '~/concepts/trustyai/useManageTrustyAICR';
+import TrustyAIServiceNotification from '~/concepts/trustyai/content/TrustyAIServiceNotification';
 import InstallTrustyAICheckbox from './InstallTrustyAICheckbox';
 
 type TrustyAIServiceControlProps = {

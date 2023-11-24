@@ -9,7 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { BreadcrumbItemType } from '~/types';
-import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
+import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { getInferenceServiceDisplayName } from '~/pages/modelServing/screens/global/utils';
 import { getBreadcrumbItemComponents } from '~/pages/modelServing/screens/metrics/utils';
@@ -27,7 +27,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
   breadcrumbItems,
   inferenceService,
 }) => {
-  const { biasMetricConfigs, loaded, loadError, refresh } = useExplainabilityModelData();
+  const { biasMetricConfigs, loaded, loadError, refresh } = useModelBiasData();
   const navigate = useNavigate();
   const firstRender = React.useRef(true);
   const [isOpen, setOpen] = React.useState(false);

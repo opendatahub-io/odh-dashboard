@@ -1,7 +1,7 @@
 import React from 'react';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { ModelServingMetricsContext } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { createChartThresholds } from '~/pages/modelServing/screens/metrics/utils';
 import { BIAS_CHART_CONFIGS } from '~/pages/modelServing/screens/metrics/const';
 import { PrometheusQueryRangeResponseDataResult } from '~/types';

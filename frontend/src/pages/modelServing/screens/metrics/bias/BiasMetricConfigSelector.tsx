@@ -1,7 +1,7 @@
 import React from 'react';
 import { Select, SelectGroup, SelectOption, SelectVariant } from '@patternfly/react-core';
-import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
 import {
   byId,
@@ -20,7 +20,7 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
   onChange,
   initialSelections,
 }) => {
-  const { biasMetricConfigs, loaded } = useExplainabilityModelData();
+  const { biasMetricConfigs, loaded } = useModelBiasData();
 
   const [isOpen, setIsOpen] = React.useState(false);
 
