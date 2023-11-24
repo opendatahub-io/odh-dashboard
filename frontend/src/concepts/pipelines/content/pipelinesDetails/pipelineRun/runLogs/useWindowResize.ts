@@ -16,6 +16,6 @@ export function useWindowResize() {
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
-  const isSmallScreen = () => width < 576;
-  return { isSmallScreen };
+  const isSmallScreen = width < 576;
+  return isSmallScreen;
 }

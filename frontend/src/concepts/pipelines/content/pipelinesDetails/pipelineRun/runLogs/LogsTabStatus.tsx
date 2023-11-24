@@ -7,12 +7,19 @@ import {
 
 type LogsTabStatusProps = {
   error?: Error;
+  isLogsAvailable?: boolean;
   loaded: boolean;
   refresh: () => void;
   onDownload: () => void;
 };
 
-const LogsTabStatus: React.FC<LogsTabStatusProps> = ({ error, loaded, refresh, onDownload }) => {
+const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
+  error,
+  isLogsAvailable,
+  loaded,
+  refresh,
+  onDownload,
+}) => {
   if (error) {
     return (
       <Alert
@@ -38,10 +45,9 @@ const LogsTabStatus: React.FC<LogsTabStatusProps> = ({ error, loaded, refresh, o
         latest {LOG_TAIL_LINES} lines. Exceptionally long lines are abridged. To view the full log
         for this task, you can{' '}
         <Button
-          isDisabled={!onDownload}
+          isDisabled={!onDownload || !isLogsAvailable}
           variant="link"
           isInline
-          component="span"
           onClick={onDownload}
         >
           download all step logs
