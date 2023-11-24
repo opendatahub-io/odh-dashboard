@@ -6,7 +6,7 @@ import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/scree
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
 import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import {
   BIAS_CHART_CONFIGS,
   BIAS_THRESHOLD_COLOR,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, useParams } from 'react-router-dom';
-import { ExplainabilityContextProvider } from '~/concepts/explainability/ExplainabilityContext';
+import { TrustyAIContextProvider } from '~/concepts/trustyai/context/TrustyAIContext';
 import NotFound from '~/pages/NotFound';
 
 const ModelServingExplainabilityWrapper: React.FC = () => {
@@ -11,9 +11,9 @@ const ModelServingExplainabilityWrapper: React.FC = () => {
   }
 
   return (
-    <ExplainabilityContextProvider namespace={namespace}>
+    <TrustyAIContextProvider namespace={namespace}>
       <Outlet />
-    </ExplainabilityContextProvider>
+    </TrustyAIContextProvider>
   );
 };
 

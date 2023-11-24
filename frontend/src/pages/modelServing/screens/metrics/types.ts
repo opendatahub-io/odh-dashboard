@@ -3,7 +3,7 @@ import { ChartThemeDefinitionInterface } from '@patternfly/react-charts';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import { BiasMetricType } from '~/api';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { BiasMetricConfig } from '~/concepts/explainability/types';
+import { BiasMetricConfig } from '~/concepts/trustyai/types';
 
 export type TranslatePoint = (line: GraphMetricPoint) => GraphMetricPoint;
 

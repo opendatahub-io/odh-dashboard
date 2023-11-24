@@ -2,20 +2,20 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
-import { useExplainabilityModelData } from '~/concepts/explainability/useExplainabilityModelData';
+import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import NotFound from '~/pages/NotFound';
-import useDoesTrustyAICRExist from '~/concepts/explainability/useDoesTrustyAICRExist';
+import useDoesTrustyAICRExist from '~/concepts/trustyai/context/useDoesTrustyAICRExist';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import PerformanceTab from './PerformanceTab';
-import BiasTab from './BiasTab';
-import BiasConfigurationAlertPopover from './BiasConfigurationAlertPopover';
+import PerformanceTab from './performance/PerformanceTab';
+import BiasTab from './bias/BiasTab';
+import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 
 import './MetricsPageTabs.scss';
 
 const MetricsPageTabs: React.FC = () => {
   const enabledTabs = useMetricsPageEnabledTabs();
-  const { biasMetricConfigs, loaded } = useExplainabilityModelData();
+  const { biasMetricConfigs, loaded } = useModelBiasData();
   const [biasMetricsInstalled] = useDoesTrustyAICRExist();
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
