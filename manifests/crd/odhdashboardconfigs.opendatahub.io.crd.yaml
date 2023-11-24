@@ -53,6 +53,8 @@ spec:
                       type: string
                     disablePipelines:
                       type: boolean
+                    disableEdge:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:
