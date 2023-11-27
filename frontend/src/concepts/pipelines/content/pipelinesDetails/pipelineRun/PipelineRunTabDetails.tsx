@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Spinner, EmptyStateVariant, EmptyState, Title } from '@patternfly/react-core';
+import { Spinner, EmptyStateVariant, EmptyState, EmptyStateHeader } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
@@ -27,11 +27,9 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   const { namespace, project } = usePipelinesAPI();
   if (!pipelineRunKF || !workflowName) {
     return (
-      <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
+      <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
         <Spinner size="xl" />
-        <Title headingLevel="h4" size="lg">
-          Loading
-        </Title>
+        <EmptyStateHeader titleText="Loading" headingLevel="h4" />
       </EmptyState>
     );
   }

@@ -65,6 +65,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/notebook-software': string;
   'opendatahub.io/workbench-image-recommended': string;
   'opendatahub.io/default-image': string;
+  'opendatahub.io/image-tag-outdated': string;
 }>;
 
 export type NotebookAnnotations = Partial<{
@@ -294,7 +295,6 @@ export type PodKind = K8sResourceCommon & {
   };
 };
 
-/** Assumed Dashboard Project -- if we need more beyond that we should break this type up */
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &

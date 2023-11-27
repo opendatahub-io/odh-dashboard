@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle, Truncate } from '@patternfly/react-core';
+import { Truncate } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import './SimpleDropdownSelect.scss';
 
 export type SimpleDropdownOption = {

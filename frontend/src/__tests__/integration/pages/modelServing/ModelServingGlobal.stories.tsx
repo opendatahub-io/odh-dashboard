@@ -3,7 +3,6 @@ import React from 'react';
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
 import { within, userEvent } from '@storybook/testing-library';
-// import { expect } from '@storybook/jest';
 import { Route, Routes } from 'react-router-dom';
 import { Spinner } from '@patternfly/react-core';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
@@ -14,7 +13,6 @@ import {
   mockInferenceServicek8sError,
 } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import ModelServingGlobal from '~/pages/modelServing/screens/global/ModelServingGlobal';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
@@ -31,6 +29,7 @@ import useDetectUser from '~/utilities/useDetectUser';
 import { useApplicationSettings } from '~/app/useApplicationSettings';
 import { AppContext } from '~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import GlobalModelServingCoreLoader from '~/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -146,39 +145,55 @@ export default {
   },
 } as Meta<typeof ModelServingGlobal>;
 
-const Template: StoryFn<typeof ModelServingGlobal> = (args) => {
-  useDetectUser();
-  const { dashboardConfig, loaded } = useApplicationSettings();
+type TemplateProps = {
+  kServeInstalled?: boolean;
+  modelMeshInstalled?: boolean;
+};
 
-  return loaded && dashboardConfig ? (
-    <AppContext.Provider value={{ buildStatuses: [], dashboardConfig }}>
-      <AreaContext.Provider
-        value={{
-          dscStatus: mockDscStatus({
-            installedComponents: {
-              [StackComponent.K_SERVE]: true,
-              [StackComponent.MODEL_MESH]: true,
-            },
-          }),
-        }}
-      >
-        <ProjectsContextProvider>
-          <Routes>
-            <Route path="/" element={<ModelServingContextProvider />}>
-              <Route index element={<ModelServingGlobal {...args} />} />
-              <Route path="/:namespace?/*" element={<ModelServingGlobal {...args} />} />
-            </Route>
-          </Routes>
-        </ProjectsContextProvider>
-      </AreaContext.Provider>
-    </AppContext.Provider>
-  ) : (
-    <Spinner />
-  );
+const Template: (props: TemplateProps) => StoryFn<typeof ModelServingGlobal> = ({
+  kServeInstalled = true,
+  modelMeshInstalled = true,
+}) => {
+  const InnerTemplate: StoryFn<typeof ModelServingGlobal> = (args) => {
+    useDetectUser();
+    const { dashboardConfig, loaded } = useApplicationSettings();
+    return loaded && dashboardConfig ? (
+      <AppContext.Provider value={{ buildStatuses: [], dashboardConfig }}>
+        <AreaContext.Provider
+          value={{
+            dscStatus: mockDscStatus({
+              installedComponents: {
+                [StackComponent.K_SERVE]: kServeInstalled,
+                [StackComponent.MODEL_MESH]: modelMeshInstalled,
+              },
+            }),
+          }}
+        >
+          <ProjectsContextProvider>
+            <Routes>
+              <Route
+                path="/:namespace?/*"
+                element={
+                  <GlobalModelServingCoreLoader
+                    getInvalidRedirectPath={(namespace) => `/modelServing/${namespace}`}
+                  />
+                }
+              >
+                <Route index element={<ModelServingGlobal {...args} />} />
+              </Route>
+            </Routes>
+          </ProjectsContextProvider>
+        </AreaContext.Provider>
+      </AppContext.Provider>
+    ) : (
+      <Spinner />
+    );
+  };
+  return InnerTemplate;
 };
 
 export const EmptyStateNoServingRuntime: StoryObj = {
-  render: Template,
+  render: Template({}),
 
   parameters: {
     msw: {
@@ -194,7 +209,7 @@ export const EmptyStateNoServingRuntime: StoryObj = {
 };
 
 export const EmptyStateNoInferenceServices: StoryObj = {
-  render: Template,
+  render: Template({}),
 
   parameters: {
     msw: {
@@ -206,13 +221,27 @@ export const EmptyStateNoInferenceServices: StoryObj = {
   },
 };
 
+export const NoPlatformInstalled: StoryObj = {
+  render: Template({ kServeInstalled: false, modelMeshInstalled: false }),
+
+  parameters: {
+    msw: {
+      handlers: getHandlers({
+        projectEnableModelMesh: true,
+        servingRuntimes: [],
+        inferenceServices: [],
+      }),
+    },
+  },
+};
+
 export const EditModel: StoryObj = {
-  render: Template,
+  render: Template({}),
 
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({}),
@@ -225,17 +254,17 @@ export const EditModel: StoryObj = {
     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
     // user flow for editing a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Edit', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Edit'));
   },
 };
 
 export const DeleteModel: StoryObj = {
-  render: Template,
+  render: Template({}),
 
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({}),
@@ -248,18 +277,18 @@ export const DeleteModel: StoryObj = {
     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
     // user flow for deleting a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Delete', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Delete'));
   },
 };
 
 export const DeployModelModelMesh: StoryObj = {
-  render: Template,
+  render: Template({}),
 
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({
@@ -279,12 +308,12 @@ export const DeployModelModelMesh: StoryObj = {
 };
 
 export const DeployModelModelKServe: StoryObj = {
-  render: Template,
+  render: Template({}),
 
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
     msw: {
       handlers: getHandlers({

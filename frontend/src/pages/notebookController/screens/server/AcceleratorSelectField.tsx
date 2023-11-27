@@ -10,6 +10,7 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  InputGroupItem,
   Popover,
   Icon,
 } from '@patternfly/react-core';
@@ -209,22 +210,24 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
         <StackItem>
           <FormGroup label="Number of accelerators" fieldId="number-of-accelerators">
             <InputGroup>
-              <NumberInput
-                inputAriaLabel="Number of accelerators"
-                id="number-of-accelerators"
-                name="number-of-accelerators"
-                value={acceleratorCount}
-                validated={acceleratorCountWarning ? 'warning' : 'default'}
-                min={1}
-                onPlus={() => onStep(1)}
-                onMinus={() => onStep(-1)}
-                onChange={(event) => {
-                  if (isHTMLInputElement(event.target)) {
-                    const newSize = Number(event.target.value);
-                    setAcceleratorState('count', Math.max(newSize, 1));
-                  }
-                }}
-              />
+              <InputGroupItem>
+                <NumberInput
+                  inputAriaLabel="Number of accelerators"
+                  id="number-of-accelerators"
+                  name="number-of-accelerators"
+                  value={acceleratorCount}
+                  validated={acceleratorCountWarning ? 'warning' : 'default'}
+                  min={1}
+                  onPlus={() => onStep(1)}
+                  onMinus={() => onStep(-1)}
+                  onChange={(event) => {
+                    if (isHTMLInputElement(event.target)) {
+                      const newSize = Number(event.target.value);
+                      setAcceleratorState('count', Math.max(newSize, 1));
+                    }
+                  }}
+                />
+              </InputGroupItem>
             </InputGroup>
           </FormGroup>
         </StackItem>

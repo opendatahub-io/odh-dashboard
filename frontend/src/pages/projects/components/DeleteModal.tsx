@@ -77,7 +77,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             id="delete-modal-input"
             aria-label="Delete modal input"
             value={value}
-            onChange={(newValue) => setValue(newValue)}
+            onChange={(e, newValue) => setValue(newValue)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && value === deleteNameSanitized && !deleting) {
                 onDelete();

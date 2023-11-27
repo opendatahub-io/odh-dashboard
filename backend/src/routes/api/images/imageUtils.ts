@@ -180,6 +180,9 @@ const getTagInfo = (imageStream: ImageStream): ImageTagInfo[] => {
     if (!checkTagExistence(tag, imageStream)) {
       return; //Skip tag
     }
+    if (tagAnnotations[IMAGE_ANNOTATIONS.OUTDATED]) {
+      return; // tag is outdated - we want to keep it around for existing notebooks, not for new ones
+    }
 
     //TODO: add build status
     const tagInfo: ImageTagInfo = {

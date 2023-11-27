@@ -130,7 +130,7 @@ export const TolerationsModal: StoryObj = {
   ),
   parameters: {
     a11y: {
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
   play: async ({ canvasElement }) => {

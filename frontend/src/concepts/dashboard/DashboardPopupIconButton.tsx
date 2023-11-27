@@ -10,7 +10,7 @@ type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline' | 
  */
 const DashboardPopupIconButton = ({ icon, ...props }: DashboardPopupIconButtonProps) => (
   <Button variant="plain" isInline style={{ padding: 0 }} {...props}>
-    <Icon tabIndex={0} isInline style={{ marginLeft: 'var(--pf-global--spacer--xs)' }}>
+    <Icon tabIndex={0} isInline style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>
       {icon}
     </Icon>
   </Button>

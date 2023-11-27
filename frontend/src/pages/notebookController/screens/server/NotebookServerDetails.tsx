@@ -56,7 +56,7 @@ const NotebookServerDetails: React.FC = () => {
       data-id="details-expand"
       className="odh-notebook-controller__server-details"
       toggleText="Notebook server details"
-      onToggle={onToggle}
+      onToggle={(e, expanded: boolean) => onToggle(expanded)}
       isExpanded={isExpanded}
       isIndented
     >

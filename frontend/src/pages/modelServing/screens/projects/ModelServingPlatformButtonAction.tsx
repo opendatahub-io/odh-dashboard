@@ -34,7 +34,6 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
 
   return (
     <Tooltip
-      removeFindDomNode
       aria-label="Model Serving Action Info"
       content={
         <Text>{`At least one serving runtime must be enabled to ${

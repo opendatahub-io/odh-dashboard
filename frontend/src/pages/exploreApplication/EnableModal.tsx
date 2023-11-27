@@ -141,7 +141,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
                 variant="info"
                 title={
                   <div className="odh-enable-modal__progress-title">
-                    <Spinner isSVG size="md" /> Validating your entries
+                    <Spinner size="md" /> Validating your entries
                   </div>
                 }
                 aria-live="polite"

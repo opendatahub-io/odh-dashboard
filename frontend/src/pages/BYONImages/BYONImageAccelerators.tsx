@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { BYONImage } from '~/types';
 import { AcceleratorKind } from '~/k8sTypes';
 import { FetchState } from '~/utilities/useFetchState';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type BYONImageAcceleratorsProps = {
   image: BYONImage;
@@ -24,6 +25,7 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
   acceleratorProfiles,
 }) => {
   const [data, loaded, loadError] = acceleratorProfiles;
+  const acceleratorAdminPageEnabled = useIsAreaAvailable(SupportedArea.ACCELERATOR_PROFILES).status;
 
   const recommendedAcceleratorProfiles = data.filter((accelerator) =>
     image.recommendedAcceleratorIdentifiers?.includes(accelerator.spec.identifier),
@@ -42,56 +44,64 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
         <StackItem>
           <LabelGroup isCompact>
             {recommendedAcceleratorProfiles.map((cr) => (
-              <Label key={cr.metadata.name} color="blue" variant="filled" isTruncated isCompact>
+              <Label
+                key={cr.metadata.name}
+                color="blue"
+                variant="filled"
+                isCompact
+                textMaxWidth="16ch"
+              >
                 {cr.spec.displayName}
               </Label>
             ))}
           </LabelGroup>
         </StackItem>
       )}
-      <StackItem>
-        {image.recommendedAcceleratorIdentifiers?.length > 0 ? (
-          <Tooltip
-            content={`This image is compatible with accelerators with the identifier ${image.recommendedAcceleratorIdentifiers.join(
-              ', ',
-            )}.`}
-          >
-            <Label
-              color="blue"
-              variant="outline"
-              render={({ className, content }) => (
-                <Link
-                  to={
-                    '/acceleratorProfiles/create?' +
-                    new URLSearchParams({
-                      identifiers: image.recommendedAcceleratorIdentifiers.join(','),
-                    }).toString()
-                  }
-                  className={className}
-                >
-                  {content}
-                </Link>
-              )}
-              isCompact
-              icon={<PlusIcon />}
+      {acceleratorAdminPageEnabled && (
+        <StackItem>
+          {image.recommendedAcceleratorIdentifiers?.length > 0 ? (
+            <Tooltip
+              content={`This image is compatible with accelerators with the identifier ${image.recommendedAcceleratorIdentifiers.join(
+                ', ',
+              )}.`}
             >
-              Create profile
-            </Label>
-          </Tooltip>
-        ) : (
-          <Tooltip content="To create an accelerator profile for this image, edit it to include an accelerator identifier.">
-            <Button
-              isAriaDisabled
-              variant="link"
-              className="pf-u-font-size-xs"
-              isInline
-              icon={<PlusIcon />}
-            >
-              Create profile
-            </Button>
-          </Tooltip>
-        )}
-      </StackItem>
+              <Label
+                color="blue"
+                variant="outline"
+                render={({ className, content }) => (
+                  <Link
+                    to={
+                      '/acceleratorProfiles/create?' +
+                      new URLSearchParams({
+                        identifiers: image.recommendedAcceleratorIdentifiers.join(','),
+                      }).toString()
+                    }
+                    className={className}
+                  >
+                    {content}
+                  </Link>
+                )}
+                isCompact
+                icon={<PlusIcon />}
+              >
+                Create profile
+              </Label>
+            </Tooltip>
+          ) : (
+            <Tooltip content="To create an accelerator profile for this image, edit it to include an accelerator identifier.">
+              <Button
+                isAriaDisabled
+                variant="link"
+                className="pf-v5-u-font-size-xs"
+                isInline
+                icon={<PlusIcon />}
+              >
+                Create profile
+              </Button>
+            </Tooltip>
+          )}
+        </StackItem>
+      )}
     </Stack>
   );
 };

@@ -1,6 +1,5 @@
 import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { DropdownDirection } from '@patternfly/react-core';
 import { PodToleration } from '~/types';
 
 type TolerationRowProps = {
@@ -23,7 +22,6 @@ export const TolerationRow: React.FC<TolerationRowProps> = ({ toleration, onEdit
       <Td dataLabel="Toleration Seconds">{formatSeconds(toleration.tolerationSeconds)}</Td>
       <Td isActionCell>
         <ActionsColumn
-          dropdownDirection={DropdownDirection.up}
           items={[
             {
               title: 'Edit',

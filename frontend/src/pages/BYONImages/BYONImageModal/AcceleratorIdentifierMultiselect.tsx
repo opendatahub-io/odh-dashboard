@@ -1,5 +1,19 @@
-import React, { useState } from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core';
+import React, { useEffect, useState } from 'react';
+import {
+  Button,
+  Chip,
+  ChipGroup,
+  MenuToggle,
+  MenuToggleElement,
+  Select,
+  SelectList,
+  SelectOption,
+  SelectOptionProps,
+  TextInputGroup,
+  TextInputGroupMain,
+  TextInputGroupUtilities,
+} from '@patternfly/react-core';
+import { TimesIcon } from '@patternfly/react-icons';
 import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
 import { useDashboardNamespace } from '~/redux/selectors';
 
@@ -15,58 +29,156 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
   const { dashboardNamespace } = useDashboardNamespace();
   const [accelerators, loaded, loadError] = useAccelerators(dashboardNamespace);
 
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [newOptions, setNewOptions] = useState<string[]>([]);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState<string>('');
+  const [selectOptions, setSelectOptions] = useState<SelectOptionProps[]>([]);
+  const [onCreation, setOnCreation] = React.useState(false); // Boolean to refresh filter state after new option is created
 
-  const options = React.useMemo(() => {
+  const textInputRef = React.useRef<HTMLInputElement>();
+
+  useEffect(() => {
     if (loaded && !loadError) {
       const uniqueIdentifiers = new Set<string>();
+
+      // Add identifiers from accelerators
       accelerators.forEach((accelerator) => {
         uniqueIdentifiers.add(accelerator.spec.identifier);
       });
 
+      // Add identifiers from initial data
       data.forEach((identifier) => {
         uniqueIdentifiers.add(identifier);
       });
 
-      newOptions.forEach((option) => {
-        uniqueIdentifiers.add(option);
-      });
-      return Array.from(uniqueIdentifiers);
-    }
-    return [];
-  }, [accelerators, loaded, loadError, data, newOptions]);
+      // Convert unique identifiers to SelectOptionProps
+      let newOptions = Array.from(uniqueIdentifiers).map((identifier) => ({
+        value: identifier,
+        children: identifier,
+      }));
 
-  const clearSelection = () => {
-    setData([]);
-    setIsOpen(false);
+      // Filter menu items based on the text input value when one exists
+      if (inputValue) {
+        newOptions = newOptions.filter((menuItem) =>
+          String(menuItem.children).toLowerCase().includes(inputValue.toLowerCase()),
+        );
+
+        // When no options are found after filtering, display creation option
+        if (!newOptions.length) {
+          newOptions = [{ children: `Create new option "${inputValue}"`, value: 'create' }];
+        }
+
+        // Open the menu when the input value changes and the new value is not empty
+        if (!isOpen) {
+          setIsOpen(true);
+        }
+      }
+
+      setSelectOptions(newOptions);
+    }
+  }, [accelerators, loaded, loadError, data, onCreation, inputValue, isOpen]);
+
+  const onToggleClick = () => {
+    setIsOpen(!isOpen);
   };
+
+  const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, value: string) => {
+    setInputValue(value);
+  };
+
+  const onSelect = (value: string) => {
+    if (value) {
+      if (value === 'create') {
+        // Check if the input value already exists in selectOptions
+        if (!selectOptions.some((option) => option.value === inputValue)) {
+          // Add the new option to selectOptions
+          setSelectOptions([...selectOptions, { value: inputValue, children: inputValue }]);
+        }
+        // Update the selected values
+        setData(
+          data.includes(inputValue)
+            ? data.filter((selection) => selection !== inputValue)
+            : [...data, inputValue],
+        );
+        setOnCreation(!onCreation);
+        setInputValue('');
+      } else {
+        // Handle selecting an existing option
+        setData(
+          data.includes(value) ? data.filter((selection) => selection !== value) : [...data, value],
+        );
+      }
+    }
+    textInputRef.current?.focus();
+  };
+
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      variant="typeahead"
+      onClick={onToggleClick}
+      innerRef={toggleRef}
+      isExpanded={isOpen}
+      isFullWidth
+    >
+      <TextInputGroup isPlain>
+        <TextInputGroupMain
+          value={inputValue}
+          onClick={onToggleClick}
+          onChange={onTextInputChange}
+          id="multi-create-typeahead-select-input"
+          autoComplete="off"
+          innerRef={textInputRef}
+          placeholder="Example, nvidia.com/gpu"
+          role="combobox"
+          isExpanded={isOpen}
+          aria-controls="select-multi-create-typeahead-listbox"
+        >
+          <ChipGroup aria-label="Current selections">
+            {data.map((selection, index) => (
+              <Chip
+                key={index}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onSelect(selection);
+                }}
+              >
+                {selection}
+              </Chip>
+            ))}
+          </ChipGroup>
+        </TextInputGroupMain>
+        <TextInputGroupUtilities>
+          {data.length > 0 && (
+            <Button
+              variant="plain"
+              onClick={() => {
+                setInputValue('');
+                setData([]);
+                textInputRef?.current?.focus();
+              }}
+              aria-label="Clear input value"
+            >
+              <TimesIcon aria-hidden />
+            </Button>
+          )}
+        </TextInputGroupUtilities>
+      </TextInputGroup>
+    </MenuToggle>
+  );
 
   return (
     <Select
-      variant={SelectVariant.typeaheadMulti}
-      typeAheadAriaLabel="Example, nvidia.com/gpu"
-      onToggle={() => setIsOpen(!isOpen)}
-      onSelect={(_, selection) => {
-        if (data.includes(selection.toString())) {
-          setData(data.filter((item) => item !== selection));
-        } else {
-          setData([...data, selection.toString()]);
-        }
-      }}
-      {...(!loaded && !loadError && { loadingVariant: 'spinner' })}
-      onClear={clearSelection}
-      selections={data}
+      id="multi-create-typeahead-select"
       isOpen={isOpen}
-      placeholderText="Example, nvidia.com/gpu"
-      isCreatable
-      onCreateOption={(value) => {
-        setNewOptions([...options, value]);
-      }}
+      selected={data}
+      onSelect={(ev, selection) => onSelect(selection as string)}
+      onOpenChange={() => setIsOpen(false)}
+      toggle={toggle}
     >
-      {options.map((option, i) => (
-        <SelectOption key={option + i} value={option} />
-      ))}
+      <SelectList isAriaMultiselectable id="select-multi-create-typeahead-listbox">
+        {selectOptions.map((option) => (
+          <SelectOption key={option.value} {...option} ref={null} />
+        ))}
+      </SelectList>
     </Select>
   );
 };

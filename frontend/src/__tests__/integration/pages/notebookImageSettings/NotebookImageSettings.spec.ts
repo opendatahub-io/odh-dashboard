@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { navigateToStory } from '~/__tests__/integration/utils';
 
 test('Table filtering, sorting, searching', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--large-list&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'large-list'),
   );
 
   // test sorting
   // by name
-  await page.getByRole('button', { name: 'Name' }).click();
+  await page.locator('th').getByRole('button', { name: 'Name' }).click();
   expect(page.getByText('image-999'));
 
   // by description
@@ -27,7 +28,7 @@ test('Table filtering, sorting, searching', async ({ page }) => {
   // by enabled
   await page.getByRole('button', { name: 'Enable', exact: true }).click();
   expect(page.getByText('image-14'));
-  await page.getByRole('button', { name: 'Name' }).click();
+  await page.locator('th').getByRole('button', { name: 'Name' }).click();
 
   // test pagination
   // test next page
@@ -82,28 +83,29 @@ test('Table filtering, sorting, searching', async ({ page }) => {
   await page.getByPlaceholder('Find by name').fill('123');
   expect(page.getByText('image-123'));
 
+  const selectFilterMenuOption = async (itemLabel: string): Promise<void> => {
+    // await page.locator('.pf-v5-c-toolbar').getByRole('button', { name: 'Filter type' }).click();
+    await page.getByTestId('filter-dropdown-select').click();
+    await page.getByRole('menuitem', { name: itemLabel }).click();
+  };
+
   // by provider
   await page.getByRole('button', { name: 'Reset' }).click();
-  await page.getByRole('button', { name: 'Options menu' }).click();
-  await page.getByRole('option', { name: 'Provider' }).click();
+  await selectFilterMenuOption('Provider');
   await page.getByPlaceholder('Find by provider').click();
   await page.getByPlaceholder('Find by provider').fill('provider-321');
   expect(page.getByText('image-321'));
 
   // by description
   // test switching filtering options
-  await page.getByRole('button', { name: 'Options menu' }).click();
-  await page.getByRole('option', { name: 'Description' }).click();
+  await selectFilterMenuOption('Description');
   expect(page.getByRole('heading', { name: 'No results found' }));
-  await page.getByRole('button', { name: 'Options menu' }).click();
-  await page.getByRole('option', { name: 'Provider' }).click();
+  await selectFilterMenuOption('Provider');
   expect(page.getByText('image-321'));
 });
 
 test('Import form fields', async ({ page }) => {
-  await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--default&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'default'));
 
   // test form is disabled initially
   await page.getByRole('button', { name: 'Import new image' }).click();
@@ -128,21 +130,15 @@ test('Import form fields', async ({ page }) => {
   // create new and select
   await page.getByPlaceholder('Example, nvidia.com/gpu').click();
   await page.getByPlaceholder('Example, nvidia.com/gpu').fill('test.com/gpu');
-  await page.getByRole('option', { name: 'Create "test.com/gpu"' }).click();
-  await page.getByRole('button', { name: 'Options menu' }).click();
+  await page.getByRole('option', { name: 'Create new option "test.com/gpu"' }).click();
+  await page.getByPlaceholder('Example, nvidia.com/gpu').press('Escape');
+  await page.getByLabel('Menu toggle').click();
   expect(page.getByText('test.com/gpu'));
 
   // remove custom
-  await page.getByRole('button', { name: 'Remove test.com/gpu' }).click();
-  await page.getByRole('button', { name: 'Options menu' }).click();
+  await page.getByLabel('test.com/gpu').click();
+  await page.getByLabel('Menu toggle').click();
   await expect(page.getByText('test.com/gpu')).toHaveCount(0);
-
-  // reselect custom
-  await page
-    .getByRole('dialog', { name: 'Import notebook image' })
-    .getByRole('button', { name: 'Options menu' })
-    .click();
-  await page.getByRole('option', { name: 'test.com/gpu' }).click();
 
   // test form is disabled after entering software add form
   await page.getByTestId('add-software-button').click();
@@ -223,17 +219,17 @@ test('Import form fields', async ({ page }) => {
 
 test('Edit form fields match', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--default&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'edit-modal'),
   );
 
-  // open edit form
-  await page.getByRole('button', { name: 'Actions' }).click();
-  await page.getByRole('menuitem', { name: 'Edit' }).click();
-
   // test inputs have correct values
-  expect(await page.getByLabel('Image Location *').inputValue()).toBe('test-image:latest');
-  expect(await page.getByLabel('Name *').inputValue()).toBe('Testing Custom Image');
-  expect(await page.getByLabel('Description').inputValue()).toBe('A custom notebook image');
+  expect(await page.getByTestId('byon-image-location-input').inputValue()).toBe(
+    'test-image:latest',
+  );
+  expect(await page.getByTestId('byon-image-name-input').inputValue()).toBe('Testing Custom Image');
+  expect(await page.getByTestId('byon-image-description-input').inputValue()).toBe(
+    'A custom notebook image',
+  );
   expect(page.getByText('nvidia.com/gpu'));
   // test software and packages have correct values
   expect(page.getByRole('gridcell', { name: 'test-software' }));
@@ -245,11 +241,10 @@ test('Edit form fields match', async ({ page }) => {
 
 test('Delete form', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--default&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'delete-modal'),
   );
+
   // test delete form is disabled initially
-  await page.getByRole('button', { name: 'Actions' }).click();
-  await page.getByRole('menuitem', { name: 'Delete' }).click();
   await expect(page.getByRole('button', { name: 'Delete notebook image' })).toBeDisabled();
 
   // test delete form is enabled after filling out required fields
@@ -260,7 +255,7 @@ test('Delete form', async ({ page }) => {
 
 test('Error messages', async ({ page }) => {
   await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--image-error&viewMode=story',
+    navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'image-error'),
   );
 
   // import error
@@ -274,14 +269,14 @@ test('Error messages', async ({ page }) => {
   await page.getByRole('button', { name: 'Close' }).click();
 
   // edit error
-  await page.getByRole('button', { name: 'Actions' }).click();
+  await page.getByLabel('Kebab toggle').click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Update' }).click();
   expect(page.getByText('Testing edit error message'));
   await page.getByRole('button', { name: 'Close' }).click();
 
   // delete error
-  await page.getByRole('button', { name: 'Actions' }).click();
+  await page.getByLabel('Kebab toggle').click();
   await page.getByRole('menuitem', { name: 'Delete' }).click();
   await page.getByRole('textbox', { name: 'Delete modal input' }).click();
   await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Testing Custom Image');
@@ -294,9 +289,7 @@ test('Error messages', async ({ page }) => {
 });
 
 test('Import modal opens from the empty state', async ({ page }) => {
-  await page.goto(
-    '/iframe.html?args=&id=tests-integration-pages-notebookimagesettings-notebookimagesettings--empty&viewMode=story',
-  );
+  await page.goto(navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'empty'));
   await page.getByRole('button', { name: 'Import new image' }).click();
   expect(page.getByText('Import notebook image'));
 });

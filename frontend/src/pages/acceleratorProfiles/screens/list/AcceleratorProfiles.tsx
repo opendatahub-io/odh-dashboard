@@ -8,6 +8,8 @@ import {
   EmptyStateBody,
   PageSection,
   Title,
+  EmptyStateActions,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -38,13 +40,17 @@ const AcceleratorProfiles: React.FC = () => {
           administrator about the accelerator availability in your cluster and create corresponding
           profiles in Openshift Data Science.
         </EmptyStateBody>
-        <Button
-          data-id="display-accelerator-modal-button"
-          variant={ButtonVariant.primary}
-          onClick={() => navigate('/acceleratorProfiles/create')}
-        >
-          Add new accelerator profile
-        </Button>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button
+              data-id="display-accelerator-modal-button"
+              variant={ButtonVariant.primary}
+              onClick={() => navigate('/acceleratorProfiles/create')}
+            >
+              Add new accelerator profile
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
       </EmptyState>
     </PageSection>
   );
