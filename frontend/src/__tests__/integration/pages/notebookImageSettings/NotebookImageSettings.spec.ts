@@ -130,21 +130,15 @@ test('Import form fields', async ({ page }) => {
   // create new and select
   await page.getByPlaceholder('Example, nvidia.com/gpu').click();
   await page.getByPlaceholder('Example, nvidia.com/gpu').fill('test.com/gpu');
-  await page.getByRole('option', { name: 'Create "test.com/gpu"' }).click();
-  await page.getByRole('button', { name: 'Options menu' }).click();
+  await page.getByRole('option', { name: 'Create new option "test.com/gpu"' }).click();
+  await page.getByPlaceholder('Example, nvidia.com/gpu').press('Escape');
+  await page.getByLabel('Menu toggle').click();
   expect(page.getByText('test.com/gpu'));
 
   // remove custom
-  await page.getByRole('button', { name: 'Remove test.com/gpu' }).click();
-  await page.getByRole('button', { name: 'Options menu' }).click();
+  await page.getByLabel('test.com/gpu').click();
+  await page.getByLabel('Menu toggle').click();
   await expect(page.getByText('test.com/gpu')).toHaveCount(0);
-
-  // reselect custom
-  await page
-    .getByRole('dialog', { name: 'Import notebook image' })
-    .getByRole('button', { name: 'Options menu' })
-    .click();
-  await page.getByRole('option', { name: 'test.com/gpu' }).click();
 
   // test form is disabled after entering software add form
   await page.getByTestId('add-software-button').click();
