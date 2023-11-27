@@ -181,11 +181,7 @@ spec:
 
     ## Prerequisites
 
-<<<<<<< HEAD
-    - You have logged in to Open Data Hub.
-=======
     - You have logged in to Red Hat OpenShift AI.
->>>>>>> 238c6003282a71b39c832cd2526f6adb83465a9d
 
     - You know the names and values that you want to use for environment
     variables in your notebook server environment, for example,
