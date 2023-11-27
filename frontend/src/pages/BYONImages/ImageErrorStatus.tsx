@@ -12,7 +12,7 @@ const ImageErrorStatus: React.FC<ImageErrorStatusProps> = ({ image }) => {
     return null;
   }
   return (
-    <Tooltip removeFindDomNode role="none" content={<Text>{image.error}</Text>}>
+    <Tooltip role="none" content={<Text>{image.error}</Text>}>
       <Icon role="button" aria-label="error icon" status="danger" isInline tabIndex={0}>
         <ExclamationCircleIcon />
       </Icon>

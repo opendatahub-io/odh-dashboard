@@ -3,11 +3,11 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateHeader,
   EmptyStateIcon,
-  EmptyStatePrimary,
   EmptyStateVariant,
   TabContent,
-  Title,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { BYONImagePackage } from '~/types';
@@ -57,17 +57,18 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
       hidden={tabKey !== activeKey}
     >
       {tempResources.length === 0 ? (
-        <EmptyState variant={EmptyStateVariant.small}>
-          <EmptyStateIcon icon={PlusCircleIcon} />
-          <Title headingLevel="h2" size="lg">
-            No {resourceType} displayed
-          </Title>
+        <EmptyState variant={EmptyStateVariant.sm}>
+          <EmptyStateHeader
+            titleText={`No ${resourceType} displayed`}
+            icon={<EmptyStateIcon icon={PlusCircleIcon} />}
+            headingLevel="h2"
+          />
           <EmptyStateBody>
             Displayed contents help inform other users of what your notebook image contains. To add
             displayed content, add the names of software or packages included in your image that you
             want users to know about.
           </EmptyStateBody>
-          <EmptyStatePrimary>
+          <EmptyStateFooter>
             <Button
               data-testid={`add-${resourceType}-button`}
               variant="secondary"
@@ -75,7 +76,7 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
             >
               Add {resourceType}
             </Button>
-          </EmptyStatePrimary>
+          </EmptyStateFooter>
         </EmptyState>
       ) : (
         <DisplayedContentTable

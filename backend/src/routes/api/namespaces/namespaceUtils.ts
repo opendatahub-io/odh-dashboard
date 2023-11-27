@@ -2,7 +2,7 @@ import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
-import { isK8sStatus, safeURLPassThrough } from '../k8s/pass-through';
+import { isK8sStatus, passThrough } from '../k8s/pass-through';
 
 const checkNamespacePermission = (
   fastify: KubeFastifyInstance,
@@ -25,7 +25,7 @@ const checkNamespacePermission = (
       },
     },
   };
-  return safeURLPassThrough<V1SelfSubjectAccessReview>(fastify, request, {
+  return passThrough<V1SelfSubjectAccessReview>(fastify, request, {
     url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
     method: 'POST',
     requestData: JSON.stringify(selfSubjectAccessReviewObject),
@@ -67,9 +67,14 @@ export const applyNamespaceChange = async (
         'opendatahub.io/dashboard': 'true',
       };
       break;
-    case NamespaceApplicationCase.MODEL_SERVING_PROMOTION:
+    case NamespaceApplicationCase.MODEL_MESH_PROMOTION:
       labels = {
         'modelmesh-enabled': 'true',
+      };
+      break;
+    case NamespaceApplicationCase.KSERVE_PROMOTION:
+      labels = {
+        'modelmesh-enabled': 'false',
       };
       break;
     default:

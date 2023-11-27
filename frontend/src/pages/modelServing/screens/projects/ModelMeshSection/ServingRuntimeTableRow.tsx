@@ -8,8 +8,11 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import {
+  getInferenceServiceFromServingRuntime,
+  isServingRuntimeTokenEnabled,
+} from '~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
-import { getInferenceServiceFromServingRuntime, isServingRuntimeTokenEnabled } from './utils';
 
 type ServingRuntimeTableRowProps = {
   obj: ServingRuntimeKind;
@@ -89,7 +92,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
               {modelInferenceServices.length}{' '}
               {inferenceServicesLoadError && (
                 <Tooltip
-                  removeFindDomNode
                   aria-labelledby="Deployed models load error"
                   content={inferenceServicesLoadError.message}
                 >
@@ -114,11 +116,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
             <>
               {!isServingRuntimeTokenEnabled(obj) ? 'Tokens disabled' : tokens.length}{' '}
               {secretsLoadError && (
-                <Tooltip
-                  removeFindDomNode
-                  aria-labelledby="Tokens load error"
-                  content={secretsLoadError.message}
-                >
+                <Tooltip aria-labelledby="Tokens load error" content={secretsLoadError.message}>
                   <Icon role="button" status="danger" aria-label="error icon" tabIndex={0}>
                     <ExclamationCircleIcon />
                   </Icon>

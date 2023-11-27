@@ -16,7 +16,9 @@ const useInferenceServices = (namespace?: string): FetchState<InferenceServiceKi
     return getInferenceServiceContext(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE);
   }, [namespace, modelServingEnabled]);
 
-  return useFetchState<InferenceServiceKind[]>(getServingInferences, []);
+  return useFetchState<InferenceServiceKind[]>(getServingInferences, [], {
+    initialPromisePurity: true,
+  });
 };
 
 export default useInferenceServices;

@@ -4,7 +4,7 @@ import { Table } from '~/components/table';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { tokenColumns } from '~/pages/modelServing/screens/global/data';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import ServingRuntimeTokenTableRow from './ServingRuntimeTokenTableRow';
+import ServingRuntimeTokenTableRow from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokenTableRow';
 
 type ServingRuntimeTokensTableProps = {
   obj: ServingRuntimeKind;

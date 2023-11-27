@@ -7,7 +7,12 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeModel } from '~/api/models';
-import { K8sAPIOptions, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
+import {
+  K8sAPIOptions,
+  ServingContainer,
+  ServingRuntimeAnnotations,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
@@ -17,7 +22,7 @@ import { AcceleratorState } from '~/utilities/useAcceleratorState';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
-const assembleServingRuntime = (
+export const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
   servingRuntime: ServingRuntimeKind,
@@ -31,6 +36,21 @@ const assembleServingRuntime = (
     : getModelServingRuntimeName(namespace);
   const updatedServingRuntime = { ...servingRuntime };
 
+  const annotations: ServingRuntimeAnnotations = {
+    ...updatedServingRuntime.metadata.annotations,
+  };
+
+  if (externalRoute) {
+    annotations['enable-route'] = 'true';
+  } else {
+    delete annotations['enable-route'];
+  }
+  if (tokenAuth) {
+    annotations['enable-auth'] = 'true';
+  } else {
+    delete annotations['enable-auth'];
+  }
+
   // TODO: Enable GRPC
   if (!isEditing) {
     updatedServingRuntime.metadata = {
@@ -43,9 +63,7 @@ const assembleServingRuntime = (
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        ...updatedServingRuntime.metadata.annotations,
-        'enable-route': externalRoute ? 'true' : 'false',
-        'enable-auth': tokenAuth ? 'true' : 'false',
+        ...annotations,
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-name': servingRuntime.metadata.name,
@@ -60,9 +78,7 @@ const assembleServingRuntime = (
     updatedServingRuntime.metadata = {
       ...updatedServingRuntime.metadata,
       annotations: {
-        ...updatedServingRuntime.metadata.annotations,
-        'enable-route': externalRoute ? 'true' : 'false',
-        'enable-auth': tokenAuth ? 'true' : 'false',
+        ...annotations,
         'opendatahub.io/accelerator-name': acceleratorState?.accelerator?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },

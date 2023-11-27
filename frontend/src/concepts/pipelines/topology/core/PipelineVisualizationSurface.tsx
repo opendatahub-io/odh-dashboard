@@ -11,7 +11,12 @@ import {
   VisualizationSurface,
   getSpacerNodes,
 } from '@patternfly/react-topology';
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  EmptyStateHeader,
+} from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 type PipelineVisualizationSurfaceProps = {
@@ -52,10 +57,11 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   if (error) {
     return (
       <EmptyState data-id="error-empty-state">
-        <EmptyStateIcon icon={ExclamationCircleIcon} />
-        <Title headingLevel="h4" size="lg">
-          Incorrect pipeline definition
-        </Title>
+        <EmptyStateHeader
+          titleText="Incorrect pipeline definition"
+          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+          headingLevel="h4"
+        />
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );

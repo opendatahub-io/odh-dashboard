@@ -2,12 +2,13 @@ import * as React from 'react';
 import {
   EmptyState,
   EmptyStateIcon,
-  Title,
   EmptyStateBody,
   EmptyStateVariant,
   Bullseye,
   Button,
   Spinner,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useOpenShiftURL } from '~/utilities/clusterUtils';
@@ -37,29 +38,34 @@ const PipelinesDependencyMissing: React.FC = () => {
   if (allowCreate) {
     return (
       <Bullseye>
-        <EmptyState variant={EmptyStateVariant.large}>
-          <EmptyStateIcon
-            color="var(--pf-global--danger-color--100)"
-            icon={ExclamationCircleIcon}
+        <EmptyState variant={EmptyStateVariant.lg}>
+          <EmptyStateHeader
+            titleText="Install the Pipelines Operator"
+            icon={
+              <EmptyStateIcon
+                color="var(--pf-v5-global--danger-color--100)"
+                icon={ExclamationCircleIcon}
+              />
+            }
+            headingLevel="h2"
           />
-          <Title headingLevel="h2" size="2xl">
-            Install the Pipelines Operator
-          </Title>
           <EmptyStateBody>
             To use pipelines, first install the Red Hat OpenShift Pipelines Operator.
           </EmptyStateBody>
-          {url && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                window.open(
-                  `${url}/operatorhub/ns/openshift-operators?keyword=red+hat+openshift+pipelines`,
-                );
-              }}
-            >
-              Install operator
-            </Button>
-          )}
+          <EmptyStateFooter>
+            {url && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  window.open(
+                    `${url}/operatorhub/ns/openshift-operators?keyword=red+hat+openshift+pipelines`,
+                  );
+                }}
+              >
+                Install operator
+              </Button>
+            )}
+          </EmptyStateFooter>
         </EmptyState>
       </Bullseye>
     );
@@ -67,11 +73,17 @@ const PipelinesDependencyMissing: React.FC = () => {
 
   return (
     <Bullseye>
-      <EmptyState variant={EmptyStateVariant.large}>
-        <EmptyStateIcon color="var(--pf-global--danger-color--100)" icon={ExclamationCircleIcon} />
-        <Title headingLevel="h2" size="2xl">
-          Missing the pipelines operator
-        </Title>
+      <EmptyState variant={EmptyStateVariant.lg}>
+        <EmptyStateHeader
+          titleText="Missing the pipelines operator"
+          icon={
+            <EmptyStateIcon
+              color="var(--pf-v5-global--danger-color--100)"
+              icon={ExclamationCircleIcon}
+            />
+          }
+          headingLevel="h2"
+        />
         <EmptyStateBody>
           To use pipelines, first your {ODH_PRODUCT_NAME} admin needs to install the Red Hat
           OpenShift Pipelines operator.

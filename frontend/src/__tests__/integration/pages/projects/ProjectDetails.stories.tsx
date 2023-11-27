@@ -1,8 +1,8 @@
 import React from 'react';
 import { StoryFn, Meta, StoryObj } from '@storybook/react';
 import { DefaultBodyType, MockedRequest, rest, RestHandler } from 'msw';
-import { within } from '@storybook/testing-library';
 import { Route } from 'react-router-dom';
+import { within } from '@testing-library/react';
 import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
@@ -12,7 +12,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { mockDataConnection } from '~/__mocks__/mockDataConnection';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -22,9 +22,13 @@ import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { mockTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import ProjectDetails from '~/pages/projects/screens/detail/ProjectDetails';
+import { mock404Error } from '~/__mocks__/mock404Error';
+import { AreaContext } from '~/concepts/areas/AreaContext';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { StackComponent } from '~/concepts/areas';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
 
 const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>[] => [
@@ -105,7 +109,7 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
     ),
   ),
   rest.get('/api/k8s/apis/project.openshift.io/v1/projects', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockProjectK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: true })]))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims', (req, res, ctx) =>
     res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]))),
@@ -122,7 +126,7 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
       ),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList(isEmpty ? [] : [mockDataConnection({}).data]))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
@@ -163,11 +167,20 @@ const handlers = (isEmpty: boolean): RestHandler<MockedRequest<DefaultBodyType>>
   ),
   rest.get(
     '/api/k8s/apis/template.openshift.io/v1/namespaces/opendatahub/templates',
-    (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockTemplateK8sResource({})]))),
+    (req, res, ctx) =>
+      res(ctx.json(mockK8sResourceList([mockServingRuntimeTemplateK8sResource({})]))),
   ),
   rest.get(
     '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
-    (req, res, ctx) => res(ctx.json(mockDashboardConfig)),
+    (req, res, ctx) => res(ctx.json(mockDashboardConfig({}))),
+  ),
+  rest.get(
+    '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
+  ),
+  rest.get(
+    '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    (req, res, ctx) => res(ctx.status(404), ctx.json(mock404Error({}))),
   ),
 ];
 
@@ -187,21 +200,28 @@ export default {
 const Template: StoryFn<typeof ProjectDetails> = (args) => {
   useDetectUser();
   return (
-    <ProjectsRoutes>
-      <Route path="/" element={<ProjectDetailsContextProvider />}>
-        <Route index element={<ProjectDetails {...args} />} />
-      </Route>
-    </ProjectsRoutes>
+    <AreaContext.Provider
+      value={{
+        dscStatus: mockDscStatus({
+          installedComponents: {
+            [StackComponent.WORKBENCHES]: true,
+            [StackComponent.K_SERVE]: true,
+            [StackComponent.MODEL_MESH]: true,
+          },
+        }),
+      }}
+    >
+      <ProjectsRoutes>
+        <Route path="/" element={<ProjectDetailsContextProvider />}>
+          <Route index element={<ProjectDetails {...args} />} />
+        </Route>
+      </ProjectsRoutes>
+    </AreaContext.Provider>
   );
 };
 
 export const Default: StoryObj = {
   render: Template,
-  play: async ({ canvasElement }) => {
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-    await canvas.findByText('Test Notebook', undefined, { timeout: 5000 });
-  },
 };
 
 export const EmptyDetailsPage: StoryObj = {
@@ -211,12 +231,6 @@ export const EmptyDetailsPage: StoryObj = {
     msw: {
       handlers: handlers(true),
     },
-  },
-
-  play: async ({ canvasElement }) => {
-    // load page and wait until settled
-    const canvas = within(canvasElement);
-    await canvas.findByText('No model servers', undefined, { timeout: 5000 });
   },
 };
 

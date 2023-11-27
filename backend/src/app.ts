@@ -4,6 +4,7 @@ import { LOG_DIR } from './utils/constants';
 import fastifyStatic from '@fastify/static';
 import fastifyAutoload from '@fastify/autoload';
 import fastifySensible from '@fastify/sensible';
+import fastifyWebsocket from '@fastify/websocket';
 import { FastifyInstance } from 'fastify/types/instance';
 
 export const initializeApp = async (fastify: FastifyInstance, opts: any): Promise<void> => {
@@ -13,6 +14,8 @@ export const initializeApp = async (fastify: FastifyInstance, opts: any): Promis
   }
 
   fastify.register(fastifySensible);
+
+  fastify.register(fastifyWebsocket);
 
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, '../../frontend/public'),

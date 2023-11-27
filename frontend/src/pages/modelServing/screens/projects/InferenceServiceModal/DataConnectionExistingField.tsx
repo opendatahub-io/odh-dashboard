@@ -1,7 +1,10 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption, Stack, StackItem } from '@patternfly/react-core';
+import { Button, FormGroup, Popover, Stack, StackItem } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
+import { filterOutConnectionsWithoutBucket } from '~/pages/modelServing/screens/projects/utils';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
 import './DataConnectionExistingField.scss';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
@@ -18,19 +21,38 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
   dataConnections,
 }) => {
   const [isOpen, setOpen] = React.useState(false);
+  const connectionsWithoutBucket = filterOutConnectionsWithoutBucket(dataConnections);
+  const isDataConnectionsEmpty = connectionsWithoutBucket.length === 0;
+
   return (
     <Stack hasGutter>
       <StackItem>
+        {dataConnections.length !== 0 && (
+          <Popover
+            aria-label="No bucket popover"
+            bodyContent={
+              'Only data connections that include a bucket, which is required for model serving, are included in this list.'
+            }
+          >
+            <Button
+              style={{ paddingLeft: 0 }}
+              variant="link"
+              icon={<OutlinedQuestionCircleIcon />}
+              iconPosition="left"
+            >
+              {"Not seeing what you're looking for?"}
+            </Button>
+          </Popover>
+        )}
         <FormGroup label="Name" isRequired>
           <Select
-            removeFindDomNode
             id="inference-service-data-connection"
             isOpen={isOpen}
             placeholderText={
-              dataConnections.length === 0 ? 'No data connections available to select' : 'Select...'
+              isDataConnectionsEmpty ? 'No data connections available to select' : 'Select...'
             }
-            isDisabled={dataConnections.length === 0}
-            onToggle={(open) => setOpen(open)}
+            isDisabled={isDataConnectionsEmpty}
+            onToggle={(e, open) => setOpen(open)}
             onSelect={(_, option) => {
               if (typeof option === 'string') {
                 setData('storage', {
@@ -43,7 +65,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
             selections={data.storage.dataConnection}
             menuAppendTo="parent"
           >
-            {dataConnections.map((connection) => (
+            {connectionsWithoutBucket.map((connection) => (
               <SelectOption
                 key={connection.data.metadata.name}
                 value={connection.data.metadata.name}

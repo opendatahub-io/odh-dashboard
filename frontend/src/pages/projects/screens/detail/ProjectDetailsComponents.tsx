@@ -2,7 +2,7 @@ import * as React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import GenericSidebar from '~/components/GenericSidebar';
 import { useAppContext } from '~/app/AppContext';
-import ServingRuntimeList from '~/pages/modelServing/screens/projects/ServingRuntimeList';
+import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
@@ -11,6 +11,8 @@ import { ProjectSectionID } from './types';
 import StorageList from './storage/StorageList';
 import { ProjectSectionTitles } from './const';
 import DataConnectionsList from './data-connections/DataConnectionsList';
+
+import './ProjectDetailsComponents.scss';
 
 type SectionType = {
   id: ProjectSectionID;
@@ -54,7 +56,7 @@ const ProjectDetailsComponents: React.FC = () => {
       ? [
           {
             id: ProjectSectionID.MODEL_SERVER,
-            component: <ServingRuntimeList />,
+            component: <ModelServingPlatform />,
           },
         ]
       : []),
@@ -74,6 +76,7 @@ const ProjectDetailsComponents: React.FC = () => {
                 id={id}
                 aria-label={ProjectSectionTitles[id]}
                 data-id="details-page-section"
+                className="odh-project-details-components__item"
               >
                 {component}
               </StackItem>

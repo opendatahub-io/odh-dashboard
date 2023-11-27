@@ -1,23 +1,23 @@
 import React from 'react';
 import {
-  Title,
   EmptyState,
   EmptyStateVariant,
   EmptyStateIcon,
   EmptyStateBody,
   PageSection,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { LockIcon } from '@patternfly/react-icons';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 const UnauthorizedError: React.FC = () => (
   <PageSection isFilled>
-    <EmptyState variant={EmptyStateVariant.large}>
-      <EmptyStateIcon icon={LockIcon} />
-
-      <Title headingLevel="h5" size="lg">
-        Access permissions needed
-      </Title>
+    <EmptyState variant={EmptyStateVariant.lg}>
+      <EmptyStateHeader
+        titleText="Access permissions needed"
+        icon={<EmptyStateIcon icon={LockIcon} />}
+        headingLevel="h5"
+      />
       <EmptyStateBody>
         To access {ODH_PRODUCT_NAME}, ask your administrator to adjust your permissions.
       </EmptyStateBody>
