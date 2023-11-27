@@ -1,11 +1,11 @@
 import _ from 'lodash';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { RecursivePartial } from '~/typeHelpers';
 import { TolerationEffect, TolerationOperator } from '~/types';
 
 export const mockAcceleratorProfile = (
-  data: RecursivePartial<AcceleratorKind> = {},
-): AcceleratorKind =>
+  data: RecursivePartial<AcceleratorProfileKind> = {},
+): AcceleratorProfileKind =>
   _.merge(
     {
       apiVersion: 'dashboard.opendatahub.io/v1',
@@ -29,6 +29,6 @@ export const mockAcceleratorProfile = (
           },
         ],
       },
-    } as AcceleratorKind,
+    } as AcceleratorProfileKind,
     data,
   );

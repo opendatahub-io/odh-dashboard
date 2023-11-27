@@ -10,7 +10,7 @@ import {
 import { BYONImage } from '~/types';
 import { relativeTime } from '~/utilities/time';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { FetchState } from '~/utilities/useFetchState';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
@@ -21,7 +21,7 @@ import { BYONImageAccelerators } from './BYONImageAccelerators';
 type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
-  acceleratorProfiles: FetchState<AcceleratorKind[]>;
+  acceleratorProfiles: FetchState<AcceleratorProfileKind[]>;
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
 };

@@ -46,7 +46,7 @@ const EditAcceleratorProfile: React.FC = () => {
     );
   }
 
-  return <ManageAcceleratorProfile existingAccelerator={data} />;
+  return <ManageAcceleratorProfile existingAcceleratorProfile={data} />;
 };
 
 export default EditAcceleratorProfile;

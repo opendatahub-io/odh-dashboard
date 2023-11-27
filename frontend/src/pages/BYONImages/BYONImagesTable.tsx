@@ -5,7 +5,7 @@ import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { useDashboardNamespace } from '~/redux/selectors';
-import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
+import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -50,7 +50,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
 
   const { dashboardNamespace } = useDashboardNamespace();
-  const acceleratorProfiles = useAccelerators(dashboardNamespace);
+  const acceleratorProfiles = useAcceleratorProfiles(dashboardNamespace);
 
   return (
     <>

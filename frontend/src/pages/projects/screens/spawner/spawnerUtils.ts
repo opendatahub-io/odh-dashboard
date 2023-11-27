@@ -161,9 +161,7 @@ export const isCompatibleWithAccelerator = (
     return false;
   }
 
-  return getCompatibleAcceleratorIdentifiers(obj).some(
-    (accelerator) => accelerator === acceleratorIdentifier,
-  );
+  return getCompatibleAcceleratorIdentifiers(obj).some((cr) => cr === acceleratorIdentifier);
 };
 
 /**

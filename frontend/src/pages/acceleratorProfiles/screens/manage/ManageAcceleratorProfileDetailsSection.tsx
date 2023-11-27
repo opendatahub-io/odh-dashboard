@@ -12,15 +12,15 @@ import React from 'react';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { ManageAcceleratorSectionTitles } from './const';
-import { ManageAcceleratorSectionID } from './types';
+import { ManageAcceleratorProfileSectionTitles } from './const';
+import { ManageAcceleratorProfileSectionID } from './types';
 import { IdentifierSelectField } from './IdentifierSelectField';
 
 type ManageAcceleratorProfileDetailsSectionProps = {
-  state: AcceleratorKind['spec'];
-  setState: UpdateObjectAtPropAndValue<AcceleratorKind['spec']>;
+  state: AcceleratorProfileKind['spec'];
+  setState: UpdateObjectAtPropAndValue<AcceleratorProfileKind['spec']>;
 };
 
 export const ManageAcceleratorProfileDetailsSection = ({
@@ -36,9 +36,9 @@ export const ManageAcceleratorProfileDetailsSection = ({
 
   return (
     <FormSection
-      id={ManageAcceleratorSectionID.DETAILS}
-      aria-label={ManageAcceleratorSectionTitles[ManageAcceleratorSectionID.DETAILS]}
-      title={ManageAcceleratorSectionTitles[ManageAcceleratorSectionID.DETAILS]}
+      id={ManageAcceleratorProfileSectionID.DETAILS}
+      aria-label={ManageAcceleratorProfileSectionTitles[ManageAcceleratorProfileSectionID.DETAILS]}
+      title={ManageAcceleratorProfileSectionTitles[ManageAcceleratorProfileSectionID.DETAILS]}
     >
       <Stack hasGutter>
         <StackItem>

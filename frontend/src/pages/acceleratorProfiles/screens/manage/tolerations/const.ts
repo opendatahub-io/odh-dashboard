@@ -1,8 +1,8 @@
 import { SimpleDropdownOption } from '~/components/SimpleDropdownSelect';
 import { SortableData } from '~/components/table';
-import { PodToleration, TolerationOperator, TolerationEffect } from '~/types';
+import { Toleration, TolerationOperator, TolerationEffect } from '~/types';
 
-export const columns: SortableData<PodToleration>[] = [
+export const columns: SortableData<Toleration>[] = [
   {
     field: 'operator',
     label: 'Operator',
@@ -35,7 +35,7 @@ export const columns: SortableData<PodToleration>[] = [
   },
 ];
 
-export const EMPTY_TOLERATION: PodToleration = {
+export const EMPTY_TOLERATION: Toleration = {
   operator: TolerationOperator.EQUAL,
   key: '',
   value: undefined,

@@ -8,20 +8,20 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import {
   createAcceleratorProfile,
   updateAcceleratorProfile,
 } from '~/services/acceleratorProfileService';
 
 type ManageAcceleratorProfileFooterProps = {
-  state: AcceleratorKind['spec'];
-  existingAccelerator?: AcceleratorKind;
+  state: AcceleratorProfileKind['spec'];
+  existingAcceleratorProfile?: AcceleratorProfileKind;
 };
 
 export const ManageAcceleratorProfileFooter = ({
   state,
-  existingAccelerator,
+  existingAcceleratorProfile,
 }: ManageAcceleratorProfileFooterProps) => {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -48,9 +48,9 @@ export const ManageAcceleratorProfileFooter = ({
   };
 
   const onUpdateAcceleratorProfile = async () => {
-    if (existingAccelerator) {
+    if (existingAcceleratorProfile) {
       setIsLoading(true);
-      updateAcceleratorProfile(existingAccelerator.metadata.name, state)
+      updateAcceleratorProfile(existingAcceleratorProfile.metadata.name, state)
         .then((res) => {
           if (res.success) {
             navigate(`/acceleratorProfiles`);
@@ -74,7 +74,9 @@ export const ManageAcceleratorProfileFooter = ({
           <Alert
             isInline
             variant="danger"
-            title={`Error ${existingAccelerator ? 'updating' : 'creating'} accelerator profile`}
+            title={`Error ${
+              existingAcceleratorProfile ? 'updating' : 'creating'
+            } accelerator profile`}
           >
             {errorMessage}
           </Alert>
@@ -89,11 +91,11 @@ export const ManageAcceleratorProfileFooter = ({
               variant="primary"
               id="create-button"
               onClick={
-                existingAccelerator ? onUpdateAcceleratorProfile : onCreateAcceleratorProfile
+                existingAcceleratorProfile ? onUpdateAcceleratorProfile : onCreateAcceleratorProfile
               }
               data-testid="accelerator-profile-create-button"
             >
-              {existingAccelerator ? 'Update' : 'Create'} accelerator profile
+              {existingAcceleratorProfile ? 'Update' : 'Create'} accelerator profile
             </Button>
           </ActionListItem>
           <ActionListItem>

@@ -14,7 +14,7 @@ import {
   TextInputGroupUtilities,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
+import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
 
 type AcceleratorIdentifierMultiselectProps = {
@@ -27,7 +27,7 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
   setData,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [accelerators, loaded, loadError] = useAccelerators(dashboardNamespace);
+  const [acceleratorProfiles, loaded, loadError] = useAcceleratorProfiles(dashboardNamespace);
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -41,8 +41,8 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
       const uniqueIdentifiers = new Set<string>();
 
       // Add identifiers from accelerators
-      accelerators.forEach((accelerator) => {
-        uniqueIdentifiers.add(accelerator.spec.identifier);
+      acceleratorProfiles.forEach((cr) => {
+        uniqueIdentifiers.add(cr.spec.identifier);
       });
 
       // Add identifiers from initial data
@@ -75,7 +75,7 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
 
       setSelectOptions(newOptions);
     }
-  }, [accelerators, loaded, loadError, data, onCreation, inputValue, isOpen]);
+  }, [acceleratorProfiles, loaded, loadError, data, onCreation, inputValue, isOpen]);
 
   const onToggleClick = () => {
     setIsOpen(!isOpen);

@@ -14,7 +14,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
+import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
 import AcceleratorProfilesTable from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTable';
 
@@ -22,11 +22,12 @@ const description = `Manage accelerator profile settings for users in your organ
 
 const AcceleratorProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [accelerators, loaded, loadError, refresh] = useAccelerators(dashboardNamespace);
+  const [acceleratorProfiles, loaded, loadError, refresh] =
+    useAcceleratorProfiles(dashboardNamespace);
 
   const navigate = useNavigate();
 
-  const isEmpty = !accelerators || accelerators.length === 0;
+  const isEmpty = !acceleratorProfiles || acceleratorProfiles.length === 0;
 
   const noAcceleratorProfilePageSection = (
     <PageSection isFilled>
@@ -67,7 +68,7 @@ const AcceleratorProfiles: React.FC = () => {
       provideChildrenPadding
     >
       <AcceleratorProfilesTable
-        acceleratorProfiles={accelerators}
+        acceleratorProfiles={acceleratorProfiles}
         refreshAcceleratorProfiles={refresh}
       />
     </ApplicationsPage>

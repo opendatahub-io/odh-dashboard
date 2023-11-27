@@ -2,9 +2,8 @@
  * Common types, should be kept up to date with backend types
  */
 import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
-import { AcceleratorState } from './utilities/useAcceleratorState';
 
 export type PrometheusQueryResponse = {
   data: {
@@ -32,15 +31,6 @@ export type PrometheusQueryRangeResponse = {
 
 export type PrometheusQueryRangeResultValue = [number, string];
 
-/**
- * @deprecated - Use AcceleratorProfiles
- * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
- * "any string" as a documentation touch point. Has no baring on the type checking.
- */
-type NumberString = string;
-/** @deprecated - Use AcceleratorProfiles */
-export type GpuSettingString = 'autodetect' | 'hidden' | NumberString | undefined;
-
 export type NotebookControllerUserState = {
   user: string;
   lastSelectedImage: string;
@@ -48,11 +38,6 @@ export type NotebookControllerUserState = {
   /** Omission denotes no history */
   lastActivity?: number;
 };
-
-/**
- * OdhDashboardConfig contains gpuSetting as a string value override -- proper gpus return as numbers
- * TODO: Look to make it just number by properly parsing the value
- */
 
 export enum ContainerResourceAttributes {
   CPU = 'cpu',
@@ -308,7 +293,7 @@ export enum TolerationEffect {
   NO_EXECUTE = 'NoExecute',
 }
 
-export type PodToleration = {
+export type Toleration = {
   key: string;
   operator?: TolerationOperator;
   value?: string;
@@ -356,7 +341,7 @@ export type Notebook = K8sResourceCommon & {
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
         volumes?: Volume[];
-        tolerations?: PodToleration[];
+        tolerations?: Toleration[];
       };
     };
   };
@@ -659,7 +644,10 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  accelerator: AcceleratorState;
+  acceleratorProfile: {
+    acceleratorProfile?: AcceleratorProfileKind;
+    count: number;
+  };
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field
@@ -673,17 +661,6 @@ export type ImageStreamAndVersion = {
   imageVersion?: ImageStreamSpecTagType;
 };
 
-export type gpuScale = {
-  availableScale: number;
-  gpuNumber: number;
-};
-
-export type GPUInfo = {
-  configured: boolean;
-  available: number;
-  autoscalers: gpuScale[];
-};
-
 export type ContextResourceData<T> = {
   data: T[];
   loaded: boolean;
@@ -695,7 +672,7 @@ export type BreadcrumbItemType = {
   label: string;
 } & EitherNotBoth<{ link: string }, { isActive: boolean }>;
 
-export type AcceleratorInfo = {
+export type DetectedAccelerators = {
   configured: boolean;
   available: { [key: string]: number };
   total: { [key: string]: number };

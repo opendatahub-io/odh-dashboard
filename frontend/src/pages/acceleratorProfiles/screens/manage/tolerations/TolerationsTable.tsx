@@ -2,18 +2,18 @@ import * as React from 'react';
 import { EmptyState, EmptyStateIcon, Title, EmptyStateBody } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Table } from '~/components/table';
-import { PodToleration } from '~/types';
+import { Toleration } from '~/types';
 import { columns } from './const';
 import TolerationRow from './TolerationRow';
 import ManageTolerationModal from './ManageTolerationModal';
 
 type TolerationTableProps = {
-  tolerations: PodToleration[];
-  onUpdate: (tolerations: PodToleration[]) => void;
+  tolerations: Toleration[];
+  onUpdate: (tolerations: Toleration[]) => void;
 };
 
 export const TolerationsTable: React.FC<TolerationTableProps> = ({ tolerations, onUpdate }) => {
-  const [editToleration, setEditToleration] = React.useState<PodToleration | undefined>();
+  const [editToleration, setEditToleration] = React.useState<Toleration | undefined>();
   const [currentIndex, setCurrentIndex] = React.useState<number | undefined>();
 
   if (tolerations.length === 0) {

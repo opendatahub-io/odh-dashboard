@@ -1,64 +1,66 @@
 import React from 'react';
-import { AcceleratorKind } from '~/k8sTypes';
-import useAccelerators from '~/pages/notebookController/screens/server/useAccelerators';
+import { AcceleratorProfileKind } from '~/k8sTypes';
+import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
 import {
   ContainerResourceAttributes,
   ContainerResources,
-  PodToleration,
+  Toleration,
   TolerationEffect,
   TolerationOperator,
 } from '~/types';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
-import { getAcceleratorGpuCount } from '~/utilities/utils';
+import { getAcceleratorProfileCount } from '~/utilities/utils';
 
-export type AcceleratorState = {
-  accelerator?: AcceleratorKind;
-  accelerators: AcceleratorKind[];
-  initialAccelerator?: AcceleratorKind;
+export type AcceleratorProfileState = {
+  acceleratorProfile?: AcceleratorProfileKind;
+  acceleratorProfiles: AcceleratorProfileKind[];
+  initialAcceleratorProfile?: AcceleratorProfileKind;
   useExisting: boolean;
   count: number;
   additionalOptions?: {
     useExisting?: boolean;
-    useDisabled?: AcceleratorKind;
+    useDisabled?: AcceleratorProfileKind;
   };
 };
 
-const useAcceleratorState = (
+const useAcceleratorProfileState = (
   resources?: ContainerResources,
-  tolerations?: PodToleration[],
-  existingAcceleratorName?: string,
-): GenericObjectState<AcceleratorState> => {
-  const [acceleratorState, setData, resetData] = useGenericObjectState<AcceleratorState>({
-    accelerator: undefined,
-    accelerators: [],
-    initialAccelerator: undefined,
-    count: 0,
-    useExisting: false,
-  });
+  tolerations?: Toleration[],
+  existingAcceleratorProfileName?: string,
+): GenericObjectState<AcceleratorProfileState> => {
+  const [acceleratorProfileState, setData, resetData] =
+    useGenericObjectState<AcceleratorProfileState>({
+      acceleratorProfile: undefined,
+      acceleratorProfiles: [],
+      initialAcceleratorProfile: undefined,
+      count: 0,
+      useExisting: false,
+    });
 
   const { dashboardNamespace } = useDashboardNamespace();
-  const [accelerators, loaded, loadError, refresh] = useAccelerators(dashboardNamespace);
+  const [acceleratorProfiles, loaded, loadError, refresh] =
+    useAcceleratorProfiles(dashboardNamespace);
 
   React.useEffect(() => {
     if (loaded && !loadError) {
-      setData('accelerators', accelerators);
+      setData('acceleratorProfiles', acceleratorProfiles);
 
       // Exit early if no resources = not in edit mode
       if (!resources) {
         return;
       }
 
-      const accelerator = accelerators.find(
-        (accelerator) => accelerator.metadata.name === existingAcceleratorName,
+      const acceleratorProfile = acceleratorProfiles.find(
+        (cr) => cr.metadata.name === existingAcceleratorProfileName,
       );
 
-      if (accelerator) {
-        setData('accelerator', accelerator);
-        setData('initialAccelerator', accelerator);
-        setData('count', getAcceleratorGpuCount(accelerator, resources));
-        if (!accelerator.spec.enabled) {
-          setData('additionalOptions', { useDisabled: accelerator });
+      if (acceleratorProfile) {
+        setData('acceleratorProfile', acceleratorProfile);
+        setData('initialAcceleratorProfile', acceleratorProfile);
+        setData('count', getAcceleratorProfileCount(acceleratorProfile, resources));
+        if (!acceleratorProfile.spec.enabled) {
+          setData('additionalOptions', { useDisabled: acceleratorProfile });
         }
       } else {
         // check if there is accelerator usage in the container
@@ -83,20 +85,20 @@ const useAcceleratorState = (
                 toleration.effect === 'NoSchedule',
             )
           ) {
-            const migratedAccelerator = accelerators.find(
-              (accelerator) => accelerator.metadata.name === 'migrated-gpu',
+            const migratedAcceleratorProfile = acceleratorProfiles.find(
+              (cr) => cr.metadata.name === 'migrated-gpu',
             );
 
-            if (migratedAccelerator) {
-              setData('accelerator', migratedAccelerator);
-              setData('initialAccelerator', migratedAccelerator);
+            if (migratedAcceleratorProfile) {
+              setData('acceleratorProfile', migratedAcceleratorProfile);
+              setData('initialAcceleratorProfile', migratedAcceleratorProfile);
               setData('count', Number(nvidiaAcceleratorRequests.count ?? 0));
-              if (!migratedAccelerator.spec.enabled) {
-                setData('additionalOptions', { useDisabled: accelerator });
+              if (!migratedAcceleratorProfile.spec.enabled) {
+                setData('additionalOptions', { useDisabled: acceleratorProfile });
               }
             } else {
               // create a fake accelerator to use
-              const fakeAccelerator: AcceleratorKind = {
+              const fakeAcceleratorProfile: AcceleratorProfileKind = {
                 apiVersion: 'dashboard.opendatahub.io/v1',
                 kind: 'AcceleratorProfile',
                 metadata: {
@@ -116,9 +118,9 @@ const useAcceleratorState = (
                 },
               };
 
-              setData('accelerator', fakeAccelerator);
-              setData('accelerators', [fakeAccelerator, ...accelerators]);
-              setData('initialAccelerator', fakeAccelerator);
+              setData('acceleratorProfile', fakeAcceleratorProfile);
+              setData('acceleratorProfiles', [fakeAcceleratorProfile, ...acceleratorProfiles]);
+              setData('initialAcceleratorProfile', fakeAcceleratorProfile);
               setData('count', Number(nvidiaAcceleratorRequests.count ?? 0));
             }
           } else {
@@ -129,14 +131,22 @@ const useAcceleratorState = (
         }
       }
     }
-  }, [accelerators, loaded, loadError, resources, tolerations, existingAcceleratorName, setData]);
+  }, [
+    acceleratorProfiles,
+    loaded,
+    loadError,
+    resources,
+    tolerations,
+    existingAcceleratorProfileName,
+    setData,
+  ]);
 
   const resetDataAndRefresh = React.useCallback(() => {
     resetData();
     refresh();
   }, [refresh, resetData]);
 
-  return [acceleratorState, setData, resetDataAndRefresh];
+  return [acceleratorProfileState, setData, resetDataAndRefresh];
 };
 
-export default useAcceleratorState;
+export default useAcceleratorProfileState;

@@ -81,9 +81,9 @@ test('Delete Accelerator profile', async ({ page }) => {
     .click();
 
   await page.getByRole('menuitem', { name: 'Delete' }).click();
-  await expect(page.getByRole('button', { name: 'Delete accelerator profile' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Delete' })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Delete modal input' }).fill('Test Accelerator');
-  await expect(page.getByRole('button', { name: 'Delete accelerator profile' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Delete accelerator profile' }).click();
+  await expect(page.getByRole('button', { name: 'Delete' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Delete' }).click();
   expect(page.getByRole('heading', { name: 'Danger alert: Error deleting Test Accelerator' }));
 });

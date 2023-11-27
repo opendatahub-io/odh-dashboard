@@ -1,4 +1,4 @@
-import { AcceleratorInfo, KubeFastifyInstance } from '../../../types';
+import { DetectedAccelerators, KubeFastifyInstance } from '../../../types';
 
 const RESOURCE_TYPES = [
   'cpu',
@@ -19,13 +19,13 @@ const getIdentifiersFromResources = (resources: { [key: string]: string } = {}) 
     }, {});
 };
 
-export const getAcceleratorNumbers = async (
+export const getDetectedAccelerators = async (
   fastify: KubeFastifyInstance,
-): Promise<AcceleratorInfo> =>
+): Promise<DetectedAccelerators> =>
   fastify.kube.coreV1Api
     .listNode()
     .then((res) =>
-      res.body.items.reduce<AcceleratorInfo>(
+      res.body.items.reduce<DetectedAccelerators>(
         (info, node) => {
           // reduce resources down to just the accelerators and their counts
           const allocatable = getIdentifiersFromResources(node.status.allocatable);
