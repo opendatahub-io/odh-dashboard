@@ -5,8 +5,6 @@ import { getDashboardMainContainer } from '~/utilities/utils';
 import CreateNewStorageSection from './CreateNewStorageSection';
 import AddExistingStorageField from './AddExistingStorageField';
 
-import '~/pages/projects/screens/detail/storage/ManageStorageModal.scss';
-
 type StorageFieldType = {
   storageData: StorageData;
   setStorageData: UpdateObjectAtPropAndValue<StorageData>;

@@ -52,7 +52,7 @@ export const getGroupsConfig = async (
       return await checkUserInGroups(fastify, customObjectApi, adminGroupsList, username);
     }
   } catch (e) {
-    fastify.log.error(e.toString());
+    fastify.log.error(e, 'Error getting groups config');
     return false;
   }
 };
@@ -84,7 +84,7 @@ export const isUserAllowed = async (
       );
     }
   } catch (e) {
-    fastify.log.error(e.toString());
+    fastify.log.error(e, 'Error determining isUserAllowed.');
     return false;
   }
 };
@@ -142,7 +142,7 @@ const checkUserInGroups = async (
         return true;
       }
     } catch (e) {
-      fastify.log.error(e.toString());
+      fastify.log.error(e, 'Error checking if user is in group.');
     }
   }
   return false;

@@ -18,8 +18,8 @@ const PipelineFileUpload: React.FC<PipelineFileUploadProps> = ({ fileContents, o
       value={fileContents}
       filename={filename}
       filenamePlaceholder="Drag and drop a file or upload one"
-      onDataChange={(content) => onUpload(content)}
-      onFileInputChange={(_event, file) => setFilename(file.name)}
+      onDataChange={(e, content) => onUpload(content)}
+      onFileInputChange={(e, file) => setFilename(file.name)}
       onReadStarted={() => setIsLoading(true)}
       onReadFinished={() => {
         setIsLoading(false);

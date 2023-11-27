@@ -1,5 +1,6 @@
 import { AppState } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
+import { isStateEqual } from '~/redux/selectors/utils';
 import { ClusterState } from './types';
 
 const getClusterInfo = (state: AppState): ClusterState => ({
@@ -8,4 +9,4 @@ const getClusterInfo = (state: AppState): ClusterState => ({
   serverURL: state.serverURL,
 });
 
-export const useClusterInfo = (): ClusterState => useAppSelector(getClusterInfo);
+export const useClusterInfo = (): ClusterState => useAppSelector(getClusterInfo, isStateEqual);

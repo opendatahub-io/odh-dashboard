@@ -48,10 +48,10 @@ export const useWatchGroups = (): {
 
   React.useEffect(() => {
     if (errorAdmin) {
-      notification.error(`Group no longer exists`, errorAdmin);
+      notification.error(`Group error`, errorAdmin);
     }
     if (errorUser) {
-      notification.error(`Group no longer exists`, errorUser);
+      notification.error(`Group error`, errorUser);
     }
   }, [errorAdmin, errorUser, notification]);
 
@@ -59,13 +59,11 @@ export const useWatchGroups = (): {
     setIsLoading(true);
     updateGroupsSettings(group)
       .then((response) => {
-        if (response.success) {
-          setGroupSettings(response.success);
-          notification.success(
-            'Group settings changes saved',
-            'It may take up to 2 minutes for configuration changes to be applied.',
-          );
-        }
+        setGroupSettings(response);
+        notification.success(
+          'Group settings changes saved',
+          'It may take up to 2 minutes for configuration changes to be applied.',
+        );
       })
       .catch((error) => {
         setLoadError(error);

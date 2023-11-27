@@ -1,18 +1,23 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption, StackItem, TextInput } from '@patternfly/react-core';
+import { FormGroup, Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { TemplateKind } from '~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
+  isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
+import { isCompatibleWithAccelerator } from '~/pages/projects/screens/spawner/spawnerUtils';
+import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
+import { AcceleratorState } from '~/utilities/useAcceleratorState';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
+  acceleratorState: AcceleratorState;
 };
 
 const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps> = ({
@@ -20,51 +25,58 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   setData,
   templates,
   isEditing,
+  acceleratorState,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
+  const filteredTemplates = React.useMemo(
+    () =>
+      templates.filter((template) => {
+        try {
+          return isServingRuntimeKind(template.objects[0]);
+        } catch (e) {
+          return false;
+        }
+      }),
+    [templates],
+  );
 
-  const options = templates.map((template) => (
-    <SelectOption
-      key={getServingRuntimeNameFromTemplate(template)}
-      value={getServingRuntimeNameFromTemplate(template)}
-    >
-      {getServingRuntimeDisplayNameFromTemplate(template)}
-    </SelectOption>
-  ));
+  const options = filteredTemplates.map((template) => ({
+    key: getServingRuntimeNameFromTemplate(template),
+    label: getServingRuntimeDisplayNameFromTemplate(template),
+    dropdownLabel: (
+      <Split>
+        <SplitItem>
+          {<Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />}
+        </SplitItem>
+        <SplitItem isFilled />
+        <SplitItem>
+          {isCompatibleWithAccelerator(
+            acceleratorState.accelerator?.spec.identifier,
+            template.objects[0],
+          ) && <Label color="blue">Compatible with accelerator</Label>}
+        </SplitItem>
+      </Split>
+    ),
+  }));
 
   return (
-    <>
-      <StackItem>
-        <FormGroup label="Model server name" fieldId="serving-runtime-name-input" isRequired>
-          <TextInput
-            isRequired
-            id="serving-runtime-name-input"
-            value={data.name}
-            onChange={(name) => setData('name', name)}
-          />
-        </FormGroup>
-      </StackItem>
-      <StackItem>
-        <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
-          <Select
-            removeFindDomNode
-            selections={data.servingRuntimeTemplateName}
-            isOpen={isOpen}
-            onSelect={(e, selection) => {
-              if (typeof selection === 'string') {
-                setData('servingRuntimeTemplateName', selection);
-                setOpen(false);
-              }
-            }}
-            isDisabled={isEditing || templates.length === 0}
-            onToggle={setOpen}
-            placeholderText={'Select one'}
-          >
-            {options}
-          </Select>
-        </FormGroup>
-      </StackItem>
-    </>
+    <FormGroup label="Serving runtime" fieldId="serving-runtime-selection" isRequired>
+      <SimpleDropdownSelect
+        isFullWidth
+        isDisabled={isEditing || filteredTemplates.length === 0}
+        id="serving-runtime-template-selection"
+        aria-label="Select a template"
+        options={options}
+        placeholder={
+          isEditing || filteredTemplates.length === 0
+            ? data.servingRuntimeTemplateName
+            : 'Select one'
+        }
+        value={data.servingRuntimeTemplateName ?? ''}
+        onChange={(name) => {
+          setData('servingRuntimeTemplateName', name);
+        }}
+      />
+    </FormGroup>
   );
 };
 

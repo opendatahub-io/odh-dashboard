@@ -1,7 +1,13 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
-import { NotebookSize, Volume, VolumeMount } from '~/types';
-import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
+import { BYONImage, NotebookSize, Volume, VolumeMount } from '~/types';
+import {
+  BuildKind,
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+  K8sDSGResource,
+  NotebookKind,
+} from '~/k8sTypes';
 import {
   ConfigMapCategory,
   DataConnectionData,
@@ -14,9 +20,9 @@ import {
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
+import { FieldOptions } from '~/components/FieldList';
 import {
   BuildStatus,
-  ImageStreamSelectOptionObjectType,
   ImageVersionDependencyType,
   ImageVersionSelectOptionObjectType,
 } from './types';
@@ -64,12 +70,6 @@ export const getNameVersionString = (software: ImageVersionDependencyType): stri
  * Create object for PF Select component to use
  * `toString` decides the text shown for the select option
  */
-export const getImageStreamSelectOptionObject = (
-  imageStream: ImageStreamKind,
-): ImageStreamSelectOptionObjectType => ({
-  imageStream,
-  toString: () => getImageStreamDisplayName(imageStream),
-});
 export const getImageVersionSelectOptionObject = (
   imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
@@ -78,15 +78,10 @@ export const getImageVersionSelectOptionObject = (
   toString: () =>
     `${imageVersion.name}${checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''}`,
 });
-export const isImageStreamSelectOptionObject = (
-  object: unknown,
-): object is ImageStreamSelectOptionObjectType =>
-  (object as ImageStreamSelectOptionObjectType).imageStream !== undefined;
 export const isImageVersionSelectOptionObject = (
   object: unknown,
 ): object is ImageVersionSelectOptionObjectType =>
   (object as ImageVersionSelectOptionObjectType).imageVersion !== undefined;
-
 /******************* Compare utils for sorting *******************/
 const getBuildNumber = (build: BuildKind): number => {
   const buildNumber = build.metadata.annotations?.['openshift.io/build.number'] || '-1';
@@ -140,6 +135,37 @@ export const getImageStreamDescription = (imageStream: ImageStreamKind): string 
 export const getImageSteamOrder = (imageStream: ImageStreamKind): number =>
   parseInt(imageStream.metadata.annotations?.[IMAGE_ANNOTATIONS.IMAGE_ORDER] || '100');
 
+export const getCompatibleAcceleratorIdentifiers = (
+  object: ImageStreamKind | K8sDSGResource,
+): string[] => {
+  try {
+    const annotation = object.metadata.annotations?.['opendatahub.io/recommended-accelerators'];
+    // in the format of ["foo.com/gpu", "bar.com/gpu"]
+    if (annotation) {
+      const identifiers = JSON.parse(annotation);
+      if (Array.isArray(identifiers)) {
+        return identifiers;
+      }
+    }
+  } catch (error) {
+    // catch invalid json in metadata
+  }
+  return [];
+};
+
+export const isCompatibleWithAccelerator = (
+  acceleratorIdentifier?: string,
+  obj?: ImageStreamKind | K8sDSGResource,
+) => {
+  if (!obj || !acceleratorIdentifier) {
+    return false;
+  }
+
+  return getCompatibleAcceleratorIdentifiers(obj).some(
+    (accelerator) => accelerator === acceleratorIdentifier,
+  );
+};
+
 /**
  * Parse annotation software field or dependencies field from long string to array
  */
@@ -173,6 +199,9 @@ export const getImageVersionSoftwareString = (imageVersion: ImageStreamSpecTagTy
   return softwareString.join(', ');
 };
 
+const isOutdated = (version: ImageStreamSpecTagType): boolean =>
+  !!version.annotations?.[IMAGE_ANNOTATIONS.OUTDATED];
+
 /**
  * Get all the `imageStream.spec.tags` and filter the ones exists in `imageStream.status.tags`
  */
@@ -180,7 +209,9 @@ export const getExistingVersionsForImageStream = (
   imageStream: ImageStreamKind,
 ): ImageStreamSpecTagType[] => {
   const allVersions = imageStream.spec.tags || [];
-  return allVersions.filter((version) => checkVersionExistence(imageStream, version));
+  return allVersions
+    .filter((version) => !isOutdated(version))
+    .filter((version) => checkVersionExistence(imageStream, version));
 };
 
 /**
@@ -294,14 +325,27 @@ export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): b
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
-export const isAWSValid = (values: EnvVariableDataEntry[]): boolean =>
+export const isAWSValid = (
+  values: EnvVariableDataEntry[],
+  additionalRequiredFields?: string[],
+): boolean =>
   values.every(({ key, value }) =>
-    AWS_FIELDS.filter((field) => field.isRequired)
+    getAdditionalRequiredAWSFields(additionalRequiredFields)
+      .filter((field) => field.isRequired)
       .map((field) => field.key)
       .includes(key)
       ? !!value
       : true,
   );
+
+export const getAdditionalRequiredAWSFields = (
+  additionalRequiredFields?: string[],
+): FieldOptions[] =>
+  additionalRequiredFields
+    ? AWS_FIELDS.map((field) =>
+        additionalRequiredFields.includes(field.key) ? { ...field, isRequired: true } : field,
+      )
+    : AWS_FIELDS;
 
 export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => {
   if (envVariables.length === 0) {
@@ -388,3 +432,14 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind) => {
     (activeTag === undefined || activeTag.items === null)
   );
 };
+
+export const convertBYONImageToK8sResource = (image: BYONImage) => ({
+  kind: 'ImageStream',
+  apiVersion: 'image.openshift.io/v1',
+  metadata: {
+    name: image.id,
+    annotations: {
+      'openshift.io/display-name': image.name,
+    },
+  },
+});

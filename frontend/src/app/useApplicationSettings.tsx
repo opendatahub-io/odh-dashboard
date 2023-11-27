@@ -1,18 +1,18 @@
 import * as React from 'react';
-import { DashboardConfig } from '~/types';
+import { DashboardConfigKind } from '~/k8sTypes';
 import { POLL_INTERVAL } from '~/utilities/const';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { fetchDashboardConfig } from '~/services/dashboardConfigService';
 import useTimeBasedRefresh from './useTimeBasedRefresh';
 
 export const useApplicationSettings = (): {
-  dashboardConfig: DashboardConfig | null;
+  dashboardConfig: DashboardConfigKind | null;
   loaded: boolean;
   loadError: Error | undefined;
 } => {
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
-  const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfig | null>(null);
+  const [dashboardConfig, setDashboardConfig] = React.useState<DashboardConfigKind | null>(null);
   const setRefreshMarker = useTimeBasedRefresh();
 
   React.useEffect(() => {
@@ -55,7 +55,7 @@ export const useApplicationSettings = (): {
     };
   }, [setRefreshMarker]);
 
-  const retConfig = useDeepCompareMemoize<DashboardConfig | null>(dashboardConfig);
+  const retConfig = useDeepCompareMemoize<DashboardConfigKind | null>(dashboardConfig);
 
   return { dashboardConfig: retConfig, loaded, loadError };
 };

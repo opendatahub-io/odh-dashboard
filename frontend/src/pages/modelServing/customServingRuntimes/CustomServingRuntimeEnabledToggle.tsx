@@ -64,7 +64,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
       id={`custom-serving-runtime-enabled-toggle-${template.metadata.name}`}
       aria-label={`${template.metadata.name}-enabled-toggle`}
       isChecked={isEnabled}
-      onChange={handleChange}
+      onChange={(e, checked: boolean) => handleChange(checked)}
       isDisabled={isLoading}
     />
   );

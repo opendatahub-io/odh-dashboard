@@ -1,26 +1,20 @@
 import * as React from 'react';
 import { Alert, Stack, StackItem, Title } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import Table from '~/components/table/Table';
-
-import useTableColumnSort from '~/components/table/useTableColumnSort';
+import { Table } from '~/components/table';
 import ExternalLink from '~/components/ExternalLink';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '~/types';
-import { columns } from './const';
+import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
-import { AdminViewUserData } from './types';
 import { NotebookAdminContext } from './NotebookAdminContext';
 
 const NotebookAdminControl: React.FC = () => {
-  const [unsortedUsers, loaded, loadError] = useAdminUsers();
-  const { transformData } = useTableColumnSort<AdminViewUserData>(columns, 0);
+  const [users, loaded, loadError] = useAdminUsers();
   const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
-
-  const users = transformData(unsortedUsers);
 
   const onNotebooksStop = React.useCallback(
     (didStop: boolean) => {
@@ -55,9 +49,8 @@ const NotebookAdminControl: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <Alert title="Manage users in OpenShift" titleHeadingLevel="h2" isInline>
-              Create, delete, and manage permissions for Red Hat OpenShift Data Science users in
-              OpenShift.{' '}
+            <Alert title="Manage users in OpenShift" component="h2" isInline>
+              Create, delete, and manage permissions for Red Hat OpenShift AI users in OpenShift.{' '}
               <ExternalLink
                 text="Learn more about OpenShift user management"
                 to="https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/index"

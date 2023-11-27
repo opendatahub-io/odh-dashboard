@@ -1,16 +1,19 @@
+<!-- TODO: Clean up & add to feature documentation -->
+
 # Bring Your Own Notebook
 
 ODH provides several out-of-the-box notebook images that automatically include packages to make it easy for users to get started with common components. However, in many/most instances, users need a specific set of packages/libraries with specific versions depending on the projects. That is why ODH Dashboard has the ability to import existing notebook images to spawn as custom notebooks.
 
 ## Enabling BYON
 
-To enable this feature, you need to have first enable the [admin panel](admin_dashboard.md) and then the flag `disableBYONImageStream` in the [dashboard configuration](dashboard_config.md) turned to `false`.
+To enable this feature, you need to have first enabled the [admin panel](admin-dashboard.md) and then the flag `disableBYONImageStream` in the [dashboard configuration](dashboard-config.md) turned to `false`.
 
 Once you have completed both steps you will see a section called `Notebook Images` inside the `Settings` panel.
 
 ## Minimum requirements for BYON
 
 For image to be spawneable via JupyterHub Spawner, it is required to meet the following criteria:
+
 * It needs to include Python runtime,  >= 3.8.
 * Python packages `jupyterhub` and `jupyterlab` need to be installed.
 * Environment variable `HOME` is set and points to a writable directory for every user.

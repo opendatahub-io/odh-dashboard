@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
-import TableRowTitleDescription from '~/components/table/TableRowTitleDescription';
+import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import {
   RunJobScheduled,
   RunJobStatus,
@@ -11,7 +11,6 @@ import {
   CoreResourcePipeline,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import CheckboxTd from '~/components/table/CheckboxTd';
 
 type PipelineRunJobTableRowProps = {
   isChecked: boolean;

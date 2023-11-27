@@ -9,8 +9,8 @@ import MetricsPage from './MetricsPage';
 import { getInferenceServiceMetricsQueries } from './utils';
 
 const ModelServingMetricsWrapper: React.FC = () => {
-  const { project: projectName, inferenceService: modelName } = useParams<{
-    project: string;
+  const { namespace: projectName, inferenceService: modelName } = useParams<{
+    namespace: string;
     inferenceService: string;
   }>();
   const {

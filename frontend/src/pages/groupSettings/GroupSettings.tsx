@@ -51,12 +51,12 @@ const GroupSettings: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="User and group settings"
+      title="User management"
       description="Define OpenShift group membership for Data Science administrators and users."
       loaded={loaded}
       empty={false}
       loadError={loadError}
-      errorMessage="Unable to load user and group settings"
+      errorMessage="Unable to load user management"
       emptyMessage="No user and group settings found"
       provideChildrenPadding
     >

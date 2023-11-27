@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
+import { SortableData } from './types';
 
 export const CHECKBOX_FIELD_ID = 'checkbox';
 export const KEBAB_FIELD_ID = 'kebab';

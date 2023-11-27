@@ -17,6 +17,10 @@ const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
   notebookTolerationSettings: { enabled: false, key: 'NotebooksOnly' },
+  modelServingPlatformEnabled: {
+    kServe: true,
+    modelMesh: false,
+  },
 };
 
 export const updateClusterSettings = async (
@@ -27,10 +31,30 @@ export const updateClusterSettings = async (
 ): Promise<{ success: boolean; error: string }> => {
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
-  const { pvcSize, cullerTimeout, userTrackingEnabled, notebookTolerationSettings } = request.body;
+  const {
+    pvcSize,
+    cullerTimeout,
+    userTrackingEnabled,
+    notebookTolerationSettings,
+    modelServingPlatformEnabled,
+  } = request.body;
   const dashConfig = getDashboardConfig();
   const isJupyterEnabled = checkJupyterEnabled();
   try {
+    if (
+      modelServingPlatformEnabled.kServe !== !dashConfig.spec.dashboardConfig.disableKServe ||
+      modelServingPlatformEnabled.modelMesh !== !dashConfig.spec.dashboardConfig.disableModelMesh
+    ) {
+      await setDashboardConfig(fastify, {
+        spec: {
+          dashboardConfig: {
+            disableKServe: !modelServingPlatformEnabled.kServe,
+            disableModelMesh: !modelServingPlatformEnabled.modelMesh,
+          },
+        },
+      });
+    }
+
     await patchCM(fastify, segmentKeyCfg, {
       data: { segmentKeyEnabled: String(userTrackingEnabled) },
     }).catch((e) => {
@@ -39,9 +63,8 @@ export const updateClusterSettings = async (
     if (pvcSize && cullerTimeout) {
       await setDashboardConfig(fastify, {
         spec: {
-          ...dashConfig.spec,
           notebookController: {
-            ...dashConfig.spec.notebookController,
+            enabled: isJupyterEnabled,
             pvcSize: `${pvcSize}Gi`,
             ...(isJupyterEnabled && {
               notebookTolerationSettings: {
@@ -91,9 +114,7 @@ export const updateClusterSettings = async (
     await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     return { success: true, error: null };
   } catch (e) {
-    fastify.log.error(
-      'Setting cluster settings error: ' + e.toString() + e.response?.body?.message,
-    );
+    fastify.log.error(e, 'Setting cluster settings error: ' + e.response?.body?.message);
     if (e.response?.statusCode !== 404) {
       return { success: false, error: 'Unable to update cluster settings. ' + e.message };
     }
@@ -106,22 +127,27 @@ export const getClusterSettings = async (
 ): Promise<ClusterSettings | string> => {
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
+  const dashConfig = getDashboardConfig();
   const isJupyterEnabled = checkJupyterEnabled();
   const clusterSettings: ClusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
+    modelServingPlatformEnabled: {
+      kServe: !dashConfig.spec.dashboardConfig.disableKServe,
+      modelMesh: !dashConfig.spec.dashboardConfig.disableModelMesh,
+    },
     notebookTolerationSettings: {
       ...DEFAULT_CLUSTER_SETTINGS.notebookTolerationSettings,
       key: isJupyterEnabled ? DEFAULT_CLUSTER_SETTINGS.notebookTolerationSettings.key : '',
     },
   };
-  const dashConfig = getDashboardConfig();
+
   if (!dashConfig.spec.dashboardConfig.disableTracking) {
     try {
       const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
       clusterSettings.userTrackingEnabled =
         segmentEnabledRes.body.data.segmentKeyEnabled === 'true';
     } catch (e) {
-      fastify.log.error('Error retrieving segment key enabled: ' + e.toString());
+      fastify.log.error(e, 'Error retrieving segment key enabled.');
     }
   }
 
@@ -147,7 +173,7 @@ export const getClusterSettings = async (
       if (e.statusCode === 404) {
         fastify.log.warn('Notebook controller culling config not found, culling disabled...');
       } else {
-        fastify.log.error('Error getting notebook controller culling settings: ' + e.toString());
+        fastify.log.error(e, 'Error getting notebook controller culling settings.');
         throw e;
       }
     });

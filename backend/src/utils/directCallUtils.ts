@@ -3,6 +3,11 @@ import { DEV_MODE, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { getImpersonateAccessToken, isImpersonating } from '../devFlags';
 
+export const getAccessToken = (options: RequestOptions): string | undefined =>
+  typeof options.headers?.Authorization === 'string'
+    ? options.headers.Authorization.match(/^Bearer (.*?)$/)[1]
+    : undefined;
+
 export const getDirectCallOptions = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,

@@ -4,7 +4,7 @@ import { Button, ToolbarItem } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
-import Table from '~/components/table/Table';
+import { Table } from '~/components/table';
 import useDraggableTable from '~/utilities/useDraggableTable';
 import { patchDashboardConfigTemplateOrderBackend } from '~/services/dashboardService';
 import { getServingRuntimeNameFromTemplate, getSortedTemplates } from './utils';
@@ -24,6 +24,7 @@ const CustomServingRuntimeListView: React.FC = () => {
   const navigate = useNavigate();
 
   const [deleteTemplate, setDeleteTemplate] = React.useState<TemplateKind>();
+
   const sortedTemplates = React.useMemo(
     () => getSortedTemplates(unsortedTemplates, templateOrder),
     [unsortedTemplates, templateOrder],

@@ -1,11 +1,10 @@
 /*
  * Common types, should be kept up to date with backend types
  */
-
-import { ServingRuntimeSize } from '~/pages/modelServing/screens/types';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+import { AcceleratorState } from './utilities/useAcceleratorState';
 
 export type PrometheusQueryResponse = {
   data: {
@@ -34,63 +33,13 @@ export type PrometheusQueryRangeResponse = {
 export type PrometheusQueryRangeResultValue = [number, string];
 
 /**
+ * @deprecated - Use AcceleratorProfiles
  * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
  * "any string" as a documentation touch point. Has no baring on the type checking.
  */
 type NumberString = string;
+/** @deprecated - Use AcceleratorProfiles */
 export type GpuSettingString = 'autodetect' | 'hidden' | NumberString | undefined;
-
-export type OperatorStatus = {
-  /** Operator is installed and will be cloned to the namespace on creation */
-  available: boolean;
-  /** Has a detection gone underway or is the available a static default */
-  queriedForStatus: boolean;
-};
-
-export type DashboardConfig = K8sResourceCommon & {
-  spec: {
-    dashboardConfig: DashboardCommonConfig;
-    groupsConfig?: {
-      adminGroups: string;
-      allowedGroups: string;
-    };
-    notebookSizes?: NotebookSize[];
-    modelServerSizes?: ServingRuntimeSize[];
-    notebookController?: {
-      enabled: boolean;
-      pvcSize?: string;
-      notebookNamespace?: string;
-      gpuSetting?: GpuSettingString;
-      notebookTolerationSettings?: TolerationSettings;
-    };
-    templateOrder?: string[];
-    templateDisablement?: string[];
-  };
-  /** Faux status object -- computed by the service account */
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: OperatorStatus;
-    };
-  };
-};
-
-export type DashboardCommonConfig = {
-  enablement: boolean;
-  disableInfo: boolean;
-  disableSupport: boolean;
-  disableClusterManager: boolean;
-  disableTracking: boolean;
-  disableBYONImageStream: boolean;
-  disableISVBadges: boolean;
-  disableAppLauncher: boolean;
-  disableUserManagement: boolean;
-  disableProjects: boolean;
-  disableModelServing: boolean;
-  disableProjectSharing: boolean;
-  disableCustomServingRuntimes: boolean;
-  modelMetricsNamespace: string;
-  disablePipelines: boolean;
-};
 
 export type NotebookControllerUserState = {
   user: string;
@@ -104,24 +53,22 @@ export type NotebookControllerUserState = {
  * OdhDashboardConfig contains gpuSetting as a string value override -- proper gpus return as numbers
  * TODO: Look to make it just number by properly parsing the value
  */
-export type GPUCount = string | number;
 
 export enum ContainerResourceAttributes {
   CPU = 'cpu',
   MEMORY = 'memory',
-  NVIDIA_GPU = 'nvidia.com/gpu',
 }
 
 export type ContainerResources = {
   requests?: {
-    cpu?: string;
+    [key: string]: number | string | undefined;
+    cpu?: string | number;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
   };
   limits?: {
-    cpu?: string;
+    [key: string]: number | string | undefined;
+    cpu?: string | number;
     memory?: string;
-    'nvidia.com/gpu'?: GPUCount;
   };
 };
 
@@ -153,9 +100,15 @@ export type NotebookTolerationFormSettings = TolerationSettings & {
 
 export type ClusterSettingsType = {
   userTrackingEnabled: boolean;
-  pvcSize: number | string;
+  pvcSize: number;
   cullerTimeout: number;
   notebookTolerationSettings: TolerationSettings | null;
+  modelServingPlatformEnabled: ModelServingPlatformEnabled;
+};
+
+export type ModelServingPlatformEnabled = {
+  kServe: boolean;
+  modelMesh: boolean;
 };
 
 /** @deprecated -- use SDK type */
@@ -290,7 +243,7 @@ type K8sMetadata = {
 /**
  * @deprecated -- use the SDK version -- see k8sTypes.ts
  * All references that use this are un-vetted data against existing types, should be converted over
- * to the new K8sResourceCommon from the SDK to keep everythung unified on one front.
+ * to the new K8sResourceCommon from the SDK to keep everything unified on one front.
  */
 export type K8sResourceCommon = {
   apiVersion?: string;
@@ -329,7 +282,8 @@ export type TrackingEventProperties = {
   anonymousID?: string;
   type?: string;
   term?: string;
-  GPU?: GPUCount;
+  accelerator?: string;
+  acceleratorCount?: number;
   lastSelectedSize?: string;
   lastSelectedImage?: string;
   projectName?: string;
@@ -344,9 +298,11 @@ export type NotebookPort = {
 };
 
 export type PodToleration = {
-  effect: string;
   key: string;
-  operator: string;
+  operator?: string;
+  value?: string;
+  effect?: string;
+  tolerationSeconds?: number;
 };
 
 export type NotebookContainer = {
@@ -375,6 +331,7 @@ export type Notebook = K8sResourceCommon & {
       'opendatahub.io/username': string; // the untranslated username behind the notebook
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
+      'opendatahub.io/accelerator-name': string | undefined;
     }>;
     labels: Partial<{
       'opendatahub.io/user': string; // translated username -- see translateUsername
@@ -438,29 +395,17 @@ export type Route = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
-  description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {
@@ -702,7 +647,7 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  gpus: number;
+  accelerator: AcceleratorState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field
@@ -737,3 +682,15 @@ export type ContextResourceData<T> = {
 export type BreadcrumbItemType = {
   label: string;
 } & EitherNotBoth<{ link: string }, { isActive: boolean }>;
+
+export type AcceleratorInfo = {
+  configured: boolean;
+  available: { [key: string]: number };
+  total: { [key: string]: number };
+  allocated: { [key: string]: number };
+};
+
+export enum ServingRuntimePlatform {
+  SINGLE = 'single',
+  MULTI = 'multi',
+}

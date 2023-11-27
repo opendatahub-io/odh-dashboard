@@ -1,30 +1,22 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  FormSection,
-  Modal,
-  TextInput,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
-import { useCreateInferenceServiceObject } from '~/pages/modelServing/screens/projects/utils';
 import {
-  assembleSecret,
-  createInferenceService,
-  createSecret,
-  updateInferenceService,
-} from '~/api';
-import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+  submitInferenceServiceResource,
+  useCreateInferenceServiceObject,
+} from '~/pages/modelServing/screens/projects/utils';
+import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
 import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { getProjectDisplayName } from '~/pages/projects/utils';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
+import InferenceServiceNameSection from './InferenceServiceNameSection';
 
 type ManageInferenceServiceModalProps = {
   isOpen: boolean;
@@ -34,7 +26,7 @@ type ManageInferenceServiceModalProps = {
   {
     projectContext?: {
       currentProject: ProjectKind;
-      currentServingRuntime: ServingRuntimeKind;
+      currentServingRuntime?: ServingRuntimeKind;
       dataConnections: DataConnection[];
     };
   }
@@ -54,7 +46,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (projectContext) {
       const { currentProject, currentServingRuntime } = projectContext;
       setCreateData('project', currentProject.metadata.name);
-      setCreateData('servingRuntimeName', currentServingRuntime.metadata.name);
+      setCreateData('servingRuntimeName', currentServingRuntime?.metadata.name || '');
     }
   }, [projectContext, setCreateData]);
 
@@ -62,24 +54,28 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createData.storage.dataConnection !== '';
     }
-    return isAWSValid(createData.storage.awsData);
+    return isAWSValid(createData.storage.awsData, [AWS_KEYS.AWS_S3_BUCKET]);
   };
 
-  const canCreate =
-    !actionInProgress &&
-    createData.name.trim() !== '' &&
-    createData.project !== '' &&
-    createData.format.name !== '' &&
-    createData.project !== '' &&
-    createData.storage.path !== '' &&
-    createData.storage.path !== '/' &&
-    !createData.storage.path.includes('//') &&
-    storageCanCreate();
+  const isDisabled =
+    actionInProgress ||
+    createData.name.trim() === '' ||
+    createData.project === '' ||
+    createData.format.name === '' ||
+    createData.storage.path.includes('//') ||
+    createData.storage.path === '' ||
+    createData.storage.path === '/' ||
+    !storageCanCreate();
 
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
+    setError(undefined);
     setActionInProgress(false);
     resetData();
+  };
+
+  const onSuccess = () => {
+    onBeforeClose(true);
   };
 
   const setErrorModal = (error: Error) => {
@@ -87,77 +83,15 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     setActionInProgress(false);
   };
 
-  const createAWSSecret = (): Promise<SecretKind> =>
-    createSecret(
-      assembleSecret(
-        createData.project,
-        createData.storage.awsData.reduce<Record<string, string>>(
-          (acc, { key, value }) => ({ ...acc, [key]: value }),
-          {},
-        ),
-        'aws',
-      ),
-    );
-
-  const cleanFormData = () => {
-    const cleanedStorageFolderPath = createData.storage.path.replace(/^\/+/, '');
-
-    return {
-      ...createData,
-      storage: {
-        ...createData.storage,
-        path: cleanedStorageFolderPath === '' ? '/' : cleanedStorageFolderPath,
-      },
-    };
-  };
-
-  const createModel = (): Promise<InferenceServiceKind> => {
-    // clean data
-    const cleanedFormData = cleanFormData();
-
-    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createInferenceService(cleanedFormData);
-    }
-    return createAWSSecret().then((secret) =>
-      createInferenceService(cleanedFormData, secret.metadata.name),
-    );
-  };
-
-  const updateModel = (): Promise<InferenceServiceKind> => {
-    if (!editInfo) {
-      return Promise.reject(new Error('No model to update'));
-    }
-
-    // clean data
-    const cleanedFormData = cleanFormData();
-
-    if (cleanedFormData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return updateInferenceService(cleanedFormData, editInfo);
-    }
-    return createAWSSecret().then((secret) =>
-      updateInferenceService(cleanedFormData, editInfo, secret.metadata.name),
-    );
-  };
-
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
 
-    if (editInfo) {
-      updateModel()
-        .then(() => {
-          setActionInProgress(false);
-          onBeforeClose(true);
-        })
-        .catch(setErrorModal);
-    } else {
-      createModel()
-        .then(() => {
-          setActionInProgress(false);
-          onBeforeClose(true);
-        })
-        .catch(setErrorModal);
-    }
+    submitInferenceServiceResource(createData, editInfo, undefined, true)
+      .then(() => onSuccess())
+      .catch((e) => {
+        setErrorModal(e);
+      });
   };
 
   return (
@@ -172,7 +106,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
           submitLabel="Deploy"
           onSubmit={submit}
           onCancel={() => onBeforeClose(false)}
-          isSubmitDisabled={!canCreate}
+          isSubmitDisabled={isDisabled}
           error={error}
           alertTitle="Error creating model server"
         />
@@ -183,21 +117,16 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
         <Stack hasGutter>
           <StackItem>
             <ProjectSection
-              data={createData}
-              setData={setCreateData}
-              editInfo={editInfo}
-              project={projectContext?.currentProject}
+              projectName={
+                (projectContext?.currentProject &&
+                  getProjectDisplayName(projectContext?.currentProject)) ||
+                editInfo?.metadata.namespace ||
+                ''
+              }
             />
           </StackItem>
           <StackItem>
-            <FormGroup label="Model Name" fieldId="inference-service-name-input" isRequired>
-              <TextInput
-                isRequired
-                id="inference-service-name-input"
-                value={createData.name}
-                onChange={(name) => setCreateData('name', name)}
-              />
-            </FormGroup>
+            <InferenceServiceNameSection data={createData} setData={setCreateData} />
           </StackItem>
           <StackItem>
             <InferenceServiceServingRuntimeSection

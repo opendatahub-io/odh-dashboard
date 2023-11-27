@@ -1,5 +1,12 @@
-import { K8sResourceBaseOptions, QueryParams } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  K8sResourceBaseOptions,
+  K8sResourceDeleteOptions,
+  QueryParams,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions } from '~/k8sTypes';
+
+const dryRunPayload = (dryRun?: boolean): Pick<K8sResourceDeleteOptions, 'payload'> =>
+  dryRun ? { payload: { dryRun: ['All'] } } : {};
 
 const mergeK8sQueryParams = (
   opts: K8sAPIOptions = {},
@@ -21,6 +28,7 @@ export const applyK8sAPIOptions = <T extends K8sResourceBaseOptions>(
   opts: K8sAPIOptions = {},
   apiData: T,
 ): T => ({
+  ...dryRunPayload(opts.dryRun),
   ...apiData,
   queryOptions: {
     ...apiData.queryOptions,
