@@ -11,7 +11,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 
 const EmptyEdgeModels: React.FC = () => (
   <PageSection isFilled>
-    <EmptyState variant={EmptyStateVariant.large}>
+    <EmptyState variant={EmptyStateVariant.lg}>
       <EmptyStateIcon icon={PlusCircleIcon} />
       <Title headingLevel="h1" size="lg">
         No models added

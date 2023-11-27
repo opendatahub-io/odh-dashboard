@@ -1,13 +1,6 @@
 import * as React from 'react';
-import {
-  Button,
-  Select,
-  SelectOption,
-  Split,
-  SplitItem,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { EnvironmentVariableType, EnvVariable } from '~/pages/projects/types';
 import IndentSection from '~/pages/projects/components/IndentSection';

@@ -1,4 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
@@ -64,6 +65,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/notebook-software': string;
   'opendatahub.io/workbench-image-recommended': string;
   'opendatahub.io/default-image': string;
+  'opendatahub.io/image-tag-outdated': string;
 }>;
 
 export type NotebookAnnotations = Partial<{
@@ -91,6 +93,7 @@ export type K8sCondition = {
   reason?: string;
   message?: string;
   lastTransitionTime?: string;
+  lastHeartbeatTime?: string;
 };
 
 export type ServingRuntimeAnnotations = Partial<{
@@ -101,6 +104,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-name': string;
   'enable-route': string;
   'enable-auth': string;
+  'modelmesh-enabled': 'true' | 'false';
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -297,6 +301,7 @@ export type ProjectKind = K8sResourceCommon & {
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
+    labels: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
@@ -359,6 +364,17 @@ export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: DisplayNameAnnotations &
+      EitherOrNone<
+        {
+          'serving.kserve.io/deploymentMode': 'ModelMesh';
+        },
+        {
+          'serving.knative.openshift.io/enablePassthrough': 'true';
+          'sidecar.istio.io/inject': 'true';
+          'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
+        }
+      >;
   };
   spec: {
     predictor: {
@@ -708,6 +724,7 @@ export type TemplateKind = K8sResourceCommon & {
       tags: string;
       iconClass?: string;
       'opendatahub.io/template-enabled': string;
+      'opendatahub.io/modelServingSupport': string;
     }>;
     name: string;
     namespace: string;
@@ -741,6 +758,8 @@ export type DashboardCommonConfig = {
   modelMetricsNamespace: string;
   disablePipelines: boolean;
   disableEdge: boolean;
+  disableKServe: boolean;
+  disableModelMesh: boolean;
 };
 
 export type OperatorStatus = {

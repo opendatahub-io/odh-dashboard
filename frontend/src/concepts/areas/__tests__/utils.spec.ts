@@ -1,6 +1,6 @@
 import { isAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { StackComponent } from '~/concepts/areas/types';
 import { SupportedAreasStateMap } from '~/concepts/areas/const';
 
@@ -128,71 +128,50 @@ describe('isAreaAvailable', () => {
     });
 
     /**
-     * These tests rely on Model Serving being in a specific configuration, we may need to replace
+     * These tests rely on Custom Serving Runtime being in a specific configuration, we may need to replace
      * these tests if these become obsolete.
      */
     describe('reliantAreas', () => {
       it('should enable area if at least one reliant area is enabled', () => {
         // Make sure this test is valid
-        expect(SupportedAreasStateMap[SupportedArea.MODEL_SERVING].reliantAreas).toEqual([
-          SupportedArea.K_SERVE,
-          SupportedArea.MODEL_MESH,
+        expect(SupportedAreasStateMap[SupportedArea.CUSTOM_RUNTIMES].reliantAreas).toEqual([
+          SupportedArea.MODEL_SERVING,
         ]);
 
         // Test both reliant areas
-        const isAvailableReliantModelMesh = isAreaAvailable(
-          SupportedArea.MODEL_SERVING,
+        const isAvailableReliantCustomRuntimes = isAreaAvailable(
+          SupportedArea.CUSTOM_RUNTIMES,
           mockDashboardConfig({ disableModelServing: false }).spec,
-          mockDscStatus({ installedComponents: { [StackComponent.MODEL_MESH]: true } }),
+          mockDscStatus({}),
         );
 
-        expect(isAvailableReliantModelMesh.status).toBe(true);
-        expect(isAvailableReliantModelMesh.featureFlags).toEqual({ ['disableModelServing']: 'on' });
-        expect(isAvailableReliantModelMesh.reliantAreas).toEqual({
-          [SupportedArea.K_SERVE]: false,
-          [SupportedArea.MODEL_MESH]: true,
+        expect(isAvailableReliantCustomRuntimes.status).toBe(true);
+        expect(isAvailableReliantCustomRuntimes.featureFlags).toEqual({
+          ['disableCustomServingRuntimes']: 'on',
         });
-        expect(isAvailableReliantModelMesh.requiredComponents).toBe(null);
-
-        const isAvailableReliantKServe = isAreaAvailable(
-          SupportedArea.MODEL_SERVING,
-          mockDashboardConfig({ disableModelServing: false }).spec,
-          mockDscStatus({ installedComponents: { [StackComponent.K_SERVE]: true } }),
-        );
-
-        expect(isAvailableReliantKServe.status).toBe(true);
-        expect(isAvailableReliantKServe.featureFlags).toEqual({ ['disableModelServing']: 'on' });
-        expect(isAvailableReliantKServe.reliantAreas).toEqual({
-          [SupportedArea.K_SERVE]: true,
-          [SupportedArea.MODEL_MESH]: false,
+        expect(isAvailableReliantCustomRuntimes.reliantAreas).toEqual({
+          [SupportedArea.MODEL_SERVING]: true,
         });
-        expect(isAvailableReliantKServe.requiredComponents).toBe(null);
+        expect(isAvailableReliantCustomRuntimes.requiredComponents).toBe(null);
       });
 
       it('should disable area if reliant areas are all disabled', () => {
         // Make sure this test is valid
-        expect(SupportedAreasStateMap[SupportedArea.MODEL_SERVING].reliantAreas).toEqual([
-          SupportedArea.K_SERVE,
-          SupportedArea.MODEL_MESH,
+        expect(SupportedAreasStateMap[SupportedArea.CUSTOM_RUNTIMES].reliantAreas).toEqual([
+          SupportedArea.MODEL_SERVING,
         ]);
 
-        // Test both areas disabled
+        // Test areas disabled
         const isAvailable = isAreaAvailable(
-          SupportedArea.MODEL_SERVING,
-          mockDashboardConfig({ disableModelServing: false }).spec,
-          mockDscStatus({
-            installedComponents: {
-              [StackComponent.K_SERVE]: false,
-              [StackComponent.MODEL_MESH]: false,
-            },
-          }),
+          SupportedArea.CUSTOM_RUNTIMES,
+          mockDashboardConfig({ disableModelServing: true }).spec,
+          mockDscStatus({}),
         );
 
         expect(isAvailable.status).not.toBe(true);
-        expect(isAvailable.featureFlags).toEqual({ ['disableModelServing']: 'on' });
+        expect(isAvailable.featureFlags).toEqual({ ['disableCustomServingRuntimes']: 'on' });
         expect(isAvailable.reliantAreas).toEqual({
-          [SupportedArea.K_SERVE]: false,
-          [SupportedArea.MODEL_MESH]: false,
+          [SupportedArea.MODEL_SERVING]: false,
         });
         expect(isAvailable.requiredComponents).toBe(null);
       });

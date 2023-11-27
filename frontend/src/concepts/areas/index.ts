@@ -6,6 +6,6 @@
   determine the state we are in.
 */
 export { default as AreaComponent, conditionalArea } from './AreaComponent';
-export { SupportedArea } from './types';
+export { SupportedArea, StackComponent } from './types';
 export { default as useIsAreaAvailable } from './useIsAreaAvailable';
 export { isAreaAvailable } from './utils';

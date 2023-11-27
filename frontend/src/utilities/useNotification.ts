@@ -1,3 +1,4 @@
+import { AlertVariant } from '@patternfly/react-core';
 import * as React from 'react';
 import { addNotification } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
@@ -21,7 +22,7 @@ const useNotification = (): NotificationFunc => {
     (title, message) => {
       dispatch(
         addNotification({
-          status: 'success',
+          status: AlertVariant.success,
           title,
           message,
           timestamp: new Date(),
@@ -35,7 +36,7 @@ const useNotification = (): NotificationFunc => {
     (title, message?) => {
       dispatch(
         addNotification({
-          status: 'danger',
+          status: AlertVariant.danger,
           title,
           message,
           timestamp: new Date(),
@@ -49,7 +50,7 @@ const useNotification = (): NotificationFunc => {
     (title, message?) => {
       dispatch(
         addNotification({
-          status: 'info',
+          status: AlertVariant.info,
           title,
           message,
           timestamp: new Date(),
@@ -63,7 +64,7 @@ const useNotification = (): NotificationFunc => {
     (title, message?) => {
       dispatch(
         addNotification({
-          status: 'warning',
+          status: AlertVariant.warning,
           title,
           message,
           timestamp: new Date(),

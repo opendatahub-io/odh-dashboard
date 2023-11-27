@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Divider } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -7,11 +6,11 @@ import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/co
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
-import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineServerActions from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineServerActions';
 
 const PipelinesSection: React.FC = () => {
   const {
+    apiAvailable,
     pipelinesServer: { initializing, installed, timedOut },
   } = usePipelinesAPI();
 
@@ -34,19 +33,17 @@ const PipelinesSection: React.FC = () => {
             variant="kebab"
           />,
         ]}
-        isLoading={initializing}
+        isLoading={(!apiAvailable && installed) || initializing}
         isEmpty={!installed}
         emptyState={<NoPipelineServer variant="secondary" />}
+        showDivider={isPipelinesEmpty}
       >
         {timedOut ? (
           <PipelineServerTimedOut />
         ) : (
-          <EnsureAPIAvailability>
-            <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
-          </EnsureAPIAvailability>
+          <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
         )}
       </DetailsSection>
-      {(isPipelinesEmpty || !installed) && <Divider data-id="details-page-section-divider" />}
     </>
   );
 };

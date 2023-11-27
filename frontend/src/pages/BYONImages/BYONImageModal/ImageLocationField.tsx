@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { FormGroup, FormHelperText, Popover, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Popover,
+  TextInput,
+} from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 
 type ImageLocationFieldProps = {
@@ -17,11 +24,6 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
     label="Image location"
     isRequired
     fieldId="byon-image-location-input"
-    helperText={
-      <FormHelperText component="div" isHidden={false}>
-        The address where the notebook image is located. See the help icon for examples.
-      </FormHelperText>
-    }
     labelIcon={
       <Popover
         aria-label="Image location help popover"
@@ -43,15 +45,22 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
       id="byon-image-location-input"
       isRequired
       type="text"
-      data-id="byon-image-location-input"
+      data-testid="byon-image-location-input"
       name="byon-image-location-input"
       aria-describedby="byon-image-location-input"
       value={location}
-      onChange={(value) => {
+      onChange={(e, value) => {
         setLocation(value);
       }}
       isDisabled={isDisabled}
     />
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem>
+          The address where the notebook image is located. See the help icon for examples.
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
   </FormGroup>
 );
 

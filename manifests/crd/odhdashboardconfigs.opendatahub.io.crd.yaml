@@ -55,6 +55,10 @@ spec:
                       type: boolean
                     disableEdge:
                       type: boolean
+                    disableKServe:
+                      type: boolean
+                    disableModelMesh:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

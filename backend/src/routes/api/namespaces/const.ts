@@ -4,7 +4,11 @@ export enum NamespaceApplicationCase {
    */
   DSG_CREATION,
   /**
-   * Upgrade an existing DSG project to work with model serving.
+   * Upgrade an existing DSG project to work with model mesh.
    */
-  MODEL_SERVING_PROMOTION,
+  MODEL_MESH_PROMOTION,
+  /**
+   * Upgrade an existing DSG project to work with model kserve.
+   */
+  KSERVE_PROMOTION,
 }

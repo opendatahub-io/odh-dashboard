@@ -49,7 +49,7 @@ const NotebookAdminControl: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <Alert title="Manage users in OpenShift" titleHeadingLevel="h2" isInline>
+            <Alert title="Manage users in OpenShift" component="h2" isInline>
               Create, delete, and manage permissions for Red Hat OpenShift AI users in OpenShift.{' '}
               <ExternalLink
                 text="Learn more about OpenShift user management"
