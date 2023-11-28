@@ -55,7 +55,7 @@ export const blankDashboardCR: DashboardConfig = {
       modelMetricsNamespace: '',
       disablePipelines: false,
       disableKServe: false,
-      disableModelMesh: true,
+      disableModelMesh: false,
     },
     notebookController: {
       enabled: true,
