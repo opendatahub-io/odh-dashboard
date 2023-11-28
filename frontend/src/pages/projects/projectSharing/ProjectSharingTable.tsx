@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Table from '~/components/table/Table';
+import { Table } from '~/components/table';
 import { RoleBindingKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { deleteRoleBinding, generateRoleBindingProjectSharing, createRoleBinding } from '~/api';

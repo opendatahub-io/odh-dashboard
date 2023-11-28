@@ -181,7 +181,7 @@ spec:
 
     ## Prerequisites
 
-    - You have logged in to Open Data Hub.
+    - You have logged in to Red Hat OpenShift AI.
 
     - You know the names and values that you want to use for environment
     variables in your notebook server environment, for example,
@@ -201,7 +201,7 @@ spec:
 
       ii. Enter your credentials and click **Log in** (or equivalent for your identity provider).
 
-      If you see an **Access permission needed** message, you are not in the default user group or the default administrator group for Open Data Hub. Contact your administrator so that they can add you to the correct group.
+      If you see **Error 403: Forbidden**, you are not in the default user group or the default administrator group for OpenShift AI. Contact your administrator so that they can add you to the correct group using [Adding users for OpenShift AI](https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/adding-users-for-openshift-data-science_useradd).
 
     3. Start a notebook server.
 

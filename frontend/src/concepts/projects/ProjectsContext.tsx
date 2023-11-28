@@ -1,11 +1,14 @@
 import * as React from 'react';
 import useFetchState, { FetchState } from '~/utilities/useFetchState';
-import { getDSGProjects } from '~/api';
+import { getProjects } from '~/api';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
+import { useDashboardNamespace } from '~/redux/selectors';
+import { isAvailableProject } from '~/concepts/projects/utils';
 
 type ProjectFetchState = FetchState<ProjectKind[]>;
 type ProjectsContext = {
   projects: ProjectKind[];
+  dataScienceProjects: ProjectKind[];
   modelServingProjects: ProjectKind[];
   /** eg. Terminating state, etc */
   nonActiveProjects: ProjectKind[];
@@ -16,7 +19,7 @@ type ProjectsContext = {
    * Allows for navigation to be unimpeded by project selection
    * @see useSyncPreferredProject
    */
-  updatePreferredProject: (project: ProjectKind) => void;
+  updatePreferredProject: (project: ProjectKind | null) => void;
   refresh: (waitForName?: string) => Promise<void>;
 
   // ...the rest of the state variables
@@ -26,6 +29,7 @@ type ProjectsContext = {
 
 export const ProjectsContext = React.createContext<ProjectsContext>({
   projects: [],
+  dataScienceProjects: [],
   modelServingProjects: [],
   nonActiveProjects: [],
   preferredProject: null,
@@ -44,39 +48,46 @@ type ProjectsProviderProps = {
 };
 
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
-  const fetchProjects = React.useCallback(() => getDSGProjects(), []);
+  const fetchProjects = React.useCallback(() => getProjects(), []);
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContext['preferredProject']>(null);
   const [projectData, loaded, loadError, refreshProjects] = useFetchState<ProjectKind[]>(
     fetchProjects,
     [],
   );
+  const { dashboardNamespace } = useDashboardNamespace();
 
-  const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
+  const { projects, dataScienceProjects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
       projectData.reduce<{
         projects: ProjectKind[];
+        dataScienceProjects: ProjectKind[];
         modelServingProjects: ProjectKind[];
         nonActiveProjects: ProjectKind[];
       }>(
         (states, project) => {
-          if (project.status?.phase === 'Active') {
-            // Project that is active
-            states.projects.push(project);
-            if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]) {
-              // Model Serving active projects
-              states.modelServingProjects.push(project);
+          if (isAvailableProject(project.metadata.name, dashboardNamespace)) {
+            if (project.status?.phase === 'Active') {
+              // Project that is active
+              states.projects.push(project);
+              if (project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]) {
+                states.dataScienceProjects.push(project);
+              }
+              if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT]) {
+                // Model Serving active projects
+                states.modelServingProjects.push(project);
+              }
+            } else {
+              // Non 'Active' -- aka terminating
+              states.nonActiveProjects.push(project);
             }
-          } else {
-            // Non 'Active' -- aka terminating
-            states.nonActiveProjects.push(project);
           }
 
           return states;
         },
-        { projects: [], modelServingProjects: [], nonActiveProjects: [] },
+        { projects: [], dataScienceProjects: [], modelServingProjects: [], nonActiveProjects: [] },
       ),
-    [projectData],
+    [projectData, dashboardNamespace],
   );
 
   const refresh = React.useCallback<ProjectsContext['refresh']>(
@@ -114,6 +125,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     <ProjectsContext.Provider
       value={{
         projects,
+        dataScienceProjects,
         modelServingProjects,
         nonActiveProjects,
         preferredProject,

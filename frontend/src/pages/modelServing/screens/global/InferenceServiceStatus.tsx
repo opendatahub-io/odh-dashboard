@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
-import { getInferenceServiceActiveModelState, getInferenceServiceErrorMessage } from './utils';
+import { getInferenceServiceActiveModelState, getInferenceServiceStatusMessage } from './utils';
 
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
@@ -35,7 +35,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
       case InferenceServiceModelState.LOADING:
         return (
           <Icon isInline>
-            <Spinner isSVG size="md" />
+            <Spinner size="md" />
           </Icon>
         );
       case InferenceServiceModelState.UNKNOWN:
@@ -55,9 +55,8 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
 
   return (
     <Tooltip
-      removeFindDomNode
       role="none"
-      content={<Text>{getInferenceServiceErrorMessage(inferenceService)}</Text>}
+      content={<Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>}
     >
       {StatusIcon()}
     </Tooltip>

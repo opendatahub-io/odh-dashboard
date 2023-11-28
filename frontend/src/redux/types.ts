@@ -1,3 +1,4 @@
+import { AlertVariant } from '@patternfly/react-core';
 import * as React from 'react';
 
 export enum Actions {
@@ -11,10 +12,9 @@ export enum Actions {
   FORCE_COMPONENTS_UPDATE = 'FORCE_COMPONENTS_UPDATE',
 }
 
-export type AppNotificationStatus = 'success' | 'danger' | 'warning' | 'info' | 'default';
 export interface AppNotification {
   id?: number;
-  status: AppNotificationStatus;
+  status: AlertVariant;
   title: string;
   message?: React.ReactNode;
   hidden?: boolean;

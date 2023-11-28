@@ -1,8 +1,6 @@
 name: Pull request
 on:
   pull_request:
-    branches: [ main, f/** ]
-
 jobs:
   Tests:
     runs-on: ubuntu-latest
@@ -10,7 +8,7 @@ jobs:
       matrix:
         node-version: [18.x]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3.8.1
         with:

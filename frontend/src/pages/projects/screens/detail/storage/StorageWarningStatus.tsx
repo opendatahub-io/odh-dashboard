@@ -98,7 +98,6 @@ const StorageWarningStatus: React.FC<StorageWarningStatusProps> = ({
           .
         </>
       )}
-      removeFindDomNode
     >
       <Bullseye>{renderIcon}</Bullseye>
     </Popover>

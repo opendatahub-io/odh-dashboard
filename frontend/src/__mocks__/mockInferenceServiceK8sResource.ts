@@ -7,7 +7,33 @@ type MockResourceConfigType = {
   displayName?: string;
   modelName?: string;
   secretName?: string;
+  deleted?: boolean;
+  isModelMesh?: boolean;
+  activeModelState?: string;
+  url?: string;
 };
+
+export const mockInferenceServicek8sError = () => ({
+  kind: 'Status',
+  apiVersion: 'v1',
+  metadata: {},
+  status: 'Failure',
+  message:
+    'InferenceService.serving.kserve.io "trigger-error" is invalid: [metadata.name: Invalid value: "trigger-error": is invalid, metadata.labels: Invalid value: "trigger-error": must have proper format]',
+  reason: 'Invalid',
+  details: {
+    name: 'trigger-error',
+    group: 'serving.kserve.io',
+    kind: 'InferenceService',
+    causes: [
+      {
+        reason: 'FieldValueInvalid',
+        message: 'Invalid value: "trigger-error": must have proper format',
+        field: 'metadata.name',
+      },
+    ],
+  },
+});
 
 export const mockInferenceServiceK8sResource = ({
   name = 'test-inference-service',
@@ -15,15 +41,26 @@ export const mockInferenceServiceK8sResource = ({
   displayName = 'Test Inference Service',
   modelName = 'test-model',
   secretName = 'test-secret',
+  deleted = false,
+  isModelMesh = false,
+  activeModelState = 'Pending',
+  url = '',
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
   metadata: {
     annotations: {
       'openshift.io/display-name': displayName,
-      'serving.kserve.io/deploymentMode': 'ModelMesh',
+      ...(isModelMesh
+        ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
+        : {
+            'serving.knative.openshift.io/enablePassthrough': 'true',
+            'sidecar.istio.io/inject': 'true',
+            'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+          }),
     },
     creationTimestamp: '2023-03-17T16:12:41Z',
+    ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
     generation: 1,
     labels: {
       name: name,
@@ -51,7 +88,7 @@ export const mockInferenceServiceK8sResource = ({
   },
   status: {
     components: {},
-    url: '',
+    url,
     conditions: [
       {
         lastTransitionTime: '2023-03-17T16:12:41Z',
@@ -77,7 +114,7 @@ export const mockInferenceServiceK8sResource = ({
         time: '',
       },
       states: {
-        activeModelState: 'Pending',
+        activeModelState,
         targetModelState: '',
       },
       transitionStatus: '',

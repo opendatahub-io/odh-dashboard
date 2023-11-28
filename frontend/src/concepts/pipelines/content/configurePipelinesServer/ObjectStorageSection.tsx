@@ -3,13 +3,15 @@ import {
   Title,
   Radio,
   FormGroup,
-  Select,
-  SelectOption,
   Text,
   TextInput,
   Stack,
   StackItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import React from 'react';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
@@ -19,11 +21,15 @@ import { PipelineServerConfigType } from './types';
 import './ConfigurePipelinesServerModal.scss';
 
 const DISABLED_FOLDER_PATH = (
-  <FormGroup
-    label="Folder path"
-    helperText="/metadata and /artifacts folders are automatically created in the default root folder"
-  >
+  <FormGroup label="Folder path">
     <TextInput isDisabled aria-label="disabled folder path field" value="/" />
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem>
+          /metadata and /artifacts folders are automatically created in the default root folder
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
   </FormGroup>
 );
 
@@ -72,7 +78,6 @@ export const ObjectStorageSection = ({
               <StackItem>
                 <FormGroup label="Name" isRequired>
                   <Select
-                    removeFindDomNode
                     id="pipelines-data-connection"
                     isOpen={existingDataConnectionOpen}
                     placeholderText={
@@ -81,7 +86,7 @@ export const ObjectStorageSection = ({
                         : 'Select...'
                     }
                     isDisabled={dataConnections.length === 0}
-                    onToggle={(open) => setExistingDataConnectionOpen(open)}
+                    onToggle={(e, open) => setExistingDataConnectionOpen(open)}
                     onSelect={(_, option) => {
                       if (typeof option === 'string') {
                         setConfig({

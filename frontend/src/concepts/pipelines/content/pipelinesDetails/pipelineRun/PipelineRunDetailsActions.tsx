@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownSeparator, DropdownToggle } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownSeparator,
+  DropdownToggle,
+} from '@patternfly/react-core/deprecated';
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
@@ -39,13 +44,13 @@ const PipelineRunDetailsActions: React.FC<PipelineDetailsActionsProps> = ({ onDe
                     .catch((e) => notification.error('Unable to stop pipeline run', e.message))
                 }
               >
-                Stop run
+                Stop
               </DropdownItem>,
               <DropdownItem
                 key="clone-run"
                 onClick={() => navigate(`/pipelineRuns/${namespace}/pipelineRun/clone/${run.id}`)}
               >
-                Duplicate run
+                Duplicate
               </DropdownItem>,
               <DropdownSeparator key="separator" />,
               <DropdownItem key="delete-run" onClick={() => onDelete()}>

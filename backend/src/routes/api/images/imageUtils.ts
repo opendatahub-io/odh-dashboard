@@ -1,4 +1,4 @@
-import { IMAGE_ANNOTATIONS, imageUrlRegex } from '../../../utils/constants';
+import { IMAGE_ANNOTATIONS } from '../../../utils/constants';
 import { convertLabelsToString } from '../../../utils/componentUtils';
 import {
   ImageStreamTag,
@@ -7,13 +7,47 @@ import {
   ImageStream,
   TagContent,
   KubeFastifyInstance,
-  BYONImageCreateRequest,
-  BYONImageUpdateRequest,
   BYONImagePackage,
   BYONImage,
 } from '../../../types';
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
+
+const translateDisplayNameForK8s = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/\s/g, '-')
+    .replace(/[^A-Za-z0-9-]/g, '');
+
+/**
+ * This function uses a regex to match the image location string
+ * The match result will return an array of 4 elements:
+ * Full URL, host, repo/image and tag(if any)
+ * @param imageString
+ */
+export const parseImageURL = (
+  imageString: string,
+): { fullURL: string; host: string; image: string; tag: string } => {
+  const imageUrlRegex =
+    /^([\w.\-_]+(?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+)|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
+  const trimmedString = imageString.trim();
+  const result = trimmedString.match(imageUrlRegex);
+  if (!result) {
+    return {
+      fullURL: trimmedString,
+      host: undefined,
+      image: undefined,
+      tag: undefined,
+    };
+  }
+  return {
+    fullURL: trimmedString,
+    host: result[1],
+    image: result[2],
+    tag: result[3],
+  };
+};
 
 export const getImageList = async (
   fastify: KubeFastifyInstance,
@@ -152,6 +186,9 @@ const getTagInfo = (imageStream: ImageStream): ImageTagInfo[] => {
     if (!checkTagExistence(tag, imageStream)) {
       return; //Skip tag
     }
+    if (tagAnnotations[IMAGE_ANNOTATIONS.OUTDATED]) {
+      return; // tag is outdated - we want to keep it around for existing notebooks, not for new ones
+    }
 
     //TODO: add build status
     const tagInfo: ImageTagInfo = {
@@ -189,18 +226,25 @@ const packagesToString = (packages: BYONImagePackage[]): string => {
   return '[]';
 };
 const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
-  id: is.metadata.name,
-  name: is.metadata.annotations['opendatahub.io/notebook-image-name'],
-  description: is.metadata.annotations['opendatahub.io/notebook-image-desc'],
+  id: is.metadata.uid,
+  name: is.metadata.name,
+  display_name:
+    is.metadata.annotations['opendatahub.io/notebook-image-name'] ||
+    is.metadata.annotations['openshift.io/display-name'] ||
+    is.metadata.name,
+  description:
+    is.metadata.annotations['opendatahub.io/notebook-image-desc'] ||
+    is.metadata.annotations['openshift.io/description'] ||
+    '',
   visible: is.metadata.labels['opendatahub.io/notebook-image'] === 'true',
   error: getBYONImageErrorMessage(is),
   packages: jsonParsePackage(
     is.spec.tags?.[0]?.annotations?.['opendatahub.io/notebook-python-dependencies'],
   ),
   software: jsonParsePackage(is.spec.tags?.[0]?.annotations?.['opendatahub.io/notebook-software']),
-  uploaded: is.metadata.creationTimestamp,
+  imported_time: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
-  user: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
+  provider: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
 });
 
 export const postImage = async (
@@ -209,15 +253,13 @@ export const postImage = async (
 ): Promise<{ success: boolean; error: string }> => {
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
-  const body = request.body as BYONImageCreateRequest;
-  const fullUrl = body.url;
-  const matchArray = fullUrl.match(imageUrlRegex);
-  // check if the host is valid
-  if (!matchArray[1]) {
+  const body = request.body as BYONImage;
+  const inputURL = body.url;
+  const { fullURL, host, tag } = parseImageURL(inputURL);
+  if (!host) {
     fastify.log.error('Invalid repository URL unable to add notebook image');
-    return { success: false, error: 'Invalid repository URL: ' + fullUrl };
+    return { success: false, error: 'Invalid repository URL: ' + fullURL };
   }
-  const imageTag = matchArray[4];
   const labels = {
     'app.kubernetes.io/created-by': 'byon',
     'opendatahub.io/notebook-image': 'true',
@@ -228,7 +270,10 @@ export const postImage = async (
 
   if (validName.length > 0) {
     fastify.log.error('Duplicate name unable to add notebook image');
-    return { success: false, error: 'Unable to add notebook image: ' + body.name };
+    return {
+      success: false,
+      error: 'Duplicated name. Unable to add notebook image: ' + body.display_name,
+    };
   }
 
   const payload: ImageStream = {
@@ -236,12 +281,12 @@ export const postImage = async (
     apiVersion: 'image.openshift.io/v1',
     metadata: {
       annotations: {
-        'opendatahub.io/notebook-image-desc': body.description ? body.description : '',
-        'opendatahub.io/notebook-image-name': body.name,
-        'opendatahub.io/notebook-image-url': fullUrl,
-        'opendatahub.io/notebook-image-creator': body.user,
+        'opendatahub.io/notebook-image-desc': body.description || '',
+        'opendatahub.io/notebook-image-name': body.display_name,
+        'opendatahub.io/notebook-image-url': fullURL,
+        'opendatahub.io/notebook-image-creator': body.provider,
       },
-      name: `byon-${Date.now()}`,
+      name: `custom-${translateDisplayNameForK8s(body.display_name)}`,
       namespace: namespace,
       labels: labels,
     },
@@ -254,13 +299,13 @@ export const postImage = async (
           annotations: {
             'opendatahub.io/notebook-software': packagesToString(body.software),
             'opendatahub.io/notebook-python-dependencies': packagesToString(body.packages),
-            'openshift.io/imported-from': fullUrl,
+            'openshift.io/imported-from': fullURL,
           },
           from: {
             kind: 'DockerImage',
-            name: fullUrl,
+            name: fullURL,
           },
-          name: imageTag || 'latest',
+          name: tag || 'latest',
         },
       ],
     },
@@ -277,7 +322,7 @@ export const postImage = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to add notebook image: ' + e.toString());
+      fastify.log.error(e, 'Unable to add notebook image');
       return { success: false, error: 'Unable to add notebook image: ' + e.message };
     }
   }
@@ -306,7 +351,7 @@ export const deleteImage = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to delete notebook image: ' + e.toString());
+      fastify.log.error(e, 'Unable to delete notebook image.');
       return { success: false, error: 'Unable to delete notebook image: ' + e.message };
     }
   }
@@ -319,7 +364,7 @@ export const updateImage = async (
   const customObjectsApi = fastify.kube.customObjectsApi;
   const namespace = fastify.kube.namespace;
   const params = request.params as { image: string };
-  const body = request.body as BYONImageUpdateRequest;
+  const body = request.body as BYONImage;
   const labels = {
     'app.kubernetes.io/created-by': 'byon',
     'opendatahub.io/notebook-image': 'true',
@@ -328,12 +373,12 @@ export const updateImage = async (
   const imageStreams = await getImageStreams(fastify, labels);
   const validName = imageStreams.filter(
     (is) =>
-      is.metadata.annotations['opendatahub.io/notebook-image-name'] === body.name &&
-      is.metadata.name !== body.id,
+      is.metadata.annotations['opendatahub.io/notebook-image-name'] === body.display_name &&
+      is.metadata.name !== body.name,
   );
 
   if (validName.length > 0) {
-    fastify.log.error('Duplicate name unable to add notebook image');
+    fastify.log.error('Duplicate name unable to add notebook image.');
     return { success: false, error: 'Unable to add notebook image: ' + body.name };
   }
 
@@ -362,15 +407,15 @@ export const updateImage = async (
       );
     }
 
-    if (typeof body.visible !== undefined) {
+    if (body.visible !== undefined) {
       if (body.visible) {
         imageStream.metadata.labels['opendatahub.io/notebook-image'] = 'true';
       } else {
         imageStream.metadata.labels['opendatahub.io/notebook-image'] = 'false';
       }
     }
-    if (body.name) {
-      imageStream.metadata.annotations['opendatahub.io/notebook-image-name'] = body.name;
+    if (body.display_name) {
+      imageStream.metadata.annotations['opendatahub.io/notebook-image-name'] = body.display_name;
     }
 
     if (body.description !== undefined) {
@@ -397,7 +442,7 @@ export const updateImage = async (
     return { success: true, error: null };
   } catch (e) {
     if (e.response?.statusCode !== 404) {
-      fastify.log.error('Unable to update notebook image: ' + e.toString());
+      fastify.log.error(e, 'Unable to update notebook image.');
       return { success: false, error: 'Unable to update notebook image: ' + e.message };
     }
   }

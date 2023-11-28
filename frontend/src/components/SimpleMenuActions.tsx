@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownSeparator, KebabToggle } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownSeparator,
+  KebabToggle,
+} from '@patternfly/react-core/deprecated';
 
 type Item = {
   key: string;

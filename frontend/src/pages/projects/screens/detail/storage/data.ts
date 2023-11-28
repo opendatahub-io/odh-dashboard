@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table/useTableColumnSort';
+import { SortableData } from '~/components/table';
 import { getPvcDisplayName } from '~/pages/projects/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 
