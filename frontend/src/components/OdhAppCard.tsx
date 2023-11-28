@@ -187,7 +187,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
                 isOpen={isOpen}
                 isPlain
                 dropdownItems={dropdownItems}
-                position={'right'}
+                position="right"
               />
             </>
           ),

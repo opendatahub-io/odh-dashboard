@@ -125,7 +125,7 @@ export const TestHook = <T extends any[]>({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel={'h3'}>Select Parameter Set</Title>
+        <Title headingLevel="h3">Select Parameter Set</Title>
         <Split hasGutter>
           <SplitItem>
             <Button
@@ -153,11 +153,11 @@ export const TestHook = <T extends any[]>({
         </Split>
       </StackItem>
       <StackItem>
-        <Title headingLevel={'h3'}>Selected Parameters</Title>
+        <Title headingLevel="h3">Selected Parameters</Title>
         {renderTable(propStatusesRef.current, selectedParam, 'param')}
       </StackItem>
       <StackItem>
-        <Title headingLevel={'h3'}>Result</Title>
+        <Title headingLevel="h3">Result</Title>
         <Caption>
           <Split hasGutter>
             <SplitItem>
@@ -175,7 +175,7 @@ export const TestHook = <T extends any[]>({
         {renderTable(resultArrayStatusesRef.current, hookResultArray, 'result', true)}
       </StackItem>
       <StackItem>
-        <Title headingLevel={'h4'}>data-testid key</Title>
+        <Title headingLevel="h4">data-testid key</Title>
         <List>
           <ListItem>
             <span style={{ color: 'grey' }}>data-testid=params-default</span> - default parameters

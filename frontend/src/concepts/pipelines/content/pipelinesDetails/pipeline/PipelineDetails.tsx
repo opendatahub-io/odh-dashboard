@@ -46,10 +46,10 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
         breadcrumb={
           <Breadcrumb>
             {breadcrumbPath}
-            <BreadcrumbItem isActive>{'Pipeline not found'}</BreadcrumbItem>
+            <BreadcrumbItem isActive>Pipeline not found</BreadcrumbItem>
           </Breadcrumb>
         }
-        title={'Pipeline not found'}
+        title="Pipeline not found"
         empty={false}
         loaded={!pipelineLoad}
       >

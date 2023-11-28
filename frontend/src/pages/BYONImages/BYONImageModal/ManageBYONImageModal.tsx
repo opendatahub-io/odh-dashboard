@@ -133,13 +133,12 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
           submit();
         }}
       >
-        {
-          <ImageLocationField
-            isDisabled={!!existingImage}
-            location={repository}
-            setLocation={setRepository}
-          />
-        }
+        <ImageLocationField
+          isDisabled={!!existingImage}
+          location={repository}
+          setLocation={setRepository}
+        />
+
         <FormGroup label="Name" isRequired fieldId="byon-image-name-input">
           <TextInput
             id="byon-image-name-input"
