@@ -11,7 +11,7 @@ import {
 import { AppContext } from '~/app/AppContext';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
-import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -19,7 +19,7 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const [accelerator] = useServingAccelerator(obj);
+  const [acceleratorProfile] = useServingAcceleratorProfile(obj);
   const container = obj.spec.containers[0]; // can we assume the first container?
   const sizes = getServingRuntimeSizes(dashboardConfig);
   const size = sizes.find((size) => _.isEqual(size.resources, container.resources));
@@ -47,17 +47,17 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj }) =>
       <DescriptionListGroup>
         <DescriptionListTerm>Accelerator</DescriptionListTerm>
         <DescriptionListDescription>
-          {accelerator.accelerator
-            ? accelerator.accelerator.spec.displayName
-            : accelerator.useExisting
+          {acceleratorProfile.acceleratorProfile
+            ? acceleratorProfile.acceleratorProfile.spec.displayName
+            : acceleratorProfile.useExisting
             ? 'Unknown'
             : 'None'}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {!accelerator.useExisting && (
+      {!acceleratorProfile.useExisting && (
         <DescriptionListGroup>
           <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-          <DescriptionListDescription>{accelerator.count}</DescriptionListDescription>
+          <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>
         </DescriptionListGroup>
       )}
     </DescriptionList>

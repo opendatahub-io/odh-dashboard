@@ -18,7 +18,7 @@ export * from './k8s/users';
 export * from './k8s/groups';
 export * from './k8s/templates';
 export * from './k8s/dashboardConfig';
-export * from './k8s/accelerators';
+export * from './k8s/acceleratorProfiles';
 
 // Pipelines uses special redirected API
 export * from './pipelines/custom';

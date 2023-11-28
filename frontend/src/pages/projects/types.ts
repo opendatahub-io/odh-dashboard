@@ -2,14 +2,14 @@ import {
   ContainerResources,
   ImageStreamAndVersion,
   NotebookSize,
-  PodToleration,
+  Toleration,
   TolerationSettings,
   Volume,
   VolumeMount,
 } from '~/types';
 import { ValueOf } from '~/typeHelpers';
 import { AWSSecretKind } from '~/k8sTypes';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { AWS_KEYS } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueOf<T>) => void;
@@ -63,12 +63,12 @@ export type StartNotebookData = {
   projectName: string;
   notebookName: string;
   notebookSize: NotebookSize;
-  accelerator: AcceleratorState;
+  acceleratorProfile: AcceleratorProfileState;
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   tolerationSettings?: TolerationSettings;
-  existingTolerations?: PodToleration[];
+  existingTolerations?: Toleration[];
   existingResources?: ContainerResources;
   envFrom?: EnvironmentFromVariable[];
   description?: string;
