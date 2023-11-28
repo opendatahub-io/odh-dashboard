@@ -237,6 +237,9 @@ export type ListPipelineTemplateResourceKF = {
   /** YAML template of a PipelineRunKind */
   template: string;
 };
+export type ListPipelineVersionsResourceKF = PipelineKFCallCommon<{
+  versions: PipelineVersionKF[];
+}>;
 
 export type CreatePipelineRunKFData = Omit<
   PipelineRunKF,

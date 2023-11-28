@@ -33,7 +33,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const runsFetchState = usePipelineRunsForPipeline(pipeline, LIMIT_MAX_ITEM_COUNT);
+  const runsFetchState = usePipelineRunsForPipeline(pipeline.id, LIMIT_MAX_ITEM_COUNT);
   const [isExpanded, setExpanded] = React.useState(false);
 
   const createdDate = new Date(pipeline.created_at);
