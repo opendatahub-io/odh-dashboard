@@ -135,10 +135,20 @@ const useUserManagementNav = (): NavDataHref[] =>
     },
   ]);
 
+const useAcceleratorProfilesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.ACCELERATOR_PROFILES, [
+    {
+      id: 'settings-accelerator-profiles',
+      label: 'Accelerator profiles',
+      href: '/acceleratorProfiles',
+    },
+  ]);
+
 const useSettingsNav = (): NavDataGroup[] => {
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
+    ...useAcceleratorProfilesNav(),
     ...useCustomRuntimesNav(),
     ...useUserManagementNav(),
   ];
