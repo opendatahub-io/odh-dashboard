@@ -1,14 +1,19 @@
 class AppChrome {
-  selectSideBar() {
+  findSideBar() {
     return cy.get('#page-sidebar');
   }
 
-  selectNavItem(name: string) {
-    return this.selectSideBar().findByRole('link', { name });
-  }
-
-  expandNavItem(name: string) {
-    this.selectSideBar().findByRole('button', { name, expanded: false }).click();
+  findNavItem(name: string, section?: string) {
+    if (section) {
+      this.findSideBar()
+        .findByRole('button', { name: section })
+        .then(($el) => {
+          if ($el.attr('aria-expanded') === 'false') {
+            cy.wrap($el).click();
+          }
+        });
+    }
+    return this.findSideBar().findByRole('link', { name });
   }
 }
 

@@ -1,46 +1,42 @@
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class ProjectListPage {
   visit() {
     cy.visitWithLogin('/projects');
+    this.wait();
   }
 
   navigate() {
-    appChrome.selectNavItem('Data Science Projects').click();
+    appChrome.findNavItem('Data Science Projects').click();
+    this.wait();
   }
 
-  wait() {
+  private wait() {
     cy.findByText('View your existing projects or create new projects.', { timeout: 10000 });
   }
 
   shouldHaveProjects() {
-    this.selectProjectsTable().should('exist');
+    this.findProjectsTable().should('exist');
+    return this;
   }
 
   shouldBeEmpty() {
     cy.findByText('No data science projects yet.').should('exist');
+    return this;
   }
 
-  selectCreateProjectButton() {
+  findCreateProjectButton() {
     return cy.findByRole('button', { name: 'Create data science project' });
   }
 
-  selectProjectsTable() {
+  findProjectsTable() {
     return cy.get('[data-id=project-view-table]');
   }
 
-  selectProjectRow(projectName: string) {
-    return this.selectProjectsTable().findByRole('link', { name: projectName }).parents('tr');
-  }
-
-  selectProjectActions(projectName: string) {
-    return this.selectProjectRow(projectName).findKebab();
-  }
-
-  selectDeleteAction() {
-    return cy.findKebabAction('Delete project');
+  findProjectRow(projectName: string) {
+    return this.findProjectsTable().findByRole('link', { name: projectName }).parents('tr');
   }
 }
 
@@ -49,28 +45,35 @@ class CreateEditProjectModal extends Modal {
     super(`${edit ? 'Edit' : 'Create'} data science project`);
   }
 
-  selectNameInput() {
-    return this.selectModal().findByLabelText('Name *');
+  findNameInput() {
+    return this.find().findByLabelText('Name *');
   }
 
-  selectResourceNameInput() {
-    return this.selectModal().findByLabelText('Resource name *');
+  findResourceNameInput() {
+    return this.find().findByLabelText('Resource name *');
   }
 
-  selectDescriptionInput() {
-    return this.selectModal().findByLabelText('Description');
+  findDescriptionInput() {
+    return this.find().findByLabelText('Description');
   }
 
-  selectSubmitButton() {
-    return this.selectFooter().findByRole('button', { name: this.edit ? /Edit/ : /Create/ });
+  findSubmitButton() {
+    return this.findFooter().findByRole('button', { name: this.edit ? /Edit/ : /Create/ });
+  }
+}
+
+class ProjectDetails {
+  visit(project: string) {
+    cy.visit(`/projects/${project}`);
   }
 
-  selectCancelButton() {
-    return this.selectFooter().findByRole('button', { name: 'Cancel' });
+  wait() {
+    cy.findByRole('tab', { name: 'Components', timeout: 10000 });
   }
 }
 
 export const projectListPage = new ProjectListPage();
 export const createProjectModal = new CreateEditProjectModal();
 export const editProjectModal = new CreateEditProjectModal(true);
-export const deleteProjectModal = deleteModal;
+export const deleteProjectModal = new DeleteModal();
+export const projectDetails = new ProjectDetails();

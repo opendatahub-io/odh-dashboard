@@ -6,16 +6,12 @@ export class DeleteModal extends Modal {
     super(title);
   }
 
-  selectInput() {
-    return this.selectModal().findByLabelText('Delete modal input');
+  findInput() {
+    return this.find().findByLabelText('Delete modal input');
   }
 
-  selectDeleteButton() {
-    return this.selectFooter().findByRole('button', { name: /Delete/ });
-  }
-
-  selectCancelButton() {
-    return this.selectFooter().findByRole('button', { name: 'Cancel' });
+  findSubmitButton() {
+    return this.findFooter().findByRole('button', { name: /Delete/ });
   }
 }
 

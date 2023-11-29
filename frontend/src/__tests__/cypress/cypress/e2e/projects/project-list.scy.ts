@@ -1,10 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import {
-  createProjectModal,
-  deleteProjectModal,
-  projectListPage,
-} from '~/__tests__/cypress/cypress/pages/projects';
-
+import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { createProjectModal, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { failEarly } from '~/__tests__/cypress/cypress/utils/failEarly';
 
 describe('Data Science Projects', { testIsolation: false }, () => {
@@ -27,30 +23,29 @@ describe('Data Science Projects', { testIsolation: false }, () => {
       expect(interception.response?.body).property('items').to.have.lengthOf(0);
     });
 
-    projectListPage.wait();
-    projectListPage.shouldBeEmpty();
-
     cy.waitSnapshot('@projects');
+
+    projectListPage.shouldBeEmpty();
   });
 
   it('should open a modal to create a project', () => {
-    projectListPage.selectCreateProjectButton().click();
-    createProjectModal.selectModal().should('exist');
-    createProjectModal.selectCancelButton().click();
-    createProjectModal.selectModal().should('not.exist');
-    projectListPage.selectCreateProjectButton().click();
-    createProjectModal.selectModal().should('exist');
-    createProjectModal.selectSubmitButton().should('be.disabled');
+    projectListPage.findCreateProjectButton().click();
+    createProjectModal.find().should('exist');
+    createProjectModal.findCancelButton().click();
+    createProjectModal.find().should('not.exist');
+    projectListPage.findCreateProjectButton().click();
+    createProjectModal.find().should('exist');
+    createProjectModal.findSubmitButton().should('be.disabled');
   });
 
   it('should create project', () => {
-    createProjectModal.selectNameInput().type('My Test Project');
-    createProjectModal.selectDescriptionInput().type('Test project description.');
-    createProjectModal.selectSubmitButton().should('be.enabled');
-    createProjectModal.selectResourceNameInput().should('have.value', 'my-test-project').clear();
-    createProjectModal.selectResourceNameInput().should('have.attr', 'aria-invalid', 'true');
-    createProjectModal.selectSubmitButton().should('be.disabled');
-    createProjectModal.selectResourceNameInput().type('test-project');
+    createProjectModal.findNameInput().type('My Test Project');
+    createProjectModal.findDescriptionInput().type('Test project description.');
+    createProjectModal.findSubmitButton().should('be.enabled');
+    createProjectModal.findResourceNameInput().should('have.value', 'my-test-project').clear();
+    createProjectModal.findResourceNameInput().should('have.attr', 'aria-invalid', 'true');
+    createProjectModal.findSubmitButton().should('be.disabled');
+    createProjectModal.findResourceNameInput().type('test-project');
 
     cy.interceptSnapshot('/api/k8s/apis/project.openshift.io/v1/projects', 'projects-1');
     cy.interceptSnapshot('/api/namespaces/test-project/0', 'update-project');
@@ -59,9 +54,9 @@ describe('Data Science Projects', { testIsolation: false }, () => {
       'create-test-project',
       true,
     ).then((trigger) => {
-      createProjectModal.selectSubmitButton().should('be.enabled').click();
+      createProjectModal.findSubmitButton().should('be.enabled').click();
       createProjectModal
-        .selectSubmitButton()
+        .findSubmitButton()
         .should('be.disabled')
         // trigger the response only after asserting the update button state.
         .then(() => trigger());
@@ -81,7 +76,7 @@ describe('Data Science Projects', { testIsolation: false }, () => {
     cy.waitSnapshot('@update-project');
     cy.waitSnapshot('@projects-1');
 
-    createProjectModal.selectModal().should('not.exist');
+    createProjectModal.find().should('not.exist');
 
     cy.url().should('include', '/projects/test-project');
   });
@@ -92,24 +87,22 @@ describe('Data Science Projects', { testIsolation: false }, () => {
     projectListPage.navigate();
     cy.waitSnapshot('@projects-1');
     projectListPage.shouldHaveProjects();
-    projectListPage.selectProjectRow('My Test Project').should('exist');
+    projectListPage.findProjectRow('My Test Project').should('exist');
   });
 
   it('should delete project', () => {
-    projectListPage.selectProjectActions('My Test Project').click();
-    projectListPage.selectDeleteAction().click();
+    projectListPage.findProjectRow('My Test Project').findKebabAction('Delete project').click();
 
-    deleteProjectModal.selectModal().should('exist');
+    deleteModal.find().should('exist');
 
-    deleteProjectModal.selectDeleteButton().should('be.disabled');
-    deleteProjectModal.selectCancelButton().should('be.enabled').click();
+    deleteModal.findSubmitButton().should('be.disabled');
+    deleteModal.findCancelButton().should('be.enabled').click();
 
-    projectListPage.selectProjectActions('My Test Project').click();
-    projectListPage.selectDeleteAction().click();
+    projectListPage.findProjectRow('My Test Project').findKebabAction('Delete project').click();
 
-    deleteProjectModal.selectModal().should('exist');
+    deleteModal.find().should('exist');
 
-    deleteProjectModal.selectInput().type('My Test Project');
+    deleteModal.findInput().type('My Test Project');
 
     cy.interceptSnapshot('/api/k8s/apis/project.openshift.io/v1/projects', 'projects-0');
     cy.interceptSnapshot(
@@ -117,10 +110,10 @@ describe('Data Science Projects', { testIsolation: false }, () => {
       'delete-project',
       true,
     ).then((trigger) => {
-      deleteProjectModal.selectDeleteButton().should('be.enabled').click();
+      deleteModal.findSubmitButton().should('be.enabled').click();
       // spinner causes exact match to fail
-      deleteProjectModal
-        .selectDeleteButton()
+      deleteModal
+        .findSubmitButton()
         .should('be.disabled')
         // trigger the response only after asserting the update button state.
         .then(() => trigger());

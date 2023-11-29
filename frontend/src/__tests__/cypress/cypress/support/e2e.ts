@@ -15,6 +15,10 @@
 
 import './commands';
 
+Cypress.Keyboard.defaults({
+  keystrokeDelay: 0,
+});
+
 beforeEach(() => {
   if (Cypress.env('MOCK')) {
     // fallback: return 404 for all api requests

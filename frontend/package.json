@@ -45,7 +45,8 @@
     "cypress:run:mock": "MOCK=1 npm run cypress:run",
     "cypress:open:record": "RECORD=1 npm run cypress:open",
     "cypress:run:record": "RECORD=1 npm run cypress:run",
-    "cypress:server": "serve ./public -p 9001 -s",
+    "cypress:server:build": "ODH_DIST_DIR=./public-cypress POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 npm run build",
+    "cypress:server": "serve ./public-cypress -p 9001 -s",
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json"
   },
   "dependencies": {
