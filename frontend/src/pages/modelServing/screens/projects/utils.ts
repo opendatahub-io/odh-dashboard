@@ -7,7 +7,11 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import {
+  DataConnection,
+  NamespaceApplicationCase,
+  UpdateObjectAtPropAndValue,
+} from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
@@ -384,3 +388,7 @@ export const submitServingRuntimeResources = (
 export const getUrlFromKserveInferenceService = (
   inferenceService: InferenceServiceKind,
 ): string | undefined => inferenceService.status?.url;
+
+export const filterOutConnectionsWithoutBucket = (
+  connections: DataConnection[],
+): DataConnection[] => connections.filter((obj) => obj.data.data['AWS_S3_BUCKET'].trim() !== '');

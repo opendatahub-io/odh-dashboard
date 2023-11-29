@@ -31,7 +31,7 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
       // Not a status object, let the normal SDK flow take over
       return response;
     }),
-  /** Disable api discovery -- until we need to use the k8s watch hooks, we don't need to use api discovery */
+  /** Disable api discovery -- use static models */
   apiDiscovery: () => null,
   /** We don't need a plugin store yet -- we just want the SDK setup for utilities right now */
   pluginStore: new PluginStore(),
@@ -39,7 +39,19 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
    * No need for web sockets at this point -- we'll need to support this if we want to use the
    * websocket utilities or the k8s watch hooks.
    */
-  wsAppSettings: () => Promise.resolve({ host: '', subProtocols: [] }),
+  wsAppSettings: () =>
+    Promise.resolve({
+      host: `${location.protocol.replace(/^http/i, 'ws')}//${location.host}/wss/k8s`,
+      urlAugment: (url: string) => {
+        const [origUrl, query] = url.split('?') || [];
+        const queryParams = new URLSearchParams(query);
+        if (!queryParams.get('watch')) {
+          queryParams.set('watch', 'true');
+        }
+        return `${origUrl}?${queryParams.toString()}`;
+      },
+      subProtocols: [],
+    }),
 };
 
 type SDKInitializeProps = {

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { withRouter } from 'storybook-addon-react-router-v6';
-import { store } from '../src/redux/store/store';
+import { sdkStore, store } from '../src/redux/store/store';
+import { ReduxContext } from '../src/redux/context';
 import SDKInitialize from '../src/SDKInitialize';
 import { BrowserStorageContextProvider } from '../src/components/browserStorage/BrowserStorageContext';
 import { initialize, mswDecorator } from 'msw-storybook-addon';
@@ -47,14 +48,16 @@ export const decorators = [
         dashboardConfig: mockDashboardConfig({}),
       }}
     >
-      <Provider store={store}>
-        <SDKInitialize>
-          <BrowserStorageContextProvider>
-            <ProjectsContextProvider>
-              <Story />
-            </ProjectsContextProvider>
-          </BrowserStorageContextProvider>
-        </SDKInitialize>
+      <Provider store={sdkStore}>
+        <Provider store={store} context={ReduxContext}>
+          <SDKInitialize>
+            <BrowserStorageContextProvider>
+              <ProjectsContextProvider>
+                <Story />
+              </ProjectsContextProvider>
+            </BrowserStorageContextProvider>
+          </SDKInitialize>
+        </Provider>
       </Provider>
     </AppContext.Provider>
   ),

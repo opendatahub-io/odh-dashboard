@@ -46,7 +46,7 @@ const ModelServingPlatformSelect: React.FC<ModelServingPlatformSelectProps> = ({
                 />
               }
               title="Single model serving platform"
-              description="Each model is deployed from its own model server. Choose this option when you have a small number of large models to deploy."
+              description="Each model is deployed from its own model server. Choose this option only for large language models that will be deployed using the Caikit runtime."
             />
           </GalleryItem>
           <GalleryItem>

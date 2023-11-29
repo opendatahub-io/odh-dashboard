@@ -16,11 +16,13 @@ type NoPipelineServerProps = {
 const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant }) => (
   <EmptyState variant="sm">
     <EmptyStateHeader
-      titleText="No pipeline server"
+      titleText="Enable pipelines"
       icon={<EmptyStateIcon icon={WrenchIcon} />}
       headingLevel="h3"
     />
-    <EmptyStateBody>To import a pipeline, first create a pipeline server.</EmptyStateBody>
+    <EmptyStateBody>
+      To create and manage pipelines, first enable them by configuring a pipeline server.
+    </EmptyStateBody>
     <EmptyStateFooter>
       <CreatePipelineServerButton variant={variant} />
     </EmptyStateFooter>

@@ -24,7 +24,7 @@ type InputFieldProps = {
   value: string;
 };
 
-const FieldListField = ({ options, onChange, value }: InputFieldProps) => {
+export const FieldListField = ({ options, onChange, value }: InputFieldProps) => {
   const ComponentField = options.isPassword ? PasswordInput : TextInput;
 
   return (
