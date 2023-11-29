@@ -34,8 +34,8 @@ import {
   ServingRuntimeSize,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
-import { getAcceleratorGpuCount } from '~/utilities/utils';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { getAcceleratorProfileCount } from '~/utilities/utils';
 
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;
@@ -166,38 +166,41 @@ export const getServingRuntimeTokens = (tokens?: SecretKind[]): ServingRuntimeTo
     error: '',
   }));
 
-const isAcceleratorChanged = (
-  acceleratorState: AcceleratorState,
+const isAcceleratorProfileChanged = (
+  acceleratorProfileState: AcceleratorProfileState,
   servingRuntime: ServingRuntimeKind,
 ) => {
-  const accelerator = acceleratorState.accelerator;
-  const initialAccelerator = acceleratorState.initialAccelerator;
+  const acceleratorProfile = acceleratorProfileState.acceleratorProfile;
+  const initialAcceleratorProfile = acceleratorProfileState.initialAcceleratorProfile;
 
   // both are none, check if it's using existing
-  if (!accelerator && !initialAccelerator) {
-    if (acceleratorState.additionalOptions?.useExisting) {
-      return !acceleratorState.useExisting;
+  if (!acceleratorProfile && !initialAcceleratorProfile) {
+    if (acceleratorProfileState.additionalOptions?.useExisting) {
+      return !acceleratorProfileState.useExisting;
     }
     return false;
   }
 
   // one is none, another is set, changed
-  if (!accelerator || !initialAccelerator) {
+  if (!acceleratorProfile || !initialAcceleratorProfile) {
     return true;
   }
 
   // compare the name, gpu count
   return (
-    accelerator.metadata.name !== initialAccelerator.metadata.name ||
-    acceleratorState.count !==
-      getAcceleratorGpuCount(initialAccelerator, servingRuntime.spec.containers[0].resources)
+    acceleratorProfile.metadata.name !== initialAcceleratorProfile.metadata.name ||
+    acceleratorProfileState.count !==
+      getAcceleratorProfileCount(
+        initialAcceleratorProfile,
+        servingRuntime.spec.containers[0].resources,
+      )
   );
 };
 
 export const isModelServerEditInfoChanged = (
   createData: CreatingServingRuntimeObject,
   sizes: ServingRuntimeSize[],
-  acceleratorState: AcceleratorState,
+  acceleratorProfileState: AcceleratorProfileState,
   editInfo?: ServingRuntimeEditInfo,
 ) =>
   editInfo?.servingRuntime
@@ -208,7 +211,7 @@ export const isModelServerEditInfoChanged = (
         String(createData.externalRoute) ||
       editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
         String(createData.tokenAuth) ||
-      isAcceleratorChanged(acceleratorState, editInfo.servingRuntime) ||
+      isAcceleratorProfileChanged(acceleratorProfileState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&
         !_.isEqual(
           getServingRuntimeTokens(editInfo.secrets)

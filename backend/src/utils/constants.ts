@@ -56,6 +56,7 @@ export const blankDashboardCR: DashboardConfig = {
       disablePipelines: false,
       disableKServe: false,
       disableModelMesh: false,
+      disableAcceleratorProfiles: false,
     },
     notebookController: {
       enabled: true,

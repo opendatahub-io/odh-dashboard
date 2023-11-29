@@ -10,51 +10,50 @@ import {
   SplitItem,
   Stack,
   StackItem,
-  InputGroupItem,
   Popover,
   Icon,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement } from '~/utilities/utils';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import SimpleDropdownSelect, { SimpleDropdownOption } from '~/components/SimpleDropdownSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
-import useAcceleratorCounts from './useAcceleratorCounts';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import useDetectedAccelerators from './useDetectedAccelerators';
 
-type AcceleratorSelectFieldProps = {
-  acceleratorState: AcceleratorState;
-  setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
-  supportedAccelerators?: string[];
+type AcceleratorProfileSelectFieldProps = {
+  acceleratorProfileState: AcceleratorProfileState;
+  setAcceleratorProfileState: UpdateObjectAtPropAndValue<AcceleratorProfileState>;
+  supportedAcceleratorProfiles?: string[];
   resourceDisplayName?: string;
   infoContent?: string;
 };
 
-const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
-  acceleratorState,
-  setAcceleratorState,
-  supportedAccelerators,
+const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps> = ({
+  acceleratorProfileState,
+  setAcceleratorProfileState,
+  supportedAcceleratorProfiles,
   resourceDisplayName = 'image',
   infoContent,
 }) => {
-  const [detectedAcceleratorInfo] = useAcceleratorCounts();
+  const [detectedAccelerators] = useDetectedAccelerators();
 
   const {
-    accelerator,
+    acceleratorProfile,
     count: acceleratorCount,
-    accelerators,
+    acceleratorProfiles,
     useExisting,
     additionalOptions,
-  } = acceleratorState;
+  } = acceleratorProfileState;
 
   const generateAcceleratorCountWarning = (newSize: number) => {
-    if (!accelerator) {
+    if (!acceleratorProfile) {
       return '';
     }
 
-    const identifier = accelerator?.spec.identifier;
+    const identifier = acceleratorProfile?.spec.identifier;
 
-    const detectedAcceleratorCount = Object.entries(detectedAcceleratorInfo.available).find(
+    const detectedAcceleratorCount = Object.entries(detectedAccelerators.available).find(
       ([id]) => identifier === id,
     )?.[1];
 
@@ -71,24 +70,24 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
 
   const acceleratorCountWarning = generateAcceleratorCountWarning(acceleratorCount);
 
-  const isAcceleratorSupported = (accelerator: AcceleratorKind) =>
-    supportedAccelerators?.includes(accelerator.spec.identifier);
+  const isAcceleratorProfileSupported = (cr: AcceleratorProfileKind) =>
+    supportedAcceleratorProfiles?.includes(cr.spec.identifier);
 
-  const enabledAccelerators = accelerators.filter((ac) => ac.spec.enabled);
+  const enabledAcceleratorProfiles = acceleratorProfiles.filter((ac) => ac.spec.enabled);
 
-  const formatOption = (ac: AcceleratorKind): SimpleDropdownOption => {
-    const displayName = `${ac.spec.displayName}${!ac.spec.enabled ? ' (disabled)' : ''}`;
+  const formatOption = (cr: AcceleratorProfileKind): SimpleDropdownOption => {
+    const displayName = `${cr.spec.displayName}${!cr.spec.enabled ? ' (disabled)' : ''}`;
 
     return {
-      key: ac.metadata.name,
+      key: cr.metadata.name,
       label: displayName,
-      description: ac.spec.description,
+      description: cr.spec.description,
       dropdownLabel: (
         <Split>
           <SplitItem>{displayName}</SplitItem>
           <SplitItem isFilled />
           <SplitItem>
-            {isAcceleratorSupported(ac) && (
+            {isAcceleratorProfileSupported(cr) && (
               <Label color="blue">{`Compatible with ${resourceDisplayName}`}</Label>
             )}
           </SplitItem>
@@ -97,10 +96,10 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
     };
   };
 
-  const options: SimpleDropdownOption[] = enabledAccelerators
+  const options: SimpleDropdownOption[] = enabledAcceleratorProfiles
     .sort((a, b) => {
-      const aSupported = isAcceleratorSupported(a);
-      const bSupported = isAcceleratorSupported(b);
+      const aSupported = isAcceleratorProfileSupported(a);
+      const bSupported = isAcceleratorProfileSupported(b);
       if (aSupported && !bSupported) {
         return -1;
       }
@@ -112,13 +111,13 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
     .map((ac) => formatOption(ac));
 
   let acceleratorAlertMessage: { title: string; variant: AlertVariant } | null = null;
-  if (accelerator && supportedAccelerators !== undefined) {
-    if (supportedAccelerators?.length === 0) {
+  if (acceleratorProfile && supportedAcceleratorProfiles !== undefined) {
+    if (supportedAcceleratorProfiles?.length === 0) {
       acceleratorAlertMessage = {
         title: `The ${resourceDisplayName} you have selected doesn't support the selected accelerator. It is recommended to use a compatible ${resourceDisplayName} for optimal performance.`,
         variant: AlertVariant.info,
       };
-    } else if (!isAcceleratorSupported(accelerator)) {
+    } else if (!isAcceleratorProfileSupported(acceleratorProfile)) {
       acceleratorAlertMessage = {
         title: `The ${resourceDisplayName} you have selected is not compatible with the selected accelerator`,
         variant: AlertVariant.warning,
@@ -144,7 +143,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   }
 
   const onStep = (step: number) => {
-    setAcceleratorState('count', Math.max(acceleratorCount + step, 1));
+    setAcceleratorProfileState('count', Math.max(acceleratorCount + step, 1));
   };
 
   // if there is more than a none option, show the dropdown
@@ -171,25 +170,25 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
           <SimpleDropdownSelect
             isFullWidth
             options={options}
-            value={useExisting ? 'use-existing' : accelerator?.metadata.name ?? ''}
+            value={useExisting ? 'use-existing' : acceleratorProfile?.metadata.name ?? ''}
             onChange={(key, isPlaceholder) => {
               if (isPlaceholder) {
                 // none
-                setAcceleratorState('useExisting', false);
-                setAcceleratorState('accelerator', undefined);
-                setAcceleratorState('count', 0);
+                setAcceleratorProfileState('useExisting', false);
+                setAcceleratorProfileState('acceleratorProfile', undefined);
+                setAcceleratorProfileState('count', 0);
               } else if (key === 'use-existing') {
                 // use existing settings
-                setAcceleratorState('useExisting', true);
-                setAcceleratorState('accelerator', undefined);
-                setAcceleratorState('count', 0);
+                setAcceleratorProfileState('useExisting', true);
+                setAcceleratorProfileState('acceleratorProfile', undefined);
+                setAcceleratorProfileState('count', 0);
               } else {
                 // normal flow
-                setAcceleratorState('count', 1);
-                setAcceleratorState('useExisting', false);
-                setAcceleratorState(
-                  'accelerator',
-                  accelerators.find((ac) => ac.metadata.name === key),
+                setAcceleratorProfileState('count', 1);
+                setAcceleratorProfileState('useExisting', false);
+                setAcceleratorProfileState(
+                  'acceleratorProfile',
+                  acceleratorProfiles.find((ac) => ac.metadata.name === key),
                 );
               }
             }}
@@ -206,28 +205,26 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
           />
         </StackItem>
       )}
-      {accelerator && (
+      {acceleratorProfile && (
         <StackItem>
           <FormGroup label="Number of accelerators" fieldId="number-of-accelerators">
             <InputGroup>
-              <InputGroupItem>
-                <NumberInput
-                  inputAriaLabel="Number of accelerators"
-                  id="number-of-accelerators"
-                  name="number-of-accelerators"
-                  value={acceleratorCount}
-                  validated={acceleratorCountWarning ? 'warning' : 'default'}
-                  min={1}
-                  onPlus={() => onStep(1)}
-                  onMinus={() => onStep(-1)}
-                  onChange={(event) => {
-                    if (isHTMLInputElement(event.target)) {
-                      const newSize = Number(event.target.value);
-                      setAcceleratorState('count', Math.max(newSize, 1));
-                    }
-                  }}
-                />
-              </InputGroupItem>
+              <NumberInput
+                inputAriaLabel="Number of accelerators"
+                id="number-of-accelerators"
+                name="number-of-accelerators"
+                value={acceleratorCount}
+                validated={acceleratorCountWarning ? 'warning' : 'default'}
+                min={1}
+                onPlus={() => onStep(1)}
+                onMinus={() => onStep(-1)}
+                onChange={(event) => {
+                  if (isHTMLInputElement(event.target)) {
+                    const newSize = Number(event.target.value);
+                    setAcceleratorProfileState('count', Math.max(newSize, 1));
+                  }
+                }}
+              />
             </InputGroup>
           </FormGroup>
         </StackItem>
@@ -241,4 +238,4 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   );
 };
 
-export default AcceleratorSelectField;
+export default AcceleratorProfileSelectField;

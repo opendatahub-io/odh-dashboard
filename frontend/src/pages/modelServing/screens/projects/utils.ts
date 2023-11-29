@@ -33,7 +33,7 @@ import {
   getServingRuntimeTokens,
   setUpTokenAuth,
 } from '~/pages/modelServing/utils';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import {
   addSupportServingPlatformProject,
   assembleSecret,
@@ -299,7 +299,7 @@ export const submitServingRuntimeResources = (
   namespace: string,
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
-  acceleratorState: AcceleratorState,
+  acceleratorProfileState: AcceleratorProfileState,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
@@ -319,9 +319,9 @@ export const submitServingRuntimeResources = (
   const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
   const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
 
-  const accelerator = isGpuDisabled(servingRuntimeSelected)
-    ? { count: 0, accelerators: [], useExisting: false }
-    : acceleratorState;
+  const controlledState = isGpuDisabled(servingRuntimeSelected)
+    ? { count: 0, acceleratorProfiles: [], useExisting: false }
+    : acceleratorProfileState;
 
   const getUpdatePromises = (dryRun = false) => [
     ...(!dryRun &&
@@ -340,7 +340,7 @@ export const submitServingRuntimeResources = (
             opts: {
               dryRun,
             },
-            acceleratorState: accelerator,
+            acceleratorProfileState: controlledState,
           }),
           setUpTokenAuth(
             servingRuntimeData,
@@ -363,7 +363,7 @@ export const submitServingRuntimeResources = (
             opts: {
               dryRun,
             },
-            acceleratorState: accelerator,
+            acceleratorProfileState: controlledState,
           }).then((servingRuntime) =>
             setUpTokenAuth(
               servingRuntimeData,
