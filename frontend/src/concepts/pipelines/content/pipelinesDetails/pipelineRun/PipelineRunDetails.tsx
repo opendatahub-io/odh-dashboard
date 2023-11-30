@@ -16,13 +16,12 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/topology';
+import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import { PipelineRunKind } from '~/k8sTypes';
 import MarkdownView from '~/components/MarkdownView';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import { PipelineRunResourceKF } from '~/concepts/pipelines/kfTypes';
-import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
@@ -33,6 +32,7 @@ import {
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineRunTitle from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunTitle';
+import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 
 const getPipelineRunKind = (
   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
