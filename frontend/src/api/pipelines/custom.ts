@@ -21,6 +21,10 @@ import {
   GetPipelineRunJobAPI,
   DeletePipelineRunAPI,
   DeletePipelineRunJobAPI,
+  UploadPipelineVersionAPI,
+  DeletePipelineVersionAPI,
+  GetPipelineVersionAPI,
+  ListPipelineVersionsByPipelineAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -63,6 +67,11 @@ export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRu
 export const getPipelineRunJob: GetPipelineRunJobAPI = (hostPath) => (opts, pipelineRunJobId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v1beta1/jobs/${pipelineRunJobId}`, {}, opts));
 
+export const getPipelineVersion: GetPipelineVersionAPI = (hostPath) => (opts, pipelineVersionId) =>
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v1beta1/pipeline_versions/${pipelineVersionId}`, {}, opts),
+  );
+
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
 
@@ -71,6 +80,12 @@ export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runI
 
 export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts, jobId) =>
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, opts));
+
+export const deletePipelineVersion: DeletePipelineVersionAPI =
+  (hostPath) => (opts, pipelineVersionId) =>
+    handlePipelineFailures(
+      proxyDELETE(hostPath, `/apis/v1beta1/pipeline_versions/${pipelineVersionId}`, {}, opts),
+    );
 
 export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
@@ -115,6 +130,21 @@ export const listPipelineTemplates: ListPipelineTemplatesAPI = (hostPath) => (op
     proxyGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}/templates`, {}, opts),
   );
 
+export const listPipelineVersionsByPipeline: ListPipelineVersionsByPipelineAPI =
+  (hostPath) => (opts, pipelineId, params) =>
+    handlePipelineFailures(
+      proxyGET(
+        hostPath,
+        `/apis/v1beta1/pipeline_versions`,
+        {
+          ...pipelineParamsToQuery(params),
+          'resource_reference_key.id': pipelineId,
+          'resource_reference_key.type': ResourceTypeKF.PIPELINE,
+        },
+        opts,
+      ),
+    );
+
 export const stopPipelineRun: StopPipelineRunAPI = (hostPath) => (opts, runId) =>
   handlePipelineFailures(
     proxyENDPOINT(hostPath, `/apis/v1beta1/runs/${runId}/terminate`, {}, opts),
@@ -134,4 +164,14 @@ export const uploadPipeline: UploadPipelineAPI =
   (hostPath) => (opts, name, description, fileContents) =>
     handlePipelineFailures(
       proxyFILE(hostPath, '/apis/v1beta1/pipelines/upload', fileContents, { name, description }),
+    );
+
+export const uploadPipelineVersion: UploadPipelineVersionAPI =
+  (hostPath) => (opts, name, description, fileContents, pipelineId) =>
+    handlePipelineFailures(
+      proxyFILE(hostPath, '/apis/v1beta1/pipelines/upload_version', fileContents, {
+        name,
+        description,
+        pipelineid: pipelineId,
+      }),
     );
