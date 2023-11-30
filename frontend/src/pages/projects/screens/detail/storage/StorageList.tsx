@@ -34,12 +34,7 @@ const StorageList: React.FC = () => {
         isLoading={!loaded}
         isEmpty={isPvcsEmpty}
         loadError={loadError}
-        emptyState={
-          <EmptyDetailsList
-            title="No storage"
-            description="To get started, add existing or create new cluster storage."
-          />
-        }
+        emptyState={<EmptyDetailsList title="No storage" />}
       >
         <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
       </DetailsSection>
