@@ -255,17 +255,35 @@ const createInferenceServiceAndDataConnection = (
   existingStorage: boolean,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
+  acceleratorProfileState?: AcceleratorProfileState,
 ) => {
   if (!existingStorage) {
     return createAWSSecret(inferenceServiceData).then((secret) =>
       editInfo
-        ? updateInferenceService(inferenceServiceData, editInfo, secret.metadata.name, isModelMesh)
-        : createInferenceService(inferenceServiceData, secret.metadata.name, isModelMesh),
+        ? updateInferenceService(
+            inferenceServiceData,
+            editInfo,
+            secret.metadata.name,
+            isModelMesh,
+            acceleratorProfileState,
+          )
+        : createInferenceService(
+            inferenceServiceData,
+            secret.metadata.name,
+            isModelMesh,
+            acceleratorProfileState,
+          ),
     );
   }
   return editInfo !== undefined
-    ? updateInferenceService(inferenceServiceData, editInfo, undefined, isModelMesh)
-    : createInferenceService(inferenceServiceData, undefined, isModelMesh);
+    ? updateInferenceService(
+        inferenceServiceData,
+        editInfo,
+        undefined,
+        isModelMesh,
+        acceleratorProfileState,
+      )
+    : createInferenceService(inferenceServiceData, undefined, isModelMesh, acceleratorProfileState);
 };
 
 export const submitInferenceServiceResource = (
@@ -273,6 +291,7 @@ export const submitInferenceServiceResource = (
   editInfo?: InferenceServiceKind,
   servingRuntimeName?: string,
   isModelMesh?: boolean,
+  acceleratorProfileState?: AcceleratorProfileState,
 ): Promise<InferenceServiceKind> => {
   const inferenceServiceData = {
     ...createData,
@@ -289,6 +308,7 @@ export const submitInferenceServiceResource = (
     existingStorage,
     editInfo,
     isModelMesh,
+    acceleratorProfileState,
   );
 };
 
@@ -303,6 +323,7 @@ export const submitServingRuntimeResources = (
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
+  isModelMesh?: boolean,
 ): Promise<void | (string | void | ServingRuntimeKind)[]> => {
   if (!servingRuntimeSelected) {
     return Promise.reject(
@@ -341,6 +362,7 @@ export const submitServingRuntimeResources = (
               dryRun,
             },
             acceleratorProfileState: controlledState,
+            isModelMesh,
           }),
           setUpTokenAuth(
             servingRuntimeData,
@@ -364,6 +386,7 @@ export const submitServingRuntimeResources = (
               dryRun,
             },
             acceleratorProfileState: controlledState,
+            isModelMesh,
           }).then((servingRuntime) =>
             setUpTokenAuth(
               servingRuntimeData,

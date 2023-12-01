@@ -60,7 +60,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
     useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
   const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
-    useServingAcceleratorProfile(editInfo?.servingRuntimeEditInfo?.servingRuntime);
+    useServingAcceleratorProfile(
+      editInfo?.servingRuntimeEditInfo?.servingRuntime,
+      editInfo?.inferenceServiceEditInfo,
+    );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -151,12 +154,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         NamespaceApplicationCase.KSERVE_PROMOTION,
         projectContext?.currentProject,
         servingRuntimeName,
+        false,
       ),
       submitInferenceServiceResource(
         createDataInferenceService,
         editInfo?.inferenceServiceEditInfo,
         servingRuntimeName,
         false,
+        acceleratorProfileState,
       ),
     ])
       .then(() => onSuccess())

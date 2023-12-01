@@ -34,12 +34,7 @@ const DataConnectionsList: React.FC = () => {
         isLoading={!loaded}
         isEmpty={isDataConnectionsEmpty}
         loadError={error}
-        emptyState={
-          <EmptyDetailsList
-            title="No data connections"
-            description="To get started, add data to your project."
-          />
-        }
+        emptyState={<EmptyDetailsList title="No data connections" />}
       >
         <DataConnectionsTable connections={connections} refreshData={refreshAllProjectData} />
       </DetailsSection>
