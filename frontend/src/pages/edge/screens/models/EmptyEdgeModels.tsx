@@ -1,13 +1,16 @@
 import * as React from 'react';
 import {
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateIcon,
   EmptyStateVariant,
   PageSection,
   Title,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import AddModelButton from '~/pages/edge/AddModelButton';
 
 const EmptyEdgeModels: React.FC = () => (
   <PageSection isFilled>
@@ -21,6 +24,11 @@ const EmptyEdgeModels: React.FC = () => (
         the model and its dependencies into a container image and save that image in a container
         image registry.
       </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <AddModelButton />
+        </EmptyStateActions>
+      </EmptyStateFooter>
     </EmptyState>
   </PageSection>
 );
