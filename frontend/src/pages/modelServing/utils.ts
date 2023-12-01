@@ -192,7 +192,7 @@ const isAcceleratorProfileChanged = (
     acceleratorProfileState.count !==
       getAcceleratorProfileCount(
         initialAcceleratorProfile,
-        servingRuntime.spec.containers[0].resources,
+        servingRuntime.spec.containers[0].resources || {},
       )
   );
 };

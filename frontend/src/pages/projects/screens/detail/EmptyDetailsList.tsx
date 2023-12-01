@@ -10,7 +10,7 @@ import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
 type EmptyDetailsListProps = {
   title: string;
-  description: string;
+  description?: string;
   icon?: React.ComponentClass<SVGIconProps>;
 };
 

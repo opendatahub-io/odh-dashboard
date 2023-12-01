@@ -27,16 +27,14 @@ export default {
             res(
               ctx.json(
                 mockK8sResourceList([
-                  mockAcceleratorProfile({}),
+                  mockAcceleratorProfile({ displayName: 'Test Accelerator' }),
                   mockAcceleratorProfile({
-                    metadata: { name: 'some-other-gpu' },
-                    spec: {
-                      displayName: 'TensorRT',
-                      enabled: false,
-                      identifier: 'tensor.com/gpu',
-                      description:
-                        'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
-                    },
+                    name: 'some-other-gpu',
+                    displayName: 'TensorRT',
+                    enabled: false,
+                    identifier: 'tensor.com/gpu',
+                    description:
+                      'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
                   }),
                 ]),
               ),
