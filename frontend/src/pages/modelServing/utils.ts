@@ -190,7 +190,7 @@ const isAcceleratorChanged = (
   return (
     accelerator.metadata.name !== initialAccelerator.metadata.name ||
     acceleratorState.count !==
-      getAcceleratorGpuCount(initialAccelerator, servingRuntime.spec.containers[0].resources)
+      getAcceleratorGpuCount(initialAccelerator, servingRuntime.spec.containers[0].resources || {})
   );
 };
 
