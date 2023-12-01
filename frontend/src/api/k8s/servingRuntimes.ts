@@ -29,6 +29,7 @@ export const assembleServingRuntime = (
   isCustomServingRuntimesEnabled: boolean,
   isEditing?: boolean,
   acceleratorState?: AcceleratorState,
+  isModelMesh?: boolean,
 ): ServingRuntimeKind => {
   const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth } = data;
   const createName = isCustomServingRuntimesEnabled
@@ -86,6 +87,8 @@ export const assembleServingRuntime = (
   }
   updatedServingRuntime.spec.replicas = numReplicas;
 
+  // Accelerator support
+
   const resourceSettings: ContainerResources = {
     requests: {
       cpu: modelSize.resources.requests?.cpu,
@@ -115,15 +118,18 @@ export const assembleServingRuntime = (
 
       return {
         ...container,
-        resources,
+        resources: isModelMesh ? resources : resourceSettings,
         affinity,
         volumeMounts,
       };
     },
   );
 
-  servingRuntime.spec.tolerations = tolerations;
+  if (isModelMesh) {
+    servingRuntime.spec.tolerations = tolerations;
+  }
 
+  // Volume mount for /dev/shm
   const volumes = updatedServingRuntime.spec.volumes || [];
   if (!volumes.find((volume) => volume.name === 'shm')) {
     volumes.push(getshmVolume('2Gi'));
@@ -179,8 +185,16 @@ export const updateServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   acceleratorState?: AcceleratorState;
+  isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
-  const { data, existingData, isCustomServingRuntimesEnabled, opts, acceleratorState } = options;
+  const {
+    data,
+    existingData,
+    isCustomServingRuntimesEnabled,
+    opts,
+    acceleratorState,
+    isModelMesh,
+  } = options;
 
   const updatedServingRuntime = assembleServingRuntime(
     data,
@@ -189,6 +203,7 @@ export const updateServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     true,
     acceleratorState,
+    isModelMesh,
   );
 
   return k8sUpdateResource<ServingRuntimeKind>(
@@ -206,6 +221,7 @@ export const createServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   acceleratorState?: AcceleratorState;
+  isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
   const {
     data,
@@ -214,6 +230,7 @@ export const createServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     opts,
     acceleratorState,
+    isModelMesh,
   } = options;
   const assembledServingRuntime = assembleServingRuntime(
     data,
@@ -222,6 +239,7 @@ export const createServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     false,
     acceleratorState,
+    isModelMesh,
   );
 
   return k8sCreateResource<ServingRuntimeKind>(
