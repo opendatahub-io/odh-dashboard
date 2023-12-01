@@ -84,7 +84,7 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
             ))}
           </NotificationDrawerList>
         ) : (
-          <EmptyState variant={EmptyStateVariant.small}>
+          <EmptyState variant={EmptyStateVariant.sm}>
             <EmptyStateBody>There are no notifications at this time.</EmptyStateBody>
           </EmptyState>
         )}

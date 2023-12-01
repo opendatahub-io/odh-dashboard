@@ -79,7 +79,7 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
                 id="experiment-name"
                 name="experiment-name"
                 value={name}
-                onChange={(value) => setData('name', value)}
+                onChange={(e, value) => setData('name', value)}
               />
             </FormGroup>
           </StackItem>
@@ -91,7 +91,7 @@ const ManageExperimentModal: React.FC<ManageExperimentModalProps> = ({ isOpen, o
                 id="experiment-description"
                 name="experiment-description"
                 value={description}
-                onChange={(value) => setData('description', value)}
+                onChange={(e, value) => setData('description', value)}
               />
             </FormGroup>
           </StackItem>

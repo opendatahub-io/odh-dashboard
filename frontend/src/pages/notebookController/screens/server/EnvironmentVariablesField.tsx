@@ -7,6 +7,10 @@ import {
   InputGroup,
   TextInput,
   TextInputTypes,
+  InputGroupItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
@@ -43,39 +47,52 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   return (
     <div className="odh-notebook-controller__env-var-field">
       <FormGroup
+        className="odh-notebook-controller__env-var-field__name"
         fieldId={`${fieldIndex}-${variable.name}`}
         label="Variable name"
-        helperTextInvalid={variableRow.errors[variable.name]}
-        helperTextInvalidIcon={<ExclamationCircleIcon />}
-        validated={validated}
       >
         <TextInput
           id={`${fieldIndex}-${variable.name}`}
           data-id={`${fieldIndex}-${variable.name}`}
           type={TextInputTypes.text}
-          onChange={(newKey) =>
+          onChange={(e, newKey) =>
             onUpdateVariable({ name: newKey, type: variable.type, value: variable.value })
           }
           value={variable.name === EMPTY_KEY ? '' : variable.name}
           validated={validated}
         />
+        {validated === 'error' && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem icon={<ExclamationCircleIcon />} variant={'error'}>
+                {variableRow.errors[variable.name]}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
       </FormGroup>
-      <FormGroup fieldId={`${fieldIndex}-${variable.name}-value`} label="Variable value">
+      <FormGroup
+        className="odh-notebook-controller__env-var-field__value"
+        fieldId={`${fieldIndex}-${variable.name}-value`}
+        label="Variable value"
+      >
         <Flex>
           <InputGroup>
-            <TextInput
-              id={`${fieldIndex}-${variable.name}-value`}
-              data-id={`${fieldIndex}-${variable.name}-value`}
-              type={
-                showPassword && variableType === 'password'
-                  ? TextInputTypes.text
-                  : (variable.type as TextInputTypes)
-              }
-              value={variable.value}
-              onChange={(newValue) =>
-                onUpdateVariable({ name: variable.name, type: variable.type, value: newValue })
-              }
-            />
+            <InputGroupItem isFill>
+              <TextInput
+                id={`${fieldIndex}-${variable.name}-value`}
+                data-id={`${fieldIndex}-${variable.name}-value`}
+                type={
+                  showPassword && variableType === 'password'
+                    ? TextInputTypes.text
+                    : (variable.type as TextInputTypes)
+                }
+                value={variable.value}
+                onChange={(e, newValue) =>
+                  onUpdateVariable({ name: variable.name, type: variable.type, value: newValue })
+                }
+              />
+            </InputGroupItem>
             {variable.type === 'password' ? (
               <Button
                 data-id="show-password-button"
@@ -92,7 +109,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
               className={variableType === 'password' ? ' m-is-secret' : ''}
               label="Secret"
               isChecked={variableType === 'password'}
-              onChange={handleSecretChange}
+              onChange={(e, checked: boolean) => handleSecretChange(checked)}
               aria-label="secret"
               id={`${fieldIndex}-${variable.name}-secret`}
               name="secret"

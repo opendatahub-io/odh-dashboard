@@ -1,6 +1,6 @@
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { PipelineServerConfigType } from '~/concepts/pipelines/content/configurePipelinesServer/types';
 import { createDSPipelineResourceSpec } from '~/concepts/pipelines/content/configurePipelinesServer/utils';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 
 describe('configure pipeline server utils', () => {
   describe('createDSPipelineResourceSpec', () => {
@@ -11,9 +11,7 @@ describe('configure pipeline server utils', () => {
           value: [],
         },
         objectStorage: {
-          useExisting: true,
-          existingName: '',
-          existingValue: [],
+          newValue: [],
         },
       } as PipelineServerConfigType);
 
@@ -22,7 +20,7 @@ describe('configure pipeline server utils', () => {
     const createSecretsResponse = (
       databaseSecret?: SecretsResponse[0],
       objectStorageSecret?: SecretsResponse[1],
-    ): SecretsResponse => [databaseSecret, objectStorageSecret ?? { secretName: '', awsData: [] }];
+    ): SecretsResponse => [databaseSecret, objectStorageSecret ?? { secretName: '' }];
 
     it('should create resource spec', () => {
       const spec = createDSPipelineResourceSpec(
@@ -47,28 +45,30 @@ describe('configure pipeline server utils', () => {
     });
 
     it('should parse S3 endpoint with scheme', () => {
+      const config = createPipelineServerConfig();
       const secretsResponse = createSecretsResponse();
-      secretsResponse[1].awsData = [
+      config.objectStorage.newValue = [
         { key: AWS_KEYS.S3_ENDPOINT, value: 'http://s3.amazonaws.com' },
       ];
-      const spec = createDSPipelineResourceSpec(createPipelineServerConfig(), secretsResponse);
+      const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('http');
       expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
     });
 
     it('should parse S3 endpoint without scheme', () => {
       const secretsResponse = createSecretsResponse();
-
-      secretsResponse[1].awsData = [{ key: AWS_KEYS.S3_ENDPOINT, value: 's3.amazonaws.com' }];
-      const spec = createDSPipelineResourceSpec(createPipelineServerConfig(), secretsResponse);
+      const config = createPipelineServerConfig();
+      config.objectStorage.newValue = [{ key: AWS_KEYS.S3_ENDPOINT, value: 's3.amazonaws.com' }];
+      const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.scheme).toBe('https');
       expect(spec.objectStorage.externalStorage?.host).toBe('s3.amazonaws.com');
     });
 
     it('should include bucket', () => {
       const secretsResponse = createSecretsResponse();
-      secretsResponse[1].awsData = [{ key: AWS_KEYS.AWS_S3_BUCKET, value: 'my-bucket' }];
-      const spec = createDSPipelineResourceSpec(createPipelineServerConfig(), secretsResponse);
+      const config = createPipelineServerConfig();
+      config.objectStorage.newValue = [{ key: AWS_KEYS.AWS_S3_BUCKET, value: 'my-bucket' }];
+      const spec = createDSPipelineResourceSpec(config, secretsResponse);
       expect(spec.objectStorage.externalStorage?.bucket).toBe('my-bucket');
     });
 

@@ -12,9 +12,11 @@ export type AnyObject = Record<string, unknown>;
  *
  * TODO: Implement the SDK & Patch logic -- this should stop being needed as things will be defined as Patches
  */
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
+export type RecursivePartial<T> = T extends object
+  ? {
+      [P in keyof T]?: RecursivePartial<T[P]>;
+    }
+  : T;
 
 /**
  * Partial only some properties.
@@ -119,3 +121,8 @@ export type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & 
 export type EitherOrNone<TypeA, TypeB> =
   | EitherNotBoth<TypeA, TypeB>
   | (Never<TypeA> & Never<TypeB>);
+
+export const isInEnum =
+  <T extends { [s: string]: unknown }>(e: T) =>
+  (token: unknown): token is T[keyof T] =>
+    Object.values(e).includes(token as T[keyof T]);

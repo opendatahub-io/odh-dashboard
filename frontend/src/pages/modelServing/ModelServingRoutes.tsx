@@ -3,9 +3,9 @@ import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import ModelServingExplainabilityWrapper from '~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import GlobalModelServingCoreLoader from '~/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
 import BiasConfigurationBreadcrumbPage from './screens/metrics/bias/BiasConfigurationPage/BiasConfigurationBreadcrumbPage';
 import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';
-import ModelServingContextProvider from './ModelServingContext';
 import GlobalModelMetricsWrapper from './screens/metrics/GlobalModelMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
 import useModelMetricsEnabled from './useModelMetricsEnabled';
@@ -14,10 +14,16 @@ const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 
-  //TODO: Split route to project and mount provider here. This will allow you to load data when model switching is later implemented.
   return (
     <ProjectsRoutes>
-      <Route path="/" element={<ModelServingContextProvider />}>
+      <Route
+        path="/:namespace?/*"
+        element={
+          <GlobalModelServingCoreLoader
+            getInvalidRedirectPath={(namespace) => `/modelServing/${namespace}`}
+          />
+        }
+      >
         <Route index element={<ModelServingGlobal />} />
         {modelMetricsEnabled && (
           <Route path="/metrics/:project" element={<ModelServingExplainabilityWrapper />}>
@@ -28,7 +34,6 @@ const ModelServingRoutes: React.FC = () => {
                 <Route path="configure" element={<BiasConfigurationBreadcrumbPage />} />
               )}
             </Route>
-            {/* TODO: Global Runtime metrics?? */}
             <Route path="*" element={<Navigate to="." />} />
           </Route>
         )}

@@ -45,7 +45,7 @@ const RunTypeSectionDateTime: React.FC<RunTypeSectionDateTimeProps> = ({
           id={id}
           label={label}
           isChecked={value !== undefined}
-          onChange={(checked) => {
+          onChange={(e, checked) => {
             if (checked) {
               let now = new Date();
               if (adjustNow) {

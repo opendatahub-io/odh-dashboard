@@ -54,6 +54,9 @@ spec:
                     disableBiasMetrics:
                       type: boolean
                     disablePerformanceMetrics:
+                    disableKServe:
+                      type: boolean
+                    disableModelMesh:
                       type: boolean
                 groupsConfig:
                   type: object

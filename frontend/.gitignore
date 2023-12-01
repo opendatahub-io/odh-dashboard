@@ -9,3 +9,5 @@
 /public
 
 *stats.json
+
+.cache*

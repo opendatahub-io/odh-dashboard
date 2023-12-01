@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Divider } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
@@ -44,16 +44,10 @@ const NotebookList: React.FC = () => {
         isLoading={!loaded}
         loadError={loadError}
         isEmpty={isNotebooksEmpty}
-        emptyState={
-          <EmptyDetailsList
-            title="No workbenches"
-            description="To get started, create a workbench."
-          />
-        }
+        emptyState={<EmptyDetailsList title="No workbenches" />}
       >
         <NotebookTable notebookStates={notebookStates} refresh={refresh} />
       </DetailsSection>
-      {isNotebooksEmpty && <Divider data-id="details-page-section-divider" />}
     </>
   );
 };

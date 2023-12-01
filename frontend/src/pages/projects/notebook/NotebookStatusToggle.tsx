@@ -17,12 +17,14 @@ type NotebookStatusToggleProps = {
   notebookState: NotebookState;
   doListen: boolean;
   enablePipelines?: boolean;
+  isDisabled?: boolean;
 };
 
 const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   notebookState,
   doListen,
   enablePipelines,
+  isDisabled,
 }) => {
   const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
   const [acceleratorData] = useNotebookAccelerators(notebook);
@@ -87,7 +89,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         <FlexItem>
           <Switch
             aria-label={label}
-            isDisabled={inProgress || isStopping}
+            isDisabled={inProgress || isStopping || isDisabled}
             id={`${notebookName}-${notebookNamespace}`}
             isChecked={isChecked}
             onClick={() => {

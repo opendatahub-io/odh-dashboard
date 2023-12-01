@@ -41,14 +41,14 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
               <StackItem>
                 <Select
                   isOpen={timeframeOpen}
-                  onToggle={(expanded) => setTimeframeOpen(expanded)}
+                  onOpenChange={(expanded) => setTimeframeOpen(expanded)}
                   onSelect={(e, selection) => {
                     if (isTimeframeTitle(selection)) {
                       setCurrentTimeframe(selection);
                       setTimeframeOpen(false);
                     }
                   }}
-                  selections={currentTimeframe}
+                  selected={currentTimeframe}
                 >
                   {Object.values(TimeframeTitle).map((value) => (
                     <SelectOption key={value} value={value} />
@@ -65,14 +65,14 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
               <StackItem>
                 <Select
                   isOpen={intervalOpen}
-                  onToggle={(expanded) => setIntervalOpen(expanded)}
+                  onOpenChange={(expanded) => setIntervalOpen(expanded)}
                   onSelect={(e, selection) => {
                     if (isRefreshIntervalTitle(selection)) {
                       setCurrentRefreshInterval(selection);
                       setIntervalOpen(false);
                     }
                   }}
-                  selections={currentRefreshInterval}
+                  selected={currentRefreshInterval}
                 >
                   {Object.values(RefreshIntervalTitle).map((value) => (
                     <SelectOption key={value} value={value} />

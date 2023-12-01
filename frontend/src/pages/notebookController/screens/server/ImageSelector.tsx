@@ -59,7 +59,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         }
         description={getDescriptionForTag(currentTag)}
         isChecked={image.name === selectedImage?.name}
-        onChange={(checked: boolean) => {
+        onChange={(e, checked: boolean) => {
           if (currentTag) {
             handleSelection(image, currentTag, checked);
           }

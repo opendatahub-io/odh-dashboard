@@ -8,7 +8,7 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -25,11 +25,12 @@ const ProjectSharing: React.FC = () => {
 
   if (loadError) {
     return (
-      <EmptyState variant={EmptyStateVariant.large} data-id="error-empty-state">
-        <EmptyStateIcon icon={ExclamationCircleIcon} />
-        <Title headingLevel="h2" size="lg">
-          There was an issue loading permissions.
-        </Title>
+      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
+        <EmptyStateHeader
+          titleText="There was an issue loading permissions."
+          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+          headingLevel="h2"
+        />
         <EmptyStateBody>{loadError.message}</EmptyStateBody>
       </EmptyState>
     );
@@ -37,11 +38,9 @@ const ProjectSharing: React.FC = () => {
 
   if (!loaded) {
     return (
-      <EmptyState variant={EmptyStateVariant.large} data-id="loading-empty-state">
+      <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
         <Spinner size="xl" />
-        <Title headingLevel="h2" size="lg">
-          Loading
-        </Title>
+        <EmptyStateHeader titleText="Loading" headingLevel="h2" />
       </EmptyState>
     );
   }

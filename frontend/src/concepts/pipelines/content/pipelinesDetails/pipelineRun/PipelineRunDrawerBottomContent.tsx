@@ -23,7 +23,7 @@ const PipelineRunDrawerBottomContent: React.FC<PipelineRunBottomDrawerContentPro
     isResizable={!!detailsTab}
     defaultSize={detailsTab ? '300px' : CLOSED_MIN_SIZE}
     minSize={detailsTab ? OPEN_MIN_SIZE : CLOSED_MIN_SIZE}
-    onResize={(size) => {
+    onResize={(e, size) => {
       if (size < OPEN_MIN_SIZE_THRESHOLD) {
         onSelectionChange(null);
       }

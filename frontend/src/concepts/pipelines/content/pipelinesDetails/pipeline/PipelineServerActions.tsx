@@ -1,12 +1,12 @@
 import * as React from 'react';
+import { Tooltip } from '@patternfly/react-core';
 import {
   Dropdown,
   DropdownItem,
   DropdownSeparator,
   DropdownToggle,
   KebabToggle,
-  Tooltip,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/deprecated';
 import { DeleteServerModal, ViewServerModal } from '~/concepts/pipelines/context';
 
 type PipelineServerActionsProps = {
@@ -21,7 +21,6 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
 
   const DropdownComponent = (
     <Dropdown
-      removeFindDomNode
       onSelect={() => setOpen(false)}
       toggle={
         variant === 'kebab' ? (

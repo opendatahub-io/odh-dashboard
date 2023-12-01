@@ -1,3 +1,4 @@
+import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 import { ModelMetricType, ServerMetricType } from './metrics/ModelServingMetricsContext';
@@ -107,4 +108,20 @@ export type InferenceServiceStorage = {
 export type InferenceServiceFormat = {
   name: string;
   version?: string;
+};
+
+export type ServingRuntimeEditInfo = {
+  servingRuntime?: ServingRuntimeKind;
+  secrets: SecretKind[];
+};
+
+export type ServingPlatformStatuses = {
+  kServe: {
+    enabled: boolean;
+    installed: boolean;
+  };
+  modelMesh: {
+    enabled: boolean;
+    installed: boolean;
+  };
 };

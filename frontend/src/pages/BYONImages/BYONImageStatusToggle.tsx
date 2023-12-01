@@ -45,7 +45,7 @@ const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) 
       aria-label={`Enable Switch ${image.name}`}
       data-id={`enabled-disable-${image.id}`}
       isChecked={isEnabled}
-      onChange={handleChange}
+      onChange={(e, value) => handleChange(value)}
       isDisabled={!!image.error || isLoading}
     />
   );

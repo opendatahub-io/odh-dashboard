@@ -9,9 +9,14 @@ export const mockClusterSettings = ({
     key: 'NotebooksOnlyChange',
     enabled: true,
   },
+  modelServingPlatformEnabled = {
+    kServe: true,
+    modelMesh: true,
+  },
 }: Partial<ClusterSettingsType>): ClusterSettingsType => ({
   userTrackingEnabled,
   cullerTimeout,
   pvcSize,
   notebookTolerationSettings,
+  modelServingPlatformEnabled,
 });

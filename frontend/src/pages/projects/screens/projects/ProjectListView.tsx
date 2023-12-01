@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { ButtonVariant, ToolbarItem } from '@patternfly/react-core';
+import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
+import SearchField, { SearchType } from '~/pages/projects/components/SearchField';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectDisplayName, getProjectOwner } from '~/pages/projects/utils';
 import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { ProjectScope } from '~/pages/projects/types';
 import NewProjectButton from './NewProjectButton';
 import { columns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
@@ -17,15 +17,18 @@ import ManageProjectModal from './ManageProjectModal';
 
 type ProjectListViewProps = {
   allowCreate: boolean;
+  scope: ProjectScope;
 };
 
-const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
+const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope }) => {
   const { dashboardConfig } = useAppContext();
-  const { projects: unfilteredProjects, refresh } = React.useContext(ProjectsContext);
+  const { projects, dataScienceProjects, refresh } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
-  const filteredProjects = unfilteredProjects.filter((project) => {
+  const filteredProjects = (
+    scope === ProjectScope.ALL_PROJECTS ? projects : dataScienceProjects
+  ).filter((project) => {
     if (!search) {
       return true;
     }
@@ -44,10 +47,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     setSearch('');
   };
 
-  const searchTypes = React.useMemo(
-    () => [SearchType.NAME, SearchType.PROJECT, SearchType.USER],
-    [],
-  );
+  const searchTypes = React.useMemo(() => Object.values(SearchType), []);
 
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
@@ -59,7 +59,15 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         enablePagination
         data={filteredProjects}
         columns={columns}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        emptyTableView={
+          <>
+            No projects match your filters.{' '}
+            <Button variant="link" isInline onClick={resetFilters}>
+              Clear filters
+            </Button>
+          </>
+        }
+        data-id="project-view-table"
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}
@@ -72,7 +80,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         toolbarContent={
           <React.Fragment>
             <ToolbarItem>
-              <DashboardSearchField
+              <SearchField
                 types={searchTypes}
                 searchType={searchType}
                 searchValue={search}
