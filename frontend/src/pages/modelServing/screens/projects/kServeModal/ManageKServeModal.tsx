@@ -230,6 +230,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ServingRuntimeReplicaSection
               data={createDataServingRuntime}
               setData={setCreateDataServingRuntime}
+              infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
             />
           </StackItem>
           <StackItem>
@@ -240,6 +242,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               servingRuntimeSelected={servingRuntimeSelected}
               acceleratorState={acceleratorState}
               setAcceleratorState={setAcceleratorState}
+              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
           <StackItem>
