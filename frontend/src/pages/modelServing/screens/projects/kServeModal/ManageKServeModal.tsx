@@ -61,6 +61,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
   const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
+    editInfo?.inferenceServiceEditInfo,
   );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
@@ -152,12 +153,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         NamespaceApplicationCase.KSERVE_PROMOTION,
         projectContext?.currentProject,
         servingRuntimeName,
+        false,
       ),
       submitInferenceServiceResource(
         createDataInferenceService,
         editInfo?.inferenceServiceEditInfo,
         servingRuntimeName,
         false,
+        acceleratorState,
       ),
     ])
       .then(() => onSuccess())
