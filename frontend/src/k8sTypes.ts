@@ -377,7 +377,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
-      tolerations?: PodToleration[];
+      tolerations?: Toleration[];
       model: {
         modelFormat: {
           name: string;

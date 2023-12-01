@@ -24,7 +24,7 @@ export default {
         ],
         accelerators: rest.get(
           '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles',
-          (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockAcceleratorProfile()]))),
+          (req, res, ctx) => res(ctx.json(mockK8sResourceList([mockAcceleratorProfile({})]))),
         ),
         images: rest.get('/api/images/byon', (req, res, ctx) =>
           res(
