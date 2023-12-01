@@ -5,7 +5,7 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import {
@@ -17,10 +17,11 @@ const EmptyBiasChartSelectionCard = () => (
   <Card>
     <CardBody>
       <EmptyState>
-        <EmptyStateIcon icon={SearchIcon} />
-        <Title headingLevel="h2" size="lg">
-          {EMPTY_BIAS_CHART_SELECTION_TITLE}
-        </Title>
+        <EmptyStateHeader
+          titleText={<>{EMPTY_BIAS_CHART_SELECTION_TITLE}</>}
+          icon={<EmptyStateIcon icon={SearchIcon} />}
+          headingLevel="h2"
+        />
         <EmptyStateBody>{EMPTY_BIAS_CHART_SELECTION_DESC}</EmptyStateBody>
       </EmptyState>
     </CardBody>

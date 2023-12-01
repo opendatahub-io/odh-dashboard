@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as _ from 'lodash';
-import { BreadcrumbItem, SelectOptionObject } from '@patternfly/react-core';
+import { BreadcrumbItem } from '@patternfly/react-core';
+import { SelectOptionObject } from '@patternfly/react-core/deprecated';
 import { Link } from 'react-router-dom';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';

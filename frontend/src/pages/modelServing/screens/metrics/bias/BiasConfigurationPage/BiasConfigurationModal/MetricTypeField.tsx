@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { FormGroup, Select, SelectOption } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import {
   METRIC_TYPE_DESCRIPTION,
   METRIC_TYPE_DISPLAY_NAME,
@@ -18,11 +19,10 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
   return (
     <FormGroup label="Metric type" fieldId={fieldId}>
       <Select
-        removeFindDomNode
         id={fieldId}
         isOpen={isOpen}
         placeholderText="Select"
-        onToggle={(open) => setOpen(open)}
+        onToggle={(_event, open) => setOpen(open)}
         onSelect={(_, option) => {
           if (isMetricType(option)) {
             onChange(option);

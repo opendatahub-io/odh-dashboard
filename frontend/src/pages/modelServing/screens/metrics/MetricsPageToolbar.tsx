@@ -1,7 +1,5 @@
 import * as React from 'react';
 import {
-  Select,
-  SelectOption,
   Stack,
   StackItem,
   Toolbar,
@@ -9,6 +7,7 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { isRefreshIntervalTitle, isTimeframeTitle } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
@@ -32,23 +31,23 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
     <Toolbar isSticky>
       <ToolbarContent>
         {leftToolbarItem}
-        <ToolbarGroup alignment={{ default: 'alignRight' }}>
+        <ToolbarGroup align={{ default: 'alignRight' }}>
           <ToolbarGroup>
-            <Stack>
+            <Stack hasGutter style={{ gap: 'var(--pf-v5-global--spacer--sm)' }}>
               <StackItem>
                 <ToolbarItem variant="label">Time range</ToolbarItem>
               </StackItem>
               <StackItem>
                 <Select
                   isOpen={timeframeOpen}
-                  onOpenChange={(expanded) => setTimeframeOpen(expanded)}
+                  onToggle={(_event, expanded) => setTimeframeOpen(expanded)}
                   onSelect={(e, selection) => {
                     if (isTimeframeTitle(selection)) {
                       setCurrentTimeframe(selection);
                       setTimeframeOpen(false);
                     }
                   }}
-                  selected={currentTimeframe}
+                  selections={currentTimeframe}
                 >
                   {Object.values(TimeframeTitle).map((value) => (
                     <SelectOption key={value} value={value} />
@@ -58,21 +57,21 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
             </Stack>
           </ToolbarGroup>
           <ToolbarGroup>
-            <Stack>
+            <Stack hasGutter style={{ gap: 'var(--pf-v5-global--spacer--sm)' }}>
               <StackItem>
                 <ToolbarItem variant="label">Refresh interval</ToolbarItem>
               </StackItem>
               <StackItem>
                 <Select
                   isOpen={intervalOpen}
-                  onOpenChange={(expanded) => setIntervalOpen(expanded)}
+                  onToggle={(_event, expanded) => setIntervalOpen(expanded)}
                   onSelect={(e, selection) => {
                     if (isRefreshIntervalTitle(selection)) {
                       setCurrentRefreshInterval(selection);
                       setIntervalOpen(false);
                     }
                   }}
-                  selected={currentRefreshInterval}
+                  selections={currentRefreshInterval}
                 >
                   {Object.values(RefreshIntervalTitle).map((value) => (
                     <SelectOption key={value} value={value} />

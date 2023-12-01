@@ -10,9 +10,9 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Title,
   ToolbarGroup,
   ToolbarItem,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
@@ -66,11 +66,12 @@ const BiasTab: React.FC = () => {
   if (loadError) {
     return (
       <PageSection isFilled variant={PageSectionVariants.light}>
-        <EmptyState variant={EmptyStateVariant.large}>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h5" size="lg">
-            TrustyAI Error
-          </Title>
+        <EmptyState variant={EmptyStateVariant.lg}>
+          <EmptyStateHeader
+            titleText="TrustyAI Error"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h5"
+          />
           <EmptyStateBody>
             <Stack hasGutter>
               <StackItem>We encountered an error accessing the TrustyAI service:</StackItem>
@@ -92,7 +93,7 @@ const BiasTab: React.FC = () => {
           <MetricsPageToolbar
             leftToolbarItem={
               <ToolbarGroup>
-                <Stack>
+                <Stack hasGutter style={{ gap: 'var(--pf-v5-global--spacer--sm)' }}>
                   <StackItem>
                     <ToolbarItem variant="label">Metrics to display</ToolbarItem>
                   </StackItem>
@@ -110,7 +111,7 @@ const BiasTab: React.FC = () => {
           />
         </StackItem>
         <PageSection isFilled>
-          <Stack hasGutter>
+          <Stack hasGutter style={{ gap: 'var(--pf-v5-global--spacer--sm)' }}>
             {(biasMetricConfigs.length === 0 && (
               <StackItem>
                 <EmptyBiasConfigurationCard />

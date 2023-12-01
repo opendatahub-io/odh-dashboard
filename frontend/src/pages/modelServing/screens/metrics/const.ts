@@ -1,4 +1,4 @@
-import { ChartThemeColor, mergeTheme } from '@patternfly/react-charts';
+import { ChartThemeColor, getCustomTheme } from '@patternfly/react-charts';
 import { BiasMetricType } from '~/api';
 import { BiasChartConfigMap, MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
@@ -91,4 +91,4 @@ const themeProps = {
   stack: { colorScale },
 };
 
-export const SUCCESS_FAIL_CHART_THEME = mergeTheme(ChartThemeColor.default, themeProps);
+export const SUCCESS_FAIL_CHART_THEME = getCustomTheme(ChartThemeColor.default, themeProps);

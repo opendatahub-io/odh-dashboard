@@ -21,7 +21,6 @@ const UnauthorizedError: React.FC<UnauthorizedErrorProps> = ({
 }) => (
   <PageSection isFilled variant={variant}>
     <EmptyState variant={EmptyStateVariant.lg}>
-      <EmptyStateIcon icon={LockIcon} />
       <EmptyStateHeader
         titleText="Access permissions needed"
         icon={<EmptyStateIcon icon={LockIcon} />}
