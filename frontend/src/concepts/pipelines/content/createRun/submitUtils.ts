@@ -20,10 +20,10 @@ import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/util
 const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[] => {
   const refs: ResourceReferenceKF[] = [];
 
-  if (formData.pipeline) {
+  if (formData.version) {
     refs.push({
       key: {
-        id: formData.pipeline.id,
+        id: formData.version.id,
         type: ResourceTypeKF.PIPELINE_VERSION,
       },
       relationship: RelationshipKF.CREATOR,

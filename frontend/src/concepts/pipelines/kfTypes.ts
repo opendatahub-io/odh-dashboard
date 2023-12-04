@@ -176,7 +176,7 @@ export type PipelineKF = PipelineCoreResourceKF & {
   parameters?: ParameterKF[];
   url?: UrlKF;
   error?: string;
-  default_version: PipelineVersionKF;
+  default_version?: PipelineVersionKF;
 };
 
 export type PipelineRunKF = PipelineCoreResourceKF & {

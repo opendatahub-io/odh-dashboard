@@ -28,7 +28,7 @@ import {
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
-const pipelineParamsToQuery = (params?: PipelineParams) => ({
+const commonPipelineQueryParams = (params?: PipelineParams) => ({
   // eslint-disable-next-line camelcase
   sort_by: params?.sortField
     ? `${params.sortField} ${params.sortDirection || 'asc'}`
@@ -40,6 +40,10 @@ const pipelineParamsToQuery = (params?: PipelineParams) => ({
   filter: params?.filter?.predicates
     ? JSON.stringify({ predicates: params.filter.predicates })
     : undefined,
+});
+
+const pipelineParamsToQuery = (params?: PipelineParams) => ({
+  ...commonPipelineQueryParams(params),
   'resource_reference_key.type': params?.filter?.resourceReference?.type,
   'resource_reference_key.id': params?.filter?.resourceReference?.id,
 });
@@ -137,9 +141,9 @@ export const listPipelineVersionsByPipeline: ListPipelineVersionsByPipelineAPI =
         hostPath,
         `/apis/v1beta1/pipeline_versions`,
         {
-          ...pipelineParamsToQuery(params),
-          'resource_reference_key.id': pipelineId,
-          'resource_reference_key.type': ResourceTypeKF.PIPELINE,
+          ...commonPipelineQueryParams(params),
+          'resource_key.id': pipelineId,
+          'resource_key.type': ResourceTypeKF.PIPELINE,
         },
         opts,
       ),

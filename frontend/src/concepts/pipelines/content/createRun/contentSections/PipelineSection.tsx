@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { FormSection, Skeleton, Stack, StackItem } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { FormSection } from '@patternfly/react-core';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
-import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
+import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 
 type PipelineSectionProps = {
   onLoaded: (loaded: boolean) => void;
@@ -17,44 +16,33 @@ type PipelineSectionProps = {
 };
 
 const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onChange }) => {
-  const [{ items: pipelines }, loaded] = usePipelines();
+  const [{ items: pipelines }, loaded] = usePipelines({}, 0);
+
   React.useEffect(() => {
     onLoaded(loaded);
     // only run when `loaded` changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
-  if (!loaded) {
-    return <Skeleton />;
-  }
+
   return (
     <FormSection
       id={CreateRunPageSections.PIPELINE}
       title={runPageSectionTitles[CreateRunPageSections.PIPELINE]}
     >
-      <Stack hasGutter>
-        <StackItem>
-          <SimpleDropdownSelect
-            placeholder="Select a pipeline"
-            options={pipelines.map((p) => ({ key: p.id, label: p.name }))}
-            value={value?.id ?? ''}
-            onChange={(id) => {
-              const pipeline = pipelines.find((p) => p.id === id);
-              if (pipeline) {
-                onChange(pipeline);
-              }
-            }}
-          />
-        </StackItem>
-        <StackItem>
-          <ImportPipelineButton
-            variant="link"
-            icon={<PlusCircleIcon />}
-            onCreate={(pipeline) => onChange(pipeline)}
-          >
-            Import pipeline
-          </ImportPipelineButton>
-        </StackItem>
-      </Stack>
+      <PipelineSelector
+        name={value?.name}
+        data={pipelines}
+        columns={pipelineSelectorColumns}
+        onSelect={(id) => {
+          const pipeline = pipelines.find((p) => p.id === id);
+          if (pipeline) {
+            onChange(pipeline);
+          }
+        }}
+        isLoading={!loaded}
+        placeHolder={pipelines.length === 0 ? 'No pipelines available' : 'Select a pipeline'}
+        searchHelperText={`Type a name to search your ${pipelines.length} pipelines.`}
+      />
     </FormSection>
   );
 };
