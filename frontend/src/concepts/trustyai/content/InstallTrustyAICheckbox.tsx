@@ -29,7 +29,7 @@ const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
         }
         isChecked={isAvailable}
         isDisabled={userHasChecked || isProgressing}
-        onChange={(_event, checked) => {
+        onChange={(e, checked) => {
           if (checked) {
             setUserHasChecked(true);
             onInstall().finally(() => setUserHasChecked(false));

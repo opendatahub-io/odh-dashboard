@@ -21,7 +21,7 @@ const DashboardExpandableSection: React.FC<DashboardExpandableSectionProps> = ({
     <ExpandableSection
       className="dashboard-expandable-section-heading"
       toggleText={title}
-      onToggle={(_event, isExpanded) => setIsExpanded(isExpanded)}
+      onToggle={(e, isExpanded) => setIsExpanded(isExpanded)}
       isExpanded={isExpanded}
     >
       {children}

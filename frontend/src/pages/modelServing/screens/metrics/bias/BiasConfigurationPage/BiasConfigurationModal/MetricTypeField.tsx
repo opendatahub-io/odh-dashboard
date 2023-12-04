@@ -22,7 +22,7 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
         id={fieldId}
         isOpen={isOpen}
         placeholderText="Select"
-        onToggle={(_event, open) => setOpen(open)}
+        onToggle={(e, open) => setOpen(open)}
         onSelect={(_, option) => {
           if (isMetricType(option)) {
             onChange(option);

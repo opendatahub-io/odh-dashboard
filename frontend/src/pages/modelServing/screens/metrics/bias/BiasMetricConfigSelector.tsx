@@ -51,7 +51,7 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
       <Select
         variant={SelectVariant.typeaheadMulti}
         typeAheadAriaLabel="Select a metric"
-        onToggle={(_event, val) => setIsOpen(val)}
+        onToggle={(e, val) => setIsOpen(val)}
         onSelect={(event, item) => {
           if (isBiasSelectOption(item)) {
             if (selected.find(byId(item))) {
