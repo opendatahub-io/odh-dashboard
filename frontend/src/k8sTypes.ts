@@ -329,7 +329,7 @@ export type ServingContainer = {
   image: string;
   name: string;
   affinity?: PodAffinity;
-  resources: ContainerResources;
+  resources?: ContainerResources;
   volumeMounts?: VolumeMount[];
 };
 
@@ -378,11 +378,13 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
+      tolerations?: PodToleration[];
       model: {
         modelFormat: {
           name: string;
           version?: string;
         };
+        resources?: ContainerResources;
         runtime?: string;
         storageUri?: string;
         storage?: {
