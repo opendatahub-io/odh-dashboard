@@ -4,7 +4,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
 import { PipelineOptions } from '~/concepts/pipelines/types';
 
-const usePipelines = (options?: PipelineOptions) => {
+const usePipelines = (options?: PipelineOptions, refreshRate?: number) => {
   const { api } = usePipelinesAPI();
   return usePipelineQuery<PipelineKF>(
     React.useCallback(
@@ -13,6 +13,7 @@ const usePipelines = (options?: PipelineOptions) => {
       [api],
     ),
     options,
+    refreshRate,
   );
 };
 

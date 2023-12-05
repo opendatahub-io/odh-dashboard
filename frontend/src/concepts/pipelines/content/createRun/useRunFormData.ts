@@ -17,6 +17,7 @@ import {
   PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
+  PipelineVersionKF,
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
 
@@ -205,6 +206,7 @@ const getParams = (pipeline?: PipelineKF): RunParam[] | undefined =>
 const useRunFormData = (
   initialData?: PipelineRunKF | PipelineRunJobKF,
   lastPipeline?: PipelineKF,
+  lastVersion?: PipelineVersionKF,
 ) => {
   const { project } = usePipelinesAPI();
 
@@ -215,7 +217,9 @@ const useRunFormData = (
       description: initialData?.description ?? '',
     },
     pipelinesLoaded: false,
+    pipelineVersionsLoaded: false,
     pipeline: lastPipeline ?? null,
+    version: lastVersion ?? lastPipeline?.default_version ?? null,
     // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: getParams(lastPipeline),
