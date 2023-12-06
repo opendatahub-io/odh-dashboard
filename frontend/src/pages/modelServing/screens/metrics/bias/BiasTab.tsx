@@ -93,10 +93,9 @@ const BiasTab: React.FC = () => {
           <MetricsPageToolbar
             leftToolbarItem={
               <ToolbarGroup>
-                <Stack hasGutter style={{ gap: 'var(--pf-v5-global--spacer--sm)' }}>
-                  <StackItem>
-                    <ToolbarItem variant="label">Metrics to display</ToolbarItem>
-                  </StackItem>
+                <Stack>
+                  {/* Will be fixed by https://github.com/opendatahub-io/odh-dashboard/issues/2277 */}
+                  <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
                   <StackItem>
                     <ToolbarItem>
                       <BiasMetricConfigSelector
@@ -111,7 +110,7 @@ const BiasTab: React.FC = () => {
           />
         </StackItem>
         <PageSection isFilled>
-          <Stack hasGutter style={{ gap: 'var(--pf-v5-global--spacer--sm)' }}>
+          <Stack hasGutter>
             {(biasMetricConfigs.length === 0 && (
               <StackItem>
                 <EmptyBiasConfigurationCard />
