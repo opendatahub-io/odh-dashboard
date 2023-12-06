@@ -32,7 +32,7 @@ import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelin
 import { LOG_TAIL_LINES } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import useCodeEditorAsLogs from '~/concepts/dashboard/codeEditor/useCodeEditorAsLogs';
-import { downloadFullPodLog, downloadAllStepLogs } from '~/concepts/k8s/pods/utils';
+import { downloadCurrentStepLog, downloadAllStepLogs } from '~/concepts/k8s/pods/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 // TODO: If this gets large enough we should look to make this its own component file
@@ -49,8 +49,15 @@ const LogsTab: React.FC<{ task: PipelineRunTaskDetails }> = ({ task }) => {
 /** Must be a non-empty podName -- use LogsTabForTask for safer usage */
 const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
   const { namespace } = usePipelinesAPI();
-  const { podLoaded, podError, podContainers, selectedContainer, setSelectedContainer } =
-    usePodContainerLogState(podName);
+  const {
+    pod,
+    podLoaded,
+    podStatus,
+    podError,
+    podContainers,
+    selectedContainer,
+    setSelectedContainer,
+  } = usePodContainerLogState(podName);
   const [isPaused, setIsPaused] = React.useState(false);
   const [logs, logsLoaded, logsError, refreshLogs] = useFetchLogs(
     podName,
@@ -70,14 +77,14 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
     }
   }, [isPaused, logs, scrollToBottom]);
 
-  const canDownloadAll = !!podContainers && !!podName && !downloading;
+  const canDownloadAll = !!podContainers && !!pod && !downloading;
   const onDownloadAll = () => {
     if (!canDownloadAll) {
       return;
     }
     setDownloadError(undefined);
     setDownloading(true);
-    downloadAllStepLogs(podContainers, namespace, podName)
+    downloadAllStepLogs(podContainers, namespace, pod)
       .catch((e) => setDownloadError(e))
       .finally(() => setDownloading(false));
   };
@@ -89,16 +96,15 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
     }
     setDownloadError(undefined);
     setDownloading(true);
-    downloadFullPodLog(namespace, podName, selectedContainer.name)
+    downloadCurrentStepLog(namespace, podName, selectedContainer.name, podStatus?.completed)
       .catch((e) => setDownloadError(e))
       .finally(() => setDownloading(false));
   };
 
   const error = podError || logsError || downloadError;
   const loaded = podLoaded && logsLoaded;
-
   let data: string;
-  if (error) {
+  if (error || podStatus?.podInitializing) {
     data = '';
   } else if (!logsLoaded) {
     data = 'Loading...';
@@ -111,12 +117,14 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
   return (
     <Stack hasGutter style={{ minHeight: 400 }}>
       <StackItem>
-        <LogsTabStatus
-          loaded={loaded}
-          error={error}
-          refresh={refreshLogs}
-          onDownload={onDownloadAll}
-        />
+        {!podStatus?.podInitializing && (
+          <LogsTabStatus
+            loaded={loaded}
+            error={error}
+            refresh={refreshLogs}
+            onDownload={onDownloadAll}
+          />
+        )}
       </StackItem>
       <StackItem>
         <Split hasGutter isWrappable>
@@ -149,27 +157,29 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
             </Split>
           </SplitItem>
           <SplitItem>
-            <Button
-              variant={!logsLoaded ? 'plain' : isPaused ? 'plain' : 'link'}
-              onClick={() => setIsPaused(!isPaused)}
-              isDisabled={!!error}
-            >
-              {error ? (
-                'Error loading logs'
-              ) : !logsLoaded ? (
-                <>
-                  <Spinner size="sm" /> {isSmallScreen() ? 'Loading' : 'Loading log'}
-                </>
-              ) : isPaused ? (
-                <>
-                  <PlayIcon /> {isSmallScreen() ? 'Resume' : 'Resume refreshing'}
-                </>
-              ) : (
-                <>
-                  <PauseIcon /> {isSmallScreen() ? 'Pause' : 'Pause refreshing'}
-                </>
-              )}
-            </Button>
+            {!podStatus?.completed && (
+              <Button
+                variant={!logsLoaded ? 'plain' : isPaused ? 'plain' : 'link'}
+                onClick={() => setIsPaused(!isPaused)}
+                isDisabled={!!error}
+              >
+                {error ? (
+                  'Error loading logs'
+                ) : !logsLoaded || podStatus?.podInitializing ? (
+                  <>
+                    <Spinner size="sm" /> {isSmallScreen() ? 'Loading' : 'Loading log'}
+                  </>
+                ) : isPaused ? (
+                  <>
+                    <PlayIcon /> {isSmallScreen() ? 'Resume' : 'Resume refreshing'}
+                  </>
+                ) : (
+                  <>
+                    <PauseIcon /> {isSmallScreen() ? 'Pause' : 'Pause refreshing'}
+                  </>
+                )}
+              </Button>
+            )}
           </SplitItem>
           <SplitItem isFilled style={{ textAlign: 'right' }}>
             {downloading ? (

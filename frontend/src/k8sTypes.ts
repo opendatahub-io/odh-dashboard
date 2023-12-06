@@ -293,9 +293,16 @@ export type NotebookKind = K8sResourceCommon & {
 };
 
 export type PodKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
   spec: PodSpec;
   status: {
-    containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
+    containerStatuses: {
+      name?: string;
+      ready: boolean;
+      state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
+    }[];
   };
 };
 
