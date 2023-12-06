@@ -3,9 +3,9 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import GlobalNoPipelines from '~/pages/pipelines/global/pipelines/GlobalNoPipelines';
 import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import GlobalPipelinesTableToolbar from './GlobalPipelinesTableToolbar';
 
 const PipelinesView: React.FC = () => {
@@ -42,7 +42,9 @@ const PipelinesView: React.FC = () => {
       pipelines={pipelines}
       enablePagination="compact"
       toolbarContent={<GlobalPipelinesTableToolbar {...filterToolbarProps} />}
-      emptyTableView={<EmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />}
+      emptyTableView={
+        <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
+      }
       refreshPipelines={refresh}
       pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
     />

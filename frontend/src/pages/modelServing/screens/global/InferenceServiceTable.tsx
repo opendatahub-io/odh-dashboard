@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { Table } from '~/components/table';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ResourceTr from '~/components/ResourceTr';
@@ -43,14 +43,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         toolbarContent={toolbarContent}
         enablePagination={enablePagination}
         emptyTableView={
-          isGlobal ? (
-            <>
-              No projects match your filters.{' '}
-              <Button variant="link" isInline onClick={clearFilters}>
-                Clear filters
-              </Button>
-            </>
-          ) : undefined
+          isGlobal ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
         }
         rowRenderer={(is) => (
           <ResourceTr key={is.metadata.uid} resource={is}>

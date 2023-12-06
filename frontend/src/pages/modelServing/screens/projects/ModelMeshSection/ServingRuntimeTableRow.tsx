@@ -1,13 +1,17 @@
 import * as React from 'react';
+
 import { Button, Icon, Skeleton, Tooltip, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+
 import {
   getInferenceServiceFromServingRuntime,
   isServingRuntimeTokenEnabled,
@@ -31,7 +35,10 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   expandedServingRuntimeName,
   allowDelete,
 }) => {
+  const navigate = useNavigate();
+
   const {
+    currentProject,
     inferenceServices: {
       data: inferenceServices,
       loaded: inferenceServicesLoaded,
@@ -52,6 +59,10 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   const tokens = filterTokens(obj.metadata.name);
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
+
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
 
   const compoundExpandParams = (
     col: ServingRuntimeTableTabs,
@@ -143,6 +154,17 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                 title: 'Edit model server',
                 onClick: () => onEditServingRuntime(obj),
               },
+              ...(performanceMetricsAreaAvailable
+                ? [
+                    {
+                      title: 'View model server metrics',
+                      onClick: () =>
+                        navigate(
+                          `/projects/${currentProject.metadata.name}/metrics/server/${obj.metadata.name}`,
+                        ),
+                    },
+                  ]
+                : []),
               ...(allowDelete
                 ? [
                     {

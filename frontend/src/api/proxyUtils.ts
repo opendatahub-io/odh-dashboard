@@ -4,6 +4,7 @@ import { EitherOrNone } from '~/typeHelpers';
 
 type CallProxyJSONOptions = {
   queryParams?: Record<string, unknown>;
+  parseJSON?: boolean;
 } & EitherOrNone<
   {
     fileContents: string;
@@ -17,7 +18,7 @@ const callProxyJSON = <T>(
   host: string,
   path: string,
   requestInit: RequestInit,
-  { data, fileContents, queryParams }: CallProxyJSONOptions,
+  { data, fileContents, queryParams, parseJSON = true }: CallProxyJSONOptions,
 ): Promise<T> => {
   const { method, ...otherOptions } = requestInit;
 
@@ -36,7 +37,14 @@ const callProxyJSON = <T>(
       data,
       fileContents,
     }),
-  }).then((response) => response.text().then((data) => JSON.parse(data)));
+  }).then((response) =>
+    response.text().then((data) => {
+      if (parseJSON) {
+        return JSON.parse(data);
+      }
+      return data;
+    }),
+  );
 };
 
 export const proxyGET = <T>(
@@ -45,7 +53,10 @@ export const proxyGET = <T>(
   queryParams: Record<string, unknown> = {},
   options?: K8sAPIOptions,
 ): Promise<T> =>
-  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'GET' }), { queryParams });
+  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'GET' }), {
+    queryParams,
+    parseJSON: options?.parseJSON,
+  });
 
 /** Standard POST */
 export const proxyCREATE = <T>(
@@ -58,6 +69,7 @@ export const proxyCREATE = <T>(
   callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'POST' }), {
     data,
     queryParams,
+    parseJSON: options?.parseJSON,
   });
 
 /** POST -- but with file content instead of body data */
@@ -71,6 +83,7 @@ export const proxyFILE = <T>(
   callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'POST' }), {
     fileContents,
     queryParams,
+    parseJSON: options?.parseJSON,
   });
 
 /** POST -- but no body data -- targets simple endpoints */
@@ -82,6 +95,7 @@ export const proxyENDPOINT = <T>(
 ): Promise<T> =>
   callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'POST' }), {
     queryParams,
+    parseJSON: options?.parseJSON,
   });
 
 export const proxyUPDATE = <T>(
@@ -91,12 +105,21 @@ export const proxyUPDATE = <T>(
   queryParams: Record<string, unknown> = {},
   options?: K8sAPIOptions,
 ): Promise<T> =>
-  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'PUT' }), { data, queryParams });
+  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'PUT' }), {
+    data,
+    queryParams,
+    parseJSON: options?.parseJSON,
+  });
 
 export const proxyDELETE = <T>(
   host: string,
   path: string,
+  data: Record<string, unknown>,
   queryParams: Record<string, unknown> = {},
   options?: K8sAPIOptions,
 ): Promise<T> =>
-  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'DELETE' }), { queryParams });
+  callProxyJSON<T>(host, path, mergeRequestInit(options, { method: 'DELETE' }), {
+    data,
+    queryParams,
+    parseJSON: options?.parseJSON,
+  });

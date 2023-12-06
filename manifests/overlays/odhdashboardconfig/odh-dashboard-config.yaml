@@ -19,6 +19,8 @@ spec:
     disableProjectSharing: true
     disableCustomServingRuntimes: true
     disableAcceleratorProfiles: true
+    disableBiasMetrics: true
+    disablePerformanceMetrics: true
     modelMetricsNamespace: ''
     disableKServe: false
     disableModelMesh: false
