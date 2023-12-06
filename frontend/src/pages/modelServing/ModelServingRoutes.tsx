@@ -26,7 +26,7 @@ const ModelServingRoutes: React.FC = () => {
       >
         <Route index element={<ModelServingGlobal />} />
         {modelMetricsEnabled && (
-          <Route path="/metrics/:project" element={<ModelServingExplainabilityWrapper />}>
+          <Route path="metrics" element={<ModelServingExplainabilityWrapper />}>
             <Route index element={<Navigate to=".." />} />
             <Route path=":inferenceService" element={<GlobalModelMetricsWrapper />}>
               <Route path=":tab?" element={<GlobalModelMetricsPage />} />

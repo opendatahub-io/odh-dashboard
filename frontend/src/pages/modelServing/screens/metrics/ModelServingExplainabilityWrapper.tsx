@@ -4,7 +4,7 @@ import { TrustyAIContextProvider } from '~/concepts/trustyai/context/TrustyAICon
 import NotFound from '~/pages/NotFound';
 
 const ModelServingExplainabilityWrapper: React.FC = () => {
-  const { project: namespace } = useParams<{ project: string }>();
+  const { namespace } = useParams<{ namespace: string }>();
 
   if (!namespace) {
     return <NotFound />;

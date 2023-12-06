@@ -38,7 +38,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             <Link
               to={
                 isGlobal
-                  ? `/modelServing/metrics/${inferenceService.metadata.namespace}/${inferenceService.metadata.name}`
+                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
                   : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
               }
             >
