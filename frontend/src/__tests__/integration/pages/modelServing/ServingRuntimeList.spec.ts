@@ -60,6 +60,28 @@ test('Deploy KServe model', async ({ page }) => {
   // test that you can not submit on empty
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
+  // test popovers
+  const expectedContent = [
+    {
+      ariaLabel: 'Model server replicas info',
+      content:
+        'Consider network traffic and failover scenarios when specifying the number of model server replicas.',
+    },
+    {
+      ariaLabel: 'Model server size info',
+      content:
+        'Select a server size that will accommodate your largest model. See the product documentation for more information.',
+    },
+  ];
+
+  for (const item of expectedContent) {
+    const iconPopover = await page.getByRole('button', { name: item.ariaLabel, exact: true });
+    if (await iconPopover.isVisible()) {
+      await iconPopover.click();
+      await expect(page.getByText(item.content)).toBeTruthy();
+    }
+  }
+
   // test filling in minimum required fields
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#serving-runtime-template-selection').click();

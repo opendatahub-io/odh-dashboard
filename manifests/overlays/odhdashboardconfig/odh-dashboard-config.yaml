@@ -21,7 +21,7 @@ spec:
     disableAcceleratorProfiles: true
     modelMetricsNamespace: ''
     disableKServe: false
-    disableModelMesh: true
+    disableModelMesh: false
   notebookController:
     enabled: true
   notebookSizes:

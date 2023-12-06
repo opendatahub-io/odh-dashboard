@@ -42,9 +42,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
   }
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
-    return (
-      <EmptyDetailsList title="No pipelines" description="To get started, import a pipeline." />
-    );
+    return <EmptyDetailsList title="No pipelines" />;
   }
 
   return (

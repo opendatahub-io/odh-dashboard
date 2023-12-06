@@ -1,10 +1,10 @@
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import useAcceleratorProfileState, {
+import useAcceleratorState, {
   AcceleratorProfileState,
 } from '~/utilities/useAcceleratorProfileState';
 import { GenericObjectState } from '~/utilities/useGenericObjectState';
 
-const useServingAcceleratorProfile = (
+const useServingAccelerator = (
   servingRuntime?: ServingRuntimeKind | null,
   inferenceService?: InferenceServiceKind | null,
 ): GenericObjectState<AcceleratorProfileState> => {
@@ -15,7 +15,7 @@ const useServingAcceleratorProfile = (
   const tolerations =
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
 
-  return useAcceleratorProfileState(resources, tolerations, acceleratorName);
+  return useAcceleratorState(resources, tolerations, acceleratorName);
 };
 
-export default useServingAcceleratorProfile;
+export default useServingAccelerator;
