@@ -6,3 +6,10 @@ export const DataSciencePipelineApplicationModel: K8sModelCommon = {
   kind: 'DataSciencePipelinesApplication',
   plural: 'datasciencepipelinesapplications',
 };
+
+export const PipelineRunModel: K8sModelCommon = {
+  apiVersion: 'v1beta1',
+  apiGroup: 'tekton.dev',
+  kind: 'PipelineRun',
+  plural: 'pipelineruns',
+};
