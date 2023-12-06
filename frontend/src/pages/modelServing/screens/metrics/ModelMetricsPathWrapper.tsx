@@ -10,8 +10,8 @@ type ModelMetricsPathWrapperProps = {
 };
 
 const ModelMetricsPathWrapper: React.FC<ModelMetricsPathWrapperProps> = ({ children }) => {
-  const { project: projectName, inferenceService: modelName } = useParams<{
-    project: string;
+  const { namespace: projectName, inferenceService: modelName } = useParams<{
+    namespace: string;
     inferenceService: string;
   }>();
   const {
