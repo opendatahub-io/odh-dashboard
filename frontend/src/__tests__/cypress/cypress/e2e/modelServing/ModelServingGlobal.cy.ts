@@ -204,6 +204,22 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findSubmitButton().should('be.disabled');
   });
 
+  it('Empty State No Project Selected', () => {
+    initIntercepts({ inferenceServices: [] });
+
+    // Visit the all-projects view (no project name passed here)
+    modelServingGlobal.visit();
+
+    modelServingGlobal.shouldBeEmpty();
+
+    // Test that the button is disabled
+    modelServingGlobal.findDeployModelButton().should('have.attr', 'aria-disabled');
+
+    // Test that the tooltip appears on hover of the disabled button
+    modelServingGlobal.findDeployModelButton().trigger('mouseenter');
+    modelServingGlobal.findNoProjectSelectedTooltip().should('be.visible');
+  });
+
   it('Delete model', () => {
     initIntercepts({});
     modelServingGlobal.visit('test-project');
