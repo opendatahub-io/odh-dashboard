@@ -23,8 +23,13 @@ const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = 
   <PipelineFilterBar
     filterOptions={FilterType}
     filterOptionRenders={{
-      [FilterType.PIPELINE_NAME]: (props) => (
-        <TextInput {...props} aria-label="Search for a pipeline name" placeholder="Name" />
+      [FilterType.PIPELINE_NAME]: ({ onChange, ...props }) => (
+        <TextInput
+          {...props}
+          aria-label="Search for a pipeline name"
+          placeholder="Name"
+          onChange={(event, value) => onChange(value)}
+        />
       ),
       [FilterType.CREATED_ON]: ({ onChange, ...props }) => (
         <DatePicker

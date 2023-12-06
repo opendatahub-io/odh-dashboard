@@ -18,6 +18,10 @@ const DEFAULT_CLUSTER_SETTINGS: ClusterSettings = {
   cullerTimeout: DEFAULT_CULLER_TIMEOUT,
   userTrackingEnabled: false,
   notebookTolerationSettings: { enabled: false, key: 'NotebooksOnly' },
+  modelServingPlatformEnabled: {
+    kServe: true,
+    modelMesh: false,
+  },
 };
 
 export const updateClusterSettings = async (
@@ -28,10 +32,30 @@ export const updateClusterSettings = async (
 ): Promise<{ success: boolean; error: string }> => {
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
-  const { pvcSize, cullerTimeout, userTrackingEnabled, notebookTolerationSettings } = request.body;
+  const {
+    pvcSize,
+    cullerTimeout,
+    userTrackingEnabled,
+    notebookTolerationSettings,
+    modelServingPlatformEnabled,
+  } = request.body;
   const dashConfig = getDashboardConfig();
   const isJupyterEnabled = checkJupyterEnabled();
   try {
+    if (
+      modelServingPlatformEnabled.kServe !== !dashConfig.spec.dashboardConfig.disableKServe ||
+      modelServingPlatformEnabled.modelMesh !== !dashConfig.spec.dashboardConfig.disableModelMesh
+    ) {
+      await setDashboardConfig(fastify, {
+        spec: {
+          dashboardConfig: {
+            disableKServe: !modelServingPlatformEnabled.kServe,
+            disableModelMesh: !modelServingPlatformEnabled.modelMesh,
+          },
+        },
+      });
+    }
+
     await patchCM(fastify, segmentKeyCfg, {
       data: { segmentKeyEnabled: String(userTrackingEnabled) },
     }).catch((e) => {
@@ -41,7 +65,6 @@ export const updateClusterSettings = async (
       if (isJupyterEnabled) {
         await setDashboardConfig(fastify, {
           spec: {
-            dashboardConfig: dashConfig.spec.dashboardConfig,
             notebookController: {
               enabled: isJupyterEnabled,
               pvcSize: `${pvcSize}Gi`,
@@ -124,10 +147,14 @@ export const getClusterSettings = async (
 ): Promise<ClusterSettings | string> => {
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
-  const clusterSettings = {
-    ...DEFAULT_CLUSTER_SETTINGS,
-  };
   const dashConfig = getDashboardConfig();
+  const clusterSettings: ClusterSettings = {
+    ...DEFAULT_CLUSTER_SETTINGS,
+    modelServingPlatformEnabled: {
+      kServe: !dashConfig.spec.dashboardConfig.disableKServe,
+      modelMesh: !dashConfig.spec.dashboardConfig.disableModelMesh,
+    },
+  };
   const isJupyterEnabled = checkJupyterEnabled();
   if (!dashConfig.spec.dashboardConfig.disableTracking) {
     try {

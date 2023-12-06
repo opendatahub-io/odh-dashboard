@@ -7,6 +7,7 @@ import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks
 import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { useAppContext } from '~/app/AppContext';
 import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { NotebookState } from './types';
 import useRefreshNotebookUntilStartOrStop from './useRefreshNotebookUntilStartOrStop';
 import StopNotebookConfirmModal from './StopNotebookConfirmModal';
@@ -17,12 +18,14 @@ type NotebookStatusToggleProps = {
   notebookState: NotebookState;
   doListen: boolean;
   enablePipelines?: boolean;
+  isDisabled?: boolean;
 };
 
 const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   notebookState,
   doListen,
   enablePipelines,
+  isDisabled,
 }) => {
   const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
   const [acceleratorData] = useNotebookAccelerators(notebook);
@@ -30,6 +33,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const listenToNotebookStart = useRefreshNotebookUntilStartOrStop(notebookState, doListen);
+  const serviceMeshEnabled = useIsAreaAvailable(SupportedArea.SERVICE_MESH);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const notebookName = notebook.metadata.name;
@@ -87,7 +91,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
         <FlexItem>
           <Switch
             aria-label={label}
-            isDisabled={inProgress || isStopping}
+            isDisabled={inProgress || isStopping || isDisabled}
             id={`${notebookName}-${notebookNamespace}`}
             isChecked={isChecked}
             onClick={() => {
@@ -108,6 +112,7 @@ const NotebookStatusToggle: React.FC<NotebookStatusToggleProps> = ({
                   tolerationSettings,
                   dashboardConfig,
                   enablePipelines && !currentlyHasPipelines(notebook),
+                  serviceMeshEnabled.status,
                 ).then(() => {
                   fireNotebookTrackingEvent('started');
                   refresh().then(() => setInProgress(false));

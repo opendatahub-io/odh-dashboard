@@ -9,7 +9,13 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash';
 import { NotebookModel } from '~/api/models';
-import { K8sAPIOptions, K8sStatus, KnownLabels, NotebookKind } from '~/k8sTypes';
+import {
+  K8sAPIOptions,
+  K8sStatus,
+  KnownLabels,
+  NotebookKind,
+  DashboardConfigKind,
+} from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
@@ -25,8 +31,7 @@ import {
   getPipelineVolumePatch,
 } from '~/concepts/pipelines/elyra/utils';
 import { Volume, VolumeMount } from '~/types';
-import { DashboardConfig } from '~/types';
-import { featureFlagEnabled } from '~/utilities/utils';
+import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
 const assembleNotebook = (
@@ -90,7 +95,7 @@ const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  return {
+  const resource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
     metadata: {
@@ -183,6 +188,15 @@ const assembleNotebook = (
       },
     },
   };
+
+  // set image display name
+  if (image.imageStream && resource.metadata.annotations) {
+    resource.metadata.annotations['opendatahub.io/image-display-name'] = getImageStreamDisplayName(
+      image.imageStream,
+    );
+  }
+
+  return resource;
 };
 
 const getStopPatchDataString = (): string => new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
@@ -237,13 +251,10 @@ export const stopNotebook = (name: string, namespace: string): Promise<NotebookK
 export const startNotebook = async (
   notebook: NotebookKind,
   tolerationChanges: TolerationChanges,
-  dashboardConfig: DashboardConfig,
+  dashboardConfig: DashboardConfigKind,
   enablePipelines?: boolean,
+  enableServiceMesh = false,
 ): Promise<NotebookKind> => {
-  const enableServiceMesh = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-  );
-
   const patches: Patch[] = [startPatch, ...getServiceMeshPatches(enableServiceMesh)];
 
   const tolerationPatch = getTolerationPatch(tolerationChanges);
@@ -401,6 +412,7 @@ export const attachNotebookPVC = (
   namespace: string,
   pvcName: string,
   mountSuffix: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [
     {
@@ -416,17 +428,20 @@ export const attachNotebookPVC = (
     },
   ];
 
-  return k8sPatchResource<NotebookKind>({
-    model: NotebookModel,
-    queryOptions: { name: notebookName, ns: namespace },
-    patches,
-  });
+  return k8sPatchResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      queryOptions: { name: notebookName, ns: namespace },
+      patches,
+    }),
+  );
 };
 
 export const removeNotebookPVC = (
   notebookName: string,
   namespace: string,
   pvcName: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> =>
   new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
@@ -455,11 +470,13 @@ export const removeNotebookPVC = (
           },
         ];
 
-        k8sPatchResource<NotebookKind>({
-          model: NotebookModel,
-          queryOptions: { name: notebookName, ns: namespace },
-          patches,
-        })
+        k8sPatchResource<NotebookKind>(
+          applyK8sAPIOptions(opts, {
+            model: NotebookModel,
+            queryOptions: { name: notebookName, ns: namespace },
+            patches,
+          }),
+        )
           .then(resolve)
           .catch(reject);
       })

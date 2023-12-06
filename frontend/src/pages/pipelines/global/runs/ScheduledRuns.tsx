@@ -5,7 +5,7 @@ import {
   EmptyStateBody,
   EmptyStateIcon,
   Spinner,
-  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import CreateRunEmptyState from '~/pages/pipelines/global/runs/CreateRunEmptyState';
@@ -19,10 +19,11 @@ const ScheduledRuns: React.FC = () => {
     return (
       <Bullseye>
         <EmptyState>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title size="lg" headingLevel="h2">
-            There was an issue loading runs
-          </Title>
+          <EmptyStateHeader
+            titleText="There was an issue loading runs"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h2"
+          />
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>

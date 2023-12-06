@@ -56,7 +56,7 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites })
           key={category}
           title={category}
           shown
-          active={category === categoryQuery || (!categoryQuery && category == ALL_ITEMS)}
+          active={category === categoryQuery || (!categoryQuery && category === ALL_ITEMS)}
           onActivate={() => onSelectCategory(category)}
           tabIndex={-1}
         />

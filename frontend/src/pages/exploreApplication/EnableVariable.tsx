@@ -3,6 +3,9 @@ import {
   Button,
   ButtonVariant,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   TextInput,
   TextInputTypes,
 } from '@patternfly/react-core';
@@ -22,7 +25,7 @@ const EnableVariable = React.forwardRef<HTMLInputElement, EnableVariableProps>(
     const [showPassword, setShowPassword] = React.useState(false);
 
     return (
-      <FormGroup fieldId={label} label={label} helperText={helperText}>
+      <FormGroup fieldId={label} label={label}>
         <TextInput
           id={label}
           className="odh-enable-modal__variable-input"
@@ -33,8 +36,13 @@ const EnableVariable = React.forwardRef<HTMLInputElement, EnableVariableProps>(
             inputType === TextInputTypes.password && showPassword ? TextInputTypes.text : inputType
           }
           value={value || ''}
-          onChange={(newValue) => updateValue(newValue)}
+          onChange={(e, newValue) => updateValue(newValue)}
         />
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>{helperText}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
         {inputType === TextInputTypes.password ? (
           <Button
             className="odh-enable-modal__toggle-password-vis"

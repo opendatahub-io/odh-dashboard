@@ -6,18 +6,18 @@ import {
   HelperTextItem,
   InputGroup,
   InputGroupText,
-  InputGroupTextVariant,
   Stack,
   StackItem,
   TextInput,
+  InputGroupItem,
 } from '@patternfly/react-core';
 import SettingSection from '~/components/SettingSection';
 import { DEFAULT_PVC_SIZE, MAX_PVC_SIZE, MIN_PVC_SIZE } from './const';
 
 type PVCSizeSettingsProps = {
-  initialValue: number | string;
-  pvcSize: number | string;
-  setPvcSize: (size: number | string) => void;
+  initialValue: number;
+  pvcSize: number;
+  setPvcSize: (size: number) => void;
 };
 
 const PVCSizeSettings: React.FC<PVCSizeSettingsProps> = ({ initialValue, pvcSize, setPvcSize }) => {
@@ -34,34 +34,36 @@ all users."
       <Stack hasGutter>
         <StackItem>
           <InputGroup>
-            <TextInput
-              id="pvc-size-input"
-              style={{ maxWidth: '200px' }}
-              name="pvc"
-              data-id="pvc-size-input"
-              type="text"
-              aria-label="PVC Size Input"
-              value={pvcSize}
-              pattern="/^(\s*|\d+)$/"
-              onChange={async (value: string) => {
-                const modifiedValue = value.replace(/ /g, '');
-                if (modifiedValue !== '') {
-                  let newValue = Number.isInteger(Number(modifiedValue))
-                    ? Number(modifiedValue)
-                    : pvcSize;
-                  newValue =
-                    newValue > MAX_PVC_SIZE
-                      ? MAX_PVC_SIZE
-                      : newValue < MIN_PVC_SIZE
-                      ? MIN_PVC_SIZE
-                      : newValue;
-                  setPvcSize(newValue);
-                } else {
-                  setPvcSize(modifiedValue);
-                }
-              }}
-            />
-            <InputGroupText variant={InputGroupTextVariant.plain}>GiB</InputGroupText>
+            <InputGroupItem>
+              <TextInput
+                id="pvc-size-input"
+                style={{ maxWidth: '200px' }}
+                name="pvc"
+                data-id="pvc-size-input"
+                type="text"
+                aria-label="PVC Size Input"
+                value={pvcSize}
+                pattern="/^(\s*|\d+)$/"
+                onChange={async (e, value: string) => {
+                  const modifiedValue = value.replace(/ /g, '');
+                  if (modifiedValue !== '') {
+                    let newValue = Number.isInteger(Number(modifiedValue))
+                      ? Number(modifiedValue)
+                      : pvcSize;
+                    newValue =
+                      newValue > MAX_PVC_SIZE
+                        ? MAX_PVC_SIZE
+                        : newValue < MIN_PVC_SIZE
+                        ? MIN_PVC_SIZE
+                        : newValue;
+                    setPvcSize(newValue);
+                  } else {
+                    setPvcSize(0);
+                  }
+                }}
+              />
+            </InputGroupItem>
+            <InputGroupText isPlain>GiB</InputGroupText>
           </InputGroup>
         </StackItem>
         <StackItem>
@@ -79,8 +81,8 @@ all users."
           <HelperText>
             <HelperTextItem
               data-id="pvc-size-helper-text"
-              variant={pvcSize === '' ? 'error' : 'indeterminate'}
-              hasIcon={pvcSize === ''}
+              variant={!pvcSize ? 'error' : 'indeterminate'}
+              hasIcon={!pvcSize}
             >
               Note: PVC size must be between 1 GiB and 16384 GiB.
             </HelperTextItem>

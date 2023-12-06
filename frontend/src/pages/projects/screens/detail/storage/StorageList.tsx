@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Divider } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
@@ -34,16 +34,10 @@ const StorageList: React.FC = () => {
         isLoading={!loaded}
         isEmpty={isPvcsEmpty}
         loadError={loadError}
-        emptyState={
-          <EmptyDetailsList
-            title="No storage"
-            description="To get started, add existing or create new cluster storage."
-          />
-        }
+        emptyState={<EmptyDetailsList title="No storage" />}
       >
         <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
       </DetailsSection>
-      {isPvcsEmpty && <Divider data-id="details-page-section-divider" />}
       <ManageStorageModal
         isOpen={isOpen}
         onClose={(submit: boolean) => {

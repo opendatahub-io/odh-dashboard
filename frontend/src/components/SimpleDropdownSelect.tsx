@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
+import { Truncate } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import './SimpleDropdownSelect.scss';
 
 export type SimpleDropdownOption = {
   key: string;
-  label: React.ReactNode;
+  label: string;
   description?: React.ReactNode;
-  selectedLabel?: React.ReactNode;
+  dropdownLabel?: React.ReactNode;
   isPlaceholder?: boolean;
 };
 
@@ -29,9 +30,8 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
-
   const selectedOption = options.find(({ key }) => key === value);
-  const selectedLabel = selectedOption?.selectedLabel ?? selectedOption?.label ?? placeholder;
+  const selectedLabel = selectedOption?.label ?? placeholder;
 
   return (
     <Dropdown
@@ -44,12 +44,12 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
           className={isFullWidth ? 'full-width' : undefined}
           onToggle={() => setOpen(!open)}
         >
-          <>{selectedLabel}</>
+          <Truncate content={selectedLabel} className="truncate-no-min-width" />
         </DropdownToggle>
       }
-      dropdownItems={options
+      dropdownItems={[...options]
         .sort((a, b) => (a.isPlaceholder === b.isPlaceholder ? 0 : a.isPlaceholder ? -1 : 1))
-        .map(({ key, label, description, isPlaceholder }) => (
+        .map(({ key, dropdownLabel, label, description, isPlaceholder }) => (
           <DropdownItem
             key={key}
             description={description}
@@ -58,7 +58,7 @@ const SimpleDropdownSelect: React.FC<SimpleDropdownProps> = ({
               setOpen(false);
             }}
           >
-            {label}
+            {dropdownLabel ?? label}
           </DropdownItem>
         ))}
     />

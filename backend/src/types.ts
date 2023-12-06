@@ -30,6 +30,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableServiceMesh: boolean;
       modelMetricsNamespace: string;
       disablePipelines: boolean;
+      disableKServe: boolean;
+      disableModelMesh: boolean;
     };
     groupsConfig?: {
       adminGroups: string;
@@ -101,6 +103,10 @@ export type ClusterSettings = {
   cullerTimeout: number;
   userTrackingEnabled: boolean;
   notebookTolerationSettings: NotebookTolerationSettings | null;
+  modelServingPlatformEnabled: {
+    kServe: boolean;
+    modelMesh: boolean;
+  };
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
@@ -255,7 +261,6 @@ export type KubeDecorator = KubeStatus & {
   customObjectsApi: k8s.CustomObjectsApi;
   rbac: k8s.RbacAuthorizationV1Api;
   currentToken: string;
-
 };
 
 export type KubeFastifyInstance = FastifyInstance & {
@@ -478,34 +483,34 @@ export type ODHSegmentKey = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
+};
+
+export type ImageInfo = {
+  name: string;
+  tags: ImageTagInfo[];
   description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  url?: string;
+  display_name?: string;
+  default?: boolean;
+  order?: number;
+  dockerImageRepo?: string;
+  error?: string;
 };
 
 export type ImageTag = {
   image: ImageInfo | undefined;
   tag: ImageTagInfo | undefined;
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {
@@ -558,6 +563,7 @@ export type ImageStream = {
     namespace: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
+    creationTimestamp?: string;
   };
   spec: {
     lookupPolicy?: {
@@ -590,18 +596,6 @@ export type ImageTagInfo = {
   content: TagContent;
   recommended: boolean;
   default: boolean;
-};
-
-export type ImageInfo = {
-  name: string;
-  tags: ImageTagInfo[];
-  description?: string;
-  url?: string;
-  display_name?: string;
-  default?: boolean;
-  order?: number;
-  dockerImageRepo?: string;
-  error?: string;
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
@@ -763,10 +757,10 @@ export type GPUInfo = {
 
 export type AcceleratorInfo = {
   configured: boolean;
-  available: {[key: string]: number};
-  total: {[key: string]: number};
-  allocated: {[key: string]: number};
-}
+  available: { [key: string]: number };
+  total: { [key: string]: number };
+  allocated: { [key: string]: number };
+};
 
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
@@ -886,7 +880,6 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
-
 export enum ContainerResourceAttributes {
   CPU = 'cpu',
   MEMORY = 'memory',
@@ -920,7 +913,7 @@ export type ServingRuntime = K8sResourceCommon & {
       args: string[];
       image: string;
       name: string;
-      resources: ContainerResources;
+      resources?: ContainerResources;
       volumeMounts?: VolumeMount[];
     }[];
     supportedModelFormats: SupportedModelFormats[];
@@ -951,3 +944,29 @@ export enum KnownLabels {
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
 }
+
+type ComponentNames =
+  | 'codeflare'
+  | 'data-science-pipelines-operator'
+  | 'kserve'
+  | 'model-mesh'
+  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
+  | 'odh-dashboard'
+  | 'ray'
+  | 'workbenches';
+
+export type DataScienceClusterKindStatus = {
+  conditions: [];
+  installedComponents: { [key in ComponentNames]?: boolean };
+  phase?: string;
+};
+
+export type DataScienceClusterKind = K8sResourceCommon & {
+  spec: unknown; // we should never need to look into this
+  status: DataScienceClusterKindStatus;
+};
+
+export type DataScienceClusterList = {
+  kind: 'DataScienceClusterList';
+  items: DataScienceClusterKind[];
+};

@@ -15,6 +15,7 @@ export const ScrollableSelectorID = 'workbench-spawner-page';
 export const FAILED_PHASES = [BUILD_PHASE.ERROR, BUILD_PHASE.FAILED];
 export const PENDING_PHASES = [BUILD_PHASE.NEW, BUILD_PHASE.PENDING, BUILD_PHASE.CANCELLED];
 
+// TODO: Convert to enum
 export const IMAGE_ANNOTATIONS = {
   DESC: 'opendatahub.io/notebook-image-desc' as const,
   DISP_NAME: 'opendatahub.io/notebook-image-name' as const,
@@ -24,6 +25,7 @@ export const IMAGE_ANNOTATIONS = {
   DEPENDENCIES: 'opendatahub.io/notebook-python-dependencies' as const,
   IMAGE_ORDER: 'opendatahub.io/notebook-image-order' as const,
   RECOMMENDED: 'opendatahub.io/workbench-image-recommended' as const,
+  OUTDATED: 'opendatahub.io/image-tag-outdated' as const,
 };
 
 export const DEFAULT_NOTEBOOK_SIZES = [

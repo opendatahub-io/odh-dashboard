@@ -1,29 +1,18 @@
 import * as React from 'react';
 import { ImageStreamKind } from '~/k8sTypes';
 import { getNotebookImageStreams } from '~/api';
+import useFetchState, { FetchState } from '~/utilities/useFetchState';
 
 const useImageStreams = (
-  namespace?: string,
-): [imageStreams: ImageStreamKind[], loaded: boolean, loadError: Error | undefined] => {
-  const [imageStreams, setImageStreams] = React.useState<ImageStreamKind[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
+  namespace: string,
+  includeDisabled?: boolean,
+): FetchState<ImageStreamKind[]> => {
+  const getImages = React.useCallback(
+    () => getNotebookImageStreams(namespace, includeDisabled),
+    [namespace, includeDisabled],
+  );
 
-  React.useEffect(() => {
-    if (namespace) {
-      getNotebookImageStreams(namespace)
-        .then((imageStreams) => {
-          setImageStreams(imageStreams);
-          setLoaded(true);
-        })
-        .catch((e) => {
-          setLoadError(e);
-          setLoaded(true);
-        });
-    }
-  }, [namespace]);
-
-  return [imageStreams, loaded, loadError];
+  return useFetchState<ImageStreamKind[]>(getImages, []);
 };
 
 export default useImageStreams;

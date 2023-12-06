@@ -10,7 +10,11 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  InputGroupItem,
+  Popover,
+  Icon,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { isHTMLInputElement } from '~/utilities/utils';
 import { AcceleratorKind } from '~/k8sTypes';
 import SimpleDropdownSelect, { SimpleDropdownOption } from '~/components/SimpleDropdownSelect';
@@ -23,6 +27,7 @@ type AcceleratorSelectFieldProps = {
   setAcceleratorState: UpdateObjectAtPropAndValue<AcceleratorState>;
   supportedAccelerators?: string[];
   resourceDisplayName?: string;
+  infoContent?: string;
 };
 
 const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
@@ -30,6 +35,7 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   setAcceleratorState,
   supportedAccelerators,
   resourceDisplayName = 'image',
+  infoContent,
 }) => {
   const [detectedAcceleratorInfo] = useAcceleratorCounts();
 
@@ -75,9 +81,9 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
 
     return {
       key: ac.metadata.name,
-      selectedLabel: displayName,
+      label: displayName,
       description: ac.spec.description,
-      label: (
+      dropdownLabel: (
         <Split>
           <SplitItem>{displayName}</SplitItem>
           <SplitItem isFilled />
@@ -149,7 +155,19 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label="Accelerator" fieldId="modal-notebook-accelerator">
+        <FormGroup
+          label="Accelerator"
+          fieldId="modal-notebook-accelerator"
+          labelIcon={
+            infoContent ? (
+              <Popover bodyContent={<div>{infoContent}</div>}>
+                <Icon aria-label="Accelerator info" role="button">
+                  <OutlinedQuestionCircleIcon />
+                </Icon>
+              </Popover>
+            ) : undefined
+          }
+        >
           <SimpleDropdownSelect
             isFullWidth
             options={options}
@@ -192,22 +210,24 @@ const AcceleratorSelectField: React.FC<AcceleratorSelectFieldProps> = ({
         <StackItem>
           <FormGroup label="Number of accelerators" fieldId="number-of-accelerators">
             <InputGroup>
-              <NumberInput
-                inputAriaLabel="Number of accelerators"
-                id="number-of-accelerators"
-                name="number-of-accelerators"
-                value={acceleratorCount}
-                validated={acceleratorCountWarning ? 'warning' : 'default'}
-                min={1}
-                onPlus={() => onStep(1)}
-                onMinus={() => onStep(-1)}
-                onChange={(event) => {
-                  if (isHTMLInputElement(event.target)) {
-                    const newSize = Number(event.target.value);
-                    setAcceleratorState('count', Math.max(newSize, 1));
-                  }
-                }}
-              />
+              <InputGroupItem>
+                <NumberInput
+                  inputAriaLabel="Number of accelerators"
+                  id="number-of-accelerators"
+                  name="number-of-accelerators"
+                  value={acceleratorCount}
+                  validated={acceleratorCountWarning ? 'warning' : 'default'}
+                  min={1}
+                  onPlus={() => onStep(1)}
+                  onMinus={() => onStep(-1)}
+                  onChange={(event) => {
+                    if (isHTMLInputElement(event.target)) {
+                      const newSize = Number(event.target.value);
+                      setAcceleratorState('count', Math.max(newSize, 1));
+                    }
+                  }}
+                />
+              </InputGroupItem>
             </InputGroup>
           </FormGroup>
         </StackItem>

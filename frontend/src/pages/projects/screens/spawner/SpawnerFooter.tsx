@@ -10,19 +10,19 @@ import {
 } from '@patternfly/react-core';
 import { assembleSecret, createNotebook, createSecret, updateNotebook } from '~/api';
 import {
+  DataConnectionData,
+  EnvVariable,
   StartNotebookData,
   StorageData,
-  EnvVariable,
-  DataConnectionData,
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { AppContext, useAppContext } from '~/app/AppContext';
+import { AppContext } from '~/app/AppContext';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
-import { featureFlagEnabled } from '~/utilities/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
-  createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
+  createPvcDataForNotebook,
   replaceRootVolumesForNotebook,
   updateConfigMapsAndSecretsForNotebook,
 } from './service';
@@ -77,10 +77,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     editNotebook,
     existingDataConnections,
   );
-  const { dashboardConfig } = useAppContext();
-  const enableServiceMesh = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-  );
+  const enableServiceMesh = useIsAreaAvailable(SupportedArea.SERVICE_MESH).status;
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { accelerator, notebookSize, image } = startNotebookData;

@@ -210,7 +210,7 @@ export const EditModel = {
   parameters: {
     a11y: {
       // need to select modal as root
-      element: '.pf-c-backdrop',
+      element: '.pf-v5-c-backdrop',
     },
   },
   play: async ({ canvasElement }) => {
@@ -219,8 +219,8 @@ export const EditModel = {
     await canvas.findByText('Test Inference Service', undefined, { timeout: 5000 });
 
     // user flow for editing a project
-    await userEvent.click(canvas.getByLabelText('Actions', { selector: 'button' }));
-    await userEvent.click(canvas.getByText('Edit', { selector: 'button' }));
+    await userEvent.click(canvas.getByLabelText('Kebab toggle', { selector: 'button' }));
+    await userEvent.click(await canvas.findByText('Edit project'));
   },
 };
 ```
@@ -231,9 +231,7 @@ export const EditModel = {
 import { test, expect } from '@playwright/test';
 
 test('Create project', async ({ page }) => {
-  await page.goto(
-    './iframe.html?id=tests-stories-pages-projects-projectview--create-project&viewMode=story',
-  );
+  await page.goto(navigateToStory('projects-projectview', 'create-project'));
 
   // wait for page to load
   await page.waitForSelector('text=Create data science project');
@@ -252,9 +250,7 @@ test('Create project', async ({ page }) => {
 To run storybook UI: `cd ./frontend && npm run storybook`
 
 ```ts
-await page.goto(
-  './iframe.html?id=tests-stories-pages-projects-projectview--create-project&viewMode=story',
-);
+await page.goto(navigateToStory('projects-projectview', 'create-project'));
 ```
 
 6. Wait for the page to load and the story to settle before performing any assertions or actions. Use `page.waitForSelector()` to wait for a specific element to appear as an indication of the story being loaded.
