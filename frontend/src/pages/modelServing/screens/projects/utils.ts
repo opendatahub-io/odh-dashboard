@@ -204,6 +204,8 @@ export const useCreateInferenceServiceObject = (
   return createInferenceServiceState;
 };
 
+export const getModelServerDisplayName = (server: ServingRuntimeKind) =>
+  getDisplayNameFromK8sResource(server);
 export const getProjectModelServingPlatform = (
   project: ProjectKind | null,
   platformStatuses: ServingPlatformStatuses,

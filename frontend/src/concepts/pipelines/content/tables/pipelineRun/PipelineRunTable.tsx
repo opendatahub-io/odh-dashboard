@@ -4,8 +4,8 @@ import { TableBase } from '~/components/table';
 import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { useCheckboxTable } from '~/components/table';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -65,8 +65,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         itemCount={totalSize}
         data={runs}
         columns={pipelineRunColumns}
-        enablePagination="compact"
-        emptyTableView={<EmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />}
+        enablePagination
+        emptyTableView={
+          <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
+        }
         toolbarContent={
           <PipelineRunTableToolbar
             {...filterToolbarProps}

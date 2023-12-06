@@ -49,10 +49,11 @@ spec:
                       type: boolean
                     disableCustomServingRuntimes:
                       type: boolean
-                    modelMetricsNamespace:
-                      type: string
                     disablePipelines:
                       type: boolean
+                    disableBiasMetrics:
+                      type: boolean
+                    disablePerformanceMetrics:
                     disableKServe:
                       type: boolean
                     disableModelMesh:

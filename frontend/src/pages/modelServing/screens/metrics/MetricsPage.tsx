@@ -1,80 +1,53 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Breadcrumb, Button } from '@patternfly/react-core';
+import { useNavigate, useParams } from 'react-router-dom';
+import { CogIcon } from '@patternfly/react-icons';
 import { BreadcrumbItemType } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import MetricsChart from './MetricsChart';
-import MetricsPageToolbar from './MetricsPageToolbar';
-import { ModelServingMetricsContext, ModelServingMetricType } from './ModelServingMetricsContext';
+import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
+import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
+import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
+import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
+import ServerMetricsPage from '~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
+import { getBreadcrumbItemComponents } from './utils';
 
 type MetricsPageProps = {
   title: string;
   breadcrumbItems: BreadcrumbItemType[];
+  type: PerformanceMetricType;
 };
 
-const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems }) => {
-  const { data } = React.useContext(ModelServingMetricsContext);
+const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type }) => {
+  const { tab } = useParams();
+  const navigate = useNavigate();
+
+  const {
+    hasCR,
+    apiState: { apiAvailable },
+  } = React.useContext(TrustyAIContext);
+
   return (
     <ApplicationsPage
       title={title}
-      breadcrumb={
-        <Breadcrumb>
-          {breadcrumbItems.map((item) => (
-            <BreadcrumbItem
-              isActive={item.isActive}
-              key={item.label}
-              render={() =>
-                item.link ? <Link to={item.link}>{item.label}</Link> : <>{item.label}</>
-              }
-            />
-          ))}
-        </Breadcrumb>
-      }
-      toolbar={<MetricsPageToolbar />}
+      breadcrumb={<Breadcrumb>{getBreadcrumbItemComponents(breadcrumbItems)}</Breadcrumb>}
+      // TODO: decide whether we need to set the loaded based on the feature flag and trustyai loaded
       loaded
       description={null}
       empty={false}
+      headerAction={
+        tab === MetricsTabKeys.BIAS && (
+          <Button
+            isDisabled={!hasCR || !apiAvailable}
+            variant="link"
+            icon={<CogIcon />}
+            onClick={() => navigate('../configure', { replace: true })}
+          >
+            Configure
+          </Button>
+        )
+      }
     >
-      <PageSection isFilled>
-        <Stack hasGutter>
-          <StackItem>
-            <MetricsChart
-              metrics={data[ModelServingMetricType.ENDPOINT_HEALTH]}
-              color="orange"
-              title="Endpoint health"
-            />
-          </StackItem>
-          <StackItem>
-            <MetricsChart
-              metrics={data[ModelServingMetricType.INFERENCE_PERFORMANCE]}
-              color="purple"
-              title="Inference performance"
-            />
-          </StackItem>
-          <StackItem>
-            <MetricsChart
-              metrics={data[ModelServingMetricType.AVG_RESPONSE_TIME]}
-              color="blue"
-              title="Average response time"
-              unit="ms"
-            />
-          </StackItem>
-          <StackItem>
-            <MetricsChart
-              metrics={data[ModelServingMetricType.REQUEST_COUNT]}
-              color="green"
-              title="Total request"
-            />
-          </StackItem>
-          <StackItem>
-            <MetricsChart
-              metrics={data[ModelServingMetricType.FAILED_REQUEST_COUNT]}
-              color="cyan"
-              title="Failed request"
-            />
-          </StackItem>
-        </Stack>
-      </PageSection>
+      {type === PerformanceMetricType.SERVER ? <ServerMetricsPage /> : <MetricsPageTabs />}
     </ApplicationsPage>
   );
 };
