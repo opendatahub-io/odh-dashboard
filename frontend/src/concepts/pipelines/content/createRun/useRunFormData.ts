@@ -2,8 +2,6 @@ import * as React from 'react';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import {
-  periodicOptionAsSeconds,
-  PeriodicOptions,
   RunDateTime,
   RunFormData,
   RunType,
@@ -30,7 +28,7 @@ import {
   DEFAULT_PERIODIC_OPTION,
   DEFAULT_TIME,
 } from '~/concepts/pipelines/content/createRun/const';
-import { convertDateToTimeString } from '~/utilities/time';
+import { convertDateToTimeString, convertSecondsToPeriodicTime } from '~/utilities/time';
 import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 
 const isPipeline = (pipeline?: unknown): pipeline is PipelineKF =>
@@ -140,21 +138,6 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   return { date, time: time ?? DEFAULT_TIME };
 };
 
-const intervalSecondsAsOption = (numberString?: string): PeriodicOptions => {
-  if (!numberString) {
-    return DEFAULT_PERIODIC_OPTION;
-  }
-
-  const isPeriodicOption = (option: string): option is PeriodicOptions => option in PeriodicOptions;
-  const seconds = parseInt(numberString);
-  const option = Object.values(PeriodicOptions).find((o) => periodicOptionAsSeconds[o] === seconds);
-  if (!option || !isPeriodicOption(option)) {
-    return DEFAULT_PERIODIC_OPTION;
-  }
-
-  return option;
-};
-
 export const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRunJobKF,
@@ -176,7 +159,7 @@ export const useUpdateRunType = (
       end = parseKFTime(trigger.cron_schedule.end_time);
     } else if (trigger.periodic_schedule) {
       triggerType = ScheduledType.PERIODIC;
-      value = intervalSecondsAsOption(trigger.periodic_schedule.interval_second);
+      value = convertSecondsToPeriodicTime(parseInt(trigger.periodic_schedule.interval_second));
       start = parseKFTime(trigger.periodic_schedule.start_time);
       end = parseKFTime(trigger.periodic_schedule.end_time);
     } else {

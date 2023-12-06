@@ -12,7 +12,6 @@ import {
   mockInferenceServiceK8sResource,
   mockInferenceServicek8sError,
 } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import ModelServingGlobal from '~/pages/modelServing/screens/global/ModelServingGlobal';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
@@ -30,6 +29,7 @@ import { useApplicationSettings } from '~/app/useApplicationSettings';
 import { AppContext } from '~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import GlobalModelServingCoreLoader from '~/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
+import { mockDataConnection } from '~/__mocks__/mockDataConnection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -66,7 +66,7 @@ const getHandlers = ({
     (req, res, ctx) => res(ctx.json(mockK8sResourceList(inferenceServices))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockDataConnection({}).data]))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/modelServing/servingruntimes',
@@ -77,7 +77,7 @@ const getHandlers = ({
     (req, res, ctx) => res(ctx.json(mockK8sResourceList(inferenceServices))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/modelServing/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockDataConnection({}).data]))),
   ),
   rest.get(
     '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes/test-model',

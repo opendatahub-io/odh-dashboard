@@ -131,6 +131,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       acceleratorProfileState,
       NamespaceApplicationCase.MODEL_MESH_PROMOTION,
       currentProject,
+      undefined,
+      true,
     )
       .then(() => onSuccess())
       .catch((e) => {

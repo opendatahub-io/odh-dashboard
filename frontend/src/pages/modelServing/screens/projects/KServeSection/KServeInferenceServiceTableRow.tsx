@@ -96,7 +96,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               </StackItem>
               {servingRuntime && (
                 <StackItem>
-                  <ServingRuntimeDetails obj={servingRuntime} />
+                  <ServingRuntimeDetails obj={servingRuntime} isvc={obj} />
                 </StackItem>
               )}
             </Stack>
