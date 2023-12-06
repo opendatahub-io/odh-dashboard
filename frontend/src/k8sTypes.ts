@@ -471,6 +471,16 @@ export type AWSSecretKind = SecretKind & {
   data: Record<AWS_KEYS, string>;
 };
 
+export type ImageRegistryCredentialsSecretKind = SecretKind & {
+  metadata: {
+    annotations?: {
+      'tekton.dev/docker-0': 'https://quay.io';
+    };
+    type: 'kubernetes.io/basic-auth';
+  };
+  data: Record<string, string>;
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -621,6 +631,7 @@ export type PipelineRunTaskSpec = {
 export type PipelineRunTaskParam = {
   name: string;
   value: string;
+  optional?: boolean;
 };
 
 export type PipelineRunTaskWhen = {
@@ -640,6 +651,7 @@ export type PipelineRunTask = {
 
 export type PipelineRunPipelineSpec = {
   tasks: PipelineRunTask[];
+  results?: PipelineResult[];
 };
 
 export type SkippedTask = {
@@ -652,6 +664,12 @@ export type TaskRunResults = {
   name: string;
   type: string;
   value: string;
+};
+
+export type PipelineResult = {
+  name: string;
+  value: string;
+  description?: string;
 };
 
 export type PipelineRunTaskStatusStep = {
@@ -678,16 +696,23 @@ export type PipelineRunTaskRunStatus = {
   status: PipelineRunTaskRunStatusProperties;
 };
 
+export type PipelineWorkspaceDeclaration = {
+  name: string;
+  [key: string]: unknown;
+};
+
 export type PipelineRunKind = K8sResourceCommon & {
   metadata: {
     name: string;
   };
   spec: {
+    params?: PipelineRunTaskParam[];
     pipelineSpec?: PipelineRunPipelineSpec;
     /** Unsupported for Kubeflow */
     pipelineRef?: {
       name: string;
     };
+    workspaces: PipelineWorkspaceDeclaration[];
   };
   status?: {
     startTime: string;
