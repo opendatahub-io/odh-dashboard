@@ -1,13 +1,6 @@
 import * as React from 'react';
 
-import {
-  Button,
-  DropdownDirection,
-  Icon,
-  Skeleton,
-  Tooltip,
-  Truncate,
-} from '@patternfly/react-core';
+import { Button, Icon, Skeleton, Tooltip, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -156,7 +149,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td isActionCell>
           <ActionsColumn
-            dropdownDirection={DropdownDirection.up}
             items={[
               {
                 title: 'Edit model server',

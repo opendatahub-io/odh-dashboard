@@ -171,7 +171,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
           <Tabs
             id="byon-image-software-packages"
             activeKey={activeTabKey}
-            onSelect={(_event, indexKey) => {
+            onSelect={(e, indexKey) => {
               setActiveTabKey(indexKey);
             }}
           >

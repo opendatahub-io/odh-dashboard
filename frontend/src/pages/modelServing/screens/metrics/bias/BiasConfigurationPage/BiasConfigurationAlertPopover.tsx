@@ -20,7 +20,7 @@ const BiasConfigurationAlertPopover: React.FC<BiasConfigurationAlertPopoverProps
     headerIcon={<InfoCircleIcon />}
     bodyContent={EMPTY_BIAS_CONFIGURATION_DESC}
     footerContent={
-      <Button variant="secondary" isSmall onClick={onConfigure}>
+      <Button variant="secondary" size="sm" onClick={onConfigure}>
         Configure
       </Button>
     }

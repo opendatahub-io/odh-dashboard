@@ -1,7 +1,5 @@
 import * as React from 'react';
 import {
-  Select,
-  SelectOption,
   Stack,
   StackItem,
   Toolbar,
@@ -9,6 +7,7 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { isRefreshIntervalTitle, isTimeframeTitle } from './utils';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
@@ -32,52 +31,54 @@ const MetricsPageToolbar: React.FC<MetricsPageToolbarProps> = ({ leftToolbarItem
     <Toolbar isSticky>
       <ToolbarContent>
         {leftToolbarItem}
-        <ToolbarGroup alignment={{ default: 'alignRight' }}>
+        <ToolbarGroup align={{ default: 'alignRight' }}>
           <ToolbarGroup>
             <Stack>
+              {/* Will be fixed by https://github.com/opendatahub-io/odh-dashboard/issues/2277 */}
+              <StackItem style={{ fontWeight: 'bold' }}>Time range</StackItem>
               <StackItem>
-                <ToolbarItem variant="label">Time range</ToolbarItem>
-              </StackItem>
-              <StackItem>
-                <Select
-                  isOpen={timeframeOpen}
-                  onOpenChange={(expanded) => setTimeframeOpen(expanded)}
-                  onSelect={(e, selection) => {
-                    if (isTimeframeTitle(selection)) {
-                      setCurrentTimeframe(selection);
-                      setTimeframeOpen(false);
-                    }
-                  }}
-                  selected={currentTimeframe}
-                >
-                  {Object.values(TimeframeTitle).map((value) => (
-                    <SelectOption key={value} value={value} />
-                  ))}
-                </Select>
+                <ToolbarItem>
+                  <Select
+                    isOpen={timeframeOpen}
+                    onToggle={(e, expanded) => setTimeframeOpen(expanded)}
+                    onSelect={(e, selection) => {
+                      if (isTimeframeTitle(selection)) {
+                        setCurrentTimeframe(selection);
+                        setTimeframeOpen(false);
+                      }
+                    }}
+                    selections={currentTimeframe}
+                  >
+                    {Object.values(TimeframeTitle).map((value) => (
+                      <SelectOption key={value} value={value} />
+                    ))}
+                  </Select>
+                </ToolbarItem>
               </StackItem>
             </Stack>
           </ToolbarGroup>
           <ToolbarGroup>
             <Stack>
+              {/* Will be fixed by https://github.com/opendatahub-io/odh-dashboard/issues/2277 */}
+              <StackItem style={{ fontWeight: 'bold ' }}>Refresh interval</StackItem>
               <StackItem>
-                <ToolbarItem variant="label">Refresh interval</ToolbarItem>
-              </StackItem>
-              <StackItem>
-                <Select
-                  isOpen={intervalOpen}
-                  onOpenChange={(expanded) => setIntervalOpen(expanded)}
-                  onSelect={(e, selection) => {
-                    if (isRefreshIntervalTitle(selection)) {
-                      setCurrentRefreshInterval(selection);
-                      setIntervalOpen(false);
-                    }
-                  }}
-                  selected={currentRefreshInterval}
-                >
-                  {Object.values(RefreshIntervalTitle).map((value) => (
-                    <SelectOption key={value} value={value} />
-                  ))}
-                </Select>
+                <ToolbarItem>
+                  <Select
+                    isOpen={intervalOpen}
+                    onToggle={(e, expanded) => setIntervalOpen(expanded)}
+                    onSelect={(e, selection) => {
+                      if (isRefreshIntervalTitle(selection)) {
+                        setCurrentRefreshInterval(selection);
+                        setIntervalOpen(false);
+                      }
+                    }}
+                    selections={currentRefreshInterval}
+                  >
+                    {Object.values(RefreshIntervalTitle).map((value) => (
+                      <SelectOption key={value} value={value} />
+                    ))}
+                  </Select>
+                </ToolbarItem>
               </StackItem>
             </Stack>
           </ToolbarGroup>

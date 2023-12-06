@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Form, FormGroup, Modal, TextInput } from '@patternfly/react-core';
+import {
+  Form,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Modal,
+  TextInput,
+} from '@patternfly/react-core';
 import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
@@ -84,16 +92,19 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
       description="All fields are required."
     >
       <Form>
-        <FormGroup
-          label="Metric name"
-          fieldId="metric-name"
-          helperText="This is the name that will be used to select the metric for monitoring."
-        >
+        <FormGroup label="Metric name" fieldId="metric-name">
           <TextInput
             id="metric-name"
             value={configuration.requestName}
-            onChange={(value) => setConfiguration('requestName', value)}
+            onChange={(e, value) => setConfiguration('requestName', value)}
           />
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>
+                This is the name that will be used to select the metric for monitoring.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
         </FormGroup>
         <MetricTypeField
           fieldId="metric-type"
@@ -113,7 +124,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="protected-attribute"
             value={configuration.protectedAttribute}
-            onChange={(value) => setConfiguration('protectedAttribute', value)}
+            onChange={(e, value) => setConfiguration('protectedAttribute', value)}
           />
         </FormGroup>
         <FormGroup
@@ -126,7 +137,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="privileged-value"
             value={configuration.privilegedAttribute}
-            onChange={(value) => setConfiguration('privilegedAttribute', value)}
+            onChange={(e, value) => setConfiguration('privilegedAttribute', value)}
           />
         </FormGroup>
         <FormGroup
@@ -139,7 +150,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="unprivileged-value"
             value={configuration.unprivilegedAttribute}
-            onChange={(value) => setConfiguration('unprivilegedAttribute', value)}
+            onChange={(e, value) => setConfiguration('unprivilegedAttribute', value)}
           />
         </FormGroup>
         <FormGroup
@@ -152,7 +163,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="output"
             value={configuration.outcomeName}
-            onChange={(value) => setConfiguration('outcomeName', value)}
+            onChange={(e, value) => setConfiguration('outcomeName', value)}
           />
         </FormGroup>
         <FormGroup
@@ -165,7 +176,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="output-value"
             value={configuration.favorableOutcome}
-            onChange={(value) => setConfiguration('favorableOutcome', value)}
+            onChange={(e, value) => setConfiguration('favorableOutcome', value)}
           />
         </FormGroup>
         <FormGroup
@@ -179,7 +190,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
             id="violation-threshold"
             value={configuration.thresholdDelta}
             type="number"
-            onChange={(value) => setConfiguration('thresholdDelta', Number(value))}
+            onChange={(e, value) => setConfiguration('thresholdDelta', Number(value))}
           />
         </FormGroup>
         <FormGroup
@@ -193,7 +204,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
             id="metric-batch-size"
             value={configuration.batchSize}
             type="number"
-            onChange={(value) => setConfiguration('batchSize', Number(value))}
+            onChange={(e, value) => setConfiguration('batchSize', Number(value))}
           />
         </FormGroup>
       </Form>

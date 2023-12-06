@@ -63,7 +63,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
           <PageSection isFilled variant={PageSectionVariants.light}>
             <BiasConfigurationEmptyState
               actionButton={<Button onClick={() => setOpen(true)}>Configure metric</Button>}
-              variant={EmptyStateVariant.large}
+              variant={EmptyStateVariant.lg}
             />
           </PageSection>
         }

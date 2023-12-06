@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Card,
-  CardActions,
   CardBody,
   CardHeader,
   CardTitle,
@@ -25,8 +24,8 @@ import {
   ChartThreshold,
   ChartVoronoiContainer,
   createContainer,
-  getResizeObserver,
 } from '@patternfly/react-charts';
+import { getResizeObserver } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { ModelServingMetricsContext } from './ModelServingMetricsContext';
@@ -175,13 +174,20 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader
+        {...(toolbar && {
+          actions: {
+            actions: (
+              <>
+                <Toolbar>{toolbar}</Toolbar>
+              </>
+            ),
+            hasNoOffset: false,
+            className: undefined,
+          },
+        })}
+      >
         <CardTitle>{title}</CardTitle>
-        {toolbar && (
-          <CardActions>
-            <Toolbar>{toolbar}</Toolbar>
-          </CardActions>
-        )}
       </CardHeader>
       <CardBody style={{ height: hasSomeData ? 400 : 200, padding: 0 }}>
         <div ref={bodyRef}>
@@ -242,7 +248,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                 </>
               ) : (
                 <>
-                  <EmptyStateIcon variant="container" component={Spinner} />
+                  <EmptyStateIcon icon={Spinner} />
                   <Title headingLevel="h4" size="lg">
                     Loading
                   </Title>

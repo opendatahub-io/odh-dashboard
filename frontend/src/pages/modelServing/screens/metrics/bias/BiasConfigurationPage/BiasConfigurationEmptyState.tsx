@@ -4,7 +4,8 @@ import {
   EmptyStateBody,
   EmptyStateIcon,
   EmptyStateVariant,
-  Title,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
 import {
@@ -22,12 +23,13 @@ const BiasConfigurationEmptyState: React.FC<BiasConfigurationEmptyStateProps> = 
   variant,
 }) => (
   <EmptyState variant={variant} data-id="bias-metrics-empty-state">
-    <EmptyStateIcon icon={WrenchIcon} />
-    <Title headingLevel="h2" size="lg">
-      {EMPTY_BIAS_CONFIGURATION_TITLE}
-    </Title>
+    <EmptyStateHeader
+      titleText={<>{EMPTY_BIAS_CONFIGURATION_TITLE}</>}
+      icon={<EmptyStateIcon icon={WrenchIcon} />}
+      headingLevel="h2"
+    />
     <EmptyStateBody>{EMPTY_BIAS_CONFIGURATION_DESC}</EmptyStateBody>
-    {actionButton}
+    <EmptyStateFooter>{actionButton}</EmptyStateFooter>
   </EmptyState>
 );
 
