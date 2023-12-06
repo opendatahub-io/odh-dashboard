@@ -36,8 +36,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
     if (this.state.hasError) {
       return (
-        <div className="pf-u-p-lg">
-          <Title headingLevel="h1" className="pf-u-mb-lg">
+        <div className="pf-v5-u-p-lg">
+          <Title headingLevel="h1" className="pf-v5-u-mb-lg">
             An error occurred.
           </Title>
           <ErrorDetails

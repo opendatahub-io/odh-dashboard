@@ -2,11 +2,9 @@ import React from 'react';
 import classNames from 'classnames';
 import {
   Card,
-  CardActions,
   CardBody,
   CardFooter,
   CardHeader,
-  CardHeaderMain,
   CardTitle,
   Stack,
   StackItem,
@@ -33,6 +31,8 @@ import './OdhCard.scss';
 
 type OdhDocCardProps = {
   odhDoc: OdhDocument;
+  isSelected?: boolean;
+  onSelect?: () => void;
   favorite: boolean;
   updateFavorite: (isFavorite: boolean) => void;
 };
@@ -137,23 +137,24 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       className="odh-card odh-tourable-card"
       isSelected={selected}
       isSelectable
+      isClickable
     >
-      <CardHeader>
-        <CardHeaderMain style={{ maxWidth: '33%', width: '100%' }}>
-          <BrandImage
-            src={odhDoc.spec.img || odhDoc.spec.icon || ''}
-            alt={odhDoc.spec.displayName}
-          />
-        </CardHeaderMain>
-        <CardActions hasNoOffset>
-          <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
-        </CardActions>
+      <CardHeader
+        actions={{
+          actions: (
+            <FavoriteButton isFavorite={favorite} onClick={() => updateFavorite(!favorite)} />
+          ),
+          hasNoOffset: true,
+          className: undefined,
+        }}
+      >
+        <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
       </CardHeader>
       <CardTitle>
         <TextContent>
           {odhDoc.spec.displayName}
           {/* Override the bold font in the title, make the subtitle lighter */}
-          <Text component="small" style={{ fontWeight: 'var(--pf-global--FontWeight--normal)' }}>
+          <Text component="small" style={{ fontWeight: 'var(--pf-v5-global--FontWeight--normal)' }}>
             by {odhDoc.spec.appDisplayName}
           </Text>
         </TextContent>
@@ -164,7 +165,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
             <DocCardBadges odhDoc={odhDoc} />
           </StackItem>
           <StackItem>
-            <Tooltip removeFindDomNode content={odhDoc.spec.description}>
+            <Tooltip content={odhDoc.spec.description}>
               <span className="odh-card__body-text">{odhDoc.spec.description}</span>
             </Tooltip>
           </StackItem>

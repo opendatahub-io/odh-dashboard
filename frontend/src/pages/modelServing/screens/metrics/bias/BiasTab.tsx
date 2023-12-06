@@ -10,9 +10,9 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Title,
   ToolbarGroup,
   ToolbarItem,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
@@ -66,11 +66,12 @@ const BiasTab: React.FC = () => {
   if (loadError) {
     return (
       <PageSection isFilled variant={PageSectionVariants.light}>
-        <EmptyState variant={EmptyStateVariant.large}>
-          <EmptyStateIcon icon={ExclamationCircleIcon} />
-          <Title headingLevel="h5" size="lg">
-            TrustyAI Error
-          </Title>
+        <EmptyState variant={EmptyStateVariant.lg}>
+          <EmptyStateHeader
+            titleText="TrustyAI Error"
+            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
+            headingLevel="h5"
+          />
           <EmptyStateBody>
             <Stack hasGutter>
               <StackItem>We encountered an error accessing the TrustyAI service:</StackItem>
@@ -93,9 +94,8 @@ const BiasTab: React.FC = () => {
             leftToolbarItem={
               <ToolbarGroup>
                 <Stack>
-                  <StackItem>
-                    <ToolbarItem variant="label">Metrics to display</ToolbarItem>
-                  </StackItem>
+                  {/* Will be fixed by https://github.com/opendatahub-io/odh-dashboard/issues/2277 */}
+                  <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
                   <StackItem>
                     <ToolbarItem>
                       <BiasMetricConfigSelector

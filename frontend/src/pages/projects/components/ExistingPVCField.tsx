@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Alert, FormGroup, Select, SelectOption } from '@patternfly/react-core';
+import { Alert, FormGroup } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { getPvcDisplayName } from '~/pages/projects/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 
@@ -47,7 +48,6 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
   return (
     <FormGroup isRequired label="Persistent storage" fieldId={fieldId}>
       <Select
-        removeFindDomNode
         variant="typeahead"
         aria-label="Persistent storage select"
         selections={selectedStorage}
@@ -63,7 +63,7 @@ const ExistingPVCField: React.FC<ExistingPVCFieldProps> = ({
             setOpen(false);
           }
         }}
-        onToggle={setOpen}
+        onToggle={(e, isExpanded) => setOpen(isExpanded)}
         placeholderText={placeholderText}
         direction={selectDirection}
         menuAppendTo={menuAppendTo}

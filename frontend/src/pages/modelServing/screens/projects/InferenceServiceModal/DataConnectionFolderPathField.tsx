@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { FormGroup, InputGroup, InputGroupText, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  InputGroup,
+  InputGroupText,
+  TextInput,
+  InputGroupItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+} from '@patternfly/react-core';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 
 type DataConnectionFolderPathFieldProps = {
@@ -11,7 +20,7 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
   folderPath,
   setFolderPath,
 }) => {
-  type Validate = React.ComponentProps<typeof FormGroup>['validated'];
+  type Validate = React.ComponentProps<typeof TextInput>['validated'];
 
   const [validated, setValidated] = React.useState<Validate>('default');
 
@@ -30,25 +39,32 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
     return () => clearTimeout(timer);
   }, [folderPath]);
   return (
-    <FormGroup
-      fieldId="folder-path"
-      label="Path"
-      isRequired
-      helperText={'Enter a path to a model or folder. This path cannot point to a root folder.'}
-      helperTextInvalid={'The path must not point to a root folder.'}
-      helperTextInvalidIcon={<ExclamationCircleIcon />}
-      validated={validated}
-    >
+    <FormGroup fieldId="folder-path" label="Path" isRequired>
       <InputGroup>
-        <InputGroupText variant="plain">/</InputGroupText>
-        <TextInput
-          aria-label="folder-path"
-          type="text"
-          value={folderPath}
-          placeholder="Example, data_folder"
-          onChange={handlePathChange}
-        />
+        <InputGroupText isPlain>/</InputGroupText>
+        <InputGroupItem isFill>
+          <TextInput
+            aria-label="folder-path"
+            type="text"
+            value={folderPath}
+            validated={validated}
+            placeholder="Example, data_folder"
+            onChange={(e, folderPath: string) => handlePathChange(folderPath)}
+          />
+        </InputGroupItem>
       </InputGroup>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem
+            {...(validated === 'error' && { icon: <ExclamationCircleIcon /> })}
+            variant={validated}
+          >
+            {validated === 'error'
+              ? 'The path must not point to a root folder.'
+              : 'Enter a path to a model or folder. This path cannot point to a root folder.'}
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
     </FormGroup>
   );
 };

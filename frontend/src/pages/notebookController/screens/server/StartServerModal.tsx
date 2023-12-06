@@ -212,7 +212,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
     <ExpandableSection
       data-id="expand-logs"
       toggleText={`${logsExpanded ? 'Collapse' : 'Expand'} event log`}
-      onToggle={(isExpanded) => setLogsExpanded(isExpanded)}
+      onToggle={(e, isExpanded) => setLogsExpanded(isExpanded)}
       isExpanded={logsExpanded}
       isIndented
     >

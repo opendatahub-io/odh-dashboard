@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, DropdownSeparator, DropdownToggle } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownSeparator,
+  DropdownToggle,
+} from '@patternfly/react-core/deprecated';
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';

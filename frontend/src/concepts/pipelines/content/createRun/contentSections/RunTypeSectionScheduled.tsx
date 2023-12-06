@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { ClipboardCopy, Radio, Stack, StackItem, Text } from '@patternfly/react-core';
+import {
+  ClipboardCopy,
+  Radio,
+  Stack,
+  StackItem,
+  Split,
+  SplitItem,
+  Text,
+} from '@patternfly/react-core';
 import {
   PeriodicOptions,
   RunTypeScheduledData,
@@ -12,6 +20,8 @@ import {
   DEFAULT_PERIODIC_OPTION,
 } from '~/concepts/pipelines/content/createRun/const';
 import EndDateBeforeStartDateError from '~/concepts/pipelines/content/createRun/contentSections/EndDateBeforeStartDateError';
+import { replaceNonNumericPartWithString, replaceNumericPartWithString } from '~/utilities/string';
+import NumberInputWrapper from '~/components/NumberInputWrapper';
 
 type RunTypeSectionScheduledProps = {
   data: RunTypeScheduledData;
@@ -32,7 +42,11 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
         isChecked={data.triggerType === ScheduledType.PERIODIC}
         id={ScheduledType.PERIODIC}
         onChange={() =>
-          onChange({ ...data, triggerType: ScheduledType.PERIODIC, value: DEFAULT_PERIODIC_OPTION })
+          onChange({
+            ...data,
+            triggerType: ScheduledType.PERIODIC,
+            value: DEFAULT_PERIODIC_OPTION,
+          })
         }
         body={
           data.triggerType === ScheduledType.PERIODIC && (
@@ -40,14 +54,35 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
               <Text>
                 <b>Run every</b>
               </Text>
-              <SimpleDropdownSelect
-                options={Object.values(PeriodicOptions).map((v) => ({
-                  key: v,
-                  label: v,
-                }))}
-                value={data.value}
-                onChange={(value) => onChange({ ...data, value })}
-              />
+              <Split hasGutter>
+                <SplitItem>
+                  <NumberInputWrapper
+                    min={1}
+                    value={parseInt(data.value) || 1}
+                    onChange={(value) =>
+                      onChange({
+                        ...data,
+                        value: replaceNumericPartWithString(data.value, value),
+                      })
+                    }
+                  />
+                </SplitItem>
+                <SplitItem>
+                  <SimpleDropdownSelect
+                    options={Object.values(PeriodicOptions).map((v) => ({
+                      key: v,
+                      label: v,
+                    }))}
+                    value={data.value.replace(/\d+/, '')}
+                    onChange={(value) =>
+                      onChange({
+                        ...data,
+                        value: replaceNonNumericPartWithString(data.value, value),
+                      })
+                    }
+                  />
+                </SplitItem>
+              </Split>
             </>
           )
         }
@@ -71,7 +106,7 @@ const RunTypeSectionScheduled: React.FC<RunTypeSectionScheduledProps> = ({ data,
             <ClipboardCopy
               hoverTip="Copy"
               clickTip="Copied"
-              onChange={(value) => {
+              onChange={(e, value) => {
                 if (typeof value === 'string') {
                   onChange({ ...data, value });
                 }

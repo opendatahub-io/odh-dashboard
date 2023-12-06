@@ -4,9 +4,9 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateHeader,
   EmptyStateIcon,
-  EmptyStatePrimary,
-  Title,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 
@@ -17,18 +17,19 @@ type DashboardEmptyTableViewProps = {
 const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({ onClearFilters }) => (
   <Bullseye>
     <EmptyState>
-      <EmptyStateIcon icon={SearchIcon} />
-      <Title size="lg" headingLevel="h2">
-        No results found
-      </Title>
+      <EmptyStateHeader
+        titleText="No results found"
+        icon={<EmptyStateIcon icon={SearchIcon} />}
+        headingLevel="h2"
+      />
       <EmptyStateBody>
         No results match the filter criteria. Clear all filters and try again.
       </EmptyStateBody>
-      <EmptyStatePrimary>
+      <EmptyStateFooter>
         <Button variant="link" onClick={() => onClearFilters()}>
           Clear all filters
         </Button>
-      </EmptyStatePrimary>
+      </EmptyStateFooter>
     </EmptyState>
   </Bullseye>
 );

@@ -13,6 +13,8 @@ type MockDashboardConfigType = {
   disablePipelines?: boolean;
   disableModelServing?: boolean;
   disableCustomServingRuntimes?: boolean;
+  disableKServe?: boolean;
+  disableModelMesh?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -28,6 +30,8 @@ export const mockDashboardConfig = ({
   disableModelServing = false,
   disableCustomServingRuntimes = false,
   disablePipelines = false,
+  disableKServe = false,
+  disableModelMesh = false,
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -56,10 +60,12 @@ export const mockDashboardConfig = ({
       disableProjectSharing: false,
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
+      disableKServe,
+      disableModelMesh,
     },
     notebookController: {
       enabled: true,
-      notebookNamespace: 'rhods-notebooks',
+      notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,
         key: 'NotebooksOnlyChange',
@@ -67,7 +73,7 @@ export const mockDashboardConfig = ({
       pvcSize: '20Gi',
     },
     groupsConfig: {
-      adminGroups: 'rhods-admins',
+      adminGroups: 'openshift-ai-admins',
       allowedGroups: 'system:authenticated',
     },
     modelServerSizes: [

@@ -1,5 +1,10 @@
 import React from 'react';
-import { Select, SelectGroup, SelectOption, SelectVariant } from '@patternfly/react-core';
+import {
+  Select,
+  SelectGroup,
+  SelectOption,
+  SelectVariant,
+} from '@patternfly/react-core/deprecated';
 import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
 import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
@@ -46,7 +51,7 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
       <Select
         variant={SelectVariant.typeaheadMulti}
         typeAheadAriaLabel="Select a metric"
-        onToggle={setIsOpen}
+        onToggle={(e, val) => setIsOpen(val)}
         onSelect={(event, item) => {
           if (isBiasSelectOption(item)) {
             if (selected.find(byId(item))) {

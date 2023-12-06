@@ -43,7 +43,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
                           isRequired
                           aria-label={`key of item ${i}`}
                           value={key}
-                          onChange={(updatedKey) =>
+                          onChange={(e, updatedKey) =>
                             onUpdate(updateArrayValue(values, i, { key: updatedKey }))
                           }
                         />
@@ -55,7 +55,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
                           isRequired
                           aria-label={`value of item ${i}`}
                           value={value}
-                          onChange={(updatedValue) =>
+                          onChange={(e, updatedValue) =>
                             onUpdate(updateArrayValue(values, i, { value: updatedValue }))
                           }
                         />
@@ -68,7 +68,7 @@ const GenericKeyValuePairField: React.FC<GenericKeyValuePairFieldProps> = ({
                     )}
                   </Stack>
                 </SplitItem>
-                <SplitItem style={{ paddingTop: 'var(--pf-global--spacer--xl)' }}>
+                <SplitItem style={{ paddingTop: 'var(--pf-v5-global--spacer--xl)' }}>
                   <Button
                     isDisabled={values.length === 1}
                     aria-label="Remove key-value pair"

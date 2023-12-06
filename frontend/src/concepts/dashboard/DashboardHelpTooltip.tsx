@@ -7,7 +7,7 @@ type DashboardHelpTooltipProps = {
 };
 
 const DashboardHelpTooltip: React.FC<DashboardHelpTooltipProps> = ({ content }) => (
-  <Tooltip removeFindDomNode content={content}>
+  <Tooltip content={content}>
     <HelpIcon />
   </Tooltip>
 );

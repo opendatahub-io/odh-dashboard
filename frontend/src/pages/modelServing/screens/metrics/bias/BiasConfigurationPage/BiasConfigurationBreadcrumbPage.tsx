@@ -13,7 +13,7 @@ const BiasConfigurationBreadcrumbPage: React.FC = () => {
         { label: 'Model serving', link: '/modelServing' },
         {
           label: modelDisplayName,
-          link: `/modelServing/metrics/${projectName}/${model.metadata.name}`,
+          link: `/modelServing/${projectName}/metrics/${model.metadata.name}`,
         },
         { label: 'Metric configuration', isActive: true },
       ]}

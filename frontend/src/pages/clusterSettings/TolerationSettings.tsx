@@ -54,7 +54,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
           <Checkbox
             label="Add a toleration to notebook pods to allow them to be scheduled to tainted nodes"
             isChecked={tolerationSettings.enabled}
-            onChange={(enabled) => {
+            onChange={(e, enabled) => {
               const newNotebookTolerationSettings: NotebookTolerationFormSettings = {
                 ...tolerationSettings,
                 enabled,
@@ -80,7 +80,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
                     value={tolerationSettings.key}
                     placeholder={DEFAULT_TOLERATION_VALUE}
                     validated={tolerationSettings.error ? ValidatedOptions.error : undefined}
-                    onChange={(value: string) => {
+                    onChange={(e, value: string) => {
                       const newNotebookTolerationSettings: NotebookTolerationFormSettings = {
                         ...tolerationSettings,
                         key: value,
