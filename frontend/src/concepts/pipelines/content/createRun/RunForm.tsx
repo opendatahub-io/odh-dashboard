@@ -59,7 +59,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
       onLoaded={(loaded) => {
         onValueChange('pipelineVersionsLoaded', loaded);
       }}
-      pipelineId={data.pipeline?.id}
+      pipeline={data.pipeline}
       value={data.version}
       onChange={(version) => {
         onValueChange('version', version);

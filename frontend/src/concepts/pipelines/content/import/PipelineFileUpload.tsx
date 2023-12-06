@@ -28,6 +28,9 @@ const PipelineFileUpload: React.FC<PipelineFileUploadProps> = ({ fileContents, o
         setFilename('');
         onUpload('');
       }}
+      dropzoneProps={{
+        accept: { 'application/x-yaml': ['.yml', '.yaml'] },
+      }}
       isLoading={isLoading}
       isRequired
       allowEditingUploadedText={false}

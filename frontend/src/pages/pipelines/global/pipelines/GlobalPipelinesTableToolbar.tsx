@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
+import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';
 
 const options = {
   [FilterOptions.NAME]: 'Pipeline name',
@@ -49,7 +49,7 @@ const GlobalPipelinesTableToolbar: React.FC<GlobalPipelinesTableToolbarProps> = 
     onClearFilters={onClearFilters}
   >
     <ToolbarItem>
-      <ImportPipelineButton />
+      <ImportPipelineSplitButton />
     </ToolbarItem>
   </PipelineFilterBar>
 );

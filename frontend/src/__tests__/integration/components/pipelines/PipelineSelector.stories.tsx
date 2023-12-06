@@ -12,6 +12,7 @@ export default {
 export const Default: StoryObj = {
   render: () => (
     <PipelineSelector
+      maxWidth="500px"
       columns={pipelineVersionSelectorColumns}
       data={mockPipelineVersionsProxy}
       onSelect={() => null}

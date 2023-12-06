@@ -17,12 +17,14 @@ import {
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { LIMIT_MAX_ITEM_COUNT } from '~/concepts/pipelines/const';
+import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 
 type PipelinesTableRowProps = {
   pipeline: PipelineKF;
   pipelineDetailsPath: (namespace: string, id: string) => string;
   rowIndex: number;
   onDeletePipeline: () => void;
+  refreshPipelines: () => Promise<unknown>;
 };
 
 const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
@@ -30,11 +32,13 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   rowIndex,
   pipelineDetailsPath,
   onDeletePipeline,
+  refreshPipelines,
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const runsFetchState = usePipelineRunsForPipeline(pipeline.id, LIMIT_MAX_ITEM_COUNT);
   const [isExpanded, setExpanded] = React.useState(false);
+  const [importTarget, setImportTarget] = React.useState<PipelineKF | null>(null);
 
   const createdDate = new Date(pipeline.created_at);
   const lastRun = getLastRun(runsFetchState[0]);
@@ -77,6 +81,15 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             <ActionsColumn
               items={[
                 {
+                  title: 'Upload new version',
+                  onClick: () => {
+                    setImportTarget(pipeline);
+                  },
+                },
+                {
+                  isSeparator: true,
+                },
+                {
                   title: 'Create run',
                   onClick: () => {
                     navigate(`/pipelines/${namespace}/pipelineRun/create`, {
@@ -108,6 +121,17 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
         isExpanded={isExpanded}
         runsFetchState={runsFetchState}
         pipeline={pipeline}
+      />
+      <PipelineVersionUploadModal
+        existingPipeline={pipeline}
+        isOpen={!!importTarget}
+        onClose={(pipelineVersion) => {
+          if (pipelineVersion) {
+            refreshPipelines().then(() => setImportTarget(null));
+          } else {
+            setImportTarget(null);
+          }
+        }}
       />
     </>
   );

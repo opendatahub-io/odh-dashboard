@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mockPipelineVersionsProxy } from '~/__mocks__/mockPipelineVersionsProxy';
 import { navigateToStory } from '~/__tests__/integration/utils';
 
-test('Does not show run content', async ({ page }) => {
+test('Pipeline version selector - Test filter and view more', async ({ page }) => {
   await page.goto(navigateToStory('components-pipelines-pipelineselector', 'default'));
 
   await expect(page.locator('[data-id="pipeline-selector-table-list-row"]')).toHaveCount(10);
