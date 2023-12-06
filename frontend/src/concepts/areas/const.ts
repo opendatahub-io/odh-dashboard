@@ -36,6 +36,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
   },
+  [SupportedArea.SERVICE_MESH]: {
+    featureFlags: ['disableServiceMesh'],
+  },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
   },

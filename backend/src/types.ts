@@ -27,6 +27,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelServing: boolean;
       disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
+      disableServiceMesh: boolean;
       disablePipelines: boolean;
       disableBiasMetrics: boolean;
       disablePerformanceMetrics: boolean;
@@ -412,6 +413,9 @@ export type Notebook = K8sResourceCommon & {
       'opendatahub.io/link': string; // redirect notebook url
       'opendatahub.io/username': string; // the untranslated username behind the notebook
 
+      // Openshift Service Mesh specific annotations. They're needed to orchestrate additional resources for nb namespaces.
+      'opendatahub.io/service-mesh': string;
+
       // TODO: Can we get this from the data in the Notebook??
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
@@ -701,7 +705,6 @@ export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
-
 export type MachineAutoscaler = {
   spec: {
     maxReplicas: number;
@@ -731,7 +734,6 @@ export type MachineAutoscalerList = {
 export type MachineSetList = {
   items: MachineSet[];
 } & K8sResourceCommon;
-
 
 export type DetectedAccelerators = {
   configured: boolean;

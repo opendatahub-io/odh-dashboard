@@ -10,19 +10,20 @@ import {
 } from '@patternfly/react-core';
 import { assembleSecret, createNotebook, createSecret, updateNotebook } from '~/api';
 import {
+  DataConnectionData,
+  EnvVariable,
   StartNotebookData,
   StorageData,
-  EnvVariable,
-  DataConnectionData,
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { AppContext } from '~/app/AppContext';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
-  createPvcDataForNotebook,
   createConfigMapsAndSecretsForNotebook,
+  createPvcDataForNotebook,
   replaceRootVolumesForNotebook,
   updateConfigMapsAndSecretsForNotebook,
 } from './service';
@@ -79,6 +80,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     editNotebook,
     existingDataConnections,
   );
+  const enableServiceMesh = useIsAreaAvailable(SupportedArea.SERVICE_MESH).status;
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { acceleratorProfile, notebookSize, image } = startNotebookData;
@@ -157,7 +159,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         envFrom,
         tolerationSettings,
       };
-      updateNotebook(editNotebook, newStartNotebookData, username)
+      updateNotebook(editNotebook, newStartNotebookData, username, enableServiceMesh)
         .then((notebook) => afterStart(notebook.metadata.name, 'updated'))
         .catch(handleError);
     }
@@ -219,7 +221,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       tolerationSettings,
     };
 
-    createNotebook(newStartData, username, canEnablePipelines)
+    createNotebook(newStartData, username, enableServiceMesh, canEnablePipelines)
       .then((notebook) => afterStart(notebook.metadata.name, 'created'))
       .catch(handleError);
   };

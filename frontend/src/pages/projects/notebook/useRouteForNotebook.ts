@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { getRoute } from '~/api';
+import { getRoute, getServiceMeshGwHost } from '~/api';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const useRouteForNotebook = (
   notebookName?: string,
@@ -10,6 +11,7 @@ const useRouteForNotebook = (
   const [route, setRoute] = React.useState<string | null>(null);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | null>(null);
+  const enableServiceMesh = useIsAreaAvailable(SupportedArea.SERVICE_MESH).status;
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
@@ -19,12 +21,17 @@ const useRouteForNotebook = (
         return;
       }
       if (notebookName && projectName) {
-        getRoute(notebookName, projectName)
-          .then((route) => {
+        // if not using service mesh fetch openshift route, otherwise get Istio Ingress Gateway route
+        const getRoutePromise = !enableServiceMesh
+          ? getRoute(notebookName, projectName).then((route) => route.spec.host)
+          : getServiceMeshGwHost(projectName);
+
+        getRoutePromise
+          .then((host) => {
             if (cancelled) {
               return;
             }
-            setRoute(`https://${route.spec.host}/notebook/${projectName}/${notebookName}`);
+            setRoute(`https://${host}/notebook/${projectName}/${notebookName}/`);
             setLoadError(null);
             setLoaded(true);
           })
@@ -46,7 +53,7 @@ const useRouteForNotebook = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [notebookName, projectName, isRunning]);
+  }, [notebookName, projectName, isRunning, enableServiceMesh]);
 
   return [route, loaded, loadError];
 };

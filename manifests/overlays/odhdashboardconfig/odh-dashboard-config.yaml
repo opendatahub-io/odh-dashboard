@@ -21,7 +21,7 @@ spec:
     disableAcceleratorProfiles: true
     disableBiasMetrics: true
     disablePerformanceMetrics: true
-    modelMetricsNamespace: ''
+    disableServiceMesh: true
     disableKServe: false
     disableModelMesh: false
   notebookController:

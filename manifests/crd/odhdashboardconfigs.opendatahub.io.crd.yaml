@@ -49,11 +49,14 @@ spec:
                       type: boolean
                     disableCustomServingRuntimes:
                       type: boolean
+                    disableServiceMesh:
+                      type: boolean
                     disablePipelines:
                       type: boolean
                     disableBiasMetrics:
                       type: boolean
                     disablePerformanceMetrics:
+                      type: boolean
                     disableKServe:
                       type: boolean
                     disableModelMesh:

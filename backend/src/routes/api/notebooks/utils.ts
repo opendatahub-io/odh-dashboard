@@ -1,14 +1,16 @@
-import { KubeFastifyInstance, Notebook, NotebookData, Route } from '../../../types';
+import { KubeFastifyInstance, Notebook, NotebookData } from '../../../types';
 import { PatchUtils, V1ContainerStatus, V1Pod, V1PodList } from '@kubernetes/client-node';
 import { createCustomError } from '../../../utils/requestUtils';
 import { getUserName } from '../../../utils/userUtils';
 import { RecursivePartial } from '../../../typeHelpers';
+import { featureFlagEnabled, getDashboardConfig } from '../../../utils/resourceUtils';
 import {
   createNotebook,
   generateNotebookNameFromUsername,
   getNamespaces,
   getNotebook,
   getRoute,
+  getServiceMeshGwHost,
   updateNotebook,
 } from '../../../utils/notebookUtils';
 import { FastifyRequest } from 'fastify';
@@ -27,12 +29,25 @@ export const getNotebookStatus = async (
   const notebookName = notebook?.metadata.name;
   let newNotebook: Notebook;
   if (isRunning && !notebook?.metadata.annotations?.['opendatahub.io/link']) {
-    const route = await getRoute(fastify, namespace, notebookName).catch((e) => {
-      fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
-      return undefined;
-    });
-    if (route) {
-      newNotebook = await patchNotebookRoute(fastify, route, namespace, notebookName).catch((e) => {
+    const enableServiceMesh = featureFlagEnabled(
+      getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
+    );
+    let host: string;
+    if (enableServiceMesh) {
+      host = await getServiceMeshGwHost(fastify, namespace).catch((e) => {
+        fastify.log.warn(`Failed getting service mesh route ${notebookName}: ${e.message}`);
+        return undefined;
+      });
+    }
+    if (!host) {
+      const route = await getRoute(fastify, namespace, notebookName).catch((e) => {
+        fastify.log.warn(`Failed getting route ${notebookName}: ${e.message}`);
+        return undefined;
+      });
+      host = route?.spec.host;
+    }
+    if (host) {
+      newNotebook = await patchNotebookRoute(fastify, host, namespace, notebookName).catch((e) => {
         fastify.log.warn(`Failed patching route to notebook ${notebookName}: ${e.message}`);
         return notebook;
       });
@@ -71,14 +86,14 @@ export const checkPodContainersReady = (pod: V1Pod): boolean => {
 
 export const patchNotebookRoute = async (
   fastify: KubeFastifyInstance,
-  route: Route,
+  host: string,
   namespace: string,
   name: string,
 ): Promise<Notebook> => {
   const patch: RecursivePartial<Notebook> = {
     metadata: {
       annotations: {
-        'opendatahub.io/link': `https://${route.spec.host}/notebook/${namespace}/${name}`,
+        'opendatahub.io/link': `https://${host}/notebook/${namespace}/${name}/`,
       },
     },
   };

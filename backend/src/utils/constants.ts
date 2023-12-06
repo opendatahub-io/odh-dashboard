@@ -54,6 +54,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableCustomServingRuntimes: false,
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
+      disableServiceMesh: true,
       disablePipelines: false,
       disableKServe: false,
       disableModelMesh: false,

@@ -21,6 +21,7 @@ export enum SupportedArea {
   WORKBENCHES = 'workbenches',
   // TODO: Support Applications/Tile area
   // TODO: Support resources area
+  SERVICE_MESH = 'service-mesh',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
