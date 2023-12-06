@@ -27,9 +27,9 @@ The following are a list of features that are supported, along with there defaul
 | disableKServe                | false   | Disables the ability to select KServe as a Serving Platform.                                         |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
-| modelMetricsNamespace        | false   | Enables the namespace in which the Model Serving Metrics' Prometheus Operator is installed.          |
 | disableBiasMetrics           | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
 | disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
+| disableServiceMesh           | true    | Disables use of service mesh for routing and authorization.                                          |
 
 ## Defaults
 
@@ -53,7 +53,6 @@ spec:
     disableProjectSharing: false
     disableCustomServingRuntimes: false
     disableAcceleratorProfiles: false
-    modelMetricsNamespace: ''
     disableBiasMetrics: false
     disablePerformanceMetrics: false
 ```
@@ -145,7 +144,6 @@ spec:
     disableProjectSharing: true
     disableCustomServingRuntimes: false
     disableAcceleratorProfiles: true
-    modelMetricsNamespace: ''
     disableBiasMetrics: false
     disablePerformanceMetrics: false
   notebookController:
