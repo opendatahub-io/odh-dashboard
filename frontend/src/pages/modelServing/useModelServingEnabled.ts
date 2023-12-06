@@ -1,16 +1,6 @@
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
-const useModelServingEnabled = (): boolean => {
-  const {
-    dashboardConfig: {
-      spec: {
-        dashboardConfig: { disableModelServing },
-      },
-    },
-  } = useAppContext();
-
-  return featureFlagEnabled(disableModelServing);
-};
+const useModelServingEnabled = (): boolean =>
+  useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
 
 export default useModelServingEnabled;

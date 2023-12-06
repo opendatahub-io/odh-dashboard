@@ -26,6 +26,7 @@ export const IMAGE_ANNOTATIONS = {
   DEPENDENCIES: 'opendatahub.io/notebook-python-dependencies',
   IMAGE_ORDER: 'opendatahub.io/notebook-image-order',
   RECOMMENDED: 'opendatahub.io/workbench-image-recommended',
+  OUTDATED: 'opendatahub.io/image-tag-outdated',
 };
 export const blankDashboardCR: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
@@ -54,6 +55,8 @@ export const blankDashboardCR: DashboardConfig = {
       disableServiceMesh: true,
       modelMetricsNamespace: '',
       disablePipelines: false,
+      disableKServe: false,
+      disableModelMesh: false,
     },
     notebookController: {
       enabled: true,

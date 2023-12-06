@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Divider } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -34,16 +34,10 @@ const DataConnectionsList: React.FC = () => {
         isLoading={!loaded}
         isEmpty={isDataConnectionsEmpty}
         loadError={error}
-        emptyState={
-          <EmptyDetailsList
-            title="No data connections"
-            description="To get started, add data to your project."
-          />
-        }
+        emptyState={<EmptyDetailsList title="No data connections" />}
       >
         <DataConnectionsTable connections={connections} refreshData={refreshAllProjectData} />
       </DetailsSection>
-      {isDataConnectionsEmpty && <Divider data-id="details-page-section-divider" />}
       <ManageDataConnectionModal
         isOpen={open}
         onClose={(submitted) => {

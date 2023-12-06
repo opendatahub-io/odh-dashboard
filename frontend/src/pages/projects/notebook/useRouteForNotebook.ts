@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { getServiceMeshGwHost, getRoute } from '~/api';
+import { getRoute, getServiceMeshGwHost } from '~/api';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
-import { useAppContext } from '~/app/AppContext';
-import { featureFlagEnabled } from '~/utilities/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const useRouteForNotebook = (
   notebookName?: string,
@@ -12,10 +11,7 @@ const useRouteForNotebook = (
   const [route, setRoute] = React.useState<string | null>(null);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | null>(null);
-  const { dashboardConfig } = useAppContext();
-  const enableServiceMesh = featureFlagEnabled(
-    dashboardConfig.spec.dashboardConfig.disableServiceMesh,
-  );
+  const enableServiceMesh = useIsAreaAvailable(SupportedArea.SERVICE_MESH).status;
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;

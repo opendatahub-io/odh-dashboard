@@ -7,7 +7,12 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeModel } from '~/api/models';
-import { K8sAPIOptions, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
+import {
+  K8sAPIOptions,
+  ServingContainer,
+  ServingRuntimeAnnotations,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
@@ -17,19 +22,35 @@ import { AcceleratorState } from '~/utilities/useAcceleratorState';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
-const assembleServingRuntime = (
+export const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
   servingRuntime: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
   isEditing?: boolean,
   acceleratorState?: AcceleratorState,
+  isModelMesh?: boolean,
 ): ServingRuntimeKind => {
   const { name: displayName, numReplicas, modelSize, externalRoute, tokenAuth } = data;
   const createName = isCustomServingRuntimesEnabled
     ? translateDisplayNameForK8s(displayName)
     : getModelServingRuntimeName(namespace);
   const updatedServingRuntime = { ...servingRuntime };
+
+  const annotations: ServingRuntimeAnnotations = {
+    ...updatedServingRuntime.metadata.annotations,
+  };
+
+  if (externalRoute) {
+    annotations['enable-route'] = 'true';
+  } else {
+    delete annotations['enable-route'];
+  }
+  if (tokenAuth) {
+    annotations['enable-auth'] = 'true';
+  } else {
+    delete annotations['enable-auth'];
+  }
 
   // TODO: Enable GRPC
   if (!isEditing) {
@@ -43,9 +64,7 @@ const assembleServingRuntime = (
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
-        ...updatedServingRuntime.metadata.annotations,
-        'enable-route': externalRoute ? 'true' : 'false',
-        'enable-auth': tokenAuth ? 'true' : 'false',
+        ...annotations,
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-name': servingRuntime.metadata.name,
@@ -60,15 +79,15 @@ const assembleServingRuntime = (
     updatedServingRuntime.metadata = {
       ...updatedServingRuntime.metadata,
       annotations: {
-        ...updatedServingRuntime.metadata.annotations,
-        'enable-route': externalRoute ? 'true' : 'false',
-        'enable-auth': tokenAuth ? 'true' : 'false',
+        ...annotations,
         'opendatahub.io/accelerator-name': acceleratorState?.accelerator?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
   }
   updatedServingRuntime.spec.replicas = numReplicas;
+
+  // Accelerator support
 
   const resourceSettings: ContainerResources = {
     requests: {
@@ -99,15 +118,18 @@ const assembleServingRuntime = (
 
       return {
         ...container,
-        resources,
+        resources: isModelMesh ? resources : resourceSettings,
         affinity,
         volumeMounts,
       };
     },
   );
 
-  servingRuntime.spec.tolerations = tolerations;
+  if (isModelMesh) {
+    servingRuntime.spec.tolerations = tolerations;
+  }
 
+  // Volume mount for /dev/shm
   const volumes = updatedServingRuntime.spec.volumes || [];
   if (!volumes.find((volume) => volume.name === 'shm')) {
     volumes.push(getshmVolume('2Gi'));
@@ -163,8 +185,16 @@ export const updateServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   acceleratorState?: AcceleratorState;
+  isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
-  const { data, existingData, isCustomServingRuntimesEnabled, opts, acceleratorState } = options;
+  const {
+    data,
+    existingData,
+    isCustomServingRuntimesEnabled,
+    opts,
+    acceleratorState,
+    isModelMesh,
+  } = options;
 
   const updatedServingRuntime = assembleServingRuntime(
     data,
@@ -173,6 +203,7 @@ export const updateServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     true,
     acceleratorState,
+    isModelMesh,
   );
 
   return k8sUpdateResource<ServingRuntimeKind>(
@@ -190,6 +221,7 @@ export const createServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   acceleratorState?: AcceleratorState;
+  isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
   const {
     data,
@@ -198,6 +230,7 @@ export const createServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     opts,
     acceleratorState,
+    isModelMesh,
   } = options;
   const assembledServingRuntime = assembleServingRuntime(
     data,
@@ -206,6 +239,7 @@ export const createServingRuntime = (options: {
     isCustomServingRuntimesEnabled,
     false,
     acceleratorState,
+    isModelMesh,
   );
 
   return k8sCreateResource<ServingRuntimeKind>(

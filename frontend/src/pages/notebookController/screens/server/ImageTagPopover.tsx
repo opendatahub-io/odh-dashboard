@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Icon, Popover } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Button, Popover } from '@patternfly/react-core';
+import { HelpIcon } from '@patternfly/react-icons';
 import { ImageTagInfo } from '~/types';
 import { getNameVersionString } from '~/utilities/imageUtils';
 import '~/pages/notebookController/NotebookController.scss';
@@ -11,14 +11,18 @@ type ImageTagPopoverProps = {
 };
 
 const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) => {
+  const [isVisible, setIsVisible] = React.useState(false);
+
   const dependencies = tag?.content?.dependencies ?? [];
   if (!description && !dependencies.length) {
     return null;
   }
   return (
     <Popover
-      removeFindDomNode
       showClose
+      isVisible={isVisible}
+      shouldOpen={() => setIsVisible(true)}
+      shouldClose={() => setIsVisible(false)}
       bodyContent={
         <>
           <p className="odh-notebook-controller__notebook-image-popover-title">{description}</p>
@@ -35,9 +39,13 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
         </>
       }
     >
-      <Icon isInline aria-label="More info" role="button" tabIndex={0}>
-        <OutlinedQuestionCircleIcon />
-      </Icon>
+      <Button
+        aria-label="More info for notebook image"
+        className="odh-notebook-controller__notebook-image-popover-icon"
+        variant="plain"
+      >
+        <HelpIcon />
+      </Button>
     </Popover>
   );
 };

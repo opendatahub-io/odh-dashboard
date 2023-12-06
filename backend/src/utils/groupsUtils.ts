@@ -16,7 +16,7 @@ export class MissingGroupError extends Error {
 }
 
 export const getGroupsCR = (): GroupsConfigBody => {
-  if (typeof getDashboardConfig().spec.groupsConfig !== 'undefined') {
+  if (getDashboardConfig().spec.groupsConfig) {
     return getDashboardConfig().spec.groupsConfig;
   }
   throw new Error(`Failed to retrieve Dashboard CR groups configuration`);

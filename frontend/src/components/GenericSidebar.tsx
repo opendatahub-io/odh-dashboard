@@ -24,7 +24,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
   maxWidth,
 }) => (
   <Sidebar hasGutter>
-    <SidebarPanel variant="sticky" style={{ maxWidth, top: 'var(--pf-global--spacer--md)' }}>
+    <SidebarPanel variant="sticky" style={{ maxWidth, top: 'var(--pf-v5-global--spacer--md)' }}>
       <JumpLinks
         isVertical
         label="Jump to section"
@@ -38,7 +38,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
         ))}
       </JumpLinks>
     </SidebarPanel>
-    <SidebarContent style={{ paddingBottom: 'var(--pf-global--spacer--lg)' }}>
+    <SidebarContent style={{ paddingBottom: 'var(--pf-v5-global--spacer--lg)' }}>
       {children}
     </SidebarContent>
   </Sidebar>

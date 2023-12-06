@@ -1,8 +1,6 @@
 /*
  * Common types, should be kept up to date with backend types
  */
-
-import { ServingRuntimeSize } from '~/pages/modelServing/screens/types';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
@@ -35,64 +33,13 @@ export type PrometheusQueryRangeResponse = {
 export type PrometheusQueryRangeResultValue = [number, string];
 
 /**
+ * @deprecated - Use AcceleratorProfiles
  * In some YAML configs, we'll need to stringify a number -- this type just helps show it's not
  * "any string" as a documentation touch point. Has no baring on the type checking.
  */
 type NumberString = string;
+/** @deprecated - Use AcceleratorProfiles */
 export type GpuSettingString = 'autodetect' | 'hidden' | NumberString | undefined;
-
-export type OperatorStatus = {
-  /** Operator is installed and will be cloned to the namespace on creation */
-  available: boolean;
-  /** Has a detection gone underway or is the available a static default */
-  queriedForStatus: boolean;
-};
-
-export type DashboardConfig = K8sResourceCommon & {
-  spec: {
-    dashboardConfig: DashboardCommonConfig;
-    groupsConfig?: {
-      adminGroups: string;
-      allowedGroups: string;
-    };
-    notebookSizes?: NotebookSize[];
-    modelServerSizes?: ServingRuntimeSize[];
-    notebookController?: {
-      enabled: boolean;
-      pvcSize?: string;
-      notebookNamespace?: string;
-      gpuSetting?: GpuSettingString;
-      notebookTolerationSettings?: TolerationSettings;
-    };
-    templateOrder?: string[];
-    templateDisablement?: string[];
-  };
-  /** Faux status object -- computed by the service account */
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: OperatorStatus;
-    };
-  };
-};
-
-export type DashboardCommonConfig = {
-  enablement: boolean;
-  disableInfo: boolean;
-  disableSupport: boolean;
-  disableClusterManager: boolean;
-  disableTracking: boolean;
-  disableBYONImageStream: boolean;
-  disableISVBadges: boolean;
-  disableAppLauncher: boolean;
-  disableUserManagement: boolean;
-  disableProjects: boolean;
-  disableModelServing: boolean;
-  disableProjectSharing: boolean;
-  disableCustomServingRuntimes: boolean;
-  disableServiceMesh: boolean;
-  modelMetricsNamespace: string;
-  disablePipelines: boolean;
-};
 
 export type NotebookControllerUserState = {
   user: string;
@@ -153,9 +100,15 @@ export type NotebookTolerationFormSettings = TolerationSettings & {
 
 export type ClusterSettingsType = {
   userTrackingEnabled: boolean;
-  pvcSize: number | string;
+  pvcSize: number;
   cullerTimeout: number;
   notebookTolerationSettings: TolerationSettings | null;
+  modelServingPlatformEnabled: ModelServingPlatformEnabled;
+};
+
+export type ModelServingPlatformEnabled = {
+  kServe: boolean;
+  modelMesh: boolean;
 };
 
 /** @deprecated -- use SDK type */
@@ -290,7 +243,7 @@ type K8sMetadata = {
 /**
  * @deprecated -- use the SDK version -- see k8sTypes.ts
  * All references that use this are un-vetted data against existing types, should be converted over
- * to the new K8sResourceCommon from the SDK to keep everythung unified on one front.
+ * to the new K8sResourceCommon from the SDK to keep everything unified on one front.
  */
 export type K8sResourceCommon = {
   apiVersion?: string;
@@ -442,29 +395,17 @@ export type Route = {
 
 export type BYONImage = {
   id: string;
-  user?: string;
-  uploaded?: Date;
-  error?: string;
-} & BYONImageCreateRequest &
-  BYONImageUpdateRequest;
-
-export type BYONImageCreateRequest = {
+  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
+  provider: string;
+  imported_time: string;
+  error: string;
   name: string;
   url: string;
-  description?: string;
-  // FIXME: This shouldn't be a user defined value consumed from the request payload but should be a controlled value from an authentication middleware.
-  user: string;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
-};
-
-export type BYONImageUpdateRequest = {
-  id: string;
-  name?: string;
-  description?: string;
-  visible?: boolean;
-  software?: BYONImagePackage[];
-  packages?: BYONImagePackage[];
+  display_name: string;
+  description: string;
+  visible: boolean;
+  software: BYONImagePackage[];
+  packages: BYONImagePackage[];
 };
 
 export type BYONImagePackage = {
@@ -748,3 +689,8 @@ export type AcceleratorInfo = {
   total: { [key: string]: number };
   allocated: { [key: string]: number };
 };
+
+export enum ServingRuntimePlatform {
+  SINGLE = 'single',
+  MULTI = 'multi',
+}

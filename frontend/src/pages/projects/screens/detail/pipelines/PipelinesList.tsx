@@ -39,9 +39,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
   }
 
   if (pipelines.length === 0) {
-    return (
-      <EmptyDetailsList title="No pipelines" description="To get started, import a pipeline." />
-    );
+    return <EmptyDetailsList title="No pipelines" />;
   }
 
   return (
