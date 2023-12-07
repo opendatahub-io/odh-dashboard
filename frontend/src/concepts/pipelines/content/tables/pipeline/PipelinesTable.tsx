@@ -72,6 +72,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
             rowIndex={rowIndex}
             pipelineDetailsPath={pipelineDetailsPath}
             onDeletePipeline={() => setDeleteTarget(pipeline)}
+            refreshPipelines={refreshPipelines}
           />
         )}
         disableRowRenderSupport

@@ -22,6 +22,7 @@ import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
 type PipelineSelectorProps<DataType> = {
   name?: string;
+  toggleId?: string;
   columns: SortableData<DataType>[];
   data: DataType[];
   placeHolder: string;
@@ -29,9 +30,11 @@ type PipelineSelectorProps<DataType> = {
   onSelect: (id: string) => void;
   isLoading: boolean;
   isDisabled?: boolean;
+  maxWidth?: string | number;
 };
 
 const PipelineSelector = <T extends PipelineKF | PipelineVersionKF>({
+  toggleId,
   name,
   columns,
   data,
@@ -40,6 +43,7 @@ const PipelineSelector = <T extends PipelineKF | PipelineVersionKF>({
   isDisabled,
   placeHolder,
   searchHelperText,
+  maxWidth,
 }: PipelineSelectorProps<T>) => {
   const [isOpen, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -130,7 +134,8 @@ const PipelineSelector = <T extends PipelineKF | PipelineVersionKF>({
       toggleRef={toggleRef}
       toggle={
         <MenuToggle
-          style={{ maxWidth: '500px' }}
+          id={toggleId}
+          style={{ maxWidth }}
           ref={toggleRef}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}

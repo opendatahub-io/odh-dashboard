@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { FormSection } from '@patternfly/react-core';
+import { FormSection, Stack, StackItem } from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
@@ -8,6 +9,7 @@ import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
+import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 
 type PipelineSectionProps = {
   onLoaded: (loaded: boolean) => void;
@@ -29,20 +31,34 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onCh
       id={CreateRunPageSections.PIPELINE}
       title={runPageSectionTitles[CreateRunPageSections.PIPELINE]}
     >
-      <PipelineSelector
-        name={value?.name}
-        data={pipelines}
-        columns={pipelineSelectorColumns}
-        onSelect={(id) => {
-          const pipeline = pipelines.find((p) => p.id === id);
-          if (pipeline) {
-            onChange(pipeline);
-          }
-        }}
-        isLoading={!loaded}
-        placeHolder={pipelines.length === 0 ? 'No pipelines available' : 'Select a pipeline'}
-        searchHelperText={`Type a name to search your ${pipelines.length} pipelines.`}
-      />
+      <Stack hasGutter>
+        <StackItem>
+          <PipelineSelector
+            maxWidth="500px"
+            name={value?.name}
+            data={pipelines}
+            columns={pipelineSelectorColumns}
+            onSelect={(id) => {
+              const pipeline = pipelines.find((p) => p.id === id);
+              if (pipeline) {
+                onChange(pipeline);
+              }
+            }}
+            isLoading={!loaded}
+            placeHolder={pipelines.length === 0 ? 'No pipelines available' : 'Select a pipeline'}
+            searchHelperText={`Type a name to search your ${pipelines.length} pipelines.`}
+          />
+        </StackItem>
+        <StackItem>
+          <ImportPipelineButton
+            variant="link"
+            icon={<PlusCircleIcon />}
+            onCreate={(pipeline) => onChange(pipeline)}
+          >
+            Create new pipeline
+          </ImportPipelineButton>
+        </StackItem>
+      </Stack>
     </FormSection>
   );
 };
