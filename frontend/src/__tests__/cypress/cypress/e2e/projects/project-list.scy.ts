@@ -30,11 +30,11 @@ describe('Data Science Projects', { testIsolation: false }, () => {
 
   it('should open a modal to create a project', () => {
     projectListPage.findCreateProjectButton().click();
-    createProjectModal.find().should('exist');
+    createProjectModal.shouldBeOpen();
     createProjectModal.findCancelButton().click();
-    createProjectModal.find().should('not.exist');
+    createProjectModal.shouldBeOpen(false);
     projectListPage.findCreateProjectButton().click();
-    createProjectModal.find().should('exist');
+    createProjectModal.shouldBeOpen();
     createProjectModal.findSubmitButton().should('be.disabled');
   });
 
@@ -88,19 +88,18 @@ describe('Data Science Projects', { testIsolation: false }, () => {
     cy.waitSnapshot('@projects-1');
     projectListPage.shouldHaveProjects();
     projectListPage.findProjectRow('My Test Project').should('exist');
+
+    cy.testA11y();
   });
 
   it('should delete project', () => {
     projectListPage.findProjectRow('My Test Project').findKebabAction('Delete project').click();
 
-    deleteModal.find().should('exist');
-
+    deleteModal.shouldBeOpen();
     deleteModal.findSubmitButton().should('be.disabled');
     deleteModal.findCancelButton().should('be.enabled').click();
 
     projectListPage.findProjectRow('My Test Project').findKebabAction('Delete project').click();
-
-    deleteModal.find().should('exist');
 
     deleteModal.findInput().type('My Test Project');
 

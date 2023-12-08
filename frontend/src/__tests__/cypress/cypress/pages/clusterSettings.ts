@@ -12,7 +12,8 @@ class ClusterSettings {
   }
 
   private wait() {
-    cy.get('[data-id="submit-cluster-settings"]', { timeout: 10000 });
+    this.findSubmitButton();
+    cy.testA11y();
   }
 
   findSubmitButton() {

@@ -36,7 +36,8 @@ class ServingRuntimes {
   }
 
   private wait() {
-    cy.findByRole('button', { name: 'Add serving runtime', timeout: 10000 });
+    this.findAddButton();
+    cy.testA11y();
   }
 
   shouldBeMultiModel(enabled = true) {

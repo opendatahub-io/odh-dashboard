@@ -203,7 +203,8 @@ describe('Serving Runtime List', () => {
 
     modelServingSection.getModelMeshRow('ovms').findDeployModelButton().click();
 
-    // TODO this is duplicate code that can be simplied into a single form filling function
+    inferenceServiceModal.shouldBeOpen();
+
     // test that you can not submit on empty
     inferenceServiceModal.findSubmitButton().should('be.disabled');
 
@@ -236,6 +237,8 @@ describe('Serving Runtime List', () => {
     projectDetails.visit('test-project');
 
     modelServingSection.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
 
     // test that you can not submit on empty
     kserveModal.findSubmitButton().should('be.disabled');
@@ -309,7 +312,6 @@ describe('Serving Runtime List', () => {
       .getModelMeshRow('OVMS Model Serving')
       .shouldHaveServingRuntime('OpenVINO Serving Runtime (Supports GPUs)');
 
-    // TODO not ideal
     modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.collapsed);
     modelServingSection.getModelMeshRow('ovms').findExpandButton().click();
     modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.expanded);
@@ -356,6 +358,8 @@ describe('Serving Runtime List', () => {
     projectDetails.visit('test-project');
 
     modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
 
     // test that you can not submit on empty
     createServingRuntimeModal.findSubmitButton().should('be.disabled');
@@ -411,6 +415,8 @@ describe('Serving Runtime List', () => {
 
     // click on the toggle button and open edit model server
     modelServingSection.getModelMeshRow('ovms').find().findKebabAction('Edit model server').click();
+
+    editServingRuntimeModal.shouldBeOpen();
 
     // test name field
     editServingRuntimeModal.findSubmitButton().should('be.disabled');
