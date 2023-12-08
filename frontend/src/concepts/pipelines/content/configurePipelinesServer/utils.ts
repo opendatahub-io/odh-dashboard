@@ -45,7 +45,7 @@ const createDatabaseSecret = (
       EXTERNAL_DATABASE_SECRET.NAME,
     );
 
-    return createSecret(assembledSecret, { dryRun: dryRun }).then((secret) => ({
+    return createSecret(assembledSecret, { dryRun }).then((secret) => ({
       key: secretKey,
       name: secret.metadata.name,
     }));
@@ -67,7 +67,7 @@ const createObjectStorageSecret = (
     'generic',
   );
 
-  return createSecret(assembledSecret, { dryRun: dryRun }).then((secret) => ({
+  return createSecret(assembledSecret, { dryRun }).then((secret) => ({
     secretName: secret.metadata.name,
   }));
 };
