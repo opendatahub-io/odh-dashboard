@@ -10,7 +10,7 @@ import {
 import { pipelineComponentFactory } from '~/concepts/topology/factories';
 import { PIPELINE_LAYOUT, PIPELINE_NODE_SEPARATION_VERTICAL } from './const';
 
-const useTopologyController = (graphId: string) => {
+const useTopologyController = (graphId: string): Visualization | null => {
   const [controller, setController] = React.useState<Visualization | null>(null);
 
   React.useEffect(() => {

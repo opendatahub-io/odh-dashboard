@@ -23,7 +23,7 @@ const getRunTypeRetries = () => {
   return configuredRetries;
 };
 
-export const failEarly = () => {
+export const failEarly = (): void => {
   const failedTest: Record<string, string | undefined> = {};
   beforeEach(function () {
     const specName = Cypress.spec.name;

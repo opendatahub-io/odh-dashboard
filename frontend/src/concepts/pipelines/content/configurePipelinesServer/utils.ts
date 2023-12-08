@@ -147,7 +147,7 @@ export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boo
       : true,
   );
 
-export const getLabelName = (index: string) => {
+export const getLabelName = (index: string): string => {
   const field = PIPELINE_AWS_FIELDS.find((field) => field.key === index);
   return field ? field.label : '';
 };

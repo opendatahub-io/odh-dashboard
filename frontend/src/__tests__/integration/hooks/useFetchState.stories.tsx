@@ -18,7 +18,10 @@ export const Success = {
   render: Template,
   args: {
     hook: useFetchState,
-    defaultHookParams: [() => Promise.resolve('success-test-state'), 'default-test-state'],
+    defaultHookParams: [
+      (): Promise<string> => Promise.resolve('success-test-state'),
+      'default-test-state',
+    ],
   },
 };
 
@@ -26,7 +29,10 @@ export const Failure = {
   render: Template,
   args: {
     hook: useFetchState,
-    defaultHookParams: [() => Promise.reject('error-test-state'), 'default-test-state'],
+    defaultHookParams: [
+      (): Promise<string> => Promise.reject('error-test-state'),
+      'default-test-state',
+    ],
   },
 };
 
@@ -34,12 +40,20 @@ export const Stable = {
   render: Template,
   args: {
     hook: useFetchState,
-    defaultHookParams: [() => Promise.resolve([1, 2, 3]), []],
+    defaultHookParams: [(): Promise<number[]> => Promise.resolve([1, 2, 3]), []],
     hookParams: [
-      [() => Promise.resolve([1, 2, 4]), []],
-      [() => Promise.resolve([1, 2, 4]), []],
-      [() => Promise.resolve({ a: 1, b: { c: 2 } }), {}],
-      [() => Promise.reject('error-test-state'), {}],
+      [(): Promise<number[]> => Promise.resolve([1, 2, 4]), []],
+      [(): Promise<number[]> => Promise.resolve([1, 2, 4]), []],
+      [
+        (): Promise<{
+          a: number;
+          b: {
+            c: number;
+          };
+        }> => Promise.resolve({ a: 1, b: { c: 2 } }),
+        {},
+      ],
+      [(): Promise<string> => Promise.reject('error-test-state'), {}],
     ],
   },
 };
@@ -48,7 +62,7 @@ export const RefreshRate = {
   render: Template,
   args: {
     hook: useFetchState,
-    defaultHookParams: [() => Promise.resolve([1, 2, 3]), [], 1000],
-    hookParams: [[() => Promise.resolve([1, 2, 4]), [], 1000]],
+    defaultHookParams: [(): Promise<number[]> => Promise.resolve([1, 2, 3]), [], 1000],
+    hookParams: [[(): Promise<number[]> => Promise.resolve([1, 2, 4]), [], 1000]],
   },
 };

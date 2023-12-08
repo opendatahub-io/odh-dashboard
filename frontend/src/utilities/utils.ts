@@ -158,4 +158,4 @@ export const normalizeBetween = (value: number, min?: number, max?: number): num
 export const getAcceleratorGpuCount = (
   accelerator: AcceleratorKind,
   resources: ContainerResources,
-) => Number(resources.requests?.[accelerator.spec.identifier] ?? 0);
+): number => Number(resources.requests?.[accelerator.spec.identifier] ?? 0);

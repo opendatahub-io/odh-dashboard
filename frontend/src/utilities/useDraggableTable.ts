@@ -2,7 +2,26 @@ import * as React from 'react';
 import { TbodyProps, TrProps } from '@patternfly/react-table';
 import styles from '@patternfly/react-styles/css/components/Table/table';
 
-const useDraggableTable = (itemOrder: string[], setItemOrder: (itemOrder: string[]) => void) => {
+type UseDraggableTable = {
+  tableProps: {
+    className: string | undefined;
+    tbodyProps: {
+      onDragOver: React.DragEventHandler<HTMLTableSectionElement>;
+      onDragLeave: React.DragEventHandler<HTMLTableSectionElement>;
+      ref: React.RefObject<HTMLTableSectionElement>;
+    };
+  };
+  rowProps: {
+    onDragStart: React.DragEventHandler<HTMLTableRowElement>;
+    onDragEnd: React.DragEventHandler<HTMLTableRowElement>;
+    onDrop: React.DragEventHandler<HTMLTableRowElement>;
+  };
+};
+
+const useDraggableTable = (
+  itemOrder: string[],
+  setItemOrder: (itemOrder: string[]) => void,
+): UseDraggableTable => {
   const [draggedItemId, setDraggedItemId] = React.useState('');
   const [draggingToItemIndex, setDraggingToItemIndex] = React.useState(-1);
   const [isDragging, setIsDragging] = React.useState(false);

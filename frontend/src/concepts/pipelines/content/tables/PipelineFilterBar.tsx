@@ -32,7 +32,7 @@ const PipelineFilterBar = <Options extends Record<string, string>>({
   onFilterUpdate,
   onClearFilters,
   children,
-}: PipelineFilterBarProps<Options>) => {
+}: PipelineFilterBarProps<Options>): React.JSX.Element => {
   const [open, setOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<keyof Options>(
     Object.keys(filterOptions)[0],

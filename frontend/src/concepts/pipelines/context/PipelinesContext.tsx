@@ -188,7 +188,7 @@ export const DeleteServerModal = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-}) => {
+}): React.JSX.Element => {
   const { refreshState } = React.useContext(PipelinesContext);
   return (
     <DeletePipelineServerModal
@@ -204,7 +204,13 @@ export const DeleteServerModal = ({
   );
 };
 
-export const ViewServerModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+export const ViewServerModal = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}): React.JSX.Element => {
   const { namespace } = React.useContext(PipelinesContext);
   const [pipelineNamespaceCR] = usePipelineNamespaceCR(namespace);
 

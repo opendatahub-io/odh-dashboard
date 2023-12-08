@@ -37,6 +37,11 @@ import {
 import { AcceleratorState } from '~/utilities/useAcceleratorState';
 import { getAcceleratorGpuCount } from '~/utilities/utils';
 
+type TokenNames = {
+  serviceAccountName: string;
+  roleBindingName: string;
+};
+
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;
 
@@ -130,7 +135,7 @@ export const createSecrets = async (
     .catch((error) => Promise.reject(error));
 };
 
-export const getTokenNames = (servingRuntimeName: string, namespace: string) => {
+export const getTokenNames = (servingRuntimeName: string, namespace: string): TokenNames => {
   const name =
     servingRuntimeName !== '' ? servingRuntimeName : getModelServingRuntimeName(namespace);
 
@@ -199,7 +204,7 @@ export const isModelServerEditInfoChanged = (
   sizes: ServingRuntimeSize[],
   acceleratorState: AcceleratorState,
   editInfo?: ServingRuntimeEditInfo,
-) =>
+): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
       editInfo.servingRuntime.spec.replicas !== createData.numReplicas ||
@@ -223,5 +228,5 @@ export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus
     (condition) => condition.type === 'model-meshReady' && condition.status === 'False',
   )?.message || '';
 
-export const isModelMesh = (inferenceService: InferenceServiceKind) =>
+export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';

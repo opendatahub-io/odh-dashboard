@@ -3,7 +3,7 @@ import { ByRoleOptions } from '@testing-library/react';
 export class Modal {
   constructor(private title: ByRoleOptions['name']) {}
 
-  shouldBeOpen(open = true) {
+  shouldBeOpen(open = true): void {
     if (open) {
       this.find().testA11y();
     } else {
@@ -11,19 +11,19 @@ export class Modal {
     }
   }
 
-  find() {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('dialog', { name: this.title });
   }
 
-  findCloseButton() {
+  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: 'Close' });
   }
 
-  findCancelButton() {
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findFooter().findByRole('button', { name: 'Cancel' });
   }
 
-  findFooter() {
+  findFooter(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('footer');
   }
 }

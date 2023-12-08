@@ -100,7 +100,7 @@ export const pipelineRunJobColumns: SortableData<PipelineRunJobKF>[] = [
   {
     label: 'Trigger',
     field: 'trigger',
-    sortable: (a, b) => {
+    sortable: (a: PipelineRunJobKF, b: PipelineRunJobKF): number => {
       if (a.trigger.periodic_schedule && b.trigger.periodic_schedule) {
         return (
           parseInt(a.trigger.periodic_schedule.interval_second) -

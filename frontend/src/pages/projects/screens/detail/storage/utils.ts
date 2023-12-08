@@ -1,4 +1,5 @@
-export const getFullStatusFromPercentage = (percentageFull: number) => {
+type Status = 'error' | 'warning' | 'info' | null;
+export const getFullStatusFromPercentage = (percentageFull: number): Status => {
   if (percentageFull === 100) {
     return 'error';
   } else if (percentageFull >= 95) {

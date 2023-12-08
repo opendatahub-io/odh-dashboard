@@ -35,7 +35,7 @@ export const ObjectStorageSection = ({
   config,
   loaded,
   dataConnections,
-}: ObjectStorageSectionProps) => {
+}: ObjectStorageSectionProps): React.JSX.Element => {
   const onChange = (key: FieldOptions['key'], value: string) => {
     setConfig({
       ...config,

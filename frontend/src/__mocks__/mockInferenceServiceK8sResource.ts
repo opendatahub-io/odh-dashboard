@@ -13,7 +13,26 @@ type MockResourceConfigType = {
   url?: string;
 };
 
-export const mockInferenceServicek8sError = () => ({
+type InferenceServicek8sError = {
+  kind: string;
+  apiVersion: string;
+  metadata: Record<string, unknown>;
+  status: string;
+  message: string;
+  reason: string;
+  details: {
+    name: string;
+    group: string;
+    kind: string;
+    causes: {
+      reason: string;
+      message: string;
+      field: string;
+    }[];
+  };
+};
+
+export const mockInferenceServicek8sError = (): InferenceServicek8sError => ({
   kind: 'Status',
   apiVersion: 'v1',
   metadata: {},

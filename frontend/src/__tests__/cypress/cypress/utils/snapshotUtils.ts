@@ -1,6 +1,7 @@
 import {
   CyHttpMessages,
   HttpResponseInterceptor,
+  Interception,
   RouteMatcher,
   StaticResponse,
   WaitOptions,
@@ -13,10 +14,10 @@ const COMMON_SNAP = 'common.snap.json';
 
 const COMMON_PREFIX = 'common:';
 
-export const commonAlias = (alias: string) =>
+export const commonAlias = (alias: string): string | undefined =>
   alias.match(new RegExp(`^@?${COMMON_PREFIX}(.+)$`))?.[1];
 
-export const interceptSnapshotFile = (specPath: string, alias?: string) => {
+export const interceptSnapshotFile = (specPath: string, alias?: string): string => {
   if (alias && commonAlias(alias)) {
     return `cypress/e2e/${INTERCEPT_SNAPSHOT_DIR}/${COMMON_SNAP}`;
   }
@@ -31,16 +32,22 @@ export const interceptSnapshotFile = (specPath: string, alias?: string) => {
 export const snapshotName = (
   titlePath: Cypress.Cypress['currentTest']['titlePath'],
   alias: string,
-) => commonAlias(alias) || `${titlePath.join(' > ')} > ${alias.replace(/^@/, '')}`;
+): string => commonAlias(alias) || `${titlePath.join(' > ')} > ${alias.replace(/^@/, '')}`;
 
-export const serializeSnapshot = (res: CyHttpMessages.IncomingResponse) =>
+export const serializeSnapshot = (res: CyHttpMessages.IncomingResponse): string =>
   JSON.stringify({
     statusCode: res.statusCode,
     headers: res.headers,
     body: res.body,
   });
 
-export const updateJSONFileKey = (path: string, key: string, value?: unknown) =>
+export const updateJSONFileKey = (
+  path: string,
+  key: string,
+  value?: unknown,
+): Cypress.Chainable<{
+  [key: string]: unknown;
+}> =>
   readJSON(path).then((data) => {
     if (typeof value === 'undefined') {
       delete data[key];
@@ -50,10 +57,16 @@ export const updateJSONFileKey = (path: string, key: string, value?: unknown) =>
     cy.writeFile(path, JSON.stringify(data));
   });
 
-export const readJSON = (path: string) =>
-  cy.task('readJSON', path) as Cypress.Chainable<{ [key: string]: unknown }>;
+export const readJSON = (
+  path: string,
+): Cypress.Chainable<{
+  [key: string]: unknown;
+}> => cy.task('readJSON', path) as Cypress.Chainable<{ [key: string]: unknown }>;
 
-export const waitSnapshot = (alias: string, options?: Partial<WaitOptions>) => {
+export const waitSnapshot = (
+  alias: string,
+  options?: Partial<WaitOptions>,
+): Cypress.Chainable<Interception> => {
   if (Cypress.env('MOCK') || !Cypress.env('RECORD')) {
     return cy.wait(alias, options);
   }
