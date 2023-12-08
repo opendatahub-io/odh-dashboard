@@ -4,7 +4,7 @@ import { Button, Timestamp, Tooltip } from '@patternfly/react-core';
 import { BanIcon } from '@patternfly/react-icons';
 import { ActionsColumn } from '@patternfly/react-table';
 
-type Props = React.ComponentProps<typeof ActionsColumn> & {
+type Props = Omit<React.ComponentProps<typeof ActionsColumn>, 'resource'> & {
   resource: K8sResourceCommon;
 };
 

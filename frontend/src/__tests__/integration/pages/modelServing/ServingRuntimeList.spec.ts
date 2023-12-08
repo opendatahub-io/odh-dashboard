@@ -171,18 +171,17 @@ test('KServe Model list', async ({ page }) => {
   await page.waitForSelector('text=Deploy model');
 
   // Check that we get the correct model name
-  expect(page.getByText('Test Inference Service')).toBeTruthy();
+  await expect(page.getByText('Test Inference Service')).toBeAttached();
 
   // Check that the serving runtime displays the correct Serving Runtime
-  expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)')).toBeTruthy();
+  await expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)').first()).toBeAttached();
 
   // Check for resource marked for deletion
-  expect(page.getByText('Another Inference Service')).toBeTruthy();
-  const actionButton = page
-    .getByRole('row')
-    .first()
-    .getByRole('button', { name: 'This resource is marked for deletion.' });
-  expect(actionButton).toBeTruthy();
+  await expect(page.getByText('Another Inference Service')).toBeAttached();
+
+  await expect(
+    page.getByRole('button', { name: 'This resource is marked for deletion.' }),
+  ).toBeAttached();
 });
 
 test('Add ModelMesh model server', async ({ page }) => {
