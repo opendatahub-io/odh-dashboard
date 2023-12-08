@@ -1,6 +1,6 @@
 import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { EdgeContext } from '~/concepts/edge/EdgeContext';
+import { EdgeContext } from '~/concepts/edge/content/EdgeContext';
 import EmptyEdgeModels from './EmptyEdgeModels';
 
 const EdgeModels: React.FC = () => {

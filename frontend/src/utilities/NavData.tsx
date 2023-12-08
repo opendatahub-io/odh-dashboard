@@ -95,7 +95,10 @@ const useEdgeMVPNav = (): NavDataItem[] =>
     {
       id: 'edgemvp',
       group: { id: 'edge', title: 'Edge MVP' },
-      children: [{ id: 'edge-model-registry', label: 'Models', href: '/edge/models' }],
+      children: [
+        { id: 'edge-model-registry', label: 'Models', href: '/edgeModels' },
+        { id: 'edge-pipelines', label: 'ML Ops Pipelines', href: '/edgePipelines' },
+      ],
     },
   ]);
 

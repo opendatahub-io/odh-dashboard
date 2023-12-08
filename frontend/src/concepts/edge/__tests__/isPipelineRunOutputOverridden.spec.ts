@@ -10,10 +10,12 @@ describe('isPipelineRunOutputOverridden', () => {
         name: 'run1',
         containerImageUrl: 'image1',
       }),
-      status: 'Succeeded',
+      modelName: 'test-model',
+      version: '1',
     };
     const versions: EdgeModelVersion = {
       version: '1',
+      modelName: 'test-model',
       latestSuccessfulImageUrl: 'image1',
       runs: [run],
     };
@@ -30,7 +32,8 @@ describe('isPipelineRunOutputOverridden', () => {
         name: 'runA',
         containerImageUrl: 'image1',
       }),
-      status: 'Succeeded',
+      modelName: 'test-model',
+      version: '1',
     };
     const runB = {
       run: mockEdgePipelineRun({
@@ -38,10 +41,12 @@ describe('isPipelineRunOutputOverridden', () => {
         name: 'runB',
         containerImageUrl: 'image1',
       }),
-      status: 'Succeeded',
+      modelName: 'test-model',
+      version: '1',
     };
     const versions: EdgeModelVersion = {
       version: '1',
+      modelName: 'test-model',
       latestSuccessfulImageUrl: 'image1',
       runs: [runA, runB],
     };
