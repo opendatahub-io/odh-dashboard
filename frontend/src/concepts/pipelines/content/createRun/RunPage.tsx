@@ -21,7 +21,11 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath }) => {
   const { namespace } = usePipelinesAPI();
   const location = useLocation();
 
-  const [formData, setFormDataValue] = useRunFormData(cloneRun, location.state?.lastPipeline);
+  const [formData, setFormDataValue] = useRunFormData(
+    cloneRun,
+    location.state?.lastPipeline,
+    location.state?.lastVersion,
+  );
 
   return (
     <>

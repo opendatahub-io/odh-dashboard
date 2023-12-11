@@ -1,7 +1,30 @@
+/* eslint-disable camelcase */
 import { PipelineVersionKF, RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 
-/* eslint-disable camelcase */
-export const mockPipelineVersionsProxy: PipelineVersionKF[] = [
+export const buildMockPipelineVersion = (
+  pipelineVersion?: Partial<PipelineVersionKF>,
+): PipelineVersionKF => ({
+  id: '8ce2d041-3eb9-41a0-828c-45209fdf1c20',
+  name: 'version-1',
+  created_at: '2023-12-07T16:08:01Z',
+  resource_references: [
+    {
+      key: { type: 'PIPELINE' as ResourceTypeKF, id: 'b2ff4cbf-f7f5-4c8a-b454-906bd9b00510' },
+      relationship: 'OWNER' as RelationshipKF,
+    },
+  ],
+  description: 'test',
+  ...pipelineVersion,
+});
+
+export const buildMockPipelineVersions = (
+  versions: PipelineVersionKF[] = mockPipelineVersionsList,
+) => ({
+  versions,
+  total_size: versions.length,
+});
+
+export const mockPipelineVersionsList: PipelineVersionKF[] = [
   {
     id: 'ad1b7153-d2fd-4e5e-ae12-30c824b19b03',
     name: 'flip coin_version_at_2023-12-01T01:42:09.321Z',

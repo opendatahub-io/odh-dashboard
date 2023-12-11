@@ -3,7 +3,7 @@ import {
   ListPipelineRunsResourceKF,
   ListPipelineRunJobsResourceKF,
   ListPipelinesResponseKF,
-  ListPipelineTemplateResourceKF,
+  ListPipelineVersionTemplateResourceKF,
   PipelineKF,
   PipelineRunResourceKF,
   ListExperimentsResponseKF,
@@ -94,10 +94,10 @@ export type ListPipelineRunsByPipeline = (
   pipelineId: string,
   limit?: number,
 ) => Promise<ListPipelineRunsResourceKF>;
-export type ListPipelineTemplates = (
+export type ListPipelineVersionTemplates = (
   opts: K8sAPIOptions,
-  pipelineId: string,
-) => Promise<ListPipelineTemplateResourceKF>;
+  pipelineVersionId: string,
+) => Promise<ListPipelineVersionTemplateResourceKF>;
 export type ListPipelineVersionsByPipeline = (
   opts: K8sAPIOptions,
   pipelineId: string,
@@ -141,7 +141,7 @@ export type PipelineAPIs = {
   listPipelineRuns: ListPipelineRuns;
   listPipelineRunJobs: ListPipelineRunJobs;
   listPipelineRunsByPipeline: ListPipelineRunsByPipeline;
-  listPipelineTemplate: ListPipelineTemplates;
+  listPipelineVersionTemplates: ListPipelineVersionTemplates;
   listPipelineVersionsByPipeline: ListPipelineVersionsByPipeline;
   stopPipelineRun: StopPipelineRun;
   updatePipelineRunJob: UpdatePipelineRunJob;

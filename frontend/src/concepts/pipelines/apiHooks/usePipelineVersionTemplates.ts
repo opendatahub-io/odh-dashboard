@@ -4,16 +4,16 @@ import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utili
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunKind } from '~/k8sTypes';
 
-const usePipelineTemplate = (pipelineId?: string) => {
+const usePipelineVersionTemplates = (pipelineVersionId?: string) => {
   const { api } = usePipelinesAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<PipelineRunKind | null>>(
     (opts) => {
-      if (!pipelineId) {
-        return Promise.reject(new NotReadyError('No pipeline id'));
+      if (!pipelineVersionId) {
+        return Promise.reject(new NotReadyError('No pipeline version id'));
       }
 
-      return api.listPipelineTemplate(opts, pipelineId).then(({ template }) => {
+      return api.listPipelineVersionTemplates(opts, pipelineVersionId).then(({ template }) => {
         let pipelineRun: PipelineRunKind;
         try {
           pipelineRun = YAML.parse(template);
@@ -26,10 +26,10 @@ const usePipelineTemplate = (pipelineId?: string) => {
         return pipelineRun;
       });
     },
-    [api, pipelineId],
+    [api, pipelineVersionId],
   );
 
   return useFetchState(call, null);
 };
 
-export default usePipelineTemplate;
+export default usePipelineVersionTemplates;

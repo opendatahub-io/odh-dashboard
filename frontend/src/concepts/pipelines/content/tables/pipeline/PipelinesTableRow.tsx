@@ -57,7 +57,13 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           />
           <Td dataLabel="Name">
             <TableRowTitleDescription
-              title={<Link to={pipelineDetailsPath(namespace, pipeline.id)}>{pipeline.name}</Link>}
+              title={
+                <Link
+                  to={pipelineDetailsPath(namespace, pipeline.default_version?.id || pipeline.id)}
+                >
+                  {pipeline.name}
+                </Link>
+              }
               description={pipeline.description}
               descriptionAsMarkdown
             />

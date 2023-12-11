@@ -184,8 +184,14 @@ export default {
   component: ProjectDetails,
   parameters: {
     reactRouter: {
-      routePath: '/projects/:namespace/*',
-      routeParams: { namespace: 'test-project' },
+      location: {
+        pathParams: { namespace: 'test-project' },
+      },
+      routing: [
+        {
+          path: '/projects/:namespace/*',
+        },
+      ],
     },
     msw: {
       handlers: handlers(false),

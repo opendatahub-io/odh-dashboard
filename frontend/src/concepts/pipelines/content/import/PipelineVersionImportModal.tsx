@@ -69,6 +69,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
                 setError(e);
               });
           }}
+          data-testid="upload-version-submit-button"
         >
           Upload
         </Button>,
@@ -77,6 +78,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
         </Button>,
       ]}
       variant="medium"
+      data-testid="upload-version-modal"
     >
       <Form>
         <Stack hasGutter>

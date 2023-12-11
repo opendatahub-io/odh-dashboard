@@ -35,6 +35,7 @@ const PipelineFileUpload: React.FC<PipelineFileUploadProps> = ({ fileContents, o
       isRequired
       allowEditingUploadedText={false}
       browseButtonText="Upload"
+      data-testid="pipeline-file-upload"
     />
   );
 };

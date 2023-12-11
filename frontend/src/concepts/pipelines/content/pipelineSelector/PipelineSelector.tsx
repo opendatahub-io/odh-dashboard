@@ -31,6 +31,7 @@ type PipelineSelectorProps<DataType> = {
   isLoading: boolean;
   isDisabled?: boolean;
   maxWidth?: string | number;
+  minWidth?: string | number;
 };
 
 const PipelineSelector = <T extends PipelineKF | PipelineVersionKF>({
@@ -44,6 +45,7 @@ const PipelineSelector = <T extends PipelineKF | PipelineVersionKF>({
   placeHolder,
   searchHelperText,
   maxWidth,
+  minWidth = '300px',
 }: PipelineSelectorProps<T>) => {
   const [isOpen, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -135,12 +137,13 @@ const PipelineSelector = <T extends PipelineKF | PipelineVersionKF>({
       toggle={
         <MenuToggle
           id={toggleId}
-          style={{ maxWidth }}
+          style={{ maxWidth, minWidth }}
           ref={toggleRef}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
           isDisabled={isDisabled || data.length === 0}
           isFullWidth
+          data-testid="pipeline-version-toggle-button"
         >
           {name || placeHolder}
         </MenuToggle>

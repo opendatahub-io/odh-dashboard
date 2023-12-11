@@ -198,6 +198,8 @@ test('Edit form fields match', async ({ page }) => {
     navigateToStory('pages-notebookimagesettings-notebookimagesettings', 'edit-modal'),
   );
 
+  await page.waitForSelector('[data-testid="notebook-image-modal"]');
+
   // test inputs have correct values
   expect(await page.getByTestId('byon-image-location-input').inputValue()).toBe(
     'test-image:latest',
