@@ -649,9 +649,14 @@ export type PipelineRunTask = {
   runAfter?: string[];
 };
 
+export type PipelineRef = {
+  name: string;
+};
+
 export type PipelineRunPipelineSpec = {
   tasks: PipelineRunTask[];
   results?: PipelineResult[];
+  pipelineRef?: PipelineRef;
 };
 
 export type SkippedTask = {
@@ -722,9 +727,16 @@ export type PipelineRunKind = K8sResourceCommon & {
     /** Keyed on a generated key for the task run */
     taskRuns?: Record<string, PipelineRunTaskRunStatus>;
     pipelineSpec: PipelineRunPipelineSpec;
+    pipelineResults?: PipelineResult[];
     skippedTasks?: SkippedTask[];
     /** References Tekton tasks -- unlikely we will need this */
     childReferences: unknown[];
+  };
+};
+
+export type PipelineKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
   };
 };
 

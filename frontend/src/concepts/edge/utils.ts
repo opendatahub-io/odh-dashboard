@@ -1,17 +1,24 @@
-import { PipelineRunKind, PipelineRunTaskParam, PipelineWorkspaceDeclaration } from '~/k8sTypes';
+import {
+  PipelineKind,
+  PipelineRunKind,
+  PipelineRunTaskParam,
+  PipelineWorkspaceDeclaration,
+} from '~/k8sTypes';
 import {
   EdgeModel,
   EdgeModelLocationType,
   EdgeModelParams,
+  EdgeModelPipelineKnownWorkspaces,
   EdgeModelRun,
   EdgeModelVersion,
 } from './types';
-import { EdgeModelPipelineKnownResults, EdgeModelPipelineS3SecretWorkspace } from './types';
+import { EdgeModelPipelineKnownResults, EdgeModelPipelineSecretWorkspace } from './types';
 
-export const isS3SecretWorkspace = (
+export const isSecretWorkspace = (
   workspace: PipelineWorkspaceDeclaration,
-): workspace is EdgeModelPipelineS3SecretWorkspace =>
-  workspace.name === 's3-secret' &&
+): workspace is EdgeModelPipelineSecretWorkspace =>
+  (workspace.name === EdgeModelPipelineKnownWorkspaces.S3_SECRET ||
+    workspace.name === EdgeModelPipelineKnownWorkspaces.GIT_BASIC_AUTH) &&
   typeof workspace.secret === 'object' &&
   workspace.secret !== null &&
   'secretName' in workspace.secret &&
@@ -24,34 +31,29 @@ const mapParamsToEdgeModelParams = (runParams: PipelineRunTaskParam[]): EdgeMode
     modelName: paramMap.get('model-name') || '',
     modelVersion: paramMap.get('model-version') || '',
     s3BucketName: paramMap.get('s3-bucket-name'),
-    gitServer: paramMap.get('gitServer'),
-    gitOrgName: paramMap.get('gitOrgName'),
-    gitRepoName: paramMap.get('gitRepoName'),
-    containerfileRelativePath: paramMap.get('containerfileRelativePath'),
+    containerFileRelativePath: paramMap.get('containerfileRelativePath'),
     modelRelativePath: paramMap.get('modelRelativePath'),
     fetchModel: paramMap.get('fetch-model') as EdgeModelLocationType,
     gitModelRepo: paramMap.get('git-model-repo'),
     gitRevision: paramMap.get('git-revision'),
-    testEndpoint: paramMap.get('test-endpoint'),
-    targetNamespace: paramMap.get('target-namespace'),
-    targetImagerepo: paramMap.get('target-imagerepo'),
+    targetImageRepo: paramMap.get('target-imagerepo'),
   };
 };
 
 export const getEdgeModelRunContainerImage = (run: PipelineRunKind) =>
-  run.spec.pipelineSpec?.results?.find(
+  run.status?.pipelineResults?.find(
     (result) => result.name === EdgeModelPipelineKnownResults.TARGET_REGISTRY_URL,
   )?.value;
 
 export const isPipelineRunOutputOverridden = (
-  versions: EdgeModelVersion,
+  version: EdgeModelVersion,
   selectedRun: EdgeModelRun,
 ) => {
-  if (versions.runs.length <= 1) {
+  if (version.runs.length <= 1) {
     return false;
   }
 
-  const sortedRuns = versions.runs.sort((a, b) => {
+  const sortedRuns = version.runs.sort((a, b) => {
     const aDate = a.run.metadata.creationTimestamp || '';
     const bDate = b.run.metadata.creationTimestamp || '';
     return new Date(bDate).getTime() - new Date(aDate).getTime();
@@ -75,33 +77,45 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
     const modelParams = mapParamsToEdgeModelParams(run.spec.params);
     const modelName = modelParams.modelName;
     const modelVersion = modelParams.modelVersion;
-    const status = run.status?.conditions?.[0]?.reason ?? 'unknown';
-
+    const status = run.status?.conditions?.[0];
     const s3SecretWorkspace = run.spec.workspaces.find((secret) => secret.name === 's3-secret');
+    const s3SecretName =
+      s3SecretWorkspace && isSecretWorkspace(s3SecretWorkspace)
+        ? s3SecretWorkspace.secret.secretName
+        : undefined;
+
+    const gitBasicAuthSecretWorkspace = run.spec.workspaces.find(
+      (secret) => secret.name === 'git-basic-auth',
+    );
+    const gitBasicAuthSecretName =
+      gitBasicAuthSecretWorkspace && isSecretWorkspace(gitBasicAuthSecretWorkspace)
+        ? gitBasicAuthSecretWorkspace.secret.secretName
+        : undefined;
 
     const edgeModelRun: EdgeModelRun = {
       run,
       status,
+      version: modelVersion,
       containerImageUrl: getEdgeModelRunContainerImage(run),
+      modelName,
     };
 
     s3SecretWorkspace;
     if (!models[modelName]) {
       models[modelName] = {
         params: modelParams,
-        // containerImageSecretName: run.spec.workspaces,
-        s3SecretName:
-          s3SecretWorkspace && isS3SecretWorkspace(s3SecretWorkspace)
-            ? s3SecretWorkspace.secret.secretName
-            : undefined,
+        gitBasicAuthSecretName,
+        s3SecretName,
         versions: {},
         latestRun: edgeModelRun,
+        pipelineName: run.spec.pipelineRef?.name,
       };
     }
 
     if (!models[modelName].versions[modelVersion]) {
       models[modelName].versions[modelVersion] = {
         version: modelVersion,
+        modelName,
         runs: [],
         latestSuccessfulImageUrl: undefined,
       };
@@ -116,15 +130,13 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
     ) {
       models[modelName].latestRun = edgeModelRun;
       models[modelName].params = modelParams;
-      models[modelName].s3SecretName =
-        s3SecretWorkspace && isS3SecretWorkspace(s3SecretWorkspace)
-          ? s3SecretWorkspace.secret.secretName
-          : undefined;
-      // containerImageSecretName: run.spec.workspaces,
+      models[modelName].s3SecretName = s3SecretName;
+      models[modelName].gitBasicAuthSecretName = gitBasicAuthSecretName;
     }
   });
 
   return models;
 }
 
-// export const rerunEdgeModel(model: EdgeModel, imageOutputStrategy: 'increment' | 'overwrite') => {
+export const getModelsForPipeline = (pipeline: PipelineKind, models: EdgeModel[]): EdgeModel[] =>
+  models.filter((model) => model.latestRun.run.spec.pipelineRef?.name === pipeline?.metadata.name);

@@ -1,4 +1,4 @@
-import { PipelineRunKind } from '~/k8sTypes';
+import { K8sCondition, PipelineKind, PipelineRunKind } from '~/k8sTypes';
 import { ContextResourceData } from '~/types';
 
 export enum IMAGE_REGISTRY_CREDENTIALS_KEYS {
@@ -6,8 +6,10 @@ export enum IMAGE_REGISTRY_CREDENTIALS_KEYS {
   PASSWORD = 'password',
 }
 
-export type EdgeModelPipelineS3SecretWorkspace = {
-  name: 's3-secret';
+export type EdgeModelPipelineSecretWorkspace = {
+  name:
+    | EdgeModelPipelineKnownWorkspaces.S3_SECRET
+    | EdgeModelPipelineKnownWorkspaces.GIT_BASIC_AUTH;
   secret: {
     secretName: string;
   };
@@ -18,6 +20,11 @@ export enum EdgeModelPipelineKnownResults {
   IMAGE_SHA = 'image-sha',
 }
 
+export enum EdgeModelPipelineKnownWorkspaces {
+  S3_SECRET = 's3-secret',
+  GIT_BASIC_AUTH = 'git-basic-auth',
+}
+
 export enum EdgeModelLocationType {
   S3 = 's3',
   GIT = 'git',
@@ -25,42 +32,42 @@ export enum EdgeModelLocationType {
 
 export type EdgeModelRun = {
   run: PipelineRunKind;
-  status: string; // or more detailed status type
+  status?: K8sCondition; // or more detailed status type
   containerImageUrl?: string;
+  modelName: string;
+  version: string;
 };
 
 export type EdgeModelVersion = {
   version: string;
   latestSuccessfulImageUrl?: string;
   runs: EdgeModelRun[];
+  modelName: string;
 };
 
 export type EdgeModelParams = {
-  modelName: string;
+  modelName: string; // assuming this is unique
   modelVersion: string;
   s3BucketName?: string;
-  gitServer?: string;
-  gitOrgName?: string;
-  gitRepoName?: string;
-  containerfileRelativePath?: string;
+  containerFileRelativePath?: string;
   modelRelativePath?: string;
   fetchModel: 'git' | 's3';
   gitModelRepo?: string;
   gitRevision?: string;
-  testEndpoint?: string;
-  targetNamespace?: string;
-  targetImagerepo?: string;
+  targetImageRepo?: string;
 };
 
 export type EdgeModel = {
   params: EdgeModelParams;
-  // containerImageSecretName: string;
+  gitBasicAuthSecretName?: string;
   s3SecretName?: string;
-  versions: Record<string, EdgeModelVersion>;
-  latestRun?: EdgeModelRun;
+  versions: { [key: string]: EdgeModelVersion };
+  latestRun: EdgeModelRun;
+  pipelineName?: string;
 };
 
 export type EdgeContextState = {
   models: ContextResourceData<EdgeModel>;
+  pipelines: ContextResourceData<PipelineKind>;
   refreshAll: () => void;
 };

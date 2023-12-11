@@ -32,12 +32,6 @@ export const mockEdgePipelineRun = ({
   spec: {
     pipelineSpec: {
       tasks: [],
-      results: [
-        {
-          name: EdgeModelPipelineKnownResults.TARGET_REGISTRY_URL,
-          value: containerImageUrl,
-        },
-      ],
     },
     params: [
       {
@@ -124,6 +118,12 @@ export const mockEdgePipelineRun = ({
     pipelineSpec: {
       tasks: [],
     },
+    pipelineResults: [
+      {
+        name: EdgeModelPipelineKnownResults.TARGET_REGISTRY_URL,
+        value: containerImageUrl,
+      },
+    ],
     conditions: [
       {
         lastTransitionTime: creationTimestamp,

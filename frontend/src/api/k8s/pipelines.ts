@@ -1,13 +1,13 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { PipelineRunKind } from '~/k8sTypes';
-import { PipelineRunModel } from '~/api/models';
+import { PipelineKind } from '~/k8sTypes';
+import { PipelineModel } from '~/api/models';
 
-export const listK8sPipelineRunsByLabel = async (
+export const listK8sPipelinesByLabel = async (
   namespace: string,
   label: string,
-): Promise<PipelineRunKind[]> =>
-  k8sListResource<PipelineRunKind>({
-    model: PipelineRunModel,
+): Promise<PipelineKind[]> =>
+  k8sListResource<PipelineKind>({
+    model: PipelineModel,
     queryOptions: {
       ns: namespace,
       queryParams: { labelSelector: label },

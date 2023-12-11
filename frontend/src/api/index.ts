@@ -19,6 +19,7 @@ export * from './k8s/templates';
 export * from './k8s/dashboardConfig';
 export * from './k8s/accelerators';
 export * from './k8s/pipelineRuns';
+export * from './k8s/pipelines';
 
 // Pipelines uses special redirected API
 export * from './pipelines/custom';
