@@ -13,5 +13,7 @@ Contributing encompasses [repository specific requirements](./CONTRIBUTING.md).
 
 Read more about the Dashboard in one of our documentation links.
 
-* [Dev setup & Requirements]
-* [Dashboard documentation]
+- [Dev setup & Requirements]
+- [Dashboard documentation]
+
+TESTING CI - DO NOT MERGE
