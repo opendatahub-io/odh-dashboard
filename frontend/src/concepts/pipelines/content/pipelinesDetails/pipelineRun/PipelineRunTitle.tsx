@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Label, Split, SplitItem } from '@patternfly/react-core';
+import { Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
@@ -16,7 +16,9 @@ const PipelineRunTitle: React.FC<PipelineRunTitleProps> = ({ run }) => {
 
   return (
     <Split hasGutter>
-      <SplitItem>{run.name}</SplitItem>
+      <SplitItem>
+        <Truncate content={run.name} />
+      </SplitItem>
       <SplitItem>
         <Label icon={icon}>{label}</Label>
       </SplitItem>

@@ -11,6 +11,7 @@ import {
   EmptyStateBody,
   Bullseye,
   Spinner,
+  Truncate,
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -122,8 +123,8 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                   breadcrumb={
                     <Breadcrumb>
                       {breadcrumbPath}
-                      <BreadcrumbItem isActive>
-                        {error ? 'Run details' : run?.name ?? 'Loading...'}
+                      <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+                        <Truncate content={error ? 'Run details' : run?.name ?? 'Loading...'} />
                       </BreadcrumbItem>
                     </Breadcrumb>
                   }
