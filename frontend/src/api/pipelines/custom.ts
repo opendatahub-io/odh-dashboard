@@ -8,7 +8,7 @@ import {
   ListPipelinesRunAPI,
   ListPipelinesRunJobAPI,
   ListPipelinesAPI,
-  ListPipelineTemplatesAPI,
+  ListPipelineVersionTemplatesAPI,
   UploadPipelineAPI,
   UpdatePipelineRunJobAPI,
   GetPipelineRunAPI,
@@ -129,10 +129,16 @@ export const listPipelineRunsByPipeline: ListPipelineRunsByPipelineAPI =
       ),
     );
 
-export const listPipelineTemplates: ListPipelineTemplatesAPI = (hostPath) => (opts, pipelineId) =>
-  handlePipelineFailures(
-    proxyGET(hostPath, `/apis/v1beta1/pipelines/${pipelineId}/templates`, {}, opts),
-  );
+export const listPipelineVersionTemplates: ListPipelineVersionTemplatesAPI =
+  (hostPath) => (opts, pipelineVersionId) =>
+    handlePipelineFailures(
+      proxyGET(
+        hostPath,
+        `/apis/v1beta1/pipeline_versions/${pipelineVersionId}/templates`,
+        {},
+        opts,
+      ),
+    );
 
 export const listPipelineVersionsByPipeline: ListPipelineVersionsByPipelineAPI =
   (hostPath) => (opts, pipelineId, params) =>

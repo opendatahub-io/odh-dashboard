@@ -25,7 +25,7 @@ const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
   onChange,
 }) => {
   const pipelineId = pipeline?.id;
-  const [{ items: versions }, loaded] = usePipelineVersionsForPipeline(pipelineId, {}, 0);
+  const [{ items: versions }, loaded] = usePipelineVersionsForPipeline(pipelineId);
 
   React.useEffect(() => {
     onLoaded(loaded);

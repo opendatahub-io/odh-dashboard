@@ -3,7 +3,7 @@ import { Meta, StoryObj } from '@storybook/react';
 import { userEvent, within } from '@storybook/testing-library';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
-import { mockPipelineVersionsProxy } from '~/__mocks__/mockPipelineVersionsProxy';
+import { mockPipelineVersionsList } from '~/__mocks__/mockPipelineVersionsProxy';
 
 export default {
   component: PipelineSelector,
@@ -14,10 +14,10 @@ export const Default: StoryObj = {
     <PipelineSelector
       maxWidth="500px"
       columns={pipelineVersionSelectorColumns}
-      data={mockPipelineVersionsProxy}
+      data={mockPipelineVersionsList}
       onSelect={() => null}
       placeHolder="Select a pipeline version"
-      searchHelperText={`Type a name to search your ${mockPipelineVersionsProxy.length} versions.`}
+      searchHelperText={`Type a name to search your ${mockPipelineVersionsList.length} versions.`}
       isLoading={false}
     />
   ),

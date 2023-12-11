@@ -182,8 +182,16 @@ export default {
   component: ModelServingPlatform,
   parameters: {
     reactRouter: {
-      routePath: '/projects/:namespace/*',
-      routeParams: { namespace: 'test-project' },
+      location: {
+        pathParams: {
+          namespace: 'test-project',
+        },
+      },
+      routing: [
+        {
+          path: '/projects/:namespace/*',
+        },
+      ],
     },
   },
 } as Meta<typeof ModelServingPlatform>;

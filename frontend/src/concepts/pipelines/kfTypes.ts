@@ -233,7 +233,7 @@ export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
 export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
   jobs: PipelineRunJobKF[];
 }>;
-export type ListPipelineTemplateResourceKF = {
+export type ListPipelineVersionTemplateResourceKF = {
   /** YAML template of a PipelineRunKind */
   template: string;
 };

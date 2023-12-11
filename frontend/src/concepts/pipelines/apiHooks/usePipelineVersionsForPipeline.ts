@@ -7,8 +7,8 @@ import { NotReadyError } from '~/utilities/useFetchState';
 
 const usePipelineVersionsForPipeline = (
   pipelineId?: string,
-  options?: PipelineOptions,
-  refreshRate?: number,
+  options: PipelineOptions = {},
+  refreshRate = 0,
 ) => {
   const { api } = usePipelinesAPI();
 
