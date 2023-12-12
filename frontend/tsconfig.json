@@ -24,5 +24,11 @@
     "skipLibCheck": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
-  "exclude": ["node_modules", "public", "src/__tests__/cypress"]
+  "exclude": [
+    "node_modules",
+    "public",
+    "public-cypress",
+    "storybook-static",
+    "src/__tests__/cypress"
+  ]
 }
