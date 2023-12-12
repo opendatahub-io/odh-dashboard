@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { Link, Route } from 'react-router-dom';
-import EdgePipelineDetails from '~/concepts/edge/content/pipelinesDetails/pipelines/EdgePipelineDetails';
+import EdgePipelineDetails from '~/pages/edge/screens/pipelines/EdgePipelineDetails';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import EdgePipelineRunDetails from '~/concepts/edge/content/pipelinesDetails/pipelineRuns/EdgePipelineRunDetails';
 import EdgeContextProvider from '~/concepts/edge/content/EdgeContext';
-import EdgePipelinesPage from '~/pages/edge/screens/edgePipelines/EdgePipelinesPage';
+import EdgePipelinesPage from '~/pages/edge/screens/pipelines/EdgePipelinesPage';
+import EdgePipelineRunDetails from '~/pages/edge/screens/pipelines/EdgePipelineRunDetails';
 
 const EdgePipelinesRoutes: React.FC = () => (
   <ProjectsRoutes>

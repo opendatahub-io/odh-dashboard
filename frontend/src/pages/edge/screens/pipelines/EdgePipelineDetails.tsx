@@ -10,14 +10,14 @@ import {
 } from '@patternfly/react-core';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import { EDGE_CONSTANT } from '~/concepts/edge/const';
-import { useK8sPipelineTaskTopology } from '~/concepts/edge/content/topology/useK8sPipelineTaskTopology';
+import { useK8sPipelineTaskTopology } from '~/concepts/edge/hooks/useK8sPipelineTaskTopology';
 import { EdgePipelineDetailsType } from '~/concepts/edge/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
-import EdgePipelineNotFound from '~/concepts/edge/content/pipelinesDetails/pipelines/EdgePipelineNotFound';
-import useK8sPipelines from '~/pages/edge/screens/manage/useK8sPipelines';
+import EdgePipelineNotFound from '~/concepts/edge/content/pipelines/EdgePipelineNotFound';
+import useK8sPipelines from '~/concepts/edge/hooks/useK8sPipelines';
 
-enum PipelineDetailsTab {
+export enum PipelineDetailsTab {
   GRAPH,
   YAML,
 }

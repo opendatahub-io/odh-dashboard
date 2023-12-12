@@ -1,6 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../base
-  - ../../crd
-  - ./nvidia-dcgm-mock-exporter
+- ../../base
+- ../../crd
+- ./nvidia-dcgm-mock-exporter
+namespace: opendatahub
+images:
+- name: quay.io/opendatahub/odh-dashboard
+  newName: quay.io/gkrumbach07/odh-dashboard-testing

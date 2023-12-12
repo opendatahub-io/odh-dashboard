@@ -1,9 +1,9 @@
 import React from 'react';
 import { listK8sPipelineRunsByLabel } from '~/api';
 import useFetchState, { FetchStateCallbackPromise } from '~/utilities/useFetchState';
-import { EdgeModel } from './types';
-import { organizePipelineRuns } from './utils';
-import { EDGE_UNIQUE_LABEL } from './const';
+import { EdgeModel } from '~/concepts/edge/types';
+import { organizePipelineRuns } from '~/concepts/edge/utils';
+import { EDGE_UNIQUE_LABEL } from '~/concepts/edge/const';
 
 export const useEdgeModels = (namespace: string) => {
   const callback = React.useCallback<FetchStateCallbackPromise<EdgeModel[]>>(async () => {

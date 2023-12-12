@@ -23,7 +23,7 @@ type TaskRunObject =
   | { [key: string]: { pipelineTaskName: string; status: PipelineRunTaskRunStatusProperties } }
   | { [key: string]: null };
 
-type ChildReference = { name: string; pipelineTaskName: string };
+export type ChildReference = { name: string; pipelineTaskName: string };
 
 async function fetchTaskRuns(
   childReferences: unknown[],

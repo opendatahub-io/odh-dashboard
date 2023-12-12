@@ -5,16 +5,21 @@ import { EdgeModel } from '~/concepts/edge/types';
 import { PipelineKind } from '~/k8sTypes';
 import { EDGE_CONSTANT, EDGE_UNIQUE_LABEL } from '~/concepts/edge/const';
 import { getModelsForPipeline } from '~/concepts/edge/utils';
+import CreateRunModel from '~/concepts/edge/content/pipelines/CreateRunModal';
 import EdgePipelineRow from './EdgePipelineRow';
 import { edgePipelineColumns } from './const';
-import CreateRunModel from './CreateRunModal';
 
 type EdgePipelineTableProps = {
   models: EdgeModel[];
   pipelines: PipelineKind[];
+  refreshAllData: () => void;
 };
 
-export const EdgePipelineTable: React.FC<EdgePipelineTableProps> = ({ models, pipelines }) => {
+export const EdgePipelineTable: React.FC<EdgePipelineTableProps> = ({
+  models,
+  pipelines,
+  refreshAllData,
+}) => {
   const [createRunSelectedPipeline, setCreateRunSelectedPipeline] = React.useState<PipelineKind>();
 
   if (pipelines.length === 0) {
@@ -50,9 +55,7 @@ export const EdgePipelineTable: React.FC<EdgePipelineTableProps> = ({ models, pi
           createRunSelectedPipeline ? getModelsForPipeline(createRunSelectedPipeline, models) : []
         }
         onClose={() => setCreateRunSelectedPipeline(undefined)}
-        onCreate={function (): void {
-          throw new Error('Function not implemented.');
-        }}
+        onCreate={() => refreshAllData()}
       />
     </>
   );
