@@ -15,9 +15,9 @@ export const mockPodK8sResource = ({
   kind: 'Pod',
   apiVersion: 'project.openshift.io/v1',
   metadata: {
-    name: name,
+    name,
     generateName: name,
-    namespace: namespace,
+    namespace,
     uid: genUID('pod'),
     resourceVersion: '4800675',
     creationTimestamp: '2023-02-14T22:06:45Z',
@@ -39,7 +39,7 @@ export const mockPodK8sResource = ({
       {
         apiVersion: 'apps/v1',
         kind: 'StatefulSet',
-        name: name,
+        name,
         uid: genUID('statefulset'),
         controller: true,
         blockOwnerDeletion: true,
@@ -50,7 +50,7 @@ export const mockPodK8sResource = ({
   spec: {
     volumes: [
       {
-        name: name,
+        name,
         persistentVolumeClaim: {
           claimName: name,
         },
@@ -121,7 +121,7 @@ export const mockPodK8sResource = ({
     ],
     containers: [
       {
-        name: name,
+        name,
         image:
           'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-v1',
         workingDir: '/opt/app-root/src',
@@ -167,7 +167,7 @@ export const mockPodK8sResource = ({
         },
         volumeMounts: [
           {
-            name: name,
+            name,
             mountPath: '/opt/app-root/src',
           },
           {

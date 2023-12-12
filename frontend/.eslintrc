@@ -80,6 +80,7 @@
         ]
       }
     ],
+    "object-shorthand": ["error", "always"],
     "no-console": "error",
     "no-param-reassign": "error",
     "@typescript-eslint/explicit-function-return-type": "off",

@@ -90,7 +90,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         name: existingImage.name,
         // eslint-disable-next-line camelcase
         display_name: displayName,
-        description: description,
+        description,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
       }).then(handleResponse);
@@ -99,7 +99,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         // eslint-disable-next-line camelcase
         display_name: displayName,
         url: repository,
-        description: description,
+        description,
         provider: userName,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),

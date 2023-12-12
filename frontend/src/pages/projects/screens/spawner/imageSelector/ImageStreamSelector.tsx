@@ -33,7 +33,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
     return {
       key: imageStream.metadata.name,
       label: displayName,
-      description: description,
+      description,
       disabled: !checkImageStreamAvailability(imageStream, buildStatuses),
       dropdownLabel: (
         <Split>
