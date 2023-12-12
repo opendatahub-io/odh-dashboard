@@ -33,7 +33,7 @@ export const mockDashboardConfig = ({
   disablePipelines = false,
   disableEdge = false,
   disableKServe = false,
-  disableModelMesh = true,
+  disableModelMesh = false,
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',

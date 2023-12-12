@@ -60,6 +60,28 @@ test('Deploy KServe model', async ({ page }) => {
   // test that you can not submit on empty
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeDisabled();
 
+  // test popovers
+  const expectedContent = [
+    {
+      ariaLabel: 'Model server replicas info',
+      content:
+        'Consider network traffic and failover scenarios when specifying the number of model server replicas.',
+    },
+    {
+      ariaLabel: 'Model server size info',
+      content:
+        'Select a server size that will accommodate your largest model. See the product documentation for more information.',
+    },
+  ];
+
+  for (const item of expectedContent) {
+    const iconPopover = await page.getByRole('button', { name: item.ariaLabel, exact: true });
+    if (await iconPopover.isVisible()) {
+      await iconPopover.click();
+      await expect(page.getByText(item.content)).toBeTruthy();
+    }
+  }
+
   // test filling in minimum required fields
   await page.getByLabel('Model Name *').fill('Test Name');
   await page.locator('#serving-runtime-template-selection').click();
@@ -149,18 +171,17 @@ test('KServe Model list', async ({ page }) => {
   await page.waitForSelector('text=Deploy model');
 
   // Check that we get the correct model name
-  expect(page.getByText('Test Inference Service')).toBeTruthy();
+  await expect(page.getByText('Test Inference Service')).toBeAttached();
 
   // Check that the serving runtime displays the correct Serving Runtime
-  expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)')).toBeTruthy();
+  await expect(page.getByText('OpenVINO Serving Runtime (Supports GPUs)').first()).toBeAttached();
 
   // Check for resource marked for deletion
-  expect(page.getByText('Another Inference Service')).toBeTruthy();
-  const actionButton = page
-    .getByRole('row')
-    .first()
-    .getByRole('button', { name: 'This resource is marked for deletion.' });
-  expect(actionButton).toBeTruthy();
+  await expect(page.getByText('Another Inference Service')).toBeAttached();
+
+  await expect(
+    page.getByRole('button', { name: 'This resource is marked for deletion.' }),
+  ).toBeAttached();
 });
 
 test('Add ModelMesh model server', async ({ page }) => {

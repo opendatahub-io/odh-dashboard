@@ -8,7 +8,7 @@ import {
   WithSelectionProps,
   observer,
 } from '@patternfly/react-topology';
-import { StandardTaskNodeData } from '~/concepts/pipelines/topology/core/types';
+import { StandardTaskNodeData } from '~/concepts/topology/types';
 
 type DemoTaskNodeProps = WithSelectionProps & {
   element: Node<NodeModel, StandardTaskNodeData>;
