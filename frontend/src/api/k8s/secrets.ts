@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import {
   k8sCreateResource,
   k8sDeleteResource,
@@ -10,6 +11,8 @@ import { SecretModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
+import { EdgeModelState } from '~/concepts/edge/types';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
 
@@ -157,3 +160,53 @@ export const deleteSecret = (
       queryOptions: { name: secretName, ns: projectName },
     }),
   );
+
+export const assembleEdgeS3Secret = (
+  projectName: string,
+  data: Map<string, string>,
+  secretName: string,
+): SecretKind => {
+  const storageConfigData = {
+    type: 's3',
+    access_key_id: data.get(AWS_KEYS.ACCESS_KEY_ID),
+    secret_access_key: data.get(AWS_KEYS.SECRET_ACCESS_KEY),
+    endpoint_url: data.get(AWS_KEYS.S3_ENDPOINT),
+    region: data.get(AWS_KEYS.DEFAULT_REGION),
+  };
+
+  return {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name: secretName,
+      namespace: projectName,
+    },
+    stringData: {
+      'aws-storage-config': JSON.stringify(storageConfigData),
+    },
+  };
+};
+
+export const assembleEdgeImageRegistrySecret = (
+  projectName: string,
+  data: EdgeModelState,
+  secretName: string,
+): SecretKind => {
+  const storageConfigData = {
+    username: data.imageRegistryUsername,
+    password: data.imageRegistryPassword,
+  };
+
+  return {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name: secretName,
+      namespace: projectName,
+      annotations: {
+        'tekton.dev/docker-0': 'https://quay.io',
+      },
+    },
+    stringData: storageConfigData,
+  };
+};

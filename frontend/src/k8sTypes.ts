@@ -1,7 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
-import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
   NotebookContainer,
@@ -16,6 +14,8 @@ import {
   VolumeMount,
 } from './types';
 import { ServingRuntimeSize } from './pages/modelServing/screens/types';
+import { AWS_KEYS } from './pages/projects/dataConnections/const';
+import { StackComponent } from './concepts/areas/types';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
@@ -900,4 +900,38 @@ export type TaskRunKind = K8sResourceCommon & {
     namespace: string;
   };
   status: PipelineRunTaskRunStatusProperties;
+};
+
+export type PipelineRunWorkspaces = {
+  name: string;
+  value: string;
+};
+
+export type PipelinesWorkspaces = {
+  name: string;
+  value: string;
+};
+
+export type PipelinesTaskParam = {
+  name: string;
+  value: string;
+};
+
+export type EdgePipelinesTask = {
+  params?: PipelinesTaskParam[];
+  pipelineRef: {
+    name: string;
+  };
+  serviceAccountName: string;
+  timeout: string;
+  workspaces: PipelinesWorkspaces[];
+};
+
+export type EdgePipelinesKind = K8sResourceCommon & {
+  metadata: {
+    labels: Partial<{
+      name: string;
+    }>;
+  };
+  spec: EdgePipelinesTask;
 };

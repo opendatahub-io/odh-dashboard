@@ -8,6 +8,7 @@ import {
 } from '~/k8sTypes';
 import { ContextResourceData } from '~/types';
 import { createNode } from '~/concepts/topology';
+import { GIT_KEYS } from './const';
 
 export enum IMAGE_REGISTRY_CREDENTIALS_KEYS {
   USERNAME = 'username',
@@ -97,4 +98,30 @@ export type TaskReferenceMap = Record<string, PipelineTaskDetails>;
 export type PipelineTaskTopology = {
   taskMap: TaskReferenceMap;
   nodes: ReturnType<typeof createNode>[];
+};
+
+export type GITDataEntry = { key: GIT_KEYS; value: string }[];
+
+export type EnvVariableDataEntry = {
+  key: string;
+  value: string;
+};
+
+export type EdgeModelState = {
+  name: string;
+  modelInferencingEndpoint: string;
+  location: EnvVariableDataEntry[];
+  locationType: EdgeModelLocationType;
+  testDataResource: string;
+  outputImageURL: string;
+  imageRegistryUsername: string;
+  imageRegistryPassword: string;
+};
+
+export type EdgeModelData = {
+  name: string;
+  modelLocation: EnvVariableDataEntry[];
+  modelLocationType: EdgeModelLocationType;
+  outputLocation: string;
+  locationSecretName?: string;
 };
