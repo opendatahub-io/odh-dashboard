@@ -1,5 +1,13 @@
-import { K8sCondition, PipelineKind, PipelineRunKind } from '~/k8sTypes';
+import { BreadcrumbItem } from '@patternfly/react-core';
+import {
+  K8sCondition,
+  PipelineKind,
+  PipelineRunTaskRunStatus,
+  PipelineRunKind,
+  PipelineTask,
+} from '~/k8sTypes';
 import { ContextResourceData } from '~/types';
+import { createNode } from '~/concepts/topology';
 
 export enum IMAGE_REGISTRY_CREDENTIALS_KEYS {
   USERNAME = 'username',
@@ -70,4 +78,23 @@ export type EdgeContextState = {
   models: ContextResourceData<EdgeModel>;
   pipelines: ContextResourceData<PipelineKind>;
   refreshAll: () => void;
+};
+
+export type EdgePipelineDetailsType = {
+  breadcrumbPath: React.ReactElement<typeof BreadcrumbItem>[];
+};
+
+export type PipelineTaskRunDetails = {
+  runID: string;
+} & PipelineRunTaskRunStatus;
+
+export type PipelineTaskDetails = {
+  runDetails?: PipelineTaskRunDetails;
+} & PipelineTask;
+
+export type TaskReferenceMap = Record<string, PipelineTaskDetails>;
+
+export type PipelineTaskTopology = {
+  taskMap: TaskReferenceMap;
+  nodes: ReturnType<typeof createNode>[];
 };

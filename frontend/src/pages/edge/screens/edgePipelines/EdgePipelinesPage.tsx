@@ -2,7 +2,7 @@ import React from 'react';
 import { EdgeContext } from '~/concepts/edge/content/EdgeContext';
 import { EdgePipelineTable } from '~/concepts/edge/content/edgePipelines/EdgePipelineTable';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import EmptyEdgeModels from '~/pages/edge/EmptyEdgeModels';
+import EmptyEdgePipelines from '~/pages/edge/screens/edgePipelines/EmptyEdgePipelines';
 
 const EdgePipelinesPage = () => {
   const { models, pipelines } = React.useContext(EdgeContext);
@@ -12,7 +12,7 @@ const EdgePipelinesPage = () => {
       title="ML Ops Pipelines"
       loaded={models.loaded && pipelines.loaded}
       empty={models.data.length === 0}
-      emptyStatePage={<EmptyEdgeModels />}
+      emptyStatePage={<EmptyEdgePipelines />}
     >
       <EdgePipelineTable models={models.data} pipelines={pipelines.data} />
     </ApplicationsPage>

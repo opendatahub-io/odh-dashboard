@@ -20,3 +20,10 @@ export const PipelineModel: K8sModelCommon = {
   kind: 'Pipeline',
   plural: 'pipelines',
 };
+
+export const TaskRunModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'tekton.dev',
+  kind: 'TaskRun',
+  plural: 'taskruns',
+};
