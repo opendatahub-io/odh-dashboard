@@ -18,7 +18,8 @@ const ModelServingRoutes = React.lazy(() => import('../pages/modelServing/ModelS
 const NotebookController = React.lazy(
   () => import('../pages/notebookController/NotebookController'),
 );
-const EdgeModelsRoutes = React.lazy(() => import('../pages/edge/EdgeModelsRoutes'));
+const EdgeModelsRoutes = React.lazy(() => import('../pages/edge/EdgeModelRoutes'));
+const EdgePipelinesRoutes = React.lazy(() => import('../pages/edge/EdgePipelinesRoutes'));
 const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
 const GlobalPipelineRunsRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
@@ -80,7 +81,8 @@ const AppRoutes: React.FC = () => {
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}
-        <Route path="/edge/*" element={<EdgeModelsRoutes />} />
+        <Route path="/edgeModels/*" element={<EdgeModelsRoutes />} />
+        <Route path="/edgePipelines/*" element={<EdgePipelinesRoutes />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </React.Suspense>

@@ -2,10 +2,10 @@ import React from 'react';
 import { StoryFn, StoryObj } from '@storybook/react';
 import { Route, Routes } from 'react-router';
 import { rest } from 'msw';
-import EdgeModels from '~/pages/edge/EdgeModels';
 import EdgeContextProvider from '~/concepts/edge/content/EdgeContext';
 import { EDGE_CONSTANT } from '~/concepts/edge/const';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import EdgeModels from '~/pages/edge/screens/models/EdgeModels';
 
 export default {
   component: EdgeModels,

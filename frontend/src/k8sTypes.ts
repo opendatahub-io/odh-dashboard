@@ -736,12 +736,6 @@ export type PipelineRunKind = K8sResourceCommon & {
   };
 };
 
-export type PipelineKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-  };
-};
-
 export type UserKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -871,4 +865,39 @@ export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
   installedComponents: { [key in StackComponent]?: boolean };
   phase?: string;
+};
+
+export type PipelineTask = {
+  name: string;
+  taskRef: {
+    name: string;
+    kind: string;
+  };
+  params?: PipelineRunTaskParam[];
+  when?: PipelineRunTaskWhen[];
+  runAfter?: string[];
+  workspaces?: {
+    name: string;
+    workspace: string;
+  }[];
+};
+
+export type PipelineKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    params: { name: string; type: string; default?: string }[];
+    tasks: PipelineTask[];
+    workspaces: { name: string; optional?: boolean }[];
+  };
+};
+
+export type TaskRunKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  status: PipelineRunTaskRunStatusProperties;
 };
