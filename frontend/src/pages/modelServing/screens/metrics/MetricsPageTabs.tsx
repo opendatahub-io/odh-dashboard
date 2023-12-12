@@ -47,6 +47,7 @@ const MetricsPageTabs: React.FC = () => {
       aria-label="Metrics page tabs"
       role="region"
       className="odh-tabs-fix"
+      mountOnEnter
     >
       {performanceMetricsAreaAvailable && (
         <Tab

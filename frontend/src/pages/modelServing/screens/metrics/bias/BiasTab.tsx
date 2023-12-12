@@ -3,6 +3,7 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
+  EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateVariant,
   PageSection,
@@ -12,7 +13,6 @@ import {
   StackItem,
   ToolbarGroup,
   ToolbarItem,
-  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPageToolbar';
@@ -22,46 +22,18 @@ import BiasChart from '~/pages/modelServing/screens/metrics/bias/BiasChart';
 import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/EmptyBiasConfigurationCard';
 import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasChartSelectionCard';
 import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandableSection';
-import useBiasChartsBrowserStorage from '~/pages/modelServing/screens/metrics/bias/useBiasChartsBrowserStorage';
+import useBiasChartSelections from '~/pages/modelServing/screens/metrics/bias/useBiasChartSelections';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
-import { byId } from '~/pages/modelServing/screens/metrics/utils';
 
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {
   const { biasMetricConfigs, loaded, loadError } = useModelBiasData();
 
-  const [selectedBiasConfigs, setSelectedBiasConfigs] = useBiasChartsBrowserStorage();
+  const [selectedBiasConfigs, setSelectedBiasConfigs, settled] =
+    useBiasChartSelections(biasMetricConfigs);
 
-  const firstRender = React.useRef(true);
-
-  React.useEffect(() => {
-    if (loaded && !loadError) {
-      // It's possible a biasMetricConfig was deleted by the user directly accessing a backend API. We need to verify
-      // that any saved state in the session storage is not stale and if it is, remove it.
-      setSelectedBiasConfigs(selectedBiasConfigs.filter((x) => biasMetricConfigs.find(byId(x))));
-
-      if (firstRender.current) {
-        // If the user has just navigated here AND they haven't previously selected any charts to display,
-        // don't show them the "No selected" empty state, instead show them the first available chart.
-        // However, the user still needs to be shown said empty state if they deselect all charts.
-        firstRender.current = false;
-        if (selectedBiasConfigs.length === 0 && biasMetricConfigs.length > 0) {
-          // If biasMetricConfigs is empty, the "No Configured Metrics" empty state will be shown, so no need
-          // to set anything.
-          setSelectedBiasConfigs([biasMetricConfigs[0]]);
-        }
-      }
-    }
-  }, [loaded, biasMetricConfigs, setSelectedBiasConfigs, selectedBiasConfigs, loadError]);
-
-  if (!loaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
+  const ready = loaded && settled;
 
   if (loadError) {
     return (
@@ -80,6 +52,14 @@ const BiasTab: React.FC = () => {
           </EmptyStateBody>
         </EmptyState>
       </PageSection>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
     );
   }
 
