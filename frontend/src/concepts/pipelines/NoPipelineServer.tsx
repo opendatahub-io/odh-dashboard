@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   EmptyState,
   EmptyStateIcon,
-  EmptyStateBody,
   EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
@@ -20,9 +19,6 @@ const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant }) => (
       icon={<EmptyStateIcon icon={WrenchIcon} />}
       headingLevel="h3"
     />
-    <EmptyStateBody>
-      To create and manage pipelines, first enable them by configuring a pipeline server.
-    </EmptyStateBody>
     <EmptyStateFooter>
       <CreatePipelineServerButton variant={variant} />
     </EmptyStateFooter>

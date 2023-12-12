@@ -61,6 +61,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
   const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
+    editInfo?.inferenceServiceEditInfo,
   );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
@@ -152,12 +153,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         NamespaceApplicationCase.KSERVE_PROMOTION,
         projectContext?.currentProject,
         servingRuntimeName,
+        false,
       ),
       submitInferenceServiceResource(
         createDataInferenceService,
         editInfo?.inferenceServiceEditInfo,
         servingRuntimeName,
         false,
+        acceleratorState,
       ),
     ])
       .then(() => onSuccess())
@@ -230,6 +233,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ServingRuntimeReplicaSection
               data={createDataServingRuntime}
               setData={setCreateDataServingRuntime}
+              infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
             />
           </StackItem>
           <StackItem>
@@ -240,6 +245,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               servingRuntimeSelected={servingRuntimeSelected}
               acceleratorState={acceleratorState}
               setAcceleratorState={setAcceleratorState}
+              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
           <StackItem>

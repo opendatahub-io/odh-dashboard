@@ -145,6 +145,20 @@
           }
         ]
       }
+    },
+    {
+      "files": ["./src/__tests__/cypress/**/*.ts"],
+      "parserOptions": {
+        "project": ["./src/__tests__/cypress/tsconfig.json"]
+      },
+      "extends": [
+        "eslint:recommended",
+        "plugin:react/recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:prettier/recommended",
+        "prettier",
+        "plugin:cypress/recommended"
+      ]
     }
   ]
 }
