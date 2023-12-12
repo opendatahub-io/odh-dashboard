@@ -1,34 +1,56 @@
 import * as React from 'react';
-import { Alert, AlertActionLink, Button, Skeleton } from '@patternfly/react-core';
+import { Alert, Button, Skeleton } from '@patternfly/react-core';
+import { PodStatus } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import {
   LOG_REFRESH_RATE,
   LOG_TAIL_LINES,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 
 type LogsTabStatusProps = {
+  podError?: Error;
+  podName?: string;
+  podStatus?: PodStatus | null;
   error?: Error;
   isLogsAvailable?: boolean;
+  isFailedPod?: boolean;
   loaded: boolean;
-  refresh: () => void;
   onDownload: () => void;
 };
 
 const LogsTabStatus: React.FC<LogsTabStatusProps> = ({
   error,
   isLogsAvailable,
+  podError,
+  podName,
+  podStatus,
   loaded,
-  refresh,
+  isFailedPod,
   onDownload,
 }) => {
   if (error) {
+    const isNetworkError = error?.message.includes('Failed to fetch');
+    const podCondition = podStatus === null || (podError && podStatus?.completed);
+
+    let errorAlertTitle;
+    let errorAlertMessage;
+
+    if (isNetworkError) {
+      errorAlertTitle = `${error?.message} logs`;
+      errorAlertMessage =
+        'Check your network connection. The system will recover the connection when the network is restored.';
+    } else if (isFailedPod) {
+      errorAlertTitle = 'Failed to retrieve logs';
+      errorAlertMessage = `Pod ${podName} failed during initialization`;
+    } else if (podCondition) {
+      errorAlertTitle = podError?.message;
+      errorAlertMessage = `${podName} may have been pruned to prevent over-utilization of resources.`;
+    } else {
+      errorAlertTitle = 'An error occurred while retrieving the requested logs';
+      errorAlertMessage = error?.message;
+    }
     return (
-      <Alert
-        isInline
-        variant="danger"
-        title="An error occurred while retrieving the requested logs"
-        actionLinks={<AlertActionLink onClick={refresh}>Retry</AlertActionLink>}
-      >
-        <p>{error.message}</p>
+      <Alert isInline variant="danger" title={errorAlertTitle}>
+        <p>{errorAlertMessage}</p>
       </Alert>
     );
   }
