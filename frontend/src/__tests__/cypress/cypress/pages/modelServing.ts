@@ -32,6 +32,10 @@ class ModelServingGlobal {
     return cy.findByRole('button', { name: 'Deploy model' });
   }
 
+  findNoProjectSelectedTooltip() {
+    return cy.findByRole('tooltip', { name: 'To deploy a model, select a project.' });
+  }
+
   findGoToProjectButton() {
     return cy.findByRole('button', { name: /^Go to / });
   }

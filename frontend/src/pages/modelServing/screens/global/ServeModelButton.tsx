@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button, Tooltip } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
@@ -46,20 +46,28 @@ const ServeModelButton: React.FC = () => {
     setPlatformSelected(undefined);
   };
 
+  const deployButton = (
+    <Button
+      variant="primary"
+      onClick={() =>
+        project &&
+        setPlatformSelected(
+          getProjectModelServingPlatform(project, servingPlatformStatuses).platform,
+        )
+      }
+      isAriaDisabled={!project || !templatesEnabled}
+    >
+      Deploy model
+    </Button>
+  );
+
   return (
     <>
-      <Button
-        variant="primary"
-        onClick={() =>
-          project &&
-          setPlatformSelected(
-            getProjectModelServingPlatform(project, servingPlatformStatuses).platform,
-          )
-        }
-        isDisabled={!project || !templatesEnabled}
-      >
-        Deploy model
-      </Button>
+      {!project ? (
+        <Tooltip content="To deploy a model, select a project.">{deployButton}</Tooltip>
+      ) : (
+        deployButton
+      )}
       {project && (
         <>
           <ManageInferenceServiceModal
