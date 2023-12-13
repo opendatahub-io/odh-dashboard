@@ -148,7 +148,7 @@ const CreateRunModel: React.FC<CreateRunModelProps> = ({
         {selectedModel && (
           <>
             <FormGroup label="Output container image URL" fieldId="output-container-image-url">
-              <i>{`quay.io/${selectedModel.params.targetImageRepo}/${selectedModel.params.modelName}`}</i>
+              {`quay.io/${selectedModel.params.targetImageRepo}/${selectedModel.params.modelName}`}
             </FormGroup>
             <FormGroup label="On pipeline completion" fieldId="pipeline-completion">
               <Stack>

@@ -20,9 +20,11 @@ const EdgeModelRow: React.FC<EdgeModelRowProps> = ({ model, onEdit, onRerun, row
 
   // get runs from all models
   const sortedVersions = React.useMemo(
-    () => Object.values(model.versions).sort((a, b) => parseInt(a.version) - parseInt(b.version)),
+    () => Object.values(model.versions).sort((a, b) => parseInt(b.version) - parseInt(a.version)),
     [model],
   );
+
+  const latestVersion = sortedVersions[0];
 
   return (
     <>
@@ -47,7 +49,7 @@ const EdgeModelRow: React.FC<EdgeModelRowProps> = ({ model, onEdit, onRerun, row
         <Td dataLabel="Latest model container">
           {model.latestRun.status?.status === 'True' ||
           model.latestRun.status?.status === 'False' ? (
-            model.latestRun.containerImageUrl
+            `${latestVersion.modelName}:${latestVersion.version}`
           ) : (
             <TableText>
               <Link to={`/edgePipelines/pipelineRun/view/${model.latestRun.run.metadata.name}`}>
@@ -74,6 +76,7 @@ const EdgeModelRow: React.FC<EdgeModelRowProps> = ({ model, onEdit, onRerun, row
       </Tr>
       {isExpanded && (
         <Tr isExpanded={isExpanded}>
+          <Td />
           <Td colSpan={edgeModelsColumns.length}>
             <ExpandableRowContent>
               <Table

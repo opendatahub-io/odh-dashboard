@@ -49,11 +49,18 @@ const ManageEdgeModelModal: React.FC<ManageEdgeModelModalProps> = ({
     testDataResource: '',
     outputImageURL: '',
     modelRelativePath: '',
+    s3BucketName: '',
   });
 
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
   const [s3Secret] = useEdgeS3Secret(EDGE_CONSTANT, existingModel?.s3SecretName ?? '');
+
+  React.useEffect(() => {
+    if (s3Secret) {
+      setStateData('s3Location', s3Secret);
+    }
+  }, [s3Secret, setStateData]);
 
   React.useEffect(() => {
     if (existingModel) {
@@ -63,8 +70,10 @@ const ManageEdgeModelModal: React.FC<ManageEdgeModelModalProps> = ({
       );
 
       setStateData('modelInferencingEndpoint', existingModel.params.testEndpoint);
-      setStateData('s3Location', s3Secret);
-      setStateData('locationType', s3Secret ? EdgeModelLocationType.S3 : EdgeModelLocationType.GIT);
+      setStateData(
+        'locationType',
+        existingModel?.s3SecretName ? EdgeModelLocationType.S3 : EdgeModelLocationType.GIT,
+      );
       setStateData(
         'testDataResource',
         testDataWorkspace && isTestDataWorkspace(testDataWorkspace)
@@ -75,8 +84,11 @@ const ManageEdgeModelModal: React.FC<ManageEdgeModelModalProps> = ({
       setStateData('name', existingModel.params.modelName);
       setStateData('version', existingModel.params.modelVersion);
       setStateData('modelRelativePath', existingModel.params.modelRelativePath);
+      setStateData('s3BucketName', existingModel.params.s3BucketName);
+      setStateData('gitModelRepo', existingModel.params.gitModelRepo);
+      setStateData('gitRevision', existingModel.params.gitRevision);
     }
-  }, [existingModel, setStateData, s3Secret]);
+  }, [existingModel, setStateData]);
 
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -88,10 +100,14 @@ const ManageEdgeModelModal: React.FC<ManageEdgeModelModalProps> = ({
     ((stateData.locationType === EdgeModelLocationType.GIT &&
       stateData.gitModelRepo !== '' &&
       stateData.gitRevision !== '') ||
-      (stateData.locationType === EdgeModelLocationType.S3 && isEdgeS3Valid(stateData.s3Location)));
+      (stateData.locationType === EdgeModelLocationType.S3 &&
+        stateData.s3BucketName &&
+        isEdgeS3Valid(stateData.s3Location)));
 
   const onBeforeClose = () => {
     resetToDefault();
+    setError(undefined);
+    setIsLoading(false);
   };
 
   const handleSubmit = () => {
@@ -219,16 +235,30 @@ const ManageEdgeModelModal: React.FC<ManageEdgeModelModalProps> = ({
                   setStateData('locationType', EdgeModelLocationType.S3);
                   setStateData('s3Location', s3Secret ?? EMPTY_EDGE_S3_SECRET_DATA);
                   setStateData('gitModelRepo', '');
-                  setStateData('gitRevision', '');
+                  setStateData('gitRevision', 'main');
                 }}
                 id="model-registry-s3-bucket-radio"
                 name="s3-bucket-radio"
                 body={
                   stateData.locationType === EdgeModelLocationType.S3 && (
-                    <EdgeS3Field
-                      values={stateData.s3Location}
-                      onUpdate={(data) => setStateData('s3Location', data)}
-                    />
+                    <Stack hasGutter>
+                      <StackItem>
+                        <EdgeS3Field
+                          values={stateData.s3Location}
+                          onUpdate={(data) => setStateData('s3Location', data)}
+                        />
+                      </StackItem>
+                      <StackItem>
+                        <FormGroup label="Bucket" fieldId="bucket" isRequired>
+                          <TextInput
+                            isRequired
+                            id="bucket"
+                            value={stateData.s3BucketName}
+                            onChange={(_event, value) => setStateData('s3BucketName', value)}
+                          />
+                        </FormGroup>
+                      </StackItem>
+                    </Stack>
                   )
                 }
               />
@@ -239,30 +269,38 @@ const ManageEdgeModelModal: React.FC<ManageEdgeModelModalProps> = ({
                   setStateData('locationType', EdgeModelLocationType.GIT);
                   setStateData('s3Location', s3Secret ?? EMPTY_EDGE_S3_SECRET_DATA);
                   setStateData('gitModelRepo', '');
-                  setStateData('gitRevision', '');
+                  setStateData('gitRevision', 'main');
                 }}
                 id="model-registry-git-respository-radio"
                 name="git-repository-radio"
                 body={
                   stateData.locationType === EdgeModelLocationType.GIT && (
-                    <>
-                      <FormGroup label="Git repository URL" fieldId="git-repository-url" isRequired>
-                        <TextInput
+                    <Stack hasGutter>
+                      <StackItem>
+                        <FormGroup
+                          label="Git repository URL"
+                          fieldId="git-repository-url"
                           isRequired
-                          id="git-repository-url"
-                          value={stateData.gitModelRepo}
-                          onChange={(_event, value) => setStateData('gitModelRepo', value)}
-                        />
-                      </FormGroup>
-                      <FormGroup label="Branch" fieldId="git-branch" isRequired>
-                        <TextInput
-                          isRequired
-                          id="git-branch"
-                          value={stateData.gitRevision}
-                          onChange={(_event, value) => setStateData('gitRevision', value)}
-                        />
-                      </FormGroup>
-                    </>
+                        >
+                          <TextInput
+                            isRequired
+                            id="git-repository-url"
+                            value={stateData.gitModelRepo}
+                            onChange={(_event, value) => setStateData('gitModelRepo', value)}
+                          />
+                        </FormGroup>
+                      </StackItem>
+                      <StackItem>
+                        <FormGroup label="Branch" fieldId="git-branch" isRequired>
+                          <TextInput
+                            isRequired
+                            id="git-branch"
+                            value={stateData.gitRevision}
+                            onChange={(_event, value) => setStateData('gitRevision', value)}
+                          />
+                        </FormGroup>
+                      </StackItem>
+                    </Stack>
                   )
                 }
               />
@@ -278,32 +316,28 @@ const ManageEdgeModelModal: React.FC<ManageEdgeModelModalProps> = ({
             </FormGroup>
           </StackItem>
           <StackItem>
-            <Stack>
-              <StackItem>
-                <FormGroup label="Test data resource" fieldId="test-data-resource" isRequired>
-                  <TextInput
-                    isRequired
-                    id="test-data-resource"
-                    value={stateData.testDataResource}
-                    onChange={(_event, value) => setStateData('testDataResource', value)}
-                  />
-                </FormGroup>
-              </StackItem>
-              <StackItem>
-                <FormGroup
-                  label="Output model container image file URL"
-                  fieldId="Output-model-image-file-URL"
-                  isRequired
-                >
-                  <TextInput
-                    isRequired
-                    id="output-model-image-url"
-                    value={stateData.outputImageURL}
-                    onChange={(_event, value) => setStateData('outputImageURL', value)}
-                  />
-                </FormGroup>
-              </StackItem>
-            </Stack>
+            <FormGroup label="Test data resource" fieldId="test-data-resource" isRequired>
+              <TextInput
+                isRequired
+                id="test-data-resource"
+                value={stateData.testDataResource}
+                onChange={(_event, value) => setStateData('testDataResource', value)}
+              />
+            </FormGroup>
+          </StackItem>
+          <StackItem>
+            <FormGroup
+              label="Output image registry name"
+              fieldId="Output-model-image-file-URL"
+              isRequired
+            >
+              <TextInput
+                isRequired
+                id="output-model-image-url"
+                value={stateData.outputImageURL}
+                onChange={(_event, value) => setStateData('outputImageURL', value)}
+              />
+            </FormGroup>
           </StackItem>
         </Stack>
       </Form>

@@ -57,7 +57,7 @@ export const edgeModelVersionsColumns: SortableData<EdgeModelVersion>[] = [
   },
   {
     field: 'container-image-url',
-    label: 'Model container image URL:',
+    label: 'Model container image URL',
     sortable: false,
   },
 ];

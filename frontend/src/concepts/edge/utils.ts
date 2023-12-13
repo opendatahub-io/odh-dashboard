@@ -55,12 +55,12 @@ export const getEdgeModelRunContainerImage = (run: PipelineRunKind) =>
     (result) => result.name === EdgeModelPipelineKnownResults.TARGET_REGISTRY_URL,
   )?.value;
 
-export const isPipelineRunOutputOverridden = (
+export const getPipelineRunThatOverrodeSelectedRun = (
   version: EdgeModelVersion,
   selectedRun: EdgeModelRun,
 ) => {
   if (version.runs.length <= 1) {
-    return false;
+    return undefined;
   }
 
   const sortedRuns = version.runs.sort((a, b) => {
@@ -73,7 +73,9 @@ export const isPipelineRunOutputOverridden = (
   const latestSuccessfulRun = sortedRuns.find((run) => !!run.containerImageUrl);
 
   // if the latest successful run is the same as the current run, then the output is not overridden
-  return latestSuccessfulRun?.run.metadata.name !== selectedRun.run.metadata.name;
+  return latestSuccessfulRun?.run.metadata.name === selectedRun.run.metadata.name
+    ? undefined
+    : latestSuccessfulRun;
 };
 
 export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, EdgeModel> {
@@ -90,16 +92,10 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
     const status = run.status?.conditions?.[0];
     const s3SecretWorkspace = run.spec.workspaces.find((secret) => secret.name === 's3-secret');
     const s3SecretName =
-      s3SecretWorkspace && isSecretWorkspace(s3SecretWorkspace)
+      s3SecretWorkspace &&
+      isSecretWorkspace(s3SecretWorkspace) &&
+      s3SecretWorkspace.secret.secretName !== '__placeholder' // TODO remove this when we fix the pipeline
         ? s3SecretWorkspace.secret.secretName
-        : undefined;
-
-    const gitBasicAuthSecretWorkspace = run.spec.workspaces.find(
-      (secret) => secret.name === 'git-basic-auth',
-    );
-    const gitBasicAuthSecretName =
-      gitBasicAuthSecretWorkspace && isSecretWorkspace(gitBasicAuthSecretWorkspace)
-        ? gitBasicAuthSecretWorkspace.secret.secretName
         : undefined;
 
     const edgeModelRun: EdgeModelRun = {
@@ -114,7 +110,6 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
     if (!models[modelName]) {
       models[modelName] = {
         params: modelParams,
-        gitBasicAuthSecretName,
         s3SecretName,
         versions: {},
         latestRun: edgeModelRun,
@@ -128,7 +123,7 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
         latestRun: edgeModelRun,
         modelName,
         runs: [],
-        latestSuccessfulImageUrl: undefined,
+        latestSuccessfulRun: undefined,
       };
     }
 
@@ -142,9 +137,18 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
       )
     ) {
       models[modelName].versions[modelVersion].latestRun = edgeModelRun;
-      if (edgeModelRun.containerImageUrl) {
-        models[modelName].versions[modelVersion].latestSuccessfulImageUrl =
-          edgeModelRun.containerImageUrl;
+    }
+
+    // update versions latest successful run
+    if (edgeModelRun.containerImageUrl) {
+      const latestSuccessfulRun = models[modelName].versions[modelVersion].latestSuccessfulRun;
+      // if no latest successful run or this run is more recent, update
+      if (
+        !latestSuccessfulRun ||
+        new Date(run.metadata.creationTimestamp ?? '') >
+          new Date(latestSuccessfulRun.run.metadata.creationTimestamp ?? '')
+      ) {
+        models[modelName].versions[modelVersion].latestSuccessfulRun = edgeModelRun;
       }
     }
 
@@ -156,7 +160,6 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
       models[modelName].latestRun = edgeModelRun;
       models[modelName].params = modelParams;
       models[modelName].s3SecretName = s3SecretName;
-      models[modelName].gitBasicAuthSecretName = gitBasicAuthSecretName;
     }
   });
 
