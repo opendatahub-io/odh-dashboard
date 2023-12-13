@@ -14,7 +14,8 @@ class ProjectListPage {
   }
 
   private wait() {
-    cy.findByText('View your existing projects or create new projects.', { timeout: 10000 });
+    cy.findByText('View your existing projects or create new projects.');
+    cy.testA11y();
   }
 
   shouldHaveProjects() {
@@ -65,10 +66,12 @@ class CreateEditProjectModal extends Modal {
 class ProjectDetails {
   visit(project: string) {
     cy.visit(`/projects/${project}`);
+    this.wait();
   }
 
-  wait() {
-    cy.findByRole('tab', { name: 'Components', timeout: 10000 });
+  private wait() {
+    cy.findByRole('tab', { name: 'Components' });
+    cy.testA11y();
   }
 }
 

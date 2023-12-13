@@ -21,8 +21,7 @@ export default defineConfig({
     PASSWORD: process.env.PASSWORD,
     RECORD: !!process.env.RECORD,
   },
-  requestTimeout: process.env.MOCK ? 5000 : 10000,
-
+  defaultCommandTimeout: 10000,
   e2e: {
     baseUrl: process.env.BASE_URL,
     specPattern: process.env.MOCK
@@ -44,6 +43,21 @@ export default defineConfig({
           }
 
           return Promise.resolve({});
+        },
+        log(message) {
+          // eslint-disable-next-line no-console
+          console.log(message);
+          return null;
+        },
+        error(message) {
+          // eslint-disable-next-line no-console
+          console.error(message);
+          return null;
+        },
+        table(message) {
+          // eslint-disable-next-line no-console
+          console.table(message);
+          return null;
         },
       });
 

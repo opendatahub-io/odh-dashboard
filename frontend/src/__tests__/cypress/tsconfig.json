@@ -3,6 +3,6 @@
   "include": ["../../**/*.ts"],
   "exclude": ["node_modules", "public"],
   "compilerOptions": {
-    "types": ["node", "cypress", "@testing-library/cypress"]
+    "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe"]
   }
 }

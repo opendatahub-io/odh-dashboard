@@ -201,6 +201,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().click();
 
     // test that you can not submit on empty
+    inferenceServiceModal.shouldBeOpen();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
   });
 
@@ -231,7 +232,7 @@ describe('Model Serving Global', () => {
       .click();
 
     // Test that can submit on valid form
-    deleteModal.find().should('exist');
+    deleteModal.shouldBeOpen();
     deleteModal.findSubmitButton().should('be.disabled');
 
     deleteModal.findInput().type('Test Inference Service');
@@ -250,6 +251,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findModelRow('Test Inference Service').findKebabAction('Edit').click();
 
     // test that you can not submit on empty
+    inferenceServiceModal.shouldBeOpen();
     inferenceServiceModal.findModelNameInput().clear();
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
@@ -286,6 +288,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().click();
 
     // test that you can not submit on empty
+    inferenceServiceModal.shouldBeOpen();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
 
     // test filling in minimum required fields
@@ -319,6 +322,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().click();
 
     // test that you can not submit on empty
+    inferenceServiceModal.shouldBeOpen();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
 
     // test filling in minimum required fields
