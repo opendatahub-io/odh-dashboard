@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import EdgeContextProvider from '~/concepts/edge/content/EdgeContext';
-import EdgeModels from '~/pages/edge/screens/models/EdgeModels';
+import EdgeModels from '~/pages/edge/screens/models/EdgeModelsPage';
 
 const EdgeModelsRoutes: React.FC = () => (
   <Routes>

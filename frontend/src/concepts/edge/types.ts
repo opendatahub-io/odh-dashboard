@@ -8,7 +8,7 @@ import {
 } from '~/k8sTypes';
 import { ContextResourceData } from '~/types';
 import { createNode } from '~/concepts/topology';
-import { GIT_KEYS } from './const';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 
 export enum IMAGE_REGISTRY_CREDENTIALS_KEYS {
   USERNAME = 'username',
@@ -16,11 +16,16 @@ export enum IMAGE_REGISTRY_CREDENTIALS_KEYS {
 }
 
 export type EdgeModelPipelineSecretWorkspace = {
-  name:
-    | EdgeModelPipelineKnownWorkspaces.S3_SECRET
-    | EdgeModelPipelineKnownWorkspaces.GIT_BASIC_AUTH;
+  name: EdgeModelPipelineKnownWorkspaces.S3_SECRET;
   secret: {
     secretName: string;
+  };
+};
+
+export type EdgeModelPipelineTestDataWorkspace = {
+  name: EdgeModelPipelineKnownWorkspaces.TEST_DATA;
+  configMap: {
+    name: string;
   };
 };
 
@@ -31,7 +36,7 @@ export enum EdgeModelPipelineKnownResults {
 
 export enum EdgeModelPipelineKnownWorkspaces {
   S3_SECRET = 's3-secret',
-  GIT_BASIC_AUTH = 'git-basic-auth',
+  TEST_DATA = 'test-data',
 }
 
 export enum EdgeModelLocationType {
@@ -50,6 +55,7 @@ export type EdgeModelRun = {
 export type EdgeModelVersion = {
   version: string;
   latestSuccessfulImageUrl?: string;
+  latestRun: EdgeModelRun;
   runs: EdgeModelRun[];
   modelName: string;
 };
@@ -64,6 +70,7 @@ export type EdgeModelParams = {
   gitModelRepo?: string;
   gitRevision?: string;
   targetImageRepo?: string;
+  testEndpoint: string;
 };
 
 export type EdgeModel = {
@@ -78,6 +85,7 @@ export type EdgeModel = {
 export type EdgeContextState = {
   models: ContextResourceData<EdgeModel>;
   pipelines: ContextResourceData<PipelineKind>;
+  taskRunStatuses: { [key: string]: K8sCondition };
   refreshAll: () => void;
 };
 
@@ -100,28 +108,20 @@ export type PipelineTaskTopology = {
   nodes: ReturnType<typeof createNode>[];
 };
 
-export type GITDataEntry = { key: GIT_KEYS; value: string }[];
-
-export type EnvVariableDataEntry = {
-  key: string;
-  value: string;
-};
-
 export type EdgeModelState = {
   name: string;
+  version?: string;
   modelInferencingEndpoint: string;
-  location: EnvVariableDataEntry[];
+  s3Location: EnvVariableDataEntry[];
   locationType: EdgeModelLocationType;
   testDataResource: string;
   outputImageURL: string;
-  imageRegistryUsername: string;
-  imageRegistryPassword: string;
+  gitModelRepo?: string;
+  gitRevision?: string;
+  modelRelativePath: string;
 };
 
-export type EdgeModelData = {
-  name: string;
-  modelLocation: EnvVariableDataEntry[];
-  modelLocationType: EdgeModelLocationType;
-  outputLocation: string;
-  locationSecretName?: string;
-};
+export enum CreateRunCompletionType {
+  OVERWRITE, // Overwrite the existing run
+  INCREMENT, // Increment the existing run
+}

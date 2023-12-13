@@ -1,11 +1,11 @@
 import React from 'react';
 import { EdgeContext } from '~/concepts/edge/content/EdgeContext';
-import { EdgePipelineTable } from '~/concepts/edge/content/edgePipelines/EdgePipelineTable';
+import { EdgePipelineTable } from '~/concepts/edge/content/pipelines/table/EdgePipelineTable';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import EmptyEdgePipelines from '~/pages/edge/screens/edgePipelines/EmptyEdgePipelines';
+import EmptyEdgePipelines from '~/concepts/edge/content/pipelines/table/EmptyEdgePipelines';
 
 const EdgePipelinesPage = () => {
-  const { models, pipelines } = React.useContext(EdgeContext);
+  const { models, pipelines, refreshAll } = React.useContext(EdgeContext);
 
   return (
     <ApplicationsPage
@@ -14,7 +14,11 @@ const EdgePipelinesPage = () => {
       empty={models.data.length === 0}
       emptyStatePage={<EmptyEdgePipelines />}
     >
-      <EdgePipelineTable models={models.data} pipelines={pipelines.data} />
+      <EdgePipelineTable
+        models={models.data}
+        pipelines={pipelines.data}
+        refreshAllData={refreshAll}
+      />
     </ApplicationsPage>
   );
 };

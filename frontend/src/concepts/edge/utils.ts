@@ -4,11 +4,16 @@ import {
   PipelineRunTaskParam,
   PipelineWorkspaceDeclaration,
 } from '~/k8sTypes';
+import { genRandomChars } from '~/utilities/string';
+import { translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { createK8sPipelineRun, getTaskRun } from '~/api';
 import {
+  CreateRunCompletionType,
   EdgeModel,
   EdgeModelLocationType,
   EdgeModelParams,
   EdgeModelPipelineKnownWorkspaces,
+  EdgeModelPipelineTestDataWorkspace,
   EdgeModelRun,
   EdgeModelVersion,
 } from './types';
@@ -17,12 +22,16 @@ import { EdgeModelPipelineKnownResults, EdgeModelPipelineSecretWorkspace } from 
 export const isSecretWorkspace = (
   workspace: PipelineWorkspaceDeclaration,
 ): workspace is EdgeModelPipelineSecretWorkspace =>
-  (workspace.name === EdgeModelPipelineKnownWorkspaces.S3_SECRET ||
-    workspace.name === EdgeModelPipelineKnownWorkspaces.GIT_BASIC_AUTH) &&
+  workspace.name === EdgeModelPipelineKnownWorkspaces.S3_SECRET &&
   typeof workspace.secret === 'object' &&
   workspace.secret !== null &&
   'secretName' in workspace.secret &&
   typeof workspace.secret.secretName === 'string';
+
+export const isTestDataWorkspace = (
+  workspace: PipelineWorkspaceDeclaration,
+): workspace is EdgeModelPipelineTestDataWorkspace =>
+  workspace.name === EdgeModelPipelineKnownWorkspaces.TEST_DATA;
 
 const mapParamsToEdgeModelParams = (runParams: PipelineRunTaskParam[]): EdgeModelParams => {
   const paramMap = new Map(runParams.map((param) => [param.name, param.value]));
@@ -37,6 +46,7 @@ const mapParamsToEdgeModelParams = (runParams: PipelineRunTaskParam[]): EdgeMode
     gitModelRepo: paramMap.get('git-model-repo'),
     gitRevision: paramMap.get('git-revision'),
     targetImageRepo: paramMap.get('target-imagerepo'),
+    testEndpoint: paramMap.get('test-endpoint') || '',
   };
 };
 
@@ -115,6 +125,7 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
     if (!models[modelName].versions[modelVersion]) {
       models[modelName].versions[modelVersion] = {
         version: modelVersion,
+        latestRun: edgeModelRun,
         modelName,
         runs: [],
         latestSuccessfulImageUrl: undefined,
@@ -122,6 +133,20 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
     }
 
     models[modelName].versions[modelVersion].runs.push(edgeModelRun);
+
+    // update version if this run is more recent
+    if (
+      new Date(run.metadata.creationTimestamp ?? '') >
+      new Date(
+        models[modelName].versions[modelVersion].latestRun.run.metadata.creationTimestamp ?? '',
+      )
+    ) {
+      models[modelName].versions[modelVersion].latestRun = edgeModelRun;
+      if (edgeModelRun.containerImageUrl) {
+        models[modelName].versions[modelVersion].latestSuccessfulImageUrl =
+          edgeModelRun.containerImageUrl;
+      }
+    }
 
     // Update model if this run is more recent
     if (
@@ -140,3 +165,51 @@ export function organizePipelineRuns(runs: PipelineRunKind[]): Record<string, Ed
 
 export const getModelsForPipeline = (pipeline: PipelineKind, models: EdgeModel[]): EdgeModel[] =>
   models.filter((model) => model.latestRun.run.spec.pipelineRef?.name === pipeline?.metadata.name);
+
+export const reRunModel = async (model: EdgeModel, completionType: CreateRunCompletionType) => {
+  const run = model.latestRun.run;
+  const modelName = model.params.modelName;
+  const newVersion =
+    completionType === CreateRunCompletionType.INCREMENT
+      ? (parseInt(model.params.modelVersion) + 1).toString()
+      : model.params.modelVersion;
+
+  const newRun: PipelineRunKind = {
+    apiVersion: 'tekton.dev/v1beta1',
+    kind: 'PipelineRun',
+    metadata: {
+      name: translateDisplayNameForK8s(`${modelName}-${genRandomChars()}`),
+      namespace: run.metadata.namespace,
+      generateName: 'aiedge-e2e-',
+    },
+    spec: run.spec,
+  };
+
+  const newRunParams = newRun.spec?.params?.map((param) => {
+    if (param.name === 'model-version') {
+      return {
+        ...param,
+        value: newVersion,
+      };
+    }
+
+    return param;
+  });
+
+  newRun.spec = {
+    ...newRun.spec,
+    params: newRunParams,
+  };
+
+  return createK8sPipelineRun(newRun);
+};
+
+export const getTaskRunStatus = async (run: PipelineRunKind, taskResourceName: string) => {
+  if (taskResourceName && run.metadata.namespace) {
+    return getTaskRun(taskResourceName, run.metadata.namespace).then(
+      (taskRun) => taskRun.status.conditions[0],
+    );
+  }
+
+  return undefined;
+};

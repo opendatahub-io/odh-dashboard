@@ -3,8 +3,9 @@ import {
   k8sGetResource,
   k8sCreateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { PipelineRunKind, TaskRunKind } from '~/k8sTypes';
+import { K8sAPIOptions, PipelineRunKind, TaskRunKind } from '~/k8sTypes';
 import { PipelineRunModel, TaskRunModel } from '~/api/models';
+import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const listK8sPipelineRunsByLabel = async (
   namespace: string,
@@ -18,7 +19,7 @@ export const listK8sPipelineRunsByLabel = async (
     },
   }).then((listResource) => listResource.items);
 
-export const listK8sPipelineRun = async (
+export const listK8sPipelineRuns = async (
   namespace: string,
   name: string,
 ): Promise<PipelineRunKind[]> =>
@@ -42,8 +43,19 @@ export const getTaskRun = (name: string, namespace: string): Promise<TaskRunKind
     queryOptions: { name, ns: namespace },
   });
 
-export const createK8sPipelineRun = async (resource: PipelineRunKind): Promise<PipelineRunKind> =>
-  k8sCreateResource({
-    model: PipelineRunModel,
-    resource: resource,
-  });
+export const listTaskRuns = (namespace: string): Promise<TaskRunKind[]> =>
+  k8sListResource<TaskRunKind>({
+    model: TaskRunModel,
+    queryOptions: { ns: namespace },
+  }).then((listResource) => listResource.items);
+
+export const createK8sPipelineRun = async (
+  resource: PipelineRunKind,
+  opts?: K8sAPIOptions,
+): Promise<PipelineRunKind> =>
+  k8sCreateResource<PipelineRunKind>(
+    applyK8sAPIOptions(opts, {
+      model: PipelineRunModel,
+      resource: resource,
+    }),
+  );

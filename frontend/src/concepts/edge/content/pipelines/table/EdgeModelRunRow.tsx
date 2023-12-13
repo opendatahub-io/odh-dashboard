@@ -25,14 +25,14 @@ const EdgeModelRunRow: React.FC<EdgeModelRunRowProps> = ({ modelRun, model }) =>
     <Tr>
       <Td dataLabel="Pipeline name">
         <TableText>
-          <Link to={`/edgePipeline/pipelineRun/view/${modelRun.run.metadata.name}`}>
+          <Link to={`/edgePipelines/pipelineRun/view/${modelRun.run.metadata.name}`}>
             {modelRun.run.metadata.name}
           </Link>
         </TableText>
       </Td>
       <Td dataLabel="Model">{modelRun.modelName}</Td>
       <Td dataLabel="Status">
-        <EdgeStatus status={modelRun.status} />
+        <EdgeStatus status={modelRun.status} run={modelRun.run} />
       </Td>
       <Td dataLabel="Created">
         {createdTime ? relativeTime(Date.now(), createdTime.getTime()) : ''}
@@ -42,7 +42,7 @@ const EdgeModelRunRow: React.FC<EdgeModelRunRowProps> = ({ modelRun, model }) =>
           (isOverridden ? (
             <TableText>
               {`Output file overwritten by `}
-              <Link to={`/edgePipeline/pipelineRun/view/${model.latestRun.run.metadata.name}`}>
+              <Link to={`/edgePipelines/pipelineRun/view/${model.latestRun.run.metadata.name}`}>
                 {model.latestRun.run.metadata.name}
               </Link>
             </TableText>

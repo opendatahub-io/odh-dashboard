@@ -69,7 +69,7 @@ const EdgePipelineRow: React.FC<EdgePipelineRowProps> = ({
         />
         <Td dataLabel="Pipeline name">
           <TableText>
-            <Link to={`/edgePipeline/pipeline/view/${pipeline.metadata.name}`}>
+            <Link to={`/edgePipelines/pipeline/view/${pipeline.metadata.name}`}>
               {pipeline.metadata.name}
             </Link>
           </TableText>
@@ -78,7 +78,7 @@ const EdgePipelineRow: React.FC<EdgePipelineRowProps> = ({
           {lastRunStartTime ? relativeTime(Date.now(), lastRunStartTime.getTime()) : ''}
         </Td>
         <Td dataLabel="Last run status">
-          <EdgeStatus status={lastRun.status} />
+          <EdgeStatus status={lastRun.status} run={lastRun.run} />
         </Td>
         <Td dataLabel="Runs">{sortedRuns.length}</Td>
         <Td modifier="fitContent">
