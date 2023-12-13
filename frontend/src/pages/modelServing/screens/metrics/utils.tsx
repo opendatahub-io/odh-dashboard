@@ -33,9 +33,9 @@ export const getServerMetricsQueries = (
   const name = server.metadata.name;
   const responseTimeStep = QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME][currentTimeframe];
   return {
-    [ServerMetricType.REQUEST_COUNT]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${
+    [ServerMetricType.REQUEST_COUNT]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${
       QueryTimeframeStep[ServerMetricType.REQUEST_COUNT][currentTimeframe]
-    }s]))`,
+    }s])))`,
     [ServerMetricType.AVG_RESPONSE_TIME]: `increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])/increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])`,
     [ServerMetricType.CPU_UTILIZATION]: `sum(pod:container_cpu_usage:sum{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="cpu", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
     [ServerMetricType.MEMORY_UTILIZATION]: `sum(container_memory_working_set_bytes{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="memory", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
@@ -50,12 +50,12 @@ export const getModelMetricsQueries = (
   const name = model.metadata.name;
 
   return {
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
       QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
-    }s]))`,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
-      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
-    }s]))`,
+    }s])))`,
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
+      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED][currentTimeframe]
+    }s])))`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
   };
