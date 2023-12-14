@@ -21,7 +21,7 @@ const useEdgeS3Secret = (
         try {
           data = JSON.parse(atob(secret.data['s3-storage-config']));
         } catch (e) {
-          throw new Error(`Secret ${secretName} data is not an edge s3 secret.`);
+          throw new Error(`Secret ${secretName} data cannot be parsed`);
         }
 
         return Object.entries(data).map(([key, value]) => ({

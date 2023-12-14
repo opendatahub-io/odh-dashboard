@@ -39,7 +39,13 @@ export const EdgeModelsTable: React.FC<EdgeModelsTableProps> = ({
     return <EmptyEdgePipelines />;
   }
 
-  if (models.length === 0) {
+  const sortedModels = models.sort(
+    (a, b) =>
+      new Date(b.latestRun.run.metadata.creationTimestamp ?? '').getTime() -
+      new Date(a.latestRun.run.metadata.creationTimestamp ?? '').getTime(),
+  );
+
+  if (sortedModels.length === 0) {
     return (
       <>
         <EmptyState variant={EmptyStateVariant.lg}>
@@ -76,7 +82,7 @@ export const EdgeModelsTable: React.FC<EdgeModelsTableProps> = ({
   return (
     <>
       <Table
-        data={models}
+        data={sortedModels}
         columns={edgeModelsColumns}
         rowRenderer={(model, rowIndex) => (
           <EdgeModelRow

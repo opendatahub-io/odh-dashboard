@@ -46,7 +46,7 @@ export enum EdgeModelLocationType {
 
 export type EdgeModelRun = {
   run: PipelineRunKind;
-  status?: K8sCondition; // or more detailed status type
+  status?: K8sCondition;
   containerImageUrl?: string;
   modelName: string;
   version: string;
@@ -54,10 +54,10 @@ export type EdgeModelRun = {
 
 export type EdgeModelVersion = {
   version: string;
-  latestSuccessfulImageUrl?: string;
-  latestRun: EdgeModelRun;
-  runs: EdgeModelRun[];
   modelName: string;
+  latestRun: EdgeModelRun;
+  latestSuccessfulRun?: EdgeModelRun;
+  runs: EdgeModelRun[];
 };
 
 export type EdgeModelParams = {
@@ -75,7 +75,6 @@ export type EdgeModelParams = {
 
 export type EdgeModel = {
   params: EdgeModelParams;
-  gitBasicAuthSecretName?: string;
   s3SecretName?: string;
   versions: { [key: string]: EdgeModelVersion };
   latestRun: EdgeModelRun;
@@ -119,6 +118,7 @@ export type EdgeModelState = {
   gitModelRepo?: string;
   gitRevision?: string;
   modelRelativePath: string;
+  s3BucketName: string;
 };
 
 export enum CreateRunCompletionType {

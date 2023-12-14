@@ -1,8 +1,9 @@
-import { Icon, Popover, Spinner, Split, SplitItem } from '@patternfly/react-core';
+import { Icon, Popover, Spinner, Split, SplitItem, Text } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { K8sCondition, PipelineRunKind } from '~/k8sTypes';
 import { EdgeContext } from '~/concepts/edge/content/EdgeContext';
+import '~/pages/projects/notebook/NotebookStatusText.scss';
 
 type EdgeStatusProps = {
   status?: K8sCondition;
@@ -36,23 +37,27 @@ export const EdgeStatus: React.FC<EdgeStatusProps> = ({ status, run }) => {
       <Spinner size="md" />
     );
   return (
-    <Popover
-      alertSeverityVariant={
-        currentStatus?.status === 'True'
-          ? 'success'
-          : currentStatus?.status === 'False'
-          ? 'danger'
-          : 'info'
-      }
-      aria-label="Status popover"
-      headerIcon={statusIcon}
-      headerContent={currentStatus?.reason}
-      bodyContent={currentStatus?.message}
-    >
-      <Split hasGutter>
-        <SplitItem>{statusIcon}</SplitItem>
-        <SplitItem>{currentStatus?.reason ?? 'Unknown'}</SplitItem>
-      </Split>
-    </Popover>
+    <Split hasGutter>
+      <SplitItem>{statusIcon}</SplitItem>
+      <SplitItem>
+        <Popover
+          alertSeverityVariant={
+            currentStatus?.status === 'True'
+              ? 'success'
+              : currentStatus?.status === 'False'
+              ? 'danger'
+              : 'info'
+          }
+          aria-label="Status popover"
+          headerIcon={statusIcon}
+          headerContent={currentStatus?.reason}
+          bodyContent={currentStatus?.message}
+        >
+          <Text className="odh-notebook-status-popover__starting-text">
+            {currentStatus?.reason ?? 'Unknown'}
+          </Text>
+        </Popover>
+      </SplitItem>
+    </Split>
   );
 };

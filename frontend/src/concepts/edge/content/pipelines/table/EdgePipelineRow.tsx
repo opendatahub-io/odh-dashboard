@@ -95,6 +95,7 @@ const EdgePipelineRow: React.FC<EdgePipelineRowProps> = ({
       </Tr>
       {isExpanded && (
         <Tr isExpanded={isExpanded}>
+          <Td />
           <Td colSpan={edgePipelineColumns.length}>
             <ExpandableRowContent>
               <Table

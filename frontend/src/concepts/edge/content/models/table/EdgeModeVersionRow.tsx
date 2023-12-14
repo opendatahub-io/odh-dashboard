@@ -1,6 +1,7 @@
 import React from 'react';
 import { TableText, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { EdgeModelVersion } from '~/concepts/edge/types';
 import { relativeTime } from '~/utilities/time';
 
@@ -27,8 +28,23 @@ const EdgeModeVersionRow: React.FC<EdgeModeVersionRowProps> = ({ version }) => (
         </Link>
       </TableText>
     </Td>
-
-    <Td dataLabel="Model container image URL">{<i>{version.latestSuccessfulImageUrl}</i>}</Td>
+    <Td dataLabel="Model container image URL">
+      {version.latestSuccessfulRun ? (
+        <TableText>
+          <a
+            href={`https://${version.latestSuccessfulRun?.containerImageUrl}:${version.version}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {`${version.latestSuccessfulRun?.containerImageUrl}:${version.version}`}
+            {'   '}
+            <ExternalLinkAltIcon />
+          </a>
+        </TableText>
+      ) : (
+        ''
+      )}
+    </Td>
   </Tr>
 );
 

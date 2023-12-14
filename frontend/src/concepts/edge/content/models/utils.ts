@@ -4,10 +4,9 @@ import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { createK8sPipelineRun } from '~/api';
 import { EdgeModelLocationType, EdgeModelState } from '~/concepts/edge/types';
 import { EDGE_PIPELINE_NAME } from '~/concepts/edge/const';
-import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { FieldOptions } from '~/components/FieldList';
-import { EDGE_S3_FIELDS } from './const';
+import { EDGE_S3_FIELDS, EDGE_S3_KEYS } from './const';
 
 export const getAdditionalRequiredEdgeS3Fields = (
   additionalRequiredFields?: string[],
@@ -36,8 +35,6 @@ export const assembleEdgePipelineRun = (
   namespace: string,
   s3SecretName?: string,
 ) => {
-  const paramMap = new Map(data.s3Location.map((param) => [param.key, param.value]));
-
   let pipelineRunParams: PipelineRunTaskParam[] = [];
 
   const commonParams = [
@@ -51,7 +48,7 @@ export const assembleEdgePipelineRun = (
     },
     {
       name: 'fetch-model',
-      value: paramMap.get(data.locationType) ?? '',
+      value: data.locationType,
     },
     {
       name: 'test-endpoint',
@@ -88,12 +85,16 @@ export const assembleEdgePipelineRun = (
       ...commonParams,
       {
         name: 's3-bucket-name',
-        value: paramMap.get('Name') ?? '',
+        value: data.s3BucketName ?? '',
       },
     ];
   } else {
     pipelineRunParams = [
       ...commonParams,
+      {
+        name: 's3-bucket-name',
+        value: '',
+      },
       {
         name: 'git-model-repo',
         value: data.gitModelRepo ?? '',
@@ -137,18 +138,15 @@ export const assembleEdgePipelineRun = (
           },
           name: 'test-data',
         },
+        {
+          name: 's3-secret',
+          secret: {
+            secretName: s3SecretName ?? '__placeholder',
+          },
+        },
       ],
     },
   };
-
-  if (data.locationType === EdgeModelLocationType.S3) {
-    resource.spec.workspaces.push({
-      name: 's3-secret',
-      secret: {
-        secretName: s3SecretName,
-      },
-    });
-  }
 
   return resource;
 };
@@ -175,12 +173,12 @@ export const assembleEdgeS3Secret = (
   const storageConfigData = {
     type: 's3',
     // eslint-disable-next-line camelcase
-    access_key_id: locationData.get(AWS_KEYS.ACCESS_KEY_ID),
+    access_key_id: locationData.get(EDGE_S3_KEYS.ACCESS_KEY_ID),
     // eslint-disable-next-line camelcase
-    secret_access_key: locationData.get(AWS_KEYS.SECRET_ACCESS_KEY),
+    secret_access_key: locationData.get(EDGE_S3_KEYS.SECRET_ACCESS_KEY),
     // eslint-disable-next-line camelcase
-    endpoint_url: locationData.get(AWS_KEYS.S3_ENDPOINT),
-    region: locationData.get(AWS_KEYS.DEFAULT_REGION),
+    endpoint_url: locationData.get(EDGE_S3_KEYS.S3_ENDPOINT),
+    region: locationData.get(EDGE_S3_KEYS.REGION),
   };
 
   return {
@@ -189,9 +187,13 @@ export const assembleEdgeS3Secret = (
     metadata: {
       name: name,
       namespace: namespace,
+      labels: {
+        app: 'rhoai-edge-pipelines',
+        'app.kubernetes.io/part-of': 'rhoai-edge-pipelines',
+      },
     },
     stringData: {
-      'aws-storage-config': JSON.stringify(storageConfigData),
+      's3-storage-config': JSON.stringify(storageConfigData),
     },
   };
 };
