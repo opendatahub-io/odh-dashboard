@@ -9,37 +9,59 @@ import {
   PipelineRunJobKF,
   PipelineRunKF,
   PipelineCoreResourceKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 
 export const pipelineColumns: SortableData<PipelineKF>[] = [
   expandTableColumn(),
+  checkboxTableColumn(),
   {
     label: 'Pipeline name',
     field: 'name',
     sortable: (a, b) => a.name.localeCompare(b.name),
-    width: 25,
+    width: 40,
   },
   {
-    label: 'Last run',
-    field: 'lastRun',
+    label: 'Versions',
+    field: 'versions',
     sortable: false,
-  },
-  {
-    label: 'Last run status',
-    field: 'lastRunStatus',
-    sortable: false,
-  },
-  {
-    label: 'Last run time',
-    field: 'lastRunTime',
-    sortable: false,
+    width: 20,
   },
   {
     label: 'Created',
     field: 'created_at',
     sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    width: 20,
+  },
+  {
+    label: 'Updated',
+    field: 'updated',
+    sortable: false,
+    width: 20,
   },
   kebabTableColumn(),
+];
+
+export const pipelineVersionColumns: SortableData<PipelineVersionKF>[] = [
+  checkboxTableColumn(),
+  {
+    label: 'Pipeline version',
+    field: 'name',
+    sortable: (a, b) => a.name.localeCompare(b.name),
+    width: 60,
+  },
+  {
+    label: 'Created',
+    field: 'created_at',
+    sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    width: 20,
+  },
+  {
+    label: '',
+    field: 'Action',
+    sortable: false,
+    width: 20,
+  },
 ];
 
 const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [

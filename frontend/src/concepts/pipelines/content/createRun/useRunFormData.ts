@@ -216,8 +216,6 @@ const useRunFormData = (
       name: initialData?.name ? `Duplicate of ${initialData.name}` : '',
       description: initialData?.description ?? '',
     },
-    pipelinesLoaded: false,
-    pipelineVersionsLoaded: false,
     pipeline: lastPipeline ?? null,
     version: lastVersion ?? lastPipeline?.default_version ?? null,
     // experiment: null,

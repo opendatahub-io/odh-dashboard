@@ -1,29 +1,6 @@
 /* eslint-disable camelcase */
 import { PipelineVersionKF, RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 
-export const buildMockPipelineVersion = (
-  pipelineVersion?: Partial<PipelineVersionKF>,
-): PipelineVersionKF => ({
-  id: '8ce2d041-3eb9-41a0-828c-45209fdf1c20',
-  name: 'version-1',
-  created_at: '2023-12-07T16:08:01Z',
-  resource_references: [
-    {
-      key: { type: 'PIPELINE' as ResourceTypeKF, id: 'b2ff4cbf-f7f5-4c8a-b454-906bd9b00510' },
-      relationship: 'OWNER' as RelationshipKF,
-    },
-  ],
-  description: 'test',
-  ...pipelineVersion,
-});
-
-export const buildMockPipelineVersions = (
-  versions: PipelineVersionKF[] = mockPipelineVersionsList,
-) => ({
-  versions,
-  total_size: versions.length,
-});
-
 export const mockPipelineVersionsList: PipelineVersionKF[] = [
   {
     id: 'ad1b7153-d2fd-4e5e-ae12-30c824b19b03',
@@ -209,3 +186,47 @@ export const mockPipelineVersionsList: PipelineVersionKF[] = [
     ],
   },
 ];
+
+export const buildMockPipelineVersion = (
+  pipelineVersion?: Partial<PipelineVersionKF>,
+): PipelineVersionKF => ({
+  id: '8ce2d041-3eb9-41a0-828c-45209fdf1c20',
+  name: 'version-1',
+  created_at: '2023-12-07T16:08:01Z',
+  resource_references: [
+    {
+      key: { type: 'PIPELINE' as ResourceTypeKF, id: 'b2ff4cbf-f7f5-4c8a-b454-906bd9b00510' },
+      relationship: 'OWNER' as RelationshipKF,
+    },
+  ],
+  description: 'test',
+  ...pipelineVersion,
+});
+
+export const buildMockPipelineVersions = (
+  versions: PipelineVersionKF[] = mockPipelineVersionsList,
+  totalSize?: number,
+  nextPageToken?: string,
+) => ({
+  versions,
+  total_size: totalSize || versions.length,
+  next_page_token: nextPageToken,
+});
+
+export const mockPipelineVersionsListPage1 = buildMockPipelineVersions(
+  mockPipelineVersionsList.slice(0, 10),
+  mockPipelineVersionsList.length,
+  'next-page-token',
+);
+
+export const mockPipelineVersionsListPage2 = buildMockPipelineVersions(
+  mockPipelineVersionsList.slice(10),
+  mockPipelineVersionsList.length,
+);
+
+export const mockPipelineVersionsListSearch = (search: string) => {
+  const filteredVersions = mockPipelineVersionsList
+    .filter((version) => version.name.startsWith(search))
+    .slice(0, 10);
+  return buildMockPipelineVersions(filteredVersions, filteredVersions.length);
+};

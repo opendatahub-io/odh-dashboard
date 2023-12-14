@@ -39,8 +39,6 @@ const runTypeSafeDates = (runType: RunFormData['runType']): boolean =>
 
 export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunFormData =>
   !!formData.nameDesc.name &&
-  formData.pipelinesLoaded &&
-  formData.pipelineVersionsLoaded &&
   !!formData.pipeline &&
   !!formData.version &&
   !!formData.params &&

@@ -15,8 +15,6 @@ import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
-import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import { generatePipelineVersionName } from '~/concepts/pipelines/content/import/utils';
 
 type PipelineVersionImportModalProps = {
@@ -31,7 +29,6 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   onClose,
 }) => {
   const { project, api, apiAvailable } = usePipelinesAPI();
-  const [{ items: pipelines }, loaded] = usePipelines({}, 0);
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [{ name, description, pipelineId, pipelineName, fileContents }, setData, resetData] =
@@ -88,23 +85,12 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
           <StackItem>
             <FormGroup label="Pipeline" isRequired fieldId="pipeline-selection">
               <PipelineSelector
-                toggleId="pipeline-selection"
-                name={pipelineName}
-                data={pipelines}
-                columns={pipelineSelectorColumns}
-                onSelect={(id) => {
-                  const pipeline = pipelines.find((p) => p.id === id);
-                  if (pipeline) {
-                    setData('pipelineId', pipeline.id);
-                    setData('pipelineName', pipeline.name);
-                    setData('name', generatePipelineVersionName(pipeline));
-                  }
+                selection={pipelineName}
+                onSelect={(pipeline) => {
+                  setData('pipelineId', pipeline.id);
+                  setData('pipelineName', pipeline.name);
+                  setData('name', generatePipelineVersionName(pipeline));
                 }}
-                isLoading={!loaded}
-                placeHolder={
-                  pipelines.length === 0 ? 'No pipelines available' : 'Select a pipeline'
-                }
-                searchHelperText={`Type a name to search your ${pipelines.length} pipelines.`}
               />
             </FormGroup>
           </StackItem>
@@ -151,4 +137,8 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   );
 };
 
-export default PipelineVersionImportModal;
+const PipelineVersionImportModalWrapper = (props: PipelineVersionImportModalProps) => (
+  <PipelineVersionImportModal key={props.existingPipeline?.id} {...props} />
+);
+
+export default PipelineVersionImportModalWrapper;
