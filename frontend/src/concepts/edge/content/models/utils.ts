@@ -124,8 +124,15 @@ export const assembleEdgePipelineRun = (
       workspaces: [
         {
           name: 'buildah-cache',
-          persistentVolumeClaim: {
-            claimName: 'buildah-cache-pvc',
+          volumeClaimTemplate: {
+            spec: {
+              accessModes: ['ReadWriteOnce'],
+              resources: {
+                requests: {
+                  storage: '1Gi',
+                },
+              },
+            },
           },
         },
         {

@@ -90,14 +90,21 @@ export const mockEdgePipelineRun = ({
     workspaces: [
       {
         name: 'buildah-cache',
-        persistentVolumeClaim: {
-          claimName: 'buildah-cache-pvc',
+        volumeClaimTemplate: {
+          spec: {
+            accessModes: ['ReadWriteOnce'],
+            resources: {
+              requests: {
+                storage: '1Gi',
+              },
+            },
+          },
         },
       },
       {
         name: 's3-secret',
         secret: {
-          secretName: 'lvl-s3-credentials-env',
+          secretName: 'credentials-s3',
         },
       },
       {
