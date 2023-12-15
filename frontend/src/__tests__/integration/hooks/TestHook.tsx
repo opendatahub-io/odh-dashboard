@@ -21,7 +21,7 @@ export const TestHook = <T extends any[]>({
   hook,
   defaultHookParams,
   hookParams = [],
-}: TestHookProps<T>) => {
+}: TestHookProps<T>): React.JSX.Element => {
   const [selectedParam, setSelectedParam] = useState<T>(defaultHookParams);
 
   // call hook

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useFetchState, { FetchStateCallbackPromise } from '~/utilities/useFetchState';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { POLL_INTERVAL } from '~/utilities/const';
 
-const useExperiments = () => {
+const useExperiments = (): FetchState<ExperimentKF[]> => {
   const { api } = usePipelinesAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<ExperimentKF[]>>(

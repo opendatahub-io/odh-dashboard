@@ -1,7 +1,7 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 
 export class TableRow extends Contextual<HTMLTableRowElement> {
-  shouldBeMarkedForDeletion() {
+  shouldBeMarkedForDeletion(): this {
     this.find()
       .findByRole('button', { name: 'This resource is marked for deletion.' })
       .should('exist');

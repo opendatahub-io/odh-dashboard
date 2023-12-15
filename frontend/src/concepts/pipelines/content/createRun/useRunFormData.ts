@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
+import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import {
   RunDateTime,
@@ -104,7 +104,7 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
 export const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRunJobKF,
-) => {
+): void => {
   React.useEffect(() => {
     if (!isPipelineRunJob(initialData)) {
       return;
@@ -146,7 +146,7 @@ export const useUpdateRunType = (
 const useRunFormData = (
   initialData?: PipelineRunKF | PipelineRunJobKF,
   lastPipeline?: PipelineKF,
-) => {
+): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
 
   const objState = useGenericObjectState<RunFormData>({

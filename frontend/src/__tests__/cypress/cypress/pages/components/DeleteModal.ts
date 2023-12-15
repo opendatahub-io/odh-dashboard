@@ -6,11 +6,11 @@ export class DeleteModal extends Modal {
     super(title);
   }
 
-  findInput() {
+  findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByLabelText('Delete modal input');
   }
 
-  findSubmitButton() {
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findFooter().findByRole('button', { name: /Delete/ });
   }
 }

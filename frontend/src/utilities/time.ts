@@ -56,7 +56,7 @@ export const ensureTimeFormat = (time: string): string | null => {
   return `${match[1]} ${match[2]}`;
 };
 
-export const printSeconds = (seconds: number) => {
+export const printSeconds = (seconds: number): string => {
   const timeBlocks = [
     { unit: 'second', maxPer: 60 },
     { unit: 'minute', maxPer: 60 },
