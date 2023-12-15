@@ -5,9 +5,10 @@ import {
   k8sGetResource,
   k8sListResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '~/api/models';
-import { InferenceServiceKind, K8sAPIOptions, K8sStatus, KnownLabels } from '~/k8sTypes';
+import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';

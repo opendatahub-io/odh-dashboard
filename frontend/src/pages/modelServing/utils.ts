@@ -1,4 +1,5 @@
 import * as _ from 'lodash';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   isCpuLimitEqual,
   isCpuLimitLarger,
@@ -19,7 +20,6 @@ import {
 } from '~/api';
 import {
   SecretKind,
-  K8sStatus,
   K8sAPIOptions,
   RoleBindingKind,
   ServingRuntimeKind,
