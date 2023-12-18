@@ -68,7 +68,7 @@ export const Default: StoryObj = {
         path="/:namespace?/*"
         element={
           <GlobalPipelineCoreLoader
-            title={'Test Pipeline'}
+            title="Test Pipeline"
             getInvalidRedirectPath={(namespace) => `${namespace}/pipeline/`}
           />
         }

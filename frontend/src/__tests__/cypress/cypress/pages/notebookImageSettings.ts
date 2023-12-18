@@ -16,7 +16,8 @@ class NotebookImageSettings {
   }
 
   private wait() {
-    cy.findByRole('button', { name: 'Import new image', timeout: 10000 });
+    cy.findByRole('button', { name: 'Import new image' });
+    cy.testA11y();
   }
 
   findImportImageButton() {

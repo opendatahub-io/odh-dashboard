@@ -6,9 +6,6 @@ import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
 class ModelServingGlobal {
   visit(project?: string) {
     cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
-    cy.findByText('Manage and view the health and performance of your deployed models.', {
-      timeout: 10000,
-    });
     this.wait();
   }
 
@@ -18,9 +15,8 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByText('Manage and view the health and performance of your deployed models.', {
-      timeout: 10000,
-    });
+    cy.findByText('Manage and view the health and performance of your deployed models.');
+    cy.testA11y();
   }
 
   shouldBeEmpty() {
