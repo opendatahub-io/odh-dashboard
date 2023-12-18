@@ -5,8 +5,9 @@ import {
   k8sGetResource,
   k8sListResource,
   k8sPatchResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, K8sStatus, KnownLabels, RoleBindingKind } from '~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, RoleBindingKind } from '~/k8sTypes';
 import { RoleBindingModel } from '~/api/models';
 import {
   ProjectSharingRBType,

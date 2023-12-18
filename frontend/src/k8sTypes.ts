@@ -228,16 +228,6 @@ export type K8sAPIOptions = {
   signal?: AbortSignal;
 };
 
-/** A status object when Kube backend can't handle a request. */
-export type K8sStatus = {
-  kind: string;
-  apiVersion: string;
-  code: number;
-  message: string;
-  reason: string;
-  status: string;
-};
-
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;

@@ -3,8 +3,9 @@ import {
   k8sDeleteResource,
   k8sGetResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ConfigMapKind, K8sStatus, KnownLabels } from '~/k8sTypes';
+import { ConfigMapKind, KnownLabels } from '~/k8sTypes';
 import { ConfigMapModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 

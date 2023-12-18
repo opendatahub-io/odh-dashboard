@@ -1,3 +1,4 @@
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
 
@@ -13,13 +14,8 @@ type MockResourceConfigType = {
   url?: string;
 };
 
-type InferenceServicek8sError = {
-  kind: string;
-  apiVersion: string;
+type InferenceServicek8sError = K8sStatus & {
   metadata: Record<string, unknown>;
-  status: string;
-  message: string;
-  reason: string;
   details: {
     name: string;
     group: string;
@@ -36,6 +32,7 @@ export const mockInferenceServicek8sError = (): InferenceServicek8sError => ({
   kind: 'Status',
   apiVersion: 'v1',
   metadata: {},
+  code: 400,
   status: 'Failure',
   message:
     'InferenceService.serving.kserve.io "trigger-error" is invalid: [metadata.name: Invalid value: "trigger-error": is invalid, metadata.labels: Invalid value: "trigger-error": must have proper format]',
