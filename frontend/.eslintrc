@@ -91,6 +91,7 @@
     "@typescript-eslint/no-inferrable-types": "error",
     "@typescript-eslint/no-unused-vars": "error",
     "@typescript-eslint/explicit-module-boundary-types": "error",
+    "react/self-closing-comp": "error",
     "react-hooks/exhaustive-deps": "error",
     "react-hooks/rules-of-hooks": "error",
     "import/extensions": "off",

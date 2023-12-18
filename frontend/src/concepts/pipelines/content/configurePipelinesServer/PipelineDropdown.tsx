@@ -77,7 +77,7 @@ export const PipelineDropdown = ({
     <Dropdown
       menuAppendTo="parent"
       position={DropdownPosition.right}
-      toggle={<MenuToggle onClick={onToggle} icon={<KeyIcon />}></MenuToggle>}
+      toggle={<MenuToggle onClick={onToggle} icon={<KeyIcon />} />}
       isOpen={isOpen}
     >
       <Menu onSelect={onSelect} isScrollable isPlain>
