@@ -182,10 +182,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <ServingRuntimeNameSection
-              data={createData}
-              setData={setCreateData}
-            ></ServingRuntimeNameSection>
+            <ServingRuntimeNameSection data={createData} setData={setCreateData} />
           </StackItem>
           <StackItem>
             <ServingRuntimeTemplateSection
