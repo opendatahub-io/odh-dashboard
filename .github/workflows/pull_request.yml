@@ -33,7 +33,9 @@ jobs:
         uses: actions/cache@v3
         id: frontend-cache
         with:
-          path: ${{ github.workspace }}/frontend/node_modules
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
