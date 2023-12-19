@@ -84,6 +84,7 @@
     "object-shorthand": ["error", "always"],
     "no-console": "error",
     "no-param-reassign": "error",
+    "@typescript-eslint/no-base-to-string": "error",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/interface-name-prefix": "off",
     "@typescript-eslint/no-var-requires": "off",
