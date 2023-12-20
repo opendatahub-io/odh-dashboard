@@ -151,7 +151,7 @@
     "@storybook/jest": "0.1.0",
     "@storybook/react": "^7.0.17",
     "@storybook/react-webpack5": "^7.0.17",
-    "@storybook/test-runner": "^0.10.0",
+    "@storybook/test-runner": "^0.16.0",
     "@storybook/testing-library": "0.1.0",
     "@types/jest": "^28.1.8",
     "axe-playwright": "^1.2.3",
