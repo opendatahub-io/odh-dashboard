@@ -30,7 +30,7 @@ import { convertDateToTimeString, convertSecondsToPeriodicTime } from '~/utiliti
 
 const isPipelineRunJob = (
   runOrJob?: PipelineRunJobKF | PipelineRunKF,
-): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
+): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF | undefined)?.trigger;
 
 const useUpdateData = <T extends PipelineCoreResourceKF>(
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
@@ -64,7 +64,7 @@ const useUpdatePipeline = (
         'params',
         initialData?.pipeline_spec.parameters?.map((p) => ({
           label: p.name,
-          value: p.value ?? '',
+          value: p.value,
         })) ?? [],
       );
     },
@@ -117,7 +117,7 @@ export const useUpdateRunType = (
     let value: string;
     if (trigger.cron_schedule) {
       triggerType = ScheduledType.CRON;
-      value = trigger.cron_schedule.cron ?? DEFAULT_CRON_STRING;
+      value = trigger.cron_schedule.cron || DEFAULT_CRON_STRING;
       start = parseKFTime(trigger.cron_schedule.start_time);
       end = parseKFTime(trigger.cron_schedule.end_time);
     } else if (trigger.periodic_schedule) {
@@ -160,7 +160,7 @@ const useRunFormData = (
     // experiment: null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: lastPipeline
-      ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }))
+      ? (lastPipeline.parameters || []).map((p) => ({ label: p.name, value: p.value }))
       : undefined,
   });
 

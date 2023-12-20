@@ -27,7 +27,7 @@ export const usePipelineTaskTopology = (
 
     const hasRunAfters = tasks.some((t) => !!t.runAfter);
 
-    const edgeLookupMap = tasks.reduce<Record<string, Set<string>>>((acc, task) => {
+    const edgeLookupMap = tasks.reduce<Record<string, Set<string> | undefined>>((acc, task) => {
       const { name, params, when, runAfter } = task;
 
       const targets: string[] = [];
@@ -47,7 +47,7 @@ export const usePipelineTaskTopology = (
         }
       }
 
-      return targets.reduce((acc, target) => {
+      return targets.reduce<Record<string, Set<string> | undefined>>((acc, target) => {
         let set = acc[name];
         if (!set) {
           set = new Set();
@@ -61,7 +61,7 @@ export const usePipelineTaskTopology = (
     return tasks.reduce<KubeFlowTaskTopology>(
       (acc, task) => {
         const runAfter: string[] | undefined = edgeLookupMap[task.name]
-          ? Array.from(edgeLookupMap[task.name])
+          ? Array.from(edgeLookupMap[task.name] || [])
           : undefined;
 
         let relatedStatusData: PipelineRunTaskRunDetails | undefined;

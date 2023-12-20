@@ -95,7 +95,7 @@ export const getNotebookControllerUserState = (
   notebook: Notebook | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
-  if (!notebook?.metadata?.annotations || !notebook?.metadata?.labels) {
+  if (!notebook?.metadata.annotations || !notebook.metadata.labels) {
     return null;
   }
 

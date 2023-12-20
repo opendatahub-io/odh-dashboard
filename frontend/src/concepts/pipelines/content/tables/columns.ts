@@ -70,7 +70,7 @@ const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
     label: 'Pipeline',
     field: 'pipeline',
     sortable: (a, b) =>
-      getPipelineCoreResourcePipelineName(a)?.localeCompare(getPipelineCoreResourcePipelineName(b)),
+      getPipelineCoreResourcePipelineName(a).localeCompare(getPipelineCoreResourcePipelineName(b)),
     width: 15,
   },
 ];

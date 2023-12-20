@@ -12,7 +12,9 @@ export type GetJobInformation = (resource: PipelineCoreResourceKF) => JobStatus;
 
 const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } => {
   const { api } = usePipelinesAPI();
-  const [jobStorage, setJobStorage] = React.useState<{ [jobId: string]: JobStatus }>({});
+  const [jobStorage, setJobStorage] = React.useState<{ [jobId: string]: JobStatus } | undefined>(
+    {},
+  );
   const loadedIds = React.useRef<string[]>([]);
 
   return {
@@ -23,7 +25,7 @@ const useJobRelatedInformation = (): { getJobInformation: GetJobInformation } =>
           return { loading: false, data: null };
         }
         const jobId = jobReference.key.id;
-        if (jobStorage[jobId]) {
+        if (jobStorage?.[jobId]) {
           return jobStorage[jobId];
         }
         if (loadedIds.current.includes(jobId)) {

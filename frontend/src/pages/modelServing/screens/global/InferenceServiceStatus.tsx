@@ -19,7 +19,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   isKserve,
 }) => {
   const [modelStatus] = useModelStatus(
-    inferenceService?.metadata.namespace ?? '',
+    inferenceService.metadata.namespace,
     inferenceService.spec.predictor.model.runtime ?? '',
     isKserve,
   );

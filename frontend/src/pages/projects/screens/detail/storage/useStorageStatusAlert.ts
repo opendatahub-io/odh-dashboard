@@ -6,10 +6,12 @@ import { getPvcDisplayName } from '~/pages/projects/utils';
 import { getFullStatusFromPercentage } from './utils';
 
 type PercentageStorageStatus = {
-  [projectName: string]: {
-    /** string value is the last status that was used for this pvcName */
-    [pvcName: string]: string;
-  };
+  [projectName: string]:
+    | {
+        /** string value is the last status that was used for this pvcName */
+        [pvcName: string]: string;
+      }
+    | undefined;
 };
 
 const useStorageStatusAlert = (pvc: PersistentVolumeClaimKind, percentageFull: number): void => {

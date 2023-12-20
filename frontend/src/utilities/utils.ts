@@ -115,7 +115,7 @@ export const matchesSearch = (odhDoc: OdhDocument, filterText: string): boolean 
     (appName && appName.toLowerCase().includes(searchText)) ||
     (provider && provider.toLowerCase().includes(searchText)) ||
     displayName.toLowerCase().includes(searchText) ||
-    (description?.toLowerCase().includes(searchText) ?? false)
+    description.toLowerCase().includes(searchText)
   );
 };
 
@@ -141,7 +141,7 @@ export const getDashboardMainContainer = (): HTMLElement =>
   document.getElementById(DASHBOARD_MAIN_CONTAINER_ID) || document.body;
 
 export const isHTMLInputElement = (object: unknown): object is HTMLInputElement =>
-  (object as HTMLInputElement).value !== undefined;
+  (object as Partial<HTMLInputElement>).value !== undefined;
 
 export const normalizeBetween = (value: number, min?: number, max?: number): number => {
   let returnedValue = value;

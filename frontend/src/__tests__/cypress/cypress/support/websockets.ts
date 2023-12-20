@@ -77,7 +77,8 @@ export const setup = (on: Cypress.PluginEvents, config: Cypress.PluginConfigOpti
         searchParams?.forEach((v, k) => {
           hasAll = hasAll && i.searchParams.get(k) === v;
         });
-
+        // doesn’t recognize the assignment just above
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (hasAll) {
           i.ws.send(typeof data === 'string' ? data : JSON.stringify(data));
         }

@@ -35,7 +35,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
           setIsDeleting(true);
 
           const nonDataConnectionVariables = getEnvFromList(notebook).filter(
-            (envFrom) => !envFrom.secretRef?.name?.includes(DATA_CONNECTION_PREFIX),
+            (envFrom) => !envFrom.secretRef?.name.includes(DATA_CONNECTION_PREFIX),
           );
           const configMapNames = nonDataConnectionVariables
             .filter((envName): envName is ConfigMapRef => !!envName.configMapRef)

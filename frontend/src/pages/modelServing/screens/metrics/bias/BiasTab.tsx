@@ -91,30 +91,29 @@ const BiasTab: React.FC = () => {
         </StackItem>
         <PageSection isFilled>
           <Stack hasGutter>
-            {(biasMetricConfigs.length === 0 && (
+            {biasMetricConfigs.length === 0 ? (
               <StackItem>
                 <EmptyBiasConfigurationCard />
               </StackItem>
-            )) ||
-              (selectedBiasConfigs.length === 0 && (
-                <StackItem>
-                  <EmptyBiasChartSelectionCard />
-                </StackItem>
-              )) || (
-                <>
-                  {selectedBiasConfigs.map((x) => (
-                    <StackItem key={x.id}>
-                      <DashboardExpandableSection
-                        title={x.name}
-                        storageKey={`${OPEN_WRAPPER_STORAGE_KEY_PREFIX}-${x.id}`}
-                        data-testid={`expandable-section-${x.name}`}
-                      >
-                        <BiasChart biasMetricConfig={x} />
-                      </DashboardExpandableSection>
-                    </StackItem>
-                  ))}
-                </>
-              )}
+            ) : selectedBiasConfigs.length === 0 ? (
+              <StackItem>
+                <EmptyBiasChartSelectionCard />
+              </StackItem>
+            ) : (
+              <>
+                {selectedBiasConfigs.map((x) => (
+                  <StackItem key={x.id}>
+                    <DashboardExpandableSection
+                      title={x.name}
+                      storageKey={`${OPEN_WRAPPER_STORAGE_KEY_PREFIX}-${x.id}`}
+                      data-testid={`expandable-section-${x.name}`}
+                    >
+                      <BiasChart biasMetricConfig={x} />
+                    </DashboardExpandableSection>
+                  </StackItem>
+                ))}
+              </>
+            )}
           </Stack>
         </PageSection>
       </Stack>

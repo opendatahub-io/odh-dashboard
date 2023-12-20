@@ -97,7 +97,7 @@ const ExploreApplications: React.FC = () => {
   const queryParams = useQueryParams();
   const selectedId = queryParams.get('selectId');
   const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
-  const isEmpty = !components || components.length === 0;
+  const isEmpty = components.length === 0;
 
   const updateSelection = React.useCallback(
     (selectedId?: string | null): void => {
@@ -122,7 +122,7 @@ const ExploreApplications: React.FC = () => {
   );
 
   React.useEffect(() => {
-    if (components?.length > 0) {
+    if (components.length > 0) {
       updateSelection(selectedId);
     }
   }, [updateSelection, selectedId, components]);

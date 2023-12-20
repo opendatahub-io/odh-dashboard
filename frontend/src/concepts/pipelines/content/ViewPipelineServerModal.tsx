@@ -48,42 +48,40 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
     >
       {pipelineNamespaceCR && (
         <DescriptionList termWidth="20ch" isHorizontal>
-          {!!pipelineNamespaceCR.spec.objectStorage &&
-            !!pipelineNamespaceCR.spec.objectStorage.externalStorage &&
-            !!pipelineNamespaceCR.spec.objectStorage.externalStorage.s3CredentialsSecret
-              .secretName && (
-              <>
-                <Title headingLevel="h2">Object storage connection</Title>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Access key</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {pipelineSecret?.AWS_ACCESS_KEY_ID || ''}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Secret key</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <PasswordHiddenText password={pipelineSecret?.AWS_SECRET_ACCESS_KEY ?? ''} />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Endpoint</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {pipelineNamespaceCR.spec.objectStorage.externalStorage?.scheme &&
-                    pipelineNamespaceCR.spec.objectStorage.externalStorage?.host
-                      ? `${pipelineNamespaceCR.spec.objectStorage.externalStorage?.scheme}://${pipelineNamespaceCR.spec.objectStorage.externalStorage?.host}`
-                      : ''}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Bucket</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {pipelineNamespaceCR.spec.objectStorage.externalStorage?.bucket}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </>
-            )}
-          {!!pipelineNamespaceCR?.spec.database &&
+          {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret
+            .secretName && (
+            <>
+              <Title headingLevel="h2">Object storage connection</Title>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Access key</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {pipelineSecret.AWS_ACCESS_KEY_ID || ''}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Secret key</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <PasswordHiddenText password={pipelineSecret.AWS_SECRET_ACCESS_KEY ?? ''} />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Endpoint</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme &&
+                  pipelineNamespaceCR.spec.objectStorage.externalStorage.host
+                    ? `${pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme}://${pipelineNamespaceCR.spec.objectStorage.externalStorage.host}`
+                    : ''}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Bucket</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {pipelineNamespaceCR.spec.objectStorage.externalStorage.bucket}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </>
+          )}
+          {!!pipelineNamespaceCR.spec.database &&
             !!pipelineNamespaceCR.spec.database.externalDB &&
             !!databaseSecret[EXTERNAL_DATABASE_SECRET.KEY] && (
               <>
@@ -91,19 +89,19 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                 <DescriptionListGroup>
                   <DescriptionListTerm>Host</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {pipelineNamespaceCR.spec.database.externalDB?.host}
+                    {pipelineNamespaceCR.spec.database.externalDB.host}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Port</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {pipelineNamespaceCR.spec.database.externalDB?.port}
+                    {pipelineNamespaceCR.spec.database.externalDB.port}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Username</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {pipelineNamespaceCR.spec.database.externalDB?.username}
+                    {pipelineNamespaceCR.spec.database.externalDB.username}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
@@ -115,7 +113,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                 <DescriptionListGroup>
                   <DescriptionListTerm>Database</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {pipelineNamespaceCR.spec.database.externalDB?.pipelineDBName}
+                    {pipelineNamespaceCR.spec.database.externalDB.pipelineDBName}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </>

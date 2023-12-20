@@ -13,7 +13,7 @@ type ImageTagPopoverProps = {
 const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) => {
   const [isVisible, setIsVisible] = React.useState(false);
 
-  const dependencies = tag?.content?.dependencies ?? [];
+  const dependencies = tag?.content.dependencies ?? [];
   if (!description && !dependencies.length) {
     return null;
   }

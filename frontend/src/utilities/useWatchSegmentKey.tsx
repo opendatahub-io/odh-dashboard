@@ -29,9 +29,7 @@ export const useWatchSegmentKey = (): {
     watchSegmentKey();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, []);
 

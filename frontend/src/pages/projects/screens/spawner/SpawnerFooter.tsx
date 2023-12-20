@@ -89,7 +89,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       lastSelectedSize: notebookSize.name,
       lastSelectedImage: image.imageVersion?.from
         ? `${image.imageVersion.from.name}`
-        : `${image.imageStream?.metadata?.name || 'unknown image'} - ${
+        : `${image.imageStream?.metadata.name || 'unknown image'} - ${
             image.imageVersion?.name || 'unknown version'
           }`,
       projectName,

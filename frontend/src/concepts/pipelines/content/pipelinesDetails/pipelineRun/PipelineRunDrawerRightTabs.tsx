@@ -30,13 +30,13 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
   const tabContentProps = (tab: PipelineRunNodeTabs): React.ComponentProps<typeof TabContent> => ({
     id: tab,
     eventKey: tab,
-    activeKey: selection ?? '',
+    activeKey: selection,
     hidden: tab !== selection,
   });
 
   return (
     <>
-      <Tabs activeKey={selection ?? undefined}>
+      <Tabs activeKey={selection}>
         {Object.values(PipelineRunNodeTabs).map((tab) => (
           <Tab
             key={tab}
@@ -47,24 +47,22 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
           />
         ))}
       </Tabs>
-      {selection && (
-        <DrawerPanelBody>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.INPUT_OUTPUT)}>
-            <SelectedNodeInputOutputTab taskReferences={taskReferences} task={task} />
-          </TabContent>
-          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.VISUALIZATIONS)}>TBD 2</TabContent>*/}
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.DETAILS)}>
-            <SelectedNodeDetailsTab task={task} />
-          </TabContent>
-          <TabContent {...tabContentProps(PipelineRunNodeTabs.VOLUMES)}>
-            <SelectedNodeVolumeMountsTab task={task} />
-          </TabContent>
-          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.LOGS)}>TBD 5</TabContent>*/}
-          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.POD)}>TBD 6</TabContent>*/}
-          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.EVENTS)}>TBD 7</TabContent>*/}
-          {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.ML_METADATA)}>TBD 8</TabContent>*/}
-        </DrawerPanelBody>
-      )}
+      <DrawerPanelBody>
+        <TabContent {...tabContentProps(PipelineRunNodeTabs.INPUT_OUTPUT)}>
+          <SelectedNodeInputOutputTab taskReferences={taskReferences} task={task} />
+        </TabContent>
+        {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.VISUALIZATIONS)}>TBD 2</TabContent>*/}
+        <TabContent {...tabContentProps(PipelineRunNodeTabs.DETAILS)}>
+          <SelectedNodeDetailsTab task={task} />
+        </TabContent>
+        <TabContent {...tabContentProps(PipelineRunNodeTabs.VOLUMES)}>
+          <SelectedNodeVolumeMountsTab task={task} />
+        </TabContent>
+        {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.LOGS)}>TBD 5</TabContent>*/}
+        {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.POD)}>TBD 6</TabContent>*/}
+        {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.EVENTS)}>TBD 7</TabContent>*/}
+        {/*<TabContent {...tabContentProps(PipelineRunNodeTabs.ML_METADATA)}>TBD 8</TabContent>*/}
+      </DrawerPanelBody>
     </>
   );
 };

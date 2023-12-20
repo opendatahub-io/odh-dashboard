@@ -62,7 +62,7 @@ export const isServingRuntimeKind = (obj: K8sResourceCommon): obj is ServingRunt
   if (!obj.spec?.containers) {
     throw createServingRuntimeCustomError('Missing parameter', 'spec.containers: is required.');
   }
-  if (!obj.spec?.supportedModelFormats) {
+  if (!obj.spec.supportedModelFormats) {
     throw createServingRuntimeCustomError(
       'Missing parameter',
       'spec.supportedModelFormats: is required.',
@@ -112,7 +112,7 @@ export const getEnabledPlatformsFromTemplate = (
 
   try {
     const platforms = JSON.parse(
-      template.metadata.annotations?.['opendatahub.io/modelServingSupport'],
+      template.metadata.annotations['opendatahub.io/modelServingSupport'],
     );
     if (platforms.length === 0) {
       return [ServingRuntimePlatform.MULTI];

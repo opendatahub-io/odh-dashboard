@@ -18,7 +18,7 @@ const isAxiosErrorWithResponseMessage = (
   error?: Error | AxiosError,
 ): error is AxiosError<{ message: string }> =>
   Boolean(
-    error && typeof (error as AxiosError<{ message: string }>).response?.data?.message === 'string',
+    error && typeof (error as AxiosError<{ message: string }>).response?.data.message === 'string',
   );
 
 export const throwErrorFromAxios = (error: Error | AxiosError): never => {

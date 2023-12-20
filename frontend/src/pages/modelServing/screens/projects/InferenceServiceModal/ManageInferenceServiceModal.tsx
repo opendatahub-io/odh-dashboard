@@ -122,7 +122,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext?.currentProject)) ||
+                  getProjectDisplayName(projectContext.currentProject)) ||
                 editInfo?.metadata.namespace ||
                 ''
               }

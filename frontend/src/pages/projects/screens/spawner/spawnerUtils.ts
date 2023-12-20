@@ -82,7 +82,7 @@ export const getImageVersionSelectOptionObject = (
 export const isImageVersionSelectOptionObject = (
   object: unknown,
 ): object is ImageVersionSelectOptionObjectType =>
-  (object as ImageVersionSelectOptionObjectType).imageVersion !== undefined;
+  (object as ImageVersionSelectOptionObjectType | undefined)?.imageVersion !== undefined;
 /******************* Compare utils for sorting *******************/
 const getBuildNumber = (build: BuildKind): number => {
   const buildNumber = build.metadata.annotations?.['openshift.io/build.number'] || '-1';
@@ -175,7 +175,7 @@ export const getImageVersionDependencies = (
   const depString = isSoftware
     ? imageVersion.annotations?.[IMAGE_ANNOTATIONS.SOFTWARE] || ''
     : imageVersion.annotations?.[IMAGE_ANNOTATIONS.DEPENDENCIES] || '';
-  let dependencies: ImageVersionDependencyType[];
+  let dependencies: ImageVersionDependencyType[] | undefined;
   try {
     dependencies = JSON.parse(depString);
   } catch (e) {
@@ -390,12 +390,11 @@ export const checkRequiredFieldsForNotebookStart = (
   envVariables: EnvVariable[],
   dataConnection: DataConnectionData,
 ): boolean => {
-  const { projectName, notebookName, notebookSize, image } = startNotebookData;
+  const { projectName, notebookName, image } = startNotebookData;
   const { storageType, creating, existing } = storageData;
   const isNotebookDataValid = !!(
     projectName &&
     notebookName.trim() &&
-    notebookSize &&
     image.imageStream &&
     image.imageVersion
   );
@@ -406,9 +405,9 @@ export const checkRequiredFieldsForNotebookStart = (
 
   const newDataConnectionInvalid =
     dataConnection.type === 'creating' &&
-    !(dataConnection?.creating?.values?.data && isAWSValid(dataConnection.creating.values.data));
+    !(dataConnection.creating?.values?.data && isAWSValid(dataConnection.creating.values.data));
   const existingDataConnectionInvalid =
-    dataConnection.type === 'existing' && !dataConnection?.existing?.secretRef.name;
+    dataConnection.type === 'existing' && !dataConnection.existing?.secretRef.name;
   const isDataConnectionValid =
     !dataConnection.enabled || (!newDataConnectionInvalid && !existingDataConnectionInvalid);
 

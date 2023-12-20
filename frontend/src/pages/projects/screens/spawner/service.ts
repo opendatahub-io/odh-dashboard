@@ -269,7 +269,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     ...(replaceDataConnection ? [replaceDataConnection] : []),
   ]).filter(
     (envFrom) =>
-      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef?.name)) &&
-      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef?.name)),
+      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef.name)) &&
+      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
   );
 };

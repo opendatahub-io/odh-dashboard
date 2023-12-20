@@ -22,7 +22,7 @@ const usePipelineTemplate = (pipelineId?: string): FetchState<PipelineRunKind | 
         try {
           pipelineRun = YAML.parse(template);
         } catch (e) {
-          const message = (e as Error)?.message || '';
+          const message = (e as Error | undefined)?.message || '';
           // eslint-disable-next-line no-console
           console.error('Error parsing yaml', e);
           throw new Error(`Unable to parse Pipeline structure. ${message}`);

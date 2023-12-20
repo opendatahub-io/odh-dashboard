@@ -38,9 +38,7 @@ export const useWatchImages = (): {
 
     return () => {
       cancelled = true;
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, []);
 
