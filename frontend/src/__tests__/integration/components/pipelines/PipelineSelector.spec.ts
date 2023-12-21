@@ -15,13 +15,13 @@ test('Pipeline version selector - Test filter and view more', async ({ page }) =
   );
 
   // test the search
-  const search = 'flip coin_';
-  await page.getByLabel('Filter pipelines').fill(search);
+  const search = 'flip coin_version_at_2023-12-01T01:41';
+  await page.getByLabel('Filter pipeline versions').fill(search);
+  await expect(page.locator('[data-id="pipeline-selector-table-list-row"]')).toHaveCount(4);
+
+  await page.getByLabel('Filter pipeline versions').fill('test-no-result');
+  await expect(page.getByRole('button', { name: 'Clear all filters' })).toBeVisible();
+  await page.getByRole('button', { name: 'Clear all filters' }).click();
   await expect(page.locator('[data-id="pipeline-selector-table-list-row"]')).toHaveCount(10);
-  await page.getByText('View more').click();
-  await expect(page.locator('[data-id="pipeline-selector-table-list-row"]')).toHaveCount(
-    mockPipelineVersionsList.filter((version) => version.name.startsWith(search)).length,
-  );
-  await page.getByLabel('Filter pipelines').fill('test-no-result');
-  await expect(page.getByText('No results match the filter.')).toBeVisible();
+  await expect(page.getByText(`Showing 10/${mockPipelineVersionsList.length}`)).toBeVisible();
 });

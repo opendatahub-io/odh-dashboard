@@ -17,52 +17,58 @@ import {
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
-import { usePipelineLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
+import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
+import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
 
-type PipelineSelectorProps = {
+type PipelineVersionSelectorProps = {
+  pipelineId?: string;
   selection?: string;
-  onSelect: (pipeline: PipelineKF) => void;
+  onSelect: (version: PipelineVersionKF) => void;
 };
 
-const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect }) => {
+const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
+  pipelineId,
+  selection,
+  onSelect,
+}) => {
   const [isOpen, setOpen] = React.useState(false);
 
   const [
     [{ items: initialData, totalSize: fetchedSize, nextPageToken: initialPageToken }, loaded],
     { initialLoaded, ...tableProps },
-  ] = usePipelinesTable();
-  const { setFilter, filter, sortDirection, sortField } = tableProps;
-
-  const { totalSize, ...searchProps } = useSelectorSearch({ setFilter, fetchedSize, loaded });
-  const { onClear } = searchProps;
-
-  const { data: pipelines, onLoadMore } = usePipelineLoadMore({
-    initialData,
-    initialPageToken,
-    sortDirection,
-    sortField,
-    loaded,
-    filter,
-  });
+  ] = usePipelineVersionsTable(pipelineId)();
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
 
+  const { sortDirection, sortField, setFilter, filter } = tableProps;
+  const { data: versions, onLoadMore } = usePipelineVersionLoadMore({
+    pipelineId,
+    initialData,
+    initialPageToken,
+    sortDirection,
+    sortField,
+    filter,
+    loaded,
+  });
+
+  const { totalSize, ...searchProps } = useSelectorSearch({ setFilter, fetchedSize, loaded });
+  const { onClear } = searchProps;
+
   const menu = (
-    <Menu data-id="pipeline-selector-menu" ref={menuRef} isScrollable>
+    <Menu data-id="pipeline-version-selector-menu" ref={menuRef} isScrollable>
       <MenuContent>
         <MenuSearch>
           <MenuSearchInput>
-            <SearchInput {...searchProps} aria-label="Filter pipelines" />
+            <SearchInput {...searchProps} aria-label="Filter pipeline versions" />
           </MenuSearchInput>
           <HelperText>
-            <HelperTextItem variant="indeterminate">{`Type a name to search your ${totalSize} pipelines.`}</HelperTextItem>
+            <HelperTextItem variant="indeterminate">{`Type a name to search your ${totalSize} versions.`}</HelperTextItem>
           </HelperText>
         </MenuSearch>
         <MenuList>
@@ -71,7 +77,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
               {...tableProps}
               itemCount={fetchedSize}
               loading={!loaded}
-              data-id="pipeline-selector-table-list"
+              data-id="pipeline-version-selector-table-list"
               emptyTableView={
                 <EmptyTableView
                   hasIcon={false}
@@ -81,8 +87,8 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
               }
               borders={false}
               variant={TableVariant.compact}
-              columns={pipelineSelectorColumns}
-              data={pipelines}
+              columns={pipelineVersionSelectorColumns}
+              data={versions}
               rowRenderer={(row) => (
                 <PipelineSelectorTableRow
                   key={row.id}
@@ -94,15 +100,15 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
                 />
               )}
               getColumnSort={getTableColumnSort({
-                columns: pipelineSelectorColumns,
+                columns: pipelineVersionSelectorColumns,
                 ...tableProps,
               })}
               footerRow={() =>
                 loaded ? (
                   <PipelineViewMoreFooterRow
-                    visibleLength={pipelines.length}
+                    visibleLength={versions.length}
                     totalSize={fetchedSize}
-                    errorTitle="Error loading more pipelines"
+                    errorTitle="Error loading more pipeline versions"
                     onClick={onLoadMore}
                     colSpan={2}
                   />
@@ -121,24 +127,27 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
       toggleRef={toggleRef}
       toggle={
         <MenuToggle
-          id="pipeline-selector"
+          id="pipeline-version-selector"
           icon={
+            pipelineId &&
             !initialLoaded && (
               <Icon>
-                <Spinner size="sm" aria-label="Loading pipelines" />
+                <Spinner size="sm" aria-label="Loading pipeline versions" />
               </Icon>
             )
           }
           ref={toggleRef}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
-          isDisabled={totalSize === 0}
+          isDisabled={!pipelineId || totalSize === 0}
           isFullWidth
-          data-testid="pipeline-toggle-button"
+          data-testid="pipeline-version-toggle-button"
         >
-          {initialLoaded
-            ? selection || (totalSize === 0 ? 'No pipelines available' : 'Select a pipeline')
-            : 'Loading pipelines'}
+          {!pipelineId
+            ? 'Select a pipeline version'
+            : initialLoaded
+            ? selection || (totalSize === 0 ? 'No versions available' : 'Select a pipeline version')
+            : 'Loading pipeline versions'}
         </MenuToggle>
       }
       menu={menu}
@@ -149,4 +158,10 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
   );
 };
 
-export default PipelineSelector;
+// TODO: refactor the modal across the app, only render it when it's open
+// In that way we don't need the wrapper anymore
+const PipelineVersionSelectorWrapper = (props: PipelineVersionSelectorProps) => (
+  <PipelineVersionSelector key={props.pipelineId} {...props} />
+);
+
+export default PipelineVersionSelectorWrapper;

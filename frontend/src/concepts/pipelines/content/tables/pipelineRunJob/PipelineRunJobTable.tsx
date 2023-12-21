@@ -2,7 +2,7 @@ import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunJobColumns } from '~/concepts/pipelines/content/tables/columns';
-import { useCheckboxTable } from '~/components/table';
+import { getTableColumnSort, useCheckboxTable } from '~/components/table';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
 import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
@@ -37,23 +37,24 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
   pageSize,
   setPage,
   setPageSize,
-  sortField,
-  sortDirection,
-  setSortField,
-  setSortDirection,
   setFilter,
+  ...tableProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
-  const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
-    jobs.map(({ id }) => id),
-  );
+  const {
+    selections,
+    tableProps: checkboxTableProps,
+    toggleSelection,
+    isSelected,
+  } = useCheckboxTable(jobs.map(({ id }) => id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
 
   return (
     <>
       <TableBase
         {...tableProps}
+        {...checkboxTableProps}
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -93,22 +94,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
           />
         )}
         variant={TableVariant.compact}
-        getColumnSort={(columnIndex) =>
-          pipelineRunJobColumns[columnIndex].sortable
-            ? {
-                sortBy: {
-                  index: pipelineRunJobColumns.findIndex((c) => c.field === sortField),
-                  direction: sortDirection,
-                  defaultDirection: 'asc',
-                },
-                onSort: (_event, index, direction) => {
-                  setSortField(String(pipelineRunJobColumns[index].field));
-                  setSortDirection(direction);
-                },
-                columnIndex,
-              }
-            : undefined
-        }
+        getColumnSort={getTableColumnSort({ columns: pipelineRunJobColumns, ...tableProps })}
       />
       <DeletePipelineCoreResourceModal
         toDeleteResources={deleteResources}

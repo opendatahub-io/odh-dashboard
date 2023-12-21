@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { generatePipelineVersionName } from '~/concepts/pipelines/content/import/utils';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
@@ -32,16 +31,6 @@ export const usePipelineVersionImportModalData = (pipeline?: PipelineKF | null) 
     pipelineName: pipeline?.name ?? '',
     fileContents: '',
   });
-
-  const [, setData] = createDataState;
-
-  React.useEffect(() => {
-    if (pipeline) {
-      setData('pipelineId', pipeline.id);
-      setData('pipelineName', pipeline.name);
-      setData('name', generatePipelineVersionName(pipeline));
-    }
-  }, [pipeline, setData]);
 
   return createDataState;
 };

@@ -22,12 +22,10 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
-import usePipelineVersionsForPipeline from '~/concepts/pipelines/apiHooks/usePipelineVersionsForPipeline';
-import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
+import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -54,7 +52,6 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   )?.key.id;
 
   const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
-  const [{ items: versions }, versionsLoaded] = usePipelineVersionsForPipeline(pipelineId);
   const [pipelineVersionRun, isPipelineVersionTemplateLoaded, templateLoadError] =
     usePipelineTemplate(pipelineVersionId);
   const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersionRun);
@@ -115,24 +112,15 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                     spaceItems={{ default: 'spaceItemsMd' }}
                     alignItems={{ default: 'alignItemsFlexStart' }}
                   >
-                    <FlexItem>
-                      <PipelineSelector
-                        maxWidth={300}
-                        name={`Pipeline version: ${pipelineVersion?.name}`}
-                        data={versions}
-                        columns={pipelineVersionSelectorColumns}
-                        onSelect={(id) => navigate(`/pipelines/${namespace}/pipeline/view/${id}`)}
-                        isDisabled={!pipelineId}
-                        isLoading={!!pipelineId && !versionsLoaded}
-                        placeHolder={
-                          pipelineId && versions.length === 0
-                            ? 'No versions available'
-                            : 'Select a pipeline version'
+                    <FlexItem style={{ width: '300px' }}>
+                      <PipelineVersionSelector
+                        pipelineId={pipeline?.id}
+                        selection={`Pipeline version: ${pipelineVersion?.name}`}
+                        onSelect={(version) =>
+                          navigate(`/pipelines/${namespace}/pipeline/view/${version.id}`)
                         }
-                        searchHelperText={`Type a name to search your ${versions.length} versions.`}
                       />
                     </FlexItem>
-
                     <FlexItem>
                       {isLoaded && (
                         <PipelineDetailsActions

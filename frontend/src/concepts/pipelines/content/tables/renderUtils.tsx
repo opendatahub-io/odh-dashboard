@@ -27,6 +27,7 @@ import {
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
+import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 
 export const NoRunContent = () => <>-</>;
 
@@ -81,13 +82,7 @@ export const RunDuration: RunUtil = ({ run }) => {
 
 export const RunCreated: RunUtil = ({ run }) => {
   const createdDate = new Date(run.created_at);
-  return (
-    <span style={{ whiteSpace: 'nowrap' }}>
-      <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-        {relativeTime(Date.now(), createdDate.getTime())}
-      </Timestamp>
-    </span>
-  );
+  return <PipelinesTableRowTime date={createdDate} />;
 };
 
 export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (

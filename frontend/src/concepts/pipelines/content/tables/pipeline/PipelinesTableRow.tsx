@@ -1,47 +1,46 @@
 import * as React from 'react';
 import { Td, Tbody, Tr, ActionsColumn } from '@patternfly/react-table';
-import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '@patternfly/react-core';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { relativeTime } from '~/utilities/time';
-import usePipelineRunsForPipeline from '~/concepts/pipelines/apiHooks/usePipelineRunsForPipeline';
-import { TableRowTitleDescription } from '~/components/table';
+import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
-import { getLastRun } from '~/concepts/pipelines/content/tables/utils';
-import {
-  NoRunContent,
-  RunDuration,
-  RunNameForPipeline,
-  RunStatus,
-} from '~/concepts/pipelines/content/tables/renderUtils';
-import { LIMIT_MAX_ITEM_COUNT } from '~/concepts/pipelines/const';
 import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 
 type PipelinesTableRowProps = {
   pipeline: PipelineKF;
-  pipelineDetailsPath: (namespace: string, id: string) => string;
+  isChecked: boolean;
+  onToggleCheck: () => void;
   rowIndex: number;
   onDeletePipeline: () => void;
   refreshPipelines: () => Promise<unknown>;
+  pipelineDetailsPath: (namespace: string, id: string) => string;
 };
 
 const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   pipeline,
+  isChecked,
+  onToggleCheck,
   rowIndex,
-  pipelineDetailsPath,
   onDeletePipeline,
   refreshPipelines,
+  pipelineDetailsPath,
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const runsFetchState = usePipelineRunsForPipeline(pipeline.id, LIMIT_MAX_ITEM_COUNT);
   const [isExpanded, setExpanded] = React.useState(false);
   const [importTarget, setImportTarget] = React.useState<PipelineKF | null>(null);
+  const {
+    totalSize,
+    updatedDate,
+    loading,
+    refresh: refreshVersions,
+  } = usePipelineTableRowData(pipeline);
 
   const createdDate = new Date(pipeline.created_at);
-  const lastRun = getLastRun(runsFetchState[0]);
 
   return (
     <>
@@ -55,34 +54,19 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
               onToggle: () => setExpanded(!isExpanded),
             }}
           />
-          <Td dataLabel="Name">
+          <CheckboxTd id={pipeline.id} isChecked={isChecked} onToggle={onToggleCheck} />
+          <Td>
             <TableRowTitleDescription
-              title={
-                <Link
-                  to={pipelineDetailsPath(namespace, pipeline.default_version?.id || pipeline.id)}
-                >
-                  {pipeline.name}
-                </Link>
-              }
+              title={pipeline.name}
               description={pipeline.description}
               descriptionAsMarkdown
             />
           </Td>
-          <Td>{lastRun ? <RunNameForPipeline run={lastRun} /> : <NoRunContent />}</Td>
-          <Td>{lastRun ? <RunStatus run={lastRun} /> : <NoRunContent />}</Td>
-          <Td>{lastRun ? <RunDuration run={lastRun} /> : <NoRunContent />}</Td>
+          <Td>{loading ? <Skeleton /> : totalSize}</Td>
           <Td>
-            <span style={{ whiteSpace: 'nowrap' }}>
-              <Timestamp
-                date={createdDate}
-                tooltip={{
-                  variant: TimestampTooltipVariant.default,
-                }}
-              >
-                {relativeTime(Date.now(), createdDate.getTime())}
-              </Timestamp>
-            </span>
+            <PipelinesTableRowTime date={createdDate} />
           </Td>
+          <Td>{loading ? <Skeleton /> : <PipelinesTableRowTime date={updatedDate} />}</Td>
           <Td isActionCell>
             <ActionsColumn
               items={[
@@ -122,18 +106,24 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             />
           </Td>
         </Tr>
+        {isExpanded && (
+          <PipelinesTableExpandedRow
+            pipeline={pipeline}
+            pipelineDetailsPath={pipelineDetailsPath}
+          />
+        )}
       </Tbody>
-      <PipelinesTableExpandedRow
-        isExpanded={isExpanded}
-        runsFetchState={runsFetchState}
-        pipeline={pipeline}
-      />
       <PipelineVersionUploadModal
         existingPipeline={pipeline}
         isOpen={!!importTarget}
         onClose={(pipelineVersion) => {
           if (pipelineVersion) {
-            refreshPipelines().then(() => setImportTarget(null));
+            refreshPipelines().then(() =>
+              refreshVersions().then(() => {
+                setImportTarget(null);
+                setExpanded(false);
+              }),
+            );
           } else {
             setImportTarget(null);
           }

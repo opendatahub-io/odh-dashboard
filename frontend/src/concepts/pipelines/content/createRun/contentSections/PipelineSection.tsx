@@ -1,53 +1,31 @@
 import * as React from 'react';
-import { FormSection, Stack, StackItem } from '@patternfly/react-core';
+import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 
 type PipelineSectionProps = {
-  onLoaded: (loaded: boolean) => void;
   value: PipelineKF | null;
   onChange: (pipeline: PipelineKF) => void;
 };
 
-const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onChange }) => {
-  const [{ items: pipelines }, loaded] = usePipelines({}, 0);
-
-  React.useEffect(() => {
-    onLoaded(loaded);
-    // only run when `loaded` changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded]);
-
-  return (
-    <FormSection
-      id={CreateRunPageSections.PIPELINE}
-      title={runPageSectionTitles[CreateRunPageSections.PIPELINE]}
-    >
+const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) => (
+  <FormSection
+    id={CreateRunPageSections.PIPELINE}
+    title={runPageSectionTitles[CreateRunPageSections.PIPELINE]}
+  >
+    {/* `minWidth` a temp fix for PF issue https://github.com/patternfly/patternfly/issues/6062
+      We can remove this after bumping to PF v5.2.0
+    */}
+    <FormGroup style={{ minWidth: 0 }}>
       <Stack hasGutter>
         <StackItem>
-          <PipelineSelector
-            maxWidth="500px"
-            name={value?.name}
-            data={pipelines}
-            columns={pipelineSelectorColumns}
-            onSelect={(id) => {
-              const pipeline = pipelines.find((p) => p.id === id);
-              if (pipeline) {
-                onChange(pipeline);
-              }
-            }}
-            isLoading={!loaded}
-            placeHolder={pipelines.length === 0 ? 'No pipelines available' : 'Select a pipeline'}
-            searchHelperText={`Type a name to search your ${pipelines.length} pipelines.`}
-          />
+          <PipelineSelector selection={value?.name} onSelect={(pipeline) => onChange(pipeline)} />
         </StackItem>
         <StackItem>
           <ImportPipelineButton
@@ -59,8 +37,8 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ onLoaded, value, onCh
           </ImportPipelineButton>
         </StackItem>
       </Stack>
-    </FormSection>
-  );
-};
+    </FormGroup>
+  </FormSection>
+);
 
 export default PipelineSection;

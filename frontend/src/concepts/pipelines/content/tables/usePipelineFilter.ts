@@ -30,7 +30,7 @@ const statusMap = {
   [PipelineRunStatusesKF.CANCELLED]: PipelineRunStatusesKF.CANCELLED,
 };
 
-const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]>(
+export const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]>(
   data: R,
 ): string | undefined => {
   if (typeof data === 'string') {

@@ -33,12 +33,10 @@ const PipelineSelectorTableRow: React.FC<PipelineSelectorTableRowProps> = ({ obj
         isClickable
         data-id="pipeline-selector-table-list-row"
       >
-        <Td width={70} modifier="truncate" dataLabel="Name">
+        <Td width={70} modifier="truncate">
           {obj.name}
         </Td>
-        <Td width={30} dataLabel="Updated">
-          {relativeTime(Date.now(), new Date(obj.created_at).getTime())}
-        </Td>
+        <Td width={30}>{relativeTime(Date.now(), new Date(obj.created_at).getTime())}</Td>
       </Tr>
     </>
   );

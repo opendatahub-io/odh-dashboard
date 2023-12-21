@@ -179,7 +179,7 @@ const TableBase = <T,>({
             {columns.map((col, i) => {
               if (col.field === CHECKBOX_FIELD_ID && selectAll) {
                 return (
-                  <>
+                  <React.Fragment key={`checkbox-${i}`}>
                     <Tooltip
                       key="select-all-checkbox"
                       content="Select all page items"
@@ -194,7 +194,7 @@ const TableBase = <T,>({
                       // TODO: Log PF bug -- when there are no rows this gets truncated
                       style={{ minWidth: '45px' }}
                     />
-                  </>
+                  </React.Fragment>
                 );
               }
 

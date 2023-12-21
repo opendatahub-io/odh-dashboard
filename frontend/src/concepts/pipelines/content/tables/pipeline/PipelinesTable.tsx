@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { Table } from '~/components/table';
+import { Table, getTableColumnSort, useCheckboxTable } from '~/components/table';
 import PipelinesTableRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
 import { pipelineColumns } from '~/concepts/pipelines/content/tables/columns';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
@@ -19,8 +19,8 @@ type PipelinesTableProps = {
   setPageSize?: (pageSize: number) => void;
   sortField?: string;
   sortDirection?: 'asc' | 'desc';
-  setSortField?: (field: string) => void;
-  setSortDirection?: (dir: 'asc' | 'desc') => void;
+  setSortField: (field: string) => void;
+  setSortDirection: (dir: 'asc' | 'desc') => void;
 } & Pick<
   React.ComponentProps<typeof Table>,
   'toolbarContent' | 'emptyTableView' | 'enablePagination'
@@ -28,7 +28,6 @@ type PipelinesTableProps = {
 
 const PipelinesTable: React.FC<PipelinesTableProps> = ({
   pipelines,
-  pipelineDetailsPath,
   refreshPipelines,
   loading,
   totalSize,
@@ -36,18 +35,21 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
   pageSize,
   setPage,
   setPageSize,
-  sortField,
-  sortDirection,
-  setSortField,
-  setSortDirection,
+  pipelineDetailsPath,
   ...tableProps
 }) => {
+  const {
+    tableProps: checkboxTableProps,
+    toggleSelection,
+    isSelected,
+  } = useCheckboxTable(pipelines.map(({ id }) => id));
   const [deleteTarget, setDeleteTarget] = React.useState<PipelineKF | null>(null);
 
   return (
     <>
       <TableBase
         {...tableProps}
+        {...checkboxTableProps}
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -70,28 +72,18 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
             key={pipeline.id}
             pipeline={pipeline}
             rowIndex={rowIndex}
-            pipelineDetailsPath={pipelineDetailsPath}
+            isChecked={isSelected(pipeline.id)}
+            onToggleCheck={() => toggleSelection(pipeline.id)}
             onDeletePipeline={() => setDeleteTarget(pipeline)}
             refreshPipelines={refreshPipelines}
+            pipelineDetailsPath={pipelineDetailsPath}
           />
         )}
         disableRowRenderSupport
-        getColumnSort={(columnIndex) =>
-          setSortField && setSortDirection && pipelineColumns[columnIndex].sortable
-            ? {
-                sortBy: {
-                  index: pipelineColumns.findIndex((c) => c.field === sortField),
-                  direction: sortDirection,
-                  defaultDirection: 'asc',
-                },
-                onSort: (_event, index, direction) => {
-                  setSortField(String(pipelineColumns[index].field));
-                  setSortDirection(direction);
-                },
-                columnIndex,
-              }
-            : undefined
-        }
+        getColumnSort={getTableColumnSort({
+          columns: pipelineColumns,
+          ...tableProps,
+        })}
       />
       <DeletePipelineCoreResourceModal
         type="pipeline"

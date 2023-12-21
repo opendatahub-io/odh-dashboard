@@ -5,12 +5,12 @@ export const pipelineSelectorColumns: SortableData<PipelineKF>[] = [
   {
     label: 'Pipeline name',
     field: 'name',
-    sortable: false,
+    sortable: (a, b) => a.name.localeCompare(b.name),
     width: 70,
   },
   {
     label: 'Updated',
-    field: 'updated',
+    field: 'created_at',
     sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     width: 30,
   },
@@ -19,13 +19,13 @@ export const pipelineSelectorColumns: SortableData<PipelineKF>[] = [
 export const pipelineVersionSelectorColumns: SortableData<PipelineVersionKF>[] = [
   {
     label: 'Pipeline version',
-    field: 'version',
-    sortable: false,
+    field: 'name',
+    sortable: (a, b) => a.name.localeCompare(b.name),
     width: 70,
   },
   {
     label: 'Updated',
-    field: 'updated',
+    field: 'created_at',
     sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     width: 30,
   },
