@@ -12,7 +12,7 @@ Once you have completed both steps you will see a section called `Notebook Image
 
 ## Minimum requirements for BYON
 
-For image to be spawneable via JupyterHub Spawner, it is required to meet the following criteria:
+For image to be spawnable via JupyterHub Spawner, it is required to meet the following criteria:
 
 * It needs to include Python runtime,  >= 3.8.
 * Python packages `jupyterhub` and `jupyterlab` need to be installed.
