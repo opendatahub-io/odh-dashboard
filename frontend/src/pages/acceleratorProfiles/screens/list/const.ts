@@ -33,7 +33,7 @@ export const columns: SortableData<AcceleratorProfileKind>[] = [
   {
     field: 'last_modified',
     label: 'Last modified',
-    sortable: (a, b): number => {
+    sortable: (a: AcceleratorProfileKind, b: AcceleratorProfileKind): number => {
       const first = a.metadata.annotations?.['opendatahub.io/modified-date'];
       const second = b.metadata.annotations?.['opendatahub.io/modified-date'];
       return new Date(first ?? 0).getTime() - new Date(second ?? 0).getTime();

@@ -7,11 +7,11 @@ type IdentifierSelectFieldProps = {
   identifierOptions: string[];
 };
 
-export const IdentifierSelectField = ({
+export const IdentifierSelectField: React.FC<IdentifierSelectFieldProps> = ({
   value,
   onChange,
   identifierOptions = [],
-}: IdentifierSelectFieldProps) => {
+}) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   // remove possible duplicates
