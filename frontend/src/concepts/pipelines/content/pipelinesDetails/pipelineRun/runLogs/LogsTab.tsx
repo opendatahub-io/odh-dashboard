@@ -11,18 +11,12 @@ import {
   Split,
   SplitItem,
   Bullseye,
-  Truncate,
 } from '@patternfly/react-core';
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownToggle,
-  KebabToggle,
-} from '@patternfly/react-core/deprecated';
 import OutlinedPlayCircleIcon from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
 import PauseIcon from '@patternfly/react-icons/dist/esm/icons/pause-icon';
 import PlayIcon from '@patternfly/react-icons/dist/esm/icons/play-icon';
 import DownloadIcon from '@patternfly/react-icons/dist/esm/icons/download-icon';
+import { OutlinedWindowRestoreIcon } from '@patternfly/react-icons';
 import { PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import useFetchLogs from '~/concepts/k8s/pods/useFetchLogs';
@@ -34,6 +28,7 @@ import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEd
 import useCodeEditorAsLogs from '~/concepts/dashboard/codeEditor/useCodeEditorAsLogs';
 import { downloadCurrentStepLog, downloadAllStepLogs } from '~/concepts/k8s/pods/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
 
 // TODO: If this gets large enough we should look to make this its own component file
 const LogsTab: React.FC<{ task: PipelineRunTaskDetails }> = ({ task }) => {
@@ -68,8 +63,7 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
   const { scrollToBottom, onMount, editorOptions } = useCodeEditorAsLogs();
-  const [isDownloadDropdownOpen, setIsDownloadDropdownOpen] = React.useState(false);
-  const { isSmallScreen } = useWindowResize();
+  const isSmallScreen = useWindowResize();
 
   React.useEffect(() => {
     if (!isPaused && logs) {
@@ -111,7 +105,7 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
   } else if (logs) {
     data = logs;
   } else {
-    data = 'No content';
+    data = 'No logs available';
   }
 
   return (
@@ -121,6 +115,7 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
           <LogsTabStatus
             loaded={loaded}
             error={error}
+            isLogsAvailable={podContainers.length !== 1 && !!logs}
             refresh={refreshLogs}
             onDownload={onDownloadAll}
           />
@@ -130,7 +125,7 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
         <Split hasGutter isWrappable>
           <SplitItem>
             <Split hasGutter>
-              {isSmallScreen() ? null : (
+              {!isSmallScreen ? (
                 <SplitItem>
                   <Bullseye>
                     <TextContent>
@@ -138,10 +133,10 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
                     </TextContent>
                   </Bullseye>
                 </SplitItem>
-              )}
+              ) : null}
               <SplitItem>
                 <SimpleDropdownSelect
-                  isDisabled={podContainers.length === 0}
+                  isDisabled={podContainers.length <= 1}
                   options={podContainers.map((container) => ({
                     key: container.name,
                     label: container.name,
@@ -163,73 +158,62 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
                 onClick={() => setIsPaused(!isPaused)}
                 isDisabled={!!error}
               >
-                {error ? (
-                  'Error loading logs'
-                ) : !logsLoaded || podStatus?.podInitializing ? (
-                  <>
-                    <Spinner size="sm" /> {isSmallScreen() ? 'Loading' : 'Loading log'}
-                  </>
-                ) : isPaused ? (
-                  <>
-                    <PlayIcon /> {isSmallScreen() ? 'Resume' : 'Resume refreshing'}
-                  </>
-                ) : (
-                  <>
-                    <PauseIcon /> {isSmallScreen() ? 'Pause' : 'Pause refreshing'}
-                  </>
-                )}
+                {!error &&
+                  (!logsLoaded ? (
+                    <>
+                      <Spinner size="sm" /> {isSmallScreen ? 'Loading' : 'Loading log'}
+                    </>
+                  ) : isPaused ? (
+                    <>
+                      <PlayIcon /> {isSmallScreen ? 'Resume' : 'Resume refreshing'}
+                    </>
+                  ) : (
+                    <>
+                      <PauseIcon /> {isSmallScreen ? 'Pause' : 'Pause refreshing'}
+                    </>
+                  ))}
               </Button>
             )}
           </SplitItem>
           <SplitItem isFilled style={{ textAlign: 'right' }}>
+            <Tooltip position="top" content="View raw logs">
+              <Button
+                onClick={() => {
+                  const newTab = window.open();
+                  newTab?.document.write(`<pre>${logs}</pre>`);
+                }}
+                variant="link"
+                aria-label="View raw logs"
+                icon={<OutlinedWindowRestoreIcon />}
+                isDisabled={!logs}
+              >
+                {!isSmallScreen ? 'Raw' : null}
+              </Button>
+            </Tooltip>
             {downloading ? (
               <>
                 <Spinner size="sm" />{' '}
               </>
             ) : null}
-            {podContainers.length !== 0 ? (
-              <Dropdown
-                toggle={
-                  isSmallScreen() ? (
-                    <KebabToggle
-                      onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
-                    />
-                  ) : (
-                    <DropdownToggle
-                      id="download-steps-logs-toggle"
-                      onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
-                    >
-                      Download
-                    </DropdownToggle>
-                  )
-                }
-                isOpen={isDownloadDropdownOpen}
-                isPlain={isSmallScreen()}
-                dropdownItems={[
-                  <DropdownItem key="current-container-logs" onClick={onDownload}>
-                    <Truncate
-                      content={isSmallScreen() ? 'Download current step log' : 'Current step log'}
-                    />
-                  </DropdownItem>,
-                  <DropdownItem key="all-container-logs" onClick={onDownloadAll}>
-                    <Truncate
-                      content={isSmallScreen() ? 'Download all step logs' : 'All step logs'}
-                    />
-                  </DropdownItem>,
-                ]}
-              />
-            ) : (
+            {podContainers.length <= 1 ? (
               <Tooltip position="top" content={<div>Download current step log</div>}>
                 <Button
                   onClick={onDownload}
                   variant="link"
                   aria-label="Download current step log"
                   icon={<DownloadIcon />}
-                  isDisabled={!canDownload}
+                  isDisabled={!canDownload || !logs}
                 >
-                  Download
+                  {!isSmallScreen ? 'Download' : null}
                 </Button>
               </Tooltip>
+            ) : (
+              <DownloadDropdown
+                onDownload={onDownload}
+                onDownloadAll={onDownloadAll}
+                isSmallScreen={isSmallScreen}
+                isSingleStepLogsEmpty={!logs}
+              />
             )}
           </SplitItem>
         </Split>
