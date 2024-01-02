@@ -29,7 +29,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 
-export const NoRunContent = () => <>-</>;
+export const NoRunContent = (): React.JSX.Element => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;

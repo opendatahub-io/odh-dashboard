@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
@@ -34,7 +34,9 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
       <Td>
         <TableRowTitleDescription
           title={
-            <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.id}`}>{job.name}</Link>
+            <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.id}`}>
+              <TableText wrapModifier="truncate">{job.name}</TableText>
+            </Link>
           }
           description={job.description}
           descriptionAsMarkdown
@@ -43,7 +45,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
       <Td>
         <CoreResourceExperiment resource={job} />
       </Td>
-      <Td>
+      <Td modifier="truncate">
         <CoreResourcePipeline resource={job} namespace={namespace} />
       </Td>
       <Td>

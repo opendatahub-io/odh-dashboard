@@ -228,16 +228,6 @@ export type K8sAPIOptions = {
   signal?: AbortSignal;
 };
 
-/** A status object when Kube backend can't handle a request. */
-export type K8sStatus = {
-  kind: string;
-  apiVersion: string;
-  code: number;
-  message: string;
-  reason: string;
-  status: string;
-};
-
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
@@ -340,7 +330,7 @@ export type ServingContainer = {
   image: string;
   name: string;
   affinity?: PodAffinity;
-  resources: ContainerResources;
+  resources?: ContainerResources;
   volumeMounts?: VolumeMount[];
 };
 
@@ -389,11 +379,13 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
+      tolerations?: PodToleration[];
       model: {
         modelFormat: {
           name: string;
           version?: string;
         };
+        resources?: ContainerResources;
         runtime?: string;
         storageUri?: string;
         storage?: {

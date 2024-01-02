@@ -90,7 +90,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         name: existingImage.name,
         // eslint-disable-next-line camelcase
         display_name: displayName,
-        description: description,
+        description,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
       }).then(handleResponse);
@@ -99,7 +99,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         // eslint-disable-next-line camelcase
         display_name: displayName,
         url: repository,
-        description: description,
+        description,
         provider: userName,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
@@ -134,13 +134,12 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
           submit();
         }}
       >
-        {
-          <ImageLocationField
-            isDisabled={!!existingImage}
-            location={repository}
-            setLocation={setRepository}
-          />
-        }
+        <ImageLocationField
+          isDisabled={!!existingImage}
+          location={repository}
+          setLocation={setRepository}
+        />
+
         <FormGroup label="Name" isRequired fieldId="byon-image-name-input">
           <TextInput
             id="byon-image-name-input"

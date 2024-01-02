@@ -19,7 +19,9 @@ export const getDashboardConfigTemplateOrder = (ns: string): Promise<string[]> =
 export const getDashboardConfigTemplateDisablement = (ns: string): Promise<string[]> =>
   getDashboardConfig(ns).then((dashboardConfig) => dashboardConfig.spec.templateDisablement || []);
 
-export const updateDashboardConfig = (resource: DashboardConfigKind) =>
+export const updateDashboardConfig = (
+  resource: DashboardConfigKind,
+): Promise<DashboardConfigKind> =>
   k8sUpdateResource<DashboardConfigKind>({
     model: ODHDashboardConfigModel,
     resource,

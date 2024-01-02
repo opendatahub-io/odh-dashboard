@@ -3,7 +3,7 @@ import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions, PipelinesFilter } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
-type TableProps = {
+export type TableProps = {
   page: number;
   setPage: (page: number) => void;
   pageSize: number;

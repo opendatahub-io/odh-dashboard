@@ -1,21 +1,21 @@
 import React from 'react';
-
-import { StoryObj } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import { rest } from 'msw';
-
+import { Route, Routes } from 'react-router-dom';
 import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { PipelineContextProvider } from '~/concepts/pipelines/context';
-import mockPipelineVersionTemplateResource from '~/__mocks__/mockPipelineVersionTemplateResource';
 import {
   buildMockPipelineVersions,
   buildMockPipelineVersion,
 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { mockPipelinesProxy } from '~/__mocks__/mockPipelinesProxy';
+import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
+import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import { mockPipelinesVersionTemplateResourceKF } from '~/__mocks__/mockPipelinesTemplateResourceKF';
 
 const mockPipelineVersions = buildMockPipelineVersions([
   buildMockPipelineVersion({ id: '1', name: 'version-1' }),
@@ -27,17 +27,11 @@ export default {
   component: PipelineDetails,
   parameters: {
     reactRouter: {
-      location: {
-        pathParams: {
-          namespace: 'test-project',
-          pipelineVersionId: mockPipelineVersions.versions[0].id,
-        },
+      routePath: '/pipelines/:namespace/pipeline/view/:pipelineVersionId/*',
+      routeParams: {
+        namespace: 'test-project',
+        pipelineVersionId: mockPipelineVersions.versions[0].id,
       },
-      routing: [
-        {
-          path: '/pipelines/:namespace/pipeline/view/:pipelineVersionId',
-        },
-      ],
     },
     msw: {
       handlers: [
@@ -72,7 +66,7 @@ export default {
                 ...mockPipelinesProxy.pipelines,
                 {
                   ...mockPipelinesProxy.pipelines[1],
-                  id: mockPipelineVersions.versions[0].resource_references[0].key.id,
+                  id: mockPipelineVersions.versions[0].resource_references?.[0].key.id,
                 },
               ],
             }),
@@ -82,7 +76,7 @@ export default {
           res(
             ctx.json({
               ...mockPipelinesProxy.pipelines[1],
-              id: mockPipelineVersions.versions[0].resource_references[0].key.id,
+              id: mockPipelineVersions.versions[0].resource_references?.[0].key.id,
             }),
           ),
         ),
@@ -103,17 +97,36 @@ export default {
         }),
         rest.post(
           '/api/proxy/apis/v1beta1/pipeline_versions/:version_id/templates',
-          (_req, res, ctx) => res(ctx.json(mockPipelineVersionTemplateResource)),
+          (_req, res, ctx) => res(ctx.json(mockPipelinesVersionTemplateResourceKF())),
         ),
       ],
     },
   },
-};
+} as Meta<typeof PipelineDetails>;
 
 export const Default: StoryObj = {
   render: () => (
-    <PipelineContextProvider namespace="test-project">
-      <PipelineDetails breadcrumbPath={[]} />
-    </PipelineContextProvider>
+    <Routes>
+      <Route
+        path="/:namespace?/*"
+        element={
+          <GlobalPipelineCoreLoader
+            title="Test Pipeline"
+            getInvalidRedirectPath={(namespace) => `${namespace}/pipeline/`}
+          />
+        }
+      >
+        <Route
+          path="*"
+          element={
+            <GlobalPipelineCoreDetails
+              BreadcrumbDetailsComponent={PipelineDetails}
+              pageName="Runs"
+              redirectPath={(namespace) => `${namespace}/pipeline/`}
+            />
+          }
+        />
+      </Route>
+    </Routes>
   ),
 };

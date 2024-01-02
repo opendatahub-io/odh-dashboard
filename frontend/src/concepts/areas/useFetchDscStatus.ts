@@ -1,5 +1,5 @@
 import axios from 'axios';
-import useFetchState from '~/utilities/useFetchState';
+import useFetchState, { FetchState } from '~/utilities/useFetchState';
 import { DataScienceClusterKindStatus } from '~/k8sTypes';
 
 /**
@@ -19,6 +19,7 @@ const fetchDscStatus = (): Promise<DataScienceClusterKindStatus | null> => {
     });
 };
 
-const useFetchDscStatus = () => useFetchState(fetchDscStatus, null);
+const useFetchDscStatus = (): FetchState<DataScienceClusterKindStatus | null> =>
+  useFetchState(fetchDscStatus, null);
 
 export default useFetchDscStatus;

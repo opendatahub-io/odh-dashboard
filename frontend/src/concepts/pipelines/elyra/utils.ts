@@ -12,9 +12,16 @@ import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
 
+type ElyraRoleBindingOwnerRef = {
+  apiVersion: string;
+  kind: string;
+  name: string;
+  uid: string;
+};
+
 export const ELYRA_VOLUME_NAME = 'elyra-dsp-details';
 
-export const getElyraServiceAccountRoleBindingName = (notebookName: string) =>
+export const getElyraServiceAccountRoleBindingName = (notebookName: string): string =>
   `elyra-pipelines-${notebookName}`;
 
 export const getElyraVolumeMount = (): VolumeMount => ({
@@ -29,7 +36,10 @@ export const getElyraVolume = (): Volume => ({
   },
 });
 
-export const getElyraRoleBindingOwnerRef = (notebookName: string, ownerUid: string) => ({
+export const getElyraRoleBindingOwnerRef = (
+  notebookName: string,
+  ownerUid: string,
+): ElyraRoleBindingOwnerRef => ({
   apiVersion: 'kubeflow.org/v1beta1',
   kind: 'Notebook',
   name: notebookName,

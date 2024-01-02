@@ -195,19 +195,25 @@ export const buildMockPipelineVersion = (
   created_at: '2023-12-07T16:08:01Z',
   resource_references: [
     {
-      key: { type: 'PIPELINE' as ResourceTypeKF, id: 'b2ff4cbf-f7f5-4c8a-b454-906bd9b00510' },
-      relationship: 'OWNER' as RelationshipKF,
+      key: { type: ResourceTypeKF.PIPELINE, id: 'b2ff4cbf-f7f5-4c8a-b454-906bd9b00510' },
+      relationship: RelationshipKF.OWNER,
     },
   ],
   description: 'test',
   ...pipelineVersion,
 });
 
+type APIResult = {
+  total_size?: number | undefined;
+  next_page_token?: string | undefined;
+  versions: PipelineVersionKF[];
+};
+
 export const buildMockPipelineVersions = (
   versions: PipelineVersionKF[] = mockPipelineVersionsList,
   totalSize?: number,
   nextPageToken?: string,
-) => ({
+): APIResult => ({
   versions,
   total_size: totalSize || versions.length,
   next_page_token: nextPageToken,
@@ -224,7 +230,7 @@ export const mockPipelineVersionsListPage2 = buildMockPipelineVersions(
   mockPipelineVersionsList.length,
 );
 
-export const mockPipelineVersionsListSearch = (search: string) => {
+export const mockPipelineVersionsListSearch = (search: string): APIResult => {
   const filteredVersions = mockPipelineVersionsList
     .filter((version) => version.name.startsWith(search))
     .slice(0, 10);

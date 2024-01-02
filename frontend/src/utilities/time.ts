@@ -1,3 +1,8 @@
+import {
+  PeriodicOptions,
+  periodicOptionAsSeconds,
+} from '~/concepts/pipelines/content/createRun/types';
+
 const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
 const printIn = (time: number, unit: string) => `in ${time} ${unit}${time > 1 ? 's' : ''}`;
 const leadZero = (v: number) => (v < 10 ? `0${v}` : `${v}`);
@@ -51,7 +56,7 @@ export const ensureTimeFormat = (time: string): string | null => {
   return `${match[1]} ${match[2]}`;
 };
 
-export const printSeconds = (seconds: number) => {
+export const printSeconds = (seconds: number): string => {
   const timeBlocks = [
     { unit: 'second', maxPer: 60 },
     { unit: 'minute', maxPer: 60 },
@@ -153,4 +158,46 @@ export const relativeTime = (current: number, previous: number): string => {
   }
 
   return `${date.getDate()} ${monthAsString} ${date.getFullYear()}`;
+};
+
+/** Function to convert time strings like "2Hour" to seconds */
+export const convertPeriodicTimeToSeconds = (timeString: string): number => {
+  let numericValue = parseInt(timeString, 10);
+
+  if (isNaN(numericValue)) {
+    numericValue = 1;
+  }
+
+  const unit = timeString.toLowerCase().replace(/\d+/g, '');
+
+  switch (unit) {
+    case 'hour':
+      return numericValue * 60 * 60;
+    case 'minute':
+      return numericValue * 60;
+    case 'day':
+      return numericValue * 24 * 60 * 60;
+    case 'week':
+      return numericValue * 7 * 24 * 60 * 60;
+    default:
+      return 0;
+  }
+};
+
+/** Function to convert seconds to time strings like "2Hour" */
+export const convertSecondsToPeriodicTime = (seconds: number): string => {
+  const units = Object.values(PeriodicOptions).reverse();
+  const unitFactors = Object.values(periodicOptionAsSeconds).reverse();
+
+  for (let i = 0; i < units.length; i++) {
+    const unit = units[i];
+    const unitFactor = unitFactors[i];
+
+    if (seconds >= unitFactor) {
+      const count = Math.floor(seconds / unitFactor);
+      return `${count}${unit}`;
+    }
+  }
+
+  return '';
 };

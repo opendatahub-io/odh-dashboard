@@ -59,7 +59,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       <Tr>
         <Td
           expand={{
-            rowIndex: rowIndex,
+            rowIndex,
             expandId: 'storage-row-item',
             isExpanded,
             onToggle: () => setExpanded(!isExpanded),

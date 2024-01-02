@@ -19,7 +19,7 @@ const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ resource, i
     <>
       {jobReference ? (
         <>
-          <Tooltip content={'Created by a scheduled run'}>
+          <Tooltip content="Created by a scheduled run">
             <Label color="blue" isCompact={isCompact}>
               {PipelineRunLabels.RECURRING}
             </Label>

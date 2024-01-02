@@ -15,8 +15,8 @@ export const mockPipelinesJobProxy = ({
   name = 'test-pipeline-run-job',
   id = 'test-pipeline-run-job',
 }: MockResourceConfigType): PipelineRunJobKF => ({
-  id: id,
-  name: name,
+  id,
+  name,
   mode: JobModeKF.ENABLED,
   max_concurrency: '10',
   service_account: 'pipeline-runner-pipelines-definition',

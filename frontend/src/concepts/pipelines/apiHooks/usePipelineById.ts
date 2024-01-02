@@ -1,9 +1,13 @@
 import * as React from 'react';
-import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 
-const usePipelineById = (pipelineId?: string) => {
+const usePipelineById = (pipelineId?: string): FetchState<PipelineKF | null> => {
   const { api } = usePipelinesAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<PipelineKF | null>>(

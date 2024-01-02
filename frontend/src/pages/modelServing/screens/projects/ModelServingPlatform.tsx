@@ -106,11 +106,6 @@ const ModelServingPlatform: React.FC = () => {
         emptyState={
           <EmptyDetailsList
             title={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-            description={
-              isProjectModelMesh
-                ? 'Before deploying a model, you must first add a model server.'
-                : 'To get started, deploy a model.'
-            }
             icon={PlusCircleIcon}
           />
         }

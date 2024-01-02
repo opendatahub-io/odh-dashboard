@@ -1,6 +1,6 @@
 import { generatePipelineVersionName } from '~/concepts/pipelines/content/import/utils';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
+import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 type PipelineModalData = {
   name: string;
@@ -8,7 +8,7 @@ type PipelineModalData = {
   fileContents: string;
 };
 
-export const usePipelineImportModalData = () =>
+export const usePipelineImportModalData = (): GenericObjectState<PipelineModalData> =>
   useGenericObjectState<PipelineModalData>({
     name: '',
     description: '',
@@ -23,7 +23,9 @@ type PipelineVersionModalData = {
   fileContents: string;
 };
 
-export const usePipelineVersionImportModalData = (pipeline?: PipelineKF | null) => {
+export const usePipelineVersionImportModalData = (
+  pipeline?: PipelineKF | null,
+): GenericObjectState<PipelineVersionModalData> => {
   const createDataState = useGenericObjectState<PipelineVersionModalData>({
     name: generatePipelineVersionName(pipeline),
     description: '',

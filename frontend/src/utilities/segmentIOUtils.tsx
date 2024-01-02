@@ -33,7 +33,7 @@ export const initSegment = async (props: {
   segmentKey: string;
   username: string;
   enabled: boolean;
-}) => {
+}): Promise<void> => {
   const { segmentKey, username, enabled } = props;
   const analytics = (window.analytics = window.analytics || []);
   if (analytics.initialize) {

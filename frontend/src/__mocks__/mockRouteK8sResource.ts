@@ -16,7 +16,7 @@ export const mockRouteK8sResource = ({
   apiVersion: 'route.openshift.io/v1',
   metadata: {
     name: notebookName,
-    namespace: namespace,
+    namespace,
     uid: genUID('route'),
     resourceVersion: '4789458',
     creationTimestamp: '2023-02-14T21:44:13Z',
@@ -82,7 +82,7 @@ export const mockRouteK8sResourceModelServing = ({
   apiVersion: 'route.openshift.io/v1',
   metadata: {
     name: inferenceServiceName,
-    namespace: namespace,
+    namespace,
     uid: genUID('route'),
     resourceVersion: '4789458',
     creationTimestamp: '2023-02-14T21:44:13Z',

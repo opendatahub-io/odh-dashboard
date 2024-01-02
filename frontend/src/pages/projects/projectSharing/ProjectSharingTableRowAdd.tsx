@@ -49,7 +49,7 @@ const ProjectSharingTableRowAdd: React.FC<ProjectSharingTableRowPropsAdd> = ({
             }}
           />
         </Td>
-        <Td dataLabel="Date added"></Td>
+        <Td dataLabel="Date added" />
         <Td isActionCell modifier="nowrap">
           <Split>
             <SplitItem>

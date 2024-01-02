@@ -4,8 +4,11 @@
 /playwright-report/
 /playwright/.cache/
 /storybook-static/
+/public-cypress
 
 # production
 /public
 
 *stats.json
+
+.cache*
