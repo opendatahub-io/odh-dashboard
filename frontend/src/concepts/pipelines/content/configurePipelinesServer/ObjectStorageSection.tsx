@@ -6,6 +6,7 @@ import {
   TextInput,
   InputGroup,
   Tooltip,
+  InputGroupItem,
 } from '@patternfly/react-core';
 import React from 'react';
 import { DataConnection } from '~/pages/projects/types';
@@ -34,7 +35,7 @@ export const ObjectStorageSection = ({
   config,
   loaded,
   dataConnections,
-}: ObjectStorageSectionProps) => {
+}: ObjectStorageSectionProps): React.JSX.Element => {
   const onChange = (key: FieldOptions['key'], value: string) => {
     setConfig({
       ...config,
@@ -59,15 +60,18 @@ export const ObjectStorageSection = ({
         field.key === 'AWS_ACCESS_KEY_ID' ? (
           <FormGroup key={field.key} isRequired={field.isRequired} label={field.label}>
             <InputGroup>
-              <TextInput
-                aria-label={`Field list ${field.key}`}
-                isRequired={field.isRequired}
-                value={
-                  config.objectStorage.newValue.find((data) => data.key === field.key)?.value || ''
-                }
-                placeholder={field.placeholder}
-                onChange={(_, value) => onChange(field.key, value)}
-              />
+              <InputGroupItem isFill>
+                <TextInput
+                  aria-label={`Field list ${field.key}`}
+                  isRequired={field.isRequired}
+                  value={
+                    config.objectStorage.newValue.find((data) => data.key === field.key)?.value ||
+                    ''
+                  }
+                  placeholder={field.placeholder}
+                  onChange={(_, value) => onChange(field.key, value)}
+                />
+              </InputGroupItem>
               {loaded && !!dataConnections.length && (
                 <Tooltip content="Populate the form with credentials from your selected data connection">
                   <PipelineDropdown

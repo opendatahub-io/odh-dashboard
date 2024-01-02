@@ -64,7 +64,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
         {validated === 'error' && (
           <FormHelperText>
             <HelperText>
-              <HelperTextItem icon={<ExclamationCircleIcon />} variant={'error'}>
+              <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
                 {variableRow.errors[variable.name]}
               </HelperTextItem>
             </HelperText>

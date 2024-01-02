@@ -253,8 +253,8 @@ const SpawnerPage: React.FC = () => {
       notebookSizeName: selectedSize.name,
       imageName: selectedImageTag.image?.name || '',
       imageTagName: selectedImageTag.tag?.name || '',
-      acceleratorProfile: acceleratorProfile,
-      envVars: envVars,
+      acceleratorProfile,
+      envVars,
       state: NotebookState.Started,
       username: impersonatedUsername || undefined,
     })

@@ -44,8 +44,8 @@ const fireResourceAccessedEvent =
     fireTrackingEvent(
       type === OdhDocumentType.QuickStart ? `Resource ${quickStartLabel}` : 'Resource Accessed',
       {
-        name: name,
-        type: type,
+        name,
+        type,
       },
     );
   };

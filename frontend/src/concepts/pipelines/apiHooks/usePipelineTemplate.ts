@@ -1,10 +1,14 @@
 import * as React from 'react';
 import YAML from 'yaml';
-import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunKind } from '~/k8sTypes';
 
-const usePipelineTemplate = (pipelineId?: string) => {
+const usePipelineTemplate = (pipelineId?: string): FetchState<PipelineRunKind | null> => {
   const { api } = usePipelinesAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<PipelineRunKind | null>>(
