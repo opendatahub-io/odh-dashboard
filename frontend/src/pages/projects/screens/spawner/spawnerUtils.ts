@@ -107,9 +107,9 @@ export const compareTagVersions = (
   b: ImageStreamSpecTagType,
 ): number => {
   // Recommended tags should be first
-  if (a.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED]) {
+  if (checkVersionRecommended(a)) {
     return -1;
-  } else if (b.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED]) {
+  } else if (checkVersionRecommended(b)) {
     return 1;
   }
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
@@ -322,7 +322,7 @@ export const checkVersionExistence = (
 };
 
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
-  !!imageVersion.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED];
+  imageVersion.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED] === 'true';
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
