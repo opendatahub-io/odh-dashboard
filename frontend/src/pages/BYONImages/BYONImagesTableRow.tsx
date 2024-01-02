@@ -41,7 +41,7 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
       <Tr>
         <Td
           expand={{
-            rowIndex: rowIndex,
+            rowIndex,
             expandId: 'byon-image-row-item',
             isExpanded,
             onToggle: () => setExpanded(!isExpanded),

@@ -160,8 +160,8 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
 
 // TODO: refactor the modal across the app, only render it when it's open
 // In that way we don't need the wrapper anymore
-const PipelineVersionSelectorWrapper = (props: PipelineVersionSelectorProps) => (
-  <PipelineVersionSelector key={props.pipelineId} {...props} />
-);
+const PipelineVersionSelectorWrapper = (
+  props: PipelineVersionSelectorProps,
+): React.ReactElement => <PipelineVersionSelector key={props.pipelineId} {...props} />;
 
 export default PipelineVersionSelectorWrapper;

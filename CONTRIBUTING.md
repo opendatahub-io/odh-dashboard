@@ -185,7 +185,7 @@ or
 npm run make:build
 ```
 
-in the root of this repository. By default, we use [podman](https://podman.io/) as the default container tool, but you can change it by setting the `CONTAINER_TOOL` environment variable to `docker`.
+in the root of this repository. By default, we use [podman](https://podman.io/) as the default container tool, but you can change it by setting the `CONTAINER_BUILDER` environment variable to `docker`.
 
 After building the image, you need to push it to a container registry accessible by your cluster. You can do that by running
 

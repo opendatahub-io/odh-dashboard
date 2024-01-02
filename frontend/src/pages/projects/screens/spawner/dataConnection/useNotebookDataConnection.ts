@@ -9,7 +9,7 @@ import useGenericObjectState from '~/utilities/useGenericObjectState';
 export const getNotebookDataConnection = (
   notebook?: NotebookKind,
   dataConnections?: DataConnection[],
-) => {
+): DataConnection | undefined => {
   const envFromList = notebook?.spec.template.spec.containers[0].envFrom || [];
   const notebookSecrets = envFromList.filter((envFrom) => envFrom.secretRef);
   const notebookDataConnection = dataConnections?.find((connection) =>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Skeleton } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { TableText } from '@patternfly/react-table';
 import { TableRowTitleDescription } from '~/components/table';
 import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -23,7 +24,7 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ res
         <TableRowTitleDescription
           title={
             <Link to={`/pipelineRuns/${namespace}/pipelineRun/view/${resource.id}`}>
-              {resource.name}
+              <TableText wrapModifier="truncate">{resource.name}</TableText>
             </Link>
           }
           subtitle={<PipelineJobReferenceName resource={resource} />}

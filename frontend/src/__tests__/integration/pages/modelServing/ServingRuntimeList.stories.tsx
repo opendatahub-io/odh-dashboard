@@ -12,7 +12,6 @@ import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -36,6 +35,7 @@ import { ServingRuntimePlatform } from '~/types';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { StackComponent } from '~/concepts/areas';
+import { mockDataConnection } from '~/__mocks__/mockDataConnection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -112,7 +112,7 @@ const getHandlers = ({
     (req, res, ctx) => res(ctx.json(mockK8sResourceList(inferenceServices))),
   ),
   rest.get('/api/k8s/api/v1/namespaces/test-project/secrets', (req, res, ctx) =>
-    res(ctx.json(mockK8sResourceList([mockSecretK8sResource({})]))),
+    res(ctx.json(mockK8sResourceList([mockDataConnection({}).data]))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',

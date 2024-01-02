@@ -28,7 +28,7 @@ export const usePipelineLoadMore = ({
   sortField,
   loaded,
   filter,
-}: PipelineLoadMoreProps) => {
+}: PipelineLoadMoreProps): { data: PipelineKF[]; onLoadMore: () => Promise<void> } => {
   const { api } = usePipelinesAPI();
   const [, showMoreData] = React.useState(false);
   const dataRef = React.useRef<PipelineKF[]>([]);
@@ -73,7 +73,10 @@ export const usePipelineVersionLoadMore = ({
   sortField,
   filter,
   loaded,
-}: PipelineVersionLoadMoreProps) => {
+}: PipelineVersionLoadMoreProps): {
+  data: PipelineVersionKF[];
+  onLoadMore: () => Promise<void>;
+} => {
   const { api } = usePipelinesAPI();
   const [, showMoreData] = React.useState<boolean>(false);
   const dataRef = React.useRef<PipelineVersionKF[]>([]);

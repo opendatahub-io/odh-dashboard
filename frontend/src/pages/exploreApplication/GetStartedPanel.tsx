@@ -126,7 +126,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
               />
             </Alert>
           ) : null}
-          {<MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />}
+          <MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />
         </DrawerPanelBody>
       </DrawerPanelContent>
     </>

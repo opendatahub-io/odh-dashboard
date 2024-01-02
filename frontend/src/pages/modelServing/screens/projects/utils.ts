@@ -7,7 +7,11 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
-import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import {
+  DataConnection,
+  NamespaceApplicationCase,
+  UpdateObjectAtPropAndValue,
+} from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
@@ -251,17 +255,35 @@ const createInferenceServiceAndDataConnection = (
   existingStorage: boolean,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
+  acceleratorState?: AcceleratorState,
 ) => {
   if (!existingStorage) {
     return createAWSSecret(inferenceServiceData).then((secret) =>
       editInfo
-        ? updateInferenceService(inferenceServiceData, editInfo, secret.metadata.name, isModelMesh)
-        : createInferenceService(inferenceServiceData, secret.metadata.name, isModelMesh),
+        ? updateInferenceService(
+            inferenceServiceData,
+            editInfo,
+            secret.metadata.name,
+            isModelMesh,
+            acceleratorState,
+          )
+        : createInferenceService(
+            inferenceServiceData,
+            secret.metadata.name,
+            isModelMesh,
+            acceleratorState,
+          ),
     );
   }
   return editInfo !== undefined
-    ? updateInferenceService(inferenceServiceData, editInfo, undefined, isModelMesh)
-    : createInferenceService(inferenceServiceData, undefined, isModelMesh);
+    ? updateInferenceService(
+        inferenceServiceData,
+        editInfo,
+        undefined,
+        isModelMesh,
+        acceleratorState,
+      )
+    : createInferenceService(inferenceServiceData, undefined, isModelMesh, acceleratorState);
 };
 
 export const submitInferenceServiceResource = (
@@ -269,6 +291,7 @@ export const submitInferenceServiceResource = (
   editInfo?: InferenceServiceKind,
   servingRuntimeName?: string,
   isModelMesh?: boolean,
+  acceleratorState?: AcceleratorState,
 ): Promise<InferenceServiceKind> => {
   const inferenceServiceData = {
     ...createData,
@@ -285,6 +308,7 @@ export const submitInferenceServiceResource = (
     existingStorage,
     editInfo,
     isModelMesh,
+    acceleratorState,
   );
 };
 
@@ -299,6 +323,7 @@ export const submitServingRuntimeResources = (
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
+  isModelMesh?: boolean,
 ): Promise<void | (string | void | ServingRuntimeKind)[]> => {
   if (!servingRuntimeSelected) {
     return Promise.reject(
@@ -337,6 +362,7 @@ export const submitServingRuntimeResources = (
               dryRun,
             },
             acceleratorState: accelerator,
+            isModelMesh,
           }),
           setUpTokenAuth(
             servingRuntimeData,
@@ -360,6 +386,7 @@ export const submitServingRuntimeResources = (
               dryRun,
             },
             acceleratorState: accelerator,
+            isModelMesh,
           }).then((servingRuntime) =>
             setUpTokenAuth(
               servingRuntimeData,
@@ -384,3 +411,7 @@ export const submitServingRuntimeResources = (
 export const getUrlFromKserveInferenceService = (
   inferenceService: InferenceServiceKind,
 ): string | undefined => inferenceService.status?.url;
+
+export const filterOutConnectionsWithoutBucket = (
+  connections: DataConnection[],
+): DataConnection[] => connections.filter((obj) => obj.data.data['AWS_S3_BUCKET'].trim() !== '');

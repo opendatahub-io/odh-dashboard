@@ -17,7 +17,7 @@ export const downloadCurrentStepLog = async (
   podName: string,
   containerName: string,
   podCompleted: boolean | undefined,
-) =>
+): Promise<string | void> =>
   getPodContainerLogText(namespace, podName, containerName).then((content) =>
     downloadString(
       `${podName}-${containerName}-${podCompleted ? 'full' : currentTimeStamp}.log`,
@@ -29,7 +29,7 @@ export const downloadAllStepLogs = async (
   podContainers: PodContainer[],
   namespace: string,
   pod: PodKind,
-) => {
+): Promise<void> => {
   const logPromises = podContainers
     .filter((podContainer) => podContainer !== null)
     .map(async (podContainer) => {

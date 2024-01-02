@@ -1,11 +1,11 @@
-import useGenericObjectState from '~/utilities/useGenericObjectState';
+import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 export type CreateExperimentData = {
   name: string;
   description: string;
 };
 
-const useCreateExperimentData = () =>
+const useCreateExperimentData = (): GenericObjectState<CreateExperimentData> =>
   useGenericObjectState<CreateExperimentData>({
     name: '',
     description: '',

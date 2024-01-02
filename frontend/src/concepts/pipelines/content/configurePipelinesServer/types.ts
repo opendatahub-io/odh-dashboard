@@ -1,14 +1,7 @@
-import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
-
-export type ObjectStorageExisting = {
-  existingName: string;
-  existingValue: AWSDataEntry;
-  useExisting: true;
-};
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 
 export type ObjectStorageNew = {
   newValue: EnvVariableDataEntry[];
-  useExisting: false;
 };
 
 export type PipelineServerConfigType = {
@@ -16,5 +9,5 @@ export type PipelineServerConfigType = {
     useDefault: boolean;
     value: EnvVariableDataEntry[];
   };
-  objectStorage: ObjectStorageExisting | ObjectStorageNew;
+  objectStorage: ObjectStorageNew;
 };

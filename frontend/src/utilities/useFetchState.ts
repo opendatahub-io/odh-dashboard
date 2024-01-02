@@ -15,7 +15,7 @@ export class NotReadyError extends Error {
 /**
  * Checks to see if it's a standard error handled by useStateFetch .catch block.
  */
-export const isCommonStateError = (e: Error) => {
+export const isCommonStateError = (e: Error): boolean => {
   if (e.name === 'NotReadyError') {
     // An escape hatch for callers to reject the call at this fetchCallbackPromise reference
     // Re-compute your callback to re-trigger again
@@ -34,8 +34,8 @@ export const isCommonStateError = (e: Error) => {
 export type FetchStateRefreshPromise<Type> = () => Promise<Type | undefined>;
 
 /** Return state */
-export type FetchState<Type, Default extends Type = Type> = [
-  data: Type | Default,
+export type FetchState<Type> = [
+  data: Type,
   loaded: boolean,
   loadError: Error | undefined,
   /** This promise should never throw to the .catch */
@@ -109,19 +109,19 @@ type FetchOptions = {
  *
  * Note: Your callback *should* support the opts property so the call can be cancelled.
  */
-const useFetchState = <Type, Default extends Type = Type>(
+const useFetchState = <Type>(
   /** React.useCallback result. */
   fetchCallbackPromise: FetchStateCallbackPromise<Type | AdHocUpdate<Type>>,
   /**
    * A preferred default states - this is ignored after the first render
    * Note: This is only read as initial value; changes do nothing.
    */
-  initialDefaultState: Default,
+  initialDefaultState: Type,
   /** Configurable features */
   { refreshRate = 0, initialPromisePurity = false }: Partial<FetchOptions> = {},
-): FetchState<Type, Default> => {
+): FetchState<Type> => {
   const initialDefaultStateRef = React.useRef(initialDefaultState);
-  const [result, setResult] = React.useState<Type | Default>(initialDefaultState);
+  const [result, setResult] = React.useState<Type>(initialDefaultState);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
   const abortCallbackRef = React.useRef<() => void>(() => undefined);

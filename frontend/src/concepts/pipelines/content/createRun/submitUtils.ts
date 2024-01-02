@@ -1,5 +1,4 @@
 import {
-  periodicOptionAsSeconds,
   RunDateTime,
   RunFormData,
   RunTypeOption,
@@ -16,6 +15,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
+import { convertPeriodicTimeToSeconds } from '~/utilities/time';
 
 const getResourceReferences = (formData: SafeRunFormData): ResourceReferenceKF[] => {
   const refs: ResourceReferenceKF[] = [];
@@ -79,6 +79,7 @@ const createJob = async (
 
   const startDate = convertDateDataToKFDateTime(formData.runType.data.start) ?? undefined;
   const endDate = convertDateDataToKFDateTime(formData.runType.data.end) ?? undefined;
+  const periodicScheduleIntervalTime = convertPeriodicTimeToSeconds(formData.runType.data.value);
   /* eslint-disable camelcase */
   const data: CreatePipelineRunJobKFData = {
     name: formData.nameDesc.name,
@@ -93,10 +94,7 @@ const createJob = async (
       periodic_schedule:
         formData.runType.data.triggerType === ScheduledType.PERIODIC
           ? {
-              interval_second:
-                periodicOptionAsSeconds[
-                  formData.runType.data.value as keyof typeof periodicOptionAsSeconds
-                ].toString(),
+              interval_second: periodicScheduleIntervalTime.toString(),
               start_time: startDate,
               end_time: endDate,
             }

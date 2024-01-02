@@ -26,7 +26,9 @@ module.exports = {
   testEnvironment: 'jest-environment-jsdom',
 
   // include projects from node_modules as required
-  transformIgnorePatterns: ['node_modules/(?!yaml|@openshift|lodash-es|uuid)'],
+  transformIgnorePatterns: [
+    'node_modules/(?!yaml|@openshift|lodash-es|uuid|@patternfly/react-icons|d3|delaunator|robust-predicates|internmap)',
+  ],
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing
   snapshotSerializers: [],

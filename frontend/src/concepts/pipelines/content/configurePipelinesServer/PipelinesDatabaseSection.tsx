@@ -16,7 +16,10 @@ type PipelinesDatabaseSectionProps = {
   config: PipelineServerConfigType;
 };
 
-export const PipelinesDatabaseSection = ({ setConfig, config }: PipelinesDatabaseSectionProps) => {
+export const PipelinesDatabaseSection = ({
+  setConfig,
+  config,
+}: PipelinesDatabaseSectionProps): React.JSX.Element => {
   const [databaseIsExpanded, setDatabaseIsExpanded] = React.useState(false);
 
   return (

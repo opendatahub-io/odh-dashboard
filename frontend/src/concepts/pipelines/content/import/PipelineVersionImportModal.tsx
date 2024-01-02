@@ -137,8 +137,8 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   );
 };
 
-const PipelineVersionImportModalWrapper = (props: PipelineVersionImportModalProps) => (
-  <PipelineVersionImportModal key={props.existingPipeline?.id} {...props} />
-);
+const PipelineVersionImportModalWrapper = (
+  props: PipelineVersionImportModalProps,
+): React.ReactElement => <PipelineVersionImportModal key={props.existingPipeline?.id} {...props} />;
 
 export default PipelineVersionImportModalWrapper;

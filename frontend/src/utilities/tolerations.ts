@@ -57,6 +57,8 @@ export const computeNotebooksTolerations = (
 
   const settings = determineTolerations(
     dashboardConfig.spec.notebookController?.notebookTolerationSettings,
+    undefined,
+    tolerations,
   );
 
   const hasTolerations = !!tolerations && tolerations.length > 0;

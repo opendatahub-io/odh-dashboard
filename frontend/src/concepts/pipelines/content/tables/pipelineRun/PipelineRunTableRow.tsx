@@ -45,7 +45,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td>
         <CoreResourceExperiment resource={run} />
       </Td>
-      <Td>
+      <Td modifier="truncate">
         {loading ? (
           <Skeleton />
         ) : (

@@ -24,7 +24,11 @@ type InputFieldProps = {
   value: string;
 };
 
-const FieldListField = ({ options, onChange, value }: InputFieldProps) => {
+export const FieldListField = ({
+  options,
+  onChange,
+  value,
+}: InputFieldProps): React.JSX.Element => {
   const ComponentField = options.isPassword ? PasswordInput : TextInput;
 
   return (
@@ -40,7 +44,7 @@ const FieldListField = ({ options, onChange, value }: InputFieldProps) => {
   );
 };
 
-const FieldList = ({ values, onUpdate, fields }: FieldListProps) => {
+const FieldList = ({ values, onUpdate, fields }: FieldListProps): React.JSX.Element => {
   const update = (key: FieldOptions['key'], value: string) => {
     onUpdate(values.map((d) => (d.key === key ? { key, value } : d)));
   };

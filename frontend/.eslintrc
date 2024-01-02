@@ -57,6 +57,7 @@
     "camelcase": "warn",
     "no-else-return": "error",
     "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "react/jsx-curly-brace-presence": [2, { "props": "never", "children": "never" }],
     "no-restricted-imports": [
       "error",
       {
@@ -80,6 +81,7 @@
         ]
       }
     ],
+    "object-shorthand": ["error", "always"],
     "no-console": "error",
     "no-param-reassign": "error",
     "@typescript-eslint/explicit-function-return-type": "off",
@@ -88,6 +90,8 @@
     "@typescript-eslint/no-empty-function": "error",
     "@typescript-eslint/no-inferrable-types": "error",
     "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/explicit-module-boundary-types": "error",
+    "react/self-closing-comp": "error",
     "react-hooks/exhaustive-deps": "error",
     "react-hooks/rules-of-hooks": "error",
     "import/extensions": "off",
@@ -145,6 +149,20 @@
           }
         ]
       }
+    },
+    {
+      "files": ["./src/__tests__/cypress/**/*.ts"],
+      "parserOptions": {
+        "project": ["./src/__tests__/cypress/tsconfig.json"]
+      },
+      "extends": [
+        "eslint:recommended",
+        "plugin:react/recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:prettier/recommended",
+        "prettier",
+        "plugin:cypress/recommended"
+      ]
     }
   ]
 }
