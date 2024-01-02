@@ -21,8 +21,8 @@ export const mockDataConnection = ({
     kind: 'Secret',
     apiVersion: 'v1',
     metadata: {
-      name: name,
-      namespace: namespace,
+      name,
+      namespace,
       uid: genUID('secret'),
       resourceVersion: '5985371',
       creationTimestamp: '2023-03-22T16:18:56Z',

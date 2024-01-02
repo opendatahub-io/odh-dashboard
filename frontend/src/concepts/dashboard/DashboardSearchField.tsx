@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { InputGroup, SearchInput } from '@patternfly/react-core';
+import { InputGroup, SearchInput, InputGroupItem } from '@patternfly/react-core';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 
 // List all the possible search fields here
@@ -34,27 +34,31 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
   onSearchTypeChange,
 }) => (
   <InputGroup>
-    <SimpleDropdownSelect
-      aria-label="Filter type"
-      data-testid="filter-dropdown-select"
-      options={types.map((key) => ({
-        key,
-        label: key,
-      }))}
-      value={searchType}
-      onChange={(key) => {
-        onSearchTypeChange(key as SearchType);
-      }}
-    />
-    <SearchInput
-      placeholder={`Find by ${searchType.toLowerCase()}`}
-      value={searchValue}
-      onChange={(_, newSearch) => {
-        onSearchValueChange(newSearch);
-      }}
-      onClear={() => onSearchValueChange('')}
-      style={{ minWidth: '200px' }}
-    />
+    <InputGroupItem>
+      <SimpleDropdownSelect
+        aria-label="Filter type"
+        data-testid="filter-dropdown-select"
+        options={types.map((key) => ({
+          key,
+          label: key,
+        }))}
+        value={searchType}
+        onChange={(key) => {
+          onSearchTypeChange(key as SearchType);
+        }}
+      />
+    </InputGroupItem>
+    <InputGroupItem>
+      <SearchInput
+        placeholder={`Find by ${searchType.toLowerCase()}`}
+        value={searchValue}
+        onChange={(_, newSearch) => {
+          onSearchValueChange(newSearch);
+        }}
+        onClear={() => onSearchValueChange('')}
+        style={{ minWidth: '200px' }}
+      />
+    </InputGroupItem>
   </InputGroup>
 );
 

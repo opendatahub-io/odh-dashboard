@@ -181,10 +181,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <ServingRuntimeNameSection
-              data={createData}
-              setData={setCreateData}
-            ></ServingRuntimeNameSection>
+            <ServingRuntimeNameSection data={createData} setData={setCreateData} />
           </StackItem>
           <StackItem>
             <ServingRuntimeTemplateSection
@@ -221,7 +218,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 bodyContent="Model route and token authorization can only be changed by administrator users."
               >
                 <Button variant="link" icon={<HelpIcon />} isInline>
-                  {"Why can't I change the model route and token authorization fields?"}
+                  Why can&apos;t I change the model route and token authorization fields?
                 </Button>
               </Popover>
             </StackItem>

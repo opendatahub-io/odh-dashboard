@@ -11,6 +11,6 @@
 //   return [checkModelMetricsEnabled()];
 // };
 
-const useModelMetricsEnabled = () => [false];
+const useModelMetricsEnabled = (): boolean[] => [false];
 
 export default useModelMetricsEnabled;

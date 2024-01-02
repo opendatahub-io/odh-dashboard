@@ -45,7 +45,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     dropdownLabel: (
       <Split>
         <SplitItem>
-          {<Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />}
+          <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
         </SplitItem>
         <SplitItem isFilled />
         <SplitItem>

@@ -49,8 +49,8 @@ export const mockNotebookK8sResource = ({
           'opendatahub.io/user': user,
         },
         managedFields: [],
-        name: name,
-        namespace: namespace,
+        name,
+        namespace,
         resourceVersion: '4800689',
         uid: genUID('notebook'),
       },
@@ -111,7 +111,7 @@ export const mockNotebookK8sResource = ({
                   successThreshold: 1,
                   timeoutSeconds: 1,
                 },
-                name: name,
+                name,
                 ports: [
                   {
                     containerPort: 8888,
@@ -135,7 +135,7 @@ export const mockNotebookK8sResource = ({
                 volumeMounts: [
                   {
                     mountPath: '/opt/app-root/src',
-                    name: name,
+                    name,
                   },
                 ],
                 workingDir: '/opt/app-root/src',
@@ -218,7 +218,7 @@ export const mockNotebookK8sResource = ({
             ],
             volumes: [
               {
-                name: name,
+                name,
                 persistentVolumeClaim: {
                   claimName: name,
                 },

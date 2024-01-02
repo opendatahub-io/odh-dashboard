@@ -1,3 +1,3 @@
 import { genRandomChars } from '~/utilities/string';
 
-export const genUID = (name: string) => `test-uid_${name}_${genRandomChars()}`;
+export const genUID = (name: string): string => `test-uid_${name}_${genRandomChars()}`;
