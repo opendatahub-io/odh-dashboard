@@ -11,6 +11,7 @@ import {
   mockRouteK8sResourceModelServing,
 } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -38,6 +39,7 @@ type HandlersProps = {
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
+  rejectAddSupportServingPlatformProject?: boolean;
 };
 
 const initIntercepts = ({
@@ -67,6 +69,7 @@ const initIntercepts = ({
       activeModelState: 'Loaded',
     }),
   ],
+  rejectAddSupportServingPlatformProject = false,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -110,19 +113,67 @@ const initIntercepts = ({
   );
   cy.intercept(
     {
+      method: 'GET',
       pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
     },
     mockK8sResourceList(inferenceServices),
   );
   cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
+    },
+    mockInferenceServiceK8sResource({ name: 'test-inference' }),
+  ).as('createInferenceService');
+  cy.intercept(
     { pathname: '/api/k8s/api/v1/namespaces/test-project/secrets' },
     mockK8sResourceList([mockSecretK8sResource({})]),
   );
+  // used by addSupportServingPlatformProject
   cy.intercept(
     {
+      pathname: '/api/namespaces/test-project/*',
+    },
+    rejectAddSupportServingPlatformProject
+      ? { statusCode: 401 }
+      : { statusCode: 200, body: { applied: true } },
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/api/v1/namespaces/test-project/serviceaccounts',
+    },
+    mockServiceAccountK8sResource({
+      name: 'test-model-sa',
+      namespace: 'test-project',
+    }),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
       pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
     },
     mockK8sResourceList(servingRuntimes),
+  );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
+    },
+    mockServingRuntimeK8sResource({
+      name: 'test-model',
+      namespace: 'test-project',
+      auth: true,
+      route: true,
+    }),
+  ).as('createServingRuntime');
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname:
+        '/api/k8s/apis/opendatahub.io/v1alpha/namespaces/opendatahub/odhdashboardconfigs/odh-dashboard-config',
+    },
+    mockDashboardConfig({}),
   );
   cy.intercept(
     {
@@ -261,6 +312,58 @@ describe('Serving Runtime List', () => {
     kserveModal.findLocationBucketInput().type('test-bucket');
     kserveModal.findLocationPathInput().type('test-model/');
     kserveModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, the modal should close to indicate success.
+    kserveModal.findSubmitButton().click();
+    kserveModal.shouldBeOpen(false);
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
+  it('Do not deploy KServe model when user cannot edit namespace', () => {
+    initIntercepts({
+      disableModelMeshConfig: false,
+      disableKServeConfig: false,
+      servingRuntimes: [],
+      rejectAddSupportServingPlatformProject: true,
+    });
+
+    projectDetails.visit('test-project');
+
+    modelServingSection.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
+
+    // test filling in minimum required fields
+    kserveModal.findModelNameInput().type('Test Name');
+    kserveModal.findServingRuntimeTemplateDropdown().findDropdownItem('Caikit').click();
+    kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+    kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+    kserveModal.findNewDataConnectionOption().click();
+    kserveModal.findLocationNameInput().type('Test Name');
+    kserveModal.findLocationAccessKeyInput().type('test-key');
+    kserveModal.findLocationSecretKeyInput().type('test-secret-key');
+    kserveModal.findLocationEndpointInput().type('test-endpoint');
+    kserveModal.findLocationBucketInput().type('test-bucket');
+    kserveModal.findLocationPathInput().type('test-model/');
+    kserveModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, an error should appear
+    kserveModal.findSubmitButton().click();
+    cy.findByText('Error creating model server');
+
+    // the serving runtime should NOT have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(1); // 1 dry-run request only
+    });
+
+    // the inference service should NOT have been created
+    cy.get('@createInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(0);
+    });
   });
 
   it('No model serving platform available', () => {
@@ -450,5 +553,66 @@ describe('Serving Runtime List', () => {
     editServingRuntimeModal.findSubmitButton().should('be.enabled');
     editServingRuntimeModal.findAuthenticationCheckbox().uncheck();
     editServingRuntimeModal.findSubmitButton().should('be.disabled');
+  });
+
+  it('Successfully add model server when user can edit namespace', () => {
+    initIntercepts({
+      projectEnableModelMesh: undefined,
+      disableKServeConfig: false,
+      disableModelMeshConfig: false,
+    });
+    projectDetails.visit('test-project');
+
+    modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
+
+    // fill in minimum required fields
+    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+    createServingRuntimeModal
+      .findServingRuntimeTemplateDropdown()
+      .findDropdownItem('New OVMS Server')
+      .click();
+    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, the modal should close to indicate success.
+    createServingRuntimeModal.findSubmitButton().click();
+    createServingRuntimeModal.shouldBeOpen(false);
+
+    // the serving runtime should have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+  });
+
+  it('Do not add model server when user cannot edit namespace', () => {
+    initIntercepts({
+      projectEnableModelMesh: undefined,
+      disableKServeConfig: false,
+      disableModelMeshConfig: false,
+      rejectAddSupportServingPlatformProject: true,
+    });
+    projectDetails.visit('test-project');
+
+    modelServingSection.findAddModelServerButton().click();
+
+    createServingRuntimeModal.shouldBeOpen();
+
+    // fill in minimum required fields
+    createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+    createServingRuntimeModal
+      .findServingRuntimeTemplateDropdown()
+      .findDropdownItem('New OVMS Server')
+      .click();
+    createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+    // test submitting form, an error should appear
+    createServingRuntimeModal.findSubmitButton().click();
+    cy.findByText('Error creating model server');
+
+    // the serving runtime should NOT have been created
+    cy.get('@createServingRuntime.all').then((interceptions) => {
+      expect(interceptions).to.have.length(1); // 1 dry-run request only
+    });
   });
 });
