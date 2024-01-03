@@ -1,6 +1,8 @@
 import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource, getProjectDisplayName } from '~/pages/projects/utils';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
+import { PodKind } from '~/k8sTypes';
+import { ModelStatus } from '~/pages/modelServing/screens/types';
 
 export const getInferenceServiceDisplayName = (is: InferenceServiceKind): string =>
   getDisplayNameFromK8sResource(is);
@@ -26,4 +28,11 @@ export const getInferenceServiceProjectDisplayName = (
 ): string => {
   const project = projects.find(({ metadata: { name } }) => name === is.metadata.namespace);
   return project ? getProjectDisplayName(project) : 'Unknown';
+};
+
+export const checkModelStatus = (model: PodKind): ModelStatus => {
+  const modelStatus = model.status.conditions.some((model) => model?.reason === 'Unschedulable');
+  return {
+    failedToSchedule: model.status.phase === 'Pending' && modelStatus,
+  };
 };

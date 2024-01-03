@@ -8,13 +8,25 @@ import {
 import { InferenceServiceKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { getInferenceServiceActiveModelState, getInferenceServiceStatusMessage } from './utils';
-
+import { useModelStatus } from './useModelStatus';
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
+  isKserve: boolean;
 };
 
-const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferenceService }) => {
-  const state = getInferenceServiceActiveModelState(inferenceService);
+const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
+  inferenceService,
+  isKserve,
+}) => {
+  const [modelStatus] = useModelStatus(
+    inferenceService?.metadata.namespace ?? '',
+    inferenceService.spec.predictor.model.runtime ?? '',
+    isKserve,
+  );
+
+  const state = modelStatus?.failedToSchedule
+    ? 'FailedToLoad'
+    : getInferenceServiceActiveModelState(inferenceService);
 
   const StatusIcon = () => {
     switch (state) {
@@ -56,7 +68,13 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({ inferen
   return (
     <Tooltip
       role="none"
-      content={<Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>}
+      content={
+        modelStatus?.failedToSchedule ? (
+          <Text>Insufficient resources</Text>
+        ) : (
+          <Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>
+        )
+      }
     >
       {StatusIcon()}
     </Tooltip>
