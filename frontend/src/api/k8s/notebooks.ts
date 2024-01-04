@@ -273,6 +273,7 @@ export const updateNotebook = (
   existingNotebook: NotebookKind,
   data: StartNotebookData,
   username: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
@@ -287,10 +288,12 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};
 
-  return k8sUpdateResource<NotebookKind>({
-    model: NotebookModel,
-    resource: _.merge({}, oldNotebook, notebook),
-  });
+  return k8sUpdateResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      resource: _.merge({}, oldNotebook, notebook),
+    }),
+  );
 };
 
 export const createNotebookWithoutStarting = (
