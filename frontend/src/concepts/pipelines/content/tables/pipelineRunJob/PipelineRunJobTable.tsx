@@ -6,7 +6,7 @@ import { getTableColumnSort, useCheckboxTable } from '~/components/table';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
 import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
@@ -96,7 +96,7 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
         variant={TableVariant.compact}
         getColumnSort={getTableColumnSort({ columns: pipelineRunJobColumns, ...tableProps })}
       />
-      <DeletePipelineCoreResourceModal
+      <DeletePipelineRunsModal
         toDeleteResources={deleteResources}
         type={PipelineType.SCHEDULED_RUN}
         onClose={(deleted) => {

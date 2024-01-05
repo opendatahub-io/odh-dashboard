@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { TableVariant } from '@patternfly/react-table';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { Table, getTableColumnSort, useCheckboxTable } from '~/components/table';
+import { Table, getTableColumnSort, useCheckboxTableBase } from '~/components/table';
 import PipelinesTableRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
 import { pipelineColumns } from '~/concepts/pipelines/content/tables/columns';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import { TableBase } from '~/components/table';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 
 type PipelinesTableProps = {
   pipelines: PipelineKF[];
@@ -23,7 +24,7 @@ type PipelinesTableProps = {
   setSortDirection: (dir: 'asc' | 'desc') => void;
 } & Pick<
   React.ComponentProps<typeof Table>,
-  'toolbarContent' | 'emptyTableView' | 'enablePagination'
+  'toolbarContent' | 'emptyTableView' | 'enablePagination' | 'variant'
 >;
 
 const PipelinesTable: React.FC<PipelinesTableProps> = ({
@@ -38,12 +39,21 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
   pipelineDetailsPath,
   ...tableProps
 }) => {
+  const { refreshAllAPI } = usePipelinesAPI();
+  const { pipelineDataSelector } = React.useContext(PipelineAndVersionContext);
+  const { selectedPipelines, setSelectedPipelines } = pipelineDataSelector();
   const {
     tableProps: checkboxTableProps,
-    toggleSelection,
     isSelected,
-  } = useCheckboxTable(pipelines.map(({ id }) => id));
-  const [deleteTarget, setDeleteTarget] = React.useState<PipelineKF | null>(null);
+    toggleSelection,
+  } = useCheckboxTableBase<PipelineKF>(
+    pipelines,
+    selectedPipelines,
+    setSelectedPipelines,
+    (pipeline) => pipeline.id,
+  );
+
+  const [deletePipelines, setDeletePipelines] = React.useState<PipelineKF[]>([]);
 
   return (
     <>
@@ -66,15 +76,14 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         itemCount={totalSize}
         data={pipelines}
         columns={pipelineColumns}
-        variant={TableVariant.compact}
         rowRenderer={(pipeline, rowIndex) => (
           <PipelinesTableRow
             key={pipeline.id}
             pipeline={pipeline}
             rowIndex={rowIndex}
-            isChecked={isSelected(pipeline.id)}
-            onToggleCheck={() => toggleSelection(pipeline.id)}
-            onDeletePipeline={() => setDeleteTarget(pipeline)}
+            isChecked={isSelected(pipeline)}
+            onToggleCheck={() => toggleSelection(pipeline)}
+            onDeletePipeline={() => setDeletePipelines([pipeline])}
             refreshPipelines={refreshPipelines}
             pipelineDetailsPath={pipelineDetailsPath}
           />
@@ -85,15 +94,14 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
           ...tableProps,
         })}
       />
-      <DeletePipelineCoreResourceModal
-        type="pipeline"
-        toDeleteResources={deleteTarget ? [deleteTarget] : []}
+      <DeletePipelinesModal
+        isOpen={deletePipelines.length !== 0}
+        toDeletePipelines={deletePipelines}
         onClose={(deleted) => {
           if (deleted) {
-            refreshPipelines().then(() => setDeleteTarget(null));
-          } else {
-            setDeleteTarget(null);
+            refreshAllAPI();
           }
+          setDeletePipelines([]);
         }}
       />
     </>

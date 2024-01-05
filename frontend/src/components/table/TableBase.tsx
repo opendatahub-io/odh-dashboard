@@ -36,7 +36,7 @@ type Props<DataType> = {
   emptyTableView?: React.ReactNode;
   caption?: string;
   footerRow?: (pageNumber: number) => React.ReactElement<typeof Tr> | null;
-  selectAll?: { onSelect: (value: boolean) => void; selected: boolean };
+  selectAll?: { onSelect: (value: boolean) => void; selected: boolean; disabled?: boolean };
   getColumnSort?: GetColumnSort;
 } & EitherNotBoth<
   { disableRowRenderSupport?: boolean },
@@ -190,6 +190,7 @@ const TableBase = <T,>({
                       select={{
                         isSelected: selectAll.selected,
                         onSelect: (e, value) => selectAll.onSelect(value),
+                        isDisabled: selectAll.disabled,
                       }}
                       // TODO: Log PF bug -- when there are no rows this gets truncated
                       style={{ minWidth: '45px' }}
