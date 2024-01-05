@@ -1,8 +1,8 @@
-import { mockAcceleratork8sResource } from '~/__mocks__/mockAcceleratork8sResource';
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceModalData';
 import { assembleInferenceService } from '~/api/k8s/inferenceServices';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -57,10 +57,10 @@ describe('assembleInferenceService', () => {
   });
 
   it('should add accelerator if kserve and accelerator found', async () => {
-    const acceleratorState: AcceleratorState = {
-      accelerator: mockAcceleratork8sResource({}),
-      accelerators: [mockAcceleratork8sResource({})],
-      initialAccelerator: mockAcceleratork8sResource({}),
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
       additionalOptions: {},
       useExisting: false,
@@ -72,22 +72,22 @@ describe('assembleInferenceService', () => {
       undefined,
       false,
       undefined,
-      acceleratorState,
+      acceleratorProfileState,
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeDefined();
     expect(inferenceService.spec.predictor.tolerations?.[0].key).toBe(
-      mockAcceleratork8sResource({}).spec.tolerations?.[0].key,
+      mockAcceleratorProfile({}).spec.tolerations?.[0].key,
     );
     expect(inferenceService.spec.predictor.model.resources?.limits?.['nvidia.com/gpu']).toBe(1);
     expect(inferenceService.spec.predictor.model.resources?.requests?.['nvidia.com/gpu']).toBe(1);
   });
 
   it('should not add accelerator if modelmesh and accelerator found', async () => {
-    const acceleratorState: AcceleratorState = {
-      accelerator: mockAcceleratork8sResource({}),
-      accelerators: [mockAcceleratork8sResource({})],
-      initialAccelerator: mockAcceleratork8sResource({}),
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
       count: 1,
       additionalOptions: {},
       useExisting: false,
@@ -99,7 +99,7 @@ describe('assembleInferenceService', () => {
       undefined,
       true,
       undefined,
-      acceleratorState,
+      acceleratorProfileState,
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeUndefined();

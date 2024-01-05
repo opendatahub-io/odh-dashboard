@@ -5,11 +5,10 @@ import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
   NotebookContainer,
-  PodToleration,
+  Toleration,
   Volume,
   ContainerResources,
   NotebookSize,
-  GpuSettingString,
   TolerationSettings,
   ImageStreamStatusTagItem,
   ImageStreamStatusTagCondition,
@@ -269,7 +268,7 @@ export type NotebookKind = K8sResourceCommon & {
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
         volumes?: Volume[];
-        tolerations?: PodToleration[];
+        tolerations?: Toleration[];
       };
     };
   };
@@ -342,7 +341,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
-    tolerations?: PodToleration[];
+    tolerations?: Toleration[];
     volumes?: Volume[];
   };
 };
@@ -371,7 +370,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
-      tolerations?: PodToleration[];
+      tolerations?: Toleration[];
       model: {
         modelFormat: {
           name: string;
@@ -754,6 +753,7 @@ export type DashboardCommonConfig = {
   disablePipelines: boolean;
   disableKServe: boolean;
   disableModelMesh: boolean;
+  disableAcceleratorProfiles: boolean;
 };
 
 export type OperatorStatus = {
@@ -776,8 +776,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
-      /** @deprecated - Use AcceleratorProfiles */
-      gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
@@ -794,7 +792,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
   };
 };
 
-export type AcceleratorKind = K8sResourceCommon & {
+export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     annotations?: Partial<{
@@ -806,7 +804,7 @@ export type AcceleratorKind = K8sResourceCommon & {
     enabled: boolean;
     identifier: string;
     description?: string;
-    tolerations?: PodToleration[];
+    tolerations?: Toleration[];
   };
 };
 

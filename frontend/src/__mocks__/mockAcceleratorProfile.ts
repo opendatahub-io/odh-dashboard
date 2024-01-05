@@ -1,4 +1,5 @@
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
+import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
 import { genUID } from './mockUtils';
 
 type MockResourceConfigType = {
@@ -6,28 +7,26 @@ type MockResourceConfigType = {
   namespace?: string;
   displayName?: string;
   identifier?: string;
+  description?: string;
   enabled?: boolean;
-  tolerations?: {
-    key: string;
-    operator: string;
-    effect: string;
-  }[];
+  tolerations?: Toleration[];
 };
 
-export const mockAcceleratork8sResource = ({
+export const mockAcceleratorProfile = ({
   name = 'migrated-gpu',
   namespace = 'test-project',
   displayName = 'Nvidia GPU',
   identifier = 'nvidia.com/gpu',
+  description = '',
   enabled = true,
   tolerations = [
     {
       key: 'nvidia.com/gpu',
-      operator: 'Exists',
-      effect: 'NoSchedule',
+      operator: TolerationOperator.EXISTS,
+      effect: TolerationEffect.NO_SCHEDULE,
     },
   ],
-}: MockResourceConfigType): AcceleratorKind => ({
+}: MockResourceConfigType): AcceleratorProfileKind => ({
   apiVersion: 'dashboard.opendatahub.io/v1',
   kind: 'AcceleratorProfile',
   metadata: {
@@ -43,5 +42,6 @@ export const mockAcceleratork8sResource = ({
     displayName,
     enabled,
     tolerations,
+    description,
   },
 });

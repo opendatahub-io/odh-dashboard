@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import createError from 'http-errors';
 import { PatchUtils, V1ConfigMap, V1Namespace, V1NamespaceList } from '@kubernetes/client-node';
 import {
-  AcceleratorKind,
+  AcceleratorProfileKind,
   BUILD_PHASE,
   BuildKind,
   BuildStatus,
@@ -18,6 +18,8 @@ import {
   SubscriptionKind,
   Template,
   TemplateList,
+  TolerationEffect,
+  TolerationOperator,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -34,7 +36,7 @@ import {
   getRouteForClusterId,
 } from './componentUtils';
 import { createCustomError } from './requestUtils';
-import { getAcceleratorNumbers } from '../routes/api/accelerators/acceleratorUtils';
+import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -693,7 +695,7 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
 
     const acceleratorProfiles = (
       acceleratorProfilesResponse?.body as {
-        items: AcceleratorKind[];
+        items: AcceleratorProfileKind[];
       }
     )?.items;
 
@@ -704,10 +706,10 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
       acceleratorProfiles.length === 0
     ) {
       // if gpu detected on cluster, create our default migrated-gpu
-      const acceleratorDetected = await getAcceleratorNumbers(fastify);
+      const acceleratorDetected = await getDetectedAccelerators(fastify);
 
       if (acceleratorDetected.configured) {
-        const payload: AcceleratorKind = {
+        const payload: AcceleratorProfileKind = {
           kind: 'AcceleratorProfile',
           apiVersion: 'dashboard.opendatahub.io/v1',
           metadata: {
@@ -720,9 +722,9 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
             enabled: true,
             tolerations: [
               {
-                effect: 'NoSchedule',
+                effect: TolerationEffect.NO_SCHEDULE,
                 key: 'nvidia.com/gpu',
-                operator: 'Exists',
+                operator: TolerationOperator.EXISTS,
               },
             ],
           },
@@ -967,3 +969,10 @@ export const migrateTemplateDisablement = async (
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>
   template.objects[0].metadata.name;
+
+export const translateDisplayNameForK8s = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/\s/g, '-')
+    .replace(/[^A-Za-z0-9-]/g, '');
