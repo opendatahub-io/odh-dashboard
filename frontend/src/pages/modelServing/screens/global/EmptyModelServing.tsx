@@ -63,7 +63,7 @@ const EmptyModelServing: React.FC = () => {
         icon={<EmptyStateIcon icon={PlusCircleIcon} />}
         headingLevel="h2"
       />
-      <EmptyStateBody>To get started, use existing model servers to serve a model.</EmptyStateBody>
+      <EmptyStateBody>To get started, deploy a model.</EmptyStateBody>
       <EmptyStateFooter>
         <ServeModelButton />
       </EmptyStateFooter>
