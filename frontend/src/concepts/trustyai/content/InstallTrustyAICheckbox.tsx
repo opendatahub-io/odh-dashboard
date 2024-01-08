@@ -8,15 +8,21 @@ type InstallTrustyAICheckboxProps = {
   isProgressing: boolean;
   onInstall: () => Promise<unknown>;
   onDelete: () => Promise<unknown>;
+  disabled: boolean;
+  disabledReason?: string;
 };
 const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
   isAvailable,
   isProgressing,
   onInstall,
   onDelete,
+  disabled,
+  disabledReason,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [userHasChecked, setUserHasChecked] = React.useState(false);
+
+  const helperText = disabled ? disabledReason : TRUSTYAI_TOOLTIP_TEXT;
 
   return (
     <>
@@ -24,11 +30,11 @@ const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
         label="Enable TrustyAI"
         body={
           <HelperText>
-            <HelperTextItem>{TRUSTYAI_TOOLTIP_TEXT}</HelperTextItem>
+            <HelperTextItem>{helperText}</HelperTextItem>
           </HelperText>
         }
-        isChecked={isAvailable}
-        isDisabled={userHasChecked || isProgressing}
+        isChecked={!disabled && isAvailable}
+        isDisabled={disabled || userHasChecked || isProgressing}
         onChange={(e, checked) => {
           if (checked) {
             setUserHasChecked(true);

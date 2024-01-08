@@ -30,11 +30,15 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
+  const modelMetricsSupported = (inferenceService: InferenceServiceKind) =>
+    modelMetricsEnabled &&
+    inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';
+
   return (
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMetricsEnabled ? (
+          {modelMetricsSupported(inferenceService) ? (
             <Link
               to={
                 isGlobal
