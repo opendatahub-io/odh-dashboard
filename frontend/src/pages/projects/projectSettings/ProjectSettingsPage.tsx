@@ -6,7 +6,6 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const ProjectSettingsPage = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const namespace = currentProject.metadata.name;
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 
   return (
@@ -14,7 +13,7 @@ const ProjectSettingsPage = () => {
       <Stack hasGutter>
         {biasMetricsAreaAvailable && (
           <StackItem>
-            <ModelBiasSettingsCard namespace={namespace} />
+            <ModelBiasSettingsCard project={currentProject} />
           </StackItem>
         )}
       </Stack>

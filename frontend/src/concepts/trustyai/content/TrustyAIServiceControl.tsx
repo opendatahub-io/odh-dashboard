@@ -6,8 +6,14 @@ import InstallTrustyAICheckbox from './InstallTrustyAICheckbox';
 
 type TrustyAIServiceControlProps = {
   namespace: string;
+  disabled: boolean;
+  disabledReason?: string;
 };
-const TrustyAIServiceControl: React.FC<TrustyAIServiceControlProps> = ({ namespace }) => {
+const TrustyAIServiceControl: React.FC<TrustyAIServiceControlProps> = ({
+  namespace,
+  disabled,
+  disabledReason,
+}) => {
   const {
     isAvailable,
     isProgressing,
@@ -22,7 +28,7 @@ const TrustyAIServiceControl: React.FC<TrustyAIServiceControlProps> = ({ namespa
 
   const [userStartedInstall, setUserStartedInstall] = React.useState(false);
 
-  if (!isSettled) {
+  if (!disabled && !isSettled) {
     return (
       <Bullseye>
         <Spinner />
@@ -34,6 +40,8 @@ const TrustyAIServiceControl: React.FC<TrustyAIServiceControlProps> = ({ namespa
     <Stack hasGutter>
       <StackItem>
         <InstallTrustyAICheckbox
+          disabled={disabled}
+          disabledReason={disabledReason}
           isAvailable={isAvailable}
           isProgressing={isProgressing}
           onInstall={() => {
