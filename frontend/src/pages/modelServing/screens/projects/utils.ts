@@ -33,7 +33,7 @@ import {
   getServingRuntimeTokens,
   setUpTokenAuth,
 } from '~/pages/modelServing/utils';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import {
   addSupportServingPlatformProject,
   assembleSecret,
@@ -204,7 +204,7 @@ export const useCreateInferenceServiceObject = (
   return createInferenceServiceState;
 };
 
-export const getModelServerDisplayName = (server: ServingRuntimeKind) =>
+export const getModelServerDisplayName = (server: ServingRuntimeKind): string =>
   getDisplayNameFromK8sResource(server);
 export const getProjectModelServingPlatform = (
   project: ProjectKind | null,
@@ -257,7 +257,7 @@ const createInferenceServiceAndDataConnection = (
   existingStorage: boolean,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
-  acceleratorState?: AcceleratorState,
+  acceleratorProfileState?: AcceleratorProfileState,
 ) => {
   if (!existingStorage) {
     return createAWSSecret(inferenceServiceData).then((secret) =>
@@ -267,13 +267,13 @@ const createInferenceServiceAndDataConnection = (
             editInfo,
             secret.metadata.name,
             isModelMesh,
-            acceleratorState,
+            acceleratorProfileState,
           )
         : createInferenceService(
             inferenceServiceData,
             secret.metadata.name,
             isModelMesh,
-            acceleratorState,
+            acceleratorProfileState,
           ),
     );
   }
@@ -283,9 +283,9 @@ const createInferenceServiceAndDataConnection = (
         editInfo,
         undefined,
         isModelMesh,
-        acceleratorState,
+        acceleratorProfileState,
       )
-    : createInferenceService(inferenceServiceData, undefined, isModelMesh, acceleratorState);
+    : createInferenceService(inferenceServiceData, undefined, isModelMesh, acceleratorProfileState);
 };
 
 export const submitInferenceServiceResource = (
@@ -293,7 +293,7 @@ export const submitInferenceServiceResource = (
   editInfo?: InferenceServiceKind,
   servingRuntimeName?: string,
   isModelMesh?: boolean,
-  acceleratorState?: AcceleratorState,
+  acceleratorProfileState?: AcceleratorProfileState,
 ): Promise<InferenceServiceKind> => {
   const inferenceServiceData = {
     ...createData,
@@ -310,7 +310,7 @@ export const submitInferenceServiceResource = (
     existingStorage,
     editInfo,
     isModelMesh,
-    acceleratorState,
+    acceleratorProfileState,
   );
 };
 
@@ -321,7 +321,7 @@ export const submitServingRuntimeResources = (
   namespace: string,
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
-  acceleratorState: AcceleratorState,
+  acceleratorProfileState: AcceleratorProfileState,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
@@ -342,9 +342,9 @@ export const submitServingRuntimeResources = (
   const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
   const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
 
-  const accelerator = isGpuDisabled(servingRuntimeSelected)
-    ? { count: 0, accelerators: [], useExisting: false }
-    : acceleratorState;
+  const controlledState = isGpuDisabled(servingRuntimeSelected)
+    ? { count: 0, acceleratorProfiles: [], useExisting: false }
+    : acceleratorProfileState;
 
   const getUpdatePromises = (dryRun = false) => [
     ...(!dryRun &&
@@ -363,7 +363,7 @@ export const submitServingRuntimeResources = (
             opts: {
               dryRun,
             },
-            acceleratorState: accelerator,
+            acceleratorProfileState: controlledState,
             isModelMesh,
           }),
           setUpTokenAuth(
@@ -387,7 +387,7 @@ export const submitServingRuntimeResources = (
             opts: {
               dryRun,
             },
-            acceleratorState: accelerator,
+            acceleratorProfileState: controlledState,
             isModelMesh,
           }).then((servingRuntime) =>
             setUpTokenAuth(

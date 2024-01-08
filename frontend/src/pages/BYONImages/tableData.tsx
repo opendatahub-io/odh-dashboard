@@ -23,7 +23,16 @@ export const columns: SortableData<BYONImage>[] = [
     label: 'Enable',
     sortable: (a, b) => getEnabledStatus(a) - getEnabledStatus(b),
     info: {
-      tooltip: 'Enabled images are selectable when creating workbenches.',
+      popover: 'Enabled images are selectable when creating workbenches.',
+    },
+  },
+  {
+    field: 'recommendedAccelerators',
+    label: 'Recommended accelerators',
+    sortable: (a, b) =>
+      a.recommendedAcceleratorIdentifiers.length - b.recommendedAcceleratorIdentifiers.length,
+    info: {
+      popover: 'Accelerators are used to speed up the execution of workbenches.',
     },
   },
   {

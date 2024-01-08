@@ -1,7 +1,7 @@
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { MetricsTabKeys } from './types';
 
-const useMetricsPageEnabledTabs = () => {
+const useMetricsPageEnabledTabs = (): MetricsTabKeys[] => {
   const enabledTabs: MetricsTabKeys[] = [];
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const performanceMetricsAreaAvailable = useIsAreaAvailable(

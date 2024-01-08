@@ -39,7 +39,7 @@ import ImpersonateAlert from '~/pages/notebookController/screens/admin/Impersona
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
-import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -49,7 +49,7 @@ import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
 
 import '~/pages/notebookController/NotebookController.scss';
-import AcceleratorSelectField from './AcceleratorSelectField';
+import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,7 +69,8 @@ const SpawnerPage: React.FC = () => {
     tag: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
-  const [accelerator, setAccelerator] = useNotebookAccelerator(currentUserNotebook);
+  const [acceleratorProfile, setAcceleratorProfile] =
+    useNotebookAcceleratorProfile(currentUserNotebook);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
@@ -232,12 +233,12 @@ const SpawnerPage: React.FC = () => {
 
   const fireStartServerEvent = () => {
     fireTrackingEvent('Notebook Server Started', {
-      accelerator: accelerator.accelerator
-        ? `${accelerator.accelerator.spec.displayName} (${accelerator.accelerator.metadata.name}): ${accelerator.accelerator.spec.identifier}`
-        : accelerator.useExisting
+      accelerator: acceleratorProfile.acceleratorProfile
+        ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
+        : acceleratorProfile.useExisting
         ? 'Unknown'
         : 'None',
-      acceleratorCount: accelerator.useExisting ? undefined : accelerator.count,
+      acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
@@ -252,8 +253,8 @@ const SpawnerPage: React.FC = () => {
       notebookSizeName: selectedSize.name,
       imageName: selectedImageTag.image?.name || '',
       imageTagName: selectedImageTag.tag?.name || '',
-      accelerator: accelerator,
-      envVars: envVars,
+      acceleratorProfile,
+      envVars,
       state: NotebookState.Started,
       username: impersonatedUsername || undefined,
     })
@@ -313,9 +314,9 @@ const SpawnerPage: React.FC = () => {
               setValue={(size) => setSelectedSize(size)}
               sizes={sizes}
             />
-            <AcceleratorSelectField
-              acceleratorState={accelerator}
-              setAcceleratorState={setAccelerator}
+            <AcceleratorProfileSelectField
+              acceleratorProfileState={acceleratorProfile}
+              setAcceleratorProfileState={setAcceleratorProfile}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

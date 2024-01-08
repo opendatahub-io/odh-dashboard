@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { deleteSecret } from '~/api';
-import { AWSSecretKind, K8sStatus, KnownLabels, SecretKind } from '~/k8sTypes';
+import { AWSSecretKind, KnownLabels, SecretKind } from '~/k8sTypes';
 import { AWS_KEYS } from '~/pages/projects/dataConnections/const';
 import {
   AWSDataEntry,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
 import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
@@ -47,7 +47,9 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           <TableRowTitleDescription
             title={
               <Link to={`/pipelineRuns/${namespace}/pipelineRun/view/${run.id}`}>
-                {data ? `Run of ${data.name}` : run.name}
+                <TableText wrapModifier="truncate">
+                  {data ? `Run of ${data.name}` : run.name}
+                </TableText>
               </Link>
             }
             description={
@@ -62,7 +64,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td>
         <CoreResourceExperiment resource={run} />
       </Td>
-      <Td>
+      <Td modifier="truncate">
         {loading ? (
           loadingState
         ) : (

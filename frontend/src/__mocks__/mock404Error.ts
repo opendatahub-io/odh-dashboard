@@ -1,10 +1,10 @@
-import { K8sStatus } from '~/k8sTypes';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 
 export const mock404Error = ({ message = '404 Not Found' }: Partial<K8sStatus>): K8sStatus => ({
   kind: 'Status',
   apiVersion: 'v1',
-  status: 'Error',
+  status: 'Failure',
   message,
-  reason: 'Note Found',
+  reason: 'NotFound',
   code: 404,
 });

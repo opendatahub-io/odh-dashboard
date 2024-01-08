@@ -2,8 +2,9 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, K8sStatus, RouteKind, TrustyAIKind } from '~/k8sTypes';
+import { K8sAPIOptions, RouteKind, TrustyAIKind } from '~/k8sTypes';
 import { getRoute } from '~/api';
 import { TRUSTYAI_DEFINITION_NAME, TRUSTYAI_ROUTE_NAME } from '~/concepts/trustyai/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';

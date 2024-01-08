@@ -4,6 +4,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
     featureFlags: ['disableBYONImageStream'],
   },
+  [SupportedArea.ACCELERATOR_PROFILES]: {
+    featureFlags: ['disableAcceleratorProfiles'],
+  },
   [SupportedArea.CLUSTER_SETTINGS]: {
     featureFlags: ['disableClusterManager'],
   },

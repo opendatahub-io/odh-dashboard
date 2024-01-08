@@ -4,8 +4,9 @@ import {
   k8sGetResource,
   k8sListResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, K8sStatus, KnownLabels, SecretKind } from '~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, SecretKind } from '~/k8sTypes';
 import { SecretModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';

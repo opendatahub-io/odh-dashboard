@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { RunStatus } from '@patternfly/react-topology';
-import { createNode } from '~/concepts/pipelines/topology/core/utils';
+import { createNode } from '~/concepts/topology';
 import { PipelineRunKind, PipelineRunTask } from '~/k8sTypes';
 import {
   KubeFlowTaskTopology,

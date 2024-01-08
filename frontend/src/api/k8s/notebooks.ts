@@ -6,10 +6,11 @@ import {
   k8sPatchResource,
   k8sUpdateResource,
   Patch,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash';
 import { NotebookModel } from '~/api/models';
-import { K8sAPIOptions, K8sStatus, KnownLabels, NotebookKind } from '~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, NotebookKind } from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
@@ -40,7 +41,7 @@ const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    accelerator,
+    acceleratorProfile,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -54,7 +55,7 @@ const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    accelerator,
+    acceleratorProfile,
     tolerationSettings,
     existingTolerations,
     undefined,
@@ -106,7 +107,8 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
+        'opendatahub.io/accelerator-name':
+          acceleratorProfile.acceleratorProfile?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,

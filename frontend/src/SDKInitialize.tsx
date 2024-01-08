@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { AppInitSDK, isUtilsConfigSet } from '@openshift/dynamic-plugin-sdk-utils';
+import { AppInitSDK, isUtilsConfigSet, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { PluginStore } from '@openshift/dynamic-plugin-sdk';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { K8sStatus } from './k8sTypes';
 import { isK8sStatus, K8sStatusError } from './api';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {

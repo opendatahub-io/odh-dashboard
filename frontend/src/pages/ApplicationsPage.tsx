@@ -53,7 +53,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     <PageSection variant={PageSectionVariants.light}>
       <Stack hasGutter>
         <StackItem>
-          <Split>
+          <Split hasGutter>
             <SplitItem isFilled>
               <TextContent>
                 <Text component="h1">{title}</Text>

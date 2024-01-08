@@ -27,7 +27,11 @@ type pipelineDropdownProps = {
   config: PipelineServerConfigType;
   dataConnections: DataConnection[];
 };
-export const PipelineDropdown = ({ config, setConfig, dataConnections }: pipelineDropdownProps) => {
+export const PipelineDropdown = ({
+  config,
+  setConfig,
+  dataConnections,
+}: pipelineDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState<boolean[]>([]);
 
@@ -73,7 +77,7 @@ export const PipelineDropdown = ({ config, setConfig, dataConnections }: pipelin
     <Dropdown
       menuAppendTo="parent"
       position={DropdownPosition.right}
-      toggle={<MenuToggle onClick={onToggle} icon={<KeyIcon />}></MenuToggle>}
+      toggle={<MenuToggle onClick={onToggle} icon={<KeyIcon />} />}
       isOpen={isOpen}
     >
       <Menu onSelect={onSelect} isScrollable isPlain>

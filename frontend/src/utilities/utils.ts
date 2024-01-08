@@ -1,5 +1,5 @@
 import { ContainerResources, OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
-import { AcceleratorKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
 export const makeCardVisible = (id: string): void => {
@@ -155,7 +155,7 @@ export const normalizeBetween = (value: number, min?: number, max?: number): num
   return Math.floor(returnedValue);
 };
 
-export const getAcceleratorGpuCount = (
-  accelerator: AcceleratorKind,
+export const getAcceleratorProfileCount = (
+  acceleratorProfile: AcceleratorProfileKind,
   resources: ContainerResources,
-) => Number(resources.requests?.[accelerator.spec.identifier] ?? 0);
+): number => Number(resources.requests?.[acceleratorProfile.spec.identifier] ?? 0);

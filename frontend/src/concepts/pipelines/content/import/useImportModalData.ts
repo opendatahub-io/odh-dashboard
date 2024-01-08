@@ -1,4 +1,4 @@
-import useGenericObjectState from '~/utilities/useGenericObjectState';
+import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 type PipelineModalData = {
   name: string;
@@ -6,7 +6,7 @@ type PipelineModalData = {
   fileContents: string;
 };
 
-const useImportModalData = () =>
+const useImportModalData = (): GenericObjectState<PipelineModalData> =>
   useGenericObjectState<PipelineModalData>({
     name: '',
     description: '',

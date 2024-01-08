@@ -47,6 +47,7 @@
     "@typescript-eslint/no-inferrable-types": "error",
     "@typescript-eslint/no-explicit-any": "off",
     "import/extensions": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "error",
     "import/no-unresolved": "off",
     "prettier/prettier": [
       "error",

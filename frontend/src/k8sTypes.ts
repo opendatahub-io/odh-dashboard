@@ -5,11 +5,10 @@ import { StackComponent } from '~/concepts/areas/types';
 import {
   PodAffinity,
   NotebookContainer,
-  PodToleration,
+  Toleration,
   Volume,
   ContainerResources,
   NotebookSize,
-  GpuSettingString,
   TolerationSettings,
   ImageStreamStatusTagItem,
   ImageStreamStatusTagCondition,
@@ -92,6 +91,7 @@ export type K8sCondition = {
   status: string;
   reason?: string;
   message?: string;
+  lastProbeTime?: string | null;
   lastTransitionTime?: string;
   lastHeartbeatTime?: string;
 };
@@ -229,16 +229,6 @@ export type K8sAPIOptions = {
   parseJSON?: boolean;
 };
 
-/** A status object when Kube backend can't handle a request. */
-export type K8sStatus = {
-  kind: string;
-  apiVersion: string;
-  code: number;
-  message: string;
-  reason: string;
-  status: string;
-};
-
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
@@ -279,7 +269,7 @@ export type NotebookKind = K8sResourceCommon & {
         enableServiceLinks?: boolean;
         containers: NotebookContainer[];
         volumes?: Volume[];
-        tolerations?: PodToleration[];
+        tolerations?: Toleration[];
       };
     };
   };
@@ -292,6 +282,8 @@ export type NotebookKind = K8sResourceCommon & {
 
 export type PodKind = K8sResourceCommon & {
   status: {
+    phase: string;
+    conditions: K8sCondition[];
     containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
   };
 };
@@ -350,7 +342,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
     replicas: number;
-    tolerations?: PodToleration[];
+    tolerations?: Toleration[];
     volumes?: Volume[];
   };
 };
@@ -379,7 +371,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
-      tolerations?: PodToleration[];
+      tolerations?: Toleration[];
       model: {
         modelFormat: {
           name: string;
@@ -794,6 +786,7 @@ export type DashboardCommonConfig = {
   disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableModelMesh: boolean;
+  disableAcceleratorProfiles: boolean;
 };
 
 export type OperatorStatus = {
@@ -816,8 +809,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       notebookNamespace?: string;
-      /** @deprecated - Use AcceleratorProfiles */
-      gpuSetting?: GpuSettingString;
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
@@ -834,7 +825,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
   };
 };
 
-export type AcceleratorKind = K8sResourceCommon & {
+export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     annotations?: Partial<{
@@ -846,7 +837,7 @@ export type AcceleratorKind = K8sResourceCommon & {
     enabled: boolean;
     identifier: string;
     description?: string;
-    tolerations?: PodToleration[];
+    tolerations?: Toleration[];
   };
 };
 

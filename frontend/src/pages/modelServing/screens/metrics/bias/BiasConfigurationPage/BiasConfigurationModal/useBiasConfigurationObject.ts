@@ -15,7 +15,7 @@ const useBiasConfigurationObject = (
   resetDefaults: () => void,
 ] => {
   const createConfiguration = useGenericObjectState<BaseMetricRequestInput>({
-    modelId: modelId,
+    modelId,
     requestName: '',
     protectedAttribute: '',
     privilegedAttribute: '',

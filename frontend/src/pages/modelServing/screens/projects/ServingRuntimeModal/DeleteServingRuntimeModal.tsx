@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { InferenceServiceKind, K8sStatus, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import {
   deleteInferenceService,
   deleteRoleBinding,

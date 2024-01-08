@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import ModelBiasSettingsCard from '~/pages/projects/projectSettings/ModelBiasSettingsCard';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
-const ProjectSettingsPage = () => {
+const ProjectSettingsPage = (): ReactElement => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 

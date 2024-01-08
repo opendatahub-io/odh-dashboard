@@ -25,5 +25,5 @@ export const getEnabledStatus = (image: BYONImage): number =>
     ? ImageEnabledStatus.ERROR
     : ImageEnabledStatus.DISABLED;
 
-export const filterBlankPackages = (packages: BYONImagePackage[]) =>
+export const filterBlankPackages = (packages: BYONImagePackage[]): BYONImagePackage[] =>
   packages.filter((p) => p.name.trim() || p.version.trim());

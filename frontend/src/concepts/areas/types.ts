@@ -26,6 +26,7 @@ export enum SupportedArea {
   BYON = 'bring-your-own-notebook',
   CLUSTER_SETTINGS = 'cluster-settings',
   USER_MANAGEMENT = 'user-management',
+  ACCELERATOR_PROFILES = 'accelerator-profiles',
 
   /* DS Projects specific areas */
   DS_PROJECTS_PERMISSIONS = 'ds-projects-permission',

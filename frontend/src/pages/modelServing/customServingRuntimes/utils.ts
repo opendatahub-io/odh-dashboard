@@ -3,18 +3,20 @@ import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 import { ServingRuntimePlatform } from '~/types';
 
-export const getTemplateEnabled = (template: TemplateKind, templateDisablement: string[]) =>
-  !templateDisablement.includes(getServingRuntimeNameFromTemplate(template));
+export const getTemplateEnabled = (
+  template: TemplateKind,
+  templateDisablement: string[],
+): boolean => !templateDisablement.includes(getServingRuntimeNameFromTemplate(template));
 
 export const getTemplateEnabledForPlatform = (
   template: TemplateKind,
   platform: ServingRuntimePlatform,
-) => getEnabledPlatformsFromTemplate(template).includes(platform);
+): boolean => getEnabledPlatformsFromTemplate(template).includes(platform);
 
-export const isTemplateOOTB = (template: TemplateKind) =>
+export const isTemplateOOTB = (template: TemplateKind): boolean =>
   template.metadata.labels?.['opendatahub.io/ootb'] === 'true';
 
-export const getSortedTemplates = (templates: TemplateKind[], order: string[]) =>
+export const getSortedTemplates = (templates: TemplateKind[], order: string[]): TemplateKind[] =>
   [...templates].sort(
     (a, b) =>
       order.indexOf(getServingRuntimeNameFromTemplate(a)) -
@@ -41,13 +43,13 @@ export const setListDisabled = (
   return templateDisablementFiltered;
 };
 
-export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind) =>
+export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind): string =>
   getDisplayNameFromK8sResource(template.objects[0]);
 
-export const getServingRuntimeNameFromTemplate = (template: TemplateKind) =>
+export const getServingRuntimeNameFromTemplate = (template: TemplateKind): string =>
   template.objects[0].metadata.name;
 
-const createServingRuntimeCustomError = (name: string, message: string) => {
+const createServingRuntimeCustomError = (name: string, message: string): Error => {
   const error = new Error(message);
   error.name = name;
   return error;

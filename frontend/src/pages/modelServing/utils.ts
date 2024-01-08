@@ -1,4 +1,5 @@
 import * as _ from 'lodash';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   isCpuLimitEqual,
   isCpuLimitLarger,
@@ -19,7 +20,6 @@ import {
 } from '~/api';
 import {
   SecretKind,
-  K8sStatus,
   K8sAPIOptions,
   RoleBindingKind,
   ServingRuntimeKind,
@@ -34,8 +34,13 @@ import {
   ServingRuntimeSize,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
-import { getAcceleratorGpuCount } from '~/utilities/utils';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { getAcceleratorProfileCount } from '~/utilities/utils';
+
+type TokenNames = {
+  serviceAccountName: string;
+  roleBindingName: string;
+};
 
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;
@@ -130,7 +135,7 @@ export const createSecrets = async (
     .catch((error) => Promise.reject(error));
 };
 
-export const getTokenNames = (servingRuntimeName: string, namespace: string) => {
+export const getTokenNames = (servingRuntimeName: string, namespace: string): TokenNames => {
   const name =
     servingRuntimeName !== '' ? servingRuntimeName : getModelServingRuntimeName(namespace);
 
@@ -166,40 +171,43 @@ export const getServingRuntimeTokens = (tokens?: SecretKind[]): ServingRuntimeTo
     error: '',
   }));
 
-const isAcceleratorChanged = (
-  acceleratorState: AcceleratorState,
+const isAcceleratorProfileChanged = (
+  acceleratorProfileState: AcceleratorProfileState,
   servingRuntime: ServingRuntimeKind,
 ) => {
-  const accelerator = acceleratorState.accelerator;
-  const initialAccelerator = acceleratorState.initialAccelerator;
+  const acceleratorProfile = acceleratorProfileState.acceleratorProfile;
+  const initialAcceleratorProfile = acceleratorProfileState.initialAcceleratorProfile;
 
   // both are none, check if it's using existing
-  if (!accelerator && !initialAccelerator) {
-    if (acceleratorState.additionalOptions?.useExisting) {
-      return !acceleratorState.useExisting;
+  if (!acceleratorProfile && !initialAcceleratorProfile) {
+    if (acceleratorProfileState.additionalOptions?.useExisting) {
+      return !acceleratorProfileState.useExisting;
     }
     return false;
   }
 
   // one is none, another is set, changed
-  if (!accelerator || !initialAccelerator) {
+  if (!acceleratorProfile || !initialAcceleratorProfile) {
     return true;
   }
 
   // compare the name, gpu count
   return (
-    accelerator.metadata.name !== initialAccelerator.metadata.name ||
-    acceleratorState.count !==
-      getAcceleratorGpuCount(initialAccelerator, servingRuntime.spec.containers[0].resources || {})
+    acceleratorProfile.metadata.name !== initialAcceleratorProfile.metadata.name ||
+    acceleratorProfileState.count !==
+      getAcceleratorProfileCount(
+        initialAcceleratorProfile,
+        servingRuntime.spec.containers[0].resources || {},
+      )
   );
 };
 
 export const isModelServerEditInfoChanged = (
   createData: CreatingServingRuntimeObject,
   sizes: ServingRuntimeSize[],
-  acceleratorState: AcceleratorState,
+  acceleratorProfileState: AcceleratorProfileState,
   editInfo?: ServingRuntimeEditInfo,
-) =>
+): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
       editInfo.servingRuntime.spec.replicas !== createData.numReplicas ||
@@ -208,7 +216,7 @@ export const isModelServerEditInfoChanged = (
         String(createData.externalRoute) ||
       editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
         String(createData.tokenAuth) ||
-      isAcceleratorChanged(acceleratorState, editInfo.servingRuntime) ||
+      isAcceleratorProfileChanged(acceleratorProfileState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&
         !_.isEqual(
           getServingRuntimeTokens(editInfo.secrets)
@@ -223,5 +231,5 @@ export const checkModelMeshFailureStatus = (status: DataScienceClusterKindStatus
     (condition) => condition.type === 'model-meshReady' && condition.status === 'False',
   )?.message || '';
 
-export const isModelMesh = (inferenceService: InferenceServiceKind) =>
+export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';
