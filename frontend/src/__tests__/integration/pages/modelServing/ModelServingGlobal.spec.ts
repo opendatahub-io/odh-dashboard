@@ -137,6 +137,15 @@ test('Create model', async ({ page }) => {
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 });
 
+test('Insufficient resources due to failed Pod scheduling', async ({ page }) => {
+  await page.goto(
+    navigateToStory('pages-modelserving-modelservingglobal', 'insufficient-resources-error'),
+  );
+  // hover over the icon
+  await page.getByLabel('error icon').hover();
+  await expect(page.getByText('Insufficient resources')).toBeVisible();
+});
+
 test('Create model error', async ({ page }) => {
   await page.goto(
     navigateToStory('pages-modelserving-modelservingglobal', 'deploy-model-model-mesh'),

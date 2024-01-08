@@ -27,9 +27,10 @@ import { mockStatus } from '~/__mocks__/mockStatus';
 import useDetectUser from '~/utilities/useDetectUser';
 import { useApplicationSettings } from '~/app/useApplicationSettings';
 import { AppContext } from '~/app/AppContext';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, PodKind, ServingRuntimeKind } from '~/k8sTypes';
 import GlobalModelServingCoreLoader from '~/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
 import { mockDataConnection } from '~/__mocks__/mockDataConnection';
+import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -37,6 +38,7 @@ type HandlersProps = {
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
+  pod?: PodKind;
 };
 
 const getHandlers = ({
@@ -45,6 +47,7 @@ const getHandlers = ({
   projectEnableModelMesh,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
   inferenceServices = [mockInferenceServiceK8sResource({})],
+  pod = mockPodK8sResource({}),
 }: HandlersProps) => [
   rest.get('/api/status', (req, res, ctx) => res(ctx.json(mockStatus()))),
   rest.get('/api/config', (req, res, ctx) =>
@@ -60,6 +63,9 @@ const getHandlers = ({
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
     (req, res, ctx) => res(ctx.json(mockK8sResourceList(servingRuntimes))),
+  ),
+  rest.get('/api/k8s/api/v1/namespaces/test-project/pods', (req, res, ctx) =>
+    res(ctx.json(mockK8sResourceList([pod]))),
   ),
   rest.get(
     'api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices',
@@ -204,6 +210,16 @@ export const EmptyStateNoServingRuntime: StoryObj = {
         servingRuntimes: [],
         inferenceServices: [],
       }),
+    },
+  },
+};
+
+export const InsufficientResourcesError: StoryObj = {
+  render: Template({}),
+
+  parameters: {
+    msw: {
+      handlers: getHandlers({ pod: mockPodK8sResource({ isPending: true }) }),
     },
   },
 };

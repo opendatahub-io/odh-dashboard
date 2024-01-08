@@ -8,7 +8,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
-export const getLastRun = (runs: PipelineRunKF[]) => runs[0];
+export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF => runs[0];
 
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);

@@ -63,6 +63,10 @@ export enum InferenceServiceModelState {
   UNKNOWN = 'Unknown',
 }
 
+export type ModelStatus = {
+  failedToSchedule: boolean;
+};
+
 export type CreatingServingRuntimeObject = {
   name: string;
   servingRuntimeTemplateName: string;

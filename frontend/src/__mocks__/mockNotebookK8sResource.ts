@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { KnownLabels, NotebookKind } from '~/k8sTypes';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
-import { ContainerResources } from '~/types';
+import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';
 import { genUID } from '~/__mocks__/mockUtils';
 import { RecursivePartial } from '~/typeHelpers';
 
@@ -49,8 +49,8 @@ export const mockNotebookK8sResource = ({
           'opendatahub.io/user': user,
         },
         managedFields: [],
-        name: name,
-        namespace: namespace,
+        name,
+        namespace,
         resourceVersion: '4800689',
         uid: genUID('notebook'),
       },
@@ -111,7 +111,7 @@ export const mockNotebookK8sResource = ({
                   successThreshold: 1,
                   timeoutSeconds: 1,
                 },
-                name: name,
+                name,
                 ports: [
                   {
                     containerPort: 8888,
@@ -135,7 +135,7 @@ export const mockNotebookK8sResource = ({
                 volumeMounts: [
                   {
                     mountPath: '/opt/app-root/src',
-                    name: name,
+                    name,
                   },
                 ],
                 workingDir: '/opt/app-root/src',
@@ -211,14 +211,14 @@ export const mockNotebookK8sResource = ({
             enableServiceLinks: false,
             tolerations: [
               {
-                effect: 'NoSchedule',
+                effect: TolerationEffect.NO_SCHEDULE,
                 key: 'NotebooksOnlyChange',
-                operator: 'Exists',
+                operator: TolerationOperator.EXISTS,
               },
             ],
             volumes: [
               {
-                name: name,
+                name,
                 persistentVolumeClaim: {
                   claimName: name,
                 },

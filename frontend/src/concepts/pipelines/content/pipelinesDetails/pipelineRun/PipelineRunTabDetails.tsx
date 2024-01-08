@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { Spinner, EmptyStateVariant, EmptyState, EmptyStateHeader } from '@patternfly/react-core';
+import {
+  Spinner,
+  EmptyStateVariant,
+  EmptyState,
+  EmptyStateHeader,
+  Truncate,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
@@ -15,6 +21,8 @@ import {
   isEmptyDateKF,
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { NoRunContent } from '~/concepts/pipelines/content/tables/renderUtils';
+
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF;
   workflowName?: string;
@@ -40,17 +48,19 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
         {
           key: 'Pipeline',
           // TODO: get the relative parent namespaced link
-          value: (
+          value: pipelineReference.name ? (
             <Link to={`/pipelines/${namespace}/pipeline/view/${pipelineReference.key.id}`}>
-              {pipelineReference.name}
+              <Truncate content={pipelineReference.name} />
             </Link>
+          ) : (
+            <NoRunContent />
           ),
         },
       ]
     : [];
 
   const details: DetailItem[] = [
-    { key: 'Name', value: pipelineRunKF.name },
+    { key: 'Name', value: <Truncate content={pipelineRunKF.name} /> },
     ...pipelineRef,
     {
       key: 'Project',

@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { ActionsColumn, Td } from '@patternfly/react-table';
+import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import ResourceActionsColumn from '~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -71,10 +72,14 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Status">
-        <InferenceServiceStatus inferenceService={inferenceService} />
+        <InferenceServiceStatus
+          inferenceService={inferenceService}
+          isKserve={!isModelMesh(inferenceService)}
+        />
       </Td>
       <Td isActionCell>
-        <ActionsColumn
+        <ResourceActionsColumn
+          resource={inferenceService}
           items={[
             {
               title: 'Edit',

@@ -2,9 +2,10 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { DataSciencePipelineApplicationModel } from '~/api/models';
-import { DSPipelineKind, K8sAPIOptions, K8sStatus, RouteKind, SecretKind } from '~/k8sTypes';
+import { DSPipelineKind, K8sAPIOptions, RouteKind, SecretKind } from '~/k8sTypes';
 import { getRoute } from '~/api/k8s/routes';
 import { getSecret } from '~/api/k8s/secrets';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';

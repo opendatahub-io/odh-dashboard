@@ -58,6 +58,8 @@ spec:
                       type: boolean
                     disableModelMesh:
                       type: boolean
+                    disableAcceleratorProfiles:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:
@@ -133,16 +135,13 @@ spec:
                       type: string
                     pvcSize:
                       type: string
-                    gpuSetting:
-                      description: Configure how the GPU field works on the Jupyter tile. One of 'autodetect' (default, fetches for information), 'hidden' (remove the field) or a number-string (eg '5') to specify a hardcoded 0 to that number options
-                      type: string
                     notebookTolerationSettings:
                       type: object
                       properties:
-                          enabled:
-                            type: boolean
-                          key:
-                            type: string
+                        enabled:
+                          type: boolean
+                        key:
+                          type: string
                     storageClassName:
                       type: string
                 templateOrder:

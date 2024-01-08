@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { SelectOptionObject } from '@patternfly/react-core/deprecated';
 import { Link } from 'react-router-dom';
+import { ReactElement } from 'react';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
@@ -171,7 +172,9 @@ export const useStableMetrics = (
   return metricsRef.current;
 };
 
-export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[]) =>
+export const getBreadcrumbItemComponents = (
+  breadcrumbItems: BreadcrumbItemType[],
+): ReactElement[] =>
   breadcrumbItems.map((item) => (
     <BreadcrumbItem
       isActive={item.isActive}
@@ -222,7 +225,7 @@ const checkBatchSizeValid = (batchSize?: number): boolean => {
 export const checkConfigurationFieldsValid = (
   configurations: BaseMetricRequest,
   metricType?: BiasMetricType,
-) =>
+): boolean =>
   metricType !== undefined &&
   configurations.requestName !== '' &&
   configurations.protectedAttribute !== '' &&
@@ -241,7 +244,7 @@ export const isMetricType = (
   Object.values(BiasMetricType).includes(metricType as BiasMetricType);
 
 export const byId =
-  <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
+  <T extends { id: string | number }, U extends T | T['id']>(arg: U): ((arg: T) => boolean) =>
   (arg2: T) => {
     if (typeof arg === 'object') {
       return arg2.id === arg.id;
@@ -250,7 +253,7 @@ export const byId =
   };
 
 export const byNotId =
-  <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
+  <T extends { id: string | number }, U extends T | T['id']>(arg: U): ((arg: T) => boolean) =>
   (arg2: T) => {
     if (typeof arg === 'object') {
       return arg2.id !== arg.id;
@@ -258,7 +261,7 @@ export const byNotId =
     return arg2.id !== arg;
   };
 
-export const calculateThresholds = (origin: number, delta: number) => [
+export const calculateThresholds = (origin: number, delta: number): [number, number] => [
   origin + delta,
   origin - delta,
 ];
@@ -294,7 +297,7 @@ export const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): Bias
 export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
   'biasMetricConfig' in obj;
 
-export const convertInputType = (input: string) => {
+export const convertInputType = (input: string): number | boolean | string => {
   if (input !== '' && !isNaN(Number(input))) {
     return Number(input);
   }
@@ -316,7 +319,7 @@ export const convertConfigurationRequestType = (
   favorableOutcome: convertInputType(configuration.favorableOutcome),
 });
 
-export const getThresholdDefaultDelta = (metricType?: BiasMetricType) =>
+export const getThresholdDefaultDelta = (metricType?: BiasMetricType): number | undefined =>
   metricType && BIAS_CHART_CONFIGS[metricType].defaultDelta;
 
 export const convertPrometheusNaNToZero = (

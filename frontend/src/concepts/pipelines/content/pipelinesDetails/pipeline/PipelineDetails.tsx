@@ -10,17 +10,18 @@ import {
   TabContent,
   Tabs,
   TabTitleText,
+  Truncate,
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import usePipelineTemplate from '~/concepts/pipelines/apiHooks/usePipelineTemplate';
-import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/topology';
+import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import MarkdownView from '~/components/MarkdownView';
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -46,10 +47,10 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
         breadcrumb={
           <Breadcrumb>
             {breadcrumbPath}
-            <BreadcrumbItem isActive>{'Pipeline not found'}</BreadcrumbItem>
+            <BreadcrumbItem isActive>Pipeline not found</BreadcrumbItem>
           </Breadcrumb>
         }
-        title={'Pipeline not found'}
+        title="Pipeline not found"
         empty={false}
         loaded={!pipelineLoad}
       >
@@ -73,10 +74,12 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               breadcrumb={
                 <Breadcrumb>
                   {breadcrumbPath}
-                  <BreadcrumbItem isActive>{pipeline?.name || 'Loading...'}</BreadcrumbItem>
+                  <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+                    <Truncate content={pipeline?.name || 'Loading...'} />
+                  </BreadcrumbItem>
                 </Breadcrumb>
               }
-              title={pipeline?.name || 'Loading...'}
+              title={<Truncate content={pipeline?.name || 'Loading...'} />}
               description={
                 pipeline ? <MarkdownView conciseDisplay markdown={pipeline.description} /> : ''
               }

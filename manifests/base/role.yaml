@@ -7,6 +7,9 @@ rules:
       - create
       - get
       - list
+      - update
+      - patch
+      - delete
     apiGroups:
       - dashboard.opendatahub.io
     resources:

@@ -27,7 +27,7 @@ import {
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
@@ -62,9 +62,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
-  const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
-    editInfo?.servingRuntime,
-  );
+  const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
+    useServingAcceleratorProfile(editInfo?.servingRuntime);
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -92,7 +91,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     actionInProgress ||
     tokenErrors ||
     !inputValueValid ||
-    !isModelServerEditInfoChanged(createData, sizes, acceleratorState, editInfo);
+    !isModelServerEditInfoChanged(createData, sizes, acceleratorProfileState, editInfo);
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -106,7 +105,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     setError(undefined);
     setActionInProgress(false);
     resetData();
-    resetAcceleratorData();
+    resetAcceleratorProfileData();
   };
 
   const setErrorModal = (error: Error) => {
@@ -129,7 +128,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       namespace,
       editInfo,
       allowCreate,
-      acceleratorState,
+      acceleratorProfileState,
       NamespaceApplicationCase.MODEL_MESH_PROMOTION,
       currentProject,
       undefined,
@@ -182,10 +181,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <ServingRuntimeNameSection
-              data={createData}
-              setData={setCreateData}
-            ></ServingRuntimeNameSection>
+            <ServingRuntimeNameSection data={createData} setData={setCreateData} />
           </StackItem>
           <StackItem>
             <ServingRuntimeTemplateSection
@@ -193,7 +189,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               setData={setCreateData}
               templates={servingRuntimeTemplates || []}
               isEditing={!!editInfo}
-              acceleratorState={acceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
             />
           </StackItem>
           <StackItem>
@@ -210,8 +206,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               setData={setCreateData}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorState={acceleratorState}
-              setAcceleratorState={setAcceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
+              setAcceleratorProfileState={setAcceleratorProfileState}
               infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>
@@ -222,7 +218,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 bodyContent="Model route and token authorization can only be changed by administrator users."
               >
                 <Button variant="link" icon={<HelpIcon />} isInline>
-                  {"Why can't I change the model route and token authorization fields?"}
+                  Why can&apos;t I change the model route and token authorization fields?
                 </Button>
               </Popover>
             </StackItem>

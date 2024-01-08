@@ -1,5 +1,6 @@
 import * as React from 'react';
 import compareVersions from 'compare-versions';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { BYONImage, NotebookSize, Volume, VolumeMount } from '~/types';
 import {
   BuildKind,
@@ -106,9 +107,9 @@ export const compareTagVersions = (
   b: ImageStreamSpecTagType,
 ): number => {
   // Recommended tags should be first
-  if (a.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED]) {
+  if (checkVersionRecommended(a)) {
     return -1;
-  } else if (b.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED]) {
+  } else if (checkVersionRecommended(b)) {
     return 1;
   }
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
@@ -156,14 +157,12 @@ export const getCompatibleAcceleratorIdentifiers = (
 export const isCompatibleWithAccelerator = (
   acceleratorIdentifier?: string,
   obj?: ImageStreamKind | K8sDSGResource,
-) => {
+): boolean => {
   if (!obj || !acceleratorIdentifier) {
     return false;
   }
 
-  return getCompatibleAcceleratorIdentifiers(obj).some(
-    (accelerator) => accelerator === acceleratorIdentifier,
-  );
+  return getCompatibleAcceleratorIdentifiers(obj).some((cr) => cr === acceleratorIdentifier);
 };
 
 /**
@@ -321,7 +320,7 @@ export const checkVersionExistence = (
 };
 
 export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): boolean =>
-  !!imageVersion.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED];
+  imageVersion.annotations?.[IMAGE_ANNOTATIONS.RECOMMENDED] === 'true';
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
@@ -421,7 +420,7 @@ export const checkRequiredFieldsForNotebookStart = (
   );
 };
 
-export const isInvalidBYONImageStream = (imageStream: ImageStreamKind) => {
+export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean => {
   // there will be always only 1 tag in the spec for BYON images
   // status tags could be more than one
   const activeTag = imageStream.status?.tags?.find(
@@ -433,7 +432,7 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind) => {
   );
 };
 
-export const convertBYONImageToK8sResource = (image: BYONImage) => ({
+export const convertBYONImageToK8sResource = (image: BYONImage): K8sResourceCommon => ({
   kind: 'ImageStream',
   apiVersion: 'image.openshift.io/v1',
   metadata: {

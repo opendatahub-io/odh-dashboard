@@ -47,8 +47,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
     setSearch('');
   };
 
-  const searchTypes = React.useMemo(() => Object.values(SearchType), []);
-
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
   const [refreshIds, setRefreshIds] = React.useState<string[]>([]);
@@ -81,7 +79,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
           <React.Fragment>
             <ToolbarItem>
               <DashboardSearchField
-                types={searchTypes}
+                types={[SearchType.NAME, SearchType.USER]}
                 searchType={searchType}
                 searchValue={search}
                 onSearchTypeChange={(searchType: SearchType) => {

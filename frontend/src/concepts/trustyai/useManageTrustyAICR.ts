@@ -5,7 +5,7 @@ import useTrustyAINamespaceCR, {
 } from '~/concepts/trustyai/useTrustyAINamespaceCR';
 import { createTrustyAICR, deleteTrustyAICR } from '~/api';
 
-const useManageTrustyAICR = (namespace: string) => {
+const useManageTrustyAICR = (namespace: string): UseManageTrustyAICRREturnType => {
   const state = useTrustyAINamespaceCR(namespace);
   const [cr, loaded, serviceError, refresh] = state;
 
@@ -39,7 +39,7 @@ const useManageTrustyAICR = (namespace: string) => {
     [namespace, refresh],
   );
 
-  return {
+  return <UseManageTrustyAICRREturnType>{
     error,
     isProgressing,
     isAvailable,
@@ -53,3 +53,15 @@ const useManageTrustyAICR = (namespace: string) => {
 };
 
 export default useManageTrustyAICR;
+
+type UseManageTrustyAICRREturnType = {
+  error: Error | undefined;
+  isProgressing: boolean;
+  isAvailable: boolean;
+  showSuccess: boolean;
+  isSettled: boolean;
+  serverTimedOut: boolean;
+  ignoreTimedOut: () => void;
+  installCR: () => Promise<void>;
+  deleteCR: () => Promise<void>;
+};

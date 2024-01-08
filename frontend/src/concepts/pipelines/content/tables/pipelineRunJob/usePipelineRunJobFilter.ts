@@ -63,7 +63,7 @@ const usePipelineRunJobFilter = (
   });
 
   const toolbarProps: FilterProps = {
-    filterData: filterData,
+    filterData,
     onFilterUpdate: (key, value) => setFilterData((oldValues) => ({ ...oldValues, [key]: value })),
     onClearFilters: () => setFilterData(DEFAULT_FILTER_DATA),
   };
