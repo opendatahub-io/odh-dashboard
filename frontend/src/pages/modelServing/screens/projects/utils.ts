@@ -258,6 +258,7 @@ const createInferenceServiceAndDataConnection = (
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
+  replicaCount?: number,
 ) => {
   if (!existingStorage) {
     return createAWSSecret(inferenceServiceData).then((secret) =>
@@ -268,12 +269,14 @@ const createInferenceServiceAndDataConnection = (
             secret.metadata.name,
             isModelMesh,
             acceleratorProfileState,
+            replicaCount,
           )
         : createInferenceService(
             inferenceServiceData,
             secret.metadata.name,
             isModelMesh,
             acceleratorProfileState,
+            replicaCount,
           ),
     );
   }
@@ -284,8 +287,15 @@ const createInferenceServiceAndDataConnection = (
         undefined,
         isModelMesh,
         acceleratorProfileState,
+        replicaCount,
       )
-    : createInferenceService(inferenceServiceData, undefined, isModelMesh, acceleratorProfileState);
+    : createInferenceService(
+        inferenceServiceData,
+        undefined,
+        isModelMesh,
+        acceleratorProfileState,
+        replicaCount,
+      );
 };
 
 export const submitInferenceServiceResource = (
@@ -294,6 +304,7 @@ export const submitInferenceServiceResource = (
   servingRuntimeName?: string,
   isModelMesh?: boolean,
   acceleratorProfileState?: AcceleratorProfileState,
+  replicaCount?: number,
 ): Promise<InferenceServiceKind> => {
   const inferenceServiceData = {
     ...createData,
@@ -311,6 +322,7 @@ export const submitInferenceServiceResource = (
     editInfo,
     isModelMesh,
     acceleratorProfileState,
+    replicaCount,
   );
 };
 

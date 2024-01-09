@@ -86,7 +86,11 @@ export const assembleServingRuntime = (
       },
     };
   }
-  updatedServingRuntime.spec.replicas = numReplicas;
+
+  delete updatedServingRuntime.spec.replicas;
+  if (isModelMesh) {
+    updatedServingRuntime.spec.replicas = numReplicas;
+  }
 
   // Accelerator support
 
