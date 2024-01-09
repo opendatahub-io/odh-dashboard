@@ -13,7 +13,7 @@ const CustomServingRuntimeView: React.FC = () => {
   return (
     <ApplicationsPage
       title="Serving runtimes"
-      description="Manage model serving runtimes"
+      description="Manage your model serving runtimes."
       loaded
       empty={servingRuntimeTemplates.length === 0}
       emptyStatePage={<EmptyCustomServingRuntime />}
