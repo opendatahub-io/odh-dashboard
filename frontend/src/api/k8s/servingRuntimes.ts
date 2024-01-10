@@ -60,7 +60,6 @@ export const assembleServingRuntime = (
       namespace,
       labels: {
         ...updatedServingRuntime.metadata.labels,
-        name: createName,
         'opendatahub.io/dashboard': 'true',
       },
       annotations: {
