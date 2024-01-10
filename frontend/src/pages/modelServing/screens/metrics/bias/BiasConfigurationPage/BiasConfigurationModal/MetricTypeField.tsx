@@ -20,6 +20,7 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
     <FormGroup label="Metric type" fieldId={fieldId}>
       <Select
         id={fieldId}
+        toggleId={fieldId}
         isOpen={isOpen}
         placeholderText="Select"
         onToggle={(e, open) => setOpen(open)}

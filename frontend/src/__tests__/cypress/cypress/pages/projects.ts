@@ -73,6 +73,24 @@ class ProjectDetails {
     cy.findByRole('tab', { name: 'Components' });
     cy.testA11y();
   }
+
+  findTab(name: string) {
+    return cy.findByRole('tab', { name });
+  }
+}
+
+class ProjectDetailsSettingsTab extends ProjectDetails {
+  visit(project: string) {
+    super.visit(project);
+    this.findTab('Settings').click();
+
+    this.findTrustyAIInstallCheckbox();
+    cy.testA11y();
+  }
+
+  findTrustyAIInstallCheckbox() {
+    return cy.findByTestId('trustyai-service-installation');
+  }
 }
 
 export const projectListPage = new ProjectListPage();
@@ -80,3 +98,4 @@ export const createProjectModal = new CreateEditProjectModal();
 export const editProjectModal = new CreateEditProjectModal(true);
 export const deleteProjectModal = new DeleteModal();
 export const projectDetails = new ProjectDetails();
+export const projectDetailsSettingsTab = new ProjectDetailsSettingsTab();

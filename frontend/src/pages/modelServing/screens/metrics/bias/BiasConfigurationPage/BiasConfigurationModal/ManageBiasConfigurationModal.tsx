@@ -92,7 +92,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
       description="All fields are required."
     >
       <Form>
-        <FormGroup label="Metric name" fieldId="metric-name">
+        <FormGroup label="Metric name" fieldId="metric-name" data-testid="metric-name">
           <TextInput
             id="metric-name"
             value={configuration.requestName}

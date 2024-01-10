@@ -44,6 +44,7 @@ const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
           }
         }}
         id="trustyai-service-installation"
+        data-testid="trustyai-service-installation"
         name="TrustyAI service installation status"
       />
       <DeleteTrustyAIModal

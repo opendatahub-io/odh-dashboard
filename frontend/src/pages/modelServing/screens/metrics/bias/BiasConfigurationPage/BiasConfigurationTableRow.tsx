@@ -27,6 +27,7 @@ const BiasConfigurationTableRow: React.FC<BiasConfigurationTableRowProps> = ({
     <Tbody isExpanded={isExpanded}>
       <Tr>
         <Td
+          data-testid="bias-configuration-expand-cell"
           expand={{
             rowIndex,
             expandId: 'bias-configuration-row-item',

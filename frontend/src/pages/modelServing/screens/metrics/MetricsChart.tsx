@@ -173,7 +173,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   }
 
   return (
-    <Card>
+    <Card data-testid={`metrics-card-${title}`}>
       <CardHeader
         {...(toolbar && {
           actions: {
@@ -202,6 +202,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               themeColor={color ?? ChartThemeColor.multi}
               theme={theme}
               hasPatterns={hasPatterns}
+              data-testid="metrics-chart-has-data"
               {...legendProps}
             >
               <ChartAxis
@@ -242,7 +243,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               {isAllLoaded ? (
                 <>
                   <EmptyStateIcon icon={CubesIcon} />
-                  <Title headingLevel="h4" size="lg">
+                  <Title headingLevel="h4" size="lg" data-testid="metrics-chart-no-data">
                     {error ? error.message : 'No available data'}
                   </Title>
                 </>
