@@ -16,6 +16,7 @@ objects:
       name: ovms
       annotations:
         openshift.io/display-name: 'OpenVINO Model Server'
+        opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
       labels:
         opendatahub.io/dashboard: 'true'
     spec:
