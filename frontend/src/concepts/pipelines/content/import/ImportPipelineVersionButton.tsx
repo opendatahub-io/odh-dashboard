@@ -27,17 +27,18 @@ const ImportPipelineVersionButton: React.FC<ImportPipelineVersionButtonProps> = 
       >
         {children || 'Upload new version'}
       </Button>
-      <PipelineVersionImportModal
-        existingPipeline={pipeline}
-        isOpen={open}
-        onClose={(pipelineVersion) => {
-          setOpen(false);
-          if (pipelineVersion) {
-            onCreate && onCreate(pipelineVersion);
-            refreshAllAPI();
-          }
-        }}
-      />
+      {open && (
+        <PipelineVersionImportModal
+          existingPipeline={pipeline}
+          onClose={(pipelineVersion) => {
+            setOpen(false);
+            if (pipelineVersion) {
+              onCreate && onCreate(pipelineVersion);
+              refreshAllAPI();
+            }
+          }}
+        />
+      )}
     </>
   );
 };

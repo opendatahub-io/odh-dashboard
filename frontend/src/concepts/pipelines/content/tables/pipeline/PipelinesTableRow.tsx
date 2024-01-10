@@ -9,6 +9,7 @@ import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipel
 import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
+import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 
 type PipelinesTableRowProps = {
   pipeline: PipelineKF;
@@ -39,6 +40,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
     loading,
     refresh: refreshVersions,
   } = usePipelineTableRowData(pipeline);
+  const { versionDataSelector } = React.useContext(PipelineAndVersionContext);
+  const { selectedVersions } = versionDataSelector(pipeline);
+  const selectedVersionLength = selectedVersions.length;
 
   const createdDate = new Date(pipeline.created_at);
 
@@ -54,7 +58,11 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
               onToggle: () => setExpanded(!isExpanded),
             }}
           />
-          <CheckboxTd id={pipeline.id} isChecked={isChecked} onToggle={onToggleCheck} />
+          <CheckboxTd
+            id={pipeline.id}
+            isChecked={isChecked ? true : selectedVersionLength !== 0 ? null : false}
+            onToggle={onToggleCheck}
+          />
           <Td>
             <TableRowTitleDescription
               title={pipeline.name}
@@ -113,22 +121,23 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           />
         )}
       </Tbody>
-      <PipelineVersionUploadModal
-        existingPipeline={pipeline}
-        isOpen={!!importTarget}
-        onClose={(pipelineVersion) => {
-          if (pipelineVersion) {
-            refreshPipelines().then(() =>
-              refreshVersions().then(() => {
-                setImportTarget(null);
-                setExpanded(false);
-              }),
-            );
-          } else {
-            setImportTarget(null);
-          }
-        }}
-      />
+      {importTarget && (
+        <PipelineVersionUploadModal
+          existingPipeline={importTarget}
+          onClose={(pipelineVersion) => {
+            if (pipelineVersion) {
+              refreshPipelines().then(() =>
+                refreshVersions().then(() => {
+                  setImportTarget(null);
+                  setExpanded(false);
+                }),
+              );
+            } else {
+              setImportTarget(null);
+            }
+          }}
+        />
+      )}
     </>
   );
 };

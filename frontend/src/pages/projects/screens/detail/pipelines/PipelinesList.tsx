@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Button, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import { TableVariant } from '@patternfly/react-table';
 import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import IndentSection from '~/pages/projects/components/IndentSection';
@@ -55,6 +56,7 @@ const PipelinesList: React.FC<PipelinesListProps> = ({ setIsPipelinesEmpty }) =>
           pipelines={pipelines}
           pipelineDetailsPath={(namespace, id) => `/projects/${namespace}/pipeline/view/${id}`}
           refreshPipelines={refresh}
+          variant={TableVariant.compact}
         />
       </StackItem>
       {totalSize > TABLE_CONTENT_LIMIT && (

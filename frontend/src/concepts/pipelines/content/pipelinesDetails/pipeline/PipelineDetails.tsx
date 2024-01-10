@@ -22,11 +22,11 @@ import MarkdownView from '~/components/MarkdownView';
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
+import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+import { getPipelineIdByPipelineVersion } from '~/concepts/pipelines/content/utils';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -40,7 +40,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const { pipelineVersionId } = useParams();
   const navigate = useNavigate();
 
-  const [isDeleting, setDeleting] = React.useState(false);
+  const [isDeletionOpen, setDeletionOpen] = React.useState(false);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(PipelineDetailsTab.GRAPH);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
@@ -48,9 +48,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const [pipelineVersion, isPipelineVersionLoaded, pipelineVersionLoadError] =
     usePipelineVersionById(pipelineVersionId);
 
-  const pipelineId = pipelineVersion?.resource_references.find(
-    (ref) => ref.relationship === RelationshipKF.OWNER && ref.key.type === ResourceTypeKF.PIPELINE,
-  )?.key.id;
+  const pipelineId = getPipelineIdByPipelineVersion(pipelineVersion);
 
   const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
   const [pipelineVersionRun, isPipelineVersionTemplateLoaded, templateLoadError] =
@@ -58,20 +56,20 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersionRun);
   const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && isPipelineVersionTemplateLoaded;
 
-  if (pipelineVersionLoadError || pipelineLoadError) {
-    const errorText = 'Pipeline version not found';
+  if (pipelineVersionLoadError || pipelineLoadError || !pipeline) {
+    const title = isLoaded ? 'Pipeline version not found' : 'Loading...';
 
     return (
       <ApplicationsPage
         breadcrumb={
           <Breadcrumb>
             {breadcrumbPath}
-            <BreadcrumbItem isActive>{errorText}</BreadcrumbItem>
+            <BreadcrumbItem isActive>{title}</BreadcrumbItem>
           </Breadcrumb>
         }
-        title={errorText}
+        title={title}
         empty={false}
-        loaded={!isLoaded}
+        loaded={isLoaded}
       >
         <PipelineNotFound />
       </ApplicationsPage>
@@ -131,7 +129,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                     <FlexItem>
                       {isLoaded && (
                         <PipelineDetailsActions
-                          onDelete={() => setDeleting(true)}
+                          onDelete={() => setDeletionOpen(true)}
                           pipeline={pipeline}
                           pipelineVersion={pipelineVersion}
                         />
@@ -207,11 +205,16 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-      <DeletePipelineCoreResourceModal
-        type="pipeline"
-        toDeleteResources={isDeleting && pipelineVersion ? [pipelineVersion] : []}
-        onClose={() => {
-          navigate(`/pipelines/${namespace}`);
+      <DeletePipelinesModal
+        isOpen={isDeletionOpen}
+        toDeletePipelineVersions={
+          pipelineVersion ? [{ pipelineName: pipeline?.name, version: pipelineVersion }] : []
+        }
+        onClose={(deleted) => {
+          setDeletionOpen(false);
+          if (deleted) {
+            navigate(`/pipelines/${namespace}`);
+          }
         }}
       />
     </>

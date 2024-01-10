@@ -12,6 +12,7 @@ type PipelineVersionTableRowProps = {
   onToggleCheck: () => void;
   pipelineVersionDetailsPath: (namespace: string, id: string) => string;
   version: PipelineVersionKF;
+  isDisabled: boolean;
 };
 
 const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
@@ -19,13 +20,19 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   onToggleCheck,
   pipelineVersionDetailsPath,
   version,
+  isDisabled,
 }) => {
   const { namespace } = usePipelinesAPI();
   const createdDate = new Date(version.created_at);
 
   return (
     <Tr>
-      <CheckboxTd id={version.id} isChecked={isChecked} onToggle={onToggleCheck} />
+      <CheckboxTd
+        id={version.id}
+        isChecked={isChecked}
+        onToggle={onToggleCheck}
+        isDisabled={isDisabled}
+      />
       <Td>
         <TableRowTitleDescription
           title={<Link to={pipelineVersionDetailsPath(namespace, version.id)}>{version.name}</Link>}

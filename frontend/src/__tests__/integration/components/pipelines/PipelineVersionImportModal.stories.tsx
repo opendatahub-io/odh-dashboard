@@ -49,7 +49,7 @@ export default {
 export const Default: StoryObj = {
   render: () => (
     <PipelineContextProvider namespace="test-project">
-      <PipelineVersionImportModal isOpen onClose={() => null} />;
+      <PipelineVersionImportModal onClose={() => null} />;
     </PipelineContextProvider>
   ),
 };

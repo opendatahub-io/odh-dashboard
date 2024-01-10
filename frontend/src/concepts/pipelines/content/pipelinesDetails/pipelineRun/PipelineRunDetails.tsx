@@ -30,7 +30,7 @@ import {
   RunDetailsTabs,
   RunDetailsTabSelection,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
@@ -168,7 +168,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-      <DeletePipelineCoreResourceModal
+      <DeletePipelineRunsModal
         type="triggered run"
         toDeleteResources={deleting && run ? [run] : []}
         onClose={(deleteComplete) => {

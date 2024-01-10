@@ -66,7 +66,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
   return (
     <Tr isExpanded>
       <Td />
-      <Td colSpan={6}>
+      <Td className="pf-v5-u-pb-lg" noPadding colSpan={6}>
         <ExpandableRowContent>
           <PipelineVersionTable
             {...tableProps}
@@ -75,7 +75,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
             totalSize={totalSize}
             pipelineDetailsPath={pipelineDetailsPath}
             nextPageToken={nextPageToken}
-            pipelineId={pipeline.id}
+            pipeline={pipeline}
           />
         </ExpandableRowContent>
       </Td>

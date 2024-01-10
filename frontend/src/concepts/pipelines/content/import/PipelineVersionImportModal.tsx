@@ -19,13 +19,11 @@ import { generatePipelineVersionName } from '~/concepts/pipelines/content/import
 
 type PipelineVersionImportModalProps = {
   existingPipeline?: PipelineKF | null;
-  isOpen: boolean;
   onClose: (pipelineVersion?: PipelineVersionKF) => void;
 };
 
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   existingPipeline,
-  isOpen,
   onClose,
 }) => {
   const { project, api, apiAvailable } = usePipelinesAPI();
@@ -47,7 +45,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   return (
     <Modal
       title="Upload new version"
-      isOpen={isOpen}
+      isOpen
       onClose={() => onBeforeClose()}
       actions={[
         <Button
@@ -137,8 +135,4 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   );
 };
 
-const PipelineVersionImportModalWrapper = (
-  props: PipelineVersionImportModalProps,
-): React.ReactElement => <PipelineVersionImportModal key={props.existingPipeline?.id} {...props} />;
-
-export default PipelineVersionImportModalWrapper;
+export default PipelineVersionImportModal;

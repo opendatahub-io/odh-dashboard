@@ -24,7 +24,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
   pipelineVersion,
 }) => {
   const navigate = useNavigate();
-  const { namespace } = usePipelinesAPI();
+  const { namespace, refreshAllAPI } = usePipelinesAPI();
   const [open, setOpen] = React.useState(false);
   const [isVersionImportModalOpen, setIsVersionImportModalOpen] = React.useState(false);
 
@@ -58,23 +58,23 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             View runs
           </DropdownItem>,
           <DropdownSeparator key="separator-2" />,
-          <DropdownItem key="delete-pipeline" onClick={() => onDelete()}>
-            Delete pipeline
+          <DropdownItem key="delete-pipeline-version" onClick={() => onDelete()}>
+            Delete pipeline version
           </DropdownItem>,
         ]}
       />
-
-      <PipelineVersionImportModal
-        existingPipeline={pipeline}
-        isOpen={isVersionImportModalOpen}
-        onClose={(pipelineVersion) => {
-          setIsVersionImportModalOpen(false);
-
-          if (pipelineVersion) {
-            navigate(`/pipelines/${namespace}/pipeline/view/${pipelineVersion.id}`);
-          }
-        }}
-      />
+      {isVersionImportModalOpen && (
+        <PipelineVersionImportModal
+          existingPipeline={pipeline}
+          onClose={(pipelineVersion) => {
+            setIsVersionImportModalOpen(false);
+            if (pipelineVersion) {
+              refreshAllAPI();
+              navigate(`/pipelines/${namespace}/pipeline/view/${pipelineVersion.id}`);
+            }
+          }}
+        />
+      )}
     </>
   );
 };
