@@ -8,7 +8,7 @@ test('page details are updated when a new pipeline version is selected', async (
   const toggleButtonInput = await page.getByTestId('pipeline-version-toggle-button');
 
   // Verify default version is selected and visible by default
-  await expect(toggleButtonInput).toHaveText('Pipeline version: version-1');
+  await expect(toggleButtonInput).toHaveText('version-1');
 
   await toggleButtonInput.click();
   await page
@@ -16,7 +16,7 @@ test('page details are updated when a new pipeline version is selected', async (
     .click();
 
   // Verify new version is selected and visible after selection
-  await expect(toggleButtonInput).toHaveText('Pipeline version: version-2');
+  await expect(toggleButtonInput).toHaveText('version-2');
 });
 
 test('page details are updated after uploading a new version', async ({ page }) => {
@@ -28,7 +28,7 @@ test('page details are updated after uploading a new version', async ({ page }) 
   const toggleButtonInput = await page.getByTestId('pipeline-version-toggle-button');
 
   // Verify default version is selected and visible by default
-  await expect(toggleButtonInput).toHaveText('Pipeline version: version-1');
+  await expect(toggleButtonInput).toHaveText('version-1');
 
   await page.getByRole('button', { name: 'Actions' }).click();
   await page.getByRole('menuitem', { name: 'Upload new version' }).click();
@@ -48,7 +48,7 @@ test('page details are updated after uploading a new version', async ({ page }) 
   await page.waitForSelector('[data-testid="upload-version-modal"]', { state: 'hidden' });
 
   // Verify new version is selected and visible after selection
-  await expect(toggleButtonInput).toHaveText(`Pipeline version: ${newVersionName}`);
+  await expect(toggleButtonInput).toHaveText(newVersionName);
 });
 
 test('Test topology renders', async ({ page }) => {

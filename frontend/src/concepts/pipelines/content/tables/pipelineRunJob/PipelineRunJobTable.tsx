@@ -15,7 +15,6 @@ import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFi
 
 type PipelineRunTableProps = {
   jobs: PipelineRunJobKF[];
-
   loading?: boolean;
   totalSize: number;
   page: number;

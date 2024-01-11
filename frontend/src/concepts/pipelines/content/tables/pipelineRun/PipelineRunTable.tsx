@@ -1,7 +1,12 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineCoreResourceKF,
+  PipelineRunKF,
+  PipelineVersionKF,
+} from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import { useCheckboxTable } from '~/components/table';
@@ -11,7 +16,9 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import usePipelineFilter, {
+  FilterOptions,
+} from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -39,8 +46,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   setFilter,
   ...tableProps
 }) => {
+  const { state } = useLocation();
   const { refreshAllAPI, getJobInformation } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
+  const lastLocationPipelineVersion: PipelineVersionKF = state?.lastVersion;
   const {
     selections,
     tableProps: checkboxTableProps,
@@ -48,6 +57,23 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     isSelected,
   } = useCheckboxTable(runs.map(({ id }) => id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
+
+  // Update filter on initial render with the last location-stored pipeline version.
+  React.useEffect(() => {
+    if (lastLocationPipelineVersion) {
+      filterToolbarProps.onFilterUpdate(FilterOptions.PIPELINE_VERSION, {
+        label: lastLocationPipelineVersion.name,
+        value: lastLocationPipelineVersion.id,
+      });
+    }
+
+    return () => {
+      // Reset the location-stored pipeline version to avoid re-creating
+      // a filter that might otherwise have been removed/changed by the user.
+      window.history.replaceState({ ...state, lastVersion: undefined }, '');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

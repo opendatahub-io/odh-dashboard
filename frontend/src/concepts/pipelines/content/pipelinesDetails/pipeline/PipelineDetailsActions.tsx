@@ -11,6 +11,7 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
@@ -54,7 +55,20 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
           >
             Create run
           </DropdownItem>,
-          <DropdownItem key="view-runs" onClick={() => navigate(`/pipelineRuns/${namespace}`)}>
+          <DropdownItem
+            key="view-runs"
+            onClick={() =>
+              navigate(
+                {
+                  pathname: `/pipelineRuns/${namespace}`,
+                  search: `?runType=${PipelineRunType.Triggered}`,
+                },
+                {
+                  state: { lastVersion: pipelineVersion },
+                },
+              )
+            }
+          >
             View runs
           </DropdownItem>,
           <DropdownSeparator key="separator-2" />,

@@ -9,10 +9,13 @@ import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFi
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
 import { PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
+import { useAllPipelineVersions } from '~/concepts/pipelines/apiHooks/useAllPipelineVersions';
+import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 
 const options = {
   [FilterOptions.NAME]: 'Name',
   [FilterOptions.EXPERIMENT]: 'Experiment',
+  [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
   [FilterOptions.CREATED_AT]: 'Started',
   [FilterOptions.STATUS]: 'Status',
 };
@@ -32,6 +35,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
+  const [{ items: pipelineVersions }] = useAllPipelineVersions();
 
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -43,13 +47,20 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
             {...props}
             aria-label="Search for a triggered run name"
             placeholder="Triggered run name"
-            onChange={(event, value) => onChange(value)}
+            onChange={(_event, value) => onChange(value)}
           />
         ),
         [FilterOptions.EXPERIMENT]: ({ onChange, value, label }) => (
           <ExperimentSearchInput
             onChange={(data) => onChange(data?.value, data?.label)}
             selected={value && label ? { value, label } : undefined}
+          />
+        ),
+        [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
+          <PipelineVersionSelect
+            versions={pipelineVersions}
+            selection={label}
+            onSelect={(version) => onChange(version.id, version.name)}
           />
         ),
         [FilterOptions.CREATED_AT]: ({ onChange, ...props }) => (

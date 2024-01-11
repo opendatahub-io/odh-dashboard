@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
 
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
@@ -22,6 +23,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   version,
   isDisabled,
 }) => {
+  const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const createdDate = new Date(version.created_at);
 
@@ -44,8 +46,21 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
         <PipelinesTableRowTime date={createdDate} />
       </Td>
       <Td>
-        {/* TODO: add navigation link, show be done with the pipeline runs page refactor */}
-        <Button variant="link" isInline>
+        <Button
+          variant="link"
+          isInline
+          onClick={() =>
+            navigate(
+              {
+                pathname: `/pipelineRuns/${namespace}`,
+                search: `?runType=${PipelineRunType.Triggered}`,
+              },
+              {
+                state: { lastVersion: version },
+              },
+            )
+          }
+        >
           View runs
         </Button>
       </Td>
