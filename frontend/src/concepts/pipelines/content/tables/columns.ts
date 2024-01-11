@@ -79,8 +79,8 @@ const sharedRunLikeColumns: SortableData<PipelineCoreResourceKF>[] = [
     width: 10,
   },
   {
-    label: 'Pipeline',
-    field: 'pipeline',
+    label: 'Pipeline version',
+    field: 'pipeline_version',
     sortable: false,
     width: 15,
   },

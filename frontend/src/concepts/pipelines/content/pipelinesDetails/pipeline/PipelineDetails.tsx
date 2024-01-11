@@ -51,13 +51,14 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const pipelineId = getPipelineIdByPipelineVersion(pipelineVersion);
 
   const [pipeline, isPipelineLoaded, pipelineLoadError] = usePipelineById(pipelineId);
+  const pipelineName = pipeline?.name;
   const [pipelineVersionRun, isPipelineVersionTemplateLoaded, templateLoadError] =
     usePipelineVersionTemplate(pipelineVersionId);
   const { taskMap, nodes } = usePipelineTaskTopology(pipelineVersionRun);
   const isLoaded = isPipelineVersionLoaded && isPipelineLoaded && isPipelineVersionTemplateLoaded;
 
-  if (pipelineVersionLoadError || pipelineLoadError || !pipeline) {
-    const title = isLoaded ? 'Pipeline version not found' : 'Loading...';
+  if (pipelineVersionLoadError || pipelineLoadError) {
+    const title = 'Pipeline version not found';
 
     return (
       <ApplicationsPage
@@ -69,7 +70,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
         }
         title={title}
         empty={false}
-        loaded={isLoaded}
+        loaded
       >
         <PipelineNotFound />
       </ApplicationsPage>
@@ -92,7 +93,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
               breadcrumb={
                 <Breadcrumb>
                   {breadcrumbPath}
-                  <BreadcrumbItem>{pipeline?.name || 'Loading...'}</BreadcrumbItem>
+                  <BreadcrumbItem>{pipelineName || 'Loading...'}</BreadcrumbItem>
                   <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
                     <Truncate content={pipelineVersion?.name || 'Loading...'} />
                   </BreadcrumbItem>
@@ -120,7 +121,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                     <FlexItem style={{ width: '300px' }}>
                       <PipelineVersionSelector
                         pipelineId={pipeline?.id}
-                        selection={`Pipeline version: ${pipelineVersion?.name}`}
+                        selection={pipelineVersion?.name}
                         onSelect={(version) =>
                           navigate(`/pipelines/${namespace}/pipeline/view/${version.id}`)
                         }
@@ -205,18 +206,21 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-      <DeletePipelinesModal
-        isOpen={isDeletionOpen}
-        toDeletePipelineVersions={
-          pipelineVersion ? [{ pipelineName: pipeline?.name, version: pipelineVersion }] : []
-        }
-        onClose={(deleted) => {
-          setDeletionOpen(false);
-          if (deleted) {
-            navigate(`/pipelines/${namespace}`);
+
+      {pipelineName && (
+        <DeletePipelinesModal
+          isOpen={isDeletionOpen}
+          toDeletePipelineVersions={
+            pipelineVersion ? [{ pipelineName, version: pipelineVersion }] : []
           }
-        }}
-      />
+          onClose={(deleted) => {
+            setDeletionOpen(false);
+            if (deleted) {
+              navigate(`/pipelines/${namespace}`);
+            }
+          }}
+        />
+      )}
     </>
   );
 };

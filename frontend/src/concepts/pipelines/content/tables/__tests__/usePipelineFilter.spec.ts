@@ -12,6 +12,8 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
+      [FilterOptions.EXPERIMENT]: undefined,
+      [FilterOptions.PIPELINE_VERSION]: '',
     });
 
     act(() => {
@@ -21,6 +23,8 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
+      [FilterOptions.EXPERIMENT]: undefined,
+      [FilterOptions.PIPELINE_VERSION]: '',
     });
 
     act(() => {
@@ -30,6 +34,8 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
+      [FilterOptions.EXPERIMENT]: undefined,
+      [FilterOptions.PIPELINE_VERSION]: '',
     });
   });
 
