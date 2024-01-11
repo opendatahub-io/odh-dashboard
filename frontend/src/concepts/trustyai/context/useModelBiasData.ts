@@ -21,14 +21,14 @@ export const useModelBiasData = (): ModelBiasData => {
     timedOut: serverTimedOut,
   };
 
-  const [biasMetricConfigs] = React.useMemo(() => {
+  const biasMetricConfigs = React.useMemo(() => {
     let configs: BiasMetricConfig[] = [];
 
     if (data.loaded) {
       configs = data.biasMetricConfigs.filter((x) => x.modelId === inferenceService);
     }
 
-    return [configs];
+    return configs;
   }, [data.biasMetricConfigs, data.loaded, inferenceService]);
 
   return {

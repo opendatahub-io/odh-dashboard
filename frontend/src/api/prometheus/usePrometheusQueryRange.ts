@@ -36,9 +36,14 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
 
     return axios
       .post<{ response: PrometheusQueryRangeResponse }>(apiPath, {
-        query: `namespace=${namespace}&query=${queryLang}&start=${start}&end=${endInS}&step=${step}`,
+        query: new URLSearchParams({
+          namespace,
+          query: queryLang,
+          start: start.toString(),
+          end: endInS.toString(),
+          step: step.toString(),
+        }).toString(),
       })
-
       .then((response) => responsePredicate(response.data?.response.data));
   }, [endInMs, span, active, apiPath, namespace, queryLang, step, responsePredicate]);
 

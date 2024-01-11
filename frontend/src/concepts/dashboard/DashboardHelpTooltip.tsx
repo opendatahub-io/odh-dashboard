@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Tooltip } from '@patternfly/react-core';
-import { HelpIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 type DashboardHelpTooltipProps = {
   content: string;
@@ -8,7 +8,7 @@ type DashboardHelpTooltipProps = {
 
 const DashboardHelpTooltip: React.FC<DashboardHelpTooltipProps> = ({ content }) => (
   <Tooltip content={content}>
-    <HelpIcon />
+    <OutlinedQuestionCircleIcon />
   </Tooltip>
 );
 

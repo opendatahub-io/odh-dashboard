@@ -47,7 +47,7 @@ const BiasTab: React.FC = () => {
           <EmptyStateBody>
             <Stack hasGutter>
               <StackItem>We encountered an error accessing the TrustyAI service:</StackItem>
-              <StackItem>{loadError?.message}</StackItem>
+              <StackItem>{loadError.message}</StackItem>
             </Stack>
           </EmptyStateBody>
         </EmptyState>

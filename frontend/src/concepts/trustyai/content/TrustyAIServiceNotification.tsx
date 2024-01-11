@@ -58,7 +58,7 @@ const TrustyAIServiceNotification: React.FC<TrustyAIServiceNotificationProps> = 
   if (error) {
     return (
       <Alert variant="danger" title="TrustyAI service error" isLiveRegion isInline>
-        {error?.message}
+        {error.message}
       </Alert>
     );
   }

@@ -196,10 +196,8 @@ const checkThresholdValid = (metricType: BiasMetricType, thresholdDelta?: number
         return true;
       }
       // DIR, not within the range, invalid
-      return false;
     }
     // not SPD not DIR, undefined for now, metricType should be selected, invalid
-    return false;
   }
   // not input anything, invalid
   return false;
@@ -208,15 +206,13 @@ const checkThresholdValid = (metricType: BiasMetricType, thresholdDelta?: number
 const checkBatchSizeValid = (batchSize?: number): boolean => {
   if (batchSize !== undefined) {
     if (Number.isInteger(batchSize)) {
-      // size > 2, integer, valid
+      // size => 2, integer, valid
       if (batchSize >= 2) {
         return true;
       }
-      // size <= 2, invalid
-      return false;
+      // size < 2, invalid
     }
     // not an integer, invalid
-    return false;
   }
   // not input anything, invalid
   return false;
