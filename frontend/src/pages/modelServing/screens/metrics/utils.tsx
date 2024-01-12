@@ -37,7 +37,7 @@ export const getServerMetricsQueries = (
     [ServerMetricType.REQUEST_COUNT]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${
       QueryTimeframeStep[ServerMetricType.REQUEST_COUNT][currentTimeframe]
     }s])))`,
-    [ServerMetricType.AVG_RESPONSE_TIME]: `increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])/increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])`,
+    [ServerMetricType.AVG_RESPONSE_TIME]: `sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${responseTimeStep}s])) / sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${responseTimeStep}s]))`,
     [ServerMetricType.CPU_UTILIZATION]: `sum(pod:container_cpu_usage:sum{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="cpu", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
     [ServerMetricType.MEMORY_UTILIZATION]: `sum(container_memory_working_set_bytes{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="memory", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
   };
