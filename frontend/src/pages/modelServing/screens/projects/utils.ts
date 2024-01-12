@@ -236,7 +236,7 @@ export const getProjectModelServingPlatform = (
   }
   return {
     platform: ServingRuntimePlatform.SINGLE,
-    error: kServeInstalled ? undefined : new Error('Single model platform is not installed'),
+    error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
   };
 };
 

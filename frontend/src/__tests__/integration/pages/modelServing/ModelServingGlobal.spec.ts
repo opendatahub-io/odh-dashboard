@@ -175,6 +175,16 @@ test('Create model error', async ({ page }) => {
   await page.getByLabel('Path').fill('test-model/');
   await expect(await page.getByRole('button', { name: 'Deploy', exact: true })).toBeEnabled();
 
+  // Check the model name character limit (within 253)
+  await page
+    .getByLabel('Model Name *')
+    .fill(
+      'eget nunc scelerisque viverra mauris in aliquam sem fringilla ut morbi tincidunt augue interdum velit euismod in pellentesque massa placerat duis ultricies lacus sed turpis tincidunt id aliquet risus feugiat in ante metus dictum at tempor commodo ullafff',
+    ); // 254 char name
+  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+  await page.getByLabel('Model Name *').fill('trigger-error');
+  await expect(await page.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+
   // Submit and check the invalid error message
   await page.getByRole('button', { name: 'Deploy', exact: true }).click();
   await page.waitForSelector('text=Error creating model server');

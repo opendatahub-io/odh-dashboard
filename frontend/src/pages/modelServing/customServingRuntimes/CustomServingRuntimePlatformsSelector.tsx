@@ -10,9 +10,9 @@ type CustomServingRuntimePlatformsSelectorProps = {
 };
 
 const RuntimePlatformSelectOptionLabels = {
-  [ServingRuntimePlatform.SINGLE]: 'Single model serving platform',
+  [ServingRuntimePlatform.SINGLE]: 'Single-model serving platform',
   [ServingRuntimePlatform.MULTI]: 'Multi-model serving platform',
-  both: 'Both single and multi-model serving platforms',
+  both: 'Single-model and multi-model serving platforms',
 };
 
 const CustomServingRuntimePlatformsSelector: React.FC<

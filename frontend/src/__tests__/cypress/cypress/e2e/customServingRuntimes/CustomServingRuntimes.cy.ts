@@ -49,4 +49,14 @@ it('Custom serving runtimes', () => {
   servingRuntimes.getRowById('template-2').shouldBeSingleModel(true).shouldBeMultiModel(false);
   servingRuntimes.getRowById('template-3').shouldBeSingleModel(false).shouldBeMultiModel(true);
   servingRuntimes.getRowById('template-4').shouldBeSingleModel(false).shouldBeMultiModel(true);
+
+  // Add a new serving runtime
+  servingRuntimes.findAddButton().click();
+
+  // Check the default values
+  servingRuntimes.shouldDisplayValues([
+    'Single-model serving platform',
+    'Multi-model serving platform',
+    'Single-model and multi-model serving platforms',
+  ]);
 });
