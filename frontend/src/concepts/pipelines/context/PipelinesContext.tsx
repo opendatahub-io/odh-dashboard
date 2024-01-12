@@ -17,7 +17,8 @@ import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
 import { deleteServer } from '~/concepts/pipelines/utils';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import useAPIState, { APIState } from './useAPIState';
+import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
+
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 
@@ -30,7 +31,7 @@ type PipelineContext = {
   project: ProjectKind;
   refreshState: () => Promise<undefined>;
   refreshAPIState: () => void;
-  apiState: APIState;
+  apiState: PipelineAPIState;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -42,7 +43,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   project: null as unknown as ProjectKind,
   refreshState: async () => undefined,
   refreshAPIState: () => undefined,
-  apiState: { apiAvailable: false, api: null as unknown as APIState['api'] },
+  apiState: { apiAvailable: false, api: null as unknown as PipelineAPIState['api'] },
 });
 
 type PipelineContextProviderProps = {
@@ -79,7 +80,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     [refreshRoute, refreshCR],
   );
 
-  const [apiState, refreshAPIState] = useAPIState(hostPath);
+  const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
 
   let error = crLoadError || routeLoadError;
   if (error || !project) {
@@ -112,7 +113,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   );
 });
 
-type UsePipelinesAPI = APIState & {
+type UsePipelinesAPI = PipelineAPIState & {
   /** The contextual namespace */
   namespace: string;
   /** The Project resource behind the namespace */

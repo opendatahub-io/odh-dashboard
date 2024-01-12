@@ -1,23 +1,31 @@
-import { TimeframeStep, TimeframeTime } from '~/pages/modelServing/screens/const';
-import { TimeframeTitle } from '~/pages/modelServing/screens/types';
+import { TimeframeTimeRange } from '~/pages/modelServing/screens/const';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
-import usePrometheusQueryRange from './usePrometheusQueryRange';
+import useRestructureContextResourceData from '~/utilities/useRestructureContextResourceData';
+import { TimeframeStepType, TimeframeTitle } from '~/pages/modelServing/screens/types';
+import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 
-const useQueryRangeResourceData = (
+const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
+  /** Is the query active -- should we be fetching? */
+  active: boolean,
   query: string,
   end: number,
   timeframe: TimeframeTitle,
-): ContextResourceData<PrometheusQueryRangeResultValue> =>
-  useContextResourceData<PrometheusQueryRangeResultValue>(
-    usePrometheusQueryRange(
-      '/api/prometheus/serving',
+  timeframeStep: TimeframeStepType,
+  responsePredicate: ResponsePredicate<T>,
+  namespace: string,
+  apiPath = '/api/prometheus/serving',
+): ContextResourceData<T> =>
+  useRestructureContextResourceData<T>(
+    usePrometheusQueryRange<T>(
+      active,
+      apiPath,
       query,
-      TimeframeTime[timeframe],
+      TimeframeTimeRange[timeframe],
       end,
-      TimeframeStep[timeframe],
+      timeframeStep[timeframe],
+      responsePredicate,
+      namespace,
     ),
-    5 * 60 * 1000,
   );
 
 export default useQueryRangeResourceData;

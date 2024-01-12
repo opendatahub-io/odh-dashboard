@@ -226,6 +226,7 @@ export type ImageStreamSpecTagType = {
 export type K8sAPIOptions = {
   dryRun?: boolean;
   signal?: AbortSignal;
+  parseJSON?: boolean;
 };
 
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
@@ -442,6 +443,9 @@ export type RouteKind = K8sResourceCommon & {
   spec: {
     host: string;
     path: string;
+    port: {
+      targetPort: string;
+    };
   };
 };
 
@@ -463,6 +467,34 @@ export type AWSSecretKind = SecretKind & {
     };
   };
   data: Record<AWS_KEYS, string>;
+};
+
+export type TrustyAIKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    storage: {
+      format: string;
+      folder: string;
+      size: string;
+    };
+    data: {
+      filename: string;
+      format: string;
+    };
+    metrics: {
+      schedule: string;
+      batchSize?: number;
+    };
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+    ready?: string;
+    replicas?: number;
+  };
 };
 
 export type DSPipelineKind = K8sResourceCommon & {
@@ -749,8 +781,9 @@ export type DashboardCommonConfig = {
   disableModelServing: boolean;
   disableProjectSharing: boolean;
   disableCustomServingRuntimes: boolean;
-  modelMetricsNamespace: string;
   disablePipelines: boolean;
+  disableBiasMetrics: boolean;
+  disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;

@@ -1,6 +1,7 @@
 /*
  * Common types, should be kept up to date with backend types
  */
+import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { AcceleratorProfileKind, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
@@ -15,17 +16,19 @@ export type PrometheusQueryResponse = {
   status: string;
 };
 
-export type PrometheusQueryRangeResponse = {
-  data: {
-    result: [
-      {
-        // not used -- see https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries for more info
-        metric: unknown;
-        values: PrometheusQueryRangeResultValue[];
-      },
-    ];
-    resultType: string;
+export type PrometheusQueryRangeResponseDataResult = {
+  metric: {
+    request?: string;
+    pod?: string;
   };
+  values: PrometheusQueryRangeResultValue[];
+};
+export type PrometheusQueryRangeResponseData = {
+  result: PrometheusQueryRangeResponseDataResult[];
+  resultType: string;
+};
+export type PrometheusQueryRangeResponse = {
+  data: PrometheusQueryRangeResponseData;
   status: string;
 };
 
@@ -664,7 +667,7 @@ export type ImageStreamAndVersion = {
 export type ContextResourceData<T> = {
   data: T[];
   loaded: boolean;
-  error?: Error;
+  error?: Error | AxiosError;
   refresh: () => void;
 };
 

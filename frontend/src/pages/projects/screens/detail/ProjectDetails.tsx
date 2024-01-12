@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import { CubeIcon, UsersIcon } from '@patternfly/react-icons';
+import { CogIcon, CubeIcon, UsersIcon } from '@patternfly/react-icons';
 import { Link, useLocation } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -9,6 +9,7 @@ import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalB
 import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectDetailsComponents from './ProjectDetailsComponents';
@@ -23,6 +24,7 @@ const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
   const description = getProjectDescription(currentProject);
+  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const { state } = useLocation();
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -51,6 +53,9 @@ const ProjectDetails: React.FC = () => {
           sections={[
             { title: 'Components', component: <ProjectDetailsComponents />, icon: <CubeIcon /> },
             { title: 'Permissions', component: <ProjectSharing />, icon: <UsersIcon /> },
+            ...(biasMetricsAreaAvailable
+              ? [{ title: 'Settings', component: <ProjectSettingsPage />, icon: <CogIcon /> }]
+              : []),
           ]}
         />
       ) : (

@@ -18,8 +18,9 @@ spec:
     disableModelServing: true
     disableProjectSharing: true
     disableCustomServingRuntimes: true
+    disableBiasMetrics: true
+    disablePerformanceMetrics: true
     disableAcceleratorProfiles: true
-    modelMetricsNamespace: ''
     disableKServe: false
     disableModelMesh: false
   notebookController:

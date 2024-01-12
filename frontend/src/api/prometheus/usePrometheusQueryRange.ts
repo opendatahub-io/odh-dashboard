@@ -1,29 +1,53 @@
 import * as React from 'react';
 import axios from 'axios';
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResultValue } from '~/types';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 
-const usePrometheusQueryRange = (
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '~/utilities/useFetchState';
+import {
+  PrometheusQueryRangeResponse,
+  PrometheusQueryRangeResponseData,
+  PrometheusQueryRangeResultValue,
+} from '~/types';
+
+export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (
+  data: PrometheusQueryRangeResponseData,
+) => T[];
+
+const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
+  active: boolean,
   apiPath: string,
   queryLang: string,
   span: number,
   endInMs: number,
   step: number,
-): FetchState<PrometheusQueryRangeResultValue[]> => {
-  const fetchData = React.useCallback<
-    FetchStateCallbackPromise<PrometheusQueryRangeResultValue[]>
-  >(() => {
+  responsePredicate: ResponsePredicate<T>,
+  namespace: string,
+): FetchState<T[]> => {
+  const fetchData = React.useCallback<FetchStateCallbackPromise<T[]>>(() => {
     const endInS = endInMs / 1000;
     const start = endInS - span;
 
+    if (!active) {
+      return Promise.reject(new NotReadyError('Prometheus query is not active'));
+    }
+
     return axios
       .post<{ response: PrometheusQueryRangeResponse }>(apiPath, {
-        query: `${queryLang}&start=${start}&end=${endInS}&step=${step}`,
+        query: new URLSearchParams({
+          namespace,
+          query: queryLang,
+          start: start.toString(),
+          end: endInS.toString(),
+          step: step.toString(),
+        }).toString(),
       })
-      .then((response) => response.data?.response.data.result?.[0]?.values || []);
-  }, [queryLang, apiPath, span, endInMs, step]);
+      .then((response) => responsePredicate(response.data?.response.data));
+  }, [endInMs, span, active, apiPath, namespace, queryLang, step, responsePredicate]);
 
-  return useFetchState<PrometheusQueryRangeResultValue[]>(fetchData, []);
+  return useFetchState<T[]>(fetchData, []);
 };
 
 export default usePrometheusQueryRange;

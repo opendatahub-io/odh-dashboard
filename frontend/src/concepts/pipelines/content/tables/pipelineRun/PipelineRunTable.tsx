@@ -3,8 +3,8 @@ import { TableVariant } from '@patternfly/react-table';
 import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import { useCheckboxTable, Table } from '~/components/table';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { Table, useCheckboxTable } from '~/components/table';
 import usePipelineRunFilter from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunFilter';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
@@ -31,7 +31,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({ runs }) => {
         data={filteredRuns}
         columns={pipelineRunColumns}
         enablePagination
-        emptyTableView={<EmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={toolbarProps.onClearFilters} />}
         toolbarContent={
           <PipelineRunTableToolbar
             {...toolbarProps}
