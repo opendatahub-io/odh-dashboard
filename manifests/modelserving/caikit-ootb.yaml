@@ -12,7 +12,6 @@ metadata:
     template.openshift.io/long-description: This template defines resources needed to deploy caikit-tgis-serving servingruntime with Red Hat Data Science KServe for LLM model
     template.openshift.io/support-url: https://access.redhat.com
     opendatahub.io/modelServingSupport: '["single"]'
-
   name: caikit-tgis-serving-template
 objects:
 - apiVersion: serving.kserve.io/v1alpha1
