@@ -3,6 +3,7 @@ import {
   Icon,
   Level,
   LevelItem,
+  Skeleton,
   Spinner,
   Switch,
   Timestamp,
@@ -23,11 +24,12 @@ import {
   getPipelineCoreResourceExperimentName,
   getPipelineRunJobScheduledState,
   ScheduledState,
-  getPipelineCoreResourcePipelineReference,
+  getPipelineVersionRunReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
@@ -89,19 +91,16 @@ export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (
   <>{getPipelineCoreResourceExperimentName(resource)}</>
 );
 
-export const CoreResourcePipeline: CoreResourceUtil<{ namespace: string }> = ({
-  resource,
-  namespace,
-}) => {
-  const resourceRef = getPipelineCoreResourcePipelineReference(resource);
-  const pipelineName = resourceRef?.name;
-  if (!resourceRef || !pipelineName) {
-    return <NoRunContent />;
-  }
-  const pipelineId = resourceRef.key.id;
+export const CoreResourcePipelineVersion: CoreResourceUtil<{
+  isLoading?: boolean;
+}> = ({ resource, isLoading }) => {
+  const resourceRef = getPipelineVersionRunReference(resource);
 
-  // TODO: get link path
-  return <Link to={`/pipelineRuns/${namespace}/pipeline/view/${pipelineId}`}>{pipelineName}</Link>;
+  if (isLoading) {
+    return <Skeleton />;
+  }
+
+  return <PipelineVersionLink resourceRef={resourceRef} />;
 };
 
 export const RunJobTrigger: RunJobUtil = ({ job }) => {

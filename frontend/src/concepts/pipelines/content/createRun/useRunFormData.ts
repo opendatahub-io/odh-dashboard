@@ -19,7 +19,7 @@ import {
   ResourceReferenceKF,
 } from '~/concepts/pipelines/kfTypes';
 
-import { getPipelineCoreResourcePipelineReference } from '~/concepts/pipelines/content/tables/utils';
+import { getPipelineVersionRunReference } from '~/concepts/pipelines/content/tables/utils';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { FetchState } from '~/utilities/useFetchState';
@@ -83,7 +83,7 @@ const useUpdatePipelineRun = (
     updatedSetFunction,
     pipelineRunJob,
     'pipeline',
-    getPipelineCoreResourcePipelineReference,
+    getPipelineVersionRunReference,
     usePipelineById,
   );
 };
@@ -110,7 +110,7 @@ const useUpdatePipeline = (
     updatedSetFunction,
     initialData,
     'pipeline',
-    getPipelineCoreResourcePipelineReference,
+    getPipelineVersionRunReference,
     usePipelineById,
   );
 
