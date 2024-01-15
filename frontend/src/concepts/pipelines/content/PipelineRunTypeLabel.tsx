@@ -3,7 +3,7 @@ import { Label, Tooltip } from '@patternfly/react-core';
 import {
   PipelineRunLabels,
   getPipelineCoreResourceJobReference,
-  getPipelineCoreResourcePipelineReference,
+  getPipelineVersionRunReference,
 } from '~/concepts/pipelines/content/tables/utils';
 import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 
@@ -13,7 +13,7 @@ type PipelineRunTypeLabelProps = {
 };
 const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ resource, isCompact }) => {
   const jobReference = getPipelineCoreResourceJobReference(resource);
-  const pipelineReference = getPipelineCoreResourcePipelineReference(resource);
+  const pipelineVersionRef = getPipelineVersionRunReference(resource);
 
   return (
     <>
@@ -25,7 +25,7 @@ const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ resource, i
             </Label>
           </Tooltip>
         </>
-      ) : !pipelineReference ? (
+      ) : !pipelineVersionRef ? (
         <>
           <Tooltip content={<div>Created by a scheduled run that was deleted</div>}>
             <Label color="blue" isCompact={isCompact}>

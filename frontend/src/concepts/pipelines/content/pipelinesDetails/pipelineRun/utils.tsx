@@ -32,7 +32,7 @@ export const renderDetailItems = (details: DetailItem[], flexKey?: boolean): Rea
           <FlexItem style={{ width: flexKey ? undefined : 150 }}>
             <b>{detail.key}</b>
           </FlexItem>
-          <FlexItem flex={{ default: 'flex_1' }}>{detail.value}</FlexItem>
+          <FlexItem>{detail.value}</FlexItem>
         </Flex>
       </StackItem>
     ))}

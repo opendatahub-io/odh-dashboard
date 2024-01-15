@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Skeleton } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { PipelineRunKF, PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
@@ -8,7 +7,7 @@ import {
   RunCreated,
   RunDuration,
   CoreResourceExperiment,
-  CoreResourcePipeline,
+  CoreResourcePipelineVersion,
   RunStatus,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -32,7 +31,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   getJobInformation,
 }) => {
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
-  const { loading, data } = getJobInformation(run);
+  const { loading: isJobInfoLoading, data } = getJobInformation(run);
   const notification = useNotification();
   const navigate = useNavigate();
 
@@ -46,11 +45,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <CoreResourceExperiment resource={run} />
       </Td>
       <Td modifier="truncate">
-        {loading ? (
-          <Skeleton />
-        ) : (
-          <CoreResourcePipeline resource={data || run} namespace={namespace} />
-        )}
+        <CoreResourcePipelineVersion isLoading={isJobInfoLoading} resource={data || run} />
       </Td>
       <Td>
         <RunCreated run={run} />

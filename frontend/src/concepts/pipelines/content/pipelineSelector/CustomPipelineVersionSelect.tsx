@@ -27,6 +27,10 @@ type CustomPipelineVersionSelectProps = {
   onSelect: (version: PipelineVersionKF) => void;
 };
 
+/**
+ * Select dropdown with custom list of versions, which uses client-side sorting & filtering. This component
+ * should mimic the presentation of PipelineVersionSelector for a consistent user experience.
+ */
 const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = ({
   versions,
   selection,

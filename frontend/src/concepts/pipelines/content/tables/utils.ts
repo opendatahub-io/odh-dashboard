@@ -43,7 +43,7 @@ export const getPipelineCoreResourceJobReference = (
   resource?: PipelineCoreResourceKF,
 ): ResourceReferenceKF | undefined => getRunResourceReference(resource, ResourceTypeKF.JOB);
 
-export const getPipelineCoreResourcePipelineReference = (
+export const getPipelineVersionRunReference = (
   resource?: PipelineCoreResourceKF,
 ): ResourceReferenceKF | undefined =>
   getRunResourceReference(resource, ResourceTypeKF.PIPELINE_VERSION);
@@ -54,9 +54,6 @@ export const getPipelineCoreResourceExperimentReference = (
 
 export const getPipelineCoreResourceExperimentName = (resource?: PipelineCoreResourceKF): string =>
   getPipelineCoreResourceExperimentReference(resource)?.name || 'Default';
-
-export const getPipelineCoreResourcePipelineName = (resource?: PipelineCoreResourceKF): string =>
-  getPipelineCoreResourcePipelineReference(resource)?.name || '';
 
 export const getPipelineRunJobStartTime = (job: PipelineRunJobKF): Date | null => {
   const startTime =

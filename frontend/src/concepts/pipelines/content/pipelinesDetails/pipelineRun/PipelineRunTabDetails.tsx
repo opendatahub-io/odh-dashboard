@@ -9,7 +9,7 @@ import {
 import { Link } from 'react-router-dom';
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineCoreResourcePipelineReference,
+  getPipelineVersionRunReference,
   getRunDuration,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -22,7 +22,7 @@ import {
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
-import { NoRunContent } from '~/concepts/pipelines/content/tables/renderUtils';
+import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF | PipelineRunJobKF;
@@ -34,6 +34,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   workflowName,
 }) => {
   const { namespace, project } = usePipelinesAPI();
+  const pipelineVersionRef = getPipelineVersionRunReference(pipelineRunKF);
+
   if (!pipelineRunKF || !workflowName) {
     return (
       <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
@@ -43,26 +45,21 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     );
   }
 
-  const pipelineReference = getPipelineCoreResourcePipelineReference(pipelineRunKF);
-  const pipelineRef = pipelineReference
-    ? [
-        {
-          key: 'Pipeline',
-          // TODO: get the relative parent namespaced link
-          value: pipelineReference.name ? (
-            <Link to={`/pipelines/${namespace}/pipeline/view/${pipelineReference.key.id}`}>
-              <Truncate content={pipelineReference.name} />
-            </Link>
-          ) : (
-            <NoRunContent />
-          ),
-        },
-      ]
-    : [];
-
   const details: DetailItem[] = [
     { key: 'Name', value: <Truncate content={pipelineRunKF.name} /> },
-    ...pipelineRef,
+    ...(pipelineVersionRef
+      ? [
+          {
+            key: 'Pipeline version',
+            value: (
+              <PipelineVersionLink
+                resourceRef={pipelineVersionRef}
+                loadingIndicator={<Spinner size="sm" />}
+              />
+            ),
+          },
+        ]
+      : []),
     {
       key: 'Project',
       value: <Link to={`/projects/${namespace}`}>{getProjectDisplayName(project)}</Link>,

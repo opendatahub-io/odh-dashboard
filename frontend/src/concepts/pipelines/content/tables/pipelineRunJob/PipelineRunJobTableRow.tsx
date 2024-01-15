@@ -8,7 +8,7 @@ import {
   RunJobStatus,
   RunJobTrigger,
   CoreResourceExperiment,
-  CoreResourcePipeline,
+  CoreResourcePipelineVersion,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
@@ -46,7 +46,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
         <CoreResourceExperiment resource={job} />
       </Td>
       <Td modifier="truncate">
-        <CoreResourcePipeline resource={job} namespace={namespace} />
+        <CoreResourcePipelineVersion resource={job} />
       </Td>
       <Td>
         <RunJobTrigger job={job} />
