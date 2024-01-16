@@ -27,7 +27,7 @@ const InstallTrustyAICheckbox: React.FC<InstallTrustyAICheckboxProps> = ({
   return (
     <>
       <Checkbox
-        label="Enable TrustyAI"
+        label="Enable model bias monitoring"
         body={
           <HelperText>
             <HelperTextItem>{helperText}</HelperTextItem>
