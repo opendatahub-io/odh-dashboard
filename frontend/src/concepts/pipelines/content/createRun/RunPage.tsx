@@ -1,6 +1,8 @@
-import * as React from 'react';
-import { PageSection } from '@patternfly/react-core';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
+
+import { PageSection } from '@patternfly/react-core';
+
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import GenericSidebar from '~/components/GenericSidebar';
 import {
@@ -11,6 +13,12 @@ import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import RunPageFooter from '~/concepts/pipelines/content/createRun/RunPageFooter';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
+import {
+  getPipelineResourceRef,
+  getPipelineVersionResourceRef,
+} from '~/concepts/pipelines/content/tables/utils';
 
 type RunPageProps = {
   cloneRun?: PipelineRunKF | PipelineRunJobKF;
@@ -21,10 +29,16 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath }) => {
   const { namespace } = usePipelinesAPI();
   const location = useLocation();
 
+  const cloneRunVersionId = getPipelineVersionResourceRef(cloneRun)?.key.id;
+  const [cloneRunPipelineVersion] = usePipelineVersionById(cloneRunVersionId) || null;
+
+  const cloneRunPipelineId = getPipelineResourceRef(cloneRunPipelineVersion)?.key.id;
+  const [cloneRunPipeline] = usePipelineById(cloneRunPipelineId);
+
   const [formData, setFormDataValue] = useRunFormData(
     cloneRun,
-    location.state?.lastPipeline,
-    location.state?.lastVersion,
+    location.state?.lastPipeline || cloneRunPipeline,
+    location.state?.lastVersion || cloneRunPipelineVersion,
   );
 
   return (

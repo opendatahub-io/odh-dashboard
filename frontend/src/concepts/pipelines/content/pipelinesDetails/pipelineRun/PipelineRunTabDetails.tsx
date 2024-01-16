@@ -9,7 +9,7 @@ import {
 import { Link } from 'react-router-dom';
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
-  getPipelineVersionRunReference,
+  getPipelineVersionResourceRef,
   getRunDuration,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -34,7 +34,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   workflowName,
 }) => {
   const { namespace, project } = usePipelinesAPI();
-  const pipelineVersionRef = getPipelineVersionRunReference(pipelineRunKF);
+  const pipelineVersionRef = getPipelineVersionResourceRef(pipelineRunKF);
 
   if (!pipelineRunKF || !workflowName) {
     return (

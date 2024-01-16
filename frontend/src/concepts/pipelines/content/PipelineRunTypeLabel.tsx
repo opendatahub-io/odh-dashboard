@@ -2,8 +2,8 @@ import React from 'react';
 import { Label, Tooltip } from '@patternfly/react-core';
 import {
   PipelineRunLabels,
-  getPipelineCoreResourceJobReference,
-  getPipelineVersionRunReference,
+  getJobResourceRef,
+  getPipelineVersionResourceRef,
 } from '~/concepts/pipelines/content/tables/utils';
 import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 
@@ -12,8 +12,8 @@ type PipelineRunTypeLabelProps = {
   isCompact?: boolean;
 };
 const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ resource, isCompact }) => {
-  const jobReference = getPipelineCoreResourceJobReference(resource);
-  const pipelineVersionRef = getPipelineVersionRunReference(resource);
+  const jobReference = getJobResourceRef(resource);
+  const pipelineVersionRef = getPipelineVersionResourceRef(resource);
 
   return (
     <>

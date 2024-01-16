@@ -1,3 +1,4 @@
+import React from 'react';
 import { generatePipelineVersionName } from '~/concepts/pipelines/content/import/utils';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
@@ -27,7 +28,7 @@ export const usePipelineVersionImportModalData = (
   pipeline?: PipelineKF | null,
 ): GenericObjectState<PipelineVersionModalData> => {
   const createDataState = useGenericObjectState<PipelineVersionModalData>({
-    name: generatePipelineVersionName(pipeline),
+    name: React.useMemo(() => generatePipelineVersionName(pipeline), [pipeline]),
     description: '',
     pipelineId: pipeline?.id ?? '',
     pipelineName: pipeline?.name ?? '',

@@ -21,10 +21,10 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
-  getPipelineCoreResourceExperimentName,
+  getExperimentResourceRef,
   getPipelineRunJobScheduledState,
   ScheduledState,
-  getPipelineVersionRunReference,
+  getPipelineVersionResourceRef,
 } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
@@ -88,13 +88,13 @@ export const RunCreated: RunUtil = ({ run }) => {
 };
 
 export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (
-  <>{getPipelineCoreResourceExperimentName(resource)}</>
+  <>{getExperimentResourceRef(resource)?.name || 'Default'}</>
 );
 
 export const CoreResourcePipelineVersion: CoreResourceUtil<{
   isLoading?: boolean;
 }> = ({ resource, isLoading }) => {
-  const resourceRef = getPipelineVersionRunReference(resource);
+  const resourceRef = getPipelineVersionResourceRef(resource);
 
   if (isLoading) {
     return <Skeleton />;
