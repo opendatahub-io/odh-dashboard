@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
-import { getPipelineCoreResourceJobReference } from '~/concepts/pipelines/content/tables/utils';
+import { getJobResourceRef } from '~/concepts/pipelines/content/tables/utils';
 import { APIState } from '~/concepts/pipelines/context/useAPIState';
 
 type JobStatus = {
@@ -20,7 +20,7 @@ const useJobRelatedInformation = (apiState: APIState): { getJobInformation: GetJ
         if (!apiState.apiAvailable) {
           return { loading: false, data: null };
         }
-        const jobReference = getPipelineCoreResourceJobReference(resource);
+        const jobReference = getJobResourceRef(resource);
         if (!jobReference) {
           return { loading: false, data: null };
         }
