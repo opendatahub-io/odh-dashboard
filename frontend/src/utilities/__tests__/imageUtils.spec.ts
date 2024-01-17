@@ -22,7 +22,7 @@ import {
   ImageTag,
 } from '~/types';
 
-describe('Compare tag versions', () => {
+describe('compareTagVersions', () => {
   it('should sort recommended tags first', () => {
     const recemendedTagVersion = {
       tag: [
@@ -204,7 +204,6 @@ describe('getTagForImage', () => {
 
     expect(result).toEqual({ name: 'tag1', default: true });
   });
-
   it('should return undefined if image has no tags', () => {
     const buildStatuses: BuildStatus[] = [
       {
@@ -246,7 +245,7 @@ describe('getImageTagVersion', () => {
 
     const result = getImageTagVersion(buildStatuses, image, selectedImage, selectedTag);
 
-    expect(result).toEqual('tag2');
+    expect(result).toBe('tag2');
   });
   it('should return the default tag version if image has multiple tags and no selected tag is provided', () => {
     const buildStatuses: BuildStatus[] = [
@@ -269,9 +268,8 @@ describe('getImageTagVersion', () => {
 
     const result = getImageTagVersion(buildStatuses, image);
 
-    expect(result).toEqual('tag1');
+    expect(result).toBe('tag1');
   });
-
   it('should return empty string if image has no tags', () => {
     const buildStatuses: BuildStatus[] = [
       {
@@ -289,7 +287,7 @@ describe('getImageTagVersion', () => {
 
     const result = getImageTagVersion(buildStatuses, image);
 
-    expect(result).toEqual('');
+    expect(result).toBe('');
   });
 });
 describe('getDescriptionForTag', () => {
@@ -314,12 +312,12 @@ describe('getDescriptionForTag', () => {
 
     const result = getDescriptionForTag(imageTag);
 
-    expect(result).toEqual('Software1 v1, Software2 v2');
+    expect(result).toBe('Software1 v1, Software2 v2');
   });
 
   it('should return an empty string if imageTag is not provided', () => {
     const result = getDescriptionForTag(undefined);
-    expect(result).toEqual('');
+    expect(result).toBe('');
   });
 
   it('should return an empty string if imageTag has no content', () => {
@@ -330,7 +328,7 @@ describe('getDescriptionForTag', () => {
 
     const result = getDescriptionForTag(imageTag);
 
-    expect(result).toEqual('');
+    expect(result).toBe('');
   });
 
   it('should return an empty string if software array is empty', () => {
@@ -343,7 +341,7 @@ describe('getDescriptionForTag', () => {
 
     const result = getDescriptionForTag(imageTag);
 
-    expect(result).toEqual('');
+    expect(result).toBe('');
   });
 });
 describe('getImageTagByContainer', () => {
