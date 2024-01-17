@@ -4,7 +4,7 @@ import React from 'react';
 const DashboardLogViewer: React.FC<{
   data: string;
   logViewerRef: React.MutableRefObject<{ scrollToBottom: () => void } | undefined>;
-  toolbar: JSX.Element;
+  toolbar: JSX.Element | boolean;
   footer: JSX.Element | false;
   onScroll: React.ComponentProps<typeof LogViewer>['onScroll'];
 }> = ({ data, logViewerRef, toolbar, footer, onScroll }) => (

@@ -51,10 +51,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody
-        className="pipeline-run__drawer-panel-body pf-v5-u-pr-sm"
-        // pf-v5-u-pr-sm
-      >
+      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-pr-sm">
         <PipelineRunDrawerRightTabs
           taskReferences={taskReferences}
           task={task}
