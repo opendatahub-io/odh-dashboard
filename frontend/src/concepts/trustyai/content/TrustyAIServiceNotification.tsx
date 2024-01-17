@@ -44,6 +44,7 @@ const TrustyAIServiceNotification: React.FC<TrustyAIServiceNotificationProps> = 
   if (!dismissSuccess && showSuccess && isAvailable) {
     return (
       <Alert
+        data-testid="trustyai-service-installed-alert"
         variant="success"
         title="TrustyAI installed in your namespace"
         actionClose={<AlertActionCloseButton onClose={() => setDismissSuccess(true)} />}
@@ -55,7 +56,13 @@ const TrustyAIServiceNotification: React.FC<TrustyAIServiceNotificationProps> = 
 
   if (error) {
     return (
-      <Alert variant="danger" title="TrustyAI service error" isLiveRegion isInline>
+      <Alert
+        variant="danger"
+        title="TrustyAI service error"
+        isLiveRegion
+        isInline
+        data-testid="trustyai-service-error"
+      >
         {error.message}
       </Alert>
     );

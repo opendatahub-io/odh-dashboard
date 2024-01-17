@@ -18,6 +18,7 @@ const TrustyAITimedOutError: React.FC<TrustyAITimedOutErrorProps> = ({
   <Alert
     variant="danger"
     isInline
+    data-testid="trustyai-service-timeout-error"
     title="TrustyAI failed"
     actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
     actionLinks={

@@ -91,6 +91,32 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
   findTrustyAIInstallCheckbox() {
     return cy.findByTestId('trustyai-service-installation');
   }
+
+  getTrustyAIUninstallModal() {
+    return new TrustyAIUninstallModal();
+  }
+
+  findTrustyAITimeoutError() {
+    return cy.findByTestId('trustyai-service-timeout-error');
+  }
+
+  findTrustyAIServiceError() {
+    return cy.findByTestId('trustyai-service-error');
+  }
+
+  findTrustyAISuccessAlert() {
+    return cy.findByTestId('trustyai-service-installed-alert');
+  }
+}
+
+class TrustyAIUninstallModal extends DeleteModal {
+  constructor() {
+    super('Warning alert: Uninstall TrustyAI');
+  }
+
+  findSubmitButton() {
+    return this.findFooter().findByRole('button', { name: 'Uninstall' });
+  }
 }
 
 export const projectListPage = new ProjectListPage();
