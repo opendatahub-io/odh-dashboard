@@ -145,28 +145,28 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
-    Promise.all([
-      submitServingRuntimeResources(
-        servingRuntimeSelected,
-        createDataServingRuntime,
-        customServingRuntimesEnabled,
-        namespace,
-        editInfo?.servingRuntimeEditInfo,
-        true,
-        acceleratorProfileState,
-        NamespaceApplicationCase.KSERVE_PROMOTION,
-        projectContext?.currentProject,
-        servingRuntimeName,
-        false,
-      ),
-      submitInferenceServiceResource(
-        createDataInferenceService,
-        editInfo?.inferenceServiceEditInfo,
-        servingRuntimeName,
-        false,
-        acceleratorProfileState,
-      ),
-    ])
+    submitServingRuntimeResources(
+      servingRuntimeSelected,
+      createDataServingRuntime,
+      customServingRuntimesEnabled,
+      namespace,
+      editInfo?.servingRuntimeEditInfo,
+      true,
+      acceleratorProfileState,
+      NamespaceApplicationCase.KSERVE_PROMOTION,
+      projectContext?.currentProject,
+      servingRuntimeName,
+      false,
+    )
+      .then(() =>
+        submitInferenceServiceResource(
+          createDataInferenceService,
+          editInfo?.inferenceServiceEditInfo,
+          servingRuntimeName,
+          false,
+          acceleratorProfileState,
+        ),
+      )
       .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
