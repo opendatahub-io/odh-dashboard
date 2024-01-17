@@ -1,0 +1,8 @@
+.odh-list-notebook-state {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--pf-v5-global--spacer--md);
+  &__notebook {
+    justify-content: flex-end;
+  }
+}

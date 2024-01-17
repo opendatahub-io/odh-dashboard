@@ -1,5 +1,131 @@
-.odh-project-details-components__item:has(> .odh-details-section--divide):has(
-    + .odh-project-details-components__item
-  ) {
-  border-bottom: 1px solid var(--pf-v5-global--BorderColor--100);
+.odh-details-section--divide {
+  padding-bottom: var(--pf-v5-global--spacer--xl);
+}
+
+.odh-project-details {
+  display: flex;
+  min-height: 100%;
+  gap: var(--pf-v5-global--spacer--lg);
+
+  &__project {
+    background: var(--pf-v5-global--palette--blue-50);
+    flex: 1;
+    padding-bottom: var(--pf-v5-global--spacer--md);
+
+    &.m-is-empty {
+      justify-content: center;
+    }
+
+    &-info {
+      margin: var(--pf-v5-global--spacer--3xl);
+      z-index: 100;
+    }
+
+    &-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  }
+
+  &__chart-inner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 240px;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-v5-global--spacer--sm);
+
+    img {
+      width: 64px;
+      height: 64px;
+    }
+  }
+
+  &__chart-title {
+    font-size: 18px;
+  }
+
+  &__legend {
+    display: flex;
+    gap: var(--pf-v5-global--spacer--lg);
+    flex-wrap: wrap;
+    justify-content: center;
+
+    &-item {
+      align-items: center;
+      display: flex;
+      gap: var(--pf-v5-global--spacer--sm);
+
+      &--color {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  &__components {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--pf-v5-global--spacer--md);
+
+    &__item {
+      padding-bottom: var(--pf-v5-global--spacer--lg);
+    }
+  }
+
+  &__card {
+    border: 1.5px dashed var(--pf-v5-global--BorderColor--200);
+
+    &:after {
+      position: absolute;
+      width: 48px;
+      height: 4px;
+      background: transparent;
+      top: 0;
+      left: calc(50% - 24px);
+      border-radius: 4px 4px 0 0;
+      content: ' ';
+      rotate: 180deg;
+    }
+
+    .pf-v5-c-empty-state__header {
+      align-items: center;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pf-v5-c-empty-state__icon {
+      width: 64px;
+      height: 64px;
+      background: var(--pf-v5-global--BackgroundColor--200);
+      border-radius: 32px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-block-end: var(--pf-v5-global--spacer--md);
+    }
+
+    .pf-v5-c-empty-state__footer {
+      margin-block-start: var(--pf-v5-global--spacer--md);
+    }
+
+    &.loading,
+    &.error {
+      .pf-v5-c-empty-state__icon {
+        background: inherit;
+      }
+    }
+
+    &.m-is-empty {
+      width: 400px;
+    }
+
+    &.m-is-clickable {
+      cursor: pointer;
+    }
+  }
 }

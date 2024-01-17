@@ -16,7 +16,10 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvi
       <Tooltip content={`${ODH_PRODUCT_NAME} certified and supported`}>
         <Button variant="plain" style={{ padding: 0, verticalAlign: 'middle' }}>
           <img
-            style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}
+            style={{
+              marginLeft: 'var(--pf-v5-global--spacer--xs)',
+              marginRight: 'var(--pf-v5-global--spacer--md)',
+            }}
             src="../images/CheckStar.svg"
             alt={`${ODH_PRODUCT_NAME} certified and supported`}
           />

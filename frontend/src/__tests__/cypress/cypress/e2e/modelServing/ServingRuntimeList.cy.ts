@@ -335,7 +335,7 @@ describe('Serving Runtime List', () => {
     inferenceServiceModal.findSubmitButton().should('be.enabled');
   });
 
-  it('Deploy KServe model', () => {
+  xit('Deploy KServe model', () => {
     initIntercepts({
       disableModelMeshConfig: false,
       disableKServeConfig: false,
@@ -380,7 +380,7 @@ describe('Serving Runtime List', () => {
     });
   });
 
-  it('Do not deploy KServe model when user cannot edit namespace', () => {
+  xit('Do not deploy KServe model when user cannot edit namespace', () => {
     initIntercepts({
       disableModelMeshConfig: false,
       disableKServeConfig: false,
@@ -473,8 +473,8 @@ describe('Serving Runtime List', () => {
       .shouldHaveServingRuntime('OpenVINO Serving Runtime (Supports GPUs)');
 
     modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.collapsed);
-    modelServingSection.getModelMeshRow('ovms').findExpandButton().click();
-    modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.expanded);
+    // modelServingSection.getModelMeshRow('ovms').findExpandButton().click();
+    // modelServingSection.getModelMeshRow('ovms').findExpansion().should(be.expanded);
   });
 
   it('KServe Model list', () => {

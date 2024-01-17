@@ -44,10 +44,11 @@ const ServingRuntimeTable: React.FC = () => {
         columns={columns}
         disableRowRenderSupport
         defaultSortColumn={1}
-        rowRenderer={(modelServer) => (
+        rowRenderer={(modelServer, rowIndex) => (
           <ServingRuntimeTableRow
             key={modelServer.metadata.uid}
             obj={modelServer}
+            rowIndex={rowIndex}
             onDeleteServingRuntime={(obj) => setDeleteServingRuntime(obj)}
             onEditServingRuntime={(obj) => setEditServingRuntime(obj)}
             onDeployModel={(obj) => setDeployServingRuntime(obj)}

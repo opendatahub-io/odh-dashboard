@@ -26,13 +26,13 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
     descriptionNode = descriptionAsMarkdown ? (
       <MarkdownView conciseDisplay markdown={description} />
     ) : (
-      <Text>{description}</Text>
+      <Text style={{ color: '--pf-v5-global--Color--200' }}>{description}</Text>
     );
   }
 
   return (
     <>
-      <Title headingLevel="h2" size="md">
+      <Title headingLevel="h2" size="md" style={{ fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
         {resource ? <ResourceNameTooltip resource={resource}>{title}</ResourceNameTooltip> : title}
       </Title>
       {subtitle}

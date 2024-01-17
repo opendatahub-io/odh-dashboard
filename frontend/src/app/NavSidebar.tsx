@@ -8,10 +8,23 @@ import {
   PageSidebar,
   PageSidebarBody,
 } from '@patternfly/react-core';
-import { isNavDataGroup, NavDataGroup, NavDataHref, useBuildNavData } from '~/utilities/NavData';
+import {
+  isNavDataGroup,
+  isNavOption,
+  NavDataGroup,
+  NavDataHref,
+  NavOption,
+  useBuildNavData,
+} from '~/utilities/NavData';
 
 const checkLinkActiveStatus = (pathname: string, href: string) =>
   href.split('/')[1] === pathname.split('/')[1];
+
+const NavSetting: React.FC<{ item: NavOption }> = ({ item }) => (
+  <NavItem key={item.id} data-id={item.id} itemId={item.id} className="odh-dashboard__nav-setting">
+    {item.child}
+  </NavItem>
+);
 
 const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, pathname }) => (
   <NavItem
@@ -26,7 +39,9 @@ const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, path
 
 const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pathname }) => {
   const { group, children } = item;
-  const isActive = !!children.find((c) => checkLinkActiveStatus(pathname, c.href));
+  const isActive = !!children.find(
+    (c) => isNavOption(c) || checkLinkActiveStatus(pathname, c.href),
+  );
   const [expanded, setExpanded] = React.useState(isActive);
 
   return (
@@ -41,9 +56,13 @@ const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pa
       onExpand={(e, val) => setExpanded(val)}
       aria-label={group.title}
     >
-      {children.map((childItem) => (
-        <NavHref key={childItem.id} data-id={childItem.id} item={childItem} pathname={pathname} />
-      ))}
+      {children.map((childItem) =>
+        isNavOption(childItem) ? (
+          <NavSetting key={childItem.id} item={childItem} />
+        ) : (
+          <NavHref key={childItem.id} data-id={childItem.id} item={childItem} pathname={pathname} />
+        ),
+      )}
     </NavExpandable>
   );
 };
@@ -61,7 +80,13 @@ const NavSidebar: React.FC = () => {
               isNavDataGroup(item) ? (
                 <NavGroup key={item.id} item={item} pathname={routerLocation.pathname} />
               ) : (
-                <NavHref key={item.id} item={item} pathname={routerLocation.pathname} />
+                <>
+                  {isNavOption(item) ? (
+                    <NavSetting item={item} />
+                  ) : (
+                    <NavHref key={item.id} item={item} pathname={routerLocation.pathname} />
+                  )}
+                </>
               ),
             )}
           </NavList>

@@ -1,0 +1,61 @@
+$user-color: #4CB140;
+$user-bg: rgba(76, 177, 64, 0.1);
+
+
+$group-color: #0066CC;
+$group-bg: rgba(0, 102, 204, 0.1);
+
+.odh-project-sharing {
+  &__header {
+    &--icon {
+      width: 40px;
+      height: 40px;
+      background: var(--pf-v5-global--BackgroundColor--200);
+      border-radius: 20px;
+      display: inline-block;
+      padding-top: 4px;
+      padding-left: 4px;
+      margin-right: var(--pf-v5-global--spacer--xs);
+      > img {
+        width: 32px;
+        height: 32px;
+        margin-top: -1px;
+        margin-left: -1px;
+      }
+      .user & {
+        border: 1px solid $user-color;
+        background: $user-bg;
+      }
+      .group & {
+        border: 1px solid $group-color;
+        background: $group-bg;
+      }
+    }
+    &.user {
+      .pf-v5-c-badge {
+        border: 1px solid $user-color;
+        background: $user-bg;
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+    &.group {
+      .pf-v5-c-badge {
+        border: 1px solid $group-color;
+        background: $group-bg;
+        color: var(--pf-v5-global--Color--dark-100);
+      }
+    }
+  }
+  &__badge {
+    .user & {
+      border: 1px solid $user-color;
+      background: $user-bg;
+      color: var(--pf-v5-global--Color--dark-100);
+    }
+    .group & {
+      border: 1px solid $group-color;
+      background: $group-bg;
+      color: var(--pf-v5-global--Color--dark-100);
+    }
+  }
+}

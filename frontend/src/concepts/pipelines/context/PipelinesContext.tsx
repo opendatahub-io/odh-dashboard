@@ -38,7 +38,7 @@ type PipelineContext = {
   apiState: PipelineAPIState;
 };
 
-const PipelinesContext = React.createContext<PipelineContext>({
+export const PipelinesContext = React.createContext<PipelineContext>({
   hasCR: false,
   crInitializing: false,
   serverTimedOut: false,
@@ -167,21 +167,32 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
 };
 
 type CreatePipelineServerButtonProps = {
-  variant: 'primary' | 'secondary';
+  variant: 'primary' | 'secondary' | 'link';
+  size?: 'default' | 'sm' | 'lg';
+  title?: string;
 };
 
 export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProps> = ({
   variant,
+  size = 'lg',
+  title = 'Create pipeline',
 }) => {
   const [configureModalVisible, setConfigureModalVisible] = React.useState(false);
   const { refreshState } = React.useContext(PipelinesContext);
 
   return (
-    <>
+    <div onClick={(e) => e.stopPropagation()}>
       <Stack hasGutter>
         <StackItem>
-          <Button variant={variant} onClick={() => setConfigureModalVisible(true)}>
-            Configure pipeline server
+          <Button
+            size={size}
+            variant={variant}
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfigureModalVisible(true);
+            }}
+          >
+            {title}
           </Button>
         </StackItem>
       </Stack>
@@ -192,7 +203,7 @@ export const CreatePipelineServerButton: React.FC<CreatePipelineServerButtonProp
           refreshState();
         }}
       />
-    </>
+    </div>
   );
 };
 

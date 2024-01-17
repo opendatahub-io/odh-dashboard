@@ -10,6 +10,7 @@ export enum Actions {
   ACK_NOTIFICATION = 'ACK_NOTIFICATION',
   REMOVE_NOTIFICATION = 'REMOVE_NOTIFICATION',
   FORCE_COMPONENTS_UPDATE = 'FORCE_COMPONENTS_UPDATE',
+  ALTERNATE_UI = 'ALTERNATE_UI',
 }
 
 export interface AppNotification {
@@ -35,6 +36,7 @@ export interface GetUserAction {
     error?: Error | null;
     notification?: AppNotification;
     isImpersonating?: boolean;
+    alternateUI?: boolean;
   };
 }
 
@@ -53,6 +55,7 @@ export type AppState = {
   dashboardNamespace?: string;
   notifications: AppNotification[];
   forceComponentsUpdate: number;
+  alternateUI: boolean;
 };
 
 export type StatusResponse = {

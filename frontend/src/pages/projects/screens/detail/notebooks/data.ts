@@ -43,3 +43,31 @@ export const columns: SortableData<NotebookState>[] = [
     sortable: false,
   },
 ];
+
+export const compactColumns: SortableData<NotebookState>[] = [
+  {
+    field: 'name',
+    label: 'Workbench',
+    width: 40,
+    sortable: (a, b) =>
+      getNotebookDisplayName(a.notebook).localeCompare(getNotebookDisplayName(b.notebook)),
+  },
+  {
+    field: 'image',
+    label: 'Notebook image',
+    sortable: false,
+    width: 20,
+  },
+  {
+    field: 'status',
+    label: 'Status',
+    sortable: (a, b) => getNotebookStatusPriority(a) - getNotebookStatusPriority(b),
+    width: 30,
+  },
+  {
+    field: 'open',
+    label: '',
+    sortable: false,
+    width: 10,
+  },
+];

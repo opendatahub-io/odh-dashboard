@@ -3,13 +3,18 @@ import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
 import {
   Alert,
+  Banner,
   Bullseye,
   Button,
+  Flex,
   Page,
   PageSection,
   Spinner,
   Stack,
   StackItem,
+  Text,
+  TextContent,
+  TextVariants,
 } from '@patternfly/react-core';
 import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
@@ -30,6 +35,16 @@ import { logout } from './appUtils';
 import QuickStarts from './QuickStarts';
 
 import './App.scss';
+
+const banner = () => (
+  <Banner variant="gold">
+    <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+      <TextContent>
+        <Text component={TextVariants.h3}>UXD Proof-of-concept</Text>
+      </TextContent>
+    </Flex>
+  </Banner>
+);
 
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -100,6 +115,7 @@ const App: React.FC = () => {
           isNotificationDrawerExpanded={notificationsOpen}
           mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
         >
+          {banner()}
           <ErrorBoundary>
             <ProjectsContextProvider>
               <QuickStarts>
@@ -109,6 +125,7 @@ const App: React.FC = () => {
             <ToastNotifications />
             <TelemetrySetup />
           </ErrorBoundary>
+          {banner()}
         </Page>
       </AreaContextProvider>
     </AppContext.Provider>

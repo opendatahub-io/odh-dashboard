@@ -31,6 +31,7 @@ type ApplicationsPageProps = {
   headerAction?: React.ReactNode;
   headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
+  removeChildrenTopPadding?: boolean;
   jobReferenceName?: React.ReactNode;
   loadingContent?: React.ReactNode;
 };
@@ -49,6 +50,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerAction,
   headerContent,
   provideChildrenPadding,
+  removeChildrenTopPadding,
   jobReferenceName,
   loadingContent,
 }) => {
@@ -126,7 +128,11 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (provideChildrenPadding) {
       return (
-        <PageSection variant="light" isFilled>
+        <PageSection
+          variant="light"
+          isFilled
+          style={removeChildrenTopPadding ? { paddingTop: 0 } : undefined}
+        >
           {children}
         </PageSection>
       );

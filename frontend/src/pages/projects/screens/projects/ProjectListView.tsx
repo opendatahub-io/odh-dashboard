@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
+import { Button, ButtonVariant, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '~/components/table';
 import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
@@ -9,8 +9,10 @@ import { useAppContext } from '~/app/AppContext';
 import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectScope } from '~/pages/projects/types';
+import { useAppSelector } from '~/redux/hooks';
+import ProjectTableRowAlt from '~/pages/projects/screens/projects/ProjectTableRowAlt';
 import NewProjectButton from './NewProjectButton';
-import { columns } from './tableData';
+import { columns, columnsAlt, subColumns } from './tableData';
 import ProjectTableRow from './ProjectTableRow';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
@@ -26,6 +28,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
   const navigate = useNavigate();
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
+  const alternateUI = useAppSelector((state) => state.alternateUI);
   const filteredProjects = (
     scope === ProjectScope.ALL_PROJECTS ? projects : dataScienceProjects
   ).filter((project) => {
@@ -55,8 +58,12 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
     <>
       <Table
         enablePagination
+        variant="compact"
         data={filteredProjects}
-        columns={columns}
+        hasNestedHeader={!alternateUI}
+        columns={alternateUI ? columnsAlt : columns}
+        subColumns={alternateUI ? undefined : subColumns}
+        disableRowRenderSupport={alternateUI}
         emptyTableView={
           <>
             No projects match your filters.{' '}
@@ -66,42 +73,57 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate, scope })
           </>
         }
         data-id="project-view-table"
-        rowRenderer={(project) => (
-          <ProjectTableRow
-            key={project.metadata.uid}
-            obj={project}
-            isRefreshing={refreshIds.includes(project.metadata.uid || '')}
-            setEditData={(data) => setEditData(data)}
-            setDeleteData={(data) => setDeleteData(data)}
-          />
-        )}
+        rowRenderer={(project, i) =>
+          alternateUI ? (
+            <ProjectTableRowAlt
+              key={project.metadata.uid}
+              obj={project}
+              rowIndex={i}
+              isRefreshing={refreshIds.includes(project.metadata.uid || '')}
+              setEditData={(data) => setEditData(data)}
+              setDeleteData={(data) => setDeleteData(data)}
+            />
+          ) : (
+            <ProjectTableRow
+              key={project.metadata.uid}
+              obj={project}
+              isRefreshing={refreshIds.includes(project.metadata.uid || '')}
+              setEditData={(data) => setEditData(data)}
+              setDeleteData={(data) => setDeleteData(data)}
+            />
+          )
+        }
         toolbarContent={
           <React.Fragment>
-            <ToolbarItem>
-              <DashboardSearchField
-                types={[SearchType.NAME, SearchType.USER]}
-                searchType={searchType}
-                searchValue={search}
-                onSearchTypeChange={(searchType: SearchType) => {
-                  setSearchType(searchType);
-                }}
-                onSearchValueChange={(searchValue: string) => {
-                  setSearch(searchValue);
-                }}
-              />
-            </ToolbarItem>
-            {allowCreate && (
+            <ToolbarGroup>
               <ToolbarItem>
-                <NewProjectButton
-                  onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                <DashboardSearchField
+                  types={[SearchType.NAME, SearchType.USER]}
+                  searchType={searchType}
+                  searchValue={search}
+                  onSearchTypeChange={(searchType: SearchType) => {
+                    setSearchType(searchType);
+                  }}
+                  onSearchValueChange={(searchValue: string) => {
+                    setSearch(searchValue);
+                  }}
                 />
               </ToolbarItem>
-            )}
-            {dashboardConfig.spec.notebookController?.enabled && (
-              <ToolbarItem>
-                <LaunchJupyterButton variant={ButtonVariant.link} />
-              </ToolbarItem>
-            )}
+            </ToolbarGroup>
+            <ToolbarGroup align={{ default: alternateUI ? 'alignRight' : 'alignLeft' }}>
+              {dashboardConfig.spec.notebookController?.enabled && (
+                <ToolbarItem>
+                  <LaunchJupyterButton variant={ButtonVariant.link} />
+                </ToolbarItem>
+              )}
+              {allowCreate && (
+                <ToolbarItem>
+                  <NewProjectButton
+                    onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+                  />
+                </ToolbarItem>
+              )}
+            </ToolbarGroup>
           </React.Fragment>
         }
       />

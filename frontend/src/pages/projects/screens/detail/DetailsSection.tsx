@@ -1,5 +1,4 @@
 import * as React from 'react';
-import classNames from 'classnames';
 import {
   Alert,
   Bullseye,
@@ -8,6 +7,8 @@ import {
   Spinner,
   Stack,
   StackItem,
+  Text,
+  TextContent,
   Title,
 } from '@patternfly/react-core';
 import { ProjectSectionID } from './types';
@@ -15,7 +16,11 @@ import { ProjectSectionID } from './types';
 type DetailsSectionProps = {
   id: ProjectSectionID;
   actions?: React.ReactNode[];
+  iconSrc: string;
+  iconAlt: string;
   title: string;
+  description?: string;
+  popover?: React.ReactNode;
   isLoading: boolean;
   loadError?: Error;
   isEmpty: boolean;
@@ -27,6 +32,8 @@ type DetailsSectionProps = {
 
 const DetailsSection: React.FC<DetailsSectionProps> = ({
   actions,
+  iconSrc,
+  iconAlt,
   children,
   emptyState,
   id,
@@ -34,8 +41,9 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   isLoading,
   loadError,
   title,
+  description,
+  popover,
   labels,
-  showDivider,
 }) => {
   const renderContent = () => {
     if (loadError) {
@@ -62,24 +70,38 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   };
 
   return (
-    <Stack
-      hasGutter
-      className={classNames({
-        'odh-details-section--divide': !loadError && (isLoading || isEmpty || showDivider),
-      })}
-    >
+    <Stack hasGutter className="odh-details-section--divide">
       <StackItem>
-        <Flex>
-          <FlexItem>
-            <Title id={`${id}-title`} headingLevel="h2" size="xl">
-              {title}
-            </Title>
-          </FlexItem>
-          {actions && <FlexItem>{actions}</FlexItem>}
-          {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
+        <Flex
+          direction={{ default: 'column', md: 'row' }}
+          gap={{ default: 'gapMd' }}
+          alignItems={{ md: 'alignItemsCenter' }}
+        >
+          <Flex flex={{ default: 'flex_1' }} direction={{ default: 'column' }}>
+            <FlexItem>
+              <Flex
+                direction={{ default: 'row' }}
+                gap={{ default: 'gapXs' }}
+                alignItems={{ md: 'alignItemsCenter' }}
+              >
+                <img style={{ width: '32px' }} src={iconSrc} alt={iconAlt} />
+                <FlexItem>
+                  <Title id={`${id}-title`} headingLevel="h2" size="xl">
+                    {title}
+                  </Title>
+                </FlexItem>
+                {popover}
+              </Flex>
+              <TextContent>{description && <Text component="p">{description}</Text>}</TextContent>
+            </FlexItem>
+          </Flex>
+          <Flex direction={{ default: 'column', md: 'row' }}>
+            {actions && <FlexItem>{actions}</FlexItem>}
+            {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
+          </Flex>
         </Flex>
       </StackItem>
-      <StackItem>{renderContent()}</StackItem>
+      {renderContent()}
     </Stack>
   );
 };

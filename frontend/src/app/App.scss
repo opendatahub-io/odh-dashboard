@@ -25,6 +25,31 @@ body,
   &__brand {
     height: 36px;
   }
+  &__nav-setting {
+    .pf-v5-c-switch__label {
+      --pf-v5-c-switch__input--checked__label--Color: var(--pf-v5-c-nav__link--Color);
+      --pf-v5-c-switch__input--not-checked__label--Color: var(--pf-v5-c-nav__link--Color);
+      font-size: var(--pf-v5-c-nav__subnav__link--FontSize);
+      font-weight: var(--pf-v5-c-nav__subnav__link--FontWeight);
+    }
+    .pf-v5-c-switch__toggle {
+      top: 2px;
+    }
+  }
+  td, li {
+    .pf-v5-c-switch__toggle {
+      height: 18px;
+      margin-top: -1px;
+      &:before {
+        height: 10px;
+        width: 10px;
+        inset-block-start: 4px;
+      }
+    }
+    .pf-v5-c-switch__input:checked ~ .pf-v5-c-switch__toggle::before {
+      inset-inline-start: 12px;
+    }
+  }
 }
 
 // specificity targeting form elements to override --pf-v5-global--FontSize--md

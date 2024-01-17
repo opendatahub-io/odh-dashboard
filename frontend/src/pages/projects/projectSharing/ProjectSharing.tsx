@@ -13,11 +13,14 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { GroupKind } from '~/k8sTypes';
+import { useAppSelector } from '~/redux/hooks';
+import ProjectSharingTableSectionAlt from '~/pages/projects/projectSharing/ProjectSharingTableSectionAlt';
 import { ProjectSharingRBType } from './types';
 import ProjectSharingTableSection from './ProjectSharingTableSection';
 import { filterRoleBindingSubjects } from './utils';
 
 const ProjectSharing: React.FC = () => {
+  const alternateUI = useAppSelector((state) => state.alternateUI);
   const {
     projectSharingRB: { data: roleBindings, loaded, error: loadError, refresh: refreshRB },
     groups: { data: groups },
@@ -50,21 +53,46 @@ const ProjectSharing: React.FC = () => {
       <Stack hasGutter>
         <StackItem>Add users and groups that can access the project.</StackItem>
         <StackItem>
-          <ProjectSharingTableSection
-            roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
-            projectSharingTableType={ProjectSharingRBType.USER}
-            refresh={refreshRB}
-          />
+          {alternateUI ? (
+            <ProjectSharingTableSectionAlt
+              roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
+              projectSharingTableType={ProjectSharingRBType.USER}
+              refresh={refreshRB}
+              typeModifier="user"
+            />
+          ) : (
+            <ProjectSharingTableSection
+              roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.USER)}
+              projectSharingTableType={ProjectSharingRBType.USER}
+              refresh={refreshRB}
+            />
+          )}
         </StackItem>
         <StackItem>
-          <ProjectSharingTableSection
-            roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.GROUP)}
-            projectSharingTableType={ProjectSharingRBType.GROUP}
-            refresh={refreshRB}
-            typeAhead={
-              groups.length > 0 ? groups.map((group: GroupKind) => group.metadata.name) : undefined
-            }
-          />
+          {alternateUI ? (
+            <ProjectSharingTableSectionAlt
+              roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.GROUP)}
+              projectSharingTableType={ProjectSharingRBType.GROUP}
+              refresh={refreshRB}
+              typeAhead={
+                groups.length > 0
+                  ? groups.map((group: GroupKind) => group.metadata.name)
+                  : undefined
+              }
+              typeModifier="group"
+            />
+          ) : (
+            <ProjectSharingTableSection
+              roleBindings={filterRoleBindingSubjects(roleBindings, ProjectSharingRBType.GROUP)}
+              projectSharingTableType={ProjectSharingRBType.GROUP}
+              refresh={refreshRB}
+              typeAhead={
+                groups.length > 0
+                  ? groups.map((group: GroupKind) => group.metadata.name)
+                  : undefined
+              }
+            />
+          )}
         </StackItem>
       </Stack>
     </PageSection>

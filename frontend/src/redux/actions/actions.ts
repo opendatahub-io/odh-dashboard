@@ -70,3 +70,12 @@ export const forceComponentsUpdate =
       type: Actions.FORCE_COMPONENTS_UPDATE,
     });
   };
+
+export const setAlternateUI =
+  (alternateUI: boolean): ThunkAction<void, AppState, unknown, Action<string>> =>
+  (dispatch) => {
+    dispatch({
+      type: Actions.ALTERNATE_UI,
+      payload: { alternateUI },
+    });
+  };

@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Icon, Split, SplitItem } from '@patternfly/react-core';
+import { Icon, Split, SplitItem, Switch } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useAppContext } from '~/app/AppContext';
 import { useUser } from '~/redux/selectors';
+import { useAppDispatch, useAppSelector } from '~/redux/hooks';
+import { setAlternateUI } from '~/redux/actions/actions';
 
 type NavDataCommon = {
   id: string;
@@ -19,15 +21,21 @@ export type NavDataGroup = NavDataCommon & {
     id: string;
     title: string;
   };
-  children: NavDataHref[];
+  children: (NavDataHref | NavOption)[];
 };
 
-export type NavDataItem = NavDataHref | NavDataGroup;
+export type NavOption = NavDataCommon & {
+  child: React.ReactNode;
+};
+
+export type NavDataItem = NavDataHref | NavDataGroup | NavOption;
 
 export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref =>
   !!(navData as NavDataHref).href;
 export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
   !!(navData as NavDataGroup).children;
+export const isNavOption = (navData: NavDataItem): navData is NavOption =>
+  !!(navData as NavOption).child;
 
 const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
   useIsAreaAvailable(area).status ? success : [];
@@ -145,6 +153,9 @@ const useAcceleratorProfilesNav = (): NavDataHref[] =>
   ]);
 
 const useSettingsNav = (): NavDataGroup[] => {
+  const dispatch = useAppDispatch();
+  const alternateUI = useAppSelector((state) => state.alternateUI);
+
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
@@ -153,16 +164,30 @@ const useSettingsNav = (): NavDataGroup[] => {
     ...useUserManagementNav(),
   ];
 
+  const alternateUIOption: NavOption = {
+    id: 'alternate-ui-option',
+    child: (
+      <div style={{ alignItems: 'center' }}>
+        <Switch
+          label="Alternate UI"
+          isChecked={alternateUI}
+          onChange={(e, newValue) => dispatch(setAlternateUI(newValue))}
+          isReversed
+        />
+      </div>
+    ),
+  };
+
   const { isAdmin } = useUser();
-  if (!isAdmin || settingsNavs.length === 0) {
-    return [];
-  }
 
   return [
     {
       id: 'settings',
       group: { id: 'settings', title: 'Settings' },
-      children: settingsNavs,
+      children:
+        isAdmin && settingsNavs.length > 0
+          ? [...settingsNavs, alternateUIOption]
+          : [alternateUIOption],
     },
   ];
 };

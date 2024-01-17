@@ -4,6 +4,7 @@ const initialState: AppState = {
   userLoading: false,
   notifications: [],
   forceComponentsUpdate: 0,
+  alternateUI: false,
 };
 
 const appReducer = (state: AppState = initialState, action: GetUserAction): AppState => {
@@ -103,6 +104,11 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
       return {
         ...state,
         forceComponentsUpdate: state.forceComponentsUpdate + 1,
+      };
+    case Actions.ALTERNATE_UI:
+      return {
+        ...state,
+        alternateUI: !!action.payload.alternateUI,
       };
     default:
       return state;
