@@ -7,16 +7,9 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 type SupportedAppTitleProps = {
   odhApp: OdhApplication;
   showProvider?: boolean;
-  onClick?: () => void;
-  isPlain?: boolean;
 };
 
-const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({
-  odhApp,
-  showProvider = false,
-  onClick,
-  isPlain,
-}) => {
+const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({ odhApp, showProvider = false }) => {
   let title = odhApp.spec.displayName;
   let icon;
 
@@ -25,14 +18,6 @@ const SupportedAppTitle: React.FC<SupportedAppTitleProps> = ({
     title = `${splitTitle.slice(0, -1).join(' ')} `;
     icon = (
       <span style={{ whiteSpace: 'nowrap' }}>
-        {onClick ? (
-          <Button variant={isPlain ? 'plain' : 'link'} onClick={onClick} isInline>
-            {splitTitle[splitTitle.length - 1]}
-          </Button>
-        ) : (
-          splitTitle[splitTitle.length - 1]
-        )}
-
         <Tooltip content={`${ODH_PRODUCT_NAME} certified and supported`}>
           <Button variant="plain" style={{ padding: 0 }}>
             <img

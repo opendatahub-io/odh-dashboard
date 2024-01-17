@@ -41,7 +41,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
 
     return (
       <Drawer
-        data-id="explore-applications"
+        data-testid="explore-applications"
         isExpanded={!disableInfo && !!selectedComponent}
         isInline
       >
