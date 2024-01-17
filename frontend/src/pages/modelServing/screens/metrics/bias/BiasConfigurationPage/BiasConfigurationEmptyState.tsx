@@ -22,7 +22,7 @@ const BiasConfigurationEmptyState: React.FC<BiasConfigurationEmptyStateProps> = 
   actionButton,
   variant,
 }) => (
-  <EmptyState variant={variant} data-id="bias-metrics-empty-state">
+  <EmptyState variant={variant} data-testid="bias-metrics-empty-state">
     <EmptyStateHeader
       titleText={<>{EMPTY_BIAS_CONFIGURATION_TITLE}</>}
       icon={<EmptyStateIcon icon={WrenchIcon} />}

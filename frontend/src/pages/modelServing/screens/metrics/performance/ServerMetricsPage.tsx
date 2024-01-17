@@ -15,7 +15,7 @@ const ServerMetricsPage = (): ReactElement => (
     ]}
     accessDomain="model server metrics"
   >
-    <Stack>
+    <Stack data-testid="server-metrics-loaded">
       <StackItem>
         <MetricsPageToolbar />
       </StackItem>

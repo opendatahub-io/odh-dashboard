@@ -10,7 +10,7 @@ const PerformanceTab = (): ReactElement => (
     metrics={[ModelMetricType.REQUEST_COUNT_SUCCESS, ModelMetricType.REQUEST_COUNT_FAILED]}
     accessDomain="model metrics"
   >
-    <Stack>
+    <Stack data-testid="performance-metrics-loaded">
       <StackItem>
         <MetricsPageToolbar />
       </StackItem>

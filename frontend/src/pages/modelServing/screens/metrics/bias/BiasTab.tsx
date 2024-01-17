@@ -68,7 +68,7 @@ const BiasTab: React.FC = () => {
       metrics={[ModelMetricType.TRUSTY_AI_SPD, ModelMetricType.TRUSTY_AI_DIR]}
       accessDomain="model bias metrics"
     >
-      <Stack>
+      <Stack data-testid="bias-metrics-loaded">
         <StackItem>
           <MetricsPageToolbar
             leftToolbarItem={
@@ -107,6 +107,7 @@ const BiasTab: React.FC = () => {
                       <DashboardExpandableSection
                         title={x.name}
                         storageKey={`${OPEN_WRAPPER_STORAGE_KEY_PREFIX}-${x.id}`}
+                        data-testid={`expandable-section-${x.name}`}
                       >
                         <BiasChart biasMetricConfig={x} />
                       </DashboardExpandableSection>

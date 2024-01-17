@@ -55,6 +55,7 @@ const MetricsPageTabs: React.FC = () => {
           title={<TabTitleText>Endpoint performance</TabTitleText>}
           aria-label="Performance tab"
           className="odh-tabcontent-fix"
+          data-testid="performance-tab"
         >
           <PerformanceTab />
         </Tab>
@@ -65,6 +66,7 @@ const MetricsPageTabs: React.FC = () => {
           title={<TabTitleText>Model bias</TabTitleText>}
           aria-label="Bias tab"
           className="odh-tabcontent-fix"
+          data-testid="bias-tab"
           actions={
             loaded &&
             biasMetricConfigs.length === 0 && (
