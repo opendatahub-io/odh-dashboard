@@ -52,7 +52,6 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
   return (
     <>
       <TableBase
-        {...tableProps}
         {...checkboxTableProps}
         loading={loading}
         page={page}

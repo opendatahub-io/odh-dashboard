@@ -32,6 +32,7 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import PipelineRunDetailsVersionContextProvider from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsVersionContext';
 import PipelineRunJobDetailsActions from './PipelineRunJobDetailsActions';
 
 const getPipelineRunKind = (job?: PipelineRunJobKF['pipeline_spec']): PipelineRunKind | null => {
@@ -83,7 +84,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
   }
 
   return (
-    <>
+    <PipelineRunDetailsVersionContextProvider resource={job}>
       <Drawer isExpanded={!!selectedId}>
         <DrawerContent
           panelContent={
@@ -172,7 +173,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
           }
         }}
       />
-    </>
+    </PipelineRunDetailsVersionContextProvider>
   );
 };
 

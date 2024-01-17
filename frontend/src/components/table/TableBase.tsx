@@ -123,39 +123,47 @@ const TableBase = <T,>({
             : Math.max(0, Math.min(perPage, itemCount - perPage * (page - 1))),
         )
           .fill(undefined)
-          .map((_, i) => (
+          .map((_, i) => {
             // Set the height to the last known row height or otherwise the same height as the first row.
             // When going to a previous page, the number of rows may be greater than the current.
-            <Tr
-              key={`skeleton-${i}`}
-              style={{ height: rowHeightsRef.current?.[i] || rowHeightsRef.current?.[0] }}
-            >
-              {columns.map((col) => (
-                <Td
-                  key={col.field}
-                  // assign classes to reserve space
-                  className={
-                    col.field === CHECKBOX_FIELD_ID || col.field === EXPAND_FIELD_ID
-                      ? 'pf-c-table__toggle'
-                      : col.field === KEBAB_FIELD_ID
-                      ? 'pf-c-table__action'
-                      : undefined
-                  }
-                >
-                  {
-                    // render placeholders to reserve space
-                    col.field === EXPAND_FIELD_ID || col.field === KEBAB_FIELD_ID ? (
-                      <div style={{ width: 46 }} />
-                    ) : col.field === CHECKBOX_FIELD_ID ? (
-                      <div style={{ width: 13 }} />
-                    ) : (
-                      <Skeleton width="50%" />
-                    )
-                  }
-                </Td>
-              ))}
-            </Tr>
-          ))
+
+            const getRow = () => (
+              <Tr
+                key={`skeleton-${i}`}
+                style={{ height: rowHeightsRef.current?.[i] || rowHeightsRef.current?.[0] }}
+              >
+                {columns.map((col) => (
+                  <Td
+                    key={col.field}
+                    // assign classes to reserve space
+                    className={
+                      col.field === CHECKBOX_FIELD_ID || col.field === EXPAND_FIELD_ID
+                        ? 'pf-c-table__toggle'
+                        : col.field === KEBAB_FIELD_ID
+                        ? 'pf-c-table__action'
+                        : undefined
+                    }
+                  >
+                    {
+                      // render placeholders to reserve space
+                      col.field === EXPAND_FIELD_ID || col.field === KEBAB_FIELD_ID ? (
+                        <div style={{ width: 46 }} />
+                      ) : col.field === CHECKBOX_FIELD_ID ? (
+                        <div style={{ width: 13 }} />
+                      ) : (
+                        <Skeleton width="50%" />
+                      )
+                    }
+                  </Td>
+                ))}
+              </Tr>
+            );
+            return disableRowRenderSupport ? (
+              <Tbody key={`skeleton-tbody-${i}`}>{getRow()}</Tbody>
+            ) : (
+              getRow()
+            );
+          })
       : data.map((row, rowIndex) => rowRenderer(row, rowIndex));
 
   return (

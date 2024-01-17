@@ -9,8 +9,8 @@ import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFi
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
 import { PipelineRunStatusesKF } from '~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
-import { useAllPipelineVersions } from '~/concepts/pipelines/apiHooks/useAllPipelineVersions';
 import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
+import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 const options = {
   [FilterOptions.NAME]: 'Name',
@@ -35,7 +35,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
-  const [{ items: pipelineVersions }] = useAllPipelineVersions();
+  const { versions } = React.useContext(PipelineRunVersionsContext);
 
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -58,7 +58,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
           <PipelineVersionSelect
-            versions={pipelineVersions}
+            versions={versions}
             selection={label}
             onSelect={(version) => onChange(version.id, version.name)}
           />

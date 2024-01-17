@@ -14,6 +14,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { GetJobInformation } from '~/concepts/pipelines/context/useJobRelatedInformation';
 import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
 import useNotification from '~/utilities/useNotification';
+import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 
 type PipelineRunTableRowProps = {
   isChecked: boolean;
@@ -34,6 +35,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { loading: isJobInfoLoading, data } = getJobInformation(run);
   const notification = useNotification();
   const navigate = useNavigate();
+  const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(data || run);
 
   return (
     <Tr>
@@ -45,7 +47,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <CoreResourceExperiment resource={run} />
       </Td>
       <Td modifier="truncate">
-        <CoreResourcePipelineVersion isLoading={isJobInfoLoading} resource={data || run} />
+        <CoreResourcePipelineVersion
+          resource={data || run}
+          loaded={!isJobInfoLoading && isVersionLoaded}
+          version={version}
+          error={error}
+        />
       </Td>
       <Td>
         <RunCreated run={run} />

@@ -24,6 +24,7 @@ import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipeli
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 
 type PipelineVersionSelectorProps = {
   pipelineId?: string;
@@ -45,7 +46,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
-
+  const sortProps = getTableSortProps(tableProps);
   const { sortDirection, sortField, setFilter, filter } = tableProps;
   const { data: versions, onLoadMore } = usePipelineVersionLoadMore({
     pipelineId,
@@ -74,7 +75,6 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
         <MenuList>
           <div role="menuitem">
             <TableBase
-              {...tableProps}
               itemCount={fetchedSize}
               loading={!loaded}
               data-id="pipeline-version-selector-table-list"
@@ -101,7 +101,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
               )}
               getColumnSort={getTableColumnSort({
                 columns: pipelineVersionSelectorColumns,
-                ...tableProps,
+                ...sortProps,
               })}
               footerRow={() =>
                 loaded ? (

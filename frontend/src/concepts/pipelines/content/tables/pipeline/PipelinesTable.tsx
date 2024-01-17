@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { Table, getTableColumnSort, useCheckboxTableBase } from '~/components/table';
+import { Table, TableBase, getTableColumnSort, useCheckboxTableBase } from '~/components/table';
 import PipelinesTableRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
 import { pipelineColumns } from '~/concepts/pipelines/content/tables/columns';
-import { TableBase } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
@@ -37,7 +36,11 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
   setPage,
   setPageSize,
   pipelineDetailsPath,
-  ...tableProps
+  enablePagination,
+  emptyTableView,
+  toolbarContent,
+  variant,
+  ...sortProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const { pipelineDataSelector } = React.useContext(PipelineAndVersionContext);
@@ -58,8 +61,11 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
   return (
     <>
       <TableBase
-        {...tableProps}
         {...checkboxTableProps}
+        enablePagination={enablePagination}
+        emptyTableView={emptyTableView}
+        toolbarContent={toolbarContent}
+        variant={variant}
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -91,7 +97,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
         disableRowRenderSupport
         getColumnSort={getTableColumnSort({
           columns: pipelineColumns,
-          ...tableProps,
+          ...sortProps,
         })}
       />
       <DeletePipelinesModal

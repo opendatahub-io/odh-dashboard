@@ -8,10 +8,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import {
-  getPipelineVersionResourceRef,
-  getRunDuration,
-} from '~/concepts/pipelines/content/tables/utils';
+import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { relativeDuration } from '~/utilities/time';
@@ -23,6 +20,7 @@ import {
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
+import { PipelineRunDetailsVersionContext } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsVersionContext';
 
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF | PipelineRunJobKF;
@@ -34,7 +32,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   workflowName,
 }) => {
   const { namespace, project } = usePipelinesAPI();
-  const pipelineVersionRef = getPipelineVersionResourceRef(pipelineRunKF);
+  const { version, loaded, error, versionRef } = React.useContext(PipelineRunDetailsVersionContext);
 
   if (!pipelineRunKF || !workflowName) {
     return (
@@ -47,14 +45,17 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
 
   const details: DetailItem[] = [
     { key: 'Name', value: <Truncate content={pipelineRunKF.name} /> },
-    ...(pipelineVersionRef
+    ...(versionRef
       ? [
           {
             key: 'Pipeline version',
             value: (
               <PipelineVersionLink
-                resourceRef={pipelineVersionRef}
+                displayName={versionRef.name}
                 loadingIndicator={<Spinner size="sm" />}
+                loaded={loaded}
+                version={version}
+                error={error}
               />
             ),
           },

@@ -24,6 +24,7 @@ import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSe
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 
 type PipelineSelectorProps = {
   selection?: string;
@@ -37,6 +38,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
     [{ items: initialData, totalSize: fetchedSize, nextPageToken: initialPageToken }, loaded],
     { initialLoaded, ...tableProps },
   ] = usePipelinesTable();
+  const sortProps = getTableSortProps(tableProps);
   const { setFilter, filter, sortDirection, sortField } = tableProps;
 
   const { totalSize, ...searchProps } = useSelectorSearch({ setFilter, fetchedSize, loaded });
@@ -68,7 +70,6 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
         <MenuList>
           <div role="menuitem">
             <TableBase
-              {...tableProps}
               itemCount={fetchedSize}
               loading={!loaded}
               data-id="pipeline-selector-table-list"
@@ -95,7 +96,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
               )}
               getColumnSort={getTableColumnSort({
                 columns: pipelineSelectorColumns,
-                ...tableProps,
+                ...sortProps,
               })}
               footerRow={() =>
                 loaded ? (

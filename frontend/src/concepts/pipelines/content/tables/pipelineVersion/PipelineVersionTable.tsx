@@ -58,7 +58,6 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
 
   return (
     <TableBase
-      {...tableProps}
       {...checkboxTableProps}
       loading={loading}
       itemCount={totalSize}
