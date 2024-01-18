@@ -5,6 +5,7 @@ import { genUID } from './mockUtils';
 type MockResourceConfigType = {
   name?: string;
   namespace?: string;
+  uid?: string;
   displayName?: string;
   identifier?: string;
   description?: string;
@@ -15,6 +16,7 @@ type MockResourceConfigType = {
 export const mockAcceleratorProfile = ({
   name = 'migrated-gpu',
   namespace = 'test-project',
+  uid = genUID('service'),
   displayName = 'Nvidia GPU',
   identifier = 'nvidia.com/gpu',
   description = '',
@@ -35,7 +37,7 @@ export const mockAcceleratorProfile = ({
     name,
     namespace,
     resourceVersion: '1309350',
-    uid: genUID('service'),
+    uid,
   },
   spec: {
     identifier,
