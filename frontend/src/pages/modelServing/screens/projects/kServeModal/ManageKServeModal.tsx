@@ -145,6 +145,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
+    const replicaCount = createDataServingRuntime.numReplicas;
+
     submitServingRuntimeResources(
       servingRuntimeSelected,
       createDataServingRuntime,
@@ -165,6 +167,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           servingRuntimeName,
           false,
           acceleratorProfileState,
+          replicaCount,
         ),
       )
       .then(() => onSuccess())

@@ -134,4 +134,40 @@ describe('assembleServingRuntime', () => {
       servingRuntime.spec.containers[0].resources?.requests?.['nvidia.com/gpu'],
     ).toBeUndefined();
   });
+
+  it('should have replica count on modelmesh', async () => {
+    const replicaCount = 2;
+    const servingRuntime = assembleServingRuntime(
+      mockServingRuntimeModalData({
+        externalRoute: true,
+        tokenAuth: true,
+        numReplicas: replicaCount,
+      }),
+      'test',
+      mockServingRuntimeK8sResource({ auth: false, route: false }),
+      true,
+      false,
+      undefined,
+      true,
+    );
+
+    expect(servingRuntime.spec.replicas).toBe(replicaCount);
+  });
+
+  it('should have replica count on modelmesh', async () => {
+    const servingRuntime = assembleServingRuntime(
+      mockServingRuntimeModalData({
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      'test',
+      mockServingRuntimeK8sResource({ auth: false, route: false }),
+      true,
+      false,
+      undefined,
+      false,
+    );
+
+    expect(servingRuntime.spec.replicas).toBeUndefined();
+  });
 });

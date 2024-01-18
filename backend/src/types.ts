@@ -893,7 +893,7 @@ export type ServingRuntime = K8sResourceCommon & {
       volumeMounts?: VolumeMount[];
     }[];
     supportedModelFormats: SupportedModelFormats[];
-    replicas: number;
+    replicas?: number;
     volumes?: Volume[];
   };
 };

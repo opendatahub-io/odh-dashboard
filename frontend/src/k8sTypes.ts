@@ -341,7 +341,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     };
     containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
-    replicas: number;
+    replicas?: number;
     tolerations?: Toleration[];
     volumes?: Volume[];
   };
@@ -387,6 +387,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
           schemaPath?: string;
         };
       };
+      maxReplicas?: number;
+      minReplicas?: number;
     };
   };
   status?: {

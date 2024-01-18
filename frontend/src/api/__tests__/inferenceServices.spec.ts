@@ -105,4 +105,53 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.tolerations).toBeUndefined();
     expect(inferenceService.spec.predictor.model.resources).toBeUndefined();
   });
+
+  it('should provide max and min replicas if provided', async () => {
+    const replicaCount = 2;
+
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
+      count: 1,
+      additionalOptions: {},
+      useExisting: false,
+    };
+
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      true,
+      undefined,
+      acceleratorProfileState,
+      replicaCount,
+    );
+
+    expect(inferenceService.spec.predictor.maxReplicas).toBe(replicaCount);
+    expect(inferenceService.spec.predictor.minReplicas).toBe(replicaCount);
+  });
+
+  it('should omit replica count if not provided', async () => {
+    const acceleratorProfileState: AcceleratorProfileState = {
+      acceleratorProfile: mockAcceleratorProfile({}),
+      acceleratorProfiles: [mockAcceleratorProfile({})],
+      initialAcceleratorProfile: mockAcceleratorProfile({}),
+      count: 1,
+      additionalOptions: {},
+      useExisting: false,
+    };
+
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      true,
+      undefined,
+      acceleratorProfileState,
+    );
+
+    expect(inferenceService.spec.predictor.maxReplicas).toBeUndefined();
+    expect(inferenceService.spec.predictor.minReplicas).toBeUndefined();
+  });
 });
