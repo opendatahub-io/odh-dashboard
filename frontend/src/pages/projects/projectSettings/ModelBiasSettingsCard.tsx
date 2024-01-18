@@ -17,7 +17,7 @@ const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ project }
   return (
     <Card isFlat>
       <CardHeader>
-        <CardTitle>Model Bias</CardTitle>
+        <CardTitle>Model bias</CardTitle>
       </CardHeader>
       <CardBody>
         <TrustyAIServiceControl

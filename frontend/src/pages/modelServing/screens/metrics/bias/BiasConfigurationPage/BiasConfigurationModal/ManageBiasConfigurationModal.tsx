@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  Modal,
-  TextInput,
-} from '@patternfly/react-core';
+import { Form, FormGroup, Modal, TextInput } from '@patternfly/react-core';
 import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
@@ -98,13 +90,6 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
             value={configuration.requestName}
             onChange={(e, value) => setConfiguration('requestName', value)}
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                This is the name that will be used to select the metric for monitoring.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
         </FormGroup>
         <MetricTypeField
           fieldId="metric-type"

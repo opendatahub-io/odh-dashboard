@@ -45,13 +45,11 @@ const TrustyAIServiceNotification: React.FC<TrustyAIServiceNotificationProps> = 
     return (
       <Alert
         variant="success"
-        title="TrustyAI installed"
+        title="TrustyAI installed in your namespace"
         actionClose={<AlertActionCloseButton onClose={() => setDismissSuccess(true)} />}
         isLiveRegion
         isInline
-      >
-        The TrustyAI service was successfully installed
-      </Alert>
+      />
     );
   }
 

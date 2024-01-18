@@ -254,16 +254,16 @@ describe('Model Metrics', () => {
       .type('{esc}');
 
     modelMetricsBias
-      .getMetricsChart('Statistical Parity Difference (SPD)', 'Loan acceptance')
+      .getMetricsChart('Statistical parity difference (SPD)', 'Loan acceptance')
       .shouldHaveNoData();
     modelMetricsBias
-      .getMetricsChart('Statistical Parity Difference (SPD)', 'Loan Acceptance 4')
+      .getMetricsChart('Statistical parity difference (SPD)', 'Loan Acceptance 4')
       .shouldHaveNoData();
     modelMetricsBias
-      .getMetricsChart('Disparate Impact Ratio (DIR)', 'Loan acceptance 2')
+      .getMetricsChart('Disparate impact ratio (DIR)', 'Loan acceptance 2')
       .shouldHaveNoData();
     modelMetricsBias
-      .getMetricsChart('Disparate Impact Ratio (DIR)', 'Loan acceptance 2 STRICT')
+      .getMetricsChart('Disparate impact ratio (DIR)', 'Loan acceptance 2 STRICT')
       .shouldHaveNoData();
   });
   it('Bias Charts Show Data', () => {
@@ -293,16 +293,16 @@ describe('Model Metrics', () => {
       .type('{esc}');
 
     modelMetricsBias
-      .getMetricsChart('Statistical Parity Difference (SPD)', 'Loan acceptance')
+      .getMetricsChart('Statistical parity difference (SPD)', 'Loan acceptance')
       .shouldHaveData();
     modelMetricsBias
-      .getMetricsChart('Statistical Parity Difference (SPD)', 'Loan Acceptance 4')
+      .getMetricsChart('Statistical parity difference (SPD)', 'Loan Acceptance 4')
       .shouldHaveData();
     modelMetricsBias
-      .getMetricsChart('Disparate Impact Ratio (DIR)', 'Loan acceptance 2')
+      .getMetricsChart('Disparate impact ratio (DIR)', 'Loan acceptance 2')
       .shouldHaveData();
     modelMetricsBias
-      .getMetricsChart('Disparate Impact Ratio (DIR)', 'Loan acceptance 2 STRICT')
+      .getMetricsChart('Disparate impact ratio (DIR)', 'Loan acceptance 2 STRICT')
       .shouldHaveData();
   });
   it('Server metrics show no data available ', () => {
