@@ -5,6 +5,7 @@ import {
 } from '~/pages/pipelines/global/runs/const';
 import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreApplicationPage';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
+import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import GlobalPipelineRunsTabs from './GlobalPipelineRunsTabs';
 
 const GlobalPipelineRuns: React.FC = () => (
@@ -15,7 +16,9 @@ const GlobalPipelineRuns: React.FC = () => (
     overrideChildPadding
   >
     <EnsureAPIAvailability>
-      <GlobalPipelineRunsTabs />
+      <PipelineRunVersionsContextProvider>
+        <GlobalPipelineRunsTabs />
+      </PipelineRunVersionsContextProvider>
     </EnsureAPIAvailability>
   </PipelineCoreApplicationPage>
 );

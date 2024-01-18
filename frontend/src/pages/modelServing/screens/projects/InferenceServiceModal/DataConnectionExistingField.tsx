@@ -30,9 +30,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
         {dataConnections.length !== 0 && (
           <Popover
             aria-label="No bucket popover"
-            bodyContent={
-              'Only data connections that include a bucket, which is required for model serving, are included in this list.'
-            }
+            bodyContent="Only data connections that include a bucket, which is required for model serving, are included in this list."
           >
             <Button
               style={{ paddingLeft: 0 }}
@@ -40,7 +38,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
               icon={<OutlinedQuestionCircleIcon />}
               iconPosition="left"
             >
-              {"Not seeing what you're looking for?"}
+              Not seeing what you&apos;re looking for?
             </Button>
           </Popover>
         )}

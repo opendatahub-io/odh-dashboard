@@ -6,8 +6,9 @@ import {
   k8sListResourceItems,
   k8sPatchResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, K8sStatus, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { PVCModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';

@@ -176,7 +176,7 @@ export type PipelineKF = PipelineCoreResourceKF & {
   parameters?: ParameterKF[];
   url?: UrlKF;
   error?: string;
-  default_version: PipelineVersionKF;
+  default_version?: PipelineVersionKF;
 };
 
 export type PipelineRunKF = PipelineCoreResourceKF & {
@@ -233,10 +233,13 @@ export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
 export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
   jobs: PipelineRunJobKF[];
 }>;
-export type ListPipelineTemplateResourceKF = {
+export type ListPipelineVersionTemplateResourceKF = {
   /** YAML template of a PipelineRunKind */
   template: string;
 };
+export type ListPipelineVersionsResourceKF = PipelineKFCallCommon<{
+  versions: PipelineVersionKF[];
+}>;
 
 export type CreatePipelineRunKFData = Omit<
   PipelineRunKF,

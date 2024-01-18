@@ -3,7 +3,8 @@ import { isCommonStateError } from '~/utilities/useFetchState';
 type ErrorKF = {
   error: string;
   code: number;
-  details: Record<string, unknown>;
+  message: string;
+  details?: Record<string, unknown>;
 };
 type ResultErrorKF = {
   /** Has stack trace */
@@ -13,7 +14,7 @@ type ResultErrorKF = {
 };
 
 const isErrorKF = (e: unknown): e is ErrorKF =>
-  ['error', 'code', 'details'].every((key) => key in (e as ErrorKF));
+  ['error', 'code', 'message'].every((key) => key in (e as ErrorKF));
 
 const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
   ['error_details', 'error_message'].every((key) => key in (result as ResultErrorKF));
@@ -28,6 +29,7 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
         const errorKF: ErrorKF = {
           error: result.error_message,
           code: 400, // assume it's our fault
+          message: result.error_message,
           details: { trace: result.error_details },
         };
         throw errorKF;

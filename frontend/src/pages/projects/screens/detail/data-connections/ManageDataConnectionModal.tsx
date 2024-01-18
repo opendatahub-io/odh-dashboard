@@ -83,7 +83,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
 
       if (existingData) {
         if (AWSDataChanged) {
-          promiseActions.push(replaceSecret(assembledSecret, { dryRun: dryRun }));
+          promiseActions.push(replaceSecret(assembledSecret, { dryRun }));
         }
 
         const notebooksToDisconnect = allAvailableNotebooks.filter((notebook) =>
@@ -96,12 +96,12 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
               notebook.metadata.name,
               projectName,
               getSecretsFromList(notebook).filter(({ secretRef: { name } }) => name !== secretName),
-              { dryRun: dryRun },
+              { dryRun },
             ),
           ),
         );
       } else {
-        promiseActions.push(createSecret(assembledSecret, { dryRun: dryRun }));
+        promiseActions.push(createSecret(assembledSecret, { dryRun }));
       }
 
       const notebooksToConnect = allAvailableNotebooks.filter((notebook) =>
@@ -115,7 +115,7 @@ const ManageDataConnectionModal: React.FC<ManageDataConnectionModalProps> = ({
             projectName,
             secretName,
             hasEnvFrom(notebook),
-            { dryRun: dryRun },
+            { dryRun },
           ),
         ),
       );

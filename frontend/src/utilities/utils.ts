@@ -158,4 +158,4 @@ export const normalizeBetween = (value: number, min?: number, max?: number): num
 export const getAcceleratorProfileCount = (
   acceleratorProfile: AcceleratorProfileKind,
   resources: ContainerResources,
-) => Number(resources.requests?.[acceleratorProfile.spec.identifier] ?? 0);
+): number => Number(resources.requests?.[acceleratorProfile.spec.identifier] ?? 0);

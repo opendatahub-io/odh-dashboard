@@ -6,10 +6,13 @@ import RunTableToolbarActions from '~/concepts/pipelines/content/tables/RunTable
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
+import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
+import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 const options = {
   [FilterOptions.NAME]: 'Name',
   [FilterOptions.EXPERIMENT]: 'Experiment',
+  [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
 };
 
 export type FilterProps = Pick<
@@ -27,6 +30,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
+  const { versions } = React.useContext(PipelineRunVersionsContext);
 
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -45,6 +49,13 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
           <ExperimentSearchInput
             onChange={(data) => onChange(data?.value, data?.label)}
             selected={value && label ? { value, label } : undefined}
+          />
+        ),
+        [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
+          <PipelineVersionSelect
+            versions={versions}
+            selection={label}
+            onSelect={(version) => onChange(version.id, version.name)}
           />
         ),
       }}

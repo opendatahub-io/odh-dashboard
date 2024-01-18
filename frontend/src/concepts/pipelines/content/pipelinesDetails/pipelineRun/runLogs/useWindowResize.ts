@@ -1,10 +1,8 @@
 import React from 'react';
 
-function getCurrentWidth(): number {
-  return window.innerWidth;
-}
+const getCurrentWidth = (): number => window.innerWidth;
 
-export function useWindowResize() {
+export const useWindowResize = (): boolean => {
   const [width, setWidth] = React.useState(getCurrentWidth());
 
   const handleResize = React.useCallback(() => {
@@ -16,6 +14,6 @@ export function useWindowResize() {
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
-  const isSmallScreen = () => width < 576;
-  return { isSmallScreen };
-}
+  const isSmallScreen = width < 576;
+  return isSmallScreen;
+};

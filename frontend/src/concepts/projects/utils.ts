@@ -1,4 +1,4 @@
-export const isAvailableProject = (projectName: string, dashboardNamespace: string) =>
+export const isAvailableProject = (projectName: string, dashboardNamespace: string): boolean =>
   !(
     projectName.startsWith('openshift-') ||
     projectName.startsWith('kube-') ||

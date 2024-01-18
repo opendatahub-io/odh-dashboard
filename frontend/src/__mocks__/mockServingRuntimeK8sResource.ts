@@ -67,7 +67,7 @@ export const mockServingRuntimeK8sResourceLegacy = ({
     grpcEndpoint: 'port:8085',
     multiModel: true,
     protocolVersions: ['grpc-v1'],
-    replicas: replicas,
+    replicas,
     supportedModelFormats: [
       {
         autoSelect: true,
@@ -145,7 +145,7 @@ export const mockServingRuntimeK8sResource = ({
     grpcEndpoint: 'port:8085',
     multiModel: true,
     protocolVersions: ['grpc-v1'],
-    replicas: replicas,
+    replicas,
     supportedModelFormats: [
       {
         autoSelect: true,

@@ -163,7 +163,7 @@ export const standardUseFetchState = <D>(
  * adds the value of the source to the result wrapped in custom matcher `expect.isIdentityEqual`.
  * If the entry is `false` or `undefined`, adds matcher `expect.anything()` to the result.
  */
-export const createComparativeValue = <T>(source: T, booleanTarget: BooleanValues<T>) =>
+export const createComparativeValue = <T>(source: T, booleanTarget: BooleanValues<T>): unknown =>
   createComparativeValueRecursive(source, booleanTarget);
 
 const createComparativeValueRecursive = <T>(

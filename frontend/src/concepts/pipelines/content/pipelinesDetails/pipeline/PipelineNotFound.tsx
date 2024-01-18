@@ -17,7 +17,7 @@ const PipelineNotFound: React.FC = () => {
   return (
     <EmptyState>
       <EmptyStateHeader
-        titleText="Pipeline not found"
+        titleText="Pipeline version not found"
         icon={<EmptyStateIcon icon={CubesIcon} />}
         headingLevel="h4"
       />

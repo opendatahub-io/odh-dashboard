@@ -10,12 +10,11 @@ import {
   EmptyStateIcon,
   Spinner,
   EmptyStateBody,
-  Split,
-  SplitItem,
   PageBreadcrumb,
   StackItem,
   Stack,
   EmptyStateHeader,
+  Flex,
 } from '@patternfly/react-core';
 
 type ApplicationsPageProps = {
@@ -55,16 +54,21 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     <PageSection variant={PageSectionVariants.light}>
       <Stack hasGutter>
         <StackItem>
-          <Split>
-            <SplitItem isFilled>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            flexWrap={{ default: 'nowrap' }}
+          >
+            <>
               <TextContent>
-                <Text component="h1">{title}</Text>
+                <Text component="h1" data-testid="app-page-title">
+                  {title}
+                </Text>
                 {jobReferenceName}
                 {description && <Text component="p">{description}</Text>}
               </TextContent>
-            </SplitItem>
-            {headerAction && <SplitItem>{headerAction}</SplitItem>}
-          </Split>
+            </>
+            {headerAction}
+          </Flex>
         </StackItem>
         {headerContent && <StackItem>{headerContent}</StackItem>}
       </Stack>

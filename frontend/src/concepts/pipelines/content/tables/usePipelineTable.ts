@@ -3,21 +3,49 @@ import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions, PipelinesFilter } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
-type TableProps = {
-  page: number;
-  setPage: (page: number) => void;
-  pageSize: number;
-  setPageSize: (pageSize: number) => void;
+type TableSortProps = {
   sortField?: string;
   setSortField: (field: string) => void;
   sortDirection?: 'asc' | 'desc';
   setSortDirection: (dir: 'asc' | 'desc') => void;
+};
+
+type TablePagingProps = {
+  page: number;
+  setPage: (page: number) => void;
+  pageSize: number;
+  setPageSize: (pageSize: number) => void;
+};
+
+type TableFilterProps = {
   filter?: PipelinesFilter;
   setFilter: (filter?: PipelinesFilter) => void;
-
-  // false until data initially loads and then always returns true
-  initialLoaded: boolean;
 };
+
+export type TableProps = TableSortProps &
+  TablePagingProps &
+  TableFilterProps & {
+    // false until data initially loads and then always returns true
+    initialLoaded: boolean;
+  };
+
+export const getTableSortProps = (tableProps: Omit<TableProps, 'initialLoaded'>): TableSortProps =>
+  (({ sortField, sortDirection, setSortField, setSortDirection }) => ({
+    sortField,
+    sortDirection,
+    setSortField,
+    setSortDirection,
+  }))(tableProps);
+
+export const getTablePagingProps = (
+  tableProps: Omit<TableProps, 'initialLoaded'>,
+): TablePagingProps =>
+  (({ page, setPage, pageSize, setPageSize }) => ({
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+  }))(tableProps);
 
 const createUsePipelineTable =
   <T extends PipelineCoreResourceKF>(

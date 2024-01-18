@@ -38,7 +38,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
   onFilterUpdate,
   onClearFilters,
   children,
-}: PipelineFilterBarProps<Options>) => {
+}: PipelineFilterBarProps<Options>): React.JSX.Element => {
   const keys = Object.keys(filterOptions) as Array<Options>;
   const [open, setOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<Options>(keys[0]);
@@ -66,7 +66,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
                   setCurrentFilterType(filterKey);
                 }}
               >
-                {<>{filterOptions[filterKey]}</>}
+                <>{filterOptions[filterKey]}</>
               </DropdownItem>
             ))}
           />

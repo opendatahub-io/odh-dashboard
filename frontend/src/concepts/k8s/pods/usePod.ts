@@ -6,7 +6,7 @@ import useFetchState, {
 } from '~/utilities/useFetchState';
 import { getPod } from '~/api';
 import { PodKind } from '~/k8sTypes';
-
+import { POD_REFRESH_RATE } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 type PodState = PodKind | null;
 
 const usePod = (namespace: string, podName: string): FetchState<PodState> => {
@@ -17,7 +17,10 @@ const usePod = (namespace: string, podName: string): FetchState<PodState> => {
     return getPod(namespace, podName);
   }, [namespace, podName]);
 
-  return useFetchState(callback, null, { initialPromisePurity: true });
+  return useFetchState(callback, null, {
+    initialPromisePurity: true,
+    refreshRate: POD_REFRESH_RATE,
+  });
 };
 
 export default usePod;

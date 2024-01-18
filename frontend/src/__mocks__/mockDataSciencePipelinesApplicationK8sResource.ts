@@ -13,7 +13,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   kind: 'DataSciencePipelinesApplication',
   metadata: {
     name: 'pipelines-definition',
-    namespace: namespace,
+    namespace,
   },
   spec: {
     apiServer: {

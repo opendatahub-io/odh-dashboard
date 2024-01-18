@@ -4,6 +4,10 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePod from '~/concepts/k8s/pods/usePod';
 import { getPodContainers } from '~/concepts/k8s/pods/utils';
 import { PodKind } from '~/k8sTypes';
+import {
+  checkPodContainersStatus,
+  PodStatus,
+} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 
 const usePodContainerLogState = (
   podName: string,
@@ -11,6 +15,7 @@ const usePodContainerLogState = (
   pod: PodKind | null;
   podLoaded: boolean;
   podError: Error | undefined;
+  podStatus: PodStatus | null;
   podContainers: PodContainer[];
   selectedContainer: PodContainer | null;
   setSelectedContainer: (podContainer: PodContainer | null) => void;
@@ -31,8 +36,17 @@ const usePodContainerLogState = (
       setSelectedContainer(firstPodContainer);
     }
   }, [firstPodContainer, selectedContainer]);
+  const podStatus = checkPodContainersStatus(pod, selectedContainer);
 
-  return { pod, podLoaded, podError, podContainers, selectedContainer, setSelectedContainer };
+  return {
+    pod,
+    podLoaded,
+    podStatus,
+    podError,
+    podContainers,
+    selectedContainer,
+    setSelectedContainer,
+  };
 };
 
 export default usePodContainerLogState;
