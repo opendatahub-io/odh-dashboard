@@ -10,13 +10,13 @@ import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/Imp
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 
 type PipelineVersionSectionProps = {
-  pipeline: PipelineKF | null;
+  selectedPipeline: PipelineKF | null;
   value: PipelineVersionKF | null;
-  onChange: (version: PipelineVersionKF) => void;
+  onChange: (version: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
 };
 
 const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
-  pipeline,
+  selectedPipeline,
   value,
   onChange,
 }) => (
@@ -32,7 +32,7 @@ const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
         <StackItem>
           <PipelineVersionSelector
             selection={value?.name}
-            pipelineId={pipeline?.id}
+            pipelineId={selectedPipeline?.id}
             onSelect={(version) => {
               onChange(version);
             }}
@@ -40,10 +40,10 @@ const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
         </StackItem>
         <StackItem>
           <ImportPipelineVersionButton
-            pipeline={pipeline}
+            selectedPipeline={selectedPipeline}
             variant="link"
             icon={<PlusCircleIcon />}
-            onCreate={(pipelineVersion) => onChange(pipelineVersion)}
+            onCreate={(pipelineVersion, pipeline) => onChange(pipelineVersion, pipeline)}
           />
         </StackItem>
       </Stack>

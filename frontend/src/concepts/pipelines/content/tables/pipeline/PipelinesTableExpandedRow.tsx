@@ -56,7 +56,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
               <EmptyStateHeader titleText="No pipeline versions" headingLevel="h3" />
               <EmptyStateFooter>
                 <EmptyStateActions>
-                  <ImportPipelineVersionButton pipeline={pipeline} variant="link" />
+                  <ImportPipelineVersionButton selectedPipeline={pipeline} variant="link" />
                 </EmptyStateActions>
               </EmptyStateFooter>
             </EmptyState>

@@ -53,9 +53,12 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
       }}
     />
     <PipelineVersionSection
-      pipeline={data.pipeline}
+      selectedPipeline={data.pipeline}
       value={data.version}
-      onChange={(version) => {
+      onChange={(version, pipeline) => {
+        if (pipeline) {
+          onValueChange('pipeline', pipeline);
+        }
         onValueChange('version', version);
         onValueChange(
           'params',
