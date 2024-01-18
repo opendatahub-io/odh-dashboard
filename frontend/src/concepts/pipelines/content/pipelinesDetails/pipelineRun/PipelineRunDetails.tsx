@@ -35,7 +35,6 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
 import PipelineJobReferenceName from '~/concepts/pipelines/content/PipelineJobReferenceName';
 import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
-import PipelineRunDetailsVersionContextProvider from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsVersionContext';
 
 const getPipelineRunKind = (
   pipelineRuntime?: PipelineRunResourceKF['pipeline_runtime'],
@@ -86,7 +85,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
   }
 
   return (
-    <PipelineRunDetailsVersionContextProvider resource={run}>
+    <>
       <Drawer isExpanded={!!selectedId}>
         <DrawerContent
           panelContent={
@@ -180,7 +179,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
           }
         }}
       />
-    </PipelineRunDetailsVersionContextProvider>
+    </>
   );
 };
 

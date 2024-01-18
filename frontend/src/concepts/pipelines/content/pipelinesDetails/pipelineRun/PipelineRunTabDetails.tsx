@@ -8,7 +8,10 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
+import {
+  getPipelineVersionResourceRef,
+  getRunDuration,
+} from '~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import { relativeDuration } from '~/utilities/time';
@@ -20,7 +23,7 @@ import {
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { PipelineRunDetailsVersionContext } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsVersionContext';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF | PipelineRunJobKF;
@@ -32,7 +35,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   workflowName,
 }) => {
   const { namespace, project } = usePipelinesAPI();
-  const { version, loaded, error, versionRef } = React.useContext(PipelineRunDetailsVersionContext);
+  const versionRef = getPipelineVersionResourceRef(pipelineRunKF);
+  const [version, loaded, error] = usePipelineVersionById(versionRef?.key.id);
 
   if (!pipelineRunKF || !workflowName) {
     return (

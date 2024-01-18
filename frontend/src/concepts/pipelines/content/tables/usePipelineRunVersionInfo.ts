@@ -6,9 +6,9 @@ import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/Pipeli
 const usePipelineRunVersionInfo = (
   resource: PipelineRunKF | PipelineRunJobKF | null,
 ): {
-  version?: PipelineVersionKF;
+  version: PipelineVersionKF | undefined;
   isVersionLoaded: boolean;
-  error?: Error;
+  error: Error | undefined;
 } => {
   const { versions, loaded: isVersionLoaded, error } = React.useContext(PipelineRunVersionsContext);
   const versionRef = getPipelineVersionResourceRef(resource);
