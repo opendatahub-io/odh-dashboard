@@ -7,6 +7,10 @@ import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/useP
 import GlobalPipelinesTableToolbar from '~/pages/pipelines/global/pipelines/GlobalPipelinesTableToolbar';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import {
+  getTablePagingProps,
+  getTableSortProps,
+} from '~/concepts/pipelines/content/tables/usePipelineTable';
 
 const PipelinesView: React.FC = () => {
   const [
@@ -14,6 +18,8 @@ const PipelinesView: React.FC = () => {
     { initialLoaded, ...tableProps },
   ] = usePipelinesTable();
   const filterToolbarProps = usePipelineFilter(tableProps.setFilter);
+  const pagingProps = getTablePagingProps(tableProps);
+  const sortProps = getTableSortProps(tableProps);
 
   if (loadError) {
     return (
@@ -35,7 +41,8 @@ const PipelinesView: React.FC = () => {
 
   return (
     <PipelinesTable
-      {...tableProps}
+      {...sortProps}
+      {...pagingProps}
       totalSize={totalSize}
       loading={!loaded}
       pipelines={pipelines}

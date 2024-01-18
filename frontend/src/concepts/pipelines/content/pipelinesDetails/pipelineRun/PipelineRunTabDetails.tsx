@@ -23,6 +23,7 @@ import {
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import { isPipelineRunJob } from '~/concepts/pipelines/content/utils';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
+import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 
 type PipelineRunTabDetailsProps = {
   pipelineRunKF?: PipelineRunKF | PipelineRunJobKF;
@@ -34,7 +35,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   workflowName,
 }) => {
   const { namespace, project } = usePipelinesAPI();
-  const pipelineVersionRef = getPipelineVersionResourceRef(pipelineRunKF);
+  const versionRef = getPipelineVersionResourceRef(pipelineRunKF);
+  const [version, loaded, error] = usePipelineVersionById(versionRef?.key.id);
 
   if (!pipelineRunKF || !workflowName) {
     return (
@@ -47,14 +49,17 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
 
   const details: DetailItem[] = [
     { key: 'Name', value: <Truncate content={pipelineRunKF.name} /> },
-    ...(pipelineVersionRef
+    ...(versionRef
       ? [
           {
             key: 'Pipeline version',
             value: (
               <PipelineVersionLink
-                resourceRef={pipelineVersionRef}
+                displayName={versionRef.name}
                 loadingIndicator={<Spinner size="sm" />}
+                loaded={loaded}
+                version={version}
+                error={error}
               />
             ),
           },

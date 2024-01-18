@@ -1,42 +1,45 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
 import { Skeleton, Tooltip } from '@patternfly/react-core';
-
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ResourceReferenceKF } from '~/concepts/pipelines/kfTypes';
-import { NoRunContent } from '~/concepts/pipelines/content/tables/renderUtils';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
 interface PipelineVersionLinkProps {
-  resourceRef: ResourceReferenceKF | undefined;
+  displayName?: string;
   loadingIndicator?: React.ReactElement;
+  version?: PipelineVersionKF | null;
+  error?: Error;
+  loaded: boolean;
 }
 
 export const PipelineVersionLink: React.FC<PipelineVersionLinkProps> = ({
-  resourceRef,
+  displayName,
   loadingIndicator,
+  version,
+  error,
+  loaded,
 }) => {
   const { namespace } = usePipelinesAPI();
-  const versionName = resourceRef?.name;
-  const versionId = resourceRef?.key.id;
-  const [version, isVersionLoaded, error] = usePipelineVersionById(versionId);
 
-  if (!resourceRef) {
-    return <NoRunContent />;
-  }
-
-  if (!isVersionLoaded && !error) {
+  if (!loaded && !error) {
     return loadingIndicator || <Skeleton />;
   }
 
-  if (!version) {
+  if (error) {
     return (
-      <Tooltip content={<div>&quot;{versionName}&quot; no longer exists.</div>} position="right">
-        <div className="pf-v5-u-disabled-color-100 pf-v5-c-truncate__start">{versionName}</div>
+      <Tooltip content={error.message} position="right">
+        <div className="pf-v5-u-disabled-color-100 pf-v5-c-truncate__start">{displayName}</div>
       </Tooltip>
     );
   }
 
-  return <Link to={`/pipelines/${namespace}/pipeline/view/${versionId}`}>{versionName}</Link>;
+  if (!version) {
+    return (
+      <Tooltip content={<div>&quot;{displayName}&quot; no longer exists.</div>} position="right">
+        <div className="pf-v5-u-disabled-color-100 pf-v5-c-truncate__start">{displayName}</div>
+      </Tooltip>
+    );
+  }
+
+  return <Link to={`/pipelines/${namespace}/pipeline/view/${version.id}`}>{version.name}</Link>;
 };

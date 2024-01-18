@@ -3,7 +3,6 @@ import {
   Icon,
   Level,
   LevelItem,
-  Skeleton,
   Spinner,
   Switch,
   Timestamp,
@@ -18,6 +17,7 @@ import {
   PipelineRunJobKF,
   PipelineRunKF,
   PipelineCoreResourceKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
@@ -92,15 +92,23 @@ export const CoreResourceExperiment: CoreResourceUtil = ({ resource }) => (
 );
 
 export const CoreResourcePipelineVersion: CoreResourceUtil<{
-  isLoading?: boolean;
-}> = ({ resource, isLoading }) => {
+  loaded: boolean;
+  version?: PipelineVersionKF;
+  error?: Error;
+}> = ({ resource, loaded, version, error }) => {
   const resourceRef = getPipelineVersionResourceRef(resource);
-
-  if (isLoading) {
-    return <Skeleton />;
+  if (!resourceRef) {
+    return <NoRunContent />;
   }
 
-  return <PipelineVersionLink resourceRef={resourceRef} />;
+  return (
+    <PipelineVersionLink
+      displayName={resourceRef.name}
+      version={version}
+      error={error}
+      loaded={loaded}
+    />
+  );
 };
 
 export const RunJobTrigger: RunJobUtil = ({ job }) => {

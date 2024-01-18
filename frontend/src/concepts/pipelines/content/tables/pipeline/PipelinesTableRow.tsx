@@ -38,7 +38,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
     totalSize,
     updatedDate,
     loading,
-    refresh: refreshVersions,
+    refresh: refreshRowData,
   } = usePipelineTableRowData(pipeline);
   const { versionDataSelector } = React.useContext(PipelineAndVersionContext);
   const { selectedVersions } = versionDataSelector(pipeline);
@@ -96,12 +96,6 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                   },
                 },
                 {
-                  title: 'View all runs',
-                  onClick: () => {
-                    navigate(`/pipelineRuns/${namespace}`);
-                  },
-                },
-                {
                   isSeparator: true,
                 },
                 {
@@ -116,6 +110,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
         </Tr>
         {isExpanded && (
           <PipelinesTableExpandedRow
+            // Upload a new version will update the pipeline default version
+            // Which could trigger a re-render of the versions table
+            key={pipeline.default_version?.id}
             pipeline={pipeline}
             pipelineDetailsPath={pipelineDetailsPath}
           />
@@ -126,15 +123,10 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
           existingPipeline={importTarget}
           onClose={(pipelineVersion) => {
             if (pipelineVersion) {
-              refreshPipelines().then(() =>
-                refreshVersions().then(() => {
-                  setImportTarget(null);
-                  setExpanded(false);
-                }),
-              );
-            } else {
-              setImportTarget(null);
+              refreshPipelines();
+              refreshRowData();
             }
+            setImportTarget(null);
           }}
         />
       )}

@@ -13,6 +13,7 @@ import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 import PipelineVersionTable from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
+import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 
 type PipelinesTableExpandedRowProps = {
   pipeline: PipelineKF;
@@ -27,6 +28,8 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
     [{ items: initialVersions, totalSize, nextPageToken }, loaded],
     { initialLoaded, ...tableProps },
   ] = usePipelineVersionsTable(pipeline.id)();
+
+  const sortProps = getTableSortProps(tableProps);
 
   if (!loaded && !initialLoaded) {
     return (
@@ -69,7 +72,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
       <Td className="pf-v5-u-pb-lg" noPadding colSpan={6}>
         <ExpandableRowContent>
           <PipelineVersionTable
-            {...tableProps}
+            {...sortProps}
             initialVersions={initialVersions}
             loading={!loaded}
             totalSize={totalSize}

@@ -35,7 +35,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
       <Title headingLevel="h3" size="md">
         {resource ? <ResourceNameTooltip resource={resource}>{title}</ResourceNameTooltip> : title}
       </Title>
-      {subtitle && <Text>{subtitle}</Text>}
+      {subtitle}
       {descriptionNode}
       {label}
     </>
