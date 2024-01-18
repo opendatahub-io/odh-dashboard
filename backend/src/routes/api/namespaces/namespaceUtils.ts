@@ -48,7 +48,7 @@ const checkEditNamespacePermission = (
 ): Promise<V1SelfSubjectAccessReview | K8sStatus> =>
   createSelfSubjectAccessReview(fastify, request, {
     group: 'serving.kserve.io',
-    resource: 'ServingRuntimes',
+    resource: 'servingruntimes',
     subresource: '',
     verb: 'create',
     name,
