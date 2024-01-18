@@ -6,6 +6,7 @@ commonLabels:
 resources:
   - ovms-ootb.yaml
   - caikit-ootb.yaml
+  - tgis-ootb.yaml
 images:
   - name: ovms-1
     newName: quay.io/opendatahub/openvino_model_server
