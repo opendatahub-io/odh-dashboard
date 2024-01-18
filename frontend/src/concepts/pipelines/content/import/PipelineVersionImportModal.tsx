@@ -19,7 +19,7 @@ import { generatePipelineVersionName } from '~/concepts/pipelines/content/import
 
 type PipelineVersionImportModalProps = {
   existingPipeline?: PipelineKF | null;
-  onClose: (pipelineVersion?: PipelineVersionKF) => void;
+  onClose: (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
 };
 
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
@@ -29,14 +29,16 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [{ name, description, pipelineId, pipelineName, fileContents }, setData, resetData] =
+  const [{ name, description, pipeline, fileContents }, setData, resetData] =
     usePipelineVersionImportModalData(existingPipeline);
 
-  const isImportButtonDisabled =
-    !apiAvailable || importing || !name || !fileContents || !pipelineId;
+  const pipelineId = pipeline?.id || '';
+  const pipelineName = pipeline?.name || '';
 
-  const onBeforeClose = (pipelineVersion?: PipelineVersionKF) => {
-    onClose(pipelineVersion);
+  const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents || !pipeline;
+
+  const onBeforeClose = (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => {
+    onClose(pipelineVersion, pipeline);
     setImporting(false);
     setError(undefined);
     resetData();
@@ -58,7 +60,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
             setError(undefined);
             api
               .uploadPipelineVersion({}, name, description, fileContents, pipelineId)
-              .then((pipelineVersion) => onBeforeClose(pipelineVersion))
+              .then((pipelineVersion) => onBeforeClose(pipelineVersion, pipeline))
               .catch((e) => {
                 setImporting(false);
                 setError(e);
@@ -85,8 +87,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
               <PipelineSelector
                 selection={pipelineName}
                 onSelect={(pipeline) => {
-                  setData('pipelineId', pipeline.id);
-                  setData('pipelineName', pipeline.name);
+                  setData('pipeline', pipeline);
                   setData('name', generatePipelineVersionName(pipeline));
                 }}
               />

@@ -19,19 +19,17 @@ export const usePipelineImportModalData = (): GenericObjectState<PipelineModalDa
 type PipelineVersionModalData = {
   name: string;
   description: string;
-  pipelineId: string;
-  pipelineName: string;
+  pipeline: PipelineKF | null;
   fileContents: string;
 };
 
 export const usePipelineVersionImportModalData = (
-  pipeline?: PipelineKF | null,
+  existingPipeline?: PipelineKF | null,
 ): GenericObjectState<PipelineVersionModalData> => {
   const createDataState = useGenericObjectState<PipelineVersionModalData>({
-    name: React.useMemo(() => generatePipelineVersionName(pipeline), [pipeline]),
+    name: React.useMemo(() => generatePipelineVersionName(existingPipeline), [existingPipeline]),
     description: '',
-    pipelineId: pipeline?.id ?? '',
-    pipelineName: pipeline?.name ?? '',
+    pipeline: existingPipeline ?? null,
     fileContents: '',
   });
 

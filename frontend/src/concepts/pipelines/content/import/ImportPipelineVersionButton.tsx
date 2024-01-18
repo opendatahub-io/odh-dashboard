@@ -5,12 +5,12 @@ import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 
 type ImportPipelineVersionButtonProps = {
-  pipeline: PipelineKF | null;
-  onCreate?: (pipelineVersion: PipelineVersionKF) => void;
+  selectedPipeline: PipelineKF | null;
+  onCreate?: (pipelineVersion: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
 } & Omit<React.ComponentProps<typeof Button>, 'onClick'>;
 
 const ImportPipelineVersionButton: React.FC<ImportPipelineVersionButtonProps> = ({
-  pipeline,
+  selectedPipeline,
   onCreate,
   children,
   ...buttonProps
@@ -29,11 +29,11 @@ const ImportPipelineVersionButton: React.FC<ImportPipelineVersionButtonProps> = 
       </Button>
       {open && (
         <PipelineVersionImportModal
-          existingPipeline={pipeline}
-          onClose={(pipelineVersion) => {
+          existingPipeline={selectedPipeline}
+          onClose={(pipelineVersion, pipeline) => {
             setOpen(false);
             if (pipelineVersion) {
-              onCreate && onCreate(pipelineVersion);
+              onCreate && onCreate(pipelineVersion, pipeline);
               refreshAllAPI();
             }
           }}
