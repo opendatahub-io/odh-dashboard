@@ -14,7 +14,7 @@ const useNamespaceSecret = (
           throw new Error(`Secret ${secretName} data was not found.`);
         }
 
-        const data = secret.data;
+        const { data } = secret;
 
         return {
           type: EnvironmentVariableType.SECRET,

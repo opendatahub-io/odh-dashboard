@@ -38,7 +38,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     .map((imageVersion) => getImageVersionSelectOptionObject(imageStream, imageVersion));
 
   const options = selectOptionObjects.map((optionObject) => {
-    const imageVersion = optionObject.imageVersion;
+    const { imageVersion } = optionObject;
     // Cannot wrap the SelectOption with Tooltip because Select component requires SelectOption as the children
     // Can only wrap the SelectOption children with Tooltip
     // But in this way, you will only see the tooltip when you hover the option main text (excluding description), not the whole button

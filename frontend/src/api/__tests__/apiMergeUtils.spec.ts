@@ -9,7 +9,7 @@ describe('applyK8sAPIOptions', () => {
     fetchOptions: { requestInit: {} },
     queryOptions: { queryParams: {} },
   };
-  const signal = new AbortController().signal;
+  const { signal } = new AbortController();
 
   it('should not apply any options', () => {
     expect(applyK8sAPIOptions({}, mockBaseOptions)).toStrictEqual(defaultExpect);

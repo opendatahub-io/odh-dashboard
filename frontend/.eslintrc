@@ -93,6 +93,22 @@
     "@typescript-eslint/explicit-module-boundary-types": "error",
     "react/self-closing-comp": "error",
     "react-hooks/exhaustive-deps": "error",
+    "prefer-destructuring": [
+      "error",
+      {
+        "VariableDeclarator": {
+          "array": false,
+          "object": true
+        },
+        "AssignmentExpression": {
+          "array": true,
+          "object": false
+        }
+      },
+      {
+        "enforceForRenamedProperties": false
+      }
+    ],
     "react-hooks/rules-of-hooks": "error",
     "import/extensions": "off",
     "import/no-unresolved": "off",

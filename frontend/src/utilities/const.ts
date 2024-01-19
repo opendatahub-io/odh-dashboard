@@ -7,12 +7,12 @@ const FAST_POLL_INTERVAL = process.env.FAST_POLL_INTERVAL
   ? parseInt(process.env.FAST_POLL_INTERVAL)
   : 3000;
 const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // 5 minutes
-const DOC_LINK = process.env.DOC_LINK;
-const COMMUNITY_LINK = process.env.COMMUNITY_LINK;
-const SUPPORT_LINK = process.env.SUPPORT_LINK;
+const { DOC_LINK } = process.env;
+const { COMMUNITY_LINK } = process.env;
+const { SUPPORT_LINK } = process.env;
 const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo.svg';
-const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
-const ODH_NOTEBOOK_REPO = process.env.ODH_NOTEBOOK_REPO;
+const { ODH_PRODUCT_NAME } = process.env;
+const { ODH_NOTEBOOK_REPO } = process.env;
 const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
 
 export {

@@ -175,8 +175,8 @@ const isAcceleratorProfileChanged = (
   acceleratorProfileState: AcceleratorProfileState,
   servingRuntime: ServingRuntimeKind,
 ) => {
-  const acceleratorProfile = acceleratorProfileState.acceleratorProfile;
-  const initialAcceleratorProfile = acceleratorProfileState.initialAcceleratorProfile;
+  const { acceleratorProfile } = acceleratorProfileState;
+  const { initialAcceleratorProfile } = acceleratorProfileState;
 
   // both are none, check if it's using existing
   if (!acceleratorProfile && !initialAcceleratorProfile) {

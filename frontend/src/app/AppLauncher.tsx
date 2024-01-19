@@ -63,7 +63,7 @@ const AppLauncher: React.FC = () => {
   const { consoleLinks } = useWatchConsoleLinks();
   const { dashboardConfig } = useAppContext();
 
-  const disableClusterManager = dashboardConfig.spec.dashboardConfig.disableClusterManager;
+  const { disableClusterManager } = dashboardConfig.spec.dashboardConfig;
 
   const applicationSections = React.useMemo<Section[]>(() => {
     const applicationLinks = consoleLinks

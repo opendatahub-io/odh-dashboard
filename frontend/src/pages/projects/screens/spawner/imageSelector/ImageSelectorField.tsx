@@ -30,7 +30,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace);
 
   const imageVersionData = React.useMemo(() => {
-    const imageStream = selectedImage.imageStream;
+    const { imageStream } = selectedImage;
     if (!imageStream) {
       return { buildStatuses, imageStream, imageVersions: [] };
     }
@@ -39,7 +39,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
       imageStream,
       imageVersions: getExistingVersionsForImageStream(imageStream),
     };
-  }, [selectedImage.imageStream, buildStatuses]);
+  }, [selectedImage, buildStatuses]);
 
   const onImageStreamSelect = (newImageStream: ImageStreamKind) => {
     const version = getDefaultVersionForImageStream(newImageStream, buildStatuses);

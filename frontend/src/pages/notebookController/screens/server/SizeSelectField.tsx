@@ -14,7 +14,7 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
 
   const sizeOptions = () =>
     sizes.map((size) => {
-      const name = size.name;
+      const { name } = size;
       const desc =
         `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
         `${size.resources.limits?.memory || '??'} Memory | ` +

@@ -30,8 +30,8 @@ export const getServerMetricsQueries = (
   server: ServingRuntimeKind,
   currentTimeframe: TimeframeTitle,
 ): { [key in ServerMetricType]: string } => {
-  const namespace = server.metadata.namespace;
-  const name = server.metadata.name;
+  const { namespace } = server.metadata;
+  const { name } = server.metadata;
   const responseTimeStep = QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME][currentTimeframe];
   return {
     [ServerMetricType.REQUEST_COUNT]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${
@@ -47,8 +47,8 @@ export const getModelMetricsQueries = (
   model: InferenceServiceKind,
   currentTimeframe: TimeframeTitle,
 ): { [key in ModelMetricType]: string } => {
-  const namespace = model.metadata.namespace;
-  const name = model.metadata.name;
+  const { namespace } = model.metadata;
+  const { name } = model.metadata;
 
   return {
     [ModelMetricType.REQUEST_COUNT_SUCCESS]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${

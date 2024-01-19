@@ -35,7 +35,7 @@ type GetStartedPanelProps = {
 
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
-  const enablement = dashboardConfig.spec.dashboardConfig.enablement;
+  const { enablement } = dashboardConfig.spec.dashboardConfig;
   if (!selectedApp) {
     return null;
   }

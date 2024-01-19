@@ -58,7 +58,7 @@ const ServingRuntimeSizeSection: React.FC<ServingRuntimeSizeSectionProps> = ({
 
   const sizeOptions = () =>
     sizeCustom.map((size) => {
-      const name = size.name;
+      const { name } = size;
       const desc =
         name !== 'Custom'
           ? `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +

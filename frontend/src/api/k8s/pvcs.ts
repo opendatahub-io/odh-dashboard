@@ -76,7 +76,7 @@ export const getAvailableMultiUsePvcs = (
 ): Promise<PersistentVolumeClaimKind[]> =>
   getDashboardPvcs(projectName).then((pvcs) =>
     pvcs.filter((pvc) => {
-      const accessModes = pvc.spec.accessModes;
+      const { accessModes } = pvc.spec;
       return accessModes.includes('ReadOnlyMany') || accessModes.includes('ReadWriteMany');
     }),
   );

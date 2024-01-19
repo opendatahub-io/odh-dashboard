@@ -65,7 +65,7 @@ const assembleNotebook = (
   const translatedUsername = usernameTranslate(username);
 
   const location = new URL(window.location.href);
-  const origin = location.origin;
+  const { origin } = location;
 
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];

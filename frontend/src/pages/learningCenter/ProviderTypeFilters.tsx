@@ -40,7 +40,7 @@ const ProviderTypeFilters: React.FC<ProviderTypeFiltersProps> = ({ docApps, cate
   }, [categoryApps, docApps]);
 
   const onFilterChange = (docType: string, e: React.SyntheticEvent<HTMLElement>): void => {
-    const checked = (e.target as React.AllHTMLAttributes<HTMLInputElement>).checked;
+    const { checked } = e.target as React.AllHTMLAttributes<HTMLInputElement>;
     const updatedQuery = [...providerTypeFilters];
     const index = updatedQuery.indexOf(docType);
     if (checked && index === -1) {

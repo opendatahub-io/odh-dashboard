@@ -110,7 +110,7 @@ export const useUpdateRunType = (
       return;
     }
 
-    const trigger = initialData.trigger;
+    const { trigger } = initialData;
     let triggerType: ScheduledType;
     let start: RunDateTime | undefined = undefined;
     let end: RunDateTime | undefined = undefined;
