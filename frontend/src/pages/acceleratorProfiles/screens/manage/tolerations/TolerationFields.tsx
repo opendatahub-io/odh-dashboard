@@ -136,7 +136,7 @@ export const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, 
                     handleFieldUpdate('tolerationSeconds', value || 0);
                   }}
                 />
-                <InputGroupText isPlain>{'second(s)'}</InputGroupText>
+                <InputGroupText isPlain>second(s)</InputGroupText>
               </InputGroup>
             </StackItem>
           )}

@@ -5,7 +5,7 @@ import MetricsPageToolbar from '~/pages/modelServing/screens/metrics/MetricsPage
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
 
-const PerformanceTab = () => (
+const PerformanceTab: React.FC = () => (
   <EnsureMetricsAvailable
     metrics={[ModelMetricType.REQUEST_COUNT_SUCCESS, ModelMetricType.REQUEST_COUNT_FAILED]}
     accessDomain="model metrics"

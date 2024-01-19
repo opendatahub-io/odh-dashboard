@@ -19,7 +19,7 @@ import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelec
 import { Table } from '~/components/table';
 import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 
 type CustomPipelineVersionSelectProps = {
   versions: PipelineVersionKF[];
@@ -79,7 +79,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
             <Table
               data-id="pipeline-selector-table-list"
               emptyTableView={
-                <EmptyTableView
+                <DashboardEmptyTableView
                   hasIcon={false}
                   onClearFilters={() => setSearch('')}
                   variant={EmptyStateVariant.xs}

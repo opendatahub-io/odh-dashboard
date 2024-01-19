@@ -4,8 +4,21 @@ import useTrustyAINamespaceCR, {
   taiHasServerTimedOut,
 } from '~/concepts/trustyai/useTrustyAINamespaceCR';
 import { createTrustyAICR, deleteTrustyAICR } from '~/api';
+import { TrustyAIKind } from '~/k8sTypes';
 
-const useManageTrustyAICR = (namespace: string) => {
+type ManageTrustyAICRType = {
+  error: Error | undefined;
+  isProgressing: boolean;
+  isAvailable: boolean;
+  showSuccess: boolean;
+  isSettled: boolean;
+  serverTimedOut: boolean;
+  ignoreTimedOut: () => void;
+  installCR: () => Promise<TrustyAIKind | null | undefined | void>;
+  deleteCR: () => Promise<TrustyAIKind | null | undefined>;
+};
+
+const useManageTrustyAICR = (namespace: string): ManageTrustyAICRType => {
   const state = useTrustyAINamespaceCR(namespace);
   const [cr, loaded, serviceError, refresh] = state;
 

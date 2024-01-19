@@ -31,7 +31,7 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
     image.recommendedAcceleratorIdentifiers?.includes(cr.spec.identifier),
   );
   if (loadError) {
-    return <>{'-'}</>;
+    return <>-</>;
   }
 
   if (!loaded) {

@@ -23,8 +23,8 @@ import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import { useSelectorSearch } from '~/concepts/pipelines/content/pipelineSelector/utils';
-import EmptyTableView from '~/concepts/pipelines/content/tables/EmptyTableView';
 import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
+import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 
 type PipelineSelectorProps = {
   selection?: string;
@@ -74,7 +74,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
               loading={!loaded}
               data-id="pipeline-selector-table-list"
               emptyTableView={
-                <EmptyTableView
+                <DashboardEmptyTableView
                   hasIcon={false}
                   onClearFilters={onClear}
                   variant={EmptyStateVariant.xs}
