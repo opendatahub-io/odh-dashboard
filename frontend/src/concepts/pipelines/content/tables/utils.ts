@@ -5,10 +5,11 @@ import {
   PipelineRunStatusesKF,
   ResourceReferenceKF,
   ResourceTypeKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
-export const getLastRun = (runs: PipelineRunKF[]) => runs[0];
+export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF => runs[0];
 
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);
@@ -33,30 +34,27 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
   return weights[run.status as PipelineRunStatusesKF] ?? Infinity;
 };
 
-export const getRunResourceReference = (
-  resource?: PipelineCoreResourceKF,
-  type?: ResourceTypeKF,
+export const getResourceRef = (
+  resource: PipelineCoreResourceKF | null | undefined,
+  type: ResourceTypeKF,
 ): ResourceReferenceKF | undefined =>
   resource?.resource_references?.find((ref) => ref.key.type === type);
 
-export const getPipelineCoreResourceJobReference = (
-  resource?: PipelineCoreResourceKF,
-): ResourceReferenceKF | undefined => getRunResourceReference(resource, ResourceTypeKF.JOB);
+export const getJobResourceRef = (
+  resource: Parameters<typeof getResourceRef>[0],
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.JOB);
 
-export const getPipelineCoreResourcePipelineReference = (
-  resource?: PipelineCoreResourceKF,
-): ResourceReferenceKF | undefined =>
-  getRunResourceReference(resource, ResourceTypeKF.PIPELINE_VERSION);
+export const getPipelineVersionResourceRef = (
+  resource: PipelineCoreResourceKF | PipelineRunKF | PipelineRunJobKF | null | undefined,
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE_VERSION);
 
-export const getPipelineCoreResourceExperimentReference = (
-  resource?: PipelineCoreResourceKF,
-): ResourceReferenceKF | undefined => getRunResourceReference(resource, ResourceTypeKF.EXPERIMENT);
+export const getPipelineResourceRef = (
+  resource: PipelineCoreResourceKF | PipelineVersionKF | null,
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.PIPELINE);
 
-export const getPipelineCoreResourceExperimentName = (resource?: PipelineCoreResourceKF): string =>
-  getPipelineCoreResourceExperimentReference(resource)?.name || 'Default';
-
-export const getPipelineCoreResourcePipelineName = (resource?: PipelineCoreResourceKF): string =>
-  getPipelineCoreResourcePipelineReference(resource)?.name || '';
+export const getExperimentResourceRef = (
+  resource: Parameters<typeof getResourceRef>[0],
+): ResourceReferenceKF | undefined => getResourceRef(resource, ResourceTypeKF.EXPERIMENT);
 
 export const getPipelineRunJobStartTime = (job: PipelineRunJobKF): Date | null => {
   const startTime =
@@ -147,7 +145,7 @@ export const isJobWithinDateRange = (
   );
 };
 
-export const getPipelineJobExecutionCount = (resourceName: string) => {
+export const getPipelineJobExecutionCount = (resourceName: string): string | null => {
   const regex = /(\w+)(?:-[^-]*)?$/;
   const match = resourceName?.match(regex);
   return match ? match[1] : null;

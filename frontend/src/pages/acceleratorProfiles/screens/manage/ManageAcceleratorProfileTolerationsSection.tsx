@@ -11,10 +11,9 @@ type ManageAcceleratorProfileTolerationsSectionProps = {
   setTolerations: (tolerations: Toleration[]) => void;
 };
 
-export const ManageAcceleratorProfileTolerationsSection = ({
-  tolerations,
-  setTolerations,
-}: ManageAcceleratorProfileTolerationsSectionProps) => {
+export const ManageAcceleratorProfileTolerationsSection: React.FC<
+  ManageAcceleratorProfileTolerationsSectionProps
+> = ({ tolerations, setTolerations }) => {
   const [manageTolerationModalOpen, setManageTolerationModalOpen] = React.useState<boolean>(false);
   return (
     <>

@@ -18,8 +18,14 @@ export default {
   component: PipelineRunJobDetails,
   parameters: {
     reactRouter: {
-      routePath: '/pipelineRuns/:namespace/pipelineRunJob/view/:pipelineRunJobId/*',
-      routeParams: { namespace: 'test-project', pipelineRunJobId: 'test-pipeline-run-job' },
+      location: {
+        pathParams: { namespace: 'test-project', pipelineRunJobId: 'test-pipeline-run-job' },
+      },
+      routing: [
+        {
+          path: '/pipelineRuns/:namespace/pipelineRunJob/view/:pipelineRunJobId/*',
+        },
+      ],
     },
     msw: {
       handlers: [
@@ -72,7 +78,7 @@ export const Default: StoryObj = {
         path="/:namespace?/*"
         element={
           <GlobalPipelineCoreLoader
-            title={'Test Pipeline'}
+            title="Test Pipeline"
             getInvalidRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
           />
         }

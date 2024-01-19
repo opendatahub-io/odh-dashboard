@@ -29,7 +29,7 @@ export const NotebookImageDisplayName = ({
   loaded,
   loadError,
   isExpanded,
-}: NotebookImageDisplayNameProps) => {
+}: NotebookImageDisplayNameProps): React.JSX.Element => {
   // if there was an error loading the image, display unknown WITHOUT a label
   if (loadError) {
     return (

@@ -237,16 +237,6 @@ export type K8sAPIOptions = {
   parseJSON?: boolean;
 };
 
-/** A status object when Kube backend can't handle a request. */
-export type K8sStatus = {
-  kind: string;
-  apiVersion: string;
-  code: number;
-  message: string;
-  reason: string;
-  status: string;
-};
-
 export type PersistentVolumeClaimKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations;
@@ -314,9 +304,16 @@ export type NotebookKind = K8sResourceCommon & {
 };
 
 export type PodKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
   spec: PodSpec;
   status: {
-    containerStatuses: { ready: boolean; state?: { running?: boolean } }[];
+    containerStatuses: {
+      name?: string;
+      ready: boolean;
+      state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
+    }[];
   };
 };
 

@@ -34,7 +34,7 @@ const BiasChart: React.FC<BiasChartProps> = ({ biasMetricConfig }) => {
       title={`${title} (${abbreviation})`}
       metrics={{
         name: abbreviation,
-        metric: metric,
+        metric,
       }}
       domain={domainCalculator(thresholdDelta)}
       thresholds={createChartThresholds(biasMetricConfig)}

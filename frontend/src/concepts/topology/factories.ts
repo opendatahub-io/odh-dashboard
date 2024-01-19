@@ -9,7 +9,7 @@ import {
   withPanZoom,
   withSelection,
 } from '@patternfly/react-topology';
-import StandardTaskNode from '~/concepts/pipelines/topology/core/customNodes/StandardTaskNode';
+import StandardTaskNode from '~/concepts/topology/customNodes/StandardTaskNode';
 import TaskEdge from './TaskEdge';
 // Topology gap... their types have issues with Strict TS mode
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment

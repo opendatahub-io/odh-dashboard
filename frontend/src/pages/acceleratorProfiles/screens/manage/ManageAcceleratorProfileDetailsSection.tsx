@@ -23,10 +23,9 @@ type ManageAcceleratorProfileDetailsSectionProps = {
   setState: UpdateObjectAtPropAndValue<AcceleratorProfileKind['spec']>;
 };
 
-export const ManageAcceleratorProfileDetailsSection = ({
-  state,
-  setState,
-}: ManageAcceleratorProfileDetailsSectionProps) => {
+export const ManageAcceleratorProfileDetailsSection: React.FC<
+  ManageAcceleratorProfileDetailsSectionProps
+> = ({ state, setState }) => {
   const [searchParams] = useSearchParams();
 
   const acceleratorIdentifiers = React.useMemo(

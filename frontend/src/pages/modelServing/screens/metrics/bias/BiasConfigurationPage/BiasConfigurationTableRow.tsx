@@ -28,7 +28,7 @@ const BiasConfigurationTableRow: React.FC<BiasConfigurationTableRowProps> = ({
       <Tr>
         <Td
           expand={{
-            rowIndex: rowIndex,
+            rowIndex,
             expandId: 'bias-configuration-row-item',
             isExpanded,
             onToggle: () => setExpanded(!isExpanded),

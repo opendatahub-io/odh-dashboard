@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
@@ -8,9 +8,10 @@ import {
   RunJobStatus,
   RunJobTrigger,
   CoreResourceExperiment,
-  CoreResourcePipeline,
+  CoreResourcePipelineVersion,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 
 type PipelineRunJobTableRowProps = {
   isChecked: boolean;
@@ -27,6 +28,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
+  const { version, isVersionLoaded, error } = usePipelineRunVersionInfo(job);
 
   return (
     <Tr>
@@ -34,7 +36,9 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
       <Td>
         <TableRowTitleDescription
           title={
-            <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.id}`}>{job.name}</Link>
+            <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.id}`}>
+              <TableText wrapModifier="truncate">{job.name}</TableText>
+            </Link>
           }
           description={job.description}
           descriptionAsMarkdown
@@ -43,8 +47,13 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
       <Td>
         <CoreResourceExperiment resource={job} />
       </Td>
-      <Td>
-        <CoreResourcePipeline resource={job} namespace={namespace} />
+      <Td modifier="truncate">
+        <CoreResourcePipelineVersion
+          resource={job}
+          loaded={isVersionLoaded}
+          version={version}
+          error={error}
+        />
       </Td>
       <Td>
         <RunJobTrigger job={job} />

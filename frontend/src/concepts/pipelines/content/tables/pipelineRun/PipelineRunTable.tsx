@@ -1,17 +1,24 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
-import { TableBase } from '~/components/table';
-import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { TableBase, getTableColumnSort } from '~/components/table';
+import {
+  PipelineCoreResourceKF,
+  PipelineRunKF,
+  PipelineVersionKF,
+} from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { useCheckboxTable } from '~/components/table';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import usePipelineFilter, {
+  FilterOptions,
+} from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -36,23 +43,42 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   pageSize,
   setPage,
   setPageSize,
-  sortField,
-  sortDirection,
-  setSortField,
-  setSortDirection,
   setFilter,
+  ...tableProps
 }) => {
+  const { state } = useLocation();
   const { refreshAllAPI, getJobInformation } = usePipelinesAPI();
   const filterToolbarProps = usePipelineFilter(setFilter);
-  const { selections, tableProps, toggleSelection, isSelected } = useCheckboxTable(
-    runs.map(({ id }) => id),
-  );
+  const lastLocationPipelineVersion: PipelineVersionKF = state?.lastVersion;
+  const {
+    selections,
+    tableProps: checkboxTableProps,
+    toggleSelection,
+    isSelected,
+  } = useCheckboxTable(runs.map(({ id }) => id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineCoreResourceKF[]>([]);
+
+  // Update filter on initial render with the last location-stored pipeline version.
+  React.useEffect(() => {
+    if (lastLocationPipelineVersion) {
+      filterToolbarProps.onFilterUpdate(FilterOptions.PIPELINE_VERSION, {
+        label: lastLocationPipelineVersion.name,
+        value: lastLocationPipelineVersion.id,
+      });
+    }
+
+    return () => {
+      // Reset the location-stored pipeline version to avoid re-creating
+      // a filter that might otherwise have been removed/changed by the user.
+      window.history.replaceState({ ...state, lastVersion: undefined }, '');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
       <TableBase
-        {...tableProps}
+        {...checkboxTableProps}
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -95,24 +121,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           />
         )}
         variant={TableVariant.compact}
-        getColumnSort={(columnIndex) =>
-          pipelineRunColumns[columnIndex].sortable
-            ? {
-                sortBy: {
-                  index: pipelineRunColumns.findIndex((c) => c.field === sortField),
-                  direction: sortDirection,
-                  defaultDirection: 'asc',
-                },
-                onSort: (_event, index, direction) => {
-                  setSortField(String(pipelineRunColumns[index].field));
-                  setSortDirection(direction);
-                },
-                columnIndex,
-              }
-            : undefined
-        }
+        getColumnSort={getTableColumnSort({ columns: pipelineRunColumns, ...tableProps })}
       />
-      <DeletePipelineCoreResourceModal
+      <DeletePipelineRunsModal
         toDeleteResources={deleteResources}
         type={PipelineType.TRIGGERED_RUN}
         onClose={(deleted) => {

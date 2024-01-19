@@ -50,7 +50,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
         ...(selectAllProjects
           ? [
               <DropdownItem
-                key={'all-projects'}
+                key="all-projects"
                 onClick={() => {
                   setDropdownOpen(false);
                   onSelection('');

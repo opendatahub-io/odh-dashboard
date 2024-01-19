@@ -55,7 +55,7 @@ const ProjectViewRoutes: React.FC = () => {
           </>
         )}
         <Route
-          path="pipeline/view/:pipelineId"
+          path="pipeline/view/:pipelineVersionId"
           element={<ProjectPipelineBreadcrumbPage BreadcrumbDetailsComponent={PipelineDetails} />}
         />
         <Route

@@ -19,10 +19,10 @@ type ManageAcceleratorProfileFooterProps = {
   existingAcceleratorProfile?: AcceleratorProfileKind;
 };
 
-export const ManageAcceleratorProfileFooter = ({
+export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFooterProps> = ({
   state,
   existingAcceleratorProfile,
-}: ManageAcceleratorProfileFooterProps) => {
+}) => {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const navigate = useNavigate();

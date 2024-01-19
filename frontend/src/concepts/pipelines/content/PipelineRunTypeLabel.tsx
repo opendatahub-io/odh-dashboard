@@ -2,8 +2,8 @@ import React from 'react';
 import { Label, Tooltip } from '@patternfly/react-core';
 import {
   PipelineRunLabels,
-  getPipelineCoreResourceJobReference,
-  getPipelineCoreResourcePipelineReference,
+  getJobResourceRef,
+  getPipelineVersionResourceRef,
 } from '~/concepts/pipelines/content/tables/utils';
 import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 
@@ -12,20 +12,20 @@ type PipelineRunTypeLabelProps = {
   isCompact?: boolean;
 };
 const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ resource, isCompact }) => {
-  const jobReference = getPipelineCoreResourceJobReference(resource);
-  const pipelineReference = getPipelineCoreResourcePipelineReference(resource);
+  const jobReference = getJobResourceRef(resource);
+  const pipelineVersionRef = getPipelineVersionResourceRef(resource);
 
   return (
     <>
       {jobReference ? (
         <>
-          <Tooltip content={'Created by a scheduled run'}>
+          <Tooltip content="Created by a scheduled run">
             <Label color="blue" isCompact={isCompact}>
               {PipelineRunLabels.RECURRING}
             </Label>
           </Tooltip>
         </>
-      ) : !pipelineReference ? (
+      ) : !pipelineVersionRef ? (
         <>
           <Tooltip content={<div>Created by a scheduled run that was deleted</div>}>
             <Label color="blue" isCompact={isCompact}>

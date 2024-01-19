@@ -4,7 +4,7 @@ import ModelBiasSettingsCard from '~/pages/projects/projectSettings/ModelBiasSet
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
-const ProjectSettingsPage = () => {
+const ProjectSettingsPage: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;

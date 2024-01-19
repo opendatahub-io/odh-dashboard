@@ -30,7 +30,7 @@ export const getPodContainerLogText = (
   podName: string,
   containerName: string,
   tail?: number,
-) =>
+): Promise<string> =>
   commonFetchText(
     getK8sResourceURL(PodModel, undefined, {
       name: podName,

@@ -6,6 +6,7 @@ import { ValueOf } from '~/typeHelpers';
 import RunTypeSection from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSection';
 import ParamsSection from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import { getProjectDisplayName } from '~/pages/projects/utils';
+import PipelineVersionSection from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
 
@@ -38,15 +39,33 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
       />
     </FormSection>
     <PipelineSection
-      onLoaded={(loaded) => {
-        onValueChange('pipelinesLoaded', loaded);
-      }}
       value={data.pipeline}
       onChange={(pipeline) => {
         onValueChange('pipeline', pipeline);
+        onValueChange('version', pipeline.default_version);
         onValueChange(
           'params',
-          (pipeline.parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' })),
+          (pipeline.default_version?.parameters || pipeline.parameters || []).map((p) => ({
+            label: p.name,
+            value: p.value ?? '',
+          })),
+        );
+      }}
+    />
+    <PipelineVersionSection
+      selectedPipeline={data.pipeline}
+      value={data.version}
+      onChange={(version, pipeline) => {
+        if (pipeline) {
+          onValueChange('pipeline', pipeline);
+        }
+        onValueChange('version', version);
+        onValueChange(
+          'params',
+          (version.parameters || []).map((p) => ({
+            label: p.name,
+            value: p.value ?? '',
+          })),
         );
       }}
     />

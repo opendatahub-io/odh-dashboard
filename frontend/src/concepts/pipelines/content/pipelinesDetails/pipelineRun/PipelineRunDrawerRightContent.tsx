@@ -11,6 +11,7 @@ import {
 import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import { TaskReferenceMap, PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 import { PipelineRunTaskParam } from '~/k8sTypes';
+import './PipelineRunDrawer.scss';
 
 type PipelineRunDrawerRightContentProps = {
   task?: PipelineRunTaskDetails;
@@ -31,9 +32,13 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
 
   return (
     <DrawerPanelContent
+      // This forces a re-render to solve resize of the Log viewer inside Drawer.
+      onResize={() => {
+        window.dispatchEvent(new Event('resize'));
+      }}
       isResizable
       widths={{ default: 'width_33', lg: 'width_50' }}
-      minSize="400px"
+      minSize="500px"
       data-testid="pipeline-run-drawer-right-content"
     >
       <DrawerHead>
@@ -46,7 +51,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody style={{ display: 'flex', flexDirection: 'column' }}>
+      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-pr-sm">
         <PipelineRunDrawerRightTabs
           taskReferences={taskReferences}
           task={task}

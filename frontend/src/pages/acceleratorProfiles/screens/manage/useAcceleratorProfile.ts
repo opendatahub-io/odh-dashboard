@@ -1,9 +1,16 @@
 import React from 'react';
-import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '~/utilities/useFetchState';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import { getAcceleratorProfile } from '~/api';
 
-const useAcceleratorProfile = (namespace: string, name?: string) => {
+const useAcceleratorProfile = (
+  namespace: string,
+  name?: string,
+): FetchState<AcceleratorProfileKind | null> => {
   const callback = React.useCallback<
     FetchStateCallbackPromise<AcceleratorProfileKind | null>
   >(() => {

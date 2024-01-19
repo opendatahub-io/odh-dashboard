@@ -1,10 +1,14 @@
 import * as React from 'react';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { FetchState } from '~/utilities/useFetchState';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
-import { PipelineOptions } from '~/concepts/pipelines/types';
+import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
 
-const usePipelines = (options?: PipelineOptions) => {
+const usePipelines = (
+  options?: PipelineOptions,
+  refreshRate?: number,
+): FetchState<PipelineListPaged<PipelineKF>> => {
   const { api } = usePipelinesAPI();
   return usePipelineQuery<PipelineKF>(
     React.useCallback(
@@ -13,6 +17,7 @@ const usePipelines = (options?: PipelineOptions) => {
       [api],
     ),
     options,
+    refreshRate,
   );
 };
 

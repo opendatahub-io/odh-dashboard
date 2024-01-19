@@ -17,18 +17,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import * as jsYaml from 'js-yaml';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { PipelineTopology, usePipelineTaskTopology } from '~/concepts/pipelines/topology';
+import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
+import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
 import { PipelineRunKind } from '~/k8sTypes';
 import MarkdownView from '~/components/MarkdownView';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import { PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
-import PipelineTopologyEmpty from '~/concepts/pipelines/content/pipelinesDetails/PipelineTopologyEmpty';
 import PipelineRunDrawerBottomContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomContent';
 import {
   RunDetailsTabs,
   RunDetailsTabSelection,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerBottomTabs';
-import DeletePipelineCoreResourceModal from '~/concepts/pipelines/content/DeletePipelineCoreResourceModal';
+import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunJobById from '~/concepts/pipelines/apiHooks/usePipelineRunJobById';
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
@@ -161,7 +161,7 @@ const PipelineRunJobDetails: PipelineCoreDetailsPageComponent = ({
         </DrawerContent>
       </Drawer>
 
-      <DeletePipelineCoreResourceModal
+      <DeletePipelineRunsModal
         type="scheduled run"
         toDeleteResources={deleting && job ? [job] : []}
         onClose={(deleteComplete) => {

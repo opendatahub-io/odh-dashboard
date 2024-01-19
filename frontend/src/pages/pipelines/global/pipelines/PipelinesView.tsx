@@ -4,9 +4,13 @@ import GlobalNoPipelines from '~/pages/pipelines/global/pipelines/GlobalNoPipeli
 import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
+import GlobalPipelinesTableToolbar from '~/pages/pipelines/global/pipelines/GlobalPipelinesTableToolbar';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import GlobalPipelinesTableToolbar from './GlobalPipelinesTableToolbar';
+import {
+  getTablePagingProps,
+  getTableSortProps,
+} from '~/concepts/pipelines/content/tables/usePipelineTable';
 
 const PipelinesView: React.FC = () => {
   const [
@@ -14,6 +18,8 @@ const PipelinesView: React.FC = () => {
     { initialLoaded, ...tableProps },
   ] = usePipelinesTable();
   const filterToolbarProps = usePipelineFilter(tableProps.setFilter);
+  const pagingProps = getTablePagingProps(tableProps);
+  const sortProps = getTableSortProps(tableProps);
 
   if (loadError) {
     return (
@@ -35,8 +41,8 @@ const PipelinesView: React.FC = () => {
 
   return (
     <PipelinesTable
-      {...tableProps}
-      {...filterToolbarProps}
+      {...sortProps}
+      {...pagingProps}
       totalSize={totalSize}
       loading={!loaded}
       pipelines={pipelines}

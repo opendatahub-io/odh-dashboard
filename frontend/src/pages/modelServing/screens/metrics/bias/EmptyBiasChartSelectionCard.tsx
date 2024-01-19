@@ -13,7 +13,7 @@ import {
   EMPTY_BIAS_CHART_SELECTION_TITLE,
 } from '~/pages/modelServing/screens/metrics/const';
 
-const EmptyBiasChartSelectionCard = () => (
+const EmptyBiasChartSelectionCard: React.FC = () => (
   <Card>
     <CardBody>
       <EmptyState>

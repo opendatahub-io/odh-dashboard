@@ -44,7 +44,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       <Tr>
         <Td
           expand={{
-            rowIndex: rowIndex,
+            rowIndex,
             expandId: 'notebook-row-item',
             isExpanded,
             onToggle: () => setExpanded(!isExpanded),

@@ -171,7 +171,9 @@ export const useStableMetrics = (
   return metricsRef.current;
 };
 
-export const getBreadcrumbItemComponents = (breadcrumbItems: BreadcrumbItemType[]) =>
+export const getBreadcrumbItemComponents = (
+  breadcrumbItems: BreadcrumbItemType[],
+): React.ReactElement[] =>
   breadcrumbItems.map((item) => (
     <BreadcrumbItem
       isActive={item.isActive}
@@ -222,7 +224,7 @@ const checkBatchSizeValid = (batchSize?: number): boolean => {
 export const checkConfigurationFieldsValid = (
   configurations: BaseMetricRequest,
   metricType?: BiasMetricType,
-) =>
+): boolean =>
   metricType !== undefined &&
   configurations.requestName !== '' &&
   configurations.protectedAttribute !== '' &&
@@ -242,7 +244,7 @@ export const isMetricType = (
 
 export const byId =
   <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
-  (arg2: T) => {
+  (arg2: T): boolean => {
     if (typeof arg === 'object') {
       return arg2.id === arg.id;
     }
@@ -251,14 +253,14 @@ export const byId =
 
 export const byNotId =
   <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
-  (arg2: T) => {
+  (arg2: T): boolean => {
     if (typeof arg === 'object') {
       return arg2.id !== arg.id;
     }
     return arg2.id !== arg;
   };
 
-export const calculateThresholds = (origin: number, delta: number) => [
+export const calculateThresholds = (origin: number, delta: number): [number, number] => [
   origin + delta,
   origin - delta,
 ];
@@ -294,7 +296,7 @@ export const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): Bias
 export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
   'biasMetricConfig' in obj;
 
-export const convertInputType = (input: string) => {
+export const convertInputType = (input: string): string | number | boolean => {
   if (input !== '' && !isNaN(Number(input))) {
     return Number(input);
   }
@@ -316,7 +318,7 @@ export const convertConfigurationRequestType = (
   favorableOutcome: convertInputType(configuration.favorableOutcome),
 });
 
-export const getThresholdDefaultDelta = (metricType?: BiasMetricType) =>
+export const getThresholdDefaultDelta = (metricType?: BiasMetricType): number | undefined =>
   metricType && BIAS_CHART_CONFIGS[metricType].defaultDelta;
 
 export const convertPrometheusNaNToZero = (

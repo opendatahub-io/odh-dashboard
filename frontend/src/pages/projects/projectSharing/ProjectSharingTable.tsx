@@ -41,7 +41,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
       footerRow={() =>
         isAdding ? (
           <ProjectSharingTableRowAdd
-            key={'add-permission-row'}
+            key="add-permission-row"
             type={type}
             typeAhead={typeAhead}
             onChange={(name, roleType) => {

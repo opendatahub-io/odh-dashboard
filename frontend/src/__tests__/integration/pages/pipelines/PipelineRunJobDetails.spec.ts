@@ -28,4 +28,10 @@ test('Does not show run content', async ({ page }) => {
   // expect nodes dont open drawer on click
   await page.getByText('flip-coin').click();
   await expect(page.getByTestId('pipeline-run-drawer-right-content')).toHaveCount(1);
+
+  //expect drawer to open on clicking node
+  await expect(page.getByText('Input / Output')).toHaveCount(1);
+  await expect(page.getByText('Details')).toHaveCount(2);
+  await expect(page.getByText('Volumes')).toHaveCount(1);
+  await expect(page.getByText('Logs')).toHaveCount(1);
 });

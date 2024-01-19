@@ -14,9 +14,10 @@ const usePipelineQuery = <T extends PipelineCoreResourceKF>(
     params?: PipelineParams,
   ) => PipelineKFCallCommon<unknown> & { items?: T[] },
   options?: PipelineOptions,
+  refreshRate = POLL_INTERVAL,
 ): FetchState<PipelineListPaged<T>> => {
   const [totalSize, setTotalSize] = React.useState(0);
-  const { sortField, sortDirection, page = 1, pageSize = 2, filter } = options ?? {};
+  const { sortField, sortDirection, page = 1, pageSize, filter } = options ?? {};
   const pageTokensRef = React.useRef<(string | undefined)[]>([]);
 
   React.useEffect(() => {
@@ -29,16 +30,13 @@ const usePipelineQuery = <T extends PipelineCoreResourceKF>(
       if (page > 1 && !pageTokensRef.current[page - 1]) {
         throw new Error(`No token available for page ${page}.`);
       }
-      const result =
-        pageSize > 0
-          ? await apiFetch(opts, {
-              pageSize: pageSize,
-              pageToken: pageTokensRef.current[page - 1],
-              sortField,
-              sortDirection,
-              filter,
-            })
-          : undefined;
+      const result = await apiFetch(opts, {
+        pageSize,
+        pageToken: pageTokensRef.current[page - 1],
+        sortField,
+        sortDirection,
+        filter,
+      });
 
       return {
         items: result?.items || [],
@@ -54,7 +52,7 @@ const usePipelineQuery = <T extends PipelineCoreResourceKF>(
     { totalSize: 0, items: [] },
     {
       initialPromisePurity: true,
-      refreshRate: POLL_INTERVAL,
+      refreshRate,
     },
   );
 

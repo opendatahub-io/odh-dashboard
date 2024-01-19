@@ -5,7 +5,7 @@ import ServerGraphs from '~/pages/modelServing/screens/metrics/performance/Serve
 import { ServerMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
 
-const ServerMetricsPage = () => (
+const ServerMetricsPage: React.FC = () => (
   <EnsureMetricsAvailable
     metrics={[
       ServerMetricType.AVG_RESPONSE_TIME,

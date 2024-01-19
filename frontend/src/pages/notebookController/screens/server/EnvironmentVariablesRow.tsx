@@ -66,7 +66,7 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
 
     const updatedRow: VariableRow = {
       variableType: newType,
-      variables: variables,
+      variables,
       errors: {},
     };
 

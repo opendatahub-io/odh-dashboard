@@ -318,6 +318,17 @@ export type PodContainer = {
   volumeMounts?: VolumeMount[];
 };
 
+export type PodStepState = {
+  stepName: string;
+  state: PodStepStateType;
+};
+
+export enum PodStepStateType {
+  success = 'Success',
+  error = 'Error',
+  loading = 'Loading',
+}
+
 export type PodAffinity = {
   nodeAffinity?: { [key: string]: unknown };
 };

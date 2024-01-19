@@ -1,4 +1,5 @@
 import * as _ from 'lodash';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   assembleConfigMap,
   assembleSecret,
@@ -22,7 +23,7 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { ConfigMapKind, K8sStatus, NotebookKind, SecretKind } from '~/k8sTypes';
+import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
 import { getVolumesByStorageData } from './spawnerUtils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 

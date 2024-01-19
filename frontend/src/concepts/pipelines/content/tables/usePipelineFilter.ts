@@ -16,6 +16,7 @@ export enum FilterOptions {
   CREATED_AT = 'create_at',
   STATUS = 'status',
   EXPERIMENT = 'experiment',
+  PIPELINE_VERSION = 'pipeline_version',
 }
 
 const statusMap = {
@@ -30,7 +31,7 @@ const statusMap = {
   [PipelineRunStatusesKF.CANCELLED]: PipelineRunStatusesKF.CANCELLED,
 };
 
-const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]>(
+export const getDataValue = <T extends FilterProps['filterData'], R = T[keyof T]>(
   data: R,
 ): string | undefined => {
   if (typeof data === 'string') {
@@ -44,6 +45,7 @@ const defaultValue: FilterProps['filterData'] = {
   [FilterOptions.CREATED_AT]: '',
   [FilterOptions.STATUS]: '',
   [FilterOptions.EXPERIMENT]: undefined,
+  [FilterOptions.PIPELINE_VERSION]: '',
 };
 
 const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): FilterProps => {
@@ -67,6 +69,7 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
       const startedValue = getDataValue(data[FilterOptions.CREATED_AT]);
       const statusValue = getDataValue(data[FilterOptions.STATUS]);
       const experimentValue = getDataValue(data[FilterOptions.EXPERIMENT]);
+      const pipelineVersionValue = getDataValue(data[FilterOptions.PIPELINE_VERSION]);
 
       if (runValue) {
         predicates.push({
@@ -107,8 +110,12 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
         resourceReference = { type: ResourceTypeKF.EXPERIMENT, id: experimentValue };
       }
 
+      if (pipelineVersionValue) {
+        resourceReference = { type: ResourceTypeKF.PIPELINE_VERSION, id: pipelineVersionValue };
+      }
+
       setFilter(
-        predicates.length > 0
+        predicates.length > 0 || !!resourceReference
           ? {
               resourceReference,
               predicates,
@@ -120,6 +127,11 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
   );
 
   const doSetFilterDebounced = useDebounceCallback(doSetFilter);
+  const {
+    [FilterOptions.CREATED_AT]: createdAtFilter,
+    [FilterOptions.STATUS]: statusFilter,
+    [FilterOptions.PIPELINE_VERSION]: pipelineVersionFilter,
+  } = filterData;
 
   React.useEffect(() => {
     doSetFilterDebounced(filterData);
@@ -132,7 +144,7 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
     doSetFilter(filterData);
     // perform filter change immediately
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterData[FilterOptions.CREATED_AT], filterData[FilterOptions.STATUS], doSetFilter]);
+  }, [createdAtFilter, statusFilter, pipelineVersionFilter, doSetFilter]);
 
   return toolbarProps;
 };

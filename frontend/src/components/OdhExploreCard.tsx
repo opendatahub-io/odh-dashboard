@@ -79,6 +79,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           },
           selectableActions: {
             selectableActionId: `${odhApp.metadata.name}-selectable-card-id`,
+            selectableActionAriaLabelledby: odhApp.metadata.name,
             name: `odh-explore-selectable-card`,
             variant: 'single',
             isChecked: isSelected,

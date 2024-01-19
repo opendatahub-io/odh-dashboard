@@ -83,7 +83,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                 </DescriptionListGroup>
               </>
             )}
-          {!!pipelineNamespaceCR?.spec.database &&
+          {!!pipelineNamespaceCR?.spec?.database &&
             !!pipelineNamespaceCR.spec.database.externalDB &&
             !!databaseSecret[EXTERNAL_DATABASE_SECRET.KEY] && (
               <>

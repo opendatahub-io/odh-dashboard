@@ -1,83 +1,117 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Button,
   Tooltip,
-  TextListItem,
-  TextListItemVariants,
-  TextContent,
   Spinner,
   Stack,
   StackItem,
-  Split,
-  SplitItem,
-  Bullseye,
-  Truncate,
+  ToolbarContent,
+  Toolbar,
+  ToolbarItem,
+  ToolbarGroup,
+  DropdownList,
+  Icon,
 } from '@patternfly/react-core';
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownToggle,
-  KebabToggle,
-} from '@patternfly/react-core/deprecated';
+import { Dropdown, DropdownItem, KebabToggle } from '@patternfly/react-core/deprecated';
 import OutlinedPlayCircleIcon from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
 import PauseIcon from '@patternfly/react-icons/dist/esm/icons/pause-icon';
 import PlayIcon from '@patternfly/react-icons/dist/esm/icons/play-icon';
 import DownloadIcon from '@patternfly/react-icons/dist/esm/icons/download-icon';
+import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
+import {
+  CheckCircleIcon,
+  CompressIcon,
+  EllipsisVIcon,
+  ExclamationCircleIcon,
+  ExpandIcon,
+} from '@patternfly/react-icons';
+import { OutlinedWindowRestoreIcon } from '@patternfly/react-icons';
+import DashboardLogViewer from '~/concepts/dashboard/DashboardLogViewer';
 import { PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
 import SimpleDropdownSelect from '~/components/SimpleDropdownSelect';
 import useFetchLogs from '~/concepts/k8s/pods/useFetchLogs';
 import usePodContainerLogState from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodContainerLogState';
-import { useWindowResize } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/useWindowResize';
 import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
 import { LOG_TAIL_LINES } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
-import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEditor';
-import useCodeEditorAsLogs from '~/concepts/dashboard/codeEditor/useCodeEditorAsLogs';
-import { downloadFullPodLog, downloadAllStepLogs } from '~/concepts/k8s/pods/utils';
+import { downloadCurrentStepLog, downloadAllStepLogs } from '~/concepts/k8s/pods/utils';
+import usePodStepsStates from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodStepsStates';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
+import { PodStepStateType } from '~/types';
 
 // TODO: If this gets large enough we should look to make this its own component file
 const LogsTab: React.FC<{ task: PipelineRunTaskDetails }> = ({ task }) => {
   const podName = task.runDetails?.status.podName;
+  const isFailedPod = !!task.runDetails?.status.conditions.find((c) =>
+    c.reason?.includes('Failed'),
+  );
 
   if (!podName) {
     return <>No content</>;
   }
 
-  return <LogsTabForPodName podName={podName} />;
+  return <LogsTabForPodName podName={podName} isFailedPod={isFailedPod} />;
 };
 
 /** Must be a non-empty podName -- use LogsTabForTask for safer usage */
-const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
+const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = ({
+  podName,
+  isFailedPod,
+}) => {
   const { namespace } = usePipelinesAPI();
-  const { podLoaded, podError, podContainers, selectedContainer, setSelectedContainer } =
-    usePodContainerLogState(podName);
+  const {
+    pod,
+    podLoaded,
+    podStatus,
+    podError,
+    podContainers,
+    selectedContainer,
+    setSelectedContainer,
+  } = usePodContainerLogState(podName);
   const [isPaused, setIsPaused] = React.useState(false);
-  const [logs, logsLoaded, logsError, refreshLogs] = useFetchLogs(
+  const [logs, logsLoaded, logsError] = useFetchLogs(
     podName,
     selectedContainer?.name ?? '',
     !isPaused,
     LOG_TAIL_LINES,
   );
+  const podStepStates = usePodStepsStates(podContainers, podName);
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
-  const { scrollToBottom, onMount, editorOptions } = useCodeEditorAsLogs();
-  const [isDownloadDropdownOpen, setIsDownloadDropdownOpen] = React.useState(false);
-  const { isSmallScreen } = useWindowResize();
+  const logViewerRef = React.useRef<{ scrollToBottom: () => void }>();
+  const [isFullScreen, setIsFullScreen] = React.useState(false);
+  const [showSearchbar, setShowsearchbar] = React.useState(false);
+  const [isKebabOpen, setIsKebabOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!isPaused && logs) {
-      scrollToBottom();
+      if (logViewerRef && logViewerRef.current) {
+        logViewerRef.current.scrollToBottom();
+      }
     }
-  }, [isPaused, logs, scrollToBottom]);
+  }, [isPaused, logs]);
 
-  const canDownloadAll = !!podContainers && !!podName && !downloading;
+  const onScroll: React.ComponentProps<typeof LogViewer>['onScroll'] = ({
+    scrollOffsetToBottom,
+    scrollUpdateWasRequested,
+  }) => {
+    if (!scrollUpdateWasRequested) {
+      if (scrollOffsetToBottom > 0) {
+        setIsPaused(true);
+      } else {
+        setIsPaused(false);
+      }
+    }
+  };
+
+  const canDownloadAll = !!podContainers && !!pod && !downloading;
   const onDownloadAll = () => {
     if (!canDownloadAll) {
       return;
     }
     setDownloadError(undefined);
     setDownloading(true);
-    downloadAllStepLogs(podContainers, namespace, podName)
+    downloadAllStepLogs(podContainers, namespace, pod)
       .catch((e) => setDownloadError(e))
       .finally(() => setDownloading(false));
   };
@@ -89,153 +123,230 @@ const LogsTabForPodName: React.FC<{ podName: string }> = ({ podName }) => {
     }
     setDownloadError(undefined);
     setDownloading(true);
-    downloadFullPodLog(namespace, podName, selectedContainer.name)
+    downloadCurrentStepLog(namespace, podName, selectedContainer.name, podStatus?.completed)
       .catch((e) => setDownloadError(e))
       .finally(() => setDownloading(false));
   };
 
+  const onToggleExpand = (
+    _evt: React.SyntheticEvent<HTMLButtonElement, Event>,
+    showSearchbar: boolean,
+  ) => {
+    setShowsearchbar(!showSearchbar);
+  };
+
+  const handleFullScreen = () => {
+    setIsFullScreen(!!document.fullscreenElement);
+  };
+
+  useEffect(() => {
+    document.addEventListener('fullscreenchange', handleFullScreen);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreen);
+    };
+  }, [isFullScreen]);
+
+  const onExpandClick = () => {
+    setIsKebabOpen(false);
+    const element = document.querySelector('#dashboard-logviewer');
+
+    if (!isFullScreen) {
+      if (element?.requestFullscreen) {
+        element.requestFullscreen();
+      }
+      setIsFullScreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      setIsFullScreen(false);
+    }
+  };
+
   const error = podError || logsError || downloadError;
   const loaded = podLoaded && logsLoaded;
-
   let data: string;
-  if (error) {
+  if (error || podStatus?.podInitializing) {
     data = '';
   } else if (!logsLoaded) {
     data = 'Loading...';
   } else if (logs) {
     data = logs;
   } else {
-    data = 'No content';
+    data = 'No logs available';
   }
 
   return (
-    <Stack hasGutter style={{ minHeight: 400 }}>
+    <Stack hasGutter>
       <StackItem>
-        <LogsTabStatus
-          loaded={loaded}
-          error={error}
-          refresh={refreshLogs}
-          onDownload={onDownloadAll}
-        />
-      </StackItem>
-      <StackItem>
-        <Split hasGutter isWrappable>
-          <SplitItem>
-            <Split hasGutter>
-              {isSmallScreen() ? null : (
-                <SplitItem>
-                  <Bullseye>
-                    <TextContent>
-                      <TextListItem component={TextListItemVariants.dt}>Step</TextListItem>
-                    </TextContent>
-                  </Bullseye>
-                </SplitItem>
-              )}
-              <SplitItem>
-                <SimpleDropdownSelect
-                  isDisabled={podContainers.length === 0}
-                  options={podContainers.map((container) => ({
-                    key: container.name,
-                    label: container.name,
-                  }))}
-                  value={selectedContainer?.name ?? ''}
-                  placeholder="Select container..."
-                  onChange={(v) => {
-                    setSelectedContainer(podContainers.find((c) => c.name === v) ?? null);
-                  }}
-                  width={150}
-                />
-              </SplitItem>
-            </Split>
-          </SplitItem>
-          <SplitItem>
-            <Button
-              variant={!logsLoaded ? 'plain' : isPaused ? 'plain' : 'link'}
-              onClick={() => setIsPaused(!isPaused)}
-              isDisabled={!!error}
-            >
-              {error ? (
-                'Error loading logs'
-              ) : !logsLoaded ? (
-                <>
-                  <Spinner size="sm" /> {isSmallScreen() ? 'Loading' : 'Loading log'}
-                </>
-              ) : isPaused ? (
-                <>
-                  <PlayIcon /> {isSmallScreen() ? 'Resume' : 'Resume refreshing'}
-                </>
-              ) : (
-                <>
-                  <PauseIcon /> {isSmallScreen() ? 'Pause' : 'Pause refreshing'}
-                </>
-              )}
-            </Button>
-          </SplitItem>
-          <SplitItem isFilled style={{ textAlign: 'right' }}>
-            {downloading ? (
-              <>
-                <Spinner size="sm" />{' '}
-              </>
-            ) : null}
-            {podContainers.length !== 0 ? (
-              <Dropdown
-                toggle={
-                  isSmallScreen() ? (
-                    <KebabToggle
-                      onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
-                    />
-                  ) : (
-                    <DropdownToggle
-                      id="download-steps-logs-toggle"
-                      onToggle={() => setIsDownloadDropdownOpen(!isDownloadDropdownOpen)}
-                    >
-                      Download
-                    </DropdownToggle>
-                  )
-                }
-                isOpen={isDownloadDropdownOpen}
-                isPlain={isSmallScreen()}
-                dropdownItems={[
-                  <DropdownItem key="current-container-logs" onClick={onDownload}>
-                    <Truncate
-                      content={isSmallScreen() ? 'Download current step log' : 'Current step log'}
-                    />
-                  </DropdownItem>,
-                  <DropdownItem key="all-container-logs" onClick={onDownloadAll}>
-                    <Truncate
-                      content={isSmallScreen() ? 'Download all step logs' : 'All step logs'}
-                    />
-                  </DropdownItem>,
-                ]}
-              />
-            ) : (
-              <Tooltip position="top" content={<div>Download current step log</div>}>
-                <Button
-                  onClick={onDownload}
-                  variant="link"
-                  aria-label="Download current step log"
-                  icon={<DownloadIcon />}
-                  isDisabled={!canDownload}
-                >
-                  Download
-                </Button>
-              </Tooltip>
-            )}
-          </SplitItem>
-        </Split>
-      </StackItem>
-      <StackItem isFilled>
-        <DashboardCodeEditor
-          onEditorDidMount={onMount}
-          code={data}
-          isReadOnly
-          options={editorOptions}
-        />
-        {isPaused && (
-          <Button onClick={() => setIsPaused(false)} isBlock icon={<OutlinedPlayCircleIcon />}>
-            Resume refreshing log
-          </Button>
+        {!podStatus?.podInitializing && (
+          <LogsTabStatus
+            podError={podError}
+            podName={podName}
+            podStatus={podStatus}
+            loaded={loaded}
+            error={error}
+            isFailedPod={isFailedPod}
+            isLogsAvailable={podContainers.length !== 1 && !!logs}
+            onDownload={onDownloadAll}
+          />
         )}
+      </StackItem>
+      <StackItem isFilled id="dashboard-logviewer">
+        <DashboardLogViewer
+          data={data}
+          logViewerRef={logViewerRef}
+          toolbar={
+            !error && (
+              <Toolbar className={isFullScreen ? 'pf-v5-u-p-sm' : ''}>
+                <ToolbarContent>
+                  <ToolbarGroup align={{ default: 'alignLeft' }} spacer={{ default: 'spacerNone' }}>
+                    {!showSearchbar && (
+                      <ToolbarItem spacer={{ default: 'spacerSm' }} style={{ maxWidth: '200px' }}>
+                        <SimpleDropdownSelect
+                          isDisabled={podStepStates.length <= 1}
+                          options={podStepStates.map((podStepState) => ({
+                            key: podStepState.stepName,
+                            label: podStepState.stepName,
+                            dropdownLabel: (
+                              <>
+                                <span className="pf-v5-u-mr-sm">{podStepState.stepName}</span>
+                                {podStepState.state === PodStepStateType.error ? (
+                                  <Icon status="danger">
+                                    <ExclamationCircleIcon />
+                                  </Icon>
+                                ) : (
+                                  <Icon status="success">
+                                    <CheckCircleIcon />
+                                  </Icon>
+                                )}
+                              </>
+                            ),
+                          }))}
+                          value={selectedContainer?.name ?? ''}
+                          placeholder="Select container..."
+                          onChange={(v) => {
+                            setSelectedContainer(podContainers.find((c) => c.name === v) ?? null);
+                          }}
+                        />
+                      </ToolbarItem>
+                    )}
+                    <ToolbarItem spacer={{ default: 'spacerNone' }} style={{ maxWidth: '300px' }}>
+                      <Tooltip content="Search">
+                        <LogViewerSearch
+                          onFocus={() => setIsPaused(true)}
+                          placeholder="Search"
+                          minSearchChars={0}
+                          expandableInput={{
+                            isExpanded: showSearchbar,
+                            onToggleExpand,
+                            toggleAriaLabel: 'Expandable search input toggle',
+                          }}
+                        />
+                      </Tooltip>
+                    </ToolbarItem>
+                    {!podStatus?.completed && (
+                      <ToolbarItem spacer={{ default: 'spacerNone' }}>
+                        <Button
+                          variant={!logsLoaded ? 'plain' : isPaused ? 'plain' : 'link'}
+                          onClick={() => setIsPaused(!isPaused)}
+                          isDisabled={!!error}
+                        >
+                          {!error &&
+                            (!logsLoaded || podStatus?.podInitializing ? (
+                              <Tooltip content="Loading log">
+                                <Spinner size="sm" />
+                              </Tooltip>
+                            ) : isPaused ? (
+                              <Tooltip content="Resume refreshing">
+                                <PlayIcon />
+                              </Tooltip>
+                            ) : (
+                              <Tooltip content="Pause refreshing">
+                                <PauseIcon />
+                              </Tooltip>
+                            ))}
+                        </Button>
+                      </ToolbarItem>
+                    )}
+                  </ToolbarGroup>
+                  <ToolbarGroup align={{ default: 'alignRight' }}>
+                    <ToolbarItem spacer={{ default: 'spacerNone' }}>
+                      {downloading && <Spinner size="sm" className="pf-v5-u-my-sm" />}
+                      {podContainers.length <= 1 ? (
+                        <Tooltip position="top" content={<div>Download current step log</div>}>
+                          <Button
+                            onClick={onDownload}
+                            variant="link"
+                            aria-label="Download current step log"
+                            icon={<DownloadIcon />}
+                            isDisabled={!canDownload || !logs}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Tooltip content="Download">
+                          <DownloadDropdown
+                            onDownload={onDownload}
+                            onDownloadAll={onDownloadAll}
+                            isSingleStepLogsEmpty={!logs}
+                          />
+                        </Tooltip>
+                      )}
+                    </ToolbarItem>
+                    <ToolbarItem spacer={{ default: 'spacerNone' }}>
+                      <Dropdown
+                        isPlain
+                        position="right"
+                        isOpen={isKebabOpen}
+                        toggle={
+                          <KebabToggle
+                            onToggle={() => {
+                              setIsKebabOpen(!isKebabOpen);
+                            }}
+                          >
+                            <EllipsisVIcon />
+                          </KebabToggle>
+                        }
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            isDisabled={!logs}
+                            onClick={() => {
+                              const newTab = window.open();
+                              newTab?.document.write(`<pre>${logs}</pre>`);
+                            }}
+                            component="button"
+                            icon={<OutlinedWindowRestoreIcon />}
+                            aria-label="View raw logs"
+                          >
+                            View raw log
+                          </DropdownItem>
+                          <DropdownItem
+                            onClick={onExpandClick}
+                            key="action"
+                            icon={!isFullScreen ? <ExpandIcon /> : <CompressIcon />}
+                            component="button"
+                          >
+                            {!isFullScreen ? 'Expand' : 'Collapse'}
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </ToolbarItem>
+                  </ToolbarGroup>
+                </ToolbarContent>
+              </Toolbar>
+            )
+          }
+          footer={
+            isPaused &&
+            !podStatus?.completed && (
+              <Button onClick={() => setIsPaused(false)} isBlock icon={<OutlinedPlayCircleIcon />}>
+                Resume refreshing log
+              </Button>
+            )
+          }
+          onScroll={onScroll}
+        />
       </StackItem>
     </Stack>
   );
