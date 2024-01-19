@@ -10,6 +10,7 @@ import {
   ToolbarItem,
   ToolbarGroup,
   DropdownList,
+  Icon,
 } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, KebabToggle } from '@patternfly/react-core/deprecated';
 import OutlinedPlayCircleIcon from '@patternfly/react-icons/dist/esm/icons/outlined-play-circle-icon';
@@ -17,7 +18,13 @@ import PauseIcon from '@patternfly/react-icons/dist/esm/icons/pause-icon';
 import PlayIcon from '@patternfly/react-icons/dist/esm/icons/play-icon';
 import DownloadIcon from '@patternfly/react-icons/dist/esm/icons/download-icon';
 import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
-import { CompressIcon, EllipsisVIcon, ExpandIcon } from '@patternfly/react-icons';
+import {
+  CheckCircleIcon,
+  CompressIcon,
+  EllipsisVIcon,
+  ExclamationCircleIcon,
+  ExpandIcon,
+} from '@patternfly/react-icons';
 import { OutlinedWindowRestoreIcon } from '@patternfly/react-icons';
 import DashboardLogViewer from '~/concepts/dashboard/DashboardLogViewer';
 import { PipelineRunTaskDetails } from '~/concepts/pipelines/content/types';
@@ -27,8 +34,10 @@ import usePodContainerLogState from '~/concepts/pipelines/content/pipelinesDetai
 import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
 import { LOG_TAIL_LINES } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 import { downloadCurrentStepLog, downloadAllStepLogs } from '~/concepts/k8s/pods/utils';
+import usePodStepsStates from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodStepsStates';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
+import { PodStepStateType } from '~/types';
 
 // TODO: If this gets large enough we should look to make this its own component file
 const LogsTab: React.FC<{ task: PipelineRunTaskDetails }> = ({ task }) => {
@@ -66,6 +75,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     !isPaused,
     LOG_TAIL_LINES,
   );
+  const podStepStates = usePodStepsStates(podContainers, podName);
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
   const logViewerRef = React.useRef<{ scrollToBottom: () => void }>();
@@ -194,10 +204,24 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                     {!showSearchbar && (
                       <ToolbarItem spacer={{ default: 'spacerSm' }} style={{ maxWidth: '200px' }}>
                         <SimpleDropdownSelect
-                          isDisabled={podContainers.length <= 1}
-                          options={podContainers.map((container) => ({
-                            key: container.name,
-                            label: container.name,
+                          isDisabled={podStepStates.length <= 1}
+                          options={podStepStates.map((podStepState) => ({
+                            key: podStepState.stepName,
+                            label: podStepState.stepName,
+                            dropdownLabel: (
+                              <>
+                                <span className="pf-v5-u-mr-sm">{podStepState.stepName}</span>
+                                {podStepState.state === PodStepStateType.error ? (
+                                  <Icon status="danger">
+                                    <ExclamationCircleIcon />
+                                  </Icon>
+                                ) : (
+                                  <Icon status="success">
+                                    <CheckCircleIcon />
+                                  </Icon>
+                                )}
+                              </>
+                            ),
                           }))}
                           value={selectedContainer?.name ?? ''}
                           placeholder="Select container..."
@@ -248,7 +272,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                   </ToolbarGroup>
                   <ToolbarGroup align={{ default: 'alignRight' }}>
                     <ToolbarItem spacer={{ default: 'spacerNone' }}>
-                      {downloading ? <Spinner size="sm" /> : null}
+                      {downloading && <Spinner size="sm" className="pf-v5-u-my-sm" />}
                       {podContainers.length <= 1 ? (
                         <Tooltip position="top" content={<div>Download current step log</div>}>
                           <Button
