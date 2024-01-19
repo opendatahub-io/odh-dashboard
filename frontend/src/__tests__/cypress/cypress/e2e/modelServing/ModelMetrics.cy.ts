@@ -190,7 +190,7 @@ const initIntercepts = ({
     {
       method: 'GET',
       pathname:
-        '/api/k8s/apis/trustyai.opendatahub.io.trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+        '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
     },
     mockTrustyAIServiceK8sResource(),
   );
