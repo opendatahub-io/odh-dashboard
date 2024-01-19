@@ -1,5 +1,5 @@
 import { PodKind } from '~/k8sTypes';
-import { PodContainer } from '~/types';
+import { PodContainer, PodStepState, PodStepStateType } from '~/types';
 import { getPodContainerLogText } from '~/api';
 import { downloadString } from '~/utilities/string';
 
@@ -30,19 +30,23 @@ export const downloadAllStepLogs = async (
   namespace: string,
   pod: PodKind,
 ): Promise<void> => {
-  const logPromises = podContainers
-    .filter((podContainer) => podContainer !== null)
-    .map(async (podContainer) => {
-      const logsIndividualStep = await getPodContainerLogText(
+  const logPromises = podContainers.reduce<Promise<string>[]>((accumulator, podContainer) => {
+    if (podContainer !== null) {
+      const logpromise = getPodContainerLogText(
         namespace,
         pod.metadata.name,
         podContainer.name,
-      );
-      return `=============
+      ).then(
+        (logsIndividualStep) => `=============
 ${podContainer.name}
 =============
-${logsIndividualStep}`;
-    });
+${logsIndividualStep}`,
+      );
+
+      accumulator.push(logpromise);
+    }
+    return accumulator;
+  }, []);
   const completed = (pod.status?.containerStatuses || []).every(
     (containerStatus) => containerStatus?.state?.terminated,
   );
@@ -50,4 +54,29 @@ ${logsIndividualStep}`;
 
   const combinedLogs = allStepLogs.join('\n');
   downloadString(`${pod.metadata.name}-${completed ? 'full' : currentTimeStamp}.log`, combinedLogs);
+};
+
+export const getPodStepsStates = async (
+  podContainers: PodContainer[],
+  namespace: string,
+  podName: string,
+): Promise<PodStepState[]> => {
+  const stepsStatesPromises = podContainers.reduce<Promise<PodStepState>[]>(
+    (accumulator, podContainer) => {
+      if (podContainer !== null) {
+        const stepsStatePromise = getPodContainerLogText(namespace, podName, podContainer.name)
+          .then((logsIndividualStep) => ({
+            stepName: podContainer.name,
+            state: logsIndividualStep.toLowerCase().includes('error')
+              ? PodStepStateType.error
+              : PodStepStateType.success,
+          }))
+          .catch(() => ({ stepName: podContainer.name, state: PodStepStateType.error }));
+        accumulator.push(stepsStatePromise);
+      }
+      return accumulator;
+    },
+    [],
+  );
+  return Promise.all(stepsStatesPromises);
 };
