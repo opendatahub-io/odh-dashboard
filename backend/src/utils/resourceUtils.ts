@@ -52,7 +52,6 @@ const quickStartsVersion = 'v1';
 const quickStartsPlural = 'odhquickstarts';
 
 let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
-let subscriptionWatcher: ResourceWatcher<SubscriptionKind>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
 let kfDefWatcher: ResourceWatcher<KfDefApplication>;
@@ -173,42 +172,53 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
     });
 };
 
-const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionKind[]> => {
-  const fetchAll = async (): Promise<SubscriptionKind[]> => {
-    const subscriptions: SubscriptionKind[] = [];
-    let _continue: string = undefined;
-    let remainingItemCount = 1;
+export const fetchSubscriptionsIterator = (
+  fastify: KubeFastifyInstance,
+  pageSize = 100,
+): AsyncIterableIterator<SubscriptionKind[]> => {
+  let continuationToken: string | undefined = undefined;
+  let done = false;
+
+  const performRequest = async (continuationToken?: string) => {
     try {
-      while (remainingItemCount) {
-        const res = (await fastify.kube.customObjectsApi.listNamespacedCustomObject(
-          'operators.coreos.com',
-          'v1alpha1',
-          '',
-          'subscriptions',
-          undefined,
-          _continue,
-          undefined,
-          undefined,
-          250,
-        )) as {
-          body: {
-            items: SubscriptionKind[];
-            metadata: { _continue: string; remainingItemCount: number };
-          };
+      const res = (await fastify.kube.customObjectsApi.listNamespacedCustomObject(
+        'operators.coreos.com',
+        'v1alpha1',
+        '',
+        'subscriptions',
+        undefined,
+        continuationToken,
+        undefined,
+        undefined,
+        pageSize,
+      )) as {
+        body: {
+          items: SubscriptionKind[];
+          metadata: { continue: string; remainingItemCount: number };
         };
-        const subs = res?.body.items;
-        remainingItemCount = res.body?.metadata?.remainingItemCount;
-        _continue = res.body?.metadata?._continue;
-        if (subs?.length) {
-          subscriptions.push(...subs);
-        }
-      }
+      };
+      return {
+        items: res.body.items,
+        continuationToken: res.body.metadata?.continue,
+      };
     } catch (e) {
       console.error(`ERROR: `, e.body.message);
     }
-    return subscriptions;
   };
-  return fetchAll();
+
+  async function* asyncGenerator() {
+    while (!done) {
+      const response = await performRequest(continuationToken);
+      yield response.items;
+
+      continuationToken = response.continuationToken;
+      if (!continuationToken || response.items.length < pageSize) {
+        done = true;
+      }
+    }
+  }
+
+  return asyncGenerator();
 };
 
 /** @deprecated -- we are moving away from KfDefs */
@@ -596,7 +606,6 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
-  subscriptionWatcher = new ResourceWatcher<SubscriptionKind>(fastify, fetchSubscriptions);
   kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplications);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
@@ -613,9 +622,9 @@ export const updateDashboardConfig = (): Promise<void> => {
   return dashboardConfigWatcher.updateResults();
 };
 
-export const getSubscriptions = (): SubscriptionKind[] => {
-  return subscriptionWatcher.getResources();
-};
+// export const getSubscriptions = (): SubscriptionKind[] => {
+//   return subscriptionWatcher.getResources();
+// };
 
 export const getInstalledKfdefs = (): KfDefApplication[] => {
   return kfDefWatcher.getResources();

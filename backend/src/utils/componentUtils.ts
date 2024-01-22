@@ -5,12 +5,13 @@ import {
   KubeFastifyInstance,
   RouteKind,
   CSVKind,
+  SubscriptionKind,
 } from '../types';
 import {
+  fetchSubscriptionsIterator,
   getConsoleLinks,
   getDashboardConfig,
   getInstalledKfdefs,
-  getSubscriptions,
 } from './resourceUtils';
 
 type RoutesResponse = {
@@ -163,7 +164,7 @@ export const getApplicationEnabledConfigMap = async (
   return enabledCM.data?.validation_result === 'true';
 };
 
-const getCSVForApp = (
+const getCSVForApp = async (
   fastify: KubeFastifyInstance,
   app: OdhApplication,
 ): Promise<K8sResourceCommon | undefined> => {
@@ -171,10 +172,22 @@ const getCSVForApp = (
     return Promise.resolve(undefined);
   }
 
-  const subscriptions = getSubscriptions();
-  const appSubscription = subscriptions.find((sub) =>
-    sub.status?.installedCSV?.startsWith(app.spec.csvName),
-  );
+  const iterator = fetchSubscriptionsIterator(fastify, 100);
+  let appSubscription: SubscriptionKind;
+
+  await (async () => {
+    for await (const subscriptions of iterator) {
+      const appSub = subscriptions.find((sub) =>
+        sub.status?.installedCSV?.startsWith(app.spec.csvName),
+      );
+
+      if (appSub) {
+        appSubscription = appSub;
+        break;
+      }
+    }
+  })();
+
   if (!appSubscription) {
     return Promise.resolve(undefined);
   }
