@@ -67,6 +67,40 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable([false, true, true, true]);
   });
 
+  it('should return successful list of InferenceService when model serving is enabled and access review allows without namespace', async () => {
+    // Mock the return value of useModelServingEnabled
+    useModelServingEnabledMock.mockReturnValue(true);
+    // Mock the return value of useAccessReview
+    useAccessReviewMock.mockReturnValue([true, true]);
+
+    k8sListResourceMock.mockReturnValue(Promise.resolve(mockInferenceServices));
+    const renderResult = testHook(useInferenceServices)();
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
+    expect(renderResult).hookToHaveUpdateCount(1);
+
+    // wait for update
+    await renderResult.waitForNextUpdate();
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState(mockInferenceServices.items, true),
+    );
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable([false, false, true, true]);
+
+    // refresh
+    k8sListResourceMock.mockReturnValue(
+      Promise.resolve({ items: [...mockInferenceServices.items] }),
+    );
+    await act(() => renderResult.result.current[3]());
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState([...mockInferenceServices.items], true),
+    );
+    expect(renderResult).hookToHaveUpdateCount(3);
+    expect(renderResult).hookToBeStable([false, true, true, true]);
+  });
+
   it('should not call k8sListResouce when Model Serving is not enabled', async () => {
     // Mock the return value of useModelServingEnabled
     useModelServingEnabledMock.mockReturnValue(false);
