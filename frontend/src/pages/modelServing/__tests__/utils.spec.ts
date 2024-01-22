@@ -12,7 +12,6 @@ import {
 import { ContainerResources, ServingRuntimePlatform } from '~/types';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
-import { mock404Error } from '~/__mocks__/mock404Error';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import {
   createRoleBinding,
@@ -21,6 +20,7 @@ import {
   getRoleBinding,
   getServiceAccount,
 } from '~/api';
+import { mock404Error } from '~/__mocks__/mockK8sStatus';
 
 jest.mock('~/api', () => ({
   ...jest.requireActual('~/api'),

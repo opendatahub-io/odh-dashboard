@@ -25,8 +25,7 @@ import {
   mockInvalidTemplateK8sResource,
 } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimePlatform } from '~/types';
-import { mock404Error } from '~/__mocks__/mock404Error';
-import { mock403Error } from '~/__mocks__/mock403Error';
+import { mock403Error, mock404Error } from '~/__mocks__/mockK8sStatus';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;

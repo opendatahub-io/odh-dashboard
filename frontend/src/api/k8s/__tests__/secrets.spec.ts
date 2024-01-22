@@ -5,7 +5,7 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mock404Error } from '~/__mocks__/mock404Error';
+import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import {
   assembleISSecretBody,
   assembleSecret,
@@ -310,12 +310,7 @@ describe('replaceSecret', () => {
 
 describe('deleteSecret', () => {
   it('should return status as Success', async () => {
-    const mockK8sStatus = {
-      code: 200,
-      message: '200 OK',
-      reason: '',
-      status: 'Success',
-    };
+    const mockK8sStatus = mock200Status({});
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
     const result = await deleteSecret('projectName', 'secretName');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
