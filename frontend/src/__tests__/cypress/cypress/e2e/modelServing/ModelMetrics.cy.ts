@@ -25,6 +25,8 @@ import {
   mockInvalidTemplateK8sResource,
 } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimePlatform } from '~/types';
+import { mock404Error } from '~/__mocks__/mock404Error';
+import { mock403Error } from '~/__mocks__/mock403Error';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;
@@ -34,6 +36,8 @@ type HandlersProps = {
   hasServingData: boolean;
   hasBiasData: boolean;
   enableModelMesh?: boolean;
+  isTrustyAIAvailable?: boolean;
+  isTrustyAIInstalled?: boolean;
 };
 
 const initIntercepts = ({
@@ -44,6 +48,8 @@ const initIntercepts = ({
   hasServingData = false,
   hasBiasData = false,
   enableModelMesh = true,
+  isTrustyAIAvailable = true,
+  isTrustyAIInstalled = true,
 }: HandlersProps) => {
   cy.intercept(
     '/api/dsc/status',
@@ -186,13 +192,16 @@ const initIntercepts = ({
       mockInvalidTemplateK8sResource({}),
     ]),
   );
+
   cy.intercept(
     {
       method: 'GET',
       pathname:
         '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
     },
-    mockTrustyAIServiceK8sResource(),
+    isTrustyAIInstalled
+      ? mockTrustyAIServiceK8sResource({ isAvailable: isTrustyAIAvailable })
+      : { statusCode: 404, body: mock404Error({}) },
   );
   cy.intercept(
     {
@@ -369,7 +378,7 @@ describe('Model Metrics', () => {
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
     modelMetricsBias.findTab().should('not.exist');
   });
-  it('Enable Trusty AI Checkbox Available', () => {
+  it('Disable Trusty AI', () => {
     initIntercepts({
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
@@ -378,9 +387,190 @@ describe('Model Metrics', () => {
     });
 
     projectDetailsSettingsTab.visit('test-project');
-    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().should('be.enabled');
+    projectDetailsSettingsTab
+      .findTrustyAIInstallCheckbox()
+      .should('be.enabled')
+      .should('be.checked');
+
+    // test disabling
+    cy.intercept(
+      {
+        method: 'DELETE',
+        pathname:
+          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+      },
+      {},
+    ).as('uninstallTrustyAI');
+
+    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().uncheck();
+    projectDetailsSettingsTab
+      .getTrustyAIUninstallModal()
+      .findSubmitButton()
+      .should('not.be.enabled');
+    projectDetailsSettingsTab.getTrustyAIUninstallModal().findInput().type('trustyai');
+    projectDetailsSettingsTab
+      .getTrustyAIUninstallModal()
+      .findSubmitButton()
+      .should('be.enabled')
+      .click();
+
+    cy.wait('@uninstallTrustyAI').then((interception) => {
+      expect(interception.request).to.exist;
+    });
   });
-  it('Enable Trusty AI Checkbox Not Available', () => {
+  it('Enable Trusty AI', () => {
+    initIntercepts({
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
+      hasServingData: false,
+      hasBiasData: false,
+      isTrustyAIInstalled: false,
+    });
+
+    projectDetailsSettingsTab.visit('test-project');
+    projectDetailsSettingsTab
+      .findTrustyAIInstallCheckbox()
+      .should('be.enabled')
+      .should('not.be.checked');
+
+    // test enabling
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname:
+          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices',
+      },
+      mockTrustyAIServiceK8sResource({ isAvailable: true }),
+    ).as('installTrustyAI');
+
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname:
+          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+      },
+      mockTrustyAIServiceK8sResource({
+        isAvailable: false,
+      }),
+    ).as('getTrustyAILoading');
+
+    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
+
+    cy.wait('@installTrustyAI').then((interception) => {
+      expect(interception.request.body).to.be.eql({
+        apiVersion: 'trustyai.opendatahub.io/v1alpha1',
+        kind: 'TrustyAIService',
+        metadata: {
+          name: 'trustyai-service',
+          namespace: 'test-project',
+        },
+        spec: {
+          storage: {
+            format: 'PVC',
+            folder: '/inputs',
+            size: '1Gi',
+          },
+          data: {
+            filename: 'data.csv',
+            format: 'CSV',
+          },
+          metrics: {
+            schedule: '5s',
+          },
+        },
+      });
+    });
+  });
+  it('Trusty AI enable service error', () => {
+    initIntercepts({
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
+      hasServingData: false,
+      hasBiasData: false,
+      isTrustyAIInstalled: false,
+    });
+
+    projectDetailsSettingsTab.visit('test-project');
+    projectDetailsSettingsTab
+      .findTrustyAIInstallCheckbox()
+      .should('be.enabled')
+      .should('not.be.checked');
+
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname:
+          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices',
+      },
+      mockTrustyAIServiceK8sResource({ isAvailable: true }),
+    ).as('installTrustyAI');
+
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname:
+          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+      },
+      { statusCode: 403, body: mock403Error({}) },
+    ).as('getTrustyAIError');
+
+    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
+
+    cy.wait('@installTrustyAI').then((interception) => {
+      expect(interception.request).to.exist;
+    });
+
+    // test service error
+    cy.wait('@getTrustyAIError');
+    projectDetailsSettingsTab.findTrustyAIServiceError().should('exist');
+  });
+  it('Trusty AI enable timeout error', () => {
+    initIntercepts({
+      disableBiasMetrics: false,
+      disablePerformanceMetrics: false,
+      hasServingData: false,
+      hasBiasData: false,
+      isTrustyAIInstalled: false,
+    });
+
+    projectDetailsSettingsTab.visit('test-project');
+    projectDetailsSettingsTab
+      .findTrustyAIInstallCheckbox()
+      .should('be.enabled')
+      .should('not.be.checked');
+
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname:
+          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices',
+      },
+      mockTrustyAIServiceK8sResource({ isAvailable: true }),
+    ).as('installTrustyAI');
+
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname:
+          '/api/k8s/apis/trustyai.opendatahub.io/v1alpha1/namespaces/test-project/trustyaiservices/trustyai-service',
+      },
+      mockTrustyAIServiceK8sResource({
+        isAvailable: false,
+        creationTimestamp: new Date('2022-05-15T00:00:00.000Z').toISOString(),
+      }),
+    ).as('getTrustyAITimeout');
+
+    projectDetailsSettingsTab.findTrustyAIInstallCheckbox().check();
+
+    cy.wait('@installTrustyAI').then((interception) => {
+      expect(interception.request).to.exist;
+    });
+
+    // test timeout - timeout is a timestamp after 5 min
+    cy.wait('@getTrustyAITimeout');
+    projectDetailsSettingsTab.findTrustyAITimeoutError().should('exist');
+  });
+  it('Trusty AI not supported', () => {
     initIntercepts({
       disableBiasMetrics: false,
       disablePerformanceMetrics: false,
