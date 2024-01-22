@@ -352,7 +352,7 @@ export const submitServingRuntimeResources = async (
     ...(name !== undefined && { name }),
   };
   const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
-  const createRolebinding = servingRuntimeData.tokenAuth && allowCreate;
+  const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
   const controlledState = isGpuDisabled(servingRuntimeSelected)
     ? { count: 0, acceleratorProfiles: [], useExisting: false }
@@ -375,7 +375,7 @@ export const submitServingRuntimeResources = async (
             servingRuntimeData,
             servingRuntimeName,
             namespace,
-            createRolebinding,
+            createTokenAuth,
             editInfo.servingRuntime,
             editInfo.secrets,
             {
@@ -399,7 +399,7 @@ export const submitServingRuntimeResources = async (
               servingRuntimeData,
               servingRuntimeName,
               namespace,
-              createRolebinding,
+              createTokenAuth,
               servingRuntime,
               editInfo?.secrets,
               {
