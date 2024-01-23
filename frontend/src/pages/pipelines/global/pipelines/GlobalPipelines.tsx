@@ -14,18 +14,22 @@ const GlobalPipelines: React.FC = () => {
   const pipelinesAPi = usePipelinesAPI();
 
   return (
-    <PipelineCoreApplicationPage
-      title={pipelinesPageTitle}
-      description={pipelinesPageDescription}
-      headerAction={<PipelineServerActions isDisabled={!pipelinesAPi.pipelinesServer.installed} />}
-      getRedirectPath={(namespace) => `/pipelines/${namespace}`}
-    >
-      <EnsureAPIAvailability>
-        <PipelineAndVersionContextProvider>
-          <PipelinesView />
-        </PipelineAndVersionContextProvider>
-      </EnsureAPIAvailability>
-    </PipelineCoreApplicationPage>
+    <div data-testid="pipelines-core-app-page">
+      <PipelineCoreApplicationPage
+        title={pipelinesPageTitle}
+        description={pipelinesPageDescription}
+        headerAction={
+          <PipelineServerActions isDisabled={!pipelinesAPi.pipelinesServer.installed} />
+        }
+        getRedirectPath={(namespace) => `/pipelines/${namespace}`}
+      >
+        <EnsureAPIAvailability>
+          <PipelineAndVersionContextProvider>
+            <PipelinesView />
+          </PipelineAndVersionContextProvider>
+        </EnsureAPIAvailability>
+      </PipelineCoreApplicationPage>
+    </div>
   );
 };
 
