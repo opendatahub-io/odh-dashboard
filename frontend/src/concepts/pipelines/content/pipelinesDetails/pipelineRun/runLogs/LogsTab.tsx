@@ -232,18 +232,16 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                       </ToolbarItem>
                     )}
                     <ToolbarItem spacer={{ default: 'spacerNone' }} style={{ maxWidth: '300px' }}>
-                      <Tooltip content="Search">
-                        <LogViewerSearch
-                          onFocus={() => setIsPaused(true)}
-                          placeholder="Search"
-                          minSearchChars={0}
-                          expandableInput={{
-                            isExpanded: showSearchbar,
-                            onToggleExpand,
-                            toggleAriaLabel: 'Expandable search input toggle',
-                          }}
-                        />
-                      </Tooltip>
+                      <LogViewerSearch
+                        onFocus={() => setIsPaused(true)}
+                        placeholder="Search"
+                        minSearchChars={0}
+                        expandableInput={{
+                          isExpanded: showSearchbar,
+                          onToggleExpand,
+                          toggleAriaLabel: 'Expandable search input toggle',
+                        }}
+                      />
                     </ToolbarItem>
                     {!podStatus?.completed && (
                       <ToolbarItem spacer={{ default: 'spacerNone' }}>
