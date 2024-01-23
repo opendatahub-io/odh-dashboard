@@ -36,7 +36,7 @@ type ExploreApplicationsInnerProps = {
 const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.memo(
   ({ loaded, isEmpty, loadError, exploreComponents, selectedComponent, updateSelection }) => {
     const { dashboardConfig } = useAppContext();
-    const disableInfo = dashboardConfig.spec.dashboardConfig.disableInfo;
+    const { disableInfo } = dashboardConfig.spec.dashboardConfig;
     const [enableApp, setEnableApp] = React.useState<OdhApplication>();
 
     return (

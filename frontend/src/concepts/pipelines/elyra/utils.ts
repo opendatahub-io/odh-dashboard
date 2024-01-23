@@ -133,7 +133,7 @@ export const createElyraServiceAccountRoleBinding = async (
   notebook: NotebookKind,
 ): Promise<RoleBindingKind | void> => {
   const notebookName = notebook.metadata.name;
-  const namespace = notebook.metadata.namespace;
+  const { namespace } = notebook.metadata;
   const notebookUid = notebook.metadata.uid;
 
   // Check if rolebinding is already exists for backward compatibility
