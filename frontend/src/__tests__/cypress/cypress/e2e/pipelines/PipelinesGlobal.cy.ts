@@ -11,25 +11,62 @@ import {
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { pipelinesCoreAppPage, pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines';
+import {
+  pipelinesGlobal,
+  pipelinesTable,
+  pipelineImportModal,
+} from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const projectName = 'test-project-name';
+const initialMockPipeline = buildMockPipeline({ name: 'Test pipeline' });
 
-describe('PipelinesList', () => {
+describe('Pipelines Global', () => {
   beforeEach(() => {
     initIntercepts();
-    pipelinesCoreAppPage.visit(projectName);
+    pipelinesGlobal.visit(projectName);
   });
 
   it('renders the page with pipelines table data', () => {
     pipelinesTable.find();
+    pipelinesTable.findRowByName('Test pipeline');
   });
 
   it('selects a different project', () => {
     cy.url().should('include', 'test-project-name');
 
-    pipelinesCoreAppPage.selectProjectByName('Test Project 2');
+    pipelinesGlobal.selectProjectByName('Test Project 2');
     cy.url().should('include', 'test-project-name-2');
+  });
+
+  it('imports a new pipeline', () => {
+    const uploadPipelineParams = { name: 'New pipeline', description: 'New pipeline description' };
+    const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
+
+    // Intercept upload/re-fetch of pipelines
+    pipelineImportModal.mockUploadPipeline(uploadPipelineParams).as('uploadPipeline');
+    pipelinesTable
+      .mockPipelines([initialMockPipeline, uploadedMockPipeline])
+      .as('refreshPipelines');
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Open the "Import pipeline" modal
+    cy.findByRole('button', { name: 'Import pipeline' }).click();
+
+    // Fill out the "Import pipeline" modal and submit
+    pipelineImportModal.fillPipelineName('New pipeline');
+    pipelineImportModal.fillPipelineDescription('New pipeline description');
+    pipelineImportModal.uploadPipelineYaml('./cypress/e2e/pipelines/mock-upload-pipeline.yaml');
+    pipelineImportModal.submit();
+
+    // Wait for upload/fetch requests
+    cy.wait('@uploadPipeline');
+    cy.wait('@refreshPipelines');
+
+    // Modal should close and the uploaded pipeline should be in the table
+    pipelineImportModal.find().should('not.exist');
+    pipelinesTable.findRowByName('New pipeline');
   });
 });
 
@@ -61,12 +98,11 @@ const initIntercepts = () => {
     ]),
   );
 
-  const mockPipeline = buildMockPipeline({ name: 'Test pipeline' });
   cy.intercept(
     {
       pathname: '/api/proxy/apis/v1beta1/pipelines',
     },
-    buildMockPipelines([mockPipeline]),
+    buildMockPipelines([initialMockPipeline]),
   );
 
   cy.intercept(
@@ -82,7 +118,7 @@ const initIntercepts = () => {
         queryParams: {
           sort_by: 'created_at desc',
           page_size: 10,
-          'resource_key.id': mockPipeline.id,
+          'resource_key.id': initialMockPipeline.id,
           'resource_key.type': 'PIPELINE',
         },
       };
@@ -90,11 +126,11 @@ const initIntercepts = () => {
       req.reply(
         buildMockPipelineVersions([
           buildMockPipelineVersion({
-            id: mockPipeline.default_version?.id,
-            name: mockPipeline.default_version?.name,
+            id: initialMockPipeline.default_version?.id,
+            name: initialMockPipeline.default_version?.name,
             resource_references: [
               {
-                key: { type: ResourceTypeKF.PIPELINE, id: mockPipeline.id },
+                key: { type: ResourceTypeKF.PIPELINE, id: initialMockPipeline.id },
                 relationship: RelationshipKF.OWNER,
               },
             ],
