@@ -14,7 +14,7 @@ const GlobalPipelines: React.FC = () => {
   const pipelinesAPi = usePipelinesAPI();
 
   return (
-    <div data-testid="pipelines-core-app-page">
+    <div data-testid="pipelines-global-page">
       <PipelineCoreApplicationPage
         title={pipelinesPageTitle}
         description={pipelinesPageDescription}
