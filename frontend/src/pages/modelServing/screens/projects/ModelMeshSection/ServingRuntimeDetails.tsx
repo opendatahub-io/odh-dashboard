@@ -33,7 +33,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
       <DescriptionListGroup>
         <DescriptionListTerm>Model server replicas</DescriptionListTerm>
-        <DescriptionListDescription>{obj.spec.replicas}</DescriptionListDescription>
+        <DescriptionListDescription>
+          {isvc?.spec.predictor.minReplicas || obj.spec.replicas || 'Unknown'}
+        </DescriptionListDescription>
       </DescriptionListGroup>
       {container.resources && (
         <DescriptionListGroup>

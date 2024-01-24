@@ -171,20 +171,22 @@ describe('assembleInferenceService', () => {
     };
 
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({}),
+      mockInferenceServiceModalData({
+        maxReplicas: replicaCount,
+        minReplicas: replicaCount,
+      }),
       undefined,
       undefined,
-      true,
+      false,
       undefined,
       acceleratorProfileState,
-      replicaCount,
     );
 
     expect(inferenceService.spec.predictor.maxReplicas).toBe(replicaCount);
     expect(inferenceService.spec.predictor.minReplicas).toBe(replicaCount);
   });
 
-  it('should omit replica count if not provided', async () => {
+  it('should omit replica count for modelmesh', async () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],

@@ -95,6 +95,8 @@ export type CreatingInferenceServiceObject = {
   servingRuntimeName: string;
   storage: InferenceServiceStorage;
   format: InferenceServiceFormat;
+  maxReplicas: number;
+  minReplicas: number;
 };
 
 export enum InferenceServiceStorageType {
