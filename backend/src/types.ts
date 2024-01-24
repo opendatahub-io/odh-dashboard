@@ -965,3 +965,8 @@ export type DataScienceClusterList = {
   kind: 'DataScienceClusterList';
   items: DataScienceClusterKind[];
 };
+
+export type SubscriptionStatusData = {
+  installedCSV?: string;
+  installPlanRefNamespace?: string;
+};
