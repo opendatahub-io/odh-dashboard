@@ -39,7 +39,7 @@ export const passThrough = <T extends K8sResourceCommon>(
           };
         } else {
           // Likely not JSON, print the error and return the content to the client
-          fastify.log.error(`Parsing response error: ${e}, ${data}`);
+          fastify.log.error(e, `Parsing response error: ${data}`);
           throw { code: 500, response: data };
         }
       }
