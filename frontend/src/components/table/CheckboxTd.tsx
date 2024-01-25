@@ -10,8 +10,9 @@ type CheckboxTrProps = {
 };
 
 const CheckboxTd: React.FC<CheckboxTrProps> = ({ id, isChecked, onToggle, isDisabled }) => (
-  <Td>
+  <Td dataLabel="Checkbox">
     <Checkbox
+      aria-label="Checkbox"
       id={`${id}-checkbox`}
       isChecked={isChecked}
       onChange={() => onToggle()}

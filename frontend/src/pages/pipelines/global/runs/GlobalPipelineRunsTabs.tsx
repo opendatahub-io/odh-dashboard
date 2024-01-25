@@ -33,6 +33,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
         title={<TabTitleText>Scheduled</TabTitleText>}
         aria-label="Scheduled tab"
         className="odh-tabcontent-fix"
+        data-testid="scheduled-runs-tab"
       >
         <PageSection isFilled variant="light">
           <ScheduledRuns />
@@ -43,6 +44,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
         title={<TabTitleText>Triggered</TabTitleText>}
         aria-label="Triggered runs tab"
         className="odh-tabcontent-fix"
+        data-testid="triggered-runs-tab"
       >
         <PageSection isFilled variant="light">
           <TriggeredRuns />
