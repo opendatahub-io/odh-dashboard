@@ -14,6 +14,7 @@ const GlobalPipelineRuns: React.FC = () => (
     description={pipelineRunsPageDescription}
     getRedirectPath={(namespace) => `/pipelineRuns/${namespace}`}
     overrideChildPadding
+    testId="pipeline-runs-global-page"
   >
     <EnsureAPIAvailability>
       <PipelineRunVersionsContextProvider>

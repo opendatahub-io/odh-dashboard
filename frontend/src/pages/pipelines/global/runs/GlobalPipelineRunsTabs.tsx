@@ -31,7 +31,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
       <Tab
         eventKey={PipelineRunType.Scheduled}
         title={<TabTitleText>Scheduled</TabTitleText>}
-        aria-label="Scheduled tab"
+        aria-label="Scheduled runs tab"
         className="odh-tabcontent-fix"
       >
         <PageSection isFilled variant="light">
