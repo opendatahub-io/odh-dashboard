@@ -33,6 +33,7 @@ type ApplicationsPageProps = {
   headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
   jobReferenceName?: React.ReactNode;
+  testId?: string;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -51,6 +52,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerContent,
   provideChildrenPadding,
   jobReferenceName,
+  testId,
 }) => {
   const renderHeader = () => (
     <PageSection variant={PageSectionVariants.light}>
@@ -136,11 +138,11 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   };
 
   return (
-    <>
+    <div data-testid={testId}>
       {breadcrumb && <PageBreadcrumb>{breadcrumb}</PageBreadcrumb>}
       {renderHeader()}
       {renderContents()}
-    </>
+    </div>
   );
 };
 
