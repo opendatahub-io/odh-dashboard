@@ -53,10 +53,10 @@ export const getModelMetricsQueries = (
   return {
     [ModelMetricType.REQUEST_COUNT_SUCCESS]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
       QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
-    }s])))`,
+    }s]))) OR on() vector(0)`,
     [ModelMetricType.REQUEST_COUNT_FAILED]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
       QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED][currentTimeframe]
-    }s])))`,
+    }s]))) OR on() vector(0)`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
   };
