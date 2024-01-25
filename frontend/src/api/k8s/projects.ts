@@ -110,8 +110,11 @@ export const getModelServingProjectsAvailable = async (): Promise<ProjectKind[]>
 export const addSupportServingPlatformProject = (
   name: string,
   servingPlatform: NamespaceApplicationCase,
+  dryRun = false,
 ): Promise<string> =>
-  axios(`/api/namespaces/${name}/${servingPlatform}`)
+  axios(`/api/namespaces/${name}/${servingPlatform}`, {
+    params: dryRun ? { dryRun: 'All' } : {},
+  })
     .then((response) => {
       const applied = response.data?.applied ?? false;
       if (!applied) {

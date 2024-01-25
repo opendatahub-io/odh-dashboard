@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
-  submitInferenceServiceResource,
-  submitServingRuntimeResources,
+  getSubmitInferenceServiceResourceFn,
+  getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -148,7 +148,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
     const replicaCount = createDataServingRuntime.numReplicas;
 
-    submitServingRuntimeResources(
+    const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
       servingRuntimeSelected,
       createDataServingRuntime,
       customServingRuntimesEnabled,
@@ -160,16 +160,27 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       projectContext?.currentProject,
       servingRuntimeName,
       false,
-    )
+    );
+
+    const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
+      createDataInferenceService,
+      editInfo?.inferenceServiceEditInfo,
+      servingRuntimeName,
+      false,
+      acceleratorProfileState,
+      replicaCount,
+    );
+
+    // TODO mturley add unit test coverage to make sure we don't create any resources if there's an error
+    Promise.all([
+      submitServingRuntimeResources({ dryRun: true }),
+      submitInferenceServiceResource({ dryRun: true }),
+    ])
       .then(() =>
-        submitInferenceServiceResource(
-          createDataInferenceService,
-          editInfo?.inferenceServiceEditInfo,
-          servingRuntimeName,
-          false,
-          acceleratorProfileState,
-          replicaCount,
-        ),
+        Promise.all([
+          submitServingRuntimeResources({ dryRun: false }),
+          submitInferenceServiceResource({ dryRun: false }),
+        ]),
       )
       .then(() => onSuccess())
       .catch((e) => {

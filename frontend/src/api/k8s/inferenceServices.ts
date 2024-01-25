@@ -153,6 +153,7 @@ export const createInferenceService = (
   isModelMesh?: boolean,
   acceleratorState?: AcceleratorProfileState,
   replicaCount?: number,
+  dryRun = false,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -163,10 +164,15 @@ export const createInferenceService = (
     acceleratorState,
     replicaCount,
   );
-  return k8sCreateResource<InferenceServiceKind>({
-    model: InferenceServiceModel,
-    resource: inferenceService,
-  });
+  return k8sCreateResource<InferenceServiceKind>(
+    applyK8sAPIOptions(
+      { dryRun },
+      {
+        model: InferenceServiceModel,
+        resource: inferenceService,
+      },
+    ),
+  );
 };
 
 export const updateInferenceService = (
@@ -176,6 +182,7 @@ export const updateInferenceService = (
   isModelMesh?: boolean,
   acceleratorState?: AcceleratorProfileState,
   replicaCount?: number,
+  dryRun = false,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -187,10 +194,15 @@ export const updateInferenceService = (
     replicaCount,
   );
 
-  return k8sUpdateResource<InferenceServiceKind>({
-    model: InferenceServiceModel,
-    resource: inferenceService,
-  });
+  return k8sUpdateResource<InferenceServiceKind>(
+    applyK8sAPIOptions(
+      { dryRun },
+      {
+        model: InferenceServiceModel,
+        resource: inferenceService,
+      },
+    ),
+  );
 };
 
 export const deleteInferenceService = (
