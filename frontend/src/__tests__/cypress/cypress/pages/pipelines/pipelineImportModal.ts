@@ -7,6 +7,10 @@ class PipelineImportModal extends Modal {
     super('Import pipeline');
   }
 
+  find() {
+    return cy.findByTestId('import-pipeline-modal').parents('div[role="dialog"]');
+  }
+
   findPipelineNameInput() {
     return this.find().findByRole('textbox', { name: 'Pipeline name' });
   }
@@ -24,11 +28,11 @@ class PipelineImportModal extends Modal {
   }
 
   fillPipelineName(value: string) {
-    this.findPipelineNameInput().type(value);
+    this.findPipelineNameInput().clear().type(value);
   }
 
   fillPipelineDescription(value: string) {
-    this.findPipelineDescriptionInput().type(value);
+    this.findPipelineDescriptionInput().clear().type(value);
   }
 
   uploadPipelineYaml(filePath: string) {

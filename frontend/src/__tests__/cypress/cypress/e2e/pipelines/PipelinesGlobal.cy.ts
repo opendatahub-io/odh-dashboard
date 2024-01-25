@@ -15,10 +15,22 @@ import {
   pipelinesGlobal,
   pipelinesTable,
   pipelineImportModal,
+  pipelineVersionImportModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ name: 'Test pipeline' });
+const initialMockPipelineVersion = buildMockPipelineVersion({
+  id: initialMockPipeline.default_version?.id,
+  name: initialMockPipeline.default_version?.name,
+  resource_references: [
+    {
+      key: { type: ResourceTypeKF.PIPELINE, id: initialMockPipeline.id },
+      relationship: RelationshipKF.OWNER,
+    },
+  ],
+});
+const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
 
 describe('Pipelines Global', () => {
   beforeEach(() => {
@@ -52,21 +64,60 @@ describe('Pipelines Global', () => {
     pipelinesTable.find();
 
     // Open the "Import pipeline" modal
-    cy.findByRole('button', { name: 'Import pipeline' }).click();
+    pipelinesGlobal.findImportPipelineButton().click();
 
     // Fill out the "Import pipeline" modal and submit
+    pipelineImportModal.shouldBeOpen();
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
-    pipelineImportModal.uploadPipelineYaml('./cypress/e2e/pipelines/mock-upload-pipeline.yaml');
+    pipelineImportModal.uploadPipelineYaml(pipelineYamlPath);
     pipelineImportModal.submit();
 
     // Wait for upload/fetch requests
     cy.wait('@uploadPipeline');
     cy.wait('@refreshPipelines');
 
-    // Modal should close and the uploaded pipeline should be in the table
-    pipelineImportModal.find().should('not.exist');
+    // Verify the uploaded pipeline is in the table
     pipelinesTable.findRowByName('New pipeline');
+  });
+
+  it('uploads a new pipeline version', () => {
+    const uploadVersionParams = {
+      name: 'New pipeline version',
+      description: 'New pipeline version description',
+      pipelineid: 'test-pipeline',
+    };
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Open the "Upload new version" modal
+    pipelinesGlobal.findUploadVersionButton().click();
+
+    // Intercept upload/re-fetch of pipeline versions
+    pipelineVersionImportModal.mockUploadVersion(uploadVersionParams).as('uploadVersion');
+    pipelinesTable
+      .mockPipelineVersions(projectName, uploadVersionParams.pipelineid, [
+        initialMockPipelineVersion,
+        buildMockPipelineVersion(uploadVersionParams),
+      ])
+      .as('refreshVersions');
+
+    // Fill out the "Upload new version" modal and submit
+    pipelineVersionImportModal.shouldBeOpen();
+    pipelineVersionImportModal.selectPipelineByName('Test pipeline');
+    pipelineVersionImportModal.fillVersionName('New pipeline version');
+    pipelineVersionImportModal.fillVersionDescription('New pipeline version description');
+    pipelineVersionImportModal.uploadPipelineYaml(pipelineYamlPath);
+    pipelineVersionImportModal.submit();
+
+    // Wait for upload/fetch requests
+    cy.wait('@uploadVersion');
+    cy.wait('@refreshVersions');
+
+    // Verify the uploaded pipeline version is in the table
+    pipelinesTable.toggleExpandRowByIndex(0);
+    pipelinesTable.findRowByName('New pipeline version');
   });
 });
 
@@ -123,20 +174,7 @@ const initIntercepts = () => {
         },
       };
 
-      req.reply(
-        buildMockPipelineVersions([
-          buildMockPipelineVersion({
-            id: initialMockPipeline.default_version?.id,
-            name: initialMockPipeline.default_version?.name,
-            resource_references: [
-              {
-                key: { type: ResourceTypeKF.PIPELINE, id: initialMockPipeline.id },
-                relationship: RelationshipKF.OWNER,
-              },
-            ],
-          }),
-        ]),
-      );
+      req.reply(buildMockPipelineVersions([initialMockPipelineVersion]));
     },
   );
 };
