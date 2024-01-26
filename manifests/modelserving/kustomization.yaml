@@ -7,6 +7,7 @@ resources:
   - ovms-ootb.yaml
   - caikit-ootb.yaml
   - tgis-ootb.yaml
+  - ovms-kserve-ootd.yaml
 images:
   - name: ovms-1
     newName: quay.io/opendatahub/openvino_model_server
@@ -17,3 +18,6 @@ images:
   - name: text-generation-inference
     newName: quay.io/opendatahub/text-generation-inference
     digest: sha256:66071edb8a76cb5949bf8f0b8af6f53810e66a5ef5e4388fd78f74cc155f83a5
+  - name: ovms-kserve
+    newName: quay.io/modh/openvino_model_server
+    digest: sha256:007304a96acd654ca5133c50990c6785464fcea44304c8a846d3279b9c83a9d4
