@@ -1,15 +1,9 @@
 /* eslint-disable camelcase */
 import { JobModeKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 
-type MockJobKFParams = {
-  name?: string;
-  id?: string;
-};
-
-export const mockJobKF = ({
-  name = 'test-job',
-  id = 'test-job',
-}: MockJobKFParams = {}): PipelineRunJobKF => ({
+export const buildMockJobKF = (
+  { name, id } = { name: 'Test job', id: 'test-job' },
+): PipelineRunJobKF => ({
   id,
   name,
   mode: JobModeKF.ENABLED,

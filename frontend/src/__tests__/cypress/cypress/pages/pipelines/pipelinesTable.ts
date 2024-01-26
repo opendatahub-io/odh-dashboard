@@ -11,7 +11,7 @@ class PipelinesTable {
   }
 
   findRowByName(name: string) {
-    return this.find().findAllByRole('heading', { name });
+    return this.find().findAllByRole('heading', { name }).parents('tr');
   }
 
   mockPipelines(pipelines: PipelineKF[]) {

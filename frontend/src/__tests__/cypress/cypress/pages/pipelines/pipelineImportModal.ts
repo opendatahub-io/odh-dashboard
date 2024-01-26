@@ -44,6 +44,7 @@ class PipelineImportModal extends Modal {
       {
         method: 'POST',
         pathname: '/api/proxy/apis/v1beta1/pipelines/upload',
+        times: 1,
       },
       (req) => {
         req.body = {

@@ -32,7 +32,7 @@ const initialMockPipelineVersion = buildMockPipelineVersion({
 });
 const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
 
-describe('Pipelines Global', () => {
+describe('Pipelines', () => {
   beforeEach(() => {
     initIntercepts();
     pipelinesGlobal.visit(projectName);

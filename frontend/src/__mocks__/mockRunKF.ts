@@ -1,15 +1,9 @@
 /* eslint-disable camelcase */
 import { PipelineRunKF, RunStorageStateKF } from '~/concepts/pipelines/kfTypes';
 
-type MockRunKFParams = {
-  name?: string;
-  id?: string;
-};
-
-export const mockRunKF = ({
-  name = 'test-run',
-  id = 'test-run',
-}: MockRunKFParams = {}): PipelineRunKF => ({
+export const buildMockRunKF = (
+  { name, id } = { name: 'Test run', id: 'test-run' },
+): PipelineRunKF => ({
   id,
   name,
   error: '',
