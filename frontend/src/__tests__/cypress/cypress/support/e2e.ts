@@ -14,6 +14,9 @@
 // ***********************************************************
 
 import './commands';
+import { addCommands as webSocketsAddCommands } from './websockets';
+
+webSocketsAddCommands();
 
 Cypress.Keyboard.defaults({
   keystrokeDelay: 0,

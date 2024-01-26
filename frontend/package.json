@@ -42,13 +42,13 @@
     "storybook": "storybook dev -p 6006 -s ../config",
     "cypress:open": "cypress open --project src/__tests__/cypress",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
-    "cypress:open:mock": "MOCK=1 npm run cypress:open",
-    "cypress:run:mock": "MOCK=1 npm run cypress:run",
+    "cypress:open:mock": "MOCK=1 WS_PORT=9002 npm run cypress:open",
+    "cypress:run:mock": "MOCK=1 WS_PORT=9002 npm run cypress:run",
     "cypress:open:record": "RECORD=1 npm run cypress:open",
     "cypress:run:record": "RECORD=1 npm run cypress:run && npm run cypress:format",
-    "cypress:server:build": "ODH_DIST_DIR=./public-cypress POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 npm run build",
+    "cypress:server:build": "ODH_DIST_DIR=./public-cypress POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 WS_HOSTNAME=localhost:9002 npm run build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
-    "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 npm run start:dev",
+    "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 npm run start:dev",
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json"
   },
   "dependencies": {
