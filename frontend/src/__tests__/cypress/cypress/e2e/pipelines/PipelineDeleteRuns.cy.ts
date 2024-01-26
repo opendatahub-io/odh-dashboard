@@ -78,7 +78,7 @@ const initIntercepts = () => {
   cy.intercept(
     {
       pathname:
-        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-pipelines-definition',
+        '/api/k8s/apis/route.openshift.io/v1/namespaces/test-project/routes/ds-pipeline-dspa',
     },
     mockRouteK8sResource({ notebookName: 'ds-pipeline-pipelines-definition' }),
   );
@@ -103,10 +103,25 @@ const initIntercepts = () => {
     cy.intercept(
       {
         pathname:
-          '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+          '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
       },
-      mockDataSciencePipelineApplicationK8sResource({}),
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
     );
+  cy.intercept(
+    {
+      pathname:
+        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications',
+    },
+    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+  );
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname:
+        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/dspa',
+    },
+    mockDataSciencePipelineApplicationK8sResource({}),
+  );
   cy.intercept(
     {
       pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',

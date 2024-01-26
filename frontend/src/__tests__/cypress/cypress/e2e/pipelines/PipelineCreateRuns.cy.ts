@@ -202,13 +202,20 @@ const initIntercepts = () => {
   cy.intercept('/api/config', mockDashboardConfig({}));
   cy.intercept(
     {
-      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/pipelines-definition`,
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications`,
     },
-    mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+    mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
   );
   cy.intercept(
     {
-      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-pipelines-definition`,
+      method: 'GET',
+      pathname: `/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/${projectName}/datasciencepipelinesapplications/dspa`,
+    },
+    mockDataSciencePipelineApplicationK8sResource({}),
+  );
+  cy.intercept(
+    {
+      pathname: `/api/k8s/apis/route.openshift.io/v1/namespaces/${projectName}/routes/ds-pipeline-dspa`,
     },
     mockRouteK8sResource({
       notebookName: 'ds-pipeline-pipelines-definition',

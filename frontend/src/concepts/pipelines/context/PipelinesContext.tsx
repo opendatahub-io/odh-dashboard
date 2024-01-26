@@ -28,6 +28,7 @@ type PipelineContext = {
   hasCR: boolean;
   hasCompatibleVersion: boolean;
   crInitializing: boolean;
+  crName: string;
   serverTimedOut: boolean;
   ignoreTimedOut: () => void;
   namespace: string;
@@ -42,6 +43,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   hasCR: false,
   hasCompatibleVersion: false,
   crInitializing: false,
+  crName: '',
   serverTimedOut: false,
   ignoreTimedOut: () => undefined,
   namespace: '',
@@ -79,6 +81,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
+    pipelineNamespaceCR?.metadata.name ?? '',
     namespace,
   );
 
@@ -110,6 +113,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         hasCR: !!pipelineNamespaceCR,
         hasCompatibleVersion: pipelineNamespaceCR?.spec.dspVersion === 'v2',
         crInitializing: !crLoaded,
+        crName: pipelineNamespaceCR?.metadata.name ?? '',
         serverTimedOut,
         ignoreTimedOut,
         project,
@@ -136,6 +140,7 @@ type UsePipelinesAPI = APIState & {
     installed: boolean;
     timedOut: boolean;
     compatible: boolean;
+    name: string;
   };
   /**
    * Allows agnostic functionality to request all watched API to be reacquired.
@@ -150,6 +155,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     hasCR,
     hasCompatibleVersion,
     crInitializing,
+    crName,
     serverTimedOut,
     apiState,
     namespace,
@@ -163,6 +169,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     installed: hasCR,
     compatible: hasCompatibleVersion,
     timedOut: serverTimedOut,
+    name: crName,
   };
 
   return {
@@ -247,7 +254,7 @@ export const ViewServerModal = ({
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { namespace, refreshState, ignoreTimedOut } = React.useContext(PipelinesContext);
+  const { namespace, crName, refreshState, ignoreTimedOut } = React.useContext(PipelinesContext);
 
   return (
     <Alert
@@ -257,7 +264,9 @@ export const PipelineServerTimedOut: React.FC = () => {
       actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
       actionLinks={
         <>
-          <AlertActionLink onClick={() => deleteServer(namespace).then(() => refreshState())}>
+          <AlertActionLink
+            onClick={() => deleteServer(namespace, crName).then(() => refreshState())}
+          >
             Delete pipeline server
           </AlertActionLink>
           <AlertActionLink onClick={() => ignoreTimedOut()}>Close</AlertActionLink>
