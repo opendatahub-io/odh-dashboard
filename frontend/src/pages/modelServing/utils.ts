@@ -17,6 +17,7 @@ import {
   createServiceAccount,
   getRoleBinding,
   addOwnerReference,
+  getServiceAccount,
 } from '~/api';
 import {
   SecretKind,
@@ -25,6 +26,7 @@ import {
   ServingRuntimeKind,
   DataScienceClusterKindStatus,
   InferenceServiceKind,
+  ServiceAccountKind,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/pages/projects/utils';
@@ -66,7 +68,7 @@ export const setUpTokenAuth = async (
   fillData: CreatingServingRuntimeObject,
   servingRuntimeName: string,
   namespace: string,
-  createRolebinding: boolean,
+  createTokenAuth: boolean,
   owner: ServingRuntimeKind,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
@@ -81,13 +83,29 @@ export const setUpTokenAuth = async (
     generateRoleBindingServingRuntime(roleBindingName, serviceAccountName, namespace),
     owner,
   );
-  return Promise.all([
-    ...(existingSecrets === undefined ? [createServiceAccount(serviceAccount, opts)] : []),
-    ...(createRolebinding ? [createRoleBindingIfMissing(roleBinding, namespace, opts)] : []),
-  ])
+  return (
+    createTokenAuth
+      ? Promise.all([
+          createServiceAccountIfMissing(serviceAccount, namespace, opts),
+          createRoleBindingIfMissing(roleBinding, namespace, opts),
+        ])
+      : Promise.resolve()
+  )
     .then(() => createSecrets(fillData, servingRuntimeName, namespace, existingSecrets, opts))
     .catch((error) => Promise.reject(error));
 };
+
+export const createServiceAccountIfMissing = async (
+  serviceAccount: ServiceAccountKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<ServiceAccountKind> =>
+  getServiceAccount(serviceAccount.metadata.name, namespace).catch((e) => {
+    if (e.statusObject?.code === 404) {
+      return createServiceAccount(serviceAccount, opts);
+    }
+    return Promise.reject(e);
+  });
 
 export const createRoleBindingIfMissing = async (
   rolebinding: RoleBindingKind,

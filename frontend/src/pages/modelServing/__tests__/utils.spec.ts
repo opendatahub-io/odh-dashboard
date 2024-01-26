@@ -1,4 +1,4 @@
-import { resourcesArePositive } from '~/pages/modelServing/utils';
+import { resourcesArePositive, setUpTokenAuth } from '~/pages/modelServing/utils';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
@@ -11,6 +11,25 @@ import {
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ContainerResources, ServingRuntimePlatform } from '~/types';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
+import { mock404Error } from '~/__mocks__/mock404Error';
+import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import {
+  createRoleBinding,
+  createSecret,
+  createServiceAccount,
+  getRoleBinding,
+  getServiceAccount,
+} from '~/api';
+
+jest.mock('~/api', () => ({
+  ...jest.requireActual('~/api'),
+  getServiceAccount: jest.fn(),
+  createServiceAccount: jest.fn(),
+  getRoleBinding: jest.fn(),
+  createRoleBinding: jest.fn(),
+  createSecret: jest.fn(),
+}));
 
 describe('resourcesArePositive', () => {
   it('should return true for undefined limits and request', () => {
@@ -59,6 +78,88 @@ describe('resourcesArePositive', () => {
       requests: { cpu: 1, memory: '1Gi' },
     };
     expect(resourcesArePositive(resources)).toBe(true);
+  });
+});
+
+describe('setUpTokenAuth', () => {
+  const setMockImplementations = (serviceAccountAndRoleBindingAlreadyExist = false) => {
+    if (serviceAccountAndRoleBindingAlreadyExist) {
+      jest
+        .mocked(getServiceAccount)
+        .mockImplementation((name: string, namespace: string) =>
+          Promise.resolve(mockServiceAccountK8sResource({ name, namespace })),
+        );
+      jest
+        .mocked(getRoleBinding)
+        .mockImplementation((name: string, namespace: string) =>
+          Promise.resolve(mockRoleBindingK8sResource({ name, namespace })),
+        );
+    } else {
+      jest
+        .mocked(getServiceAccount)
+        .mockImplementation(() => Promise.reject({ statusObject: mock404Error({}) }));
+      jest
+        .mocked(getRoleBinding)
+        .mockImplementation(() => Promise.reject({ statusObject: mock404Error({}) }));
+    }
+  };
+
+  const fillData: Parameters<typeof setUpTokenAuth>[0] = {
+    name: 'test-name-sa',
+    servingRuntimeTemplateName: '',
+    numReplicas: 1,
+    modelSize: {
+      name: '',
+      resources: {
+        requests: {},
+        limits: {},
+      },
+    },
+    externalRoute: false,
+    tokenAuth: false,
+    tokens: [{ uuid: '', name: 'default-name', error: '' }],
+  };
+
+  it('should create service account, role binding and secrets if createTokenAuth is true', async () => {
+    setMockImplementations(false);
+    await setUpTokenAuth(
+      { ...fillData, tokenAuth: true },
+      'test-name',
+      'test-project',
+      true,
+      mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+    );
+    expect(createServiceAccount).toHaveBeenCalled();
+    expect(createRoleBinding).toHaveBeenCalled();
+    expect(createSecret).toHaveBeenCalled();
+  });
+
+  it('should not create service account and role binding if they already exist', async () => {
+    setMockImplementations(true);
+    await setUpTokenAuth(
+      { ...fillData, tokenAuth: true },
+      'test-name',
+      'test-project',
+      true,
+      mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+    );
+    expect(createServiceAccount).not.toHaveBeenCalled();
+    expect(createRoleBinding).not.toHaveBeenCalled();
+    expect(createSecret).toHaveBeenCalled();
+  });
+
+  it('should not create service account and role binding if createTokenAuth is false', async () => {
+    setMockImplementations(false);
+    await setUpTokenAuth(
+      { ...fillData, tokenAuth: false },
+      'test-name',
+      'test-project',
+      false,
+      mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+    );
+    expect(createServiceAccount).not.toHaveBeenCalled();
+    expect(createRoleBinding).not.toHaveBeenCalled();
+    expect(createSecret).toHaveBeenCalled();
   });
 });
 

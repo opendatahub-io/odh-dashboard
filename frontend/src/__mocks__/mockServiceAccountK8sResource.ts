@@ -7,7 +7,7 @@ type MockResourceConfigType = {
 };
 
 export const mockServiceAccountK8sResource = ({
-  name = 'test-model-sa',
+  name = 'test-name-sa',
   namespace = 'test-project',
 }: MockResourceConfigType): ServiceAccountKind => ({
   kind: 'ServiceAccount',
