@@ -33,11 +33,16 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
 
   return (
     <>
-      <Tabs activeKey={selection ?? undefined} style={{ flexShrink: 0 }}>
+      <Tabs
+        activeKey={selection ?? undefined}
+        style={{ flexShrink: 0 }}
+        data-testid="pipeline-run-drawer-bottom"
+      >
         {Object.values(RunDetailsTabs)
           .filter((key) => (isJob ? key !== RunDetailsTabs.YAML : true)) // do not include yaml tab for jobs
           .map((tab) => (
             <Tab
+              data-testid={'bottom-drawer-tab-' + tab}
               key={tab}
               title={tab}
               eventKey={tab}
