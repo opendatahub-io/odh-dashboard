@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
-import { TableBase, getTableColumnSort } from '~/components/table';
+import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
 import {
   PipelineCoreResourceKF,
   PipelineRunKF,
@@ -9,7 +9,6 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import { useCheckboxTable } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';

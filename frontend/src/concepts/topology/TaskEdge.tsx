@@ -8,6 +8,7 @@ import {
   DEFAULT_SPACER_NODE_TYPE,
   ConnectorArrow,
 } from '@patternfly/react-topology';
+
 interface TaskEdgeProps {
   element: Edge;
   className?: string;

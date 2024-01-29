@@ -8,7 +8,7 @@ type TolerationRowProps = {
   onEdit: (toleration: Toleration) => void;
 };
 
-export const TolerationRow: React.FC<TolerationRowProps> = ({ toleration, onEdit, onDelete }) => {
+const TolerationRow: React.FC<TolerationRowProps> = ({ toleration, onEdit, onDelete }) => {
   const formatValue = (value: string | undefined) => value || '-';
   const formatSeconds = (seconds: number | undefined) =>
     seconds !== undefined ? `${seconds} seconds(s)` : '-';

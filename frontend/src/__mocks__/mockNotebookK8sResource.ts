@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import _ from 'lodash-es';
 import { KnownLabels, NotebookKind } from '~/k8sTypes';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
 import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';

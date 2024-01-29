@@ -5,7 +5,7 @@ import {
   OauthFastifyRequest,
 } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
-import { proxyCall, ProxyCallStatus, ProxyError, ProxyErrorType } from '../../../utils/httpUtils';
+import { proxyCall, ProxyError, ProxyErrorType } from '../../../utils/httpUtils';
 
 export type PassThroughData = {
   method: string;

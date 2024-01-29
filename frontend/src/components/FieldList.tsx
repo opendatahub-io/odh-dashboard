@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Stack, StackItem } from '@patternfly/react-core';
-import { FormGroup, TextInput } from '@patternfly/react-core';
+import { Stack, StackItem, FormGroup, TextInput } from '@patternfly/react-core';
 import { EnvVariableDataEntry } from '~/pages/projects/types';
 import PasswordInput from '~/pages/projects/components/PasswordInput';
 

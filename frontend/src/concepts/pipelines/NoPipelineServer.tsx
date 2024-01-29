@@ -5,7 +5,7 @@ import {
   EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import WrenchIcon from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { CreatePipelineServerButton } from '~/concepts/pipelines/context';
 
 type NoPipelineServerProps = {

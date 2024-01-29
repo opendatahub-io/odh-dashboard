@@ -2,7 +2,7 @@ import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunJobColumns } from '~/concepts/pipelines/content/tables/columns';
-import { getTableColumnSort, useCheckboxTable } from '~/components/table';
+import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
 import PipelineRunJobTableToolbar from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableToolbar';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -10,7 +10,6 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineType } from '~/concepts/pipelines/content/tables/utils';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import { TableBase } from '~/components/table';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRunTableProps = {

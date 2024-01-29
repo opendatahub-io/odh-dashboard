@@ -22,6 +22,7 @@ import {
 import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
 import { PipelineServerConfigType } from './types';
 import { getLabelName } from './utils';
+
 type pipelineDropdownProps = {
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
