@@ -19,7 +19,6 @@ const GlobalPipelines: React.FC = () => {
       description={pipelinesPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPi.pipelinesServer.installed} />}
       getRedirectPath={(namespace) => `/pipelines/${namespace}`}
-      testId="pipelines-global-page"
     >
       <EnsureAPIAvailability>
         <PipelineAndVersionContextProvider>

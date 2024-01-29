@@ -12,8 +12,8 @@ class PipelineRunsGlobal {
     cy.testA11y();
   }
 
-  findIsApiAvailable() {
-    return cy.findByTestId('pipelines-api-available');
+  isApiAvailable() {
+    return cy.findByTestId('pipelines-api-not-available').should('not.exist');
   }
 
   findRunsTable() {

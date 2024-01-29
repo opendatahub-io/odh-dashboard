@@ -11,13 +11,13 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
   if (!apiAvailable) {
     return (
-      <Bullseye style={{ minHeight: 150 }}>
+      <Bullseye style={{ minHeight: 150 }} data-testid="pipelines-api-not-available">
         <Spinner />
       </Bullseye>
     );
   }
 
-  return <div data-testid="pipelines-api-available">{children}</div>;
+  return <>{children}</>;
 };
 
 export default EnsureAPIAvailability;

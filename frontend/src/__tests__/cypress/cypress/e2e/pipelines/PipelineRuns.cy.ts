@@ -125,7 +125,7 @@ describe('Pipeline runs', () => {
       initIntercepts();
 
       globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.findIsApiAvailable().should('exist');
+      globalPipelineRuns.isApiAvailable();
 
       globalPipelineRuns.findScheduledRunTab().click();
       globalPipelineRuns
@@ -173,7 +173,7 @@ describe('Pipeline runs', () => {
       initIntercepts();
 
       globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.findIsApiAvailable().should('exist');
+      globalPipelineRuns.isApiAvailable();
 
       globalPipelineRuns.findScheduledRunTab().click();
       globalPipelineRuns
@@ -247,7 +247,7 @@ describe('Pipeline runs', () => {
       initIntercepts();
 
       globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.findIsApiAvailable().should('exist');
+      globalPipelineRuns.isApiAvailable();
 
       globalPipelineRuns.findTriggeredRunsTab().click();
       globalPipelineRuns
@@ -295,7 +295,7 @@ describe('Pipeline runs', () => {
       initIntercepts();
 
       globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.findIsApiAvailable().should('exist');
+      globalPipelineRuns.isApiAvailable();
 
       globalPipelineRuns.findTriggeredRunsTab().click();
       globalPipelineRuns
