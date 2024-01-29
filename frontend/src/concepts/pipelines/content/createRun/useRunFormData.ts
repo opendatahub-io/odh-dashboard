@@ -112,8 +112,8 @@ export const useUpdateRunType = (
 
     const { trigger } = initialData;
     let triggerType: ScheduledType;
-    let start: RunDateTime | undefined = undefined;
-    let end: RunDateTime | undefined = undefined;
+    let start: RunDateTime | undefined;
+    let end: RunDateTime | undefined;
     let value: string;
     if (trigger.cron_schedule) {
       triggerType = ScheduledType.CRON;

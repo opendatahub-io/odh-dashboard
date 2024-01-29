@@ -57,7 +57,9 @@ const usePipelineRunFilter = (
       const keys: string[] = Object.values(PipelineRunStatusesKF);
       if (statusValue === PipelineRunStatusUnknown && keys.includes(label)) {
         return false;
-      } else if (statusValue !== PipelineRunStatusUnknown && statusValue !== label) {
+      }
+
+      if (statusValue !== PipelineRunStatusUnknown && statusValue !== label) {
         return false;
       }
     }

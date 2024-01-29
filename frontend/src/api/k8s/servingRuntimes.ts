@@ -131,7 +131,7 @@ export const assembleServingRuntime = (
   );
 
   if (isModelMesh) {
-    servingRuntime.spec.tolerations = tolerations;
+    updatedServingRuntime.spec.tolerations = tolerations;
   }
 
   // Volume mount for /dev/shm

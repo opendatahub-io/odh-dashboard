@@ -46,14 +46,14 @@ const initIntercepts = () => {
       pathname: '/api/k8s/api/v1/namespaces/test-project/secrets/aws-connection-testdb',
     },
     mockSecretK8sResource({ name: 'aws-connection-testdb' }),
-  ),
-    cy.intercept(
-      {
-        pathname:
-          '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
-      },
-      mockDataSciencePipelineApplicationK8sResource({}),
-    );
+  );
+  cy.intercept(
+    {
+      pathname:
+        '/api/k8s/apis/datasciencepipelinesapplications.opendatahub.io/v1alpha1/namespaces/test-project/datasciencepipelinesapplications/pipelines-definition',
+    },
+    mockDataSciencePipelineApplicationK8sResource({}),
+  );
   cy.intercept(
     {
       pathname: '/api/k8s/apis/kubeflow.org/v1/namespaces/test-project/notebooks',

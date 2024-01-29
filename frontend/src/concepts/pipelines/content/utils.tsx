@@ -26,7 +26,7 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
   }
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
-  let details: string | undefined = undefined;
+  let details: string | undefined;
   let label: PipelineRunKF['status'];
 
   switch (run.status) {

@@ -115,7 +115,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
                         isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
                         onChange={(e, value: string) => {
                           let newValue =
-                            isNaN(Number(value)) || !Number.isInteger(Number(value))
+                            Number.isNaN(Number(value)) || !Number.isInteger(Number(value))
                               ? hour
                               : Number(value);
                           newValue =
@@ -145,7 +145,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
                         isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
                         onChange={(e, value: string) => {
                           let newValue =
-                            isNaN(Number(value)) || !Number.isInteger(Number(value))
+                            Number.isNaN(Number(value)) || !Number.isInteger(Number(value))
                               ? minute
                               : Number(value);
                           newValue =

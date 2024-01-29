@@ -29,7 +29,7 @@ const useStorageStatusAlert = (pvc: PersistentVolumeClaimKind, percentageFull: n
 
   React.useEffect(() => {
     const currentStatus = getFullStatusFromPercentage(percentageFull);
-    if (!isNaN(percentageFull)) {
+    if (!Number.isNaN(percentageFull)) {
       if (lastStatus !== currentStatus) {
         if (currentStatus) {
           notification[currentStatus](

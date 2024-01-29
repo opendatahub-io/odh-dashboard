@@ -32,30 +32,28 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       empty: true,
       emptyStatePage: <PipelineCoreNoProjects />,
     };
-  } else {
-    if (namespace) {
-      const foundProject = projects.find(byName(namespace));
-      if (foundProject) {
-        // Render the content
-        return (
-          <PipelineContextProvider namespace={namespace}>
-            <Outlet />
-          </PipelineContextProvider>
-        );
-      }
-
-      // They ended up on a non-valid project path
-      renderStateProps = {
-        empty: true,
-        emptyStatePage: (
-          <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
-        ),
-      };
-    } else {
-      // Redirect the namespace suffix into the URL
-      const redirectProject = preferredProject ?? projects[0];
-      return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
+  } else if (namespace) {
+    const foundProject = projects.find(byName(namespace));
+    if (foundProject) {
+      // Render the content
+      return (
+        <PipelineContextProvider namespace={namespace}>
+          <Outlet />
+        </PipelineContextProvider>
+      );
     }
+
+    // They ended up on a non-valid project path
+    renderStateProps = {
+      empty: true,
+      emptyStatePage: (
+        <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
+      ),
+    };
+  } else {
+    // Redirect the namespace suffix into the URL
+    const redirectProject = preferredProject ?? projects[0];
+    return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
   }
 
   return (
