@@ -26,7 +26,7 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ pip
   }
 
   if (
-    !pipelineRunKF?.pipeline_spec.parameters ||
+    !pipelineRunKF.pipeline_spec.parameters ||
     pipelineRunKF.pipeline_spec.parameters.length === 0
   ) {
     return (

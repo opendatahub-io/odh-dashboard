@@ -30,9 +30,7 @@ export const useWatchQuickStarts = (): {
     watchQuickStarts();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, []);
 

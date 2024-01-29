@@ -29,7 +29,7 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
       controller.addEventListener(SELECTION_EVENT, onSelect);
 
       return () => {
-        controller?.removeEventListener(SELECTION_EVENT, onSelect);
+        controller.removeEventListener(SELECTION_EVENT, onSelect);
       };
     }
 

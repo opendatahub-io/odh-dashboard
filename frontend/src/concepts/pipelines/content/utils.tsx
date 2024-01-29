@@ -60,8 +60,8 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
     default:
       icon = UNKNOWN_ICON;
       status = UNKNOWN_STATUS;
-      label = run.status ?? 'Starting';
-      details = run.status ?? 'No status yet';
+      label = run.status || 'Starting';
+      details = run.status || 'No status yet';
   }
 
   return { icon, label, status, details };

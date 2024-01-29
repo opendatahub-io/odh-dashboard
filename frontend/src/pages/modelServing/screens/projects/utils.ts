@@ -43,6 +43,7 @@ import {
   updateInferenceService,
   updateServingRuntime,
 } from '~/api';
+import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ServingRuntimeSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -169,10 +170,10 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.annotations?.['openshift.io/display-name'] ||
     existingData?.metadata.name ||
     '';
-  const existingStorage = existingData?.spec?.predictor.model.storage || undefined;
-  const existingServingRuntime = existingData?.spec?.predictor.model.runtime || '';
+  const existingStorage = existingData?.spec.predictor.model.storage || undefined;
+  const existingServingRuntime = existingData?.spec.predictor.model.runtime || '';
   const existingProject = existingData?.metadata.namespace || '';
-  const existingFormat = existingData?.spec?.predictor.model.modelFormat || undefined;
+  const existingFormat = existingData?.spec.predictor.model.modelFormat || undefined;
 
   React.useEffect(() => {
     if (existingName) {
@@ -217,7 +218,7 @@ export const getProjectModelServingPlatform = (
   if (!project) {
     return {};
   }
-  if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
+  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
     if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
       return {};
     }
@@ -228,7 +229,7 @@ export const getProjectModelServingPlatform = (
       return { platform: ServingRuntimePlatform.SINGLE };
     }
   }
-  if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
     return {
       platform: ServingRuntimePlatform.MULTI,
       error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
@@ -433,4 +434,7 @@ export const getUrlFromKserveInferenceService = (
 
 export const filterOutConnectionsWithoutBucket = (
   connections: DataConnection[],
-): DataConnection[] => connections.filter((obj) => obj.data.data['AWS_S3_BUCKET'].trim() !== '');
+): DataConnection[] =>
+  connections.filter(
+    (obj) => isDataConnectionAWS(obj) && obj.data.data['AWS_S3_BUCKET'].trim() !== '',
+  );

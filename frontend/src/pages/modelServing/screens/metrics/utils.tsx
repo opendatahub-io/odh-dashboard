@@ -141,7 +141,7 @@ export const createGraphMetricLine = ({
   name,
   translatePoint,
 }: NamedMetricChartLine): GraphMetricLine =>
-  metric.data?.map<GraphMetricPoint>((data) => {
+  metric.data.map<GraphMetricPoint>((data) => {
     const point: GraphMetricPoint = {
       x: data[0] * 1000,
       y: parseFloat(data[1]),
@@ -151,7 +151,7 @@ export const createGraphMetricLine = ({
       return translatePoint(point);
     }
     return point;
-  }) || [];
+  });
 
 export const useStableMetrics = (
   metricChartLine: MetricChartLine,
@@ -190,13 +190,12 @@ const checkThresholdValid = (metricType: BiasMetricType, thresholdDelta?: number
       return true;
     }
 
-    if (metricType === BiasMetricType.DIR) {
-      if (thresholdDelta >= 0 && thresholdDelta < 1) {
-        // 0<=DIR<1 , valid
-        return true;
-      }
-      // DIR, not within the range, invalid
+    // metricType === BiasMetricType.DIR
+    if (thresholdDelta >= 0 && thresholdDelta < 1) {
+      // 0<=DIR<1 , valid
+      return true;
     }
+    // DIR, not within the range, invalid
     // not SPD not DIR, undefined for now, metricType should be selected, invalid
   }
   // not input anything, invalid

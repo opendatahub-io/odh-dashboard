@@ -204,25 +204,6 @@ describe('getTagForImage', () => {
 
     expect(result).toEqual({ name: 'tag1', default: true });
   });
-  it('should return undefined if image has no tags', () => {
-    const buildStatuses: BuildStatus[] = [
-      {
-        name: 'Build1',
-        imageTag: 'imageName:tag1',
-        status: BUILD_PHASE.complete,
-        timestamp: '2022-01-01',
-      },
-    ];
-
-    const image = {
-      name: 'imageName',
-      tags: undefined as unknown as ImageTagInfo[],
-    } as ImageInfo;
-
-    const result = getTagForImage(buildStatuses, image);
-
-    expect(result).toBeUndefined();
-  });
 });
 describe('getImageTagVersion', () => {
   it('should return the selected tag version if image has multiple tags and a selected tag is provided', () => {
@@ -270,6 +251,7 @@ describe('getImageTagVersion', () => {
 
     expect(result).toBe('tag1');
   });
+
   it('should return empty string if image has no tags', () => {
     const buildStatuses: BuildStatus[] = [
       {
@@ -282,7 +264,7 @@ describe('getImageTagVersion', () => {
 
     const image = {
       name: 'imageName',
-      tags: undefined as unknown as ImageTagInfo[],
+      tags: {},
     } as ImageInfo;
 
     const result = getImageTagVersion(buildStatuses, image);
@@ -317,17 +299,6 @@ describe('getDescriptionForTag', () => {
 
   it('should return an empty string if imageTag is not provided', () => {
     const result = getDescriptionForTag(undefined);
-    expect(result).toBe('');
-  });
-
-  it('should return an empty string if imageTag has no content', () => {
-    const imageTag: ImageTagInfo = {
-      name: 'tag1',
-      content: undefined as unknown as ImageTagInfo['content'],
-    } as ImageTagInfo;
-
-    const result = getDescriptionForTag(imageTag);
-
     expect(result).toBe('');
   });
 

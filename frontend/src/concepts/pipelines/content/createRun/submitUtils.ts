@@ -52,7 +52,7 @@ const createRun = async (
     description: formData.nameDesc.description,
     resource_references: getResourceReferences(formData),
     pipeline_spec: {
-      parameters: formData.params.map(({ value, label }) => ({ name: label, value })) ?? [],
+      parameters: formData.params?.map(({ value, label }) => ({ name: label, value })) ?? [],
     },
     service_account: '',
   };

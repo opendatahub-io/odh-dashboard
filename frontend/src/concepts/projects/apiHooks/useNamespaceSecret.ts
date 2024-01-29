@@ -10,7 +10,7 @@ const useNamespaceSecret = (
   const fetchSecret = React.useCallback<() => Promise<EnvVariable | undefined>>(
     () =>
       getSecret(namespace, secretName).then((secret) => {
-        if (!secret || !secret.data) {
+        if (!secret.data) {
           throw new Error(`Secret ${secretName} data was not found.`);
         }
 

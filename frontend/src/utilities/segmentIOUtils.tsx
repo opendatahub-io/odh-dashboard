@@ -41,7 +41,7 @@ export const initSegment = async (props: {
   }
   if (analytics.invoked) {
     /* eslint-disable-next-line no-console */
-    window.console && console.error && console.error('Segment snippet included twice.');
+    console.error('Segment snippet included twice.');
   } else {
     analytics.invoked = true;
     analytics.methods = [

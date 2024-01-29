@@ -167,7 +167,7 @@ export const getServingRuntimeSize = (
   sizes: ServingRuntimeSize[],
   servingRuntime?: ServingRuntimeKind,
 ): ServingRuntimeSize => {
-  const existingResources = servingRuntime?.spec?.containers[0]?.resources || sizes[0].resources;
+  const existingResources = servingRuntime?.spec.containers[0]?.resources || sizes[0].resources;
   const size = sizes.find(
     (size) =>
       isCpuLimitEqual(size.resources.limits?.cpu, existingResources.limits?.cpu) &&
@@ -232,7 +232,7 @@ export const isModelServerEditInfoChanged = (
       !_.isEqual(getServingRuntimeSize(sizes, editInfo.servingRuntime), createData.modelSize) ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
-      editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
+      editInfo.servingRuntime.metadata.annotations['enable-auth'] !==
         String(createData.tokenAuth) ||
       isAcceleratorProfileChanged(acceleratorProfileState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&

@@ -48,7 +48,7 @@ const ModelServingGlobal: React.FC = () => {
             onCancel={() => {
               const redirectProject = preferredProject ?? projects?.[0];
               if (redirectProject) {
-                navigate(`/modelServing/${redirectProject?.metadata.name}`);
+                navigate(`/modelServing/${redirectProject.metadata.name}`);
               }
             }}
           />

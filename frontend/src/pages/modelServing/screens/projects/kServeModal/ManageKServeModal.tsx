@@ -72,7 +72,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   React.useEffect(() => {
     if (projectContext?.currentProject) {
-      setCreateDataInferenceService('project', projectContext?.currentProject.metadata.name);
+      setCreateDataInferenceService('project', projectContext.currentProject.metadata.name);
     }
   }, [projectContext, setCreateDataInferenceService]);
 
@@ -206,7 +206,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext?.currentProject)) ||
+                  getProjectDisplayName(projectContext.currentProject)) ||
                 editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
                 ''
               }

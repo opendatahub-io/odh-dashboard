@@ -51,7 +51,7 @@ export type RunFormData = {
 };
 
 export type SafeRunFormData = RunFormData & {
-  pipeline: PipelineKF;
+  pipeline: PipelineKF | null;
   // experiment: ExperimentKF;
-  params: RunParam[];
+  params?: RunParam[];
 };

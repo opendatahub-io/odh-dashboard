@@ -44,7 +44,7 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
           step: step.toString(),
         }).toString(),
       })
-      .then((response) => responsePredicate(response.data?.response.data));
+      .then((response) => responsePredicate(response.data.response.data));
   }, [endInMs, span, active, apiPath, namespace, queryLang, step, responsePredicate]);
 
   return useFetchState<T[]>(fetchData, []);

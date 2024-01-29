@@ -13,12 +13,12 @@ export const getTokenDisplayName = (secret: SecretKind): string =>
 export const getInferenceServiceActiveModelState = (
   is: InferenceServiceKind,
 ): InferenceServiceModelState =>
-  <InferenceServiceModelState>is.status?.modelStatus.states?.activeModelState ||
-  <InferenceServiceModelState>is.status?.modelStatus.states?.targetModelState ||
+  <InferenceServiceModelState | undefined>is.status?.modelStatus.states.activeModelState ||
+  <InferenceServiceModelState | undefined>is.status?.modelStatus.states.targetModelState ||
   InferenceServiceModelState.UNKNOWN;
 
 export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string =>
-  is.status?.modelStatus.states?.activeModelState ||
+  is.status?.modelStatus.states.activeModelState ||
   is.status?.modelStatus.lastFailureInfo?.message ||
   'Unknown';
 
@@ -31,7 +31,7 @@ export const getInferenceServiceProjectDisplayName = (
 };
 
 export const checkModelStatus = (model: PodKind): ModelStatus => {
-  const modelStatus = model.status.conditions.some((model) => model?.reason === 'Unschedulable');
+  const modelStatus = model.status.conditions.some((model) => model.reason === 'Unschedulable');
   return {
     failedToSchedule: model.status.phase === 'Pending' && modelStatus,
   };

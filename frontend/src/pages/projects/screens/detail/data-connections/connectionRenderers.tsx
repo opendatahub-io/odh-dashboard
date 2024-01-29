@@ -8,4 +8,5 @@ export const DATA_CONNECTION_TYPES: { [key in DataConnectionType]: React.ReactNo
       <CubeIcon /> Object storage
     </>
   ),
+  [DataConnectionType.UNKNOWN]: undefined,
 };

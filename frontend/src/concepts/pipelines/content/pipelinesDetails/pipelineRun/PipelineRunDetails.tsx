@@ -114,7 +114,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                 }
               >
                 <ApplicationsPage
-                  title={error ? 'Error loading run' : <PipelineRunTitle run={run} />}
+                  title={<PipelineRunTitle run={run} />}
                   description={
                     run ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
                   }
@@ -124,13 +124,12 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                     <Breadcrumb>
                       {breadcrumbPath}
                       <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                        <Truncate content={error ? 'Run details' : run?.name ?? 'Loading...'} />
+                        <Truncate content={run?.name ?? 'Loading...'} />
                       </BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
-                    loaded &&
-                    !error && (
+                    loaded && (
                       <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
                     )
                   }
@@ -146,7 +145,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                         const firstId = ids[0];
                         if (ids.length === 0) {
                           setSelectedId(null);
-                        } else if (taskMap[firstId]) {
+                        } else {
                           setDetailsTab(null);
                           setSelectedId(firstId);
                         }

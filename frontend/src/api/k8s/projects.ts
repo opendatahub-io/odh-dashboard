@@ -66,10 +66,6 @@ export const createProject = (
       },
     })
       .then((project) => {
-        if (!project) {
-          throw new Error('Unable to create a project due to permissions.');
-        }
-
         const projectName = project.metadata.name;
 
         axios(`/api/namespaces/${projectName}/0`)

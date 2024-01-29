@@ -7,9 +7,6 @@ import ToastNotification from './ToastNotification';
 const ToastNotifications: React.FC = () => {
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
 
-  if (!notifications) {
-    return null;
-  }
   return (
     <AlertGroup isToast isLiveRegion>
       {notifications.map((notification) => (

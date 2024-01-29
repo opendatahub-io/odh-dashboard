@@ -123,7 +123,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ open, spawnInProgre
           title: notebookStatus.currentEventReason,
           description: notebookStatus.currentEventDescription,
         });
-      } else if (notebookStatus.currentStatus === EventStatus.WARNING) {
+      } else {
         setSpawnStatus({
           status: AlertVariant.warning,
           title: notebookStatus.currentEventReason,
