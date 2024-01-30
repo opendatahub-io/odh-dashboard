@@ -9,12 +9,19 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { pipelineDetails } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
+import { pipelinesTopology } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());
   cy.intercept('/api/config', mockDashboardConfig({}));
+  cy.intercept(
+    '/api/dsc/status',
+    mockDscStatus({
+      installedComponents: { 'data-science-pipelines-operator': true },
+    }),
+  );
   cy.intercept(
     {
       method: 'POST',
@@ -87,20 +94,20 @@ const initIntercepts = () => {
   );
 };
 
-describe('Pipeline details', () => {
+describe('Pipeline topology', () => {
   it('Test topology renders', () => {
     initIntercepts();
 
-    pipelineDetails.visit('test-project', 'test-pipeline');
+    pipelinesTopology.visit('test-project', 'test-pipeline');
 
-    pipelineDetails.findTaskNode('print-msg').click();
-    pipelineDetails
+    pipelinesTopology.findTaskNode('print-msg').click();
+    pipelinesTopology
       .findTaskDrawer()
       .findByText('$(tasks.random-num.results.Output)')
       .should('exist');
-    pipelineDetails.findCloseDrawerButton().click();
+    pipelinesTopology.findCloseDrawerButton().click();
 
-    pipelineDetails.findTaskNode('flip-coin').click();
-    pipelineDetails.findTaskDrawer().findByText('/tmp/outputs/Output/data').should('exist');
+    pipelinesTopology.findTaskNode('flip-coin').click();
+    pipelinesTopology.findTaskDrawer().findByText('/tmp/outputs/Output/data').should('exist');
   });
 });

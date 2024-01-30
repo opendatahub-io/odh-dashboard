@@ -186,12 +186,4 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
   },
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: {
-        available: false,
-        queriedForStatus: false,
-      },
-    },
-  },
 });

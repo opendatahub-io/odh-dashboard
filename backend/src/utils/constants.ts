@@ -67,14 +67,6 @@ export const blankDashboardCR: DashboardConfig = {
     templateOrder: [],
     // templateDisablement: [], Don't create this field, will be used in migration
   },
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: {
-        available: false,
-        queriedForStatus: false,
-      },
-    },
-  },
 };
 
 export const MOUNT_PATH = '/opt/app-root/src';

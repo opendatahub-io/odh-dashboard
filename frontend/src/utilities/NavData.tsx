@@ -1,8 +1,5 @@
 import * as React from 'react';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Icon, Split, SplitItem } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useAppContext } from '~/app/AppContext';
 import { useUser } from '~/redux/selectors';
 
 type NavDataCommon = {
@@ -49,43 +46,20 @@ const useDSProjectsNav = (): NavDataItem[] =>
   ]);
 
 const useDSPipelinesNav = (): NavDataItem[] => {
-  const { dashboardConfig } = useAppContext();
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
 
   if (!isAvailable) {
     return [];
   }
 
-  const operatorAvailable =
-    dashboardConfig.status.dependencyOperators.redhatOpenshiftPipelines.available;
-
-  if (operatorAvailable) {
-    return [
-      {
-        id: 'pipelines',
-        group: { id: 'pipelines', title: 'Data Science Pipelines' },
-        children: [
-          { id: 'global-pipelines', label: 'Pipelines', href: '/pipelines' },
-          { id: 'global-pipeline-runs', label: 'Runs', href: '/pipelineRuns' },
-        ],
-      },
-    ];
-  }
-
   return [
     {
       id: 'pipelines',
-      label: (
-        <Split hasGutter>
-          <SplitItem>Data Science Pipelines</SplitItem>
-          <SplitItem>
-            <Icon status="danger" isInline>
-              <ExclamationCircleIcon />
-            </Icon>
-          </SplitItem>
-        </Split>
-      ),
-      href: `/dependency-missing/pipelines`,
+      group: { id: 'pipelines', title: 'Data Science Pipelines' },
+      children: [
+        { id: 'global-pipelines', label: 'Pipelines', href: '/pipelines' },
+        { id: 'global-pipeline-runs', label: 'Runs', href: '/pipelineRuns' },
+      ],
     },
   ];
 };

@@ -9,6 +9,7 @@ import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreAp
 import PipelinesView from '~/pages/pipelines/global/pipelines/PipelinesView';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
+import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 
 const GlobalPipelines: React.FC = () => {
   const pipelinesAPi = usePipelinesAPI();
@@ -21,9 +22,11 @@ const GlobalPipelines: React.FC = () => {
       getRedirectPath={(namespace) => `/pipelines/${namespace}`}
     >
       <EnsureAPIAvailability>
-        <PipelineAndVersionContextProvider>
-          <PipelinesView />
-        </PipelineAndVersionContextProvider>
+        <EnsureCompatiblePipelineServer>
+          <PipelineAndVersionContextProvider>
+            <PipelinesView />
+          </PipelineAndVersionContextProvider>
+        </EnsureCompatiblePipelineServer>
       </EnsureAPIAvailability>
     </PipelineCoreApplicationPage>
   );

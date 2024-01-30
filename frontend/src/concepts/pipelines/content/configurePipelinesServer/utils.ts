@@ -100,11 +100,16 @@ export const createDSPipelineResourceSpec = (
       awsRecord.AWS_S3_ENDPOINT?.match(/^(?:(\w+):\/\/)?(.*)/) ?? [];
 
     return {
+      dspVersion: 'v2',
+      mlpipelineUI: {
+        image: 'quay.io/opendatahub/ds-pipelines-frontend:latest', // TODO: remove this before release
+      },
       objectStorage: {
         externalStorage: {
           host: externalStorageHost?.replace(/\/$/, '') || '',
           scheme: externalStorageScheme || 'https',
           bucket: awsRecord.AWS_S3_BUCKET || '',
+          region: 'us-east-2', // TODO hardcode for now
           s3CredentialsSecret: {
             accessKey: AWS_KEYS.ACCESS_KEY_ID,
             secretKey: AWS_KEYS.SECRET_ACCESS_KEY,
