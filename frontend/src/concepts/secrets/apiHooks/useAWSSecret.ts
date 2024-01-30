@@ -4,11 +4,11 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
-import { DATA_CONNECTION_PREFIX, getSecret } from '~/api';
+import { getSecret } from '~/api';
 import { AWSSecretKind, SecretKind } from '~/k8sTypes';
 
 const isAWSSecret = (secret: SecretKind): secret is AWSSecretKind =>
-  secret.metadata.name.startsWith(DATA_CONNECTION_PREFIX);
+  !!secret.data?.AWS_SECRET_ACCESS_KEY && !!secret.data.AWS_ACCESS_KEY_ID;
 
 const useAWSSecret = (name: string | null, namespace: string): FetchState<AWSSecretKind | null> => {
   const callback = React.useCallback<FetchStateCallbackPromise<AWSSecretKind | null>>(
