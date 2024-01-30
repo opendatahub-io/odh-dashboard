@@ -65,6 +65,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({ isOpen, onClo
         </Button>,
       ]}
       variant="medium"
+      data-testid="import-pipeline-modal"
     >
       <Form>
         <Stack hasGutter>

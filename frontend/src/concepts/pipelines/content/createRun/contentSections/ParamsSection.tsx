@@ -27,6 +27,7 @@ const ParamsSection: React.FC<ParamsSectionProps> = ({ value, onChange }) => {
     if (value.length === 0) {
       return (
         <Alert
+          component="h2"
           variant="info"
           isInline
           isPlain

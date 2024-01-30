@@ -228,3 +228,44 @@ export const mockPipelinesProxy: { pipelines: PipelineKF[]; total_size: number }
   ],
   total_size: 5,
 };
+
+export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF => {
+  const name = pipeline?.name || 'Test pipeline';
+  const id = name.replace(/ /g, '-').toLowerCase();
+
+  return {
+    id,
+    name,
+    created_at: '2023-11-30T22:55:17Z',
+    description: 'some pipeline description',
+    default_version: {
+      id: `${id}-version`,
+      name: `${name} version`,
+      created_at: '2023-11-30T22:55:17Z',
+      resource_references: [
+        {
+          key: {
+            id,
+            type: ResourceTypeKF.PIPELINE,
+          },
+          relationship: RelationshipKF.OWNER,
+        },
+      ],
+    },
+    ...pipeline,
+  };
+};
+
+export const buildMockPipelines = (
+  pipelines: PipelineKF[] = mockPipelinesProxy.pipelines,
+  totalSize?: number,
+  nextPageToken?: string,
+): {
+  total_size?: number | undefined;
+  next_page_token?: string | undefined;
+  pipelines: PipelineKF[];
+} => ({
+  pipelines,
+  total_size: totalSize || pipelines.length,
+  next_page_token: nextPageToken,
+});

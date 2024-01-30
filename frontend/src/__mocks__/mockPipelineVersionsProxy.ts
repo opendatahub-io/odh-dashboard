@@ -203,17 +203,15 @@ export const buildMockPipelineVersion = (
   ...pipelineVersion,
 });
 
-type APIResult = {
-  total_size?: number | undefined;
-  next_page_token?: string | undefined;
-  versions: PipelineVersionKF[];
-};
-
 export const buildMockPipelineVersions = (
   versions: PipelineVersionKF[] = mockPipelineVersionsList,
   totalSize?: number,
   nextPageToken?: string,
-): APIResult => ({
+): {
+  total_size?: number | undefined;
+  next_page_token?: string | undefined;
+  versions: PipelineVersionKF[];
+} => ({
   versions,
   total_size: totalSize || versions.length,
   next_page_token: nextPageToken,
@@ -230,7 +228,9 @@ export const mockPipelineVersionsListPage2 = buildMockPipelineVersions(
   mockPipelineVersionsList.length,
 );
 
-export const mockPipelineVersionsListSearch = (search: string): APIResult => {
+export const mockPipelineVersionsListSearch = (
+  search: string,
+): ReturnType<typeof buildMockPipelineVersions> => {
   const filteredVersions = mockPipelineVersionsList
     .filter((version) => version.name.startsWith(search))
     .slice(0, 10);

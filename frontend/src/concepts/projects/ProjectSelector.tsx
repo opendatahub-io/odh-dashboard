@@ -73,6 +73,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           </DropdownItem>
         )),
       ]}
+      data-testid="project-selector-dropdown"
     />
   );
 };
