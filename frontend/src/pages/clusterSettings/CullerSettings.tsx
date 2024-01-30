@@ -143,7 +143,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
                         aria-label="Culler Timeout Minute Input"
                         value={minute}
                         isDisabled={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
-                        onChange={(_event, value: string) => {
+                        onChange={(e, value: string) => {
                           let newValue =
                             isNaN(Number(value)) || !Number.isInteger(Number(value))
                               ? minute

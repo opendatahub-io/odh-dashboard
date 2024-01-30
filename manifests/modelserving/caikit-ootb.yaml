@@ -20,6 +20,7 @@ objects:
     name: caikit-tgis-runtime
     annotations:
       openshift.io/display-name: Caikit TGIS ServingRuntime for KServe
+      opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
   labels:
     opendatahub.io/dashboard: 'true'
   spec:

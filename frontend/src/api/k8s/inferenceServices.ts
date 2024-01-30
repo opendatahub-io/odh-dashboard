@@ -12,7 +12,7 @@ import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { translateDisplayNameForK8s } from '~/pages/projects/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions } from './utils';
 
@@ -22,7 +22,8 @@ export const assembleInferenceService = (
   editName?: string,
   isModelMesh?: boolean,
   inferenceService?: InferenceServiceKind,
-  acceleratorState?: AcceleratorState,
+  acceleratorState?: AcceleratorProfileState,
+  replicaCount?: number,
 ): InferenceServiceKind => {
   const { storage, format, servingRuntimeName, project } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
@@ -55,7 +56,6 @@ export const assembleInferenceService = (
           name,
           namespace: project,
           labels: {
-            name,
             [KnownLabels.DASHBOARD_RESOURCE]: 'true',
           },
           annotations: {
@@ -71,6 +71,8 @@ export const assembleInferenceService = (
         },
         spec: {
           predictor: {
+            ...(replicaCount && { minReplicas: replicaCount }),
+            ...(replicaCount && { maxReplicas: replicaCount }),
             model: {
               modelFormat: {
                 name: format.name,
@@ -149,7 +151,8 @@ export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
   isModelMesh?: boolean,
-  acceleratorState?: AcceleratorState,
+  acceleratorState?: AcceleratorProfileState,
+  replicaCount?: number,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -158,6 +161,7 @@ export const createInferenceService = (
     isModelMesh,
     undefined,
     acceleratorState,
+    replicaCount,
   );
   return k8sCreateResource<InferenceServiceKind>({
     model: InferenceServiceModel,
@@ -170,7 +174,8 @@ export const updateInferenceService = (
   existingData: InferenceServiceKind,
   secretKey?: string,
   isModelMesh?: boolean,
-  acceleratorState?: AcceleratorState,
+  acceleratorState?: AcceleratorProfileState,
+  replicaCount?: number,
 ): Promise<InferenceServiceKind> => {
   const inferenceService = assembleInferenceService(
     data,
@@ -179,6 +184,7 @@ export const updateInferenceService = (
     isModelMesh,
     existingData,
     acceleratorState,
+    replicaCount,
   );
 
   return k8sUpdateResource<InferenceServiceKind>({

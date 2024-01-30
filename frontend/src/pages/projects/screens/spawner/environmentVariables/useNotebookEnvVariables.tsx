@@ -21,10 +21,14 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
         }
         return Promise.resolve(undefined);
       })
-      .filter((v): v is Promise<SecretKind | ConfigMapKind> => !!v),
+      .filter(
+        (
+          v: Promise<ConfigMapKind> | Promise<undefined> | undefined,
+        ): v is Promise<SecretKind | ConfigMapKind> => !!v,
+      ),
   ).then((results) =>
     results.reduce<EnvVariable[]>((acc, resource) => {
-      const data = resource.data;
+      const { data } = resource;
       let envVar: EnvVariable;
       if (resource.kind === EnvVarResourceType.ConfigMap) {
         envVar = {

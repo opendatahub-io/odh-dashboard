@@ -161,6 +161,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
       cy.wait('@getRuns').then(() => {
@@ -216,6 +217,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
 
@@ -225,6 +227,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
 
@@ -270,6 +273,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
       cy.wait('@getRuns').then(() => {
@@ -325,6 +329,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
 
@@ -334,6 +339,7 @@ describe('Pipeline runs', () => {
           method: 'DELETE',
           host: 'https://ds-pipeline-pipelines-definition-test-project.apps.user.com',
           queryParams: {},
+          data: {},
         });
       });
       cy.wait('@getRuns').then(() => {

@@ -39,7 +39,7 @@ import ImpersonateAlert from '~/pages/notebookController/screens/admin/Impersona
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { fireTrackingEvent } from '~/utilities/segmentIOUtils';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
-import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -49,7 +49,7 @@ import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
 
 import '~/pages/notebookController/NotebookController.scss';
-import AcceleratorSelectField from './AcceleratorSelectField';
+import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,7 +69,8 @@ const SpawnerPage: React.FC = () => {
     tag: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
-  const [accelerator, setAccelerator] = useNotebookAccelerator(currentUserNotebook);
+  const [acceleratorProfile, setAcceleratorProfile] =
+    useNotebookAcceleratorProfile(currentUserNotebook);
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
@@ -81,22 +82,21 @@ const SpawnerPage: React.FC = () => {
       const getDefaultImageTag = () => {
         let found = false;
         let i = 0;
+
         while (!found && i < images.length) {
           const image = images[i++];
-          if (image) {
-            const tag = getDefaultTag(buildStatuses, image);
-            if (tag) {
-              setSelectedImageTag({ image, tag });
-              found = true;
-            }
+          const tag = getDefaultTag(buildStatuses, image);
+          if (tag) {
+            setSelectedImageTag({ image, tag });
+            found = true;
           }
         }
       };
-      if (currentUserState?.lastSelectedImage) {
+      if (currentUserState.lastSelectedImage) {
         const [imageName, tagName] = [...currentUserState.lastSelectedImage.split(':')];
         const image = images.find((image) => image.name === imageName);
-        const tag = image?.tags.find((tag) => tag.name === tagName);
-        if (image && tag && isImageTagBuildValid(buildStatuses, image, tag)) {
+        const tag = image?.tags && image.tags.find((tag) => tag.name === tagName);
+        if (tag && isImageTagBuildValid(buildStatuses, image, tag)) {
           setSelectedImageTag({ image, tag });
         } else {
           getDefaultImageTag();
@@ -105,9 +105,7 @@ const SpawnerPage: React.FC = () => {
         getDefaultImageTag();
       }
     };
-    if (images && currentUserState) {
-      setFirstValidImage();
-    }
+    setFirstValidImage();
   }, [currentUserState, images, buildStatuses]);
 
   const mapRows = React.useCallback(
@@ -171,7 +169,7 @@ const SpawnerPage: React.FC = () => {
   };
 
   const renderEnvironmentVariableRows = () => {
-    if (!variableRows?.length) {
+    if (!variableRows.length) {
       return null;
     }
     return variableRows.map((row, index) => (
@@ -232,12 +230,12 @@ const SpawnerPage: React.FC = () => {
 
   const fireStartServerEvent = () => {
     fireTrackingEvent('Notebook Server Started', {
-      accelerator: accelerator.accelerator
-        ? `${accelerator.accelerator.spec.displayName} (${accelerator.accelerator.metadata.name}): ${accelerator.accelerator.spec.identifier}`
-        : accelerator.useExisting
+      accelerator: acceleratorProfile.acceleratorProfile
+        ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
+        : acceleratorProfile.useExisting
         ? 'Unknown'
         : 'None',
-      acceleratorCount: accelerator.useExisting ? undefined : accelerator.count,
+      acceleratorCount: acceleratorProfile.useExisting ? undefined : acceleratorProfile.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
@@ -252,7 +250,7 @@ const SpawnerPage: React.FC = () => {
       notebookSizeName: selectedSize.name,
       imageName: selectedImageTag.image?.name || '',
       imageTagName: selectedImageTag.tag?.name || '',
-      accelerator,
+      acceleratorProfile,
       envVars,
       state: NotebookState.Started,
       username: impersonatedUsername || undefined,
@@ -283,7 +281,7 @@ const SpawnerPage: React.FC = () => {
         provideChildrenPadding
         loaded={loaded}
         loadError={loadError}
-        empty={!images || images.length === 0}
+        empty={images.length === 0}
       >
         <Form maxWidth="1000px">
           <FormSection title="Notebook image">
@@ -313,9 +311,9 @@ const SpawnerPage: React.FC = () => {
               setValue={(size) => setSelectedSize(size)}
               sizes={sizes}
             />
-            <AcceleratorSelectField
-              acceleratorState={accelerator}
-              setAcceleratorState={setAccelerator}
+            <AcceleratorProfileSelectField
+              acceleratorProfileState={acceleratorProfile}
+              setAcceleratorProfileState={setAcceleratorProfile}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

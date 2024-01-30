@@ -70,7 +70,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       <Stack hasGutter>
         <StackItem>{children}</StackItem>
         <StackItem>
-          Type <strong>{deleteNameSanitized}</strong> to confirm deletion:
+          Type <strong>{deleteNameSanitized}</strong> to confirm deletion.
         </StackItem>
         <StackItem>
           <TextInput

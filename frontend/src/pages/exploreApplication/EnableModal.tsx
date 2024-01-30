@@ -81,7 +81,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     onClose();
   };
 
-  if (!selectedApp?.spec?.enable || !shown) {
+  if (!selectedApp.spec.enable || !shown) {
     return null;
   }
   const { enable } = selectedApp.spec;

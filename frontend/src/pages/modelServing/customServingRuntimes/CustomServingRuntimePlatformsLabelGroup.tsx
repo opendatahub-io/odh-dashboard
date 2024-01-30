@@ -9,7 +9,7 @@ type CustomServingRuntimePlatformsLabelGroupProps = {
 };
 
 const ServingRuntimePlatformLabels = {
-  [ServingRuntimePlatform.SINGLE]: 'Single model',
+  [ServingRuntimePlatform.SINGLE]: 'Single-model',
   [ServingRuntimePlatform.MULTI]: 'Multi-model',
 };
 

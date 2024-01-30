@@ -62,7 +62,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
           <TabContent
             id={RunDetailsTabs.DETAILS}
             eventKey={RunDetailsTabs.DETAILS}
-            activeKey={selection ?? ''}
+            activeKey={selection}
             hidden={RunDetailsTabs.DETAILS !== selection}
           >
             <PipelineRunTabDetails
@@ -73,7 +73,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
           <TabContent
             id={RunDetailsTabs.PARAMETERS}
             eventKey={RunDetailsTabs.PARAMETERS}
-            activeKey={selection ?? ''}
+            activeKey={selection}
             hidden={RunDetailsTabs.PARAMETERS !== selection}
           >
             <PipelineRunTabParameters pipelineSpec={pipelineRunDetails?.kf.pipeline_spec} />
@@ -82,7 +82,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             <TabContent
               id={RunDetailsTabs.YAML}
               eventKey={RunDetailsTabs.YAML}
-              activeKey={selection ?? ''}
+              activeKey={selection}
               hidden={RunDetailsTabs.YAML !== selection}
               style={{ height: '100%' }}
             >

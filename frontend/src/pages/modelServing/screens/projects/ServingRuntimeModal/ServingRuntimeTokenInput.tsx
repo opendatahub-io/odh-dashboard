@@ -61,7 +61,7 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
             validated={token.error ? ValidatedOptions.error : ValidatedOptions.default}
             isDisabled={disabled}
             onChange={(e, value) => {
-              const tokens = data.tokens?.map((item) =>
+              const tokens = data.tokens.map((item) =>
                 item.uuid === token.uuid
                   ? {
                       uuid: token.uuid,

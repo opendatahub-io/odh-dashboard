@@ -32,7 +32,7 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
     const statusCondition = task.runDetails.status.conditions.find((c) => c.type === 'Succeeded');
 
     details = [
-      { key: 'Task ID', value: task.runDetails.runID ?? '-' },
+      { key: 'Task ID', value: task.runDetails.runID || '-' },
       taskName,
       {
         key: 'Status',

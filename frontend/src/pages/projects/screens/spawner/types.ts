@@ -1,4 +1,4 @@
-import { AcceleratorKind, BUILD_PHASE, ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes';
+import { BUILD_PHASE, ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes';
 
 export enum SpawnerPageSectionID {
   NAME_DESCRIPTION = 'name-and-description',
@@ -39,9 +39,4 @@ export type ImageVersionSelectDataType = {
   buildStatuses: BuildStatus[];
   imageStream?: ImageStreamKind;
   imageVersions: ImageStreamSpecTagType[];
-};
-
-export type AcceleratorSelectOptionObjectType = {
-  accelerator: AcceleratorKind;
-  toString: () => string;
 };

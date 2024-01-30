@@ -14,12 +14,11 @@ type DocTypeFiltersProps = {
 const DocTypeFilters: React.FC<DocTypeFiltersProps> = ({ categoryApps }) => {
   const navigate = useNavigate();
   const docTypeFilters = useQueryFilters(DOC_TYPE_FILTER_KEY);
-
   const docCounts = React.useMemo(
     () =>
       categoryApps.reduce(
         (acc, docApp) => {
-          if (acc[docApp.spec.type as keyof typeof acc] !== undefined) {
+          if (docApp.spec.type in acc) {
             acc[docApp.spec.type as keyof typeof acc]++;
           }
           return acc;

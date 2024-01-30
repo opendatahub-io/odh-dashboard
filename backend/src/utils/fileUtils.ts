@@ -51,7 +51,7 @@ export const writeAdminLog = (fastify: KubeFastifyInstance, data: AdminLogRecord
       `${new Date().toISOString()}: ${JSON.stringify(data)}\n`,
       function (err) {
         if (err) {
-          fastify.log.error(`ERROR: Unable to write to admin log - ${err}`);
+          fastify.log.error(err, 'ERROR: Unable to write to admin log');
         }
       },
     );

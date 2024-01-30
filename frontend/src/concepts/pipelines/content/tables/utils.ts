@@ -9,7 +9,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import { DateRangeString, splitDateRange } from '~/components/dateRange/utils';
 
-export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF => runs[0];
+export const getLastRun = (runs: PipelineRunKF[]): PipelineRunKF | undefined => runs[0];
 
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);
@@ -23,7 +23,7 @@ export const getRunDuration = (run: PipelineRunKF): number => {
 };
 
 export const getStatusWeight = (run: PipelineRunKF): number => {
-  const weights: Record<PipelineRunStatusesKF, number> = {
+  const weights: Record<PipelineRunStatusesKF | string, number | undefined> = {
     [PipelineRunStatusesKF.CANCELLED]: 0,
     [PipelineRunStatusesKF.COMPLETED]: 1,
     [PipelineRunStatusesKF.FAILED]: 2,
@@ -31,7 +31,7 @@ export const getStatusWeight = (run: PipelineRunKF): number => {
     [PipelineRunStatusesKF.STARTED]: 4,
   };
 
-  return weights[run.status as PipelineRunStatusesKF] ?? Infinity;
+  return weights[run.status] ?? Infinity;
 };
 
 export const getResourceRef = (
@@ -118,7 +118,7 @@ export const getScheduledStateWeight = (job: PipelineRunJobKF): number => {
     [ScheduledState.ENDED]: 3,
   };
 
-  return weights[state] ?? Infinity;
+  return weights[state];
 };
 
 export const isJobWithinDateRange = (

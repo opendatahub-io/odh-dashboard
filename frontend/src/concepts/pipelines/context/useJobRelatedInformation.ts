@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 import { getJobResourceRef } from '~/concepts/pipelines/content/tables/utils';
-import { APIState } from '~/concepts/pipelines/context/useAPIState';
+import { PipelineAPIState } from '~/concepts/pipelines/context/usePipelineAPIState';
 
 type JobStatus = {
   loading: boolean;
@@ -10,8 +10,12 @@ type JobStatus = {
 
 export type GetJobInformation = (resource?: PipelineCoreResourceKF) => JobStatus;
 
-const useJobRelatedInformation = (apiState: APIState): { getJobInformation: GetJobInformation } => {
-  const [jobStorage, setJobStorage] = React.useState<{ [jobId: string]: JobStatus }>({});
+const useJobRelatedInformation = (
+  apiState: PipelineAPIState,
+): { getJobInformation: GetJobInformation } => {
+  const [jobStorage, setJobStorage] = React.useState<{ [jobId: string]: JobStatus } | undefined>(
+    {},
+  );
   const loadedIds = React.useRef<string[]>([]);
 
   return {
@@ -25,7 +29,7 @@ const useJobRelatedInformation = (apiState: APIState): { getJobInformation: GetJ
           return { loading: false, data: null };
         }
         const jobId = jobReference.key.id;
-        if (jobStorage[jobId]) {
+        if (jobStorage?.[jobId]) {
           return jobStorage[jobId];
         }
         if (loadedIds.current.includes(jobId)) {

@@ -82,12 +82,15 @@ export const deleteDataConnection = (dataConnection: DataConnection): Promise<K8
 };
 
 export const convertAWSSecretData = (dataConnection: DataConnection): AWSDataEntry => {
+  if (!isDataConnectionAWS(dataConnection)) {
+    return [];
+  }
   const secretData = dataConnection.data.data;
   const convertedData = Object.values(AWS_KEYS)
     .filter((key) => key !== AWS_KEYS.NAME)
     .map((key: AWS_KEYS) => ({
       key,
-      value: secretData?.[key] ? atob(secretData?.[key]) : '',
+      value: secretData[key] ? atob(secretData[key]) : '',
     }));
   const convertedSecret: AWSDataEntry = [
     {

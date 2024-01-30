@@ -20,7 +20,7 @@ import {
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import useNotebookAccelerator from '~/pages/projects/screens/detail/notebooks/useNotebookAccelerator';
+import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -28,7 +28,7 @@ const NotebookServerDetails: React.FC = () => {
   const { images, loaded } = useWatchImages();
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
-  const [accelerator] = useNotebookAccelerator(notebook);
+  const [acceleratorProfile] = useNotebookAcceleratorProfile(notebook);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (container) => container.name === notebook.metadata.name,
@@ -108,17 +108,17 @@ const NotebookServerDetails: React.FC = () => {
         <DescriptionListGroup>
           <DescriptionListTerm>Accelerator</DescriptionListTerm>
           <DescriptionListDescription>
-            {accelerator.accelerator
-              ? accelerator.accelerator.spec.displayName
-              : accelerator.useExisting
+            {acceleratorProfile.acceleratorProfile
+              ? acceleratorProfile.acceleratorProfile.spec.displayName
+              : acceleratorProfile.useExisting
               ? 'Unknown'
               : 'None'}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        {!accelerator.useExisting && (
+        {!acceleratorProfile.useExisting && (
           <DescriptionListGroup>
             <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-            <DescriptionListDescription>{accelerator.count}</DescriptionListDescription>
+            <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>
           </DescriptionListGroup>
         )}
       </DescriptionList>

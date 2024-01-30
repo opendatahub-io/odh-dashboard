@@ -11,7 +11,7 @@ import { TemplateKind, ProjectKind, InferenceServiceKind } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAccelerator from '~/pages/modelServing/screens/projects/useServingAccelerator';
+import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
@@ -59,17 +59,20 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
     useCreateInferenceServiceObject(editInfo?.inferenceServiceEditInfo);
-  const [acceleratorState, setAcceleratorState, resetAcceleratorData] = useServingAccelerator(
-    editInfo?.servingRuntimeEditInfo?.servingRuntime,
-    editInfo?.inferenceServiceEditInfo,
-  );
+  const [acceleratorProfileState, setAcceleratorProfileState, resetAcceleratorProfileData] =
+    useServingAcceleratorProfile(
+      editInfo?.servingRuntimeEditInfo?.servingRuntime,
+      editInfo?.inferenceServiceEditInfo,
+    );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const isInferenceServiceNameWithinLimit =
+    translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
   React.useEffect(() => {
     if (projectContext?.currentProject) {
-      setCreateDataInferenceService('project', projectContext?.currentProject.metadata.name);
+      setCreateDataInferenceService('project', projectContext.currentProject.metadata.name);
     }
   }, [projectContext, setCreateDataInferenceService]);
 
@@ -102,6 +105,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.storage.path.includes('//') ||
     createDataInferenceService.storage.path === '' ||
     createDataInferenceService.storage.path === '/' ||
+    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
   const servingRuntimeSelected = React.useMemo(
@@ -120,7 +124,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     setActionInProgress(false);
     resetDataServingRuntime();
     resetDataInferenceService();
-    resetAcceleratorData();
+    resetAcceleratorProfileData();
   };
 
   const setErrorModal = (error: Error) => {
@@ -141,28 +145,31 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
-    Promise.all([
-      submitServingRuntimeResources(
-        servingRuntimeSelected,
-        createDataServingRuntime,
-        customServingRuntimesEnabled,
-        namespace,
-        editInfo?.servingRuntimeEditInfo,
-        true,
-        acceleratorState,
-        NamespaceApplicationCase.KSERVE_PROMOTION,
-        projectContext?.currentProject,
-        servingRuntimeName,
-        false,
-      ),
-      submitInferenceServiceResource(
-        createDataInferenceService,
-        editInfo?.inferenceServiceEditInfo,
-        servingRuntimeName,
-        false,
-        acceleratorState,
-      ),
-    ])
+    const replicaCount = createDataServingRuntime.numReplicas;
+
+    submitServingRuntimeResources(
+      servingRuntimeSelected,
+      createDataServingRuntime,
+      customServingRuntimesEnabled,
+      namespace,
+      editInfo?.servingRuntimeEditInfo,
+      true,
+      acceleratorProfileState,
+      NamespaceApplicationCase.KSERVE_PROMOTION,
+      projectContext?.currentProject,
+      servingRuntimeName,
+      false,
+    )
+      .then(() =>
+        submitInferenceServiceResource(
+          createDataInferenceService,
+          editInfo?.inferenceServiceEditInfo,
+          servingRuntimeName,
+          false,
+          acceleratorProfileState,
+          replicaCount,
+        ),
+      )
       .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
@@ -199,7 +206,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext?.currentProject)) ||
+                  getProjectDisplayName(projectContext.currentProject)) ||
                 editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
                 ''
               }
@@ -210,6 +217,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               <InferenceServiceNameSection
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
+                isNameValid={isInferenceServiceNameWithinLimit}
               />
             </StackItem>
           </StackItem>
@@ -219,7 +227,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               setData={setCreateDataServingRuntime}
               templates={servingRuntimeTemplates || []}
               isEditing={!!editInfo}
-              acceleratorState={acceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
             />
           </StackItem>
           <StackItem>
@@ -243,8 +251,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               setData={setCreateDataServingRuntime}
               sizes={sizes}
               servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorState={acceleratorState}
-              setAcceleratorState={setAcceleratorState}
+              acceleratorProfileState={acceleratorProfileState}
+              setAcceleratorProfileState={setAcceleratorProfileState}
               infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             />
           </StackItem>

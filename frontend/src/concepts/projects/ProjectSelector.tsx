@@ -31,7 +31,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     : invalidDropdownPlaceholder ?? namespace;
 
   const filteredProjects = filterLabel
-    ? projects.filter((project) => project.metadata.labels[filterLabel] !== undefined)
+    ? projects.filter((project) => project.metadata.labels?.[filterLabel] !== undefined)
     : projects;
 
   return (

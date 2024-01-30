@@ -16,11 +16,6 @@ const refreshNotebookState = (
   new Promise((resolve, reject) => {
     getNotebook(notebookName, namespace)
       .then((notebook) => {
-        if (!notebook) {
-          resolve();
-          return;
-        }
-
         // Have a notebook, get a proper status of it
         getNotebookStatus(notebook)
           .then((notebookStatus) => {

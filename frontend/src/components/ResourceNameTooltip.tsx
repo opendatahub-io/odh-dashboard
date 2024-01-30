@@ -37,7 +37,7 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({ children, res
                     <DescriptionListTerm>Resource name</DescriptionListTerm>
                     <DescriptionListDescription>
                       <ClipboardCopy hoverTip="Copy" clickTip="Copied" variant="inline-compact">
-                        {resource.metadata?.name}
+                        {resource.metadata.name}
                       </ClipboardCopy>
                     </DescriptionListDescription>
                   </DescriptionListGroup>

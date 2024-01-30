@@ -66,7 +66,7 @@ export default {
                 ...mockPipelinesProxy.pipelines,
                 {
                   ...mockPipelinesProxy.pipelines[1],
-                  id: mockPipelineVersions.versions[0].resource_references?.[0].key.id,
+                  id: mockPipelineVersions.versions[0].resource_references[0].key.id,
                 },
               ],
             }),
@@ -76,7 +76,7 @@ export default {
           res(
             ctx.json({
               ...mockPipelinesProxy.pipelines[1],
-              id: mockPipelineVersions.versions[0].resource_references?.[0].key.id,
+              id: mockPipelineVersions.versions[0].resource_references[0].key.id,
             }),
           ),
         ),

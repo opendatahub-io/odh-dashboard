@@ -42,7 +42,7 @@ export const whenAsRunAfter: AsRunAfter<PipelineRunTaskWhen> = (when) => {
 };
 
 export const getRunStatus = (status: PipelineRunTaskRunStatusProperties): RunStatus => {
-  const successCondition = status.conditions?.find((s) => s.type === 'Succeeded');
+  const successCondition = status.conditions.find((s) => s.type === 'Succeeded');
   // const cancelledCondition = status.conditions.find((s) => s.status === 'Cancelled');
 
   if (!successCondition || !successCondition.status) {

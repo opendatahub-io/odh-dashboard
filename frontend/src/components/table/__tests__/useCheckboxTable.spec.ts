@@ -13,7 +13,7 @@ describe('useCheckboxTable', () => {
     expect(renderResult.result.current.tableProps.selectAll.selected).toBe(true);
 
     act(() => {
-      renderResult.result.current.tableProps.selectAll?.onSelect(false);
+      renderResult.result.current.tableProps.selectAll.onSelect(false);
     });
     expect(renderResult.result.current.selections).toStrictEqual([]);
     expect(renderResult.result.current.tableProps.selectAll.selected).toBe(false);

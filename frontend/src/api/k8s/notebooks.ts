@@ -41,7 +41,7 @@ const assembleNotebook = (
     description,
     notebookSize,
     envFrom,
-    accelerator,
+    acceleratorProfile,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -55,7 +55,7 @@ const assembleNotebook = (
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,
-    accelerator,
+    acceleratorProfile,
     tolerationSettings,
     existingTolerations,
     undefined,
@@ -65,7 +65,7 @@ const assembleNotebook = (
   const translatedUsername = usernameTranslate(username);
 
   const location = new URL(window.location.href);
-  const origin = location.origin;
+  const { origin } = location;
 
   let volumes: Volume[] | undefined = formVolumes && [...formVolumes];
   let volumeMounts: VolumeMount[] | undefined = formVolumeMounts && [...formVolumeMounts];
@@ -107,7 +107,8 @@ const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/accelerator-name': accelerator.accelerator?.metadata.name || '',
+        'opendatahub.io/accelerator-name':
+          acceleratorProfile.acceleratorProfile?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -273,6 +274,7 @@ export const updateNotebook = (
   existingNotebook: NotebookKind,
   data: StartNotebookData,
   username: string,
+  opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   data.notebookId = existingNotebook.metadata.name;
   const notebook = assembleNotebook(data, username);
@@ -287,10 +289,12 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.affinity = {};
   container.resources = {};
 
-  return k8sUpdateResource<NotebookKind>({
-    model: NotebookModel,
-    resource: _.merge({}, oldNotebook, notebook),
-  });
+  return k8sUpdateResource<NotebookKind>(
+    applyK8sAPIOptions(opts, {
+      model: NotebookModel,
+      resource: _.merge({}, oldNotebook, notebook),
+    }),
+  );
 };
 
 export const createNotebookWithoutStarting = (

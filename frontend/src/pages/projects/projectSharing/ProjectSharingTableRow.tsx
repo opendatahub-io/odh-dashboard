@@ -28,8 +28,7 @@ type ProjectSharingTableRowProps = {
 };
 
 const defaultValueName = (obj: RoleBindingKind) => firstSubject(obj);
-const defaultValueRole = (obj: RoleBindingKind) =>
-  castProjectSharingRoleType(obj.roleRef.name) || ProjectSharingRoleType.EDIT;
+const defaultValueRole = (obj: RoleBindingKind) => castProjectSharingRoleType(obj.roleRef.name);
 
 const ProjectSharingTableRow: React.FC<ProjectSharingTableRowProps> = ({
   obj,

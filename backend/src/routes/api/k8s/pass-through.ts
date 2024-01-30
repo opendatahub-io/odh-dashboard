@@ -5,7 +5,7 @@ import {
   OauthFastifyRequest,
 } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
-import { proxyCall, ProxyError, ProxyErrorType } from '../../../utils/httpUtils';
+import { proxyCall, ProxyCallStatus, ProxyError, ProxyErrorType } from '../../../utils/httpUtils';
 
 export type PassThroughData = {
   method: string;
@@ -42,7 +42,7 @@ export const passThroughText = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   data: PassThroughData,
-): Promise<string> => {
+): Promise<[string, ProxyCallStatus]> => {
   return (
     proxyCall(fastify, request, data)
       // TODO: is there bad text states that we want to error out on?
@@ -57,7 +57,7 @@ export const passThroughResource = <T extends K8sResourceCommon>(
   data: PassThroughData,
 ): Promise<T | K8sStatus> => {
   return proxyCall(fastify, request, data)
-    .then((rawData) => {
+    .then(([rawData]) => {
       let parsedData: T | K8sStatus;
 
       try {
@@ -75,7 +75,7 @@ export const passThroughResource = <T extends K8sResourceCommon>(
           };
         } else {
           // Likely not JSON, print the error and return the content to the client
-          fastify.log.error(`Parsing response error: ${e}, ${data}`);
+          fastify.log.error(e, `Parsing response error: ${data}`);
           throw { code: 500, response: data };
         }
       }
