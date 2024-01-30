@@ -15,7 +15,7 @@ import {
   pipelineDetails,
   pipelineRunJobDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
-import { mockJobKF } from '~/__mocks__/mockJobKF';
+import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());
@@ -101,7 +101,7 @@ const initIntercepts = () => {
       method: 'POST',
       pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
     },
-    mockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
+    buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
   );
 };
 

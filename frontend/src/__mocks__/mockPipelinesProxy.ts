@@ -230,16 +230,17 @@ export const mockPipelinesProxy: { pipelines: PipelineKF[]; total_size: number }
 };
 
 export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF => {
-  const id = pipeline?.name?.replace(/ /g, '-').toLowerCase() || 'test-pipeline-1';
+  const name = pipeline?.name || 'Test pipeline';
+  const id = name.replace(/ /g, '-').toLowerCase();
 
   return {
     id,
+    name,
     created_at: '2023-11-30T22:55:17Z',
-    name: 'Test pipeline',
     description: 'some pipeline description',
     default_version: {
       id: `${id}-version`,
-      name: `${pipeline?.name} version`,
+      name: `${name} version`,
       created_at: '2023-11-30T22:55:17Z',
       resource_references: [
         {
@@ -255,17 +256,15 @@ export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF =>
   };
 };
 
-type APIResult = {
-  total_size?: number | undefined;
-  next_page_token?: string | undefined;
-  pipelines: PipelineKF[];
-};
-
 export const buildMockPipelines = (
   pipelines: PipelineKF[] = mockPipelinesProxy.pipelines,
   totalSize?: number,
   nextPageToken?: string,
-): APIResult => ({
+): {
+  total_size?: number | undefined;
+  next_page_token?: string | undefined;
+  pipelines: PipelineKF[];
+} => ({
   pipelines,
   total_size: totalSize || pipelines.length,
   next_page_token: nextPageToken,

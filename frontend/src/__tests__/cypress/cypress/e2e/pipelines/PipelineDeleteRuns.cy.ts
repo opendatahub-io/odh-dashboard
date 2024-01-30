@@ -4,20 +4,22 @@ import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
-import { mockJobKF } from '~/__mocks__/mockJobKF';
+import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 import { mockPipelinesVersionTemplateResourceKF } from '~/__mocks__/mockPipelinesTemplateResourceKF';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
-import { mockRunKF } from '~/__mocks__/mockRunKF';
+import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import {
-  globalPipelineRuns,
+  pipelineRunJobTable,
+  pipelineRunsGlobal,
+  pipelineRunTable,
   scheduledRunDeleteModal,
   scheduledRunDeleteMultipleModal,
   triggeredRunDeleteModal,
   triggeredRunDeleteMultipleModal,
-} from '~/__tests__/cypress/cypress/pages/pipelines/pipelineRuns';
+} from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());
@@ -42,8 +44,8 @@ const initIntercepts = () => {
     },
     {
       jobs: [
-        mockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
-        mockJobKF({ name: 'other-pipeline', id: 'other-pipeline' }),
+        buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
+        buildMockJobKF({ name: 'other-pipeline', id: 'other-pipeline' }),
       ],
     },
   );
@@ -54,8 +56,8 @@ const initIntercepts = () => {
     },
     {
       runs: [
-        mockRunKF({ name: 'test-pipeline', id: 'test-pipeline' }),
-        mockRunKF({ name: 'other-pipeline', id: 'other-pipeline' }),
+        buildMockRunKF({ name: 'test-pipeline', id: 'test-pipeline' }),
+        buildMockRunKF({ name: 'other-pipeline', id: 'other-pipeline' }),
       ],
     },
   );
@@ -124,15 +126,11 @@ describe('Pipeline runs', () => {
     it('Test delete a single run from scheduled', () => {
       initIntercepts();
 
-      globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.isApiAvailable();
+      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.isApiAvailable();
 
-      globalPipelineRuns.findScheduledRunTab().click();
-      globalPipelineRuns
-        .getPipelineRunJobsTableRow('test-pipeline')
-        .find()
-        .findKebabAction('Delete')
-        .click();
+      pipelineRunsGlobal.findScheduledTab().click();
+      pipelineRunJobTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
 
       scheduledRunDeleteModal.shouldBeOpen();
       scheduledRunDeleteModal.findSubmitButton().should('be.disabled');
@@ -152,7 +150,7 @@ describe('Pipeline runs', () => {
           method: 'POST',
           pathname: '/api/proxy/apis/v1beta1/jobs',
         },
-        { jobs: [mockJobKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
+        { jobs: [buildMockJobKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
       ).as('getRuns');
 
       scheduledRunDeleteModal.findSubmitButton().click();
@@ -166,29 +164,20 @@ describe('Pipeline runs', () => {
         });
       });
       cy.wait('@getRuns').then(() => {
-        globalPipelineRuns.findRunTableEmpty().should('not.exist');
+        pipelineRunJobTable.findEmptyState().should('not.exist');
       });
     });
     it('Test delete multiple runs from scheduled', () => {
       initIntercepts();
 
-      globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.isApiAvailable();
+      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.isApiAvailable();
 
-      globalPipelineRuns.findScheduledRunTab().click();
-      globalPipelineRuns
-        .getPipelineRunJobsTableRow('test-pipeline')
-        .find()
-        .findByLabelText('Checkbox')
-        .click();
+      pipelineRunsGlobal.findScheduledTab().click();
+      pipelineRunJobTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
+      pipelineRunJobTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
 
-      globalPipelineRuns
-        .getPipelineRunJobsTableRow('other-pipeline')
-        .find()
-        .findByLabelText('Checkbox')
-        .click();
-
-      globalPipelineRuns.findJobTableActionsKebab().findDropdownItem('Delete selected').click();
+      pipelineRunJobTable.findActionsKebab().findDropdownItem('Delete selected').click();
 
       scheduledRunDeleteMultipleModal.shouldBeOpen();
       scheduledRunDeleteMultipleModal.findSubmitButton().should('be.disabled');
@@ -240,21 +229,17 @@ describe('Pipeline runs', () => {
       });
 
       cy.wait('@getRuns').then(() => {
-        globalPipelineRuns.findRunTableEmpty().should('exist');
+        pipelineRunJobTable.findEmptyState().should('exist');
       });
     });
     it('Test delete a single run from triggered', () => {
       initIntercepts();
 
-      globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.isApiAvailable();
+      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.isApiAvailable();
 
-      globalPipelineRuns.findTriggeredRunsTab().click();
-      globalPipelineRuns
-        .getPipelineRunsTableRow('test-pipeline')
-        .find()
-        .findKebabAction('Delete')
-        .click();
+      pipelineRunsGlobal.findTriggeredTab().click();
+      pipelineRunTable.findRowByName('test-pipeline').findKebabAction('Delete').click();
 
       triggeredRunDeleteModal.shouldBeOpen();
       triggeredRunDeleteModal.findSubmitButton().should('be.disabled');
@@ -274,7 +259,7 @@ describe('Pipeline runs', () => {
           method: 'POST',
           pathname: '/api/proxy/apis/v1beta1/runs',
         },
-        { runs: [mockRunKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
+        { runs: [buildMockRunKF({ id: 'other-pipeline', name: 'other-pipeline' })] },
       ).as('getRuns');
 
       triggeredRunDeleteModal.findSubmitButton().click();
@@ -288,29 +273,20 @@ describe('Pipeline runs', () => {
         });
       });
       cy.wait('@getRuns').then(() => {
-        globalPipelineRuns.findRunTableEmpty().should('not.exist');
+        pipelineRunTable.findEmptyState().should('not.exist');
       });
     });
     it('Test delete multiple runs from triggered', () => {
       initIntercepts();
 
-      globalPipelineRuns.visit('test-project');
-      globalPipelineRuns.isApiAvailable();
+      pipelineRunsGlobal.visit('test-project');
+      pipelineRunsGlobal.isApiAvailable();
 
-      globalPipelineRuns.findTriggeredRunsTab().click();
-      globalPipelineRuns
-        .getPipelineRunsTableRow('test-pipeline')
-        .find()
-        .findByLabelText('Checkbox')
-        .click();
+      pipelineRunsGlobal.findTriggeredTab().click();
+      pipelineRunTable.findRowByName('test-pipeline').findByLabelText('Checkbox').click();
+      pipelineRunTable.findRowByName('other-pipeline').findByLabelText('Checkbox').click();
 
-      globalPipelineRuns
-        .getPipelineRunsTableRow('other-pipeline')
-        .find()
-        .findByLabelText('Checkbox')
-        .click();
-
-      globalPipelineRuns.findRunTableActionsKebab().findDropdownItem('Delete selected').click();
+      pipelineRunTable.findActionsKebab().findDropdownItem('Delete selected').click();
 
       triggeredRunDeleteMultipleModal.shouldBeOpen();
       triggeredRunDeleteMultipleModal.findSubmitButton().should('be.disabled');
@@ -361,7 +337,7 @@ describe('Pipeline runs', () => {
         });
       });
       cy.wait('@getRuns').then(() => {
-        globalPipelineRuns.findRunTableEmpty().should('exist');
+        pipelineRunTable.findEmptyState().should('exist');
       });
     });
   });

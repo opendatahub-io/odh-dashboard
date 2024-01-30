@@ -32,7 +32,7 @@ const initialMockPipelineVersion = buildMockPipelineVersion({
 });
 const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
 
-describe('Pipelines Global', () => {
+describe('Pipelines', () => {
   beforeEach(() => {
     initIntercepts();
     pipelinesGlobal.visit(projectName);
@@ -57,7 +57,7 @@ describe('Pipelines Global', () => {
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal.mockUploadPipeline(uploadPipelineParams).as('uploadPipeline');
     pipelinesTable
-      .mockPipelines([initialMockPipeline, uploadedMockPipeline])
+      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline])
       .as('refreshPipelines');
 
     // Wait for the pipelines table to load
@@ -97,7 +97,7 @@ describe('Pipelines Global', () => {
     // Intercept upload/re-fetch of pipeline versions
     pipelineVersionImportModal.mockUploadVersion(uploadVersionParams).as('uploadVersion');
     pipelinesTable
-      .mockPipelineVersions(projectName, uploadVersionParams.pipelineid, [
+      .mockGetPipelineVersions([
         initialMockPipelineVersion,
         buildMockPipelineVersion(uploadVersionParams),
       ])
@@ -161,20 +161,6 @@ const initIntercepts = () => {
       method: 'POST',
       pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
     },
-    (req) => {
-      req.body = {
-        path: '/apis/v1beta1/pipeline_versions',
-        method: 'GET',
-        host: `https://ds-pipeline-pipelines-definition-${projectName}.apps.user.com`,
-        queryParams: {
-          sort_by: 'created_at desc',
-          page_size: 10,
-          'resource_key.id': initialMockPipeline.id,
-          'resource_key.type': 'PIPELINE',
-        },
-      };
-
-      req.reply(buildMockPipelineVersions([initialMockPipelineVersion]));
-    },
+    buildMockPipelineVersions([initialMockPipelineVersion]),
   );
 };

@@ -27,7 +27,7 @@ const GlobalPipelineRunsTab: React.FC = () => {
       aria-label="Pipeline run page tabs"
       role="region"
       className="odh-tabs-fix"
-      data-testid="pipeline-runs-global-page"
+      data-testid="pipeline-runs-global-tabs"
     >
       <Tab
         eventKey={PipelineRunType.Scheduled}
