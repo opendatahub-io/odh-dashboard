@@ -7,12 +7,13 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import {
   createRunPage,
+  cloneRunPage,
   pipelineRunJobTable,
   pipelineRunsGlobal,
   pipelineRunTable,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { buildMockJobKF } from '~/__mocks__/mockJobKF';
-import { buildMockRunKF } from '~/__mocks__/mockRunKF';
+import { buildMockRunKF, getMockRunResource } from '~/__mocks__/mockRunKF';
 import { buildMockPipeline } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersion } from '~/__mocks__/mockPipelineVersionsProxy';
 import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
@@ -29,8 +30,22 @@ const mockPipelineVersion = buildMockPipelineVersion({
     },
   ],
 });
-const initialRuns = [buildMockRunKF()];
-const initialJobs = [buildMockJobKF()];
+const runPipelineVersionRef = {
+  key: { id: mockPipelineVersion.id, type: ResourceTypeKF.PIPELINE_VERSION },
+  name: mockPipelineVersion.name,
+  relationship: RelationshipKF.CREATOR,
+};
+const initialRuns = [
+  buildMockRunKF({
+    resource_references: [runPipelineVersionRef],
+    status: 'Completed',
+  }),
+];
+const initialJobs = [
+  buildMockJobKF({
+    resource_references: [runPipelineVersionRef],
+  }),
+];
 
 describe('Pipeline Runs Global', () => {
   beforeEach(() => {
@@ -52,13 +67,12 @@ describe('Pipeline Runs Global', () => {
     };
 
     // Mock pipelines & versions for form select dropdowns
-    createRunPage.mockPipelines([mockPipeline]).as('getPipelines');
-    createRunPage
-      .mockPipelineVersions(projectName, mockPipeline.id, [mockPipelineVersion])
-      .as('getPipelinesVersions');
+    createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
+    createRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
 
     // Navigate to the 'Create run' page
     pipelineRunsGlobal.findCreateRunButton().click();
+    cy.url().should('include', '/pipelineRun/create');
     createRunPage.find();
 
     // Fill out the form without a schedule and submit
@@ -68,7 +82,7 @@ describe('Pipeline Runs Global', () => {
     createRunPage.selectPipelineByName('Test pipeline');
     createRunPage.findPipelineVersionSelect().should('not.be.disabled');
     createRunPage.findTriggeredRunTypeRadioInput().click();
-    createRunPage.mockCreateRun(projectName, mockPipelineVersion, createRunParams).as('createRun');
+    createRunPage.mockCreateRun(mockPipelineVersion, createRunParams).as('createRun');
     createRunPage.submit();
 
     // Should be redirected to the run details page
@@ -83,18 +97,17 @@ describe('Pipeline Runs Global', () => {
     };
 
     // Mock pipelines & versions for form select dropdowns
-    createRunPage.mockPipelines([mockPipeline]).as('getPipelines');
-    createRunPage
-      .mockPipelineVersions(projectName, mockPipeline.id, [mockPipelineVersion])
-      .as('getPipelinesVersions');
+    createRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
+    createRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
 
     // Mock jobs list with newly created job
     pipelineRunJobTable
-      .mockJobs([...initialJobs, buildMockJobKF(createJobParams)])
+      .mockGetJobs([...initialJobs, buildMockJobKF(createJobParams)])
       .as('refreshRunJobs');
 
     // Navigate to the 'Create run' page
     pipelineRunsGlobal.findCreateRunButton().click();
+    cy.url().should('include', '/pipelineRun/create');
     createRunPage.find();
 
     // Fill out the form with a schedule and submit
@@ -104,16 +117,85 @@ describe('Pipeline Runs Global', () => {
     createRunPage.selectPipelineByName('Test pipeline');
     createRunPage.findPipelineVersionSelect().should('not.be.disabled');
     createRunPage.findScheduledRunTypeRadioInput().click();
-    createRunPage.mockCreateJob(projectName, mockPipelineVersion, createJobParams).as('createJob');
+    createRunPage.mockCreateJob(mockPipelineVersion, createJobParams).as('createJob');
     createRunPage.submit();
 
     // Should show newly created scheduled job in the table
     cy.wait('@refreshRunJobs');
     pipelineRunJobTable.findRowByName('New job');
   });
-});
 
-// it('duplicates a run', () => {});
+  it('duplicates a scheduled run', () => {
+    const [mockJob] = initialJobs;
+    const duplicateJobParams = {
+      name: 'Duplicate job',
+      description: 'Duplicate job description',
+      id: 'duplicate-job-id',
+    };
+
+    // Mock pipelines & versions for form select dropdowns
+    cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
+    cloneRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
+    cloneRunPage.mockGetJob(mockJob);
+    cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
+    cloneRunPage.mockGetPipeline(mockPipeline);
+
+    // Mock jobs list with newly cloned job
+    pipelineRunJobTable
+      .mockGetJobs([...initialJobs, buildMockJobKF(duplicateJobParams)])
+      .as('refreshRunJobs');
+
+    // Navigate to clone run page for a given scheduled job
+    pipelineRunJobTable.selectRowActionByName(mockJob.name, 'Duplicate');
+    cy.url().should('include', `/pipelineRun/cloneJob/${mockJob.id}`);
+
+    // Verify pipeline & pipeline version are pre-populated & submit
+    cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.name);
+    cloneRunPage.findPipelineVersionSelect().should('have.text', mockPipelineVersion.name);
+    cloneRunPage.mockCreateJob(mockPipelineVersion, duplicateJobParams).as('cloneJob');
+    cloneRunPage.submit();
+
+    // Should show newly cloned scheduled job in the table
+    cy.wait('@refreshRunJobs');
+    pipelineRunJobTable.findRowByName('Duplicate job');
+  });
+
+  it('duplicates a triggered run', () => {
+    const mockRunResource = getMockRunResource(initialRuns[0]);
+
+    const duplicateRunParams = {
+      name: 'Duplicate run',
+      description: 'Duplicate run description',
+      id: 'duplicate-run-id',
+    };
+
+    // Mock pipelines & versions for form select dropdowns
+    cloneRunPage.mockGetPipelines([mockPipeline]).as('getPipelines');
+    cloneRunPage.mockGetPipelineVersions([mockPipelineVersion]).as('getPipelinesVersions');
+    cloneRunPage.mockGetRunResource(mockRunResource);
+    cloneRunPage.mockGetPipelineVersion(mockPipelineVersion);
+    cloneRunPage.mockGetPipeline(mockPipeline);
+
+    // Mock runs list with newly cloned run
+    pipelineRunTable
+      .mockGetRuns([...initialRuns, buildMockRunKF(duplicateRunParams)])
+      .as('refreshRuns');
+
+    // Navigate to clone run page for a given triggered run
+    pipelineRunsGlobal.findTriggeredTab().click();
+    pipelineRunTable.selectRowActionByName(mockRunResource.run.name, 'Duplicate');
+    cy.url().should('include', `/pipelineRun/clone/${mockRunResource.run.id}`);
+
+    // Verify pipeline & pipeline version are pre-populated & submit
+    cloneRunPage.findPipelineSelect().should('have.text', mockPipeline.name);
+    cloneRunPage.findPipelineVersionSelect().should('have.text', mockPipelineVersion.name);
+    cloneRunPage.mockCreateRun(mockPipelineVersion, duplicateRunParams).as('cloneRun');
+    cloneRunPage.submit();
+
+    // Should redirect to the details of the newly cloned triggered run
+    cy.url().should('include', `/pipelineRun/view/${duplicateRunParams.id}`);
+  });
+});
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());
@@ -147,13 +229,13 @@ const initIntercepts = () => {
       method: 'POST',
       pathname: '/api/proxy/apis/v1beta1/jobs',
     },
-    { jobs: initialJobs },
+    { jobs: initialJobs, total_size: initialJobs.length },
   );
   cy.intercept(
     {
       method: 'POST',
       pathname: '/api/proxy/apis/v1beta1/runs',
     },
-    { runs: initialRuns },
+    { runs: initialRuns, total_size: initialRuns.length },
   );
 };

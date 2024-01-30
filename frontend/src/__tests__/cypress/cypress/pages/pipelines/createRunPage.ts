@@ -10,50 +10,50 @@ import {
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
 
-class CreateRunPage {
-  private testId = 'create-run-page';
+export class CreateRunPage {
+  protected testId = 'create-run-page';
 
-  find() {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(this.testId);
   }
 
-  findNameInput() {
+  findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('textbox', { name: 'Name' });
   }
 
-  findDescriptionInput() {
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('textbox', { name: 'Description' });
   }
 
-  findPipelineSelect() {
+  findPipelineSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('pipeline-toggle-button');
   }
 
-  findPipelineVersionSelect() {
+  findPipelineVersionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('pipeline-version-toggle-button');
   }
 
-  findTriggeredRunTypeRadioInput() {
+  findTriggeredRunTypeRadioInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('radio', { name: 'Run once immediately after creation' });
   }
 
-  findScheduledRunTypeRadioInput() {
+  findScheduledRunTypeRadioInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('radio', { name: 'Schedule recurring run' });
   }
 
-  findSubmitButton() {
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: 'Create' });
   }
 
-  fillName(value: string) {
+  fillName(value: string): void {
     this.findNameInput().type(value);
   }
 
-  fillDescription(value: string) {
+  fillDescription(value: string): void {
     this.findDescriptionInput().type(value);
   }
 
-  selectPipelineByName(name: string) {
+  selectPipelineByName(name: string): void {
     this.findPipelineSelect()
       .click()
       .get('[data-id="pipeline-selector-table-list"]')
@@ -61,7 +61,7 @@ class CreateRunPage {
       .click();
   }
 
-  selectPipelineVersionByName(name: string) {
+  selectPipelineVersionByName(name: string): void {
     this.findPipelineVersionSelect()
       .click()
       .get('[data-id="pipeline-version-selector-table-list"]')
@@ -69,7 +69,7 @@ class CreateRunPage {
       .click();
   }
 
-  mockPipelines(pipelines: PipelineKF[]) {
+  mockGetPipelines(pipelines: PipelineKF[]): Cypress.Chainable<null> {
     return cy.intercept(
       {
         pathname: '/api/proxy/apis/v1beta1/pipelines',
@@ -78,135 +78,31 @@ class CreateRunPage {
     );
   }
 
-  mockPipelineVersions(projectName: string, pipelineId: string, versions: PipelineVersionKF[]) {
+  mockGetPipelineVersions(versions: PipelineVersionKF[]): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
         pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
       },
-      (req) => {
-        req.body = {
-          path: '/apis/v1beta1/pipeline_versions',
-          method: 'GET',
-          host: `https://ds-pipeline-pipelines-definition-${projectName}.apps.user.com`,
-          queryParams: {
-            sort_by: 'created_at desc',
-            page_size: 10,
-            'resource_key.id': pipelineId,
-            'resource_key.type': 'PIPELINE',
-          },
-        };
-
-        req.reply(buildMockPipelineVersions(versions));
-      },
+      buildMockPipelineVersions(versions),
     );
   }
 
   mockCreateRun(
-    projectName: string,
     pipelineVersion: PipelineVersionKF,
     { id, name, description }: Partial<PipelineRunKF>,
-  ) {
+  ): Cypress.Chainable<null> {
     return cy.intercept(
       {
         method: 'POST',
         pathname: '/api/proxy/apis/v1beta1/runs',
         times: 1,
       },
-      (req) => {
-        req.body = {
-          path: '/apis/v1beta1/runs',
-          method: 'POST',
-          host: `https://ds-pipeline-pipelines-definition-${projectName}.apps.ui-shared-odh.dev.datahub.redhat.com`,
-          queryParams: {},
-          data: {
-            name,
-            description,
-            resource_references: [
-              {
-                key: { id: pipelineVersion.id, type: ResourceTypeKF.PIPELINE_VERSION },
-                relationship: RelationshipKF.CREATOR,
-              },
-            ],
-            pipeline_spec: {
-              parameters: [],
-            },
-            service_account: '',
-          },
-        };
-
-        req.reply({
-          run: {
-            id,
-            name,
-            description,
-            pipeline_spec: {
-              workflow_manifest: '',
-              parameters: [],
-            },
-            resource_references: [
-              {
-                key: { id: pipelineVersion.id, type: ResourceTypeKF.PIPELINE_VERSION },
-                name: pipelineVersion.name,
-                relationship: RelationshipKF.CREATOR,
-              },
-              {
-                key: { type: ResourceTypeKF.EXPERIMENT, id: 'default-experiment-id' },
-                name: 'Default',
-                relationship: RelationshipKF.OWNER,
-              },
-            ],
-            service_account: 'pipeline-runner-pipelines-definition',
-            created_at: '2024-01-26T17:12:19Z',
-            scheduled_at: '1970-01-01T00:00:00Z',
-            finished_at: '1970-01-01T00:00:00Z',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
-        });
-      },
-    );
-  }
-
-  mockCreateJob(
-    projectName: string,
-    pipelineVersion: PipelineVersionKF,
-    { id, name, description }: Partial<PipelineRunJobKF>,
-  ) {
-    return cy.intercept(
       {
-        method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/jobs',
-        times: 1,
-      },
-      (req) => {
-        req.body = {
-          path: '/apis/v1beta1/jobs',
-          method: 'POST',
-          host: `https://ds-pipeline-pipelines-definition-${projectName}.apps.ui-shared-odh.dev.datahub.redhat.com`,
-          queryParams: {},
-          data: {
-            name,
-            description,
-            resource_references: [
-              {
-                key: { id: pipelineVersion.id, type: ResourceTypeKF.PIPELINE_VERSION },
-                relationship: RelationshipKF.CREATOR,
-              },
-            ],
-            pipeline_spec: {
-              parameters: [],
-            },
-            max_concurrency: '10',
-            enabled: true,
-            trigger: { periodic_schedule: { interval_second: '604800' } },
-          },
-        };
-
-        req.reply({
+        run: {
           id,
           name,
+          description,
           pipeline_spec: {
             workflow_manifest: '',
             parameters: [],
@@ -224,18 +120,59 @@ class CreateRunPage {
             },
           ],
           service_account: 'pipeline-runner-pipelines-definition',
-          max_concurrency: '10',
-          trigger: { periodic_schedule: { interval_second: '604800' } },
-          created_at: '2024-01-26T17:49:13Z',
-          updated_at: '2024-01-26T17:49:13Z',
-          status: 'NO_STATUS',
-          enabled: true,
-        });
+          created_at: '2024-01-26T17:12:19Z',
+          scheduled_at: '1970-01-01T00:00:00Z',
+          finished_at: '1970-01-01T00:00:00Z',
+        },
+        pipeline_runtime: {
+          workflow_manifest: '',
+        },
       },
     );
   }
 
-  submit() {
+  mockCreateJob(
+    pipelineVersion: PipelineVersionKF,
+    { id, name, description }: Partial<PipelineRunJobKF>,
+  ): Cypress.Chainable<null> {
+    return cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/api/proxy/apis/v1beta1/jobs',
+        times: 1,
+      },
+      {
+        id,
+        name,
+        description,
+        pipeline_spec: {
+          workflow_manifest: '',
+          parameters: [],
+        },
+        resource_references: [
+          {
+            key: { id: pipelineVersion.id, type: ResourceTypeKF.PIPELINE_VERSION },
+            name: pipelineVersion.name,
+            relationship: RelationshipKF.CREATOR,
+          },
+          {
+            key: { type: ResourceTypeKF.EXPERIMENT, id: 'default-experiment-id' },
+            name: 'Default',
+            relationship: RelationshipKF.OWNER,
+          },
+        ],
+        service_account: 'pipeline-runner-pipelines-definition',
+        max_concurrency: '10',
+        trigger: { periodic_schedule: { interval_second: '604800' } },
+        created_at: '2024-01-26T17:49:13Z',
+        updated_at: '2024-01-26T17:49:13Z',
+        status: 'NO_STATUS',
+        enabled: true,
+      },
+    );
+  }
+
+  submit(): void {
     this.findSubmitButton().click();
   }
 }

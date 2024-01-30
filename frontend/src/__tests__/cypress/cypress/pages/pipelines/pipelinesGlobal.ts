@@ -1,13 +1,9 @@
-class PipelinesGlobal {
-  private testId = 'pipelines-table';
+import { pipelinesTable } from '~/__tests__/cypress/cypress/pages/pipelines';
 
+class PipelinesGlobal {
   visit(projectName: string) {
     cy.visitWithLogin(`/pipelines/${projectName}`);
-    this.find();
-  }
-
-  find() {
-    return cy.findByTestId(this.testId);
+    pipelinesTable.find();
   }
 
   findImportPipelineButton() {

@@ -65,17 +65,7 @@ class PipelineImportModal extends Modal {
         pathname: '/api/proxy/apis/v1beta1/pipelines/upload_version',
         times: 1,
       },
-      (req) => {
-        req.body = {
-          path: '/apis/v1beta1/pipelines/upload_version',
-          method: 'POST',
-          host: 'https://ds-pipeline-pipelines-definition-test-project-name.apps.user.com',
-          queryParams: params,
-          fileContents: 'test-yaml-pipeline-content\n',
-        };
-
-        req.reply(buildMockPipelineVersion(params));
-      },
+      buildMockPipelineVersion(params),
     );
   }
 }

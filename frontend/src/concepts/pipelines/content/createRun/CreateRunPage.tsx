@@ -16,9 +16,8 @@ const CreateRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, conte
     }
     loaded
     empty={false}
-    testId="create-run-page"
   >
-    <RunPage contextPath={contextPath} />
+    <RunPage contextPath={contextPath} testId="create-run-page" />
   </ApplicationsPage>
 );
 

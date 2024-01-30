@@ -6,3 +6,4 @@ export * from './pipelineImportModal';
 export * from './pipelineVersionImportModal';
 export * from './pipelineRunTable';
 export * from './createRunPage';
+export * from './cloneRunPage';

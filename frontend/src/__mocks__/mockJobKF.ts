@@ -1,11 +1,9 @@
 /* eslint-disable camelcase */
 import { JobModeKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
 
-export const buildMockJobKF = (
-  { name, id } = { name: 'Test job', id: 'test-job' },
-): PipelineRunJobKF => ({
-  id,
-  name,
+export const buildMockJobKF = (job?: Partial<PipelineRunJobKF>): PipelineRunJobKF => ({
+  id: 'test-job',
+  name: 'Test job',
   mode: JobModeKF.ENABLED,
   error: '',
   no_catchup: false,
@@ -30,4 +28,5 @@ export const buildMockJobKF = (
   updated_at: '2024-01-25T16:00:07Z',
   status: 'Enabled',
   enabled: true,
+  ...job,
 });

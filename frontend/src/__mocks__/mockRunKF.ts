@@ -1,11 +1,13 @@
 /* eslint-disable camelcase */
-import { PipelineRunKF, RunStorageStateKF } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineRunKF,
+  PipelineRunResourceKF,
+  RunStorageStateKF,
+} from '~/concepts/pipelines/kfTypes';
 
-export const buildMockRunKF = (
-  { name, id } = { name: 'Test run', id: 'test-run' },
-): PipelineRunKF => ({
-  id,
-  name,
+export const buildMockRunKF = (run?: Partial<PipelineRunKF>): PipelineRunKF => ({
+  id: 'test-run',
+  name: 'Test run',
   error: '',
   storage_state: RunStorageStateKF.AVAILABLE,
   metrics: [],
@@ -22,4 +24,10 @@ export const buildMockRunKF = (
   scheduled_at: '1970-01-01T00:00:00Z',
   finished_at: '2024-01-25T15:59:16Z',
   status: 'Completed',
+  ...run,
+});
+
+export const getMockRunResource = (run: PipelineRunKF): PipelineRunResourceKF => ({
+  pipeline_runtime: { workflow_manifest: '' },
+  run,
 });

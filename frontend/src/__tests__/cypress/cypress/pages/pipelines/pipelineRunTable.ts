@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { PipelineRunJobKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
 class PipelineRunTable {
@@ -17,6 +18,10 @@ class PipelineRunTable {
     return this.find().findAllByRole('link', { name }).parents('tr');
   }
 
+  findRowKebabByName(name: string) {
+    return this.findRowByName(name).findByRole('button', { name: 'Kebab toggle' });
+  }
+
   findActionsKebab() {
     return cy.findByTestId(this.toolbarTestId).findByTestId('run-table-toolbar-actions');
   }
@@ -25,13 +30,18 @@ class PipelineRunTable {
     return cy.findByTestId('create-run-empty-state');
   }
 
-  mockRuns(runs: PipelineRunKF[]) {
+  selectRowActionByName(rowName: string, actionName: string) {
+    this.findRowKebabByName(rowName).click();
+    cy.findByRole('menu').get('span').contains(actionName).parents('button').click();
+  }
+
+  mockGetRuns(runs: PipelineRunKF[]) {
     return cy.intercept(
       {
         method: 'POST',
         pathname: '/api/proxy/apis/v1beta1/runs',
       },
-      { runs },
+      { runs, total_size: runs.length },
     );
   }
 }
@@ -41,13 +51,13 @@ class PipelineRunJobTable extends PipelineRunTable {
     super(testId, toolbarTestId);
   }
 
-  mockJobs(jobs: PipelineRunJobKF[]) {
+  mockGetJobs(jobs: PipelineRunJobKF[]) {
     return cy.intercept(
       {
         method: 'POST',
         pathname: '/api/proxy/apis/v1beta1/jobs',
       },
-      { jobs },
+      { jobs, total_size: jobs.length },
     );
   }
 }
