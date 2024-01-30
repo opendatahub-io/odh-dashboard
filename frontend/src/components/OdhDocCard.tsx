@@ -82,7 +82,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       return (
         <a
           className="odh-card__footer__link"
-          href={odhDoc.spec?.url ?? '#'}
+          href={odhDoc.spec.url}
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
           target="_blank"
           rel="noopener noreferrer"
@@ -96,7 +96,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       return (
         <a
           className="odh-card__footer__link"
-          href={odhDoc.spec?.url ?? '#'}
+          href={odhDoc.spec.url}
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
           target="_blank"
           rel="noopener noreferrer"
@@ -117,7 +117,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({ odhDoc, favorite, updateFavorit
       return (
         <a
           className="odh-card__footer__link"
-          href={odhDoc.spec?.url ?? '#'}
+          href={odhDoc.spec.url}
           onClick={fireResourceAccessedEvent(odhDoc.metadata.name, odhDoc.spec.type)}
           target="_blank"
           rel="noopener noreferrer"

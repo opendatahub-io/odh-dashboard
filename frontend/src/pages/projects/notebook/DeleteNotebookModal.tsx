@@ -35,7 +35,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
           setIsDeleting(true);
 
           const nonDataConnectionVariables = getEnvFromList(notebook).filter(
-            (envFrom) => !envFrom.secretRef?.name?.includes(DATA_CONNECTION_PREFIX),
+            (envFrom) => !envFrom.secretRef?.name.includes(DATA_CONNECTION_PREFIX),
           );
           const configMapNames = nonDataConnectionVariables
             .filter((envName): envName is ConfigMapRef => !!envName.configMapRef)
@@ -44,7 +44,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
             .filter((envName): envName is SecretRef => !!envName.secretRef)
             .map((data) => data.secretRef.name);
 
-          const namespace = notebook.metadata.namespace;
+          const { namespace } = notebook.metadata;
 
           const resourcesToDelete: Promise<K8sStatus>[] = [
             deleteNotebook(notebook.metadata.name, namespace),

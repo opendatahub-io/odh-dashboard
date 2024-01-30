@@ -94,8 +94,8 @@ const ClusterSettings: React.FC = () => {
     };
     if (!_.isEqual(clusterSettings, newClusterSettings)) {
       if (
-        Number(newClusterSettings?.pvcSize) !== 0 &&
-        Number(newClusterSettings?.cullerTimeout) >= MIN_CULLER_TIMEOUT
+        Number(newClusterSettings.pvcSize) !== 0 &&
+        Number(newClusterSettings.cullerTimeout) >= MIN_CULLER_TIMEOUT
       ) {
         setSaving(true);
         updateClusterSettings(newClusterSettings)

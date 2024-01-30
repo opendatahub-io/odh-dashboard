@@ -14,7 +14,7 @@ type InternalServicePopoverContentProps = {
 const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps> = ({
   inferenceService,
 }) => {
-  const isInternalServiceEnabled = inferenceService.status?.components?.predictor;
+  const isInternalServiceEnabled = inferenceService.status?.components.predictor;
 
   if (!isInternalServiceEnabled) {
     return <>Could not find any internal service enabled</>;

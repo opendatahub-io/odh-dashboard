@@ -29,9 +29,9 @@ const useTemplates = (namespace?: string, adminPanel?: boolean): FetchState<Temp
           throw e;
         })
         .then((templates) => {
-          if (modelServingEnabled && !customServingRuntimesEnabled) {
+          if (!customServingRuntimesEnabled) {
             return templates.filter(
-              (template) => template.metadata?.labels?.['opendatahub.io/ootb'] === 'true',
+              (template) => template.metadata.labels?.['opendatahub.io/ootb'] === 'true',
             );
           }
           return templates;
@@ -46,9 +46,9 @@ const useTemplates = (namespace?: string, adminPanel?: boolean): FetchState<Temp
         throw e;
       })
       .then((templates) => {
-        if (modelServingEnabled && !customServingRuntimesEnabled) {
+        if (!customServingRuntimesEnabled) {
           return templates.filter(
-            (template) => template.metadata?.labels?.['opendatahub.io/ootb'] === 'true',
+            (template) => template.metadata.labels?.['opendatahub.io/ootb'] === 'true',
           );
         }
         return templates;

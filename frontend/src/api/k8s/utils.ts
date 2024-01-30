@@ -1,57 +1,66 @@
 import {
   PodAffinity,
   ContainerResources,
-  PodToleration,
+  Toleration,
   TolerationSettings,
   VolumeMount,
   Volume,
 } from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
-import { AcceleratorState } from '~/utilities/useAcceleratorState';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
-  accelerator?: AcceleratorState,
+  acceleratorProfileState?: AcceleratorProfileState,
   tolerationSettings?: TolerationSettings,
-  existingTolerations?: PodToleration[],
+  existingTolerations?: Toleration[],
   affinitySettings?: PodAffinity,
   existingResources?: ContainerResources,
 ): {
   affinity: PodAffinity;
-  tolerations: PodToleration[];
+  tolerations: Toleration[];
   resources: ContainerResources;
 } => {
   const affinity: PodAffinity = structuredClone(affinitySettings || {});
   let resources: ContainerResources = {
-    limits: { ...existingResources?.limits, ...resourceSettings?.limits },
-    requests: { ...existingResources?.requests, ...resourceSettings?.requests },
+    limits: { ...existingResources?.limits, ...resourceSettings.limits },
+    requests: { ...existingResources?.requests, ...resourceSettings.requests },
   };
 
-  if (accelerator?.additionalOptions?.useExisting && !accelerator.useExisting) {
+  if (
+    acceleratorProfileState?.additionalOptions?.useExisting &&
+    !acceleratorProfileState.useExisting
+  ) {
     resources = structuredClone(resourceSettings);
   }
 
   // Clear the last accelerator from the resources
-  if (accelerator?.initialAccelerator) {
+  if (acceleratorProfileState?.initialAcceleratorProfile) {
     if (resources.limits) {
-      delete resources.limits[accelerator.initialAccelerator.spec.identifier];
+      delete resources.limits[acceleratorProfileState.initialAcceleratorProfile.spec.identifier];
     }
     if (resources.requests) {
-      delete resources.requests[accelerator.initialAccelerator.spec.identifier];
+      delete resources.requests[acceleratorProfileState.initialAcceleratorProfile.spec.identifier];
     }
   }
 
   // Add back the new accelerator to the resources if count > 0
-  if (accelerator?.accelerator && accelerator.count > 0) {
+  if (acceleratorProfileState?.acceleratorProfile && acceleratorProfileState.count > 0) {
     if (resources.limits) {
-      resources.limits[accelerator.accelerator.spec.identifier] = accelerator.count;
+      resources.limits[acceleratorProfileState.acceleratorProfile.spec.identifier] =
+        acceleratorProfileState.count;
     }
     if (resources.requests) {
-      resources.requests[accelerator.accelerator.spec.identifier] = accelerator.count;
+      resources.requests[acceleratorProfileState.acceleratorProfile.spec.identifier] =
+        acceleratorProfileState.count;
     }
   }
 
-  const tolerations = determineTolerations(tolerationSettings, accelerator, existingTolerations);
+  const tolerations = determineTolerations(
+    tolerationSettings,
+    acceleratorProfileState,
+    existingTolerations,
+  );
   return { affinity, tolerations, resources };
 };
 

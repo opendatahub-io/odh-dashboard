@@ -36,6 +36,8 @@ type ModelServingContextType = {
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   inferenceServices: ContextResourceData<InferenceServiceKind>;
   project: ProjectKind | null;
+  preferredProject: ProjectKind | null;
+  projects: ProjectKind[] | null;
 };
 
 type ModelServingContextProviderProps = {
@@ -52,6 +54,8 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   inferenceServices: DEFAULT_CONTEXT_DATA,
   project: null,
+  preferredProject: null,
+  projects: null,
 });
 
 const ModelServingContextProvider = conditionalArea<ModelServingContextProviderProps>(
@@ -60,7 +64,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
 )(({ children, namespace }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, preferredProject } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
   const servingRuntimeTemplates = useContextResourceData<TemplateKind>(
@@ -144,6 +148,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
         dataConnections,
         refreshAllData,
         project,
+        preferredProject,
+        projects,
       }}
     >
       {children}

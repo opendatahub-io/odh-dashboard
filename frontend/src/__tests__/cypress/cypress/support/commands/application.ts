@@ -124,7 +124,8 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
     if ($el.find('[aria-expanded=false]').addBack().length) {
       cy.wrap($el).click();
     }
-    return cy.get('[role=listbox]').findByRole('option', { name });
+    //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
+    return cy.findByRole('option', { name });
   });
 });
 

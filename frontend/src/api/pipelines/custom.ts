@@ -77,13 +77,15 @@ export const getPipelineVersion: GetPipelineVersionAPI = (hostPath) => (opts, pi
   );
 
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
+  handlePipelineFailures(
+    proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, {}, opts),
+  );
 
 export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/runs/${runId}`, {}, opts));
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/runs/${runId}`, {}, {}, opts));
 
 export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts, jobId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, opts));
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, {}, opts));
 
 export const deletePipelineVersion: DeletePipelineVersionAPI =
   (hostPath) => (opts, pipelineVersionId) =>

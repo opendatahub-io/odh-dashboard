@@ -64,7 +64,7 @@ export const checkPodContainersStatus = (
   if (!container) {
     return null;
   }
-  const state = container.state;
+  const { state } = container;
 
   return {
     podInitializing: !!state?.waiting,

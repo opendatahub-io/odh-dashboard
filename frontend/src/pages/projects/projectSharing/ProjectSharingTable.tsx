@@ -66,7 +66,7 @@ const ProjectSharingTable: React.FC<ProjectSharingTableProps> = ({
       }
       rowRenderer={(rb) => (
         <ProjectSharingTableRow
-          key={rb.metadata?.name || ''}
+          key={rb.metadata.name || ''}
           obj={rb}
           type={type}
           isEditing={firstSubject(rb) === '' || editCell.includes(rb.metadata.name)}

@@ -8,12 +8,16 @@ import {
   Tabs,
   Tab,
   TabTitleText,
+  Popover,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { importBYONImage, updateBYONImage } from '~/services/imagesService';
 import { ResponseStatus, BYONImagePackage, BYONImage } from '~/types';
 import { useAppSelector } from '~/redux/hooks';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { filterBlankPackages } from '~/pages/BYONImages/utils';
+import { AcceleratorIdentifierMultiselect } from '~/pages/BYONImages/BYONImageModal/AcceleratorIdentifierMultiselect';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import ImageLocationField from './ImageLocationField';
 import DisplayedContentTabContent from './DisplayedContentTabContent';
 
@@ -40,6 +44,9 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
   const [repository, setRepository] = React.useState('');
   const [displayName, setDisplayName] = React.useState('');
   const [description, setDescription] = React.useState('');
+  const [recommendedAcceleratorIdentifiers, setRecommendedAcceleratorIdentifiers] = React.useState<
+    string[]
+  >([]);
   const [software, setSoftware] = React.useState<BYONImagePackage[]>([]);
   const [packages, setPackages] = React.useState<BYONImagePackage[]>([]);
   const [tempSoftware, setTempSoftware] = React.useState<BYONImagePackage[]>([]);
@@ -59,6 +66,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
       setSoftware(existingImage.software);
       setTempPackages(existingImage.packages);
       setTempSoftware(existingImage.software);
+      setRecommendedAcceleratorIdentifiers(existingImage.recommendedAcceleratorIdentifiers);
     }
   }, [existingImage]);
 
@@ -69,6 +77,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
     setRepository('');
     setDisplayName('');
     setDescription('');
+    setRecommendedAcceleratorIdentifiers([]);
     setSoftware([]);
     setPackages([]);
     setTempSoftware([]);
@@ -91,6 +100,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         // eslint-disable-next-line camelcase
         display_name: displayName,
         description,
+        recommendedAcceleratorIdentifiers,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
       }).then(handleResponse);
@@ -100,6 +110,7 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
         display_name: displayName,
         url: repository,
         description,
+        recommendedAcceleratorIdentifiers,
         provider: userName,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
@@ -167,11 +178,27 @@ export const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({
             }}
           />
         </FormGroup>
+        <FormGroup
+          label="Accelerator identifier"
+          labelIcon={
+            <Popover bodyContent="Add recommended accelerator identifiers for this image.">
+              <DashboardPopupIconButton
+                icon={<OutlinedQuestionCircleIcon />}
+                aria-label="More info for identifier field"
+              />
+            </Popover>
+          }
+        >
+          <AcceleratorIdentifierMultiselect
+            setData={(identifiers) => setRecommendedAcceleratorIdentifiers(identifiers)}
+            data={recommendedAcceleratorIdentifiers}
+          />
+        </FormGroup>
         <FormGroup label="Displayed contents" fieldId="byon-image-software-packages">
           <Tabs
             id="byon-image-software-packages"
             activeKey={activeTabKey}
-            onSelect={(_event, indexKey) => {
+            onSelect={(e, indexKey) => {
               setActiveTabKey(indexKey);
             }}
           >

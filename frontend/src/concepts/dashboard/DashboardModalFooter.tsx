@@ -39,7 +39,13 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
     <StackItem>
       <ActionList>
         <ActionListItem>
-          <Button key="submit" variant="primary" isDisabled={isSubmitDisabled} onClick={onSubmit}>
+          <Button
+            key="submit"
+            variant="primary"
+            isDisabled={isSubmitDisabled}
+            onClick={onSubmit}
+            data-testid="modal-submit-button"
+          >
             {submitLabel}
           </Button>
         </ActionListItem>

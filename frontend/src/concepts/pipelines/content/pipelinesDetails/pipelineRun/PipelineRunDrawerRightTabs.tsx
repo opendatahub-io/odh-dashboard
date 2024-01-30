@@ -51,7 +51,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
 
   return (
     <>
-      <Tabs activeKey={selection ?? undefined} mountOnEnter>
+      <Tabs activeKey={selection} mountOnEnter>
         {Object.values(PipelineRunNodeTabs).map((tab) => (
           <Tab
             key={tab}
@@ -62,18 +62,16 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
           />
         ))}
       </Tabs>
-      {selection && (
-        <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-px-sm">
-          <TabContent
-            id={selection}
-            eventKey={selection}
-            activeKey={selection ?? ''}
-            style={{ flex: '1 1 auto' }}
-          >
-            {tabContents[selection]}
-          </TabContent>
-        </DrawerPanelBody>
-      )}
+      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-px-sm">
+        <TabContent
+          id={selection}
+          eventKey={selection}
+          activeKey={selection}
+          style={{ flex: '1 1 auto' }}
+        >
+          {tabContents[selection]}
+        </TabContent>
+      </DrawerPanelBody>
     </>
   );
 };

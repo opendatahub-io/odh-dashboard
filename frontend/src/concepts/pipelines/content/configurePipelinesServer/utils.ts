@@ -32,7 +32,7 @@ const createDatabaseSecret = (
 > => {
   if (!databaseConfig.useDefault) {
     const secretKey = EXTERNAL_DATABASE_SECRET.KEY;
-    const databaseRecord = databaseConfig.value?.reduce<Record<string, string>>(
+    const databaseRecord = databaseConfig.value.reduce<Record<string, string>>(
       (acc, { key, value }) => ({ ...acc, [key]: value }),
       {},
     );
@@ -96,8 +96,9 @@ export const createDSPipelineResourceSpec = (
   {
     const databaseRecord = dataEntryToRecord(config.database.value);
     const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
-    const [, externalStorageScheme, externalStorageHost] =
-      awsRecord.AWS_S3_ENDPOINT?.match(/^(?:(\w+):\/\/)?(.*)/) ?? [];
+    const [, externalStorageScheme, externalStorageHost] = awsRecord.AWS_S3_ENDPOINT?.match(
+      /^(?:(\w+):\/\/)?(.*)/,
+    ) ?? [undefined];
 
     return {
       objectStorage: {
@@ -108,21 +109,21 @@ export const createDSPipelineResourceSpec = (
           s3CredentialsSecret: {
             accessKey: AWS_KEYS.ACCESS_KEY_ID,
             secretKey: AWS_KEYS.SECRET_ACCESS_KEY,
-            secretName: objectStorageSecret?.secretName,
+            secretName: objectStorageSecret.secretName,
           },
         },
       },
       database: databaseSecret
         ? {
             externalDB: {
-              host: databaseRecord?.[DATABASE_CONNECTION_KEYS.HOST],
+              host: databaseRecord[DATABASE_CONNECTION_KEYS.HOST],
               passwordSecret: {
                 key: databaseSecret.key,
                 name: databaseSecret.name,
               },
-              pipelineDBName: databaseRecord?.[DATABASE_CONNECTION_KEYS.DATABASE],
-              port: databaseRecord?.[DATABASE_CONNECTION_KEYS.PORT],
-              username: databaseRecord?.[DATABASE_CONNECTION_KEYS.USERNAME],
+              pipelineDBName: databaseRecord[DATABASE_CONNECTION_KEYS.DATABASE],
+              port: databaseRecord[DATABASE_CONNECTION_KEYS.PORT],
+              username: databaseRecord[DATABASE_CONNECTION_KEYS.USERNAME],
             },
           }
         : undefined,

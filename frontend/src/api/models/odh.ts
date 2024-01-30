@@ -7,6 +7,13 @@ export const ODHDashboardConfigModel: K8sModelCommon = {
   plural: 'odhdashboardconfigs',
 };
 
+export const AcceleratorProfileModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'dashboard.opendatahub.io',
+  kind: 'AcceleratorProfile',
+  plural: 'acceleratorprofiles',
+};
+
 export const NotebookModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'kubeflow.org',

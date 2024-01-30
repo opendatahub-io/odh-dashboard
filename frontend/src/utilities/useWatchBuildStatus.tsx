@@ -38,18 +38,13 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     watchBuildStatuses();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, []);
 
-  const buildStatuses = useDeepCompareMemoize<BuildStatus[]>(statuses);
+  const buildStatuses = useDeepCompareMemoize(statuses);
 
   React.useEffect(() => {
-    if (!buildStatuses) {
-      return;
-    }
     const wasNotStarted = filterBuilds(prevBuildStatuses.current, [BUILD_PHASE.none]);
     const wasBuilding = filterBuilds(prevBuildStatuses.current, runningStatuses);
     const wasFailed = filterBuilds(prevBuildStatuses.current, failedStatuses);
@@ -147,5 +142,5 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     prevBuildStatuses.current = buildStatuses;
   }, [buildStatuses, dispatch]);
 
-  return buildStatuses || [];
+  return buildStatuses;
 };

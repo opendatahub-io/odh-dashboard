@@ -15,7 +15,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           host: string;
           data?: Record<string, unknown>;
           fileContents?: string;
-          queryParams?: Record<string, unknown>;
+          queryParams?: Record<string, string>;
         };
       }>,
       reply: FastifyReply,
@@ -62,15 +62,17 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         overrideContentType: contentType,
         requestData,
         rejectUnauthorized: false,
-      }).catch((error) => {
-        if (error.code && error.response) {
-          const { code, response } = error;
-          reply.code(code);
-          reply.send(response);
-        } else {
-          throw error;
-        }
-      });
+      })
+        .then(([rawData]) => rawData)
+        .catch((error) => {
+          if (error.code && error.response) {
+            const { code, response } = error;
+            reply.code(code);
+            reply.send(response);
+          } else {
+            throw error;
+          }
+        });
     },
   );
 };

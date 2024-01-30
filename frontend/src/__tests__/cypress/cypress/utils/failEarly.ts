@@ -38,7 +38,7 @@ export const failEarly = (): void => {
     const retryCount = Cypress.currentRetry;
     const specName = Cypress.spec.name;
     if (
-      this?.currentTest?.state === 'failed' &&
+      this.currentTest?.state === 'failed' &&
       Number.isInteger(retryCount) &&
       getRunTypeRetries() <= retryCount
     ) {

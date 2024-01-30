@@ -63,7 +63,7 @@ export const updateServingRuntimeTemplateBackend = (
   platforms: ServingRuntimePlatform[],
 ): Promise<TemplateKind> => {
   try {
-    const name = existingTemplate.metadata.name;
+    const { name } = existingTemplate.metadata;
     const servingRuntimeName = existingTemplate.objects[0].metadata.name;
     const servingRuntime: ServingRuntimeKind = YAML.parse(body);
     if (!servingRuntime.metadata.name) {
