@@ -6,11 +6,11 @@ import { ProjectKind } from '~/k8sTypes';
 import {
   getProjectDescription,
   getProjectDisplayName,
-  isValidK8sName,
+  isK8sNameValid,
 } from '~/pages/projects/utils';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { NameDescType } from '~/pages/projects/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { useK8sCommonResource } from '~/pages/projects/screens/spawner/useK8sCommonResource';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -26,15 +26,11 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   const { refresh } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
-    name: '',
-    k8sName: undefined,
-    description: '',
-  });
+  const { nameDesc, setNameDesc } = useK8sCommonResource();
   const { username } = useUser();
 
   const canSubmit =
-    !fetching && nameDesc.name.trim().length > 0 && isValidK8sName(nameDesc.k8sName);
+    !fetching && nameDesc.name.trim().length > 0 && isK8sNameValid(nameDesc.k8sName?.value);
 
   const editNameValue = editProjectData ? getProjectDisplayName(editProjectData) : '';
   const editDescriptionValue = editProjectData ? getProjectDescription(editProjectData) : '';
@@ -42,10 +38,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
   React.useEffect(() => {
     setNameDesc({
       name: editNameValue,
-      k8sName: editResourceNameValue,
+      k8sName: { value: editResourceNameValue ?? '' },
       description: editDescriptionValue,
     });
-  }, [editDescriptionValue, editNameValue, editResourceNameValue]);
+  }, [editDescriptionValue, editNameValue, editResourceNameValue, setNameDesc]);
 
   const onBeforeClose = (newProjectName?: string) => {
     onClose(newProjectName);
@@ -67,7 +63,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
         .then(() => onBeforeClose())
         .catch(handleError);
     } else {
-      createProject(username, name, description, k8sName)
+      createProject(username, name, description, k8sName?.value)
         .then((projectName) => refresh(projectName).then(() => onBeforeClose(projectName)))
         .catch(handleError);
     }

@@ -1,4 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { ValidatedOptions } from '@patternfly/react-core';
 import {
   ContainerResources,
   ImageStreamAndVersion,
@@ -17,8 +18,23 @@ export type UpdateObjectAtPropAndValue<T> = (propKey: keyof T, propValue: ValueO
 
 export type NameDescType = {
   name: string;
-  k8sName?: string;
+  k8sName?: {
+    value?: string;
+    isTruncated?: boolean;
+    isUserInputK8sName?: boolean;
+  };
   description: string;
+};
+
+export enum IndeterminateOption {
+  indeterminate = 'indeterminate',
+}
+
+export type K8sNameValidatedOptions = ValidatedOptions | IndeterminateOption;
+
+export type K8sNameValidationState = {
+  ruleLength: K8sNameValidatedOptions;
+  ruleCharacterTypes: K8sNameValidatedOptions;
 };
 
 export type CreatingStorageObject = {

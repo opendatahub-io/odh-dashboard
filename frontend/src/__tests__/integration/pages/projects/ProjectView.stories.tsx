@@ -56,7 +56,6 @@ export const Default: StoryObj = {
 export const EditProject: StoryObj = {
   parameters: {
     a11y: {
-      // need to select modal as root
       element: '.pf-v5-c-backdrop',
     },
   },

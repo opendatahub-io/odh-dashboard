@@ -34,6 +34,7 @@ type SpawnerFooterProps = {
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
   canEnablePipelines: boolean;
+  isK8sResourceNameValid: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -42,6 +43,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   envVariables,
   dataConnection,
   canEnablePipelines,
+  isK8sResourceNameValid,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState('');
   const {
@@ -65,6 +67,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isButtonDisabled =
     createInProgress ||
+    !isK8sResourceNameValid ||
     !checkRequiredFieldsForNotebookStart(
       startNotebookData,
       storageData,

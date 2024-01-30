@@ -1,18 +1,16 @@
-import * as React from 'react';
+import React, { FormEvent } from 'react';
 import {
   FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
   Stack,
   StackItem,
   TextArea,
   TextInput,
-  Tooltip,
+  ValidatedOptions,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, HelpIcon } from '@patternfly/react-icons';
-import { NameDescType } from '~/pages/projects/types';
-import { isValidK8sName, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import { NameDescType, K8sNameValidationState, IndeterminateOption } from '~/pages/projects/types';
+import { isK8sNameValid, translateDisplayNameForK8s } from '~/pages/projects/utils';
+import ToggleResourceName from './ToggleResourceName';
+import K8sNameField from './K8sNameField';
 
 type NameDescriptionFieldProps = {
   nameFieldId: string;
@@ -22,6 +20,10 @@ type NameDescriptionFieldProps = {
   autoFocusName?: boolean;
   showK8sName?: boolean;
   disableK8sName?: boolean;
+};
+const combinedValidationStatus = {
+  ...ValidatedOptions,
+  ...IndeterminateOption,
 };
 
 const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
@@ -34,6 +36,14 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   disableK8sName,
 }) => {
   const autoSelectNameRef = React.useRef<HTMLInputElement | null>(null);
+  const [showHiddenResourceName, setShowHiddenResourceName] = React.useState<boolean | undefined>(
+    showK8sName,
+  );
+
+  const [validateK8sName, setValidateK8sName] = React.useState<K8sNameValidationState>({
+    ruleLength: combinedValidationStatus.indeterminate,
+    ruleCharacterTypes: combinedValidationStatus.indeterminate,
+  });
 
   React.useEffect(() => {
     if (autoFocusName) {
@@ -41,77 +51,88 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
     }
   }, [autoFocusName]);
 
-  const k8sName = React.useMemo(() => {
-    if (showK8sName) {
-      return translateDisplayNameForK8s(data.name);
-    }
+  const handleNameChange = (event: FormEvent<HTMLInputElement>, name: string) => {
+    const translatedK8sName = translateDisplayNameForK8s(name);
 
-    return '';
-  }, [showK8sName, data.name]);
+    if (!disableK8sName && !data.k8sName?.isUserInputK8sName) {
+      const k8sNameValue = isK8sNameValid(translatedK8sName)
+        ? translatedK8sName
+        : translatedK8sName.slice(0, 30);
+
+      setData({
+        ...data,
+        name,
+        k8sName: {
+          value: k8sNameValue,
+          isTruncated: k8sNameValue.length > 30,
+          isUserInputK8sName: false,
+        },
+      });
+      setValidateK8sName({
+        ruleCharacterTypes: isK8sNameValid(k8sNameValue)
+          ? combinedValidationStatus.success
+          : combinedValidationStatus.error,
+        ruleLength:
+          k8sNameValue.length > 30
+            ? combinedValidationStatus.warning
+            : combinedValidationStatus.success,
+      });
+    } else {
+      setData({
+        ...data,
+        name,
+      });
+      if (name.length === 0 || data.k8sName?.value?.length === 0) {
+        setData({
+          ...data,
+          name,
+          k8sName: {
+            isTruncated: false,
+            isUserInputK8sName: false,
+          },
+        });
+        setValidateK8sName({
+          ruleCharacterTypes: combinedValidationStatus.indeterminate,
+          ruleLength: combinedValidationStatus.indeterminate,
+        });
+      }
+    }
+  };
 
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label="Name" isRequired fieldId={nameFieldId}>
+        <FormGroup
+          label="Name"
+          isRequired
+          fieldId={nameFieldId}
+          labelInfo={
+            <ToggleResourceName
+              showHiddenResourceName={showHiddenResourceName}
+              setShowHiddenResourceName={setShowHiddenResourceName}
+            />
+          }
+        >
           <TextInput
             isRequired
             ref={autoSelectNameRef}
             id={nameFieldId}
             name={nameFieldId}
             value={data.name}
-            onChange={(e, name) => setData({ ...data, name })}
+            onChange={handleNameChange}
           />
         </FormGroup>
       </StackItem>
-      {showK8sName && (
+      {showHiddenResourceName && (
         <StackItem>
-          <FormGroup
-            label="Resource name"
-            labelIcon={
-              <Tooltip
-                position="right"
-                content={
-                  <Stack hasGutter>
-                    <StackItem>
-                      Resource names are what your resources are labeled in OpenShift.
-                    </StackItem>
-                    <StackItem>Resource names are not editable after creation.</StackItem>
-                  </Stack>
-                }
-              >
-                <HelpIcon aria-label="More info" />
-              </Tooltip>
-            }
-            isRequired
-            fieldId={`resource-${nameFieldId}`}
-          >
-            <TextInput
-              isRequired
-              isDisabled={disableK8sName}
-              id={`resource-${nameFieldId}`}
-              name={`resource-${nameFieldId}`}
-              value={data.k8sName ?? k8sName}
-              onChange={(e, k8sName) => {
-                setData({ ...data, k8sName });
-              }}
-              validated={!isValidK8sName(data.k8sName) ? 'error' : undefined}
-            />
-            {!disableK8sName && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem
-                    {...(!isValidK8sName(data.k8sName) && {
-                      icon: <ExclamationCircleIcon />,
-                      variant: 'error',
-                    })}
-                  >
-                    {`Must consist of lower case alphanumeric characters or '-', and must start and
-                    end with an alphanumeric character`}
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </FormGroup>
+          <K8sNameField
+            data={data}
+            setData={setData}
+            nameFieldId={nameFieldId}
+            disableK8sName={disableK8sName}
+            validateK8sName={validateK8sName}
+            setValidateK8sName={setValidateK8sName}
+          />
         </StackItem>
       )}
       <StackItem>

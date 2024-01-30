@@ -15,11 +15,11 @@ import { ImageStreamAndVersion } from '~/types';
 import GenericSidebar from '~/components/GenericSidebar';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { NameDescType } from '~/pages/projects/types';
 import {
   getNotebookDescription,
   getNotebookDisplayName,
   getProjectDisplayName,
+  isK8sNameValid,
 } from '~/pages/projects/utils';
 import { NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
@@ -47,6 +47,7 @@ import {
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
+import { useK8sCommonResource } from './useK8sCommonResource';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -55,12 +56,7 @@ type SpawnerPageProps = {
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const { currentProject, dataConnections } = React.useContext(ProjectDetailsContext);
   const displayName = getProjectDisplayName(currentProject);
-
-  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
-    name: '',
-    k8sName: undefined,
-    description: '',
-  });
+  const { nameDesc, setNameDesc } = useK8sCommonResource();
   const [selectedImage, setSelectedImage] = React.useState<ImageStreamAndVersion>({
     imageStream: undefined,
     imageVersion: undefined,
@@ -76,18 +72,23 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     dataConnections.data,
     existingNotebook,
   );
-
+  const [disableResourceName, setDisableResourceName] = React.useState<boolean>(false);
   const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
+  const isK8sResourceNameValid =
+    nameDesc.name.trim().length > 0 && isK8sNameValid(nameDesc.k8sName?.value);
 
   React.useEffect(() => {
     if (existingNotebook) {
+      setDisableResourceName(true);
       setNameDesc({
         name: getNotebookDisplayName(existingNotebook),
-        k8sName: existingNotebook.metadata.name,
+        k8sName: {
+          value: existingNotebook.metadata.name,
+        },
         description: getNotebookDescription(existingNotebook),
       });
     }
-  }, [existingNotebook, setStorageData]);
+  }, [existingNotebook, setStorageData, setNameDesc, setDisableResourceName]);
 
   const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
   React.useEffect(() => {
@@ -122,7 +123,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const editNotebookDisplayName = existingNotebook ? getNotebookDisplayName(existingNotebook) : '';
 
   const sectionIDs = Object.values(SpawnerPageSectionID);
-
   return (
     <ApplicationsPage
       title={existingNotebook ? `Edit ${editNotebookDisplayName}` : 'Create workbench'}
@@ -164,6 +164,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 data={nameDesc}
                 setData={setNameDesc}
                 autoFocusName
+                disableK8sName={disableResourceName}
               />
             </FormSection>
             <FormSection
@@ -260,6 +261,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   envVariables={envVariables}
                   dataConnection={dataConnectionData}
                   canEnablePipelines={canEnablePipelines}
+                  isK8sResourceNameValid={isK8sResourceNameValid}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

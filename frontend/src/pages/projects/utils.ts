@@ -18,8 +18,13 @@ export const translateDisplayNameForK8s = (name: string): string =>
     .toLowerCase()
     .replace(/\s/g, '-')
     .replace(/[^A-Za-z0-9-]/g, '');
-export const isValidK8sName = (name?: string): boolean =>
-  name === undefined || (name.length > 0 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name));
+
+export const isK8sNameValid = (name?: string): boolean =>
+  name === undefined ||
+  (name.length > 0 && /^(?![0-9]+$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(name));
+
+export const isValidK8sNameLength = (k8sName?: string): boolean =>
+  k8sName !== undefined && k8sName.length <= 30;
 
 export const getProjectDisplayName = (project: ProjectKind): string =>
   getDisplayNameFromK8sResource(project);
