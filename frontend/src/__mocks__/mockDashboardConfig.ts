@@ -196,7 +196,7 @@ export const mockDashboardConfig = ({
   status: {
     dependencyOperators: {
       redhatOpenshiftPipelines: {
-        available: false,
+        available: !disablePipelines,
         queriedForStatus: false,
       },
     },

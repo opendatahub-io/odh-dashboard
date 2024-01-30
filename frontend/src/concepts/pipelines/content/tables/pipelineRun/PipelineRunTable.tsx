@@ -122,6 +122,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         )}
         variant={TableVariant.compact}
         getColumnSort={getTableColumnSort({ columns: pipelineRunColumns, ...tableProps })}
+        data-testid="pipeline-run-table"
       />
       <DeletePipelineRunsModal
         toDeleteResources={deleteResources}

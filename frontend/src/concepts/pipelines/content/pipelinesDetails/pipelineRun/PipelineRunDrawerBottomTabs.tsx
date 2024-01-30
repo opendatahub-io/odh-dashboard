@@ -8,10 +8,16 @@ import PipelineRunTabDetails from './PipelineRunTabDetails';
 import PipelineRunTabParameters from './PipelineRunTabParameters';
 
 export enum RunDetailsTabs {
-  DETAILS = 'Details',
-  PARAMETERS = 'Input parameters',
-  YAML = 'Run output',
+  DETAILS = 'details',
+  PARAMETERS = 'input-parameters',
+  YAML = 'run-output',
 }
+
+const RunDetailsTabTitles = {
+  [RunDetailsTabs.DETAILS]: 'Details',
+  [RunDetailsTabs.PARAMETERS]: 'Input parameters',
+  [RunDetailsTabs.YAML]: 'Run output',
+};
 
 export type RunDetailsTabSelection = RunDetailsTabs | null;
 
@@ -33,13 +39,18 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
 
   return (
     <>
-      <Tabs activeKey={selection ?? undefined} style={{ flexShrink: 0 }}>
+      <Tabs
+        activeKey={selection ?? undefined}
+        style={{ flexShrink: 0 }}
+        data-testid="pipeline-run-drawer-bottom"
+      >
         {Object.values(RunDetailsTabs)
           .filter((key) => (isJob ? key !== RunDetailsTabs.YAML : true)) // do not include yaml tab for jobs
           .map((tab) => (
             <Tab
+              data-testid={'bottom-drawer-tab-' + RunDetailsTabTitles[tab]}
               key={tab}
-              title={tab}
+              title={RunDetailsTabTitles[tab]}
               eventKey={tab}
               tabContentId={tab}
               onClick={() => onSelection(tab)}

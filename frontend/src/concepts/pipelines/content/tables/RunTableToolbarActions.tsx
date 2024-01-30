@@ -13,6 +13,7 @@ const RunTableToolbarActions: React.FC<RunTableToolbarActionsProps> = ({
   // const [createExperiment, setCreateExperiment] = React.useState(false);
   <>
     <SimpleMenuActions
+      data-testid="run-table-toolbar-actions"
       dropdownItems={[
         // {
         //   key: 'create-experiment',

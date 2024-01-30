@@ -32,8 +32,8 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
       aria-label={runPageSectionTitles[CreateRunPageSections.NAME_DESC]}
     >
       <NameDescriptionField
-        nameFieldId="pipeline-name"
-        descriptionFieldId="pipeline-description"
+        nameFieldId="run-name"
+        descriptionFieldId="run-description"
         data={data.nameDesc}
         setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
       />
