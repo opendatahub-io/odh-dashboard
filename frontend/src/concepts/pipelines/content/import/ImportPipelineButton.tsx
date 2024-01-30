@@ -13,14 +13,14 @@ const ImportPipelineButton: React.FC<ImportPipelineButtonProps> = ({
   children,
   ...buttonProps
 }) => {
-  const { apiAvailable, refreshAllAPI } = usePipelinesAPI();
+  const { apiAvailable, refreshAllAPI, pipelinesServer } = usePipelinesAPI();
   const [open, setOpen] = React.useState(false);
 
   return (
     <>
       <Button
         {...buttonProps}
-        isDisabled={!apiAvailable || buttonProps.isDisabled}
+        isDisabled={!apiAvailable || buttonProps.isDisabled || !pipelinesServer.compatible}
         onClick={() => setOpen(true)}
       >
         {children || 'Import pipeline'}

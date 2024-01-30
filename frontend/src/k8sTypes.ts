@@ -480,6 +480,7 @@ export type DSPipelineKind = K8sResourceCommon & {
     namespace: string;
   };
   spec: {
+    dspVersion: string;
     apiServer?: Partial<{
       apiServerImage: string;
       artifactImage: string;
@@ -528,6 +529,7 @@ export type DSPipelineKind = K8sResourceCommon & {
         host: string;
         port?: '';
         scheme: string;
+        region: string;
         s3CredentialsSecret: {
           accessKey: string;
           secretKey: string;
@@ -791,15 +793,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
     };
     templateOrder?: string[];
     templateDisablement?: string[];
-  };
-  /**
-   * TODO: Make this its own API; it's not part of the CRD
-   * Faux status object -- computed by the service account
-   */
-  status: {
-    dependencyOperators: {
-      redhatOpenshiftPipelines: OperatorStatus;
-    };
   };
 };
 

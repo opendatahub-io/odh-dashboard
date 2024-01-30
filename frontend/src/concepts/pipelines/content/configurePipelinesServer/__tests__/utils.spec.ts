@@ -28,11 +28,16 @@ describe('configure pipeline server utils', () => {
         createSecretsResponse(),
       );
       expect(spec).toEqual({
+        dspVersion: 'v2',
+        mlpipelineUI: {
+          image: 'quay.io/opendatahub/ds-pipelines-frontend:latest',
+        },
         database: undefined,
         objectStorage: {
           externalStorage: {
             bucket: '',
             host: '',
+            region: 'us-east-2',
             s3CredentialsSecret: {
               accessKey: 'AWS_ACCESS_KEY_ID',
               secretKey: 'AWS_SECRET_ACCESS_KEY',
@@ -100,10 +105,15 @@ describe('configure pipeline server utils', () => {
         }),
       );
       expect(spec).toEqual({
+        dspVersion: 'v2',
+        mlpipelineUI: {
+          image: 'quay.io/opendatahub/ds-pipelines-frontend:latest',
+        },
         objectStorage: {
           externalStorage: {
             bucket: '',
             host: '',
+            region: 'us-east-2',
             s3CredentialsSecret: {
               accessKey: 'AWS_ACCESS_KEY_ID',
               secretKey: 'AWS_SECRET_ACCESS_KEY',

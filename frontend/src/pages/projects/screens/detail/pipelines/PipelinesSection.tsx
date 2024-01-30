@@ -8,6 +8,7 @@ import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipe
 import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
 import PipelineServerActions from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineServerActions';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
+import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 
 const PipelinesSection: React.FC = () => {
   const {
@@ -39,11 +40,13 @@ const PipelinesSection: React.FC = () => {
         emptyState={<NoPipelineServer variant="secondary" />}
         showDivider={isPipelinesEmpty}
       >
-        {timedOut ? (
-          <PipelineServerTimedOut />
-        ) : (
-          <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
-        )}
+        <EnsureCompatiblePipelineServer>
+          {timedOut ? (
+            <PipelineServerTimedOut />
+          ) : (
+            <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
+          )}
+        </EnsureCompatiblePipelineServer>
       </DetailsSection>
     </PipelineAndVersionContextProvider>
   );

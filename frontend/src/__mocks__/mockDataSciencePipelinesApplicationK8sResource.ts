@@ -1,13 +1,13 @@
 import { DSPipelineKind } from '~/k8sTypes';
 
 type MockResourceConfigType = {
-  name?: string;
   namespace?: string;
-  displayName?: string;
+  dspVersion?: string;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
   namespace = 'test-project',
+  dspVersion = 'v2',
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
   kind: 'DataSciencePipelinesApplication',
@@ -16,6 +16,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
     namespace,
   },
   spec: {
+    dspVersion,
     apiServer: {
       enableSamplePipeline: false,
     },
@@ -27,6 +28,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
     },
     objectStorage: {
       externalStorage: {
+        region: 'us-east-2',
         bucket: 'test-pipelines-bucket',
         host: 's3.amazonaws.com',
         port: '',

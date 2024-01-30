@@ -26,6 +26,7 @@ type GetJobInformationType = ReturnType<typeof useJobRelatedInformation>['getJob
 
 type PipelineContext = {
   hasCR: boolean;
+  hasCompatibleVersion: boolean;
   crInitializing: boolean;
   serverTimedOut: boolean;
   ignoreTimedOut: () => void;
@@ -39,6 +40,7 @@ type PipelineContext = {
 
 const PipelinesContext = React.createContext<PipelineContext>({
   hasCR: false,
+  hasCompatibleVersion: false,
   crInitializing: false,
   serverTimedOut: false,
   ignoreTimedOut: () => undefined,
@@ -106,6 +108,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     <PipelinesContext.Provider
       value={{
         hasCR: !!pipelineNamespaceCR,
+        hasCompatibleVersion: pipelineNamespaceCR?.spec.dspVersion === 'v2',
         crInitializing: !crLoaded,
         serverTimedOut,
         ignoreTimedOut,
@@ -128,7 +131,12 @@ type UsePipelinesAPI = APIState & {
   /** The Project resource behind the namespace */
   project: ProjectKind;
   /** State of the CR */
-  pipelinesServer: { initializing: boolean; installed: boolean; timedOut: boolean };
+  pipelinesServer: {
+    initializing: boolean;
+    installed: boolean;
+    timedOut: boolean;
+    compatible: boolean;
+  };
   /**
    * Allows agnostic functionality to request all watched API to be reacquired.
    * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
@@ -140,6 +148,7 @@ type UsePipelinesAPI = APIState & {
 export const usePipelinesAPI = (): UsePipelinesAPI => {
   const {
     hasCR,
+    hasCompatibleVersion,
     crInitializing,
     serverTimedOut,
     apiState,
@@ -152,6 +161,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
     initializing: crInitializing,
     installed: hasCR,
+    compatible: hasCompatibleVersion,
     timedOut: serverTimedOut,
   };
 
