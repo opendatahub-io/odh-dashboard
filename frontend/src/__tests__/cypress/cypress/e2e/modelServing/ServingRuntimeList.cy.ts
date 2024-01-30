@@ -1,9 +1,8 @@
-import { mock404Error } from '~/__mocks__/mock404Error';
-import { mock409Error } from '~/__mocks__/mock409Error';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mock404Error, mock409Error } from '~/__mocks__/mockK8sStatus';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
