@@ -10,7 +10,6 @@ import {
   Bullseye,
 } from '@patternfly/react-core';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 import PipelineVersionTable from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
@@ -56,7 +55,8 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
               <EmptyStateHeader titleText="No pipeline versions" headingLevel="h3" />
               <EmptyStateFooter>
                 <EmptyStateActions>
-                  <ImportPipelineVersionButton selectedPipeline={pipeline} variant="link" />
+                  {/* TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224 */}
+                  {/* <ImportPipelineVersionButton selectedPipeline={pipeline} variant="link" /> */}
                 </EmptyStateActions>
               </EmptyStateFooter>
             </EmptyState>

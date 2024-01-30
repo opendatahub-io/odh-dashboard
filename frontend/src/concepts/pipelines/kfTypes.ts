@@ -98,6 +98,10 @@ export type ParameterKF = {
   value: string;
 };
 
+/**
+ * @deprecated
+ * Use PipelineVersionKFv2 for all new stories
+ */
 export type PipelineVersionKF = {
   id: string;
   name: string;
@@ -107,6 +111,14 @@ export type PipelineVersionKF = {
   package_url?: UrlKF;
   resource_references: ResourceReferenceKF[];
   description?: string;
+};
+
+export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
+  pipeline_id: string;
+  pipeline_version_id: string;
+  code_source_url?: string;
+  package_url?: UrlKF;
+  error: GoogleRpcStatusKF;
 };
 
 export type ResourceKeyKF = {
@@ -164,6 +176,10 @@ export type TriggerKF = {
   periodic_schedule?: PeriodicScheduleKF;
 };
 
+/**
+ * @deprecated
+ * Use PipelineCoreResourceKFv2 for all new stories
+ */
 export type PipelineCoreResourceKF = {
   id: string;
   name: string;
@@ -171,6 +187,31 @@ export type PipelineCoreResourceKF = {
   resource_references?: ResourceReferenceKF[];
 };
 
+export type PipelineCoreResourceKFv2 = {
+  display_name: string;
+  description?: string;
+  created_at: string;
+  namespace: string;
+};
+
+export type GoogleRpcStatusKF = {
+  code: number;
+  message: string;
+  details: {
+    type_url: string;
+    value: string;
+  }[];
+};
+
+export type PipelineKFv2 = PipelineCoreResourceKFv2 & {
+  pipeline_id: string;
+  error: GoogleRpcStatusKF;
+};
+
+/**
+ * @deprecated
+ * Use PipelineKFv2 for all new stories
+ */
 export type PipelineKF = PipelineCoreResourceKF & {
   created_at: DateTimeKF;
   parameters?: ParameterKF[];

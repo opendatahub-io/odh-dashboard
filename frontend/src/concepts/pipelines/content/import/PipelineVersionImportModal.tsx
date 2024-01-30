@@ -13,13 +13,11 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { usePipelineVersionImportModalData } from '~/concepts/pipelines/content/import/useImportModalData';
 import { getProjectDisplayName } from '~/pages/projects/utils';
 import PipelineFileUpload from '~/concepts/pipelines/content/import/PipelineFileUpload';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import { generatePipelineVersionName } from '~/concepts/pipelines/content/import/utils';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 
 type PipelineVersionImportModalProps = {
-  existingPipeline?: PipelineKF | null;
-  onClose: (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
+  existingPipeline?: PipelineKFv2 | null;
+  onClose: (pipelineVersion?: PipelineVersionKFv2, pipeline?: PipelineKFv2 | null) => void;
 };
 
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
@@ -32,12 +30,13 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   const [{ name, description, pipeline, fileContents }, setData, resetData] =
     usePipelineVersionImportModalData(existingPipeline);
 
-  const pipelineId = pipeline?.id || '';
-  const pipelineName = pipeline?.name || '';
+  const pipelineId = pipeline?.pipeline_id || '';
+  // TODO: out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224
+  // const pipelineName = pipeline?.display_name || '';
 
   const isImportButtonDisabled = !apiAvailable || importing || !name || !fileContents || !pipeline;
 
-  const onBeforeClose = (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => {
+  const onBeforeClose = (pipelineVersion?: PipelineVersionKFv2, pipeline?: PipelineKFv2 | null) => {
     onClose(pipelineVersion, pipeline);
     setImporting(false);
     setError(undefined);
@@ -84,13 +83,14 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
           </StackItem>
           <StackItem>
             <FormGroup label="Pipeline" isRequired fieldId="pipeline-selection">
-              <PipelineSelector
+              {/* TODO: out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224 */}
+              {/* <PipelineSelector
                 selection={pipelineName}
                 onSelect={(pipeline) => {
                   setData('pipeline', pipeline);
                   setData('name', generatePipelineVersionName(pipeline));
                 }}
-              />
+              /> */}
             </FormGroup>
           </StackItem>
           <StackItem>

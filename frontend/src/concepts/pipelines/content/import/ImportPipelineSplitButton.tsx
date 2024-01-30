@@ -6,14 +6,14 @@ import {
   MenuToggle,
   MenuToggleAction,
 } from '@patternfly/react-core';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineImportModal from '~/concepts/pipelines/content/import/PipelineImportModal';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 
 type ImportPipelineSplitButtonProps = {
-  onImportPipeline?: (pipeline: PipelineKF) => void;
-  onImportPipelineVersion?: (pipelineVersion: PipelineVersionKF) => void;
+  onImportPipeline?: (pipeline: PipelineKFv2) => void;
+  onImportPipelineVersion?: (pipelineVersion: PipelineVersionKFv2) => void;
 };
 
 const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({

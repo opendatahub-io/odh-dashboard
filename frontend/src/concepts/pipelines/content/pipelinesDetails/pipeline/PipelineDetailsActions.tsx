@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core/deprecated';
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
+// import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
 
@@ -25,7 +25,8 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
   pipelineVersion,
 }) => {
   const navigate = useNavigate();
-  const { namespace, refreshAllAPI } = usePipelinesAPI();
+  // const { namespace, refreshAllAPI } = usePipelinesAPI();
+  const { namespace } = usePipelinesAPI();
   const [open, setOpen] = React.useState(false);
   const [isVersionImportModalOpen, setIsVersionImportModalOpen] = React.useState(false);
 
@@ -78,16 +79,19 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
         ]}
       />
       {isVersionImportModalOpen && (
-        <PipelineVersionImportModal
-          existingPipeline={pipeline}
-          onClose={(pipelineVersion) => {
-            setIsVersionImportModalOpen(false);
-            if (pipelineVersion) {
-              refreshAllAPI();
-              navigate(`/pipelines/${namespace}/pipeline/view/${pipelineVersion.id}`);
-            }
-          }}
-        />
+        // TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224
+
+        // <PipelineVersionImportModal
+        //   existingPipeline={pipeline}
+        //   onClose={(pipelineVersion) => {
+        //     setIsVersionImportModalOpen(false);
+        //     if (pipelineVersion) {
+        //       refreshAllAPI();
+        //       navigate(`/pipelines/${namespace}/pipeline/view/${pipelineVersion.id}`);
+        //     }
+        //   }}
+        // />
+        <></>
       )}
     </>
   );

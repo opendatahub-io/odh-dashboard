@@ -6,7 +6,7 @@ import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
-import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
+// import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
@@ -27,7 +27,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   onToggleCheck,
   rowIndex,
   onDeletePipeline,
-  refreshPipelines,
+  // refreshPipelines,
   pipelineDetailsPath,
 }) => {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
     totalSize,
     updatedDate,
     loading,
-    refresh: refreshRowData,
+    // refresh: refreshRowData,
   } = usePipelineTableRowData(pipeline);
   const { versionDataSelector } = React.useContext(PipelineAndVersionContext);
   const { selectedVersions } = versionDataSelector(pipeline);
@@ -119,16 +119,19 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
         )}
       </Tbody>
       {importTarget && (
-        <PipelineVersionUploadModal
-          existingPipeline={importTarget}
-          onClose={(pipelineVersion) => {
-            if (pipelineVersion) {
-              refreshPipelines();
-              refreshRowData();
-            }
-            setImportTarget(null);
-          }}
-        />
+        // TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224
+
+        // <PipelineVersionUploadModal
+        //   existingPipeline={importTarget}
+        //   onClose={(pipelineVersion) => {
+        //     if (pipelineVersion) {
+        //       refreshPipelines();
+        //       refreshRowData();
+        //     }
+        //     setImportTarget(null);
+        //   }}
+        // />
+        <></>
       )}
     </>
   );

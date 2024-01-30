@@ -16,6 +16,8 @@ import {
   ResourceKeyKF,
   PipelineVersionKF,
   ListPipelineVersionsResourceKF,
+  PipelineKFv2,
+  PipelineVersionKFv2,
 } from './kfTypes';
 
 export type PipelinesFilter = {
@@ -114,14 +116,14 @@ export type UploadPipeline = (
   name: string,
   description: string,
   fileContents: string,
-) => Promise<PipelineKF>;
+) => Promise<PipelineKFv2>;
 export type UploadPipelineVersion = (
   opts: K8sAPIOptions,
   name: string,
   description: string,
   fileContents: string,
   pipelineId: string,
-) => Promise<PipelineVersionKF>;
+) => Promise<PipelineVersionKFv2>;
 
 export type PipelineAPIs = {
   createExperiment: CreateExperiment;

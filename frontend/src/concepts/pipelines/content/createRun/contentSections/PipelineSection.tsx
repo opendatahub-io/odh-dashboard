@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+// import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
+// import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 
 type PipelineSectionProps = {
   value: PipelineKF | null;
@@ -28,13 +28,14 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) =>
           <PipelineSelector selection={value?.name} onSelect={(pipeline) => onChange(pipeline)} />
         </StackItem>
         <StackItem>
-          <ImportPipelineButton
+          {/* TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224 */}
+          {/* <ImportPipelineButton
             variant="link"
             icon={<PlusCircleIcon />}
             onCreate={(pipeline) => onChange(pipeline)}
           >
             Create new pipeline
-          </ImportPipelineButton>
+          </ImportPipelineButton> */}
         </StackItem>
       </Stack>
     </FormGroup>
