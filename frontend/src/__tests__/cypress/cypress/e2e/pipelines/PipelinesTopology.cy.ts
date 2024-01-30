@@ -1,5 +1,6 @@
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
@@ -10,8 +11,12 @@ import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
 import { mockStatus } from '~/__mocks__/mockStatus';
 import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
-import { pipelinesTopology } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import {
+  pipelineDetails,
+  pipelineRunJobDetails,
+  pipelinesTopology,
+} from '~/__tests__/cypress/cypress/pages/pipelines';
+import { buildMockJobKF } from '~/__mocks__/mockJobKF';
 
 const initIntercepts = () => {
   cy.intercept('/api/status', mockStatus());
@@ -92,22 +97,61 @@ const initIntercepts = () => {
     },
     mockK8sResourceList([mockProjectK8sResource({})]),
   );
+  cy.intercept(
+    {
+      method: 'POST',
+      pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
+    },
+    buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
+  );
 };
 
 describe('Pipeline topology', () => {
-  it('Test topology renders', () => {
-    initIntercepts();
+  describe('Pipeline details', () => {
+    it('Test pipeline topology renders', () => {
+      initIntercepts();
 
-    pipelinesTopology.visit('test-project', 'test-pipeline');
+      pipelineDetails.visit('test-project', 'test-pipeline');
 
-    pipelinesTopology.findTaskNode('print-msg').click();
-    pipelinesTopology
-      .findTaskDrawer()
-      .findByText('$(tasks.random-num.results.Output)')
-      .should('exist');
-    pipelinesTopology.findCloseDrawerButton().click();
+      pipelinesTopology.findTaskNode('print-msg').click();
+      pipelinesTopology
+        .findTaskDrawer()
+        .findByText('$(tasks.random-num.results.Output)')
+        .should('exist');
+      pipelinesTopology.findCloseDrawerButton().click();
 
-    pipelinesTopology.findTaskNode('flip-coin').click();
-    pipelinesTopology.findTaskDrawer().findByText('/tmp/outputs/Output/data').should('exist');
+      pipelinesTopology.findTaskNode('flip-coin').click();
+      pipelinesTopology.findTaskDrawer().findByText('/tmp/outputs/Output/data').should('exist');
+    });
+  });
+
+  describe('Pipeline run details', () => {
+    it('Test pipeline run topology renders', () => {
+      initIntercepts();
+
+      pipelineRunJobDetails.visit('test-project', 'test-pipeline');
+
+      pipelineRunJobDetails.findBottomDrawer().findBottomDrawerDetailsTab().click();
+      pipelineRunJobDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Name')
+        .findValue()
+        .contains('test-pipeline');
+      pipelineRunJobDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Project')
+        .findValue()
+        .contains('Test Project');
+      pipelineRunJobDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Run ID')
+        .findValue()
+        .contains('test-pipeline');
+      pipelineRunJobDetails
+        .findBottomDrawer()
+        .findBottomDrawerDetailItem('Workflow name')
+        .findValue()
+        .contains('conditional-execution-pipeline');
+    });
   });
 });

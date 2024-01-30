@@ -28,11 +28,11 @@ export const renderDetailItems = (details: DetailItem[], flexKey?: boolean): Rea
   <Stack hasGutter>
     {details.map((detail) => (
       <StackItem key={detail.key}>
-        <Flex flexWrap={{ default: 'wrap' }}>
+        <Flex flexWrap={{ default: 'wrap' }} data-testid={'detail-item-' + detail.key}>
           <FlexItem style={{ width: flexKey ? undefined : 150 }}>
             <b>{detail.key}</b>
           </FlexItem>
-          <FlexItem>{detail.value}</FlexItem>
+          <FlexItem data-testid="detail-item-value">{detail.value}</FlexItem>
         </Flex>
       </StackItem>
     ))}

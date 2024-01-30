@@ -33,7 +33,7 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
   return (
     <Tr>
       <CheckboxTd id={job.id} isChecked={isChecked} onToggle={onToggleCheck} />
-      <Td>
+      <Td dataLabel="Name">
         <TableRowTitleDescription
           title={
             <Link to={`/pipelineRuns/${namespace}/pipelineRunJob/view/${job.id}`}>
@@ -44,10 +44,10 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
           descriptionAsMarkdown
         />
       </Td>
-      <Td>
+      <Td dataLabel="Experiment">
         <CoreResourceExperiment resource={job} />
       </Td>
-      <Td modifier="truncate">
+      <Td modifier="truncate" dataLabel="Pipeline">
         <CoreResourcePipelineVersion
           resource={job}
           loaded={isVersionLoaded}
@@ -55,19 +55,19 @@ const PipelineRunJobTableRow: React.FC<PipelineRunJobTableRowProps> = ({
           error={error}
         />
       </Td>
-      <Td>
+      <Td dataLabel="Trigger">
         <RunJobTrigger job={job} />
       </Td>
-      <Td>
+      <Td dataLabel="Scheduled">
         <RunJobScheduled job={job} />
       </Td>
-      <Td>
+      <Td dataLabel="Status">
         <RunJobStatus
           job={job}
           onToggle={(checked) => api.updatePipelineRunJob({}, job.id, checked).then(refreshAllAPI)}
         />
       </Td>
-      <Td isActionCell>
+      <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
             {

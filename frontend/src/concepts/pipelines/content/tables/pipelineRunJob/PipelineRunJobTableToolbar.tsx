@@ -68,7 +68,7 @@ const PipelineRunJobTableToolbar: React.FC<PipelineRunJobTableToolbarProps> = ({
           Create run
         </Button>
       </ToolbarItem>
-      <ToolbarItem>
+      <ToolbarItem data-testid="job-table-toolbar-item">
         <RunTableToolbarActions deleteAllEnabled={deleteAllEnabled} onDeleteAll={onDeleteAll} />
       </ToolbarItem>
     </PipelineFilterBar>
