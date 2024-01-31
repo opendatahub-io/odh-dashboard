@@ -47,5 +47,5 @@ export const asTimestamp = (date: Date): React.ReactNode => (
 
 export const isEmptyDateKF = (date: DateTimeKF): boolean => {
   const INVALID_TIMESTAMP = '1970-01-01T00:00:00Z';
-  return date === INVALID_TIMESTAMP ? true : false;
+  return date === INVALID_TIMESTAMP;
 };

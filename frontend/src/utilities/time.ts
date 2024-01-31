@@ -106,7 +106,7 @@ export const relativeTime = (current: number, previous: number): string => {
   const msPerMonth = msPerDay * 30;
   const msPerYear = msPerDay * 365;
 
-  if (isNaN(previous)) {
+  if (Number.isNaN(previous)) {
     return 'Just now';
   }
 
@@ -120,13 +120,17 @@ export const relativeTime = (current: number, previous: number): string => {
 
   if (elapsed < msPerMinute) {
     return 'Just now';
-  } else if (elapsed < msPerHour) {
+  }
+  if (elapsed < msPerHour) {
     return shortPrintFn(Math.round(elapsed / msPerMinute), 'minute');
-  } else if (elapsed < msPerDay) {
+  }
+  if (elapsed < msPerDay) {
     return shortPrintFn(Math.round(elapsed / msPerHour), 'hour');
-  } else if (elapsed < msPerMonth) {
+  }
+  if (elapsed < msPerMonth) {
     return shortPrintFn(Math.round(elapsed / msPerDay), 'day');
-  } else if (elapsed < msPerYear) {
+  }
+  if (elapsed < msPerYear) {
     return shortPrintFn(Math.round(elapsed / msPerMonth), 'month');
   }
   const date = new Date(previous);
@@ -164,7 +168,7 @@ export const relativeTime = (current: number, previous: number): string => {
 export const convertPeriodicTimeToSeconds = (timeString: string): number => {
   let numericValue = parseInt(timeString, 10);
 
-  if (isNaN(numericValue)) {
+  if (Number.isNaN(numericValue)) {
     numericValue = 1;
   }
 

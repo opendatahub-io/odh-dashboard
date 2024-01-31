@@ -13,18 +13,16 @@ export const fireTrackingEvent = (
         properties ? ` - ${JSON.stringify(properties)}` : ''
       }`,
     );
-  } else {
-    if (window.analytics) {
-      switch (eventType) {
-        case 'identify':
-          window.analytics.identify(properties?.anonymousID, { clusterID });
-          break;
-        case 'page':
-          window.analytics.page(undefined, { clusterID });
-          break;
-        default:
-          window.analytics.track(eventType, { ...properties, clusterID });
-      }
+  } else if (window.analytics) {
+    switch (eventType) {
+      case 'identify':
+        window.analytics.identify(properties?.anonymousID, { clusterID });
+        break;
+      case 'page':
+        window.analytics.page(undefined, { clusterID });
+        break;
+      default:
+        window.analytics.track(eventType, { ...properties, clusterID });
     }
   }
 };
@@ -81,8 +79,7 @@ export const initSegment = async (props: {
       const t = document.createElement('script');
       t.type = 'text/javascript';
       t.async = true;
-      t.src =
-        'https://cdn.segment.com/analytics.js/v1/' + encodeURIComponent(key) + '/analytics.min.js';
+      t.src = `https://cdn.segment.com/analytics.js/v1/${encodeURIComponent(key)}/analytics.min.js`;
       const n = document.getElementsByTagName('script')[0];
       if (n.parentNode) {
         n.parentNode.insertBefore(t, n);

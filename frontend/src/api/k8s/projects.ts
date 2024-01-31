@@ -92,7 +92,7 @@ export const getModelServingProjects = (): Promise<ProjectKind[]> =>
   getProjects(`${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_MODEL_SERVING_PROJECT}`);
 
 const filter = async (arr: ProjectKind[], callback: (project: ProjectKind) => Promise<boolean>) => {
-  const fail = Symbol();
+  const fail = Symbol('fail');
   const isProject = (i: ProjectKind | typeof fail): i is ProjectKind => i !== fail;
   return (
     await Promise.all(arr.map(async (item) => ((await callback(item)) ? item : fail)))

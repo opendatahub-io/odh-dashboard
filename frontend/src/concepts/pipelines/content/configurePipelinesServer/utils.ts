@@ -93,42 +93,40 @@ export const createDSPipelineResourceSpec = (
   config: PipelineServerConfigType,
   [databaseSecret, objectStorageSecret]: SecretsResponse,
 ): DSPipelineKind['spec'] => {
-  {
-    const databaseRecord = dataEntryToRecord(config.database.value);
-    const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
-    const [, externalStorageScheme, externalStorageHost] = awsRecord.AWS_S3_ENDPOINT?.match(
-      /^(?:(\w+):\/\/)?(.*)/,
-    ) ?? [undefined];
+  const databaseRecord = dataEntryToRecord(config.database.value);
+  const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
+  const [, externalStorageScheme, externalStorageHost] = awsRecord.AWS_S3_ENDPOINT?.match(
+    /^(?:(\w+):\/\/)?(.*)/,
+  ) ?? [undefined];
 
-    return {
-      objectStorage: {
-        externalStorage: {
-          host: externalStorageHost?.replace(/\/$/, '') || '',
-          scheme: externalStorageScheme || 'https',
-          bucket: awsRecord.AWS_S3_BUCKET || '',
-          s3CredentialsSecret: {
-            accessKey: AWS_KEYS.ACCESS_KEY_ID,
-            secretKey: AWS_KEYS.SECRET_ACCESS_KEY,
-            secretName: objectStorageSecret.secretName,
-          },
+  return {
+    objectStorage: {
+      externalStorage: {
+        host: externalStorageHost?.replace(/\/$/, '') || '',
+        scheme: externalStorageScheme || 'https',
+        bucket: awsRecord.AWS_S3_BUCKET || '',
+        s3CredentialsSecret: {
+          accessKey: AWS_KEYS.ACCESS_KEY_ID,
+          secretKey: AWS_KEYS.SECRET_ACCESS_KEY,
+          secretName: objectStorageSecret.secretName,
         },
       },
-      database: databaseSecret
-        ? {
-            externalDB: {
-              host: databaseRecord[DATABASE_CONNECTION_KEYS.HOST],
-              passwordSecret: {
-                key: databaseSecret.key,
-                name: databaseSecret.name,
-              },
-              pipelineDBName: databaseRecord[DATABASE_CONNECTION_KEYS.DATABASE],
-              port: databaseRecord[DATABASE_CONNECTION_KEYS.PORT],
-              username: databaseRecord[DATABASE_CONNECTION_KEYS.USERNAME],
+    },
+    database: databaseSecret
+      ? {
+          externalDB: {
+            host: databaseRecord[DATABASE_CONNECTION_KEYS.HOST],
+            passwordSecret: {
+              key: databaseSecret.key,
+              name: databaseSecret.name,
             },
-          }
-        : undefined,
-    };
-  }
+            pipelineDBName: databaseRecord[DATABASE_CONNECTION_KEYS.DATABASE],
+            port: databaseRecord[DATABASE_CONNECTION_KEYS.PORT],
+            username: databaseRecord[DATABASE_CONNECTION_KEYS.USERNAME],
+          },
+        }
+      : undefined,
+  };
 };
 
 export const configureDSPipelineResourceSpec = (

@@ -70,12 +70,9 @@ export const BYONImageAccelerators: React.FC<BYONImageAcceleratorsProps> = ({
                 variant="outline"
                 render={({ className, content }) => (
                   <Link
-                    to={
-                      '/acceleratorProfiles/create?' +
-                      new URLSearchParams({
-                        identifiers: image.recommendedAcceleratorIdentifiers.join(','),
-                      }).toString()
-                    }
+                    to={`/acceleratorProfiles/create?${new URLSearchParams({
+                      identifiers: image.recommendedAcceleratorIdentifiers.join(','),
+                    }).toString()}`}
                     className={className}
                   >
                     {content}

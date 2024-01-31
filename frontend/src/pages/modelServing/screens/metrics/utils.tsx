@@ -95,9 +95,9 @@ export const convertTimestamp = (timestamp: number, show?: 'date' | 'second'): s
   const second = date.getSeconds();
   const ampm = hour > 12 ? 'PM' : 'AM';
   hour = hour % 12;
-  hour = hour ? hour : 12;
-  const minuteString = minute < 10 ? '0' + minute : minute;
-  const secondString = second < 10 ? '0' + second : second;
+  hour = hour || 12;
+  const minuteString = minute < 10 ? `0${minute}` : minute;
+  const secondString = second < 10 ? `0${second}` : second;
   if (show === 'date') {
     return `${day} ${month}`;
   }
@@ -293,7 +293,7 @@ export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOp
   'biasMetricConfig' in obj;
 
 export const convertInputType = (input: string): number | boolean | string => {
-  if (input.trim() !== '' && !isNaN(Number(input))) {
+  if (input.trim() !== '' && !Number.isNaN(Number(input))) {
     return Number(input);
   }
   if (input.toLowerCase() === 'true') {
@@ -320,7 +320,7 @@ export const getThresholdDefaultDelta = (metricType?: BiasMetricType): number | 
 export const convertPrometheusNaNToZero = (
   data: PrometheusQueryRangeResultValue[],
 ): PrometheusQueryRangeResultValue[] =>
-  data.map((value) => [value[0], isNaN(Number(value[1])) ? '0' : value[1]]);
+  data.map((value) => [value[0], Number.isNaN(Number(value[1])) ? '0' : value[1]]);
 
 export const defaultDomainCalculator: DomainCalculator = (maxYValue, minYValue) =>
   maxYValue === 0 && minYValue === 0 ? { y: [0, 10] } : undefined;

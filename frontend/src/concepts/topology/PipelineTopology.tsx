@@ -33,7 +33,7 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
       };
     }
 
-    return;
+    return undefined;
   }, [controller, onSelectionChange]);
 
   if (!controller) {

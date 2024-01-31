@@ -41,7 +41,8 @@ const ServingRuntimeTokenInput: React.FC<ServingRuntimeTokenInputProps> = ({
   const checkValid = (value: string) => {
     if (value.length === 0) {
       return 'Required';
-    } else if (checkDuplicates(value)) {
+    }
+    if (checkDuplicates(value)) {
       return 'Duplicates are invalid';
     }
     return '';
