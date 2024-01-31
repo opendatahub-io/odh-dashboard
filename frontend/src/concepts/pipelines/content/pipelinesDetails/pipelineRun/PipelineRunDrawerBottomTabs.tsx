@@ -48,7 +48,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
           .filter((key) => (isJob ? key !== RunDetailsTabs.YAML : true)) // do not include yaml tab for jobs
           .map((tab) => (
             <Tab
-              data-testid={'bottom-drawer-tab-' + RunDetailsTabTitles[tab]}
+              data-testid={`bottom-drawer-tab-${RunDetailsTabTitles[tab]}`}
               key={tab}
               title={RunDetailsTabTitles[tab]}
               eventKey={tab}

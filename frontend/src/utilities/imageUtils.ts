@@ -21,9 +21,11 @@ export const compareTagVersions = (a: ImageTagInfo, b: ImageTagInfo): number => 
   // Recommended tags should be first
   if (a.recommended) {
     return -1;
-  } else if (b.recommended) {
+  }
+  if (b.recommended) {
     return 1;
   }
+
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
     return compareVersions(b.name, a.name);
   }
@@ -61,10 +63,11 @@ export const getVersion = (version?: string, prefix?: string): string => {
   if (!version) {
     return '';
   }
+
   const versionString =
     version.startsWith('v') || version.startsWith('V') ? version.slice(1) : version;
 
-  return `${prefix ? prefix : ''}${versionString}`;
+  return `${prefix || ''}${versionString}`;
 };
 
 export const getNameVersionString = (software: ImageSoftwareType): string =>

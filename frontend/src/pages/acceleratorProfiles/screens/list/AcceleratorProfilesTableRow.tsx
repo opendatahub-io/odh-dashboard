@@ -47,7 +47,7 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRow> = ({
         />
       </Td>
       <Td dataLabel="Last modified">
-        {modifiedDate && !isNaN(new Date(modifiedDate).getTime()) ? (
+        {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
           <Timestamp
             date={new Date(modifiedDate)}
             tooltip={{

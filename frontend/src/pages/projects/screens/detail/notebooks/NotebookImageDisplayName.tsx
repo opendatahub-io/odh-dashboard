@@ -64,7 +64,8 @@ export const NotebookImageDisplayName = ({
         ),
         variant: 'info',
       };
-    } else if (notebookImage.imageAvailability === NotebookImageAvailability.DELETED) {
+    }
+    if (notebookImage.imageAvailability === NotebookImageAvailability.DELETED) {
       const unknownBody = (
         <p>
           An <b>unknown</b> notebook image has been deleted. To run this workbench, select a new

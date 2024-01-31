@@ -60,7 +60,7 @@ export const getVersion = (version?: string, prefix?: string): string => {
   const versionString =
     version.startsWith('v') || version.startsWith('V') ? version.slice(1) : version;
 
-  return `${prefix ? prefix : ''}${versionString}`;
+  return `${prefix || ''}${versionString}`;
 };
 
 export const getNameVersionString = (software: ImageVersionDependencyType): string =>
@@ -109,7 +109,8 @@ export const compareTagVersions = (
   // Recommended tags should be first
   if (checkVersionRecommended(a)) {
     return -1;
-  } else if (checkVersionRecommended(b)) {
+  }
+  if (checkVersionRecommended(b)) {
     return 1;
   }
   if (compareVersions.validate(a.name) && compareVersions.validate(b.name)) {
