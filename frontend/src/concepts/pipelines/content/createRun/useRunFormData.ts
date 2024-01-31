@@ -36,7 +36,7 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   return { date, time: time ?? DEFAULT_TIME };
 };
 
-export const useUpdateRunType = (
+const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRunJobKF,
 ): void => {
@@ -78,6 +78,22 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
+export const useUpdateParams = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+  initialData?: PipelineRunKF | PipelineRunJobKF,
+): void => {
+  React.useEffect(() => {
+    if (!initialData?.pipeline_spec.parameters) {
+      return;
+    }
+    const params: RunParam[] = initialData?.pipeline_spec.parameters.map((p) => ({
+      label: p.name,
+      value: p.value,
+    }));
+    setFunction('params', params);
+  }, [setFunction, initialData]);
+};
+
 const getPipelineInputParams = (
   version: PipelineVersionKF | undefined,
   pipeline?: PipelineKF | undefined,
@@ -106,11 +122,7 @@ const useUpdatePipelineRunFormData = (
     if (!formData.version && version) {
       setFormValue('version', version);
     }
-
-    if (!formData.params?.length && (version || pipeline)) {
-      setFormValue('params', getPipelineInputParams(version, pipeline));
-    }
-  }, [pipeline, version, formData.pipeline, formData.version, formData.params, setFormValue]);
+  }, [pipeline, version, formData.pipeline, formData.version, setFormValue]);
 };
 
 const useRunFormData = (
@@ -135,6 +147,7 @@ const useRunFormData = (
 
   useUpdatePipelineRunFormData(runFormDataState, pipeline, version);
   useUpdateRunType(setFormValue, initialData);
+  useUpdateParams(setFormValue, initialData);
 
   return runFormDataState;
 };
