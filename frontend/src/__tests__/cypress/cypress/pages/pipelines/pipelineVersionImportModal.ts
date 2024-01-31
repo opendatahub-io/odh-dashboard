@@ -1,5 +1,5 @@
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { buildMockPipelineVersion } from '~/__mocks__/mockPipelineVersionsProxy';
+import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { buildMockPipelineVersionV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
 class PipelineImportModal extends Modal {
@@ -58,14 +58,14 @@ class PipelineImportModal extends Modal {
     this.findSubmitButton().click();
   }
 
-  mockUploadVersion(params: Partial<PipelineVersionKF>) {
+  mockUploadVersion(params: Partial<PipelineVersionKFv2>) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines/upload_version',
+        pathname: '/api/proxy/apis/v2beta1/pipelines/upload_version',
         times: 1,
       },
-      buildMockPipelineVersion(params),
+      buildMockPipelineVersionV2(params),
     );
   }
 }

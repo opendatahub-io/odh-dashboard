@@ -5,20 +5,20 @@ import {
   kebabTableColumn,
 } from '~/components/table';
 import {
-  PipelineKF,
   PipelineRunJobKF,
   PipelineRunKF,
   PipelineCoreResourceKF,
-  PipelineVersionKF,
+  PipelineVersionKFv2,
+  PipelineKFv2,
 } from '~/concepts/pipelines/kfTypes';
 
-export const pipelineColumns: SortableData<PipelineKF>[] = [
+export const pipelineColumns: SortableData<PipelineKFv2>[] = [
   expandTableColumn(),
   checkboxTableColumn(),
   {
     label: 'Pipeline name',
     field: 'name',
-    sortable: (a, b) => a.name.localeCompare(b.name),
+    sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 40,
   },
   {
@@ -42,12 +42,12 @@ export const pipelineColumns: SortableData<PipelineKF>[] = [
   kebabTableColumn(),
 ];
 
-export const pipelineVersionColumns: SortableData<PipelineVersionKF>[] = [
+export const pipelineVersionColumns: SortableData<PipelineVersionKFv2>[] = [
   checkboxTableColumn(),
   {
     label: 'Pipeline version',
     field: 'name',
-    sortable: (a, b) => a.name.localeCompare(b.name),
+    sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 60,
   },
   {

@@ -43,7 +43,7 @@ class PipelineImportModal extends Modal {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipelines/upload',
+        pathname: '/api/proxy/apis/v2beta1/pipelines/upload',
         times: 1,
       },
       buildMockPipeline(params),

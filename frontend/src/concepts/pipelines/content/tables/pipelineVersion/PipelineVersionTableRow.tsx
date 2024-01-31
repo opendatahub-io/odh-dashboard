@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
@@ -12,7 +12,7 @@ type PipelineVersionTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
   pipelineVersionDetailsPath: (namespace: string, id: string) => string;
-  version: PipelineVersionKF;
+  version: PipelineVersionKFv2;
   isDisabled: boolean;
 };
 
@@ -30,14 +30,18 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
   return (
     <Tr>
       <CheckboxTd
-        id={version.id}
+        id={version.pipeline_version_id}
         isChecked={isChecked}
         onToggle={onToggleCheck}
         isDisabled={isDisabled}
       />
       <Td>
         <TableRowTitleDescription
-          title={<Link to={pipelineVersionDetailsPath(namespace, version.id)}>{version.name}</Link>}
+          title={
+            <Link to={pipelineVersionDetailsPath(namespace, version.pipeline_version_id)}>
+              {version.display_name}
+            </Link>
+          }
           description={version.description}
           descriptionAsMarkdown
         />

@@ -79,7 +79,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
         ]}
       />
       {isVersionImportModalOpen && (
-        // TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224
+        // TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2279
 
         // <PipelineVersionImportModal
         //   existingPipeline={pipeline}

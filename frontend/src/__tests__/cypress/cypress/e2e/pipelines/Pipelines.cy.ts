@@ -1,12 +1,11 @@
 /* eslint-disable camelcase */
-import { RelationshipKF, ResourceTypeKF } from '~/concepts/pipelines/kfTypes';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { buildMockPipeline, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
+import { buildMockPipelineV2, buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import {
-  buildMockPipelineVersion,
-  buildMockPipelineVersions,
+  buildMockPipelineVersionV2,
+  buildMockPipelineVersionsV2,
 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
@@ -19,16 +18,9 @@ import {
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipeline({ name: 'Test pipeline' });
-const initialMockPipelineVersion = buildMockPipelineVersion({
-  id: initialMockPipeline.default_version?.id,
-  name: initialMockPipeline.default_version?.name,
-  resource_references: [
-    {
-      key: { type: ResourceTypeKF.PIPELINE, id: initialMockPipeline.id },
-      relationship: RelationshipKF.OWNER,
-    },
-  ],
+const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
+const initialMockPipelineVersion = buildMockPipelineVersionV2({
+  pipeline_id: initialMockPipeline.pipeline_id,
 });
 const pipelineYamlPath = './cypress/e2e/pipelines/mock-upload-pipeline.yaml';
 
@@ -51,8 +43,11 @@ describe('Pipelines', () => {
   });
 
   it('imports a new pipeline', () => {
-    const uploadPipelineParams = { name: 'New pipeline', description: 'New pipeline description' };
-    const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
+    const uploadPipelineParams = {
+      display_name: 'New pipeline',
+      description: 'New pipeline description',
+    };
+    const uploadedMockPipeline = buildMockPipelineV2(uploadPipelineParams);
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal.mockUploadPipeline(uploadPipelineParams).as('uploadPipeline');
@@ -83,9 +78,9 @@ describe('Pipelines', () => {
 
   it('uploads a new pipeline version', () => {
     const uploadVersionParams = {
-      name: 'New pipeline version',
+      display_name: 'New pipeline version',
       description: 'New pipeline version description',
-      pipelineid: 'test-pipeline',
+      pipeline_id: 'test-pipeline',
     };
 
     // Wait for the pipelines table to load
@@ -97,10 +92,10 @@ describe('Pipelines', () => {
     // Intercept upload/re-fetch of pipeline versions
     pipelineVersionImportModal.mockUploadVersion(uploadVersionParams).as('uploadVersion');
     pipelinesTable
-      .mockGetPipelineVersions([
-        initialMockPipelineVersion,
-        buildMockPipelineVersion(uploadVersionParams),
-      ])
+      .mockGetPipelineVersions(
+        [initialMockPipelineVersion, buildMockPipelineVersionV2(uploadVersionParams)],
+        initialMockPipeline.pipeline_id,
+      )
       .as('refreshVersions');
 
     // Fill out the "Upload new version" modal and submit
@@ -158,7 +153,7 @@ const initIntercepts = () => {
 
   cy.intercept(
     {
-      pathname: '/api/proxy/apis/v1beta1/pipelines',
+      pathname: '/api/proxy/apis/v2beta1/pipelines',
     },
     buildMockPipelines([initialMockPipeline]),
   );
@@ -166,8 +161,8 @@ const initIntercepts = () => {
   cy.intercept(
     {
       method: 'POST',
-      pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+      pathname: '/api/proxy/apis/v2beta1/pipeline_versions',
     },
-    buildMockPipelineVersions([initialMockPipelineVersion]),
+    buildMockPipelineVersionsV2([initialMockPipelineVersion]),
   );
 };

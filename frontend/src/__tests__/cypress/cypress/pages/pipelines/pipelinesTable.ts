@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
+import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
 
 class PipelinesTable {
   private testId = 'pipelines-table';
@@ -14,22 +14,22 @@ class PipelinesTable {
     return this.find().findAllByRole('heading', { name }).parents('tr');
   }
 
-  mockGetPipelines(pipelines: PipelineKF[]) {
+  mockGetPipelines(pipelines: PipelineKFv2[]) {
     return cy.intercept(
       {
-        pathname: '/api/proxy/apis/v1beta1/pipelines',
+        pathname: '/api/proxy/apis/v2beta1/pipelines',
       },
       buildMockPipelines(pipelines),
     );
   }
 
-  mockGetPipelineVersions(versions: PipelineVersionKF[]) {
+  mockGetPipelineVersions(versions: PipelineVersionKFv2[], pipelineId: string) {
     return cy.intercept(
       {
         method: 'POST',
-        pathname: '/api/proxy/apis/v1beta1/pipeline_versions',
+        pathname: `/api/proxy/apis/v2beta1/pipelines/${pipelineId}/versions`,
       },
-      buildMockPipelineVersions(versions),
+      buildMockPipelineVersionsV2(versions),
     );
   }
 

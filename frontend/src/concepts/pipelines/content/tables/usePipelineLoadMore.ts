@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import { NotReadyError } from '~/utilities/useFetchState';
 
@@ -13,12 +13,12 @@ type LoadMoreProps = {
 };
 
 type PipelineLoadMoreProps = {
-  initialData: PipelineKF[];
+  initialData: PipelineKFv2[];
 } & LoadMoreProps;
 
 type PipelineVersionLoadMoreProps = {
   pipelineId?: string;
-  initialData: PipelineVersionKF[];
+  initialData: PipelineVersionKFv2[];
 } & LoadMoreProps;
 
 export const usePipelineLoadMore = ({
@@ -28,10 +28,10 @@ export const usePipelineLoadMore = ({
   sortField,
   loaded,
   filter,
-}: PipelineLoadMoreProps): { data: PipelineKF[]; onLoadMore: () => Promise<void> } => {
+}: PipelineLoadMoreProps): { data: PipelineKFv2[]; onLoadMore: () => Promise<void> } => {
   const { api } = usePipelinesAPI();
   const [, showMoreData] = React.useState(false);
-  const dataRef = React.useRef<PipelineKF[]>([]);
+  const dataRef = React.useRef<PipelineKFv2[]>([]);
   const pageTokenRef = React.useRef<string>();
 
   React.useMemo(() => {
@@ -74,12 +74,12 @@ export const usePipelineVersionLoadMore = ({
   filter,
   loaded,
 }: PipelineVersionLoadMoreProps): {
-  data: PipelineVersionKF[];
+  data: PipelineVersionKFv2[];
   onLoadMore: () => Promise<void>;
 } => {
   const { api } = usePipelinesAPI();
   const [, showMoreData] = React.useState<boolean>(false);
-  const dataRef = React.useRef<PipelineVersionKF[]>([]);
+  const dataRef = React.useRef<PipelineVersionKFv2[]>([]);
   const pageTokenRef = React.useRef<string>();
 
   React.useMemo(() => {
@@ -106,7 +106,7 @@ export const usePipelineVersionLoadMore = ({
       filter,
     });
     showMoreData((flag) => !flag);
-    dataRef.current = [...dataRef.current, ...(result.versions || [])];
+    dataRef.current = [...dataRef.current, ...(result.pipeline_versions || [])];
     pageTokenRef.current = result.next_page_token;
   }, [api, pipelineId, sortField, sortDirection, filter]);
 

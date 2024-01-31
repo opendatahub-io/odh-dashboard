@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { Badge, ExpandableSection, Icon, List, ListItem, Tooltip } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, PendingIcon } from '@patternfly/react-icons';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
 import { PipelineResourceDeleteResult } from '~/concepts/pipelines/content/useDeleteStatuses';
+import { getPipelineResourceUniqueID } from './utils';
 
 type DeletePipelineModalExpandableSectionProps = {
-  toDeleteResources: PipelineCoreResourceKF[];
+  toDeleteResources: PipelineCoreResourceKFv2[];
   type: 'runs' | 'pipelines' | 'pipeline versions';
   deleting: boolean;
   deleteStatuses: PipelineResourceDeleteResult[];
-  children: (resource: PipelineCoreResourceKF) => React.ReactNode;
+  children: (resource: PipelineCoreResourceKFv2) => React.ReactNode;
 };
 
 const DeletePipelineModalExpandableSection: React.FC<DeletePipelineModalExpandableSectionProps> = ({
@@ -57,8 +58,10 @@ const DeletePipelineModalExpandableSection: React.FC<DeletePipelineModalExpandab
             }
           }
 
+          const key = getPipelineResourceUniqueID(resource);
+
           return (
-            <ListItem key={resource.id} icon={icon}>
+            <ListItem key={key} icon={icon}>
               {children(resource)}
             </ListItem>
           );

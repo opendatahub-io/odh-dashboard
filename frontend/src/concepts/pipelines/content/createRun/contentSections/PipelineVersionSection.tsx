@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
-// import { PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-// import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 
 type PipelineVersionSectionProps = {
-  selectedPipeline: PipelineKF | null;
-  value: PipelineVersionKF | null;
-  onChange: (version: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
+  selectedPipeline: PipelineKFv2 | null;
+  value: PipelineVersionKFv2 | null;
+  onChange: (version: PipelineVersionKFv2, pipeline?: PipelineKFv2 | null) => void;
 };
 
 const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
@@ -31,21 +31,20 @@ const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
       <Stack hasGutter>
         <StackItem>
           <PipelineVersionSelector
-            selection={value?.name}
-            pipelineId={selectedPipeline?.id}
+            selection={value?.display_name}
+            pipelineId={selectedPipeline?.pipeline_id}
             onSelect={(version) => {
               onChange(version);
             }}
           />
         </StackItem>
         <StackItem>
-          {/* TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224 */}
-          {/* <ImportPipelineVersionButton
+          <ImportPipelineVersionButton
             selectedPipeline={selectedPipeline}
             variant="link"
             icon={<PlusCircleIcon />}
             onCreate={(pipelineVersion, pipeline) => onChange(pipelineVersion, pipeline)}
-          /> */}
+          />
         </StackItem>
       </Stack>
     </FormGroup>

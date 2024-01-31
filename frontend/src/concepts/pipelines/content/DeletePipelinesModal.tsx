@@ -2,15 +2,15 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
 import useDeleteStatuses from '~/concepts/pipelines/content/useDeleteStatuses';
 import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import { getPipelineAndVersionDeleteString } from '~/concepts/pipelines/content/utils';
 
 type DeletePipelinesModalProps = {
   isOpen: boolean;
-  toDeletePipelines?: PipelineKF[];
-  toDeletePipelineVersions?: { pipelineName: string; version: PipelineVersionKF }[];
+  toDeletePipelines?: PipelineKFv2[];
+  toDeletePipelineVersions?: { pipelineName: string; version: PipelineVersionKFv2 }[];
   onClose: (deleted?: boolean) => void;
 };
 
@@ -64,16 +64,16 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
     }
   } else if (toDeletePipelineVersions.length === 1) {
     deleteTitle = 'Delete pipeline version?';
-    deleteName = toDeletePipelineVersions[0].version.name;
+    deleteName = toDeletePipelineVersions[0].version.display_name;
     deleteDescription = (
       <>
-        <strong>{toDeletePipelineVersions[0].version.name}</strong>, a version of your{' '}
+        <strong>{toDeletePipelineVersions[0].version.display_name}</strong>, a version of your{' '}
         <strong>{toDeletePipelineVersions[0].pipelineName}</strong> pipeline, will be deleted.
       </>
     );
   } else {
     deleteTitle = 'Delete pipeline?';
-    deleteName = toDeletePipelines[0].name;
+    deleteName = toDeletePipelines[0].display_name;
   }
 
   return (
@@ -92,10 +92,14 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
 
         const allPromises = [
           ...toDeletePipelines.map((resource) =>
-            api.deletePipeline({ signal: abortSignal }, resource.id),
+            api.deletePipeline({ signal: abortSignal }, resource.pipeline_id),
           ),
           ...toDeletePipelineVersions.map((resource) =>
-            api.deletePipelineVersion({ signal: abortSignal }, resource.version.id),
+            api.deletePipelineVersion(
+              { signal: abortSignal },
+              resource.version.pipeline_id,
+              resource.version.pipeline_version_id,
+            ),
           ),
         ];
 
@@ -131,7 +135,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
                 deleting={deleting}
                 deleteStatuses={deleteStatuses}
               >
-                {(pipeline) => <div>{pipeline.name}</div>}
+                {(pipeline) => <div>{pipeline.display_name}</div>}
               </DeletePipelineModalExpandableSection>
             </StackItem>
           )}
@@ -143,7 +147,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
                 deleting={deleting}
                 deleteStatuses={deleteStatuses}
               >
-                {(version) => <div>{version.name}</div>}
+                {(version) => <div>{version.display_name}</div>}
               </DeletePipelineModalExpandableSection>
             </StackItem>
           )}

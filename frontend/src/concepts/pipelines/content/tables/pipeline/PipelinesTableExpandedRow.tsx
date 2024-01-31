@@ -9,13 +9,14 @@ import {
   EmptyStateFooter,
   Bullseye,
 } from '@patternfly/react-core';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineVersionTable from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
+import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelinesTableExpandedRowProps = {
-  pipeline: PipelineKF;
+  pipeline: PipelineKFv2;
   pipelineDetailsPath: (namespace: string, id: string) => string;
 };
 
@@ -26,7 +27,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
   const [
     [{ items: initialVersions, totalSize, nextPageToken }, loaded],
     { initialLoaded, ...tableProps },
-  ] = usePipelineVersionsTable(pipeline.id)();
+  ] = usePipelineVersionsTable(pipeline.pipeline_id)();
 
   const sortProps = getTableSortProps(tableProps);
 
@@ -55,8 +56,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({
               <EmptyStateHeader titleText="No pipeline versions" headingLevel="h3" />
               <EmptyStateFooter>
                 <EmptyStateActions>
-                  {/* TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224 */}
-                  {/* <ImportPipelineVersionButton selectedPipeline={pipeline} variant="link" /> */}
+                  <ImportPipelineVersionButton selectedPipeline={pipeline} variant="link" />
                 </EmptyStateActions>
               </EmptyStateFooter>
             </EmptyState>

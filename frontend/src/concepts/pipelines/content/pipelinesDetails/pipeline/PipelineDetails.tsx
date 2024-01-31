@@ -25,7 +25,7 @@ import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/t
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+// import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
 import { getPipelineIdByPipelineVersion } from '~/concepts/pipelines/content/utils';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
@@ -40,7 +40,8 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const { pipelineVersionId } = useParams();
   const navigate = useNavigate();
 
-  const [isDeletionOpen, setDeletionOpen] = React.useState(false);
+  // const [isDeletionOpen, setDeletionOpen] = React.useState(false);
+  const [, setDeletionOpen] = React.useState(false);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(PipelineDetailsTab.GRAPH);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
@@ -123,7 +124,9 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                         pipelineId={pipeline?.id}
                         selection={pipelineVersion?.name}
                         onSelect={(version) =>
-                          navigate(`/pipelines/${namespace}/pipeline/view/${version.id}`)
+                          navigate(
+                            `/pipelines/${namespace}/pipeline/view/${version.pipeline_version_id}`,
+                          )
                         }
                       />
                     </FlexItem>
@@ -206,8 +209,8 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-
-      {pipelineName && (
+      {/* TODO: removed bc out of scope for this PR. bring back during https://issues.redhat.com/browse/RHOAIENG-2295 */}
+      {/* {pipelineName && (
         <DeletePipelinesModal
           isOpen={isDeletionOpen}
           toDeletePipelineVersions={
@@ -220,7 +223,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
             }
           }}
         />
-      )}
+      )} */}
     </>
   );
 };

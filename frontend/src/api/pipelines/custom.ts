@@ -77,7 +77,7 @@ export const getPipelineVersion: GetPipelineVersionAPI = (hostPath) => (opts, pi
   );
 
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
-  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/pipelines/${pipelineId}`, {}, opts));
+  handlePipelineFailures(proxyDELETE(hostPath, `/apis/v2beta1/pipelines/${pipelineId}`, {}, opts));
 
 export const deletePipelineRun: DeletePipelineRunAPI = (hostPath) => (opts, runId) =>
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/runs/${runId}`, {}, opts));
@@ -86,9 +86,14 @@ export const deletePipelineRunJob: DeletePipelineRunJobAPI = (hostPath) => (opts
   handlePipelineFailures(proxyDELETE(hostPath, `/apis/v1beta1/jobs/${jobId}`, {}, opts));
 
 export const deletePipelineVersion: DeletePipelineVersionAPI =
-  (hostPath) => (opts, pipelineVersionId) =>
+  (hostPath) => (opts, pipelineId, pipelineVersionId) =>
     handlePipelineFailures(
-      proxyDELETE(hostPath, `/apis/v1beta1/pipeline_versions/${pipelineVersionId}`, {}, opts),
+      proxyDELETE(
+        hostPath,
+        `/apis/v2beta1/pipelines/${pipelineId}/versions/${pipelineVersionId}`,
+        {},
+        opts,
+      ),
     );
 
 export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) =>
@@ -98,7 +103,7 @@ export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) 
 
 export const listPipelines: ListPipelinesAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
-    proxyGET(hostPath, '/apis/v1beta1/pipelines', pipelineParamsToQuery(params), opts),
+    proxyGET(hostPath, '/apis/v2beta1/pipelines', pipelineParamsToQuery(params), opts),
   );
 
 export const listPipelineRuns: ListPipelinesRunAPI = (hostPath) => (opts, params) =>
@@ -145,11 +150,11 @@ export const listPipelineVersionsByPipeline: ListPipelineVersionsByPipelineAPI =
     handlePipelineFailures(
       proxyGET(
         hostPath,
-        `/apis/v1beta1/pipeline_versions`,
+        `/apis/v2beta1/pipelines/${pipelineId}/versions`,
         {
           ...commonPipelineQueryParams(params),
-          'resource_key.id': pipelineId,
-          'resource_key.type': ResourceTypeKF.PIPELINE,
+          // eslint-disable-next-line camelcase
+          pipeline_id: pipelineId,
         },
         opts,
       ),

@@ -116,9 +116,10 @@ export type PipelineVersionKF = {
 export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_id: string;
   pipeline_version_id: string;
+  pipeline_spec: NonNullable<unknown>; // TODO replace this with the actual type: https://issues.redhat.com/browse/RHOAIENG-2279
   code_source_url?: string;
   package_url?: UrlKF;
-  error: GoogleRpcStatusKF;
+  error?: GoogleRpcStatusKF;
 };
 
 export type ResourceKeyKF = {
@@ -191,7 +192,6 @@ export type PipelineCoreResourceKFv2 = {
   display_name: string;
   description?: string;
   created_at: string;
-  namespace: string;
 };
 
 export type GoogleRpcStatusKF = {
@@ -205,7 +205,7 @@ export type GoogleRpcStatusKF = {
 
 export type PipelineKFv2 = PipelineCoreResourceKFv2 & {
   pipeline_id: string;
-  error: GoogleRpcStatusKF;
+  error?: GoogleRpcStatusKF;
 };
 
 /**
@@ -266,7 +266,7 @@ export type ListExperimentsResponseKF = PipelineKFCallCommon<{
   experiments: ExperimentKF[];
 }>;
 export type ListPipelinesResponseKF = PipelineKFCallCommon<{
-  pipelines: PipelineKF[];
+  pipelines: PipelineKFv2[];
 }>;
 export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
   runs: PipelineRunKF[];
@@ -279,7 +279,7 @@ export type ListPipelineVersionTemplateResourceKF = {
   template: string;
 };
 export type ListPipelineVersionsResourceKF = PipelineKFCallCommon<{
-  versions: PipelineVersionKF[];
+  pipeline_versions: PipelineVersionKFv2[];
 }>;
 
 export type CreatePipelineRunKFData = Omit<

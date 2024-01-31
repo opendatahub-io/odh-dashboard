@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
-// import { PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-// import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
+import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 
 type PipelineSectionProps = {
-  value: PipelineKF | null;
-  onChange: (pipeline: PipelineKF) => void;
+  value: PipelineKFv2 | null;
+  onChange: (pipeline: PipelineKFv2) => void;
 };
 
 const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) => (
@@ -25,17 +25,19 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({ value, onChange }) =>
     <FormGroup style={{ minWidth: 0 }}>
       <Stack hasGutter>
         <StackItem>
-          <PipelineSelector selection={value?.name} onSelect={(pipeline) => onChange(pipeline)} />
+          <PipelineSelector
+            selection={value?.display_name}
+            onSelect={(pipeline) => onChange(pipeline)}
+          />
         </StackItem>
         <StackItem>
-          {/* TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224 */}
-          {/* <ImportPipelineButton
+          <ImportPipelineButton
             variant="link"
             icon={<PlusCircleIcon />}
             onCreate={(pipeline) => onChange(pipeline)}
           >
             Create new pipeline
-          </ImportPipelineButton> */}
+          </ImportPipelineButton>
         </StackItem>
       </Stack>
     </FormGroup>

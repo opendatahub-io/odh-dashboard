@@ -11,13 +11,14 @@ import {
   PipelineRunJobKF,
   CreatePipelineRunKFData,
   CreatePipelineRunJobKFData,
-  PipelineCoreResourceKF,
   PipelinesFilterPredicate,
   ResourceKeyKF,
   PipelineVersionKF,
   ListPipelineVersionsResourceKF,
   PipelineKFv2,
   PipelineVersionKFv2,
+  PipelineCoreResourceKFv2,
+  PipelineCoreResourceKF,
 } from './kfTypes';
 
 export type PipelinesFilter = {
@@ -35,7 +36,8 @@ export type PipelineParams = {
 
 export type PipelineOptions = Omit<PipelineParams, 'pageToken'> & { page?: number };
 
-export type PipelineListPaged<T extends PipelineCoreResourceKF> = {
+// TODO: remove this OR when we remove all the old pipeline types (PipelineCoreResourceKF)
+export type PipelineListPaged<T extends PipelineCoreResourceKFv2 | PipelineCoreResourceKF> = {
   totalSize: number;
   nextPageToken?: string;
   items: T[];
@@ -73,6 +75,7 @@ export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<
 export type DeletePipelineRunJob = (opts: K8sAPIOptions, jobId: string) => Promise<void>;
 export type DeletePipelineVersion = (
   opts: K8sAPIOptions,
+  pipelineId: string,
   pipelineVersionId: string,
 ) => Promise<void>;
 export type ListExperiments = (
