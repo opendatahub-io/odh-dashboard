@@ -272,12 +272,12 @@ export const createNotebook = (
 
 export const updateNotebook = (
   existingNotebook: NotebookKind,
-  data: StartNotebookData,
+  assignableData: StartNotebookData,
   username: string,
   opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
-  data.notebookId = existingNotebook.metadata.name;
-  const notebook = assembleNotebook(data, username);
+  assignableData.notebookId = existingNotebook.metadata.name;
+  const notebook = assembleNotebook(assignableData, username);
 
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
@@ -301,17 +301,15 @@ export const createNotebookWithoutStarting = (
   data: StartNotebookData,
   username: string,
 ): Promise<NotebookKind> =>
-  new Promise((resolve, reject) =>
-    createNotebook(data, username).then((notebook) =>
-      setTimeout(
-        () =>
-          stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
-            .then(resolve)
-            .catch(reject),
-        10_000,
-      ),
-    ),
-  );
+  new Promise((resolve, reject) => {
+    createNotebook(data, username).then((notebook) => {
+      setTimeout(() => {
+        stopNotebook(notebook.metadata.name, notebook.metadata.namespace)
+          .then(resolve)
+          .catch(reject);
+      }, 10_000);
+    });
+  });
 
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({
