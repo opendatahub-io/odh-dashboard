@@ -69,7 +69,7 @@ const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): Filte
   const doSetFilter = React.useCallback(
     (data: FilterProps['filterData']) => {
       const predicates: PipelinesFilterPredicate[] = [];
-      let resourceReference: ResourceKeyKF | undefined = undefined;
+      let resourceReference: ResourceKeyKF | undefined;
 
       const runValue = getDataValue(data[FilterOptions.NAME]);
       const startedValue = getDataValue(data[FilterOptions.CREATED_AT]);

@@ -28,7 +28,7 @@ export const renderDetailItems = (details: DetailItem[], flexKey?: boolean): Rea
   <Stack hasGutter>
     {details.map((detail) => (
       <StackItem key={detail.key}>
-        <Flex flexWrap={{ default: 'wrap' }} data-testid={`detail-item-${  detail.key}`}>
+        <Flex flexWrap={{ default: 'wrap' }} data-testid={`detail-item-${detail.key}`}>
           <FlexItem style={{ width: flexKey ? undefined : 150 }}>
             <b>{detail.key}</b>
           </FlexItem>
@@ -75,4 +75,5 @@ export const checkPodContainersStatus = (
 
 export const isEmptyDateKF = (date: DateTimeKF): boolean => {
   const INVALID_TIMESTAMP = '1970-01-01T00:00:00Z';
-  return date === INVALID_TIMESTAMP
+  return date === INVALID_TIMESTAMP;
+};
