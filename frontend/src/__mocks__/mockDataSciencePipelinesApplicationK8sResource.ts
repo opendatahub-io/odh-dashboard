@@ -12,7 +12,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
   kind: 'DataSciencePipelinesApplication',
   metadata: {
-    name: 'pipelines-definition',
+    name: 'dspa',
     namespace,
   },
   spec: {

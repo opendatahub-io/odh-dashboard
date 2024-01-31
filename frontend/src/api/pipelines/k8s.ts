@@ -2,6 +2,7 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
+  k8sListResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { DataSciencePipelineApplicationModel } from '~/api/models';
@@ -9,7 +10,7 @@ import { DSPipelineKind, K8sAPIOptions, RouteKind, SecretKind } from '~/k8sTypes
 import { getRoute } from '~/api/k8s/routes';
 import { getSecret } from '~/api/k8s/secrets';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { PIPELINE_DEFINITION_NAME, PIPELINE_ROUTE_NAME } from '~/concepts/pipelines/const';
+import { DEFAULT_PIPELINE_DEFINITION_NAME } from '~/concepts/pipelines/const';
 import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 
 export const getElyraSecret = async (namespace: string, opts: K8sAPIOptions): Promise<SecretKind> =>
@@ -17,8 +18,9 @@ export const getElyraSecret = async (namespace: string, opts: K8sAPIOptions): Pr
 
 export const getPipelineAPIRoute = async (
   namespace: string,
+  name: string,
   opts?: K8sAPIOptions,
-): Promise<RouteKind> => getRoute(PIPELINE_ROUTE_NAME, namespace, opts);
+): Promise<RouteKind> => getRoute(name, namespace, opts);
 
 export const createPipelinesCR = async (
   namespace: string,
@@ -31,7 +33,7 @@ export const createPipelinesCR = async (
     apiVersion: `${DataSciencePipelineApplicationModel.apiGroup}/${DataSciencePipelineApplicationModel.apiVersion}`,
     kind: DataSciencePipelineApplicationModel.kind,
     metadata: {
-      name: PIPELINE_DEFINITION_NAME,
+      name: DEFAULT_PIPELINE_DEFINITION_NAME,
       namespace,
     },
     spec: {
@@ -52,22 +54,35 @@ export const createPipelinesCR = async (
 
 export const getPipelinesCR = async (
   namespace: string,
+  name: string,
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind> =>
   k8sGetResource<DSPipelineKind>(
     applyK8sAPIOptions(opts, {
       model: DataSciencePipelineApplicationModel,
-      queryOptions: { name: PIPELINE_DEFINITION_NAME, ns: namespace },
+      queryOptions: { name, ns: namespace },
     }),
   );
 
+export const listPipelinesCR = async (
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<DSPipelineKind[]> =>
+  k8sListResource<DSPipelineKind>(
+    applyK8sAPIOptions(opts, {
+      model: DataSciencePipelineApplicationModel,
+      queryOptions: { ns: namespace },
+    }),
+  ).then((r) => r.items);
+
 export const deletePipelineCR = async (
   namespace: string,
+  name: string,
   opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
   k8sDeleteResource<DSPipelineKind, K8sStatus>(
     applyK8sAPIOptions(opts, {
       model: DataSciencePipelineApplicationModel,
-      queryOptions: { name: PIPELINE_DEFINITION_NAME, ns: namespace },
+      queryOptions: { name, ns: namespace },
     }),
   );
