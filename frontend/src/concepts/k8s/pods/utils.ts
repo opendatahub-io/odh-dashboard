@@ -1,5 +1,5 @@
 import { PodKind } from '~/k8sTypes';
-import { PodContainer, PodStepState, PodStepStateType } from '~/types';
+import { PodContainer, PodContainerStatuses, PodStepState, PodStepStateType } from '~/types';
 import { getPodContainerLogText } from '~/api';
 import { downloadString } from '~/utilities/string';
 
@@ -7,8 +7,13 @@ const currentTimeStamp = new Date().toISOString();
 
 export const getPodContainers = (
   pod: PodKind | null,
-): { containers: PodContainer[]; initContainers: PodContainer[] } => ({
+): {
+  containers: PodContainer[];
+  containerStatuses: PodContainerStatuses;
+  initContainers: PodContainer[];
+} => ({
   containers: pod?.spec.containers ?? [],
+  containerStatuses: pod?.status?.containerStatuses ?? [],
   initContainers: pod?.spec.initContainers ?? [],
 });
 
@@ -57,21 +62,33 @@ ${logsIndividualStep}`,
 };
 
 export const getPodStepsStates = async (
-  podContainers: PodContainer[],
+  podContainerStatuses: PodContainerStatuses,
   namespace: string,
-  podName: string,
+  podName: string | undefined,
 ): Promise<PodStepState[]> => {
-  const stepsStatesPromises = podContainers.reduce<Promise<PodStepState>[]>(
-    (accumulator, podContainer) => {
-      if (podContainer !== null) {
-        const stepsStatePromise = getPodContainerLogText(namespace, podName, podContainer.name)
+  const stepsStatesPromises = podContainerStatuses.reduce<Promise<PodStepState>[]>(
+    (accumulator, podContainerStatus) => {
+      if (podContainerStatus && podName) {
+        const stepsStatePromise = getPodContainerLogText(
+          namespace,
+          podName,
+          podContainerStatus?.name,
+        )
           .then((logsIndividualStep) => ({
-            stepName: podContainer.name,
-            state: logsIndividualStep.toLowerCase().includes('error')
-              ? PodStepStateType.error
-              : PodStepStateType.success,
+            stepName: podContainerStatus?.name || '',
+            state:
+              podContainerStatus?.state?.running || podContainerStatus?.state?.waiting
+                ? PodStepStateType.loading
+                : logsIndividualStep.toLowerCase().includes('error')
+                ? PodStepStateType.error
+                : podContainerStatus?.state?.terminated
+                ? PodStepStateType.success
+                : PodStepStateType.loading,
           }))
-          .catch(() => ({ stepName: podContainer.name, state: PodStepStateType.error }));
+          .catch(() => ({
+            stepName: podContainerStatus?.name || '',
+            state: PodStepStateType.error,
+          }));
         accumulator.push(stepsStatePromise);
       }
       return accumulator;

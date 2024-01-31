@@ -40,7 +40,7 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({ pip
     value: param.value,
   }));
 
-  return <>{renderDetailItems(details)}</>;
+  return <>{renderDetailItems(details, true)}</>;
 };
 
 export default PipelineRunTabParameters;
