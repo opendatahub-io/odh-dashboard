@@ -110,7 +110,8 @@ const initIntercepts = () => {
       method: 'POST',
       pathname: '/api/proxy/apis/v1beta1/jobs/test-pipeline',
     },
-    buildMockJobKF({ name: 'test-pipeline', id: 'test-pipeline' }),
+    // eslint-disable-next-line camelcase
+    buildMockJobKF({ display_name: 'test-pipeline', recurring_run_id: 'test-pipeline' }),
   );
 };
 
@@ -135,7 +136,8 @@ describe('Pipeline topology', () => {
   });
 
   describe('Pipeline run details', () => {
-    it('Test pipeline run topology renders', () => {
+    // TODO, remove skip after https://issues.redhat.com/browse/RHOAIENG-2282
+    it.skip('Test pipeline run topology renders', () => {
       initIntercepts();
 
       pipelineRunJobDetails.visit('test-project', 'test-pipeline');

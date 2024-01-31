@@ -10,8 +10,10 @@ import {
 import { Icon } from '@patternfly/react-core';
 import {
   PipelineCoreResourceKFv2,
-  PipelineRunJobKF,
+  PipelineKFv2,
+  PipelineRunJobKFv2,
   PipelineRunKFv2,
+  PipelineVersionKFv2,
   RuntimeStateKF,
   runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
@@ -83,10 +85,6 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
   return { icon, label, status, details };
 };
 
-export const isPipelineRunJob = (
-  runOrJob?: PipelineRunJobKF | PipelineRunKFv2,
-): runOrJob is PipelineRunJobKF => !!(runOrJob as PipelineRunJobKF)?.trigger;
-
 export const getPipelineAndVersionDeleteString = (
   resources: PipelineCoreResourceKFv2[],
   type: 'pipeline' | 'version',
@@ -94,3 +92,24 @@ export const getPipelineAndVersionDeleteString = (
 
 export const getPipelineResourceUniqueID = (resource: PipelineCoreResourceKFv2): string =>
   resource.display_name + resource.created_at;
+
+export const isPipelineRun = (resource: PipelineCoreResourceKFv2): resource is PipelineRunKFv2 =>
+  'run_id' in resource;
+
+export const isPipelineRunJob = (
+  resource: PipelineCoreResourceKFv2,
+): resource is PipelineRunJobKFv2 => 'recurring_run_id' in resource && !('run_id' in resource);
+
+export const isPipelineVersion = (
+  resource: PipelineCoreResourceKFv2,
+): resource is PipelineVersionKFv2 =>
+  'pipeline_version_id' in resource &&
+  'pipeline_id' in resource &&
+  !('recurring_run_id' in resource) &&
+  !('run_id' in resource);
+
+export const isPipeline = (resource: PipelineCoreResourceKFv2): resource is PipelineKFv2 =>
+  'pipeline_id' in resource &&
+  !('pipeline_version_id' in resource) &&
+  !('recurring_run_id' in resource) &&
+  !('run_id' in resource);

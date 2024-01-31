@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { PipelineCoreResourceKF, PipelineRunJobKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunJobKFv2 } from '~/concepts/pipelines/kfTypes';
 import { pipelineRunJobColumns } from '~/concepts/pipelines/content/tables/columns';
 import { getTableColumnSort, useCheckboxTable } from '~/components/table';
 import PipelineRunJobTableRow from '~/concepts/pipelines/content/tables/pipelineRunJob/PipelineRunJobTableRow';
@@ -14,7 +14,7 @@ import { TableBase } from '~/components/table';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRunTableProps = {
-  jobs: PipelineRunJobKF[];
+  jobs: PipelineRunJobKFv2[];
   loading?: boolean;
   totalSize: number;
   page: number;
@@ -46,10 +46,9 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
     tableProps: checkboxTableProps,
     toggleSelection,
     isSelected,
-  } = useCheckboxTable(jobs.map(({ id }) => id));
-  // TODO - update type, https://issues.redhat.com/browse/RHOAIENG-2273
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [deleteResources, setDeleteResources] = React.useState<any[]>([]);
+    // eslint-disable-next-line camelcase
+  } = useCheckboxTable(jobs.map(({ recurring_run_id }) => recurring_run_id));
+  const [deleteResources, setDeleteResources] = React.useState<PipelineRunJobKFv2[]>([]);
 
   return (
     <>
@@ -74,23 +73,25 @@ const PipelineRunJobTable: React.FC<PipelineRunTableProps> = ({
         toolbarContent={
           <PipelineRunJobTableToolbar
             {...filterToolbarProps}
+            data-testid="pipeline-run-job-table-toolbar"
             deleteAllEnabled={selections.length > 0}
             onDeleteAll={() =>
               setDeleteResources(
                 selections
-                  .map<PipelineCoreResourceKF | undefined>((selection) =>
-                    jobs.find(({ id }) => id === selection),
+                  .map<PipelineRunJobKFv2 | undefined>((selection) =>
+                    // eslint-disable-next-line camelcase
+                    jobs.find(({ recurring_run_id }) => recurring_run_id === selection),
                   )
-                  .filter((v): v is PipelineCoreResourceKF => !!v),
+                  .filter((v): v is PipelineRunJobKFv2 => !!v),
               )
             }
           />
         }
         rowRenderer={(job) => (
           <PipelineRunJobTableRow
-            key={job.id}
-            isChecked={isSelected(job.id)}
-            onToggleCheck={() => toggleSelection(job.id)}
+            key={job.recurring_run_id}
+            isChecked={isSelected(job.recurring_run_id)}
+            onToggleCheck={() => toggleSelection(job.recurring_run_id)}
             onDelete={() => setDeleteResources([job])}
             job={job}
           />

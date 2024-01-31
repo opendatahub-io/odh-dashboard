@@ -38,6 +38,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
   onFilterUpdate,
   onClearFilters,
   children,
+  ...props
 }: PipelineFilterBarProps<Options>): React.JSX.Element => {
   const keys = Object.keys(filterOptions) as Array<Options>;
   const [open, setOpen] = React.useState(false);
@@ -47,7 +48,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
 
   return (
     <>
-      <ToolbarGroup variant="filter-group" data-testid="pipeline-filter-toolbar">
+      <ToolbarGroup variant="filter-group" {...props}>
         <ToolbarItem>
           <Dropdown
             toggle={
@@ -74,6 +75,7 @@ const PipelineFilterBar = <Options extends FilterOptions>({
         </ToolbarItem>
         <ToolbarFilter
           categoryName="Filters"
+          data-testid="run-table-toolbar-filter-text-field"
           variant="search-filter"
           chips={keys
             .map<ToolbarChip | null>((filterKey) => {

@@ -14,9 +14,10 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
-  PipelineRunJobKF,
   PipelineRunKFv2,
   runtimeStateLabels,
+  PipelineRunJobKFv2,
+  JobModeKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
@@ -31,7 +32,7 @@ export const NoRunContent = (): React.JSX.Element => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
-type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKF } & P>;
+type RunJobUtil<P = ExtraProps> = React.FC<{ job: PipelineRunJobKFv2 } & P>;
 
 export const RunNameForPipeline: RunUtil = ({ run }) => {
   const { namespace } = usePipelinesAPI();
@@ -133,7 +134,7 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
 
-  const isEnabled = job.enabled ?? false;
+  const isEnabled = job.mode === JobModeKF.ENABLED ?? false;
   React.useEffect(() => {
     // When the network updates, if we are currently locked fetching, disable it so we can accept the change
     setIsChangingFlag((v) => (v ? false : v));
@@ -141,9 +142,9 @@ export const RunJobStatus: RunJobUtil<{ onToggle: (value: boolean) => Promise<vo
 
   return (
     <Level hasGutter>
-      <LevelItem>
+      <LevelItem data-testid="job-status-switch">
         <Switch
-          id={`${job.id}-toggle`}
+          id={`${job.recurring_run_id}-toggle`}
           aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
           isDisabled={isChangingFlag}
           onChange={(e, checked) => {

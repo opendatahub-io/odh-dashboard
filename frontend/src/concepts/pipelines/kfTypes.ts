@@ -48,6 +48,7 @@ export type PipelineKFCallCommon<UniqueProps> = {
   // Note: if Kubeflow backend determines no results, it doesn't even give you your structure, you get an empty object
 } & Partial<UniqueProps>;
 
+/** @deprecated resource type is no longer a concept in v2 */
 export enum ResourceTypeKF {
   UNKNOWN_RESOURCE_TYPE = 'UNKNOWN_RESOURCE_TYPE',
   EXPERIMENT = 'EXPERIMENT',
@@ -87,8 +88,14 @@ export enum PipelineRunStatusesKF {
 
 export enum JobModeKF {
   UNKNOWN_MODE = 'UNKNOWN_MODE',
-  ENABLED = 'ENABLED',
+  ENABLED = 'ENABLE',
   DISABLED = 'DISABLED',
+}
+
+export enum RecurringRunStatus {
+  STATUS_UNSPECIFIED = 'STATUS_UNSPECIFIED',
+  ENABLED = 'ENABLE',
+  DISABLED = 'DISABLE',
 }
 
 /**
@@ -312,6 +319,10 @@ export type PipelineRunKF = PipelineCoreResourceKF & {
   metrics: RunMetricKF[];
 };
 
+/**
+ * @deprecated
+ * Use PipelineRunJobKFv2 for all new stories
+ */
 export type PipelineRunJobKF = PipelineCoreResourceKF & {
   pipeline_spec: PipelineSpecKF;
   service_account?: string;
@@ -324,6 +335,27 @@ export type PipelineRunJobKF = PipelineCoreResourceKF & {
   error: string;
   enabled?: boolean;
   no_catchup: boolean;
+};
+
+export type PipelineVersionReference = {
+  pipeline_id: string;
+  pipeline_version_id: string;
+};
+
+export type PipelineRunJobKFv2 = PipelineCoreResourceKFv2 & {
+  service_account?: string;
+  max_concurrency: string;
+  trigger: TriggerKF;
+  mode: JobModeKF;
+  created_at: DateTimeKF;
+  updated_at: DateTimeKF;
+  status: RecurringRunStatus;
+  error?: GoogleRpcStatusKF;
+  no_catchup?: boolean;
+  recurring_run_id: string;
+  pipeline_version_reference: PipelineVersionReference;
+  namespace: string;
+  experiment_id: string;
 };
 
 /**
@@ -369,7 +401,7 @@ export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
   runs: PipelineRunKF[];
 }>;
 export type ListPipelineRunJobsResourceKF = PipelineKFCallCommon<{
-  jobs: PipelineRunJobKF[];
+  recurringRuns: PipelineRunJobKF[];
 }>;
 export type ListPipelineVersionTemplateResourceKF = {
   /** YAML template of a PipelineRunKind */

@@ -25,7 +25,7 @@ import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/t
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-// import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
+// // import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
