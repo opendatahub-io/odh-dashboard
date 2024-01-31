@@ -172,7 +172,8 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
   } else if (!logsLoaded) {
     data = 'Loading...';
   } else if (logs) {
-    data = logs;
+    const [newlogs] = JSON.parse(logs);
+    data = newlogs;
   } else {
     data = 'No logs available';
   }
