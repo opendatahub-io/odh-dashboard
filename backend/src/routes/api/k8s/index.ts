@@ -49,7 +49,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           promise = passThroughResource(fastify, req, passThroughData);
           break;
         default:
-          promise = passThroughText(fastify, req, passThroughData);
+          promise = passThroughText(fastify, req, passThroughData).then((d) => d[0]);
       }
 
       return promise.catch((error) => {
