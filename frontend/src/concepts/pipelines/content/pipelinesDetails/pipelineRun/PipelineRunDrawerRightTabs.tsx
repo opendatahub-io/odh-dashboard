@@ -69,7 +69,10 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
           />
         ))}
       </Tabs>
-      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-px-sm">
+      <DrawerPanelBody
+        className="pipeline-run__drawer-panel-body pf-v5-u-px-sm"
+        style={{ overflowY: 'auto' }}
+      >
         <TabContent
           id={selection}
           eventKey={selection}
