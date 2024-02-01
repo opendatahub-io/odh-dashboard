@@ -25,7 +25,8 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   step: number,
   responsePredicate: ResponsePredicate<T>,
   namespace: string,
-): FetchState<T[]> => {
+): [...FetchState<T[]>, boolean] => {
+  const pendingRef = React.useRef(active);
   const fetchData = React.useCallback<FetchStateCallbackPromise<T[]>>(() => {
     const endInS = endInMs / 1000;
     const start = endInS - span;
@@ -44,10 +45,20 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
           step: step.toString(),
         }).toString(),
       })
-      .then((response) => responsePredicate(response.data.response.data));
+      .then((response) => responsePredicate(response.data.response.data))
+      .finally(() => {
+        pendingRef.current = false;
+      });
   }, [endInMs, span, active, apiPath, namespace, queryLang, step, responsePredicate]);
 
-  return useFetchState<T[]>(fetchData, []);
+  // The query is pending if fetchData changes because it will trigger useFetchState to re-fetch
+  React.useMemo(() => {
+    pendingRef.current = active;
+    // We do not reference fetchData but need to react to it changing
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, fetchData]);
+
+  return [...useFetchState<T[]>(fetchData, []), pendingRef.current];
 };
 
 export default usePrometheusQueryRange;

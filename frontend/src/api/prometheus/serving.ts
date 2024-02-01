@@ -154,7 +154,7 @@ export const useModelServingMetrics = (
 
   useRefreshInterval(RefreshIntervalValue[refreshInterval], refreshAllMetrics);
 
-  return React.useMemo(
+  const result = React.useMemo(
     () => ({
       data: {
         [ServerMetricType.REQUEST_COUNT]: serverRequestCount,
@@ -180,4 +180,22 @@ export const useModelServingMetrics = (
       refreshAllMetrics,
     ],
   );
+
+  // store the result in a reference and only update the reference so long as there are no pending queries
+  const resultRef = React.useRef(result);
+  if (
+    !(
+      serverRequestCount.pending ||
+      serverAverageResponseTime.pending ||
+      serverCPUUtilization.pending ||
+      serverMemoryUtilization.pending ||
+      modelRequestSuccessCount.pending ||
+      modelRequestFailedCount.pending ||
+      modelTrustyAIDIR.pending ||
+      modelTrustyAISPD.pending
+    )
+  ) {
+    resultRef.current = result;
+  }
+  return resultRef.current;
 };
