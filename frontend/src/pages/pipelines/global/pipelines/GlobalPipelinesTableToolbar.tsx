@@ -11,7 +11,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 const options = {
   [FilterOptions.NAME]: 'Pipeline name',
-  [FilterOptions.CREATED_AT]: 'Created on',
+  [FilterOptions.CREATED_AT]: 'Created after',
 };
 
 type GlobalPipelinesTableToolbarProps = Pick<
