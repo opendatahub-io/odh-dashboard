@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+// import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+// import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 
 type PipelineVersionSectionProps = {
@@ -39,12 +39,13 @@ const PipelineVersionSection: React.FC<PipelineVersionSectionProps> = ({
           />
         </StackItem>
         <StackItem>
-          <ImportPipelineVersionButton
+          {/* TODO: this file is out of scope for this PR -> bring back during https://issues.redhat.com/browse/RHOAIENG-2224 */}
+          {/* <ImportPipelineVersionButton
             selectedPipeline={selectedPipeline}
             variant="link"
             icon={<PlusCircleIcon />}
             onCreate={(pipelineVersion, pipeline) => onChange(pipelineVersion, pipeline)}
-          />
+          /> */}
         </StackItem>
       </Stack>
     </FormGroup>

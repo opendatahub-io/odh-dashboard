@@ -173,13 +173,13 @@ export const updatePipelineRunJob: UpdatePipelineRunJobAPI = (hostPath) => (opts
 export const uploadPipeline: UploadPipelineAPI =
   (hostPath) => (opts, name, description, fileContents) =>
     handlePipelineFailures(
-      proxyFILE(hostPath, '/apis/v1beta1/pipelines/upload', fileContents, { name, description }),
+      proxyFILE(hostPath, '/apis/v2beta1/pipelines/upload', fileContents, { name, description }),
     );
 
 export const uploadPipelineVersion: UploadPipelineVersionAPI =
   (hostPath) => (opts, name, description, fileContents, pipelineId) =>
     handlePipelineFailures(
-      proxyFILE(hostPath, '/apis/v1beta1/pipelines/upload_version', fileContents, {
+      proxyFILE(hostPath, '/apis/v2beta1/pipelines/upload_version', fileContents, {
         name,
         description,
         pipelineid: pipelineId,
