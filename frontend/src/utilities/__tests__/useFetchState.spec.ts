@@ -108,9 +108,17 @@ describe('useFetchState', () => {
     expect(result[1][1]).toBe(true);
 
     // rerender but with a promise that doens't resolve
-    renderResult.rerender(() => new Promise(() => null), [11], {
-      initialPromisePurity: true,
-    });
+    renderResult.rerender(
+      () =>
+        new Promise<never>(() => {
+          // Creating a placeholder promise with no action inside the constructor,
+          /* no action */
+        }),
+      [11],
+      {
+        initialPromisePurity: true,
+      },
+    );
 
     expect(result).toHaveLength(4);
 

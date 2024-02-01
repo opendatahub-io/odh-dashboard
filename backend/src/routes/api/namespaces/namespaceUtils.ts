@@ -1,30 +1,25 @@
-import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
+import {
+  PatchUtils,
+  V1ResourceAttributes,
+  V1SelfSubjectAccessReview,
+} from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus, passThroughResource } from '../k8s/pass-through';
 import { featureFlagEnabled, getDashboardConfig } from '../../../utils/resourceUtils';
 
-const checkNamespacePermission = (
+const createSelfSubjectAccessReview = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
-  name: string,
+  resourceAttributes: V1ResourceAttributes,
 ): Promise<V1SelfSubjectAccessReview | K8sStatus> => {
   const kc = fastify.kube.config;
   const cluster = kc.getCurrentCluster();
   const selfSubjectAccessReviewObject: V1SelfSubjectAccessReview = {
     apiVersion: 'authorization.k8s.io/v1',
     kind: 'SelfSubjectAccessReview',
-    spec: {
-      resourceAttributes: {
-        group: 'project.openshift.io',
-        resource: 'projects',
-        subresource: '',
-        verb: 'update',
-        name,
-        namespace: name,
-      },
-    },
+    spec: { resourceAttributes },
   };
   return passThroughResource<V1SelfSubjectAccessReview>(fastify, request, {
     url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
@@ -32,6 +27,34 @@ const checkNamespacePermission = (
     requestData: JSON.stringify(selfSubjectAccessReviewObject),
   });
 };
+
+const checkAdminNamespacePermission = (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  name: string,
+): Promise<V1SelfSubjectAccessReview | K8sStatus> =>
+  createSelfSubjectAccessReview(fastify, request, {
+    group: 'project.openshift.io',
+    resource: 'projects',
+    subresource: '',
+    verb: 'update',
+    name,
+    namespace: name,
+  });
+
+const checkEditNamespacePermission = (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  name: string,
+): Promise<V1SelfSubjectAccessReview | K8sStatus> =>
+  createSelfSubjectAccessReview(fastify, request, {
+    group: 'serving.kserve.io',
+    resource: 'servingruntimes',
+    subresource: '',
+    verb: 'create',
+    name,
+    namespace: name,
+  });
 
 export const applyNamespaceChange = async (
   fastify: KubeFastifyInstance,
@@ -48,7 +71,48 @@ export const applyNamespaceChange = async (
     );
   }
 
-  const selfSubjectAccessReview = await checkNamespacePermission(fastify, request, name);
+  // calling featureFlagEnabled to set the bool to false if it's set to anything but false ('true', undefined, etc)
+  const enableServiceMesh = featureFlagEnabled(
+    getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
+  );
+
+  let labels = {};
+  let annotations = {};
+  let checkPermissionsFn = null;
+  switch (context) {
+    case NamespaceApplicationCase.DSG_CREATION:
+      {
+        labels = { 'opendatahub.io/dashboard': 'true' };
+        annotations = {
+          'opendatahub.io/service-mesh': String(enableServiceMesh),
+        };
+        checkPermissionsFn = checkAdminNamespacePermission;
+      }
+      break;
+    case NamespaceApplicationCase.MODEL_MESH_PROMOTION:
+      {
+        labels = { 'modelmesh-enabled': 'true' };
+        checkPermissionsFn = checkEditNamespacePermission;
+      }
+      break;
+    case NamespaceApplicationCase.KSERVE_PROMOTION:
+      {
+        labels = { 'modelmesh-enabled': 'false' };
+        checkPermissionsFn = checkEditNamespacePermission;
+      }
+      break;
+    default:
+      throw createCustomError('Unknown configuration', 'Cannot apply namespace change', 400);
+  }
+
+  if (checkPermissionsFn === null) {
+    throw createCustomError(
+      'Invalid backend state -- dev broken workflow',
+      'checkPermissionsFn is null -- appropriate permissions must be checked for all actions',
+      500,
+    );
+  }
+  const selfSubjectAccessReview = await checkPermissionsFn(fastify, request, name);
   if (isK8sStatus(selfSubjectAccessReview)) {
     throw createCustomError(
       selfSubjectAccessReview.reason,
@@ -58,37 +122,11 @@ export const applyNamespaceChange = async (
   }
   if (!selfSubjectAccessReview.status.allowed) {
     fastify.log.error(`Unable to access the namespace, ${selfSubjectAccessReview.status.reason}`);
-    throw createCustomError('Forbidden', "You don't have the access to update the namespace", 403);
-  }
-
-  // calling featureFlagEnabled to set the bool to false if it's set to anything but false ('true', undefined, etc)
-  const enableServiceMesh = featureFlagEnabled(
-    getDashboardConfig().spec.dashboardConfig.disableServiceMesh,
-  );
-
-  let labels = {};
-  let annotations = {};
-  switch (context) {
-    case NamespaceApplicationCase.DSG_CREATION:
-      labels = {
-        'opendatahub.io/dashboard': 'true',
-      };
-      annotations = {
-        'opendatahub.io/service-mesh': String(enableServiceMesh),
-      };
-      break;
-    case NamespaceApplicationCase.MODEL_MESH_PROMOTION:
-      labels = {
-        'modelmesh-enabled': 'true',
-      };
-      break;
-    case NamespaceApplicationCase.KSERVE_PROMOTION:
-      labels = {
-        'modelmesh-enabled': 'false',
-      };
-      break;
-    default:
-      throw createCustomError('Unknown configuration', 'Cannot apply namespace change', 400);
+    throw createCustomError(
+      'Forbidden',
+      "You don't have permission to update serving platform labels on the current project.",
+      403,
+    );
   }
 
   return fastify.kube.coreV1Api

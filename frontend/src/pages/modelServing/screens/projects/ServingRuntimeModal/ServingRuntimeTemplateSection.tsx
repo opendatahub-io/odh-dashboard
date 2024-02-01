@@ -71,7 +71,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             ? data.servingRuntimeTemplateName
             : 'Select one'
         }
-        value={data.servingRuntimeTemplateName ?? ''}
+        value={data.servingRuntimeTemplateName}
         onChange={(name) => {
           setData('servingRuntimeTemplateName', name);
         }}

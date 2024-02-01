@@ -36,7 +36,8 @@ export const useBrowserStorage = <T,>(
     (value) => {
       if (jsonify) {
         return setJSONValue(storageKey, value, isSessionStorage);
-      } else if (typeof value === 'string') {
+      }
+      if (typeof value === 'string') {
         setStringValue(storageKey, value, isSessionStorage);
         return true;
       }

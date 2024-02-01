@@ -47,12 +47,12 @@ const PipelinesView: React.FC = () => {
       loading={!loaded}
       pipelines={pipelines}
       enablePagination="compact"
+      refreshPipelines={refresh}
+      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
       toolbarContent={<GlobalPipelinesTableToolbar {...filterToolbarProps} />}
       emptyTableView={
         <DashboardEmptyTableView onClearFilters={filterToolbarProps.onClearFilters} />
       }
-      refreshPipelines={refresh}
-      pipelineDetailsPath={(namespace, id) => `/pipelines/${namespace}/pipeline/view/${id}`}
     />
   );
 };

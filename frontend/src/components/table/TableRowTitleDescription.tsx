@@ -32,7 +32,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
 
   return (
     <>
-      <Title headingLevel="h3" size="md">
+      <Title headingLevel="h2" size="md">
         {resource ? <ResourceNameTooltip resource={resource}>{title}</ResourceNameTooltip> : title}
       </Title>
       {subtitle}

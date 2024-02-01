@@ -153,7 +153,7 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
               onClick={() => {
                 setInputValue('');
                 setData([]);
-                textInputRef?.current?.focus();
+                textInputRef.current?.focus();
               }}
               aria-label="Clear input value"
             >

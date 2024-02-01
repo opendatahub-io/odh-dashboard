@@ -117,7 +117,7 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
               >
                 <ApplicationsPage
                   title={
-                    run && !error ? (
+                    run ? (
                       <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel />
                     ) : (
                       'Error loading run'
@@ -133,13 +133,12 @@ const PipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, 
                     <Breadcrumb>
                       {breadcrumbPath}
                       <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-                        <Truncate content={error ? 'Run details' : run?.name ?? 'Loading...'} />
+                        <Truncate content={run?.name ?? 'Loading...'} />
                       </BreadcrumbItem>
                     </Breadcrumb>
                   }
                   headerAction={
-                    loaded &&
-                    !error && (
+                    loaded && (
                       <PipelineRunDetailsActions run={run} onDelete={() => setDeleting(true)} />
                     )
                   }

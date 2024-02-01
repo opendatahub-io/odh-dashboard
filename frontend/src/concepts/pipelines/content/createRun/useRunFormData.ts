@@ -36,7 +36,7 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
   return { date, time: time ?? DEFAULT_TIME };
 };
 
-export const useUpdateRunType = (
+const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRunJobKF,
 ): void => {
@@ -45,14 +45,14 @@ export const useUpdateRunType = (
       return;
     }
 
-    const trigger = initialData.trigger;
+    const { trigger } = initialData;
     let triggerType: ScheduledType;
-    let start: RunDateTime | undefined = undefined;
-    let end: RunDateTime | undefined = undefined;
+    let start: RunDateTime | undefined;
+    let end: RunDateTime | undefined;
     let value: string;
     if (trigger.cron_schedule) {
       triggerType = ScheduledType.CRON;
-      value = trigger.cron_schedule.cron ?? DEFAULT_CRON_STRING;
+      value = trigger.cron_schedule.cron || DEFAULT_CRON_STRING;
       start = parseKFTime(trigger.cron_schedule.start_time);
       end = parseKFTime(trigger.cron_schedule.end_time);
     } else if (trigger.periodic_schedule) {
@@ -78,6 +78,22 @@ export const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
+export const useUpdateParams = (
+  setFunction: UpdateObjectAtPropAndValue<RunFormData>,
+  initialData?: PipelineRunKF | PipelineRunJobKF,
+): void => {
+  React.useEffect(() => {
+    if (!initialData?.pipeline_spec.parameters) {
+      return;
+    }
+    const params: RunParam[] = initialData?.pipeline_spec.parameters.map((p) => ({
+      label: p.name,
+      value: p.value,
+    }));
+    setFunction('params', params);
+  }, [setFunction, initialData]);
+};
+
 const getPipelineInputParams = (
   version: PipelineVersionKF | undefined,
   pipeline?: PipelineKF | undefined,
@@ -88,7 +104,7 @@ const getPipelineInputParams = (
     parameters = pipeline?.default_version?.parameters || pipeline?.parameters;
   }
 
-  return (parameters || []).map((p) => ({ label: p.name, value: p.value ?? '' }));
+  return (parameters || []).map((p) => ({ label: p.name, value: p.value }));
 };
 
 const useUpdatePipelineRunFormData = (
@@ -99,18 +115,14 @@ const useUpdatePipelineRunFormData = (
   const [formData, setFormValue] = runFormState;
 
   React.useEffect(() => {
-    if (!formData?.pipeline && pipeline) {
+    if (!formData.pipeline && pipeline) {
       setFormValue('pipeline', pipeline);
     }
 
-    if (!formData?.version && version) {
+    if (!formData.version && version) {
       setFormValue('version', version);
     }
-
-    if (!formData?.params?.length && (version || pipeline)) {
-      setFormValue('params', getPipelineInputParams(version, pipeline));
-    }
-  }, [pipeline, version, formData?.pipeline, formData?.version, formData?.params, setFormValue]);
+  }, [pipeline, version, formData.pipeline, formData.version, setFormValue]);
 };
 
 const useRunFormData = (
@@ -135,6 +147,7 @@ const useRunFormData = (
 
   useUpdatePipelineRunFormData(runFormDataState, pipeline, version);
   useUpdateRunType(setFormValue, initialData);
+  useUpdateParams(setFormValue, initialData);
 
   return runFormDataState;
 };

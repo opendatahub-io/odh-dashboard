@@ -83,7 +83,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           title: notebookStatus.currentEventReason,
           description: notebookStatus.currentEventDescription,
         });
-      } else if (notebookStatus.currentStatus === EventStatus.WARNING) {
+      } else {
         setSpawnStatus({
           status: AlertVariant.warning,
           title: notebookStatus.currentEventReason,

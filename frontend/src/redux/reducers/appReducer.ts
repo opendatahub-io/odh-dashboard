@@ -50,7 +50,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
       }
       return {
         ...state,
-        notifications: [...(state.notifications || []), action.payload.notification],
+        notifications: [...state.notifications, action.payload.notification],
       };
     case Actions.HIDE_NOTIFICATION:
       if (!action.payload.notification) {

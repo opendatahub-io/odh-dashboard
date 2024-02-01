@@ -82,22 +82,21 @@ const SpawnerPage: React.FC = () => {
       const getDefaultImageTag = () => {
         let found = false;
         let i = 0;
+
         while (!found && i < images.length) {
           const image = images[i++];
-          if (image) {
-            const tag = getDefaultTag(buildStatuses, image);
-            if (tag) {
-              setSelectedImageTag({ image, tag });
-              found = true;
-            }
+          const tag = getDefaultTag(buildStatuses, image);
+          if (tag) {
+            setSelectedImageTag({ image, tag });
+            found = true;
           }
         }
       };
-      if (currentUserState?.lastSelectedImage) {
+      if (currentUserState.lastSelectedImage) {
         const [imageName, tagName] = [...currentUserState.lastSelectedImage.split(':')];
         const image = images.find((image) => image.name === imageName);
-        const tag = image?.tags.find((tag) => tag.name === tagName);
-        if (image && tag && isImageTagBuildValid(buildStatuses, image, tag)) {
+        const tag = image?.tags && image.tags.find((tag) => tag.name === tagName);
+        if (tag && isImageTagBuildValid(buildStatuses, image, tag)) {
           setSelectedImageTag({ image, tag });
         } else {
           getDefaultImageTag();
@@ -106,9 +105,7 @@ const SpawnerPage: React.FC = () => {
         getDefaultImageTag();
       }
     };
-    if (images && currentUserState) {
-      setFirstValidImage();
-    }
+    setFirstValidImage();
   }, [currentUserState, images, buildStatuses]);
 
   const mapRows = React.useCallback(
@@ -172,7 +169,7 @@ const SpawnerPage: React.FC = () => {
   };
 
   const renderEnvironmentVariableRows = () => {
-    if (!variableRows?.length) {
+    if (!variableRows.length) {
       return null;
     }
     return variableRows.map((row, index) => (
@@ -284,7 +281,7 @@ const SpawnerPage: React.FC = () => {
         provideChildrenPadding
         loaded={loaded}
         loadError={loadError}
-        empty={!images || images.length === 0}
+        empty={images.length === 0}
       >
         <Form maxWidth="1000px">
           <FormSection title="Notebook image">

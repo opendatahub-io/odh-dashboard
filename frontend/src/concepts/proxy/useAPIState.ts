@@ -12,10 +12,6 @@ const useAPIState = <T>(
   }, []);
 
   const apiState = React.useMemo<APIState<T>>(() => {
-    // Note: This is a hack usage to get around the linter -- avoid copying this logic
-    // eslint-disable-next-line no-console
-    console.log('Computing API', internalAPIToggleState ? '' : '');
-
     let path = hostPath;
     if (!path) {
       // TODO: we need to figure out maybe a stopgap or something
@@ -27,6 +23,7 @@ const useAPIState = <T>(
       apiAvailable: !!path,
       api,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createAPI, hostPath, internalAPIToggleState]);
 
   return [apiState, refreshAPIState];

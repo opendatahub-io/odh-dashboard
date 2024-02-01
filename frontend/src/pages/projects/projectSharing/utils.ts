@@ -3,7 +3,7 @@ import { getDisplayNameFromK8sResource } from '~/pages/projects/utils';
 import { ProjectSharingRBType, ProjectSharingRoleType } from './types';
 
 export const getRoleBindingResourceName = (roleBinding: RoleBindingKind): string =>
-  roleBinding.metadata?.name || '';
+  roleBinding.metadata.name || '';
 export const getRoleBindingDisplayName = (roleBinding: RoleBindingKind): string =>
   getDisplayNameFromK8sResource(roleBinding);
 

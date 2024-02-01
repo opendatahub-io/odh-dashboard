@@ -35,11 +35,11 @@ export const usePreferredNotebookSize = (): {
       if (size) {
         defaultSize = size;
       } else {
-        defaultSize = sizes[0];
+        [defaultSize] = sizes;
         notUserDefined = true;
       }
     } else {
-      defaultSize = sizes[0];
+      [defaultSize] = sizes;
     }
     return { ...defaultSize, notUserDefined };
   });
@@ -48,7 +48,7 @@ export const usePreferredNotebookSize = (): {
     (name: string) => {
       let foundSize = sizes.find((size) => size.name === name);
       if (!foundSize) {
-        foundSize = sizes[0];
+        [foundSize] = sizes;
         notification.warning(
           'The size you select is no longer available, we have set the size to the default one.',
         );

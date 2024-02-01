@@ -8,10 +8,16 @@ import PipelineRunTabDetails from './PipelineRunTabDetails';
 import PipelineRunTabParameters from './PipelineRunTabParameters';
 
 export enum RunDetailsTabs {
-  DETAILS = 'Details',
-  PARAMETERS = 'Input parameters',
-  YAML = 'Run output',
+  DETAILS = 'details',
+  PARAMETERS = 'input-parameters',
+  YAML = 'run-output',
 }
+
+const RunDetailsTabTitles = {
+  [RunDetailsTabs.DETAILS]: 'Details',
+  [RunDetailsTabs.PARAMETERS]: 'Input parameters',
+  [RunDetailsTabs.YAML]: 'Run output',
+};
 
 export type RunDetailsTabSelection = RunDetailsTabs | null;
 
@@ -33,13 +39,18 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
 
   return (
     <>
-      <Tabs activeKey={selection ?? undefined} style={{ flexShrink: 0 }}>
+      <Tabs
+        activeKey={selection ?? undefined}
+        style={{ flexShrink: 0 }}
+        data-testid="pipeline-run-drawer-bottom"
+      >
         {Object.values(RunDetailsTabs)
           .filter((key) => (isJob ? key !== RunDetailsTabs.YAML : true)) // do not include yaml tab for jobs
           .map((tab) => (
             <Tab
+              data-testid={`bottom-drawer-tab-${RunDetailsTabTitles[tab]}`}
               key={tab}
-              title={tab}
+              title={RunDetailsTabTitles[tab]}
               eventKey={tab}
               tabContentId={tab}
               onClick={() => onSelection(tab)}
@@ -51,7 +62,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
           <TabContent
             id={RunDetailsTabs.DETAILS}
             eventKey={RunDetailsTabs.DETAILS}
-            activeKey={selection ?? ''}
+            activeKey={selection}
             hidden={RunDetailsTabs.DETAILS !== selection}
           >
             <PipelineRunTabDetails
@@ -62,7 +73,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
           <TabContent
             id={RunDetailsTabs.PARAMETERS}
             eventKey={RunDetailsTabs.PARAMETERS}
-            activeKey={selection ?? ''}
+            activeKey={selection}
             hidden={RunDetailsTabs.PARAMETERS !== selection}
           >
             <PipelineRunTabParameters pipelineSpec={pipelineRunDetails?.kf.pipeline_spec} />
@@ -71,7 +82,7 @@ export const PipelineRunDrawerBottomTabs: React.FC<PipelineRunBottomDrawerProps>
             <TabContent
               id={RunDetailsTabs.YAML}
               eventKey={RunDetailsTabs.YAML}
-              activeKey={selection ?? ''}
+              activeKey={selection}
               hidden={RunDetailsTabs.YAML !== selection}
               style={{ height: '100%' }}
             >

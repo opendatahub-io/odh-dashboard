@@ -26,12 +26,10 @@ const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
     <EmptyState variant={variant}>
       <EmptyStateHeader
         titleText="No results found"
-        headingLevel="h2"
         {...(hasIcon && { icon: <EmptyStateIcon icon={SearchIcon} /> })}
+        headingLevel="h2"
       />
-      <EmptyStateBody>
-        No results match the filter criteria. Clear all filters and try again.
-      </EmptyStateBody>
+      <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
       <EmptyStateFooter>
         <Button variant="link" onClick={onClearFilters}>
           Clear all filters

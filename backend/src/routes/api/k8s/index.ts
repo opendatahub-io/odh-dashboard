@@ -43,10 +43,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       };
 
       let promise: Promise<unknown>;
-      if (req.headers.accept === 'text/plain') {
-        promise = passThroughText(fastify, req, passThroughData);
-      } else {
-        promise = passThroughResource(fastify, req, passThroughData);
+
+      switch (req.types(['json', 'text', 'html'])) {
+        case 'json':
+          promise = passThroughResource(fastify, req, passThroughData);
+          break;
+        default:
+          promise = passThroughText(fastify, req, passThroughData).then((d) => d[0]);
       }
 
       return promise.catch((error) => {

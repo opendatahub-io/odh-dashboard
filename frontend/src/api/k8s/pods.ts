@@ -41,3 +41,21 @@ export const getPodContainerLogText = (
     undefined,
     true,
   );
+
+export const getPodsForModelMesh = (namespace: string, modelName: string): Promise<PodKind[]> =>
+  k8sListResource<PodKind>({
+    model: PodModel,
+    queryOptions: {
+      ns: namespace,
+      queryParams: { labelSelector: `name=modelmesh-serving-${modelName}` },
+    },
+  }).then((r) => r.items);
+
+export const getPodsForKserve = (namespace: string, modelName: string): Promise<PodKind[]> =>
+  k8sListResource<PodKind>({
+    model: PodModel,
+    queryOptions: {
+      ns: namespace,
+      queryParams: { labelSelector: `serving.kserve.io/inferenceservice=${modelName}` },
+    },
+  }).then((r) => r.items);

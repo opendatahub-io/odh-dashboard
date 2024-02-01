@@ -9,6 +9,7 @@ import { mockStatus } from '~/__mocks__/mockStatus';
 import EditAcceleratorProfileComponent from '~/pages/acceleratorProfiles/screens/manage/EditAcceleratorProfile';
 import useDetectUser from '~/utilities/useDetectUser';
 import ManageAcceleratorProfileComponent from '~/pages/acceleratorProfiles/screens/manage/ManageAcceleratorProfile';
+import { TolerationEffect, TolerationOperator } from '~/types';
 
 export default {
   component: ManageAcceleratorProfileComponent,
@@ -68,7 +69,23 @@ export const EditAcceleratorProfile: StoryObj = {
         accelerator: rest.get(
           '/api/k8s/apis/dashboard.opendatahub.io/v1/namespaces/opendatahub/acceleratorprofiles/test-accelerator',
           (req, res, ctx) =>
-            res(ctx.json(mockAcceleratorProfile({ metadata: { name: 'test-accelerator' } }))),
+            res(
+              ctx.json(
+                mockAcceleratorProfile({
+                  name: 'test-accelerator',
+                  displayName: 'Test Accelerator',
+                  description: 'Test description',
+                  identifier: 'nvidia.com/gpu',
+                  tolerations: [
+                    {
+                      key: 'nvidia.com/gpu',
+                      operator: TolerationOperator.EXISTS,
+                      effect: TolerationEffect.NO_SCHEDULE,
+                    },
+                  ],
+                }),
+              ),
+            ),
         ),
       },
     },

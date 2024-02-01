@@ -34,7 +34,7 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
         }}
       >
         {sizes.map((size) => {
-          const name = size.name;
+          const { name } = size;
           const desc = getSizeDescription(size);
           return <SelectOption key={name} value={name} description={desc} />;
         })}

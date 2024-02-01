@@ -30,7 +30,6 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type 
     <ApplicationsPage
       title={title}
       breadcrumb={<Breadcrumb>{getBreadcrumbItemComponents(breadcrumbItems)}</Breadcrumb>}
-      // TODO: decide whether we need to set the loaded based on the feature flag and trustyai loaded
       loaded
       description={null}
       empty={false}

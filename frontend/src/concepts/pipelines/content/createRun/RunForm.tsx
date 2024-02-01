@@ -32,8 +32,8 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
       aria-label={runPageSectionTitles[CreateRunPageSections.NAME_DESC]}
     >
       <NameDescriptionField
-        nameFieldId="pipeline-name"
-        descriptionFieldId="pipeline-description"
+        nameFieldId="run-name"
+        descriptionFieldId="run-description"
         data={data.nameDesc}
         setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
       />
@@ -47,7 +47,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
           'params',
           (pipeline.default_version?.parameters || pipeline.parameters || []).map((p) => ({
             label: p.name,
-            value: p.value ?? '',
+            value: p.value,
           })),
         );
       }}
@@ -64,7 +64,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange }) => (
           'params',
           (version.parameters || []).map((p) => ({
             label: p.name,
-            value: p.value ?? '',
+            value: p.value,
           })),
         );
       }}

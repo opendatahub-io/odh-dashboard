@@ -17,6 +17,7 @@ import { ResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import { QueryTimeframeStep, RefreshIntervalValue } from '~/pages/modelServing/screens/const';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { PROMETHEUS_BIAS_PATH } from '~/api/prometheus/const';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 
 export const useModelServingMetrics = (
@@ -118,7 +119,7 @@ export const useModelServingMetrics = (
     QueryTimeframeStep[ModelMetricType.TRUSTY_AI_SPD],
     trustyResponsePredicate,
     namespace,
-    '/api/prometheus/bias',
+    PROMETHEUS_BIAS_PATH,
   );
 
   const modelTrustyAIDIR = useQueryRangeResourceData(
@@ -129,7 +130,7 @@ export const useModelServingMetrics = (
     QueryTimeframeStep[ModelMetricType.TRUSTY_AI_DIR],
     trustyResponsePredicate,
     namespace,
-    '/api/prometheus/bias',
+    PROMETHEUS_BIAS_PATH,
   );
 
   React.useEffect(() => {

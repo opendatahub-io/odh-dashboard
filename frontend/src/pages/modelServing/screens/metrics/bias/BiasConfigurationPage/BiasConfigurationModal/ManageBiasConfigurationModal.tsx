@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  Modal,
-  TextInput,
-} from '@patternfly/react-core';
+import { Form, FormGroup, Modal, TextInput } from '@patternfly/react-core';
 import { BiasMetricConfig } from '~/concepts/trustyai/types';
 import { BiasMetricType } from '~/api';
 import { InferenceServiceKind } from '~/k8sTypes';
@@ -92,19 +84,12 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
       description="All fields are required."
     >
       <Form>
-        <FormGroup label="Metric name" fieldId="metric-name">
+        <FormGroup label="Metric name" fieldId="metric-name" data-testid="metric-name">
           <TextInput
             id="metric-name"
             value={configuration.requestName}
             onChange={(e, value) => setConfiguration('requestName', value)}
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                This is the name that will be used to select the metric for monitoring.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
         </FormGroup>
         <MetricTypeField
           fieldId="metric-type"

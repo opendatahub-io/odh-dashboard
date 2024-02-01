@@ -28,13 +28,13 @@ const useDraggableTable = (
   const [tempItemOrder, setTempItemOrder] = React.useState<string[]>(itemOrder);
   const bodyRef = React.useRef<HTMLTableSectionElement>(null);
 
-  const onDragStart: TrProps['onDragStart'] = (evt) => {
-    evt.dataTransfer.effectAllowed = 'move';
-    evt.dataTransfer.setData('text/plain', evt.currentTarget.id);
-    const draggedItemId = evt.currentTarget.id;
+  const onDragStart: TrProps['onDragStart'] = (assignableEvent) => {
+    assignableEvent.dataTransfer.effectAllowed = 'move';
+    assignableEvent.dataTransfer.setData('text/plain', assignableEvent.currentTarget.id);
+    const draggedItemId = assignableEvent.currentTarget.id;
 
-    evt.currentTarget.classList.add(styles.modifiers.ghostRow);
-    evt.currentTarget.setAttribute('aria-pressed', 'true');
+    assignableEvent.currentTarget.classList.add(styles.modifiers.ghostRow);
+    assignableEvent.currentTarget.setAttribute('aria-pressed', 'true');
 
     setDraggedItemId(draggedItemId);
     setIsDragging(true);

@@ -58,6 +58,7 @@ const BiasConfigurationTable: React.FC<BiasConfigurationTableProps> = ({
   return (
     <>
       <Table
+        data-testid="metrics-configure-table-loaded"
         data={filteredConfigurations}
         columns={columns}
         defaultSortColumn={1}

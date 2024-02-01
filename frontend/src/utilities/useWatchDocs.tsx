@@ -32,9 +32,7 @@ export const useWatchDocs = (
     watchDocs();
 
     return () => {
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, [docType]);
 

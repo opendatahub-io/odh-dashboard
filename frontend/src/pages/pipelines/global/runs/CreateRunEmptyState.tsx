@@ -22,7 +22,7 @@ const CreateRunEmptyState: React.FC<CreateRunEmptyStateProps> = ({ title, descri
   const navigate = useNavigate();
 
   return (
-    <EmptyState>
+    <EmptyState data-testid="create-run-empty-state">
       <EmptyStateHeader
         titleText={<>{title}</>}
         icon={<EmptyStateIcon icon={PlusCircleIcon} />}

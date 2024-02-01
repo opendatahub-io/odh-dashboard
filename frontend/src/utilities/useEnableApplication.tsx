@@ -84,9 +84,7 @@ export const useEnableApplication = (
     }
     return () => {
       cancelled = true;
-      if (watchHandle) {
-        clearTimeout(watchHandle);
-      }
+      clearTimeout(watchHandle);
     };
   }, [appId, dispatchResults, enableStatus.status]);
 

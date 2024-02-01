@@ -4,7 +4,7 @@ const getRunTypeRetries = () => {
   if (typeof retryConfig === 'number' && Number.isInteger(retryConfig)) {
     configuredRetries = retryConfig;
   }
-  if (typeof retryConfig === 'object' && null !== retryConfig) {
+  if (typeof retryConfig === 'object' && retryConfig !== null) {
     if (
       retryConfig.runMode &&
       Number.isInteger(retryConfig.runMode) &&
@@ -25,7 +25,7 @@ const getRunTypeRetries = () => {
 
 export const failEarly = (): void => {
   const failedTest: Record<string, string | undefined> = {};
-  beforeEach(function () {
+  beforeEach(() => {
     const specName = Cypress.spec.name;
     if (failedTest[specName]) {
       cy.log(
@@ -34,11 +34,11 @@ export const failEarly = (): void => {
     }
     cy.wrap(failedTest[specName]).should('be.undefined');
   });
-  afterEach(function () {
+  afterEach(function handleFailedTest() {
     const retryCount = Cypress.currentRetry;
     const specName = Cypress.spec.name;
     if (
-      this?.currentTest?.state === 'failed' &&
+      this.currentTest?.state === 'failed' &&
       Number.isInteger(retryCount) &&
       getRunTypeRetries() <= retryCount
     ) {

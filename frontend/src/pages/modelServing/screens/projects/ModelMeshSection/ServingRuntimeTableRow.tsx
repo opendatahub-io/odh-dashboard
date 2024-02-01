@@ -4,7 +4,7 @@ import { Button, Icon, Skeleton, Tooltip, Truncate } from '@patternfly/react-cor
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { ServingRuntimeKind } from '~/k8sTypes';
+import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
@@ -60,9 +60,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
 
-  const performanceMetricsAreaAvailable = useIsAreaAvailable(
-    SupportedArea.PERFORMANCE_METRICS,
-  ).status;
+  const serverMetricsSupported =
+    useIsAreaAvailable(SupportedArea.PERFORMANCE_METRICS).status &&
+    currentProject.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true';
 
   const compoundExpandParams = (
     col: ServingRuntimeTableTabs,
@@ -96,7 +96,11 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td
           dataLabel="Deployed models"
-          compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)}
+          compoundExpand={
+            inferenceServicesLoaded
+              ? compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)
+              : undefined
+          }
         >
           {inferenceServicesLoaded ? (
             <>
@@ -118,10 +122,14 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
         </Td>
         <Td
           dataLabel="Tokens"
-          compoundExpand={compoundExpandParams(
-            ServingRuntimeTableTabs.TOKENS,
-            tokens.length === 0 || !isServingRuntimeTokenEnabled(obj),
-          )}
+          compoundExpand={
+            secretsLoaded
+              ? compoundExpandParams(
+                  ServingRuntimeTableTabs.TOKENS,
+                  tokens.length === 0 || !isServingRuntimeTokenEnabled(obj),
+                )
+              : undefined
+          }
         >
           {secretsLoaded ? (
             <>
@@ -154,7 +162,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                 title: 'Edit model server',
                 onClick: () => onEditServingRuntime(obj),
               },
-              ...(performanceMetricsAreaAvailable
+              ...(serverMetricsSupported
                 ? [
                     {
                       title: 'View model server metrics',

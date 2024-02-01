@@ -11,7 +11,7 @@ export const addOwnerReference = <R extends K8sResourceCommon>(
   const ownerReferences = resource.metadata?.ownerReferences || [];
   if (
     owner.metadata?.uid &&
-    owner.metadata?.name &&
+    owner.metadata.name &&
     !ownerReferences.find((r) => r.uid === owner.metadata?.uid)
   ) {
     ownerReferences.push({

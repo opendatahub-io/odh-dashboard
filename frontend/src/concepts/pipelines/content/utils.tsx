@@ -34,7 +34,7 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
   }
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
-  let details: string | undefined = undefined;
+  let details: string | undefined;
   let label: PipelineRunKF['status'];
 
   switch (run.status) {
@@ -68,8 +68,8 @@ export const computeRunStatus = (run?: PipelineRunKF): RunStatusDetails => {
     default:
       icon = UNKNOWN_ICON;
       status = UNKNOWN_STATUS;
-      label = run.status ?? 'Starting';
-      details = run.status ?? 'No status yet';
+      label = run.status || 'Starting';
+      details = run.status || 'No status yet';
   }
 
   return { icon, label, status, details };

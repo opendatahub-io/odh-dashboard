@@ -19,12 +19,7 @@ const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMet
       if (!apiState.apiAvailable) {
         return Promise.reject(new NotReadyError('API not yet available'));
       }
-      return apiState.api
-        .listRequests(opts)
-        .then((r) => formatListResponse(r))
-        .catch((e) => {
-          throw e;
-        });
+      return apiState.api.listRequests(opts).then((r) => formatListResponse(r));
     },
     [apiState.api, apiState.apiAvailable, biasMetricsAreaAvailable],
   );

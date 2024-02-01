@@ -100,6 +100,7 @@ export type K8sCondition = {
   status: string;
   reason?: string;
   message?: string;
+  lastProbeTime?: string | null;
   lastTransitionTime?: string;
   lastHeartbeatTime?: string;
 };
@@ -309,7 +310,9 @@ export type PodKind = K8sResourceCommon & {
   };
   spec: PodSpec;
   status: {
-    containerStatuses: {
+    phase: string;
+    conditions: K8sCondition[];
+    containerStatuses?: {
       name?: string;
       ready: boolean;
       state?: { running?: boolean; waiting?: boolean; terminated?: boolean };
@@ -323,7 +326,7 @@ export type ProjectKind = K8sResourceCommon & {
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
-    labels: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
+    labels?: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
     name: string;
   };
   status?: {
@@ -370,7 +373,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     };
     containers: ServingContainer[];
     supportedModelFormats: SupportedModelFormats[];
-    replicas: number;
+    replicas?: number;
     tolerations?: Toleration[];
     volumes?: Volume[];
   };
@@ -416,6 +419,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
           schemaPath?: string;
         };
       };
+      maxReplicas?: number;
+      minReplicas?: number;
     };
   };
   status?: {
@@ -641,7 +646,7 @@ export type PipelineRunTaskSpecDigest = {
 type PipelineRunTaskSpecStep = {
   name: string;
   args?: string[];
-  command: string[];
+  command: string[] | undefined;
   image: string;
 };
 
@@ -661,7 +666,7 @@ export type PipelineRunTaskSpec = {
   stepTemplate?: {
     volumeMounts?: PipelineRunTaskVolumeMount[];
   };
-  results: PipelineRunTaskSpecResult[];
+  results: PipelineRunTaskSpecResult[] | undefined;
   metadata?: {
     annotations?: {
       /** @see PipelineRunTaskSpecDigest */

@@ -7,7 +7,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import ProjectView from '~/pages/projects/screens/projects/ProjectView';
-import { mock403Error } from '~/__mocks__/mock403Error';
+import { mock403Error } from '~/__mocks__/mockK8sStatus';
 
 export default {
   component: ProjectView,

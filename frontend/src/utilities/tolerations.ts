@@ -64,7 +64,7 @@ export const computeNotebooksTolerations = (
     tolerations,
   );
 
-  const hasTolerations = !!tolerations && tolerations.length > 0;
+  const hasTolerations = tolerations.length > 0;
   const doNothing = settings.length === 0 && !hasTolerations;
   const tolerationsRemoved = settings.length === 0 && hasTolerations;
   const updateTolerations = settings.length > 0 && hasTolerations;

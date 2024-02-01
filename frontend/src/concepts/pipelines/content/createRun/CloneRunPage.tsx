@@ -24,7 +24,7 @@ const CloneRunPage: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contex
       loadError={error}
       empty={false}
     >
-      <RunPage cloneRun={resource ?? undefined} contextPath={contextPath} />
+      <RunPage cloneRun={resource ?? undefined} contextPath={contextPath} testId="clone-run-page" />
     </ApplicationsPage>
   );
 };

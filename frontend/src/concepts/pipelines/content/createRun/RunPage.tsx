@@ -23,9 +23,10 @@ import {
 type RunPageProps = {
   cloneRun?: PipelineRunKF | PipelineRunJobKF;
   contextPath?: string;
+  testId?: string;
 };
 
-const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath }) => {
+const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath, testId }) => {
   const { namespace } = usePipelinesAPI();
   const location = useLocation();
 
@@ -42,7 +43,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath }) => {
   );
 
   return (
-    <>
+    <div data-testid={testId}>
       <PageSection isFilled variant="light">
         <GenericSidebar
           sections={Object.values(CreateRunPageSections)}
@@ -55,7 +56,7 @@ const RunPage: React.FC<RunPageProps> = ({ cloneRun, contextPath }) => {
       <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
         <RunPageFooter data={formData} contextPath={contextPath ?? `/pipelineRuns/${namespace}`} />
       </PageSection>
-    </>
+    </div>
   );
 };
 

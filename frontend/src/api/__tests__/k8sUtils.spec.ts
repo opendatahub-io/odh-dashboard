@@ -7,7 +7,7 @@ describe('addOwnerReference', () => {
     const resource = mockSecretK8sResource({});
     const target = addOwnerReference(resource, undefined);
     expect(target).toBe(resource);
-    expect(target.metadata?.ownerReferences).toBeUndefined();
+    expect(target.metadata.ownerReferences).toBeUndefined();
   });
 
   it('should add owner reference only once', () => {

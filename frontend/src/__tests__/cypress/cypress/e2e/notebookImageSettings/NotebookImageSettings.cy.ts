@@ -23,7 +23,9 @@ describe('Notebook Image Secttings', () => {
           mockByon([
             {
               id: `id-${i}`,
-              ['display_name']: `image-${i}`,
+              /* eslint-disable camelcase */
+              display_name: `image-${i}`,
+              /* eslint-enable camelcase */
               name: `byon-${i}`,
               description: `description-${i}`,
               provider: `provider-${i}`,

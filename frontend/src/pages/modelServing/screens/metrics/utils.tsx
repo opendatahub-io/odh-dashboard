@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { SelectOptionObject } from '@patternfly/react-core/deprecated';
 import { Link } from 'react-router-dom';
+import { ReactElement } from 'react';
 import { RefreshIntervalTitle, TimeframeTitle } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
@@ -29,14 +30,14 @@ export const getServerMetricsQueries = (
   server: ServingRuntimeKind,
   currentTimeframe: TimeframeTitle,
 ): { [key in ServerMetricType]: string } => {
-  const namespace = server.metadata.namespace;
-  const name = server.metadata.name;
+  const { namespace } = server.metadata;
+  const { name } = server.metadata;
   const responseTimeStep = QueryTimeframeStep[ServerMetricType.AVG_RESPONSE_TIME][currentTimeframe];
   return {
-    [ServerMetricType.REQUEST_COUNT]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${
+    [ServerMetricType.REQUEST_COUNT]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${
       QueryTimeframeStep[ServerMetricType.REQUEST_COUNT][currentTimeframe]
-    }s]))`,
-    [ServerMetricType.AVG_RESPONSE_TIME]: `increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])/increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${responseTimeStep}s])`,
+    }s])))`,
+    [ServerMetricType.AVG_RESPONSE_TIME]: `sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${responseTimeStep}s])) / sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${responseTimeStep}s]))`,
     [ServerMetricType.CPU_UTILIZATION]: `sum(pod:container_cpu_usage:sum{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="cpu", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
     [ServerMetricType.MEMORY_UTILIZATION]: `sum(container_memory_working_set_bytes{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="memory", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
   };
@@ -46,16 +47,16 @@ export const getModelMetricsQueries = (
   model: InferenceServiceKind,
   currentTimeframe: TimeframeTitle,
 ): { [key in ModelMetricType]: string } => {
-  const namespace = model.metadata.namespace;
-  const name = model.metadata.name;
+  const { namespace } = model.metadata;
+  const { name } = model.metadata;
 
   return {
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${
       QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
-    }s]))`,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: `sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
-      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_SUCCESS][currentTimeframe]
-    }s]))`,
+    }s]))) OR on() vector(0)`,
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${
+      QueryTimeframeStep[ModelMetricType.REQUEST_COUNT_FAILED][currentTimeframe]
+    }s]))) OR on() vector(0)`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
   };
@@ -94,9 +95,9 @@ export const convertTimestamp = (timestamp: number, show?: 'date' | 'second'): s
   const second = date.getSeconds();
   const ampm = hour > 12 ? 'PM' : 'AM';
   hour = hour % 12;
-  hour = hour ? hour : 12;
-  const minuteString = minute < 10 ? '0' + minute : minute;
-  const secondString = second < 10 ? '0' + second : second;
+  hour = hour || 12;
+  const minuteString = minute < 10 ? `0${minute}` : minute;
+  const secondString = second < 10 ? `0${second}` : second;
   if (show === 'date') {
     return `${day} ${month}`;
   }
@@ -140,7 +141,7 @@ export const createGraphMetricLine = ({
   name,
   translatePoint,
 }: NamedMetricChartLine): GraphMetricLine =>
-  metric.data?.map<GraphMetricPoint>((data) => {
+  metric.data.map<GraphMetricPoint>((data) => {
     const point: GraphMetricPoint = {
       x: data[0] * 1000,
       y: parseFloat(data[1]),
@@ -150,7 +151,7 @@ export const createGraphMetricLine = ({
       return translatePoint(point);
     }
     return point;
-  }) || [];
+  });
 
 export const useStableMetrics = (
   metricChartLine: MetricChartLine,
@@ -173,7 +174,7 @@ export const useStableMetrics = (
 
 export const getBreadcrumbItemComponents = (
   breadcrumbItems: BreadcrumbItemType[],
-): React.ReactElement[] =>
+): ReactElement[] =>
   breadcrumbItems.map((item) => (
     <BreadcrumbItem
       isActive={item.isActive}
@@ -189,16 +190,13 @@ const checkThresholdValid = (metricType: BiasMetricType, thresholdDelta?: number
       return true;
     }
 
-    if (metricType === BiasMetricType.DIR) {
-      if (thresholdDelta >= 0 && thresholdDelta < 1) {
-        // 0<=DIR<1 , valid
-        return true;
-      }
-      // DIR, not within the range, invalid
-      return false;
+    // metricType === BiasMetricType.DIR
+    if (thresholdDelta >= 0 && thresholdDelta < 1) {
+      // 0<=DIR<1 , valid
+      return true;
     }
+    // DIR, not within the range, invalid
     // not SPD not DIR, undefined for now, metricType should be selected, invalid
-    return false;
   }
   // not input anything, invalid
   return false;
@@ -207,15 +205,13 @@ const checkThresholdValid = (metricType: BiasMetricType, thresholdDelta?: number
 const checkBatchSizeValid = (batchSize?: number): boolean => {
   if (batchSize !== undefined) {
     if (Number.isInteger(batchSize)) {
-      // size > 2, integer, valid
+      // size => 2, integer, valid
       if (batchSize >= 2) {
         return true;
       }
-      // size <= 2, invalid
-      return false;
+      // size < 2, invalid
     }
     // not an integer, invalid
-    return false;
   }
   // not input anything, invalid
   return false;
@@ -243,8 +239,8 @@ export const isMetricType = (
   Object.values(BiasMetricType).includes(metricType as BiasMetricType);
 
 export const byId =
-  <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
-  (arg2: T): boolean => {
+  <T extends { id: string | number }, U extends T | T['id']>(arg: U): ((arg: T) => boolean) =>
+  (arg2: T) => {
     if (typeof arg === 'object') {
       return arg2.id === arg.id;
     }
@@ -252,8 +248,8 @@ export const byId =
   };
 
 export const byNotId =
-  <T extends { id: string | number }, U extends T | T['id']>(arg: U) =>
-  (arg2: T): boolean => {
+  <T extends { id: string | number }, U extends T | T['id']>(arg: U): ((arg: T) => boolean) =>
+  (arg2: T) => {
     if (typeof arg === 'object') {
       return arg2.id !== arg.id;
     }
@@ -296,8 +292,8 @@ export const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): Bias
 export const isBiasSelectOption = (obj: SelectOptionObject): obj is BiasSelectOption =>
   'biasMetricConfig' in obj;
 
-export const convertInputType = (input: string): string | number | boolean => {
-  if (input !== '' && !isNaN(Number(input))) {
+export const convertInputType = (input: string): number | boolean | string => {
+  if (input.trim() !== '' && !Number.isNaN(Number(input))) {
     return Number(input);
   }
   if (input.toLowerCase() === 'true') {
@@ -324,7 +320,7 @@ export const getThresholdDefaultDelta = (metricType?: BiasMetricType): number | 
 export const convertPrometheusNaNToZero = (
   data: PrometheusQueryRangeResultValue[],
 ): PrometheusQueryRangeResultValue[] =>
-  data.map((value) => [value[0], isNaN(Number(value[1])) ? '0' : value[1]]);
+  data.map((value) => [value[0], Number.isNaN(Number(value[1])) ? '0' : value[1]]);
 
 export const defaultDomainCalculator: DomainCalculator = (maxYValue, minYValue) =>
   maxYValue === 0 && minYValue === 0 ? { y: [0, 10] } : undefined;

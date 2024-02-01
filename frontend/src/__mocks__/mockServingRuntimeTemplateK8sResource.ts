@@ -5,13 +5,17 @@ type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
+  replicas?: number;
   platforms?: ServingRuntimePlatform[];
+  isModelmesh?: boolean;
 };
 
 export const mockServingRuntimeTemplateK8sResource = ({
   name = 'template-1',
   namespace = 'opendatahub',
   displayName = 'New OVMS Server',
+  replicas = 1,
+  isModelmesh = false,
   platforms,
 }: MockResourceConfigType): TemplateKind => ({
   apiVersion: 'template.openshift.io/v1',
@@ -76,7 +80,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
         grpcEndpoint: 'port:8085',
         multiModel: true,
         protocolVersions: ['grpc-v1'],
-        replicas: 1,
+        ...(isModelmesh && { replicas }),
         supportedModelFormats: [
           {
             autoSelect: true,

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import {
   Card,
   CardBody,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   EmptyStateHeader,
+  EmptyStateIcon,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import {
@@ -13,7 +13,7 @@ import {
   EMPTY_BIAS_CHART_SELECTION_TITLE,
 } from '~/pages/modelServing/screens/metrics/const';
 
-const EmptyBiasChartSelectionCard: React.FC = () => (
+const EmptyBiasChartSelectionCard = (): ReactElement => (
   <Card>
     <CardBody>
       <EmptyState>

@@ -40,13 +40,13 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   return (
     <Tr>
       <CheckboxTd id={run.id} isChecked={isChecked} onToggle={onToggleCheck} />
-      <Td>
+      <Td dataLabel="Name">
         <PipelineRunTableRowTitle resource={run} />
       </Td>
-      <Td>
+      <Td dataLabel="Experiment">
         <CoreResourceExperiment resource={run} />
       </Td>
-      <Td modifier="truncate">
+      <Td modifier="truncate" dataLabel="Pipeline">
         <CoreResourcePipelineVersion
           resource={data || run}
           loaded={!isJobInfoLoading && isVersionLoaded}
@@ -54,16 +54,16 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           error={error}
         />
       </Td>
-      <Td>
+      <Td dataLabel="Created">
         <RunCreated run={run} />
       </Td>
-      <Td>
+      <Td dataLabel="Duration">
         <RunDuration run={run} />
       </Td>
-      <Td>
+      <Td dataLabel="Status">
         <RunStatus justIcon run={run} />
       </Td>
-      <Td isActionCell>
+      <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
             {

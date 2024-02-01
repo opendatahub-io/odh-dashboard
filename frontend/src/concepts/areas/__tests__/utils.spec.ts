@@ -14,7 +14,7 @@ describe('isAreaAvailable', () => {
       );
 
       expect(isAvailable.status).toBe(true);
-      expect(isAvailable.featureFlags).toEqual({ ['disablePipelines']: 'on' });
+      expect(isAvailable.featureFlags).toEqual({ disablePipelines: 'on' });
       expect(isAvailable.reliantAreas).toBe(null);
       expect(isAvailable.requiredComponents).toBe(null);
     });
@@ -27,7 +27,7 @@ describe('isAreaAvailable', () => {
       );
 
       expect(isAvailable.status).not.toBe(true);
-      expect(isAvailable.featureFlags).toEqual({ ['disablePipelines']: 'off' });
+      expect(isAvailable.featureFlags).toEqual({ disablePipelines: 'off' });
       expect(isAvailable.reliantAreas).toBe(null);
       expect(isAvailable.requiredComponents).toBe(null);
     });
@@ -56,7 +56,7 @@ describe('isAreaAvailable', () => {
         );
 
         expect(isAvailable.status).toBe(true);
-        expect(isAvailable.featureFlags).toEqual({ ['disablePipelines']: 'on' });
+        expect(isAvailable.featureFlags).toEqual({ disablePipelines: 'on' });
         expect(isAvailable.reliantAreas).toBe(null);
         expect(isAvailable.requiredComponents).toEqual({ [StackComponent.DS_PIPELINES]: true });
       });
@@ -69,7 +69,7 @@ describe('isAreaAvailable', () => {
         );
 
         expect(isAvailable.status).not.toBe(true);
-        expect(isAvailable.featureFlags).toEqual({ ['disablePipelines']: 'on' });
+        expect(isAvailable.featureFlags).toEqual({ disablePipelines: 'on' });
         expect(isAvailable.reliantAreas).toBe(null);
         expect(isAvailable.requiredComponents).toEqual({ [StackComponent.DS_PIPELINES]: false });
       });
@@ -82,7 +82,7 @@ describe('isAreaAvailable', () => {
         );
 
         expect(isAvailable.status).not.toBe(true);
-        expect(isAvailable.featureFlags).toEqual({ ['disablePipelines']: 'off' });
+        expect(isAvailable.featureFlags).toEqual({ disablePipelines: 'off' });
         expect(isAvailable.reliantAreas).toBe(null);
         expect(isAvailable.requiredComponents).toEqual({ [StackComponent.DS_PIPELINES]: true });
       });
@@ -95,7 +95,7 @@ describe('isAreaAvailable', () => {
         );
 
         expect(isAvailable.status).not.toBe(true);
-        expect(isAvailable.featureFlags).toEqual({ ['disablePipelines']: 'off' });
+        expect(isAvailable.featureFlags).toEqual({ disablePipelines: 'off' });
         expect(isAvailable.reliantAreas).toBe(null);
         expect(isAvailable.requiredComponents).toEqual({ [StackComponent.DS_PIPELINES]: false });
       });
@@ -147,7 +147,7 @@ describe('isAreaAvailable', () => {
 
         expect(isAvailableReliantCustomRuntimes.status).toBe(true);
         expect(isAvailableReliantCustomRuntimes.featureFlags).toEqual({
-          ['disableCustomServingRuntimes']: 'on',
+          disableCustomServingRuntimes: 'on',
         });
         expect(isAvailableReliantCustomRuntimes.reliantAreas).toEqual({
           [SupportedArea.MODEL_SERVING]: true,
@@ -169,7 +169,7 @@ describe('isAreaAvailable', () => {
         );
 
         expect(isAvailable.status).not.toBe(true);
-        expect(isAvailable.featureFlags).toEqual({ ['disableCustomServingRuntimes']: 'on' });
+        expect(isAvailable.featureFlags).toEqual({ disableCustomServingRuntimes: 'on' });
         expect(isAvailable.reliantAreas).toEqual({
           [SupportedArea.MODEL_SERVING]: false,
         });

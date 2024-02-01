@@ -6,7 +6,6 @@ import {
 } from '~/api';
 import { K8sAPIOptions } from '~/k8sTypes';
 
-export type GetInfo = (opts: K8sAPIOptions) => Promise<unknown>;
 export type ListRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;
 export type ListSpdRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;
 export type ListDirRequests = (opts: K8sAPIOptions) => Promise<BaseMetricListResponse>;
@@ -22,7 +21,6 @@ export type DeleteSpdRequest = (opts: K8sAPIOptions, requestId: string) => Promi
 export type DeleteDirRequest = (opts: K8sAPIOptions, requestId: string) => Promise<void>;
 
 export type ExplainabilityAPI = {
-  getInfo: GetInfo;
   listRequests: ListRequests;
   listSpdRequests: ListSpdRequests;
   listDirRequests: ListDirRequests;

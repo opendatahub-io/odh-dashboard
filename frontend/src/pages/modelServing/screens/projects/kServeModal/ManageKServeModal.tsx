@@ -67,10 +67,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const isInferenceServiceNameWithinLimit =
+    translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
   React.useEffect(() => {
     if (projectContext?.currentProject) {
-      setCreateDataInferenceService('project', projectContext?.currentProject.metadata.name);
+      setCreateDataInferenceService('project', projectContext.currentProject.metadata.name);
     }
   }, [projectContext, setCreateDataInferenceService]);
 
@@ -103,6 +105,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.storage.path.includes('//') ||
     createDataInferenceService.storage.path === '' ||
     createDataInferenceService.storage.path === '/' ||
+    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
   const servingRuntimeSelected = React.useMemo(
@@ -142,28 +145,31 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name);
 
-    Promise.all([
-      submitServingRuntimeResources(
-        servingRuntimeSelected,
-        createDataServingRuntime,
-        customServingRuntimesEnabled,
-        namespace,
-        editInfo?.servingRuntimeEditInfo,
-        true,
-        acceleratorProfileState,
-        NamespaceApplicationCase.KSERVE_PROMOTION,
-        projectContext?.currentProject,
-        servingRuntimeName,
-        false,
-      ),
-      submitInferenceServiceResource(
-        createDataInferenceService,
-        editInfo?.inferenceServiceEditInfo,
-        servingRuntimeName,
-        false,
-        acceleratorProfileState,
-      ),
-    ])
+    const replicaCount = createDataServingRuntime.numReplicas;
+
+    submitServingRuntimeResources(
+      servingRuntimeSelected,
+      createDataServingRuntime,
+      customServingRuntimesEnabled,
+      namespace,
+      editInfo?.servingRuntimeEditInfo,
+      true,
+      acceleratorProfileState,
+      NamespaceApplicationCase.KSERVE_PROMOTION,
+      projectContext?.currentProject,
+      servingRuntimeName,
+      false,
+    )
+      .then(() =>
+        submitInferenceServiceResource(
+          createDataInferenceService,
+          editInfo?.inferenceServiceEditInfo,
+          servingRuntimeName,
+          false,
+          acceleratorProfileState,
+          replicaCount,
+        ),
+      )
       .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
@@ -200,7 +206,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ProjectSection
               projectName={
                 (projectContext?.currentProject &&
-                  getProjectDisplayName(projectContext?.currentProject)) ||
+                  getProjectDisplayName(projectContext.currentProject)) ||
                 editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
                 ''
               }
@@ -211,6 +217,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               <InferenceServiceNameSection
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
+                isNameValid={isInferenceServiceNameWithinLimit}
               />
             </StackItem>
           </StackItem>

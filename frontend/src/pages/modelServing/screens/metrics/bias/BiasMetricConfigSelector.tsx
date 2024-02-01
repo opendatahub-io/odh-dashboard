@@ -73,6 +73,8 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
         placeholderText="Select a metric"
         isDisabled={!(loaded && biasMetricConfigs.length > 0)}
         isGrouped
+        id="bias-metric-config-selector"
+        toggleId="bias-metric-config-selector"
       >
         <SelectGroup label="SPD" key="SPD">
           {biasMetricConfigs

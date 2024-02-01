@@ -79,7 +79,7 @@ export const TimeframeTimeRange: TimeframeTimeType = {
 };
 
 /**
- * How large a step is -- value is in how many seconds to combine to great an individual data response
+ * How large a step is -- value is in how many seconds to combine to create an individual data response
  * Each should be getting ~300 data points (assuming data fills the gap)
  *
  * eg. [TimeframeTitle.ONE_DAY]: 24 * 12,
@@ -112,6 +112,7 @@ export const QueryTimeframeStep: QueryTimeframeStepType = {
   [ModelMetricType.TRUSTY_AI_SPD]: TimeframeStep,
 };
 
+// Values in milliseconds.
 export const RefreshIntervalValue: RefreshIntervalValueType = {
   [RefreshIntervalTitle.FIFTEEN_SECONDS]: 15 * 1000,
   [RefreshIntervalTitle.THIRTY_SECONDS]: 30 * 1000,

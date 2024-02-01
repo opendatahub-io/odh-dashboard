@@ -91,7 +91,6 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
   const { getJobInformation } = useJobRelatedInformation(apiState);
-
   let error = crLoadError || routeLoadError;
   if (error || !project) {
     error = error || new Error('Project not found');

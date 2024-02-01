@@ -69,9 +69,10 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
     setSelectedContainer,
   } = usePodContainerLogState(podName);
   const [isPaused, setIsPaused] = React.useState(false);
+  const containerName = selectedContainer?.name ?? '';
   const [logs, logsLoaded, logsError] = useFetchLogs(
     podName,
-    selectedContainer?.name ?? '',
+    containerName,
     !isPaused,
     LOG_TAIL_LINES,
   );
@@ -223,7 +224,7 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                               </>
                             ),
                           }))}
-                          value={selectedContainer?.name ?? ''}
+                          value={containerName}
                           placeholder="Select container..."
                           onChange={(v) => {
                             setSelectedContainer(podContainers.find((c) => c.name === v) ?? null);
@@ -232,18 +233,16 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                       </ToolbarItem>
                     )}
                     <ToolbarItem spacer={{ default: 'spacerNone' }} style={{ maxWidth: '300px' }}>
-                      <Tooltip content="Search">
-                        <LogViewerSearch
-                          onFocus={() => setIsPaused(true)}
-                          placeholder="Search"
-                          minSearchChars={0}
-                          expandableInput={{
-                            isExpanded: showSearchbar,
-                            onToggleExpand,
-                            toggleAriaLabel: 'Expandable search input toggle',
-                          }}
-                        />
-                      </Tooltip>
+                      <LogViewerSearch
+                        onFocus={() => setIsPaused(true)}
+                        placeholder="Search"
+                        minSearchChars={0}
+                        expandableInput={{
+                          isExpanded: showSearchbar,
+                          onToggleExpand,
+                          toggleAriaLabel: 'Expandable search input toggle',
+                        }}
+                      />
                     </ToolbarItem>
                     {!podStatus?.completed && (
                       <ToolbarItem spacer={{ default: 'spacerNone' }}>
@@ -311,15 +310,14 @@ const LogsTabForPodName: React.FC<{ podName: string; isFailedPod: boolean }> = (
                         <DropdownList>
                           <DropdownItem
                             isDisabled={!logs}
-                            onClick={() => {
-                              const newTab = window.open();
-                              newTab?.document.write(`<pre>${logs}</pre>`);
-                            }}
-                            component="button"
+                            href={`${location.origin}/api/k8s/api/v1/namespaces/${namespace}/pods/${podName}/log?container=${containerName}`}
+                            component="a"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             icon={<OutlinedWindowRestoreIcon />}
                             aria-label="View raw logs"
                           >
-                            View raw log
+                            View raw logs
                           </DropdownItem>
                           <DropdownItem
                             onClick={onExpandClick}
